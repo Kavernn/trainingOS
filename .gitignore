@@ -1,6 +1,0 @@
-__pycache__/
-*.pyc
-*.pyo
-.idea/
-data/weights.json
-data/user.json
