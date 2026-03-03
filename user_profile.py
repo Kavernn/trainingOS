@@ -49,15 +49,20 @@ def setup_user_profile():
     print("   CONFIGURATION PROFIL PERSONNEL")
     print("═" * 50)
     print("Pour te donner des conseils plus adaptés, remplis ces infos (tu peux skip avec Entrée)\n")
-
+    from menu_select import selectionner
     profile["name"] = input(f"Prénom / surnom (actuel: {profile['name']}) → ").strip() or profile["name"]
     profile["age"] = input(f"Âge (actuel: {profile['age'] or '?'}) → ").strip() or profile["age"]
     profile["weight_kg"] = input(f"Poids actuel (kg) (actuel: {profile['weight_kg'] or '?'}) → ").strip() or profile["weight_kg"]
     profile["height_cm"] = input(f"Taille (cm) (actuel: {profile['height_cm'] or '?'}) → ").strip() or profile["height_cm"]
-    profile["sex"] = input("Sexe (m/f) (actuel: {profile['sex'] or '?'}) → ").strip().lower() or profile["sex"]
-    profile["level"] = input("Niveau (débutant / intermédiaire / avancé) (actuel: {profile['level']}) → ").strip().lower() or profile["level"]
-    profile["goal"] = input("Objectif principal (force / hypertrophie / perte de poids / recomposition) → ").strip().lower() or profile["goal"]
-    profile["units"] = input("Unités préférées (lbs / kg) (actuel: {profile['units']}) → ").strip().lower() or profile["units"]
+    sex = selectionner("Sexe :", ["m", "f"])
+    profile["sex"] = sex or profile["sex"]
+
+    level = selectionner("Niveau :", ["débutant", "intermédiaire", "avancé"])
+    profile["level"] = level or profile["level"]
+    goal = selectionner("Objectif principal :", ["force", "hypertrophie", "perte de poids", "recomposition"])
+    profile["goal"] = goal or profile["goal"]
+    units = selectionner("Unités préférées :", ["lbs", "kg"])
+    profile["units"] = units or profile["units"]
 
     save_user_profile(profile)
     print("\nProfil sauvegardé ! Ton assistant est maintenant personnalisé 💪")

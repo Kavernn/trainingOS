@@ -1,0 +1,58 @@
+{
+  "Bench Press": {
+    "type": "barbell",
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "default_scheme": "4x5-7",
+    "muscles": [
+      "pectoraux",
+      "triceps",
+      "deltoïdes antérieurs"
+    ]
+  },
+  "Incline DB Press": {
+    "type": "dumbbell",
+    "increment": 5.0,
+    "default_scheme": "3x8-12",
+    "muscles": [
+      "pectoraux supérieurs",
+      "deltoïdes antérieurs",
+      "triceps"
+    ]
+  },
+  "Back Squat": {
+    "type": "barbell",
+    "increment": 5.0,
+    "bar_weight": 45.0,
+    "default_scheme": "4x5-8",
+    "muscles": [
+      "quadriceps",
+      "fessiers",
+      "ischio-jambiers",
+      "bas du dos",
+      "abdominaux"
+    ]
+  },
+  "Leg Press": {
+    "type": "machine",
+    "increment": 25.0,
+    "bar_weight": 0.0,
+    "default_scheme": "3x6-8",
+    "muscles": [
+      "quadriceps",
+      "fessiers",
+      "ischio-jambiers"
+    ]
+  },
+  "Lat Pulldown": {
+    "type": "machine",
+    "increment": 5.0,
+    "default_scheme": "3x8-12",
+    "muscles": [
+      "grand dorsal",
+      "biceps",
+      "rhomboïdes",
+      "trapèzes"
+    ]
+  }
+}

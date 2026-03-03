@@ -142,7 +142,8 @@ def log_single_exercise(exercise: str, weights: Dict[str, Any]) -> Dict[str, Any
     # Si l'exercice n'était pas dans l'inventaire → on l'ajoute automatiquement
     if not ex_info:
         print("\nAjout automatique à l'inventaire...")
-        t = input("Type (barbell / dumbbell / machine) → ").strip().lower()
+        from menu_select import selectionner
+        t = selectionner("Type d'exercice :", ["barbell", "dumbbell", "machine"]) or "machine"
         inc_input = float(input("Incrément par défaut (ex: 5) → ") or 5.0)
         add_exercise(exercise, t, inc_input)
 
@@ -207,14 +208,13 @@ def log_hiit_session(week: int) -> dict:
     rpe = int(rpe_str) if rpe_str.isdigit() and 1 <= int(rpe_str) <= 10 else None
 
     # Ressenti
-    print("\nRessenti global :")
-    print("  1. Facile 😎")
-    print("  2. Correct 💪")
-    print("  3. Difficile 😤")
-    print("  4. Épuisant 💀")
-    feeling_map = {"1": "Facile 😎", "2": "Correct 💪", "3": "Difficile 😤", "4": "Épuisant 💀"}
-    feeling_input = input("Ton choix (1-4) → ").strip()
-    feeling = feeling_map.get(feeling_input, "—")
+    from menu_select import selectionner
+    feeling = selectionner("Ressenti global :", [
+        "Facile 😎",
+        "Correct 💪",
+        "Difficile 😤",
+        "Épuisant 💀"
+    ]) or "—"
 
     # Commentaire libre
     comment = input("\nCommentaire libre (Entrée=rien) → ").strip()

@@ -36,66 +36,76 @@ class TrainingOSApp:
         print("      LET'S GO !!")
         print("═" * 60)
         print(f"Aujourd'hui : {datetime.now().strftime('%Y-%m-%d')} → {get_today()}  |  Semaine {week}")
-        print()
-        print("  1. Log ma séance d'aujourd'hui")
-        print("  2. Voir les poids recommandés")
-        print("  3. Planning de la semaine")
-        print("  4. HIIT de la semaine")
-        print("  5. Historique d'un exercice")
-        print("  6. Voir notes/RPE des séances")
-        print("  7. Gérer l'inventaire des exercices")
-        print("  8. Modifier le programme hebdomadaire")
-        print("  9. Configurer / modifier mon profil")
-        print(" 10. Voir mon récap intelligent")
-        print(" 11. Voir catalogue des exercices")
-        print(" 12. 📊 Dashboard stats (navigateur)")
-        print(" 13. 🏃 Historique HIIT")
-        print("  0. Quitter")
-        print("═" * 60)
-        print()
+        print("═" * 60 + "\n")
 
     def run(self):
+        from menu_select import menu_principal
+
+        MENU = [
+            "1.  Log ma séance d'aujourd'hui",
+            "2.  Voir les poids recommandés",
+            "3.  Planning de la semaine",
+            "4.  HIIT de la semaine",
+            "5.  Historique d'un exercice",
+            "6.  Voir notes / RPE des séances",
+            "7.  Gérer l'inventaire des exercices",
+            "8.  Modifier le programme hebdomadaire",
+            "9.  Configurer / modifier mon profil",
+            "10. Voir mon récap intelligent",
+            "11. Voir catalogue des exercices",
+            "12. 📊 Dashboard stats (navigateur)",
+            "13. 🏃 Historique HIIT",
+            "14. 📋 Voir mes programmes",
+            "──────────────────────────────",
+            "0.  Quitter"
+        ]
+
         while True:
             self.afficher_menu_principal()
-            choix = input("Ton choix (0-13) → ").strip().lower()
+            choix = menu_principal("Que veux-tu faire ?", MENU)
 
-            if choix == "1":
+            if not choix or choix.startswith("0.") or choix.startswith("──"):
+                if choix and choix.startswith("0."):
+                    print("\nGarde la promesse que tu t'es fait à toi même, lock n loaded !\n")
+                    sys.exit(0)
+                continue
+
+            if choix.startswith("1."):
                 self.log_seance_aujourdhui()
-            elif choix == "2":
+            elif choix.startswith("2."):
                 self.voir_poids_recommandes()
-            elif choix == "3":
+            elif choix.startswith("3."):
                 self.afficher_planning_semaine()
-            elif choix == "4":
+            elif choix.startswith("4."):
                 self.voir_hiit_semaine()
-            elif choix == "5":
+            elif choix.startswith("5."):
                 self.voir_historique_exercice()
-            elif choix == "6":
+            elif choix.startswith("6."):
                 self.voir_notes_seances()
-            elif choix == "7":
+            elif choix.startswith("7."):
                 self.gerer_inventaire()
-            elif choix == "8":
+            elif choix.startswith("8."):
                 self.modifier_programme()
-            elif choix == "9":
+            elif choix.startswith("9."):
                 self.setup_or_edit_profile()
-            elif choix == "10":
+            elif choix.startswith("10."):
                 self.show_recap_intelligent()
-            elif choix == "11":
+            elif choix.startswith("11."):
                 self.voir_catalogue_exercices()
-            elif choix == "12":
+            elif choix.startswith("12."):
                 self.voir_dashboard_stats()
-            elif choix == "13":
+            elif choix.startswith("13."):
                 self.voir_historique_hiit()
-            elif choix in ("0", "q", "quit", "exit"):
-                print("\nGarde la promesse que tu t'es fait à toi même, lock n loaded !\n")
-                sys.exit(0)
-            else:
-                print("Choix invalide – essaie 0 à 12.")
+            elif choix.startswith("14."):
+                self.voir_programme_complet()
 
             input("\nAppuie sur Entrée pour revenir au menu...")
+
 
     # ────────────────────────────────────────────────
 
     def log_seance_aujourdhui(self):
+        from menu_select import selectionner
         today_session = get_today()
         today_date = datetime.now().strftime('%Y-%m-%d')
 
@@ -114,8 +124,8 @@ class TrainingOSApp:
             if "HIIT" in today_session:
                 week = get_current_week()
                 print(f"🏃 HIIT DU JOUR  (Semaine {week})\n   " + get_hiit_str(week))
-                reponse = input("\nAs-tu fait ton HIIT ? (o/n) → ").strip().lower()
-                if reponse in ("o", "oui", "y", "yes"):
+                reponse = selectionner("As-tu fait ton HIIT ?", ["Oui 🏃", "Non"])
+                if reponse == "Oui 🏃":
                     from log_workout import log_hiit_session
                     log_hiit_session(week)
             else:
@@ -134,8 +144,9 @@ class TrainingOSApp:
             print(f"  {i:2}. {ex}")
         print()
 
-        reponse = input("As-tu fait ta séance aujourd'hui ? (o/n) ").strip().lower()
-        if reponse not in ("o", "oui", "y", "yes"):
+
+        reponse = selectionner("As-tu fait ta séance aujourd'hui ?", ["Oui 💪", "Non"])
+        if reponse != "Oui 💪":
             print("OK, à demain ! 💪")
             return
 
@@ -219,17 +230,14 @@ class TrainingOSApp:
         print(f"\nHIIT SEMAINE {week} : {get_hiit_str(week)}")
 
     def voir_historique_exercice(self):
-        exo = input("\nExercice à voir → ").strip()
-        if not exo:
+        from menu_select import selectionner
+        exercices = [k for k in self.weights if k != "sessions"]
+        if not exercices:
+            print("Aucun exercice loggué pour l'instant.")
             return
-        found = False
-        for key in self.weights:
-            if exo.lower() in key.lower() and key != "sessions":
-                show_exercise_history(key, self.weights)
-                found = True
-                break
-        if not found:
-            print("Exercice non trouvé.")
+        exo = selectionner("Quel exercice voir ?", exercices)
+        if exo and exo != "↩ Annuler":
+            show_exercise_history(exo, self.weights)
 
     def voir_notes_seances(self):
         sessions = self.weights.get("sessions", {})
@@ -245,112 +253,316 @@ class TrainingOSApp:
         print("-" * 60)
 
     def gerer_inventaire(self):
+        from menu_select import selectionner, selectionner_exercice_inventaire
+
         while True:
-            print("\n" + "═" * 50)
+            print("\n" + "═" * 55)
             print("   GESTION INVENTAIRE DES EXERCICES")
-            print("═" * 50)
-            inv = load_inventory()
-            if inv:
-                print("Exercices actuels :")
-                for ex, info in sorted(inv.items()):
-                    bar = f" (barre {info.get('bar_weight', 45)} lbs)" if info["type"] == "barbell" else ""
-                    scheme = info.get("default_scheme", "—")
-                    print(f"  • {ex:<22} ({info['type']}, +{info['increment']} lbs, scheme: {scheme}{bar})")
-            else:
-                print("Aucun exercice pour l'instant.")
+            print("═" * 55)
 
-            print("\nOptions :")
-            print("  1. Ajouter / modifier un exercice")
-            print("  0. Retour au menu principal")
-            print("═" * 50)
+            action = selectionner("Que veux-tu faire ?", [
+                "➕  Créer un nouvel exercice",
+                "✏️   Modifier un exercice existant",
+                "🗑️   Supprimer un exercice",
+                "📋  Voir le catalogue complet"
+            ])
 
-            choix = input("Ton choix → ").strip().lower()
-
-            if choix in ("0", "back", "b", "retour"):
+            if not action or action == "↩ Annuler":
                 break
 
-            if choix == "1":
-                name = input("Nom de l'exercice → ").strip()
-                if not name:
+            inv = load_inventory()
+
+            # ── CRÉER ────────────────────────────────────────
+            if action.startswith("➕"):
+                print("\n── NOUVEL EXERCICE ──────────────────────────────")
+
+                nom = input("Nom de l'exercice → ").strip()
+                if not nom:
+                    print("Nom vide, annulé.")
                     continue
-                t = input("Type (barbell / dumbbell / machine / autre) → ").strip().lower()
-                inc_str = input("Incrément par défaut → ").strip()
-                inc = float(inc_str) if inc_str.replace('.', '', 1).isdigit() else 5.0
-                scheme = input("Scheme par défaut (ex: 4x5-7) → ").strip() or "3x8-12"
+
+                if nom in inv:
+                    confirmer = selectionner(
+                        f"'{nom}' existe déjà. Écraser ?",
+                        ["Oui, écraser", "Non, annuler"]
+                    )
+                    if confirmer != "Oui, écraser":
+                        continue
+
+                ex_type = selectionner("Type d'équipement :", [
+                    "barbell", "dumbbell", "machine", "bodyweight", "cable"
+                ])
+                if not ex_type or ex_type == "↩ Annuler":
+                    continue
+
+                inc_str = input(f"Incrément par défaut (lbs) [5] → ").strip()
+                inc = float(inc_str.replace(",", ".")) if inc_str else 5.0
+
+                scheme = input("Scheme par défaut (ex: 4x5-7) [3x8-12] → ").strip() or "3x8-12"
+
                 muscles_input = input("Muscles ciblés (séparés par virgule) → ").strip()
                 muscles = [m.strip() for m in muscles_input.split(",") if m.strip()] if muscles_input else []
+
                 bar_w = 45.0
-                if t == "barbell":
-                    bar_str = input("Poids barre (défaut 45) → ").strip()
-                    bar_w = float(bar_str) if bar_str.replace('.', '', 1).isdigit() else 45.0
-                add_exercise(name, t, inc, bar_w, scheme, muscles)
-            else:
-                print("Choix invalide.")
+                if ex_type == "barbell":
+                    bar_str = input("Poids de la barre (lbs) [45] → ").strip()
+                    bar_w = float(bar_str) if bar_str.replace(".", "", 1).isdigit() else 45.0
+
+                # Résumé avant confirmation
+                print(f"\n── Résumé ───────────────────────────────────────")
+                print(f"  Nom       : {nom}")
+                print(f"  Type      : {ex_type}")
+                print(f"  Incrément : +{inc} lbs")
+                print(f"  Scheme    : {scheme}")
+                print(f"  Muscles   : {', '.join(muscles) or '—'}")
+                if ex_type == "barbell":
+                    print(f"  Barre     : {bar_w} lbs")
+                print(f"─────────────────────────────────────────────────")
+
+                confirmer = selectionner("Confirmer la création ?", ["Oui ✅", "Non, annuler"])
+                if confirmer != "Oui ✅":
+                    print("Annulé.")
+                    continue
+
+                add_exercise(nom, ex_type, inc, bar_w, scheme, muscles)
+                self.inventory = load_inventory()
+
+            # ── MODIFIER ─────────────────────────────────────
+            elif action.startswith("✏️"):
+                exo = selectionner_exercice_inventaire(
+                    "Quel exercice modifier ?", inv
+                )
+                if not exo or exo == "↩ Annuler":
+                    continue
+
+                info = inv[exo]
+                print(f"\n── Modification de '{exo}' ───────────────────────")
+                print("  Laisse vide + Entrée pour garder la valeur actuelle\n")
+
+                # Nom
+                nouveau_nom = input(f"Nom [{exo}] → ").strip() or exo
+
+                # Type
+                nouveau_type = selectionner(
+                    f"Type [{info['type']}] :",
+                    ["barbell", "dumbbell", "machine", "bodyweight", "cable", f"↩ Garder ({info['type']})"]
+                )
+                if nouveau_type and nouveau_type.startswith("↩ Garder"):
+                    nouveau_type = info["type"]
+
+                # Incrément
+                inc_str = input(f"Incrément [{info['increment']} lbs] → ").strip()
+                nouvel_inc = float(inc_str.replace(",", ".")) if inc_str else info["increment"]
+
+                # Scheme
+                nouveau_scheme = input(f"Scheme [{info.get('default_scheme', '3x8-12')}] → ").strip() or info.get(
+                    "default_scheme", "3x8-12")
+
+                # Muscles
+                muscles_actuels = ", ".join(info.get("muscles", []))
+                muscles_input = input(f"Muscles [{muscles_actuels or '—'}] → ").strip()
+                nouveaux_muscles = [m.strip() for m in muscles_input.split(",") if
+                                    m.strip()] if muscles_input else info.get("muscles", [])
+
+                # Barre si barbell
+                nouvelle_barre = info.get("bar_weight", 45.0)
+                if nouveau_type == "barbell":
+                    bar_str = input(f"Poids barre [{info.get('bar_weight', 45.0)} lbs] → ").strip()
+                    nouvelle_barre = float(bar_str) if bar_str.replace(".", "", 1).isdigit() else info.get("bar_weight",
+                                                                                                           45.0)
+
+                # Résumé
+                print(f"\n── Résumé des modifications ─────────────────────")
+                print(f"  Nom       : {exo} → {nouveau_nom}")
+                print(f"  Type      : {info['type']} → {nouveau_type}")
+                print(f"  Incrément : {info['increment']} → {nouvel_inc} lbs")
+                print(f"  Scheme    : {info.get('default_scheme', '—')} → {nouveau_scheme}")
+                print(f"  Muscles   : {muscles_actuels or '—'} → {', '.join(nouveaux_muscles) or '—'}")
+                if nouveau_type == "barbell":
+                    print(f"  Barre     : {info.get('bar_weight', 45.0)} → {nouvelle_barre} lbs")
+                print(f"─────────────────────────────────────────────────")
+
+                confirmer = selectionner("Confirmer les modifications ?", ["Oui ✅", "Non, annuler"])
+                if confirmer != "Oui ✅":
+                    print("Annulé.")
+                    continue
+
+                # Si le nom a changé, supprime l'ancien
+                if nouveau_nom != exo:
+                    del inv[exo]
+
+                inv[nouveau_nom] = {
+                    "type": nouveau_type,
+                    "increment": nouvel_inc,
+                    "bar_weight": nouvelle_barre if nouveau_type == "barbell" else 0.0,
+                    "default_scheme": nouveau_scheme,
+                    "muscles": nouveaux_muscles
+                }
+
+                from inventory import save_inventory
+                save_inventory(inv)
+                self.inventory = load_inventory()
+                print(f"✅ '{nouveau_nom}' mis à jour !")
+
+            # ── SUPPRIMER ─────────────────────────────────────
+            elif action.startswith("🗑️"):
+                exo = selectionner_exercice_inventaire(
+                    "Quel exercice supprimer ?", inv
+                )
+                if not exo or exo == "↩ Annuler":
+                    continue
+
+                confirmer = selectionner(
+                    f"⚠️  Supprimer définitivement '{exo}' ?",
+                    ["Oui, supprimer", "Non, annuler"]
+                )
+                if confirmer == "Oui, supprimer":
+                    del inv[exo]
+                    from inventory import save_inventory
+                    save_inventory(inv)
+                    self.inventory = load_inventory()
+                    print(f"✅ '{exo}' supprimé de l'inventaire.")
+                else:
+                    print("Annulé.")
+
+            # ── VOIR CATALOGUE ────────────────────────────────
+            elif action.startswith("📋"):
+                self.voir_catalogue_exercices()
+                input("\nAppuie sur Entrée pour revenir...")
 
     def modifier_programme(self):
+        from menu_select import selectionner, selectionner_exercice_inventaire, selectionner_exercice_programme
+
         while True:
             print("\n" + "═" * 50)
             print("   MODIFIER LE PROGRAMME HEBDOMADAIRE")
             print("═" * 50)
-            print(f"Jours disponibles : {list(self.program.keys())}")
-            jour = input("Jour (Upper A / Upper B / Lower) ou 0/back → ").strip()
 
-            if jour.lower() in ("0", "back", "b", "retour"):
+            # Sélection du jour avec flèches
+            jour = selectionner(
+                "Quel jour modifier ?",
+                list(self.program.keys())
+            )
+
+            if not jour or jour == "↩ Annuler":
+                print("Retour au menu principal...")
                 break
 
-            if jour not in self.program:
-                print(f"Jour '{jour}' non trouvé.")
-                continue
-
-            print(f"\nExercices pour {jour} :")
+            # Affiche les exercices du jour sélectionné
+            print(f"\nExercices actuels pour {jour} :")
+            print("─" * 45)
             for ex, sch in self.program[jour].items():
-                print(f"  • {ex:<22} {sch}")
+                print(f"  • {ex:<25} {sch}")
+            print("─" * 45)
 
-            print("\nActions :")
-            print("  1. Ajouter un exercice")
-            print("  2. Enlever un exercice")
-            print("  3. Changer scheme")
-            print("  0. Retour")
-            print("═" * 50)
+            action = selectionner(
+                "Que veux-tu faire ?",
+                [
+                    "Ajouter un exercice",
+                    "Supprimer un exercice",
+                    "Remplacer un exercice",
+                    "Changer le scheme"
+                ]
+            )
 
-            action = input("Choix → ").strip().lower()
-
-            if action in ("0", "back", "b", "retour"):
+            if not action or action == "↩ Annuler":
                 continue
 
-            if action == "1":
-                exo = input("Exercice à ajouter → ").strip()
-                if exo:
-                    inv_info = load_inventory().get(exo)
-                    if not inv_info:
-                        print(f"⚠️ '{exo}' pas dans l'inventaire (ajoute-le via option 7 d'abord).")
-                        continue
-                    scheme = input(f"Scheme (défaut {inv_info.get('default_scheme', '3x8-12')}) → ").strip() or inv_info.get('default_scheme', '3x8-12')
-                    self.program[jour][exo] = scheme
-                    save_program(self.program)
-                    print(f"✅ '{exo}' ajouté à {jour} !")
+            inv = load_inventory()
 
-            elif action == "2":
-                exo = input("Exercice à enlever → ").strip()
+            # ── AJOUTER ──────────────────────────────────
+            if action == "Ajouter un exercice":
+                exo = selectionner_exercice_inventaire(
+                    "Quel exercice ajouter ?", inv
+                )
+                if not exo:
+                    continue
+
                 if exo in self.program[jour]:
+                    print(f"⚠️  '{exo}' est déjà dans {jour}.")
+                    continue
+
+                default_scheme = inv[exo].get("default_scheme", "3x8-12")
+                scheme = input(
+                    f"Scheme (Entrée = {default_scheme}) → "
+                ).strip() or default_scheme
+
+                self.program[jour][exo] = scheme
+                save_program(self.program)
+                print(f"✅ '{exo}' ajouté à {jour} avec scheme {scheme} !")
+
+            # ── SUPPRIMER ─────────────────────────────────
+            elif action == "Supprimer un exercice":
+                exo = selectionner_exercice_programme(
+                    "Quel exercice supprimer ?",
+                    self.program[jour]
+                )
+                if not exo:
+                    continue
+
+                confirm = selectionner(
+                    f"Confirmer la suppression de '{exo}' ?",
+                    ["Oui, supprimer", "Non, annuler"]
+                )
+                if confirm == "Oui, supprimer":
                     del self.program[jour][exo]
                     save_program(self.program)
-                    print(f"✅ '{exo}' retiré de {jour}.")
+                    print(f"✅ '{exo}' supprimé de {jour}.")
                 else:
-                    print(f"'{exo}' non trouvé dans {jour}.")
+                    print("Annulé.")
 
-            elif action == "3":
-                exo = input("Exercice à modifier → ").strip()
-                if exo in self.program[jour]:
-                    new_scheme = input(f"Nouveau scheme (actuel: {self.program[jour][exo]}) → ").strip()
-                    if new_scheme:
-                        self.program[jour][exo] = new_scheme
-                        save_program(self.program)
-                        print(f"✅ Scheme mis à jour !")
-                else:
-                    print(f"'{exo}' non trouvé dans {jour}.")
-            else:
-                print("Action non reconnue.")
+            # ── REMPLACER ─────────────────────────────────
+            elif action == "Remplacer un exercice":
+                exo_old = selectionner_exercice_programme(
+                    "Quel exercice remplacer ?",
+                    self.program[jour]
+                )
+                if not exo_old:
+                    continue
+
+                exo_new = selectionner_exercice_inventaire(
+                    f"Remplacer '{exo_old}' par quel exercice ?",
+                    inv
+                )
+                if not exo_new:
+                    continue
+
+                if exo_new == exo_old:
+                    print("C'est le même exercice, rien changé.")
+                    continue
+
+                # Garde le scheme existant ou prend celui de l'inventaire
+                ancien_scheme = self.program[jour].pop(exo_old)
+                nouveau_scheme = inv[exo_new].get("default_scheme", ancien_scheme)
+
+                scheme = input(
+                    f"Scheme (Entrée = {nouveau_scheme}) → "
+                ).strip() or nouveau_scheme
+
+                self.program[jour][exo_new] = scheme
+                save_program(self.program)
+                print(f"✅ '{exo_old}' remplacé par '{exo_new}' (scheme: {scheme}) !")
+
+            # ── CHANGER SCHEME ────────────────────────────
+            elif action == "Changer le scheme":
+                exo = selectionner_exercice_programme(
+                    "Pour quel exercice changer le scheme ?",
+                    self.program[jour]
+                )
+                if not exo:
+                    continue
+
+                actuel = self.program[jour][exo]
+                print(f"   Scheme actuel : {actuel}")
+                new_scheme = input("Nouveau scheme → ").strip()
+
+                if not new_scheme:
+                    print("Rien changé.")
+                    continue
+
+                self.program[jour][exo] = new_scheme
+                save_program(self.program)
+                print(f"✅ Scheme de '{exo}' changé : {actuel} → {new_scheme}")
 
     def setup_or_edit_profile(self):
         from user_profile import setup_user_profile
@@ -421,6 +633,24 @@ class TrainingOSApp:
             print(f"    Scheme défaut: {info.get('default_scheme', '—')}")
             print(f"    Muscles ciblés: {muscles}")
             print("─" * 70)
+    def voir_catalogue_exercices(self):
+        print("\n" + "═" * 70)
+        print("   CATALOGUE DES EXERCICES (Inventaire complet)")
+        print("═" * 70)
+
+        inv = load_inventory()
+        if not inv:
+            print("Aucun exercice dans l'inventaire pour l'instant.")
+            return
+
+        for ex, info in sorted(inv.items()):
+            muscles = ", ".join(info.get("muscles", [])) or "non spécifié"
+            bar = f" (barre {info.get('bar_weight', 45)} lbs)" if info["type"] == "barbell" else ""
+            print(f"  • {ex:<25}")
+            print(f"    Type: {info['type']:<12} Incrément: +{info['increment']} lbs{bar}")
+            print(f"    Scheme défaut: {info.get('default_scheme', '—')}")
+            print(f"    Muscles ciblés: {muscles}")
+            print("─" * 70)
 
     def voir_dashboard_stats(self):
         generate_dashboard()
@@ -428,3 +658,154 @@ class TrainingOSApp:
     def voir_historique_hiit(self):
         from log_workout import show_hiit_history
         show_hiit_history()
+
+    def voir_programme_complet(self):
+        from menu_select import selectionner, selectionner_exercice_inventaire, selectionner_exercice_programme
+
+        while True:
+            jour = selectionner(
+                "Quel programme ?",
+                list(self.program.keys())
+            )
+
+            if not jour or jour == "↩ Annuler":
+                break
+
+            while True:
+                inv = load_inventory()
+
+                # Affiche le programme
+                print(f"\n{'═' * 65}")
+                print(f"   PROGRAMME {jour.upper()}")
+                print(f"{'═' * 65}")
+                print(f"{'Exercice':<25} {'Scheme':<12} {'Type':<10} {'Muscles'}")
+                print("─" * 65)
+
+                for ex, scheme in self.program[jour].items():
+                    info = inv.get(ex, {})
+                    ex_type = info.get("type", "—")
+                    muscles = ", ".join(info.get("muscles", [])) or "—"
+                    print(f"{ex:<25} {scheme:<12} {ex_type:<10} {muscles}")
+
+                print("─" * 65)
+                print(f"  Total : {len(self.program[jour])} exercices")
+                print(f"{'═' * 65}\n")
+
+                action = selectionner(
+                    f"Que veux-tu faire avec {jour} ?",
+                    [
+                        "➕  Ajouter un exercice du catalogue",
+                        "🗑️   Supprimer un exercice",
+                        "🔄  Remplacer un exercice",
+                        "✏️   Changer le scheme d'un exercice",
+                        "↩  Choisir un autre programme"
+                    ]
+                )
+
+                if not action or action == "↩ Annuler" or action.startswith("↩"):
+                    break
+
+                # ── AJOUTER ──────────────────────────────────
+                if action.startswith("➕"):
+
+                    # Filtre les exercices déjà dans le programme
+                    deja_dans = set(self.program[jour].keys())
+                    catalogue_dispo = {
+                        nom: info for nom, info in inv.items()
+                        if nom not in deja_dans
+                    }
+
+                    if not catalogue_dispo:
+                        print("⚠️  Tous les exercices du catalogue sont déjà dans ce programme.")
+                        continue
+
+                    exo = selectionner_exercice_inventaire(
+                        f"Quel exercice ajouter à {jour} ?",
+                        catalogue_dispo
+                    )
+                    if not exo or exo == "↩ Annuler":
+                        continue
+
+                    default_scheme = inv[exo].get("default_scheme", "3x8-12")
+                    scheme = input(
+                        f"Scheme (Entrée = {default_scheme}) → "
+                    ).strip() or default_scheme
+
+                    self.program[jour][exo] = scheme
+                    save_program(self.program)
+                    print(f"✅ '{exo}' ajouté à {jour} ({scheme}) !")
+
+                # ── SUPPRIMER ─────────────────────────────────
+                elif action.startswith("🗑️"):
+                    exo = selectionner_exercice_programme(
+                        f"Quel exercice supprimer de {jour} ?",
+                        self.program[jour]
+                    )
+                    if not exo or exo == "↩ Annuler":
+                        continue
+
+                    confirmer = selectionner(
+                        f"Supprimer '{exo}' de {jour} ?",
+                        ["Oui, supprimer", "Non, annuler"]
+                    )
+                    if confirmer == "Oui, supprimer":
+                        del self.program[jour][exo]
+                        save_program(self.program)
+                        print(f"✅ '{exo}' supprimé de {jour}.")
+                    else:
+                        print("Annulé.")
+
+                # ── REMPLACER ─────────────────────────────────
+                elif action.startswith("🔄"):
+                    exo_old = selectionner_exercice_programme(
+                        "Quel exercice remplacer ?",
+                        self.program[jour]
+                    )
+                    if not exo_old or exo_old == "↩ Annuler":
+                        continue
+
+                    deja_dans = set(self.program[jour].keys()) - {exo_old}
+                    catalogue_dispo = {
+                        nom: info for nom, info in inv.items()
+                        if nom not in deja_dans
+                    }
+
+                    exo_new = selectionner_exercice_inventaire(
+                        f"Remplacer '{exo_old}' par quel exercice ?",
+                        catalogue_dispo
+                    )
+                    if not exo_new or exo_new == "↩ Annuler":
+                        continue
+
+                    ancien_scheme = self.program[jour].pop(exo_old)
+                    nouveau_scheme = inv[exo_new].get("default_scheme", ancien_scheme)
+
+                    scheme = input(
+                        f"Scheme (Entrée = {nouveau_scheme}) → "
+                    ).strip() or nouveau_scheme
+
+                    self.program[jour][exo_new] = scheme
+                    save_program(self.program)
+                    print(f"✅ '{exo_old}' → '{exo_new}' ({scheme}) !")
+
+                # ── CHANGER SCHEME ────────────────────────────
+                elif action.startswith("✏️"):
+                    exo = selectionner_exercice_programme(
+                        "Pour quel exercice changer le scheme ?",
+                        self.program[jour]
+                    )
+                    if not exo or exo == "↩ Annuler":
+                        continue
+
+                    actuel = self.program[jour][exo]
+                    new_scheme = input(
+                        f"Nouveau scheme (actuel: {actuel}) → "
+                    ).strip()
+
+                    if not new_scheme:
+                        print("Rien changé.")
+                        continue
+
+                    self.program[jour][exo] = new_scheme
+                    save_program(self.program)
+                    print(f"✅ {exo} : {actuel} → {new_scheme}")
