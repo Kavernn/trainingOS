@@ -46,14 +46,14 @@ def log_single_exercise(exercise: str, weights: Dict[str, Any]) -> Dict[str, Any
     print(f"\n{'─' * 65}")
     print(f"📌 {exercise}")
 
-    # Dernière séance
+    # ── Dernière séance ───────────────────────────────────
     last = data.get(exercise, {})
     if last and "history" in last and last["history"]:
         last_entry = last["history"][0]
         print(f"   Dernière : {last_entry['weight']} lbs | {last_entry['reps']} | {last_entry.get('note', '—')}")
 
-    # Inventaire
-    inv = load_inventory()
+    # ── Inventaire ────────────────────────────────────────
+    inv     = load_inventory()
     ex_info = inv.get(exercise)
 
     if ex_info:
@@ -67,11 +67,19 @@ def log_single_exercise(exercise: str, weights: Dict[str, Any]) -> Dict[str, Any
         inc     = 5.0
         bar_w   = 45.0
 
+    # ── Échauffement ──────────────────────────────────────
+    try:
+        from warmup import proposer_warmup
+        from planner import PROGRAM, get_today
+        proposer_warmup(exercise, data, inv, PROGRAM, get_today())
+    except:
+        pass
+
+    # ── Saisie du poids ───────────────────────────────────
     skip         = False
     total_weight = 0.0
     input_value  = 0.0
 
-    # Saisie du poids selon le type
     if ex_type == "barbell":
         val = input(f"   Poids par côté (plaques seulement) → ").strip()
         if not val:
@@ -105,7 +113,7 @@ def log_single_exercise(exercise: str, weights: Dict[str, Any]) -> Dict[str, Any
         print("   Exercice passé")
         return data
 
-    # Reps
+    # ── Reps ──────────────────────────────────────────────
     reps_input = input("\n   Reps par série (ex: 7,6,5,5) → ").strip()
     if not reps_input:
         print("   Exercice passé")
@@ -114,7 +122,7 @@ def log_single_exercise(exercise: str, weights: Dict[str, Any]) -> Dict[str, Any
     reps_list = parse_reps(reps_input)
     reps_str  = ",".join(map(str, reps_list))
 
-    # Progression
+    # ── Progression ───────────────────────────────────────
     print(f"   {progression_status(reps_str, exercise)}")
 
     if should_increase(reps_str, exercise):
@@ -126,7 +134,19 @@ def log_single_exercise(exercise: str, weights: Dict[str, Any]) -> Dict[str, Any
 
     print(f"   1RM estimé : {estimate_1rm(total_weight, reps_str)} lbs")
 
-    # Sauvegarde
+    # ── Timer de repos ────────────────────────────────────
+    from timer import demander_timer
+    scheme = ""
+    try:
+        from planner import PROGRAM, get_today
+        today = get_today()
+        if today in PROGRAM and exercise in PROGRAM[today]:
+            scheme = PROGRAM[today][exercise]
+    except:
+        pass
+    demander_timer(exercise, scheme)
+
+    # ── Sauvegarde ────────────────────────────────────────
     note = f"+{new_weight - total_weight:.1f}" if should_increase(reps_str, exercise) else "stagné"
 
     history_entry = {
@@ -149,7 +169,7 @@ def log_single_exercise(exercise: str, weights: Dict[str, Any]) -> Dict[str, Any
     data[exercise]["input_type"]     = ex_type or "machine"
     data[exercise]["input_value"]    = round(input_value, 1)
 
-    # Si exercice inconnu → ajout à l'inventaire
+    # ── Exercice inconnu → ajout inventaire ───────────────
     if not ex_info:
         print("\n   Ajout automatique à l'inventaire...")
         from menu_select import selectionner
@@ -157,7 +177,7 @@ def log_single_exercise(exercise: str, weights: Dict[str, Any]) -> Dict[str, Any
             "barbell", "dumbbell", "machine", "bodyweight", "cable"
         ]) or "machine"
         inc_input_str = input("   Incrément par défaut (ex: 5) → ").strip()
-        inc_input = float(inc_input_str) if inc_input_str else 5.0
+        inc_input     = float(inc_input_str) if inc_input_str else 5.0
         add_exercise(exercise, t, inc_input)
 
     return data
@@ -238,15 +258,15 @@ def log_hiit_session(week: int) -> dict:
     comment = input("\nCommentaire libre (Entrée=rien) → ").strip()
 
     entry = {
-        "date":               datetime.now().strftime("%Y-%m-%d"),
-        "week":               week,
-        "programme":          get_hiit_str(week),
-        "rounds_planifiés":   planned_rounds,
-        "rounds_complétés":   rounds,
-        "vitesse_max":        speed,
-        "rpe":                rpe,
-        "feeling":            feeling,
-        "comment":            comment
+        "date":             datetime.now().strftime("%Y-%m-%d"),
+        "week":             week,
+        "programme":        get_hiit_str(week),
+        "rounds_planifiés": planned_rounds,
+        "rounds_complétés": rounds,
+        "vitesse_max":      speed,
+        "rpe":              rpe,
+        "feeling":          feeling,
+        "comment":          comment
     }
 
     # Chargement + sauvegarde

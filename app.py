@@ -12,6 +12,8 @@ from stats import generate_dashboard
 from sessions import load_sessions, save_sessions, log_session, get_last_sessions, migrate_sessions_from_weights
 from deload import afficher_rapport_deload, analyser_deload, load_deload_state
 from body_weight import log_body_weight, afficher_historique_poids, load_body_weight, get_tendance
+from goals import gerer_objectifs, afficher_objectifs, check_goals_achieved
+
 
 
 
@@ -38,6 +40,10 @@ class TrainingOSApp:
                 print(f"✅ {n} sessions migrées vers sessions.json")
             del self.weights["sessions"]
             save_weights(self.weights)
+
+            achieved = check_goals_achieved(self.weights)
+            for ex in achieved:
+                print(f"\n  🏆 OBJECTIF ATTEINT : {ex} ! Félicitations ! 🎉")
 
             # Alerte deload au démarrage
             self._check_deload_alerte()
@@ -85,6 +91,7 @@ class TrainingOSApp:
             "14. 📋 Voir mes programmes",
             "15. 🔄 Analyse deload",
             "16. ⚖️  Suivi poids corporel",
+            "17. 🎯 Mes objectifs personnels",
             "──────────────────────────────",
             "0.  Quitter"
         ]
@@ -131,11 +138,15 @@ class TrainingOSApp:
                 self.voir_analyse_deload()
             elif choix.startswith("16."):
                 self.voir_suivi_poids()
+            elif choix.startswith("17."):
+                self.voir_objectifs()
 
             input("\nAppuie sur Entrée pour revenir au menu...")
 
 
     # ────────────────────────────────────────────────
+    def voir_objectifs(self):
+        gerer_objectifs(self.weights)
 
     def log_seance_aujourdhui(self):
         from menu_select import selectionner
@@ -205,6 +216,12 @@ class TrainingOSApp:
 
         if faits > 0:
             save_weights(self.weights)
+
+            from goals import check_goals_achieved
+            achieved = check_goals_achieved(self.weights)
+            for ex in achieved:
+                print(f"\n  🏆 OBJECTIF ATTEINT : {ex} ! Félicitations Vincent ! 🎉")
+
             print(f"\n{faits} exos enregistrés – super boulot ! 🔥")
 
         # ── RPE + COMMENTAIRE ─────────────────────────────────
