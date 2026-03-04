@@ -80,6 +80,22 @@
   .btn-icon:hover        { border-color: var(--orange); color: var(--orange); }
   .btn-icon.delete:hover { border-color: var(--rose);   color: var(--rose);   }
 
+  .drag-handle {
+    cursor: grab;
+    color: var(--muted);
+    font-size: 1.2rem;
+    padding: 4px 8px;
+    user-select: none;
+  }
+
+  .drag-handle:active { cursor: grabbing; }
+
+  .exo-row.sortable-ghost {
+    opacity: 0.4;
+    background: var(--orange)22;
+    border: 1px dashed var(--orange);
+  }
+
   .modal-overlay {
     display: none;
     position: fixed;
@@ -182,10 +198,13 @@
     </p>
     {% else %}
     {% for exo, scheme in exercices.items() %}
-    <div class="exo-row">
-      <div>
-        <div class="exo-name">{{ exo }}</div>
-        <div class="exo-scheme">{{ scheme }}</div>
+    <div class="exo-row" data-exo="{{ exo }}">
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+        <span class="drag-handle" title="Glisser pour réordonner">⠿</span>
+        <div>
+          <div class="exo-name">{{ exo }}</div>
+          <div class="exo-scheme">{{ scheme }}</div>
+        </div>
       </div>
       <div class="exo-actions">
         <button
@@ -217,7 +236,6 @@
   <div class="modal-box">
     <div class="modal-title">➕ Ajouter un exercice</div>
     <input type="hidden" id="add-jour">
-
     <input
       class="exo-picker-search"
       type="text"
@@ -225,14 +243,11 @@
       placeholder="🔍 Rechercher..."
       oninput="filterPicker('picker-add', this.value)"
     >
-
     <div class="exo-picker-list" id="picker-add"></div>
-
     <div class="form-group mt-16">
       <label>Scheme</label>
       <input type="text" id="add-scheme" placeholder="Ex: 4x5-7" value="3x8-12">
     </div>
-
     <div style="display: flex; gap: 8px; margin-top: 8px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('modal-add')">Annuler</button>
       <button class="btn btn-primary"   style="flex:1;" onclick="confirmAdd()">Ajouter ✅</button>
@@ -246,12 +261,10 @@
     <div class="modal-title">✏️ Changer le scheme</div>
     <input type="hidden" id="scheme-jour">
     <input type="hidden" id="scheme-exo">
-
     <div class="form-group">
       <label id="scheme-label">Scheme actuel</label>
       <input type="text" id="scheme-new" placeholder="Ex: 4x5-7">
     </div>
-
     <div style="display: flex; gap: 8px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('modal-scheme')">Annuler</button>
       <button class="btn btn-primary"   style="flex:1;" onclick="confirmScheme()">Sauvegarder ✅</button>
@@ -265,11 +278,9 @@
     <div class="modal-title">🔄 Remplacer un exercice</div>
     <input type="hidden" id="replace-jour">
     <input type="hidden" id="replace-old">
-
     <p class="text-muted mb-16" style="font-size: 0.9rem;">
       Remplacer <strong id="replace-old-name" class="text-orange"></strong> par :
     </p>
-
     <input
       class="exo-picker-search"
       type="text"
@@ -277,9 +288,7 @@
       placeholder="🔍 Rechercher..."
       oninput="filterPicker('picker-replace', this.value)"
     >
-
     <div class="exo-picker-list" id="picker-replace"></div>
-
     <div style="display: flex; gap: 8px; margin-top: 16px;">
       <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('modal-replace')">Annuler</button>
       <button class="btn btn-primary"   style="flex:1;" onclick="confirmReplace()">Remplacer ✅</button>
@@ -290,7 +299,9 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
+  // ── DONNÉES GLOBALES ──────────────────────────────────
   const inventory = {{ inventory | tojson }};
   const program   = {{ program | tojson }};
   let selectedExo = null;
@@ -301,31 +312,7 @@
     body.classList.toggle('open');
   }
 
-  // ── AUTO-OUVRE DEPUIS ANCRE URL ───────────────────────
-  window.addEventListener('DOMContentLoaded', () => {
-    const hash = window.location.hash.replace('#', '');
-
-    if (hash) {
-      // Ouvre le jour depuis l'ancre
-      const card = document.getElementById(hash);
-      if (card) {
-        const body = card.querySelector('.day-body');
-        if (body) body.classList.add('open');
-        setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
-      }
-    } else {
-      // Auto-ouvre le jour d'aujourd'hui
-      const today = "{{ today }}";
-      document.querySelectorAll('.day-name').forEach((el, i) => {
-        if (el.textContent.trim() === today) {
-          const body = document.getElementById(`day-${i + 1}`);
-          if (body) body.classList.add('open');
-        }
-      });
-    }
-  });
-
-  // ── PICKER D'EXERCICES ────────────────────────────────
+  // ── PICKER ────────────────────────────────────────────
   function buildPicker(containerId, excludes = []) {
     const container = document.getElementById(containerId);
     container.innerHTML = '';
@@ -370,18 +357,13 @@
     document.getElementById('add-jour').value   = jour;
     document.getElementById('add-scheme').value = '3x8-12';
     document.getElementById('search-add').value = '';
-
     const excludes = Object.keys(program[jour] || {});
     buildPicker('picker-add', excludes);
-
     document.getElementById('modal-add').classList.add('open');
   }
 
   async function confirmAdd() {
-    if (!selectedExo) {
-      showToast('Sélectionne un exercice !', 'error');
-      return;
-    }
+    if (!selectedExo) { showToast('Sélectionne un exercice !', 'error'); return; }
     const jour   = document.getElementById('add-jour').value;
     const scheme = document.getElementById('add-scheme').value.trim() || '3x8-12';
     await apiProgram({ action: 'add', jour, exercise: selectedExo, scheme });
@@ -412,18 +394,13 @@
     document.getElementById('replace-old').value            = oldExo;
     document.getElementById('replace-old-name').textContent = oldExo;
     document.getElementById('search-replace').value         = '';
-
     const excludes = Object.keys(program[jour] || {}).filter(e => e !== oldExo);
     buildPicker('picker-replace', excludes);
-
     document.getElementById('modal-replace').classList.add('open');
   }
 
   async function confirmReplace() {
-    if (!selectedExo) {
-      showToast('Sélectionne un exercice !', 'error');
-      return;
-    }
+    if (!selectedExo) { showToast('Sélectionne un exercice !', 'error'); return; }
     const jour   = document.getElementById('replace-jour').value;
     const oldExo = document.getElementById('replace-old').value;
     const scheme = inventory[selectedExo]?.default_scheme || '3x8-12';
@@ -462,6 +439,54 @@
   ['modal-add', 'modal-scheme', 'modal-replace'].forEach(id => {
     document.getElementById(id).addEventListener('click', function(e) {
       if (e.target === this) closeModal(id);
+    });
+  });
+
+  // ── AUTO-OUVRE DEPUIS ANCRE URL ───────────────────────
+  window.addEventListener('DOMContentLoaded', () => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash) {
+      const card = document.getElementById(hash);
+      if (card) {
+        const body = card.querySelector('.day-body');
+        if (body) body.classList.add('open');
+        setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+      }
+    } else {
+      const today = "{{ today }}";
+      document.querySelectorAll('.day-name').forEach((el, i) => {
+        if (el.textContent.trim() === today) {
+          const body = document.getElementById(`day-${i + 1}`);
+          if (body) body.classList.add('open');
+        }
+      });
+    }
+
+    // ── SORTABLE DRAG & DROP ────────────────────────────
+    document.querySelectorAll('.day-body').forEach((dayBody, i) => {
+      const jour = Object.keys(program)[i];
+
+      Sortable.create(dayBody, {
+        handle:     '.drag-handle',
+        animation:  150,
+        ghostClass: 'sortable-ghost',
+        onEnd: async function() {
+          const rows  = dayBody.querySelectorAll('.exo-row');
+          const ordre = Array.from(rows).map(r => r.dataset.exo);
+
+          const res  = await fetch('/api/programme', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ action: 'reorder', jour, ordre })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showToast('Ordre sauvegardé ! ✅');
+          } else {
+            showToast('Erreur !', 'error');
+          }
+        }
+      });
     });
   });
 </script>

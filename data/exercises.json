@@ -1,183 +1,280 @@
 {
   "Back Squat": {
     "type": "barbell",
-    "increment": 5.0,
+    "increment": 10.0,
     "bar_weight": 45.0,
     "default_scheme": "4x5-8",
-    "muscles": ["quadriceps", "fessiers", "ischio-jambiers", "bas du dos"]
+    "muscles": [
+      "quadriceps",
+      "fessiers",
+      "ischio-jambiers",
+      "bas du dos"
+    ],
+    "tips": ""
   },
   "Front Squat": {
     "type": "barbell",
     "increment": 5.0,
     "bar_weight": 45.0,
     "default_scheme": "3x8-10",
-    "muscles": ["quadriceps", "abdominaux", "haut du dos"]
+    "muscles": [
+      "quadriceps",
+      "abdominaux",
+      "haut du dos"
+    ]
   },
   "Deadlift": {
     "type": "barbell",
     "increment": 10.0,
     "bar_weight": 45.0,
     "default_scheme": "3x5",
-    "muscles": ["ischio-jambiers", "fessiers", "bas du dos", "trapèzes"]
+    "muscles": [
+      "ischio-jambiers",
+      "fessiers",
+      "bas du dos",
+      "trapèzes"
+    ]
   },
   "Romanian Deadlift": {
     "type": "barbell",
     "increment": 5.0,
     "bar_weight": 45.0,
     "default_scheme": "3x10-12",
-    "muscles": ["ischio-jambiers", "fessiers", "bas du dos"]
+    "muscles": [
+      "ischio-jambiers",
+      "fessiers",
+      "bas du dos"
+    ]
   },
   "Bench Press": {
     "type": "barbell",
     "increment": 5.0,
     "bar_weight": 45.0,
     "default_scheme": "4x6-8",
-    "muscles": ["pectoraux", "triceps", "deltoïdes antérieurs"]
+    "muscles": [
+      "pectoraux",
+      "triceps",
+      "deltoïdes antérieurs"
+    ]
   },
   "Overhead Press": {
     "type": "barbell",
     "increment": 2.5,
     "bar_weight": 45.0,
     "default_scheme": "3x8-10",
-    "muscles": ["deltoïdes", "triceps", "abdominaux"]
+    "muscles": [
+      "deltoïdes",
+      "triceps",
+      "abdominaux"
+    ]
   },
   "Barbell Row": {
     "type": "barbell",
     "increment": 5.0,
     "bar_weight": 45.0,
     "default_scheme": "3x8-12",
-    "muscles": ["grand dorsal", "rhomboïdes", "trapèzes"]
+    "muscles": [
+      "grand dorsal",
+      "rhomboïdes",
+      "trapèzes"
+    ]
   },
   "Incline DB Press": {
     "type": "dumbbell",
     "increment": 5.0,
     "default_scheme": "3x10-12",
-    "muscles": ["pectoraux supérieurs", "deltoïdes antérieurs"]
+    "muscles": [
+      "pectoraux supérieurs",
+      "deltoïdes antérieurs"
+    ]
   },
   "Dumbbell Row": {
     "type": "dumbbell",
     "increment": 5.0,
     "default_scheme": "3x10-12",
-    "muscles": ["grand dorsal", "biceps", "rhomboïdes"]
+    "muscles": [
+      "grand dorsal",
+      "biceps",
+      "rhomboïdes"
+    ]
   },
   "Dumbbell Curl": {
     "type": "dumbbell",
     "increment": 2.5,
     "default_scheme": "3x12-15",
-    "muscles": ["biceps"]
+    "muscles": [
+      "biceps"
+    ]
   },
   "Hammer Curl": {
     "type": "dumbbell",
     "increment": 2.5,
     "default_scheme": "3x12-15",
-    "muscles": ["biceps brachialis", "avant-bras"]
+    "muscles": [
+      "biceps brachialis",
+      "avant-bras"
+    ]
   },
   "Lateral Raise": {
     "type": "dumbbell",
     "increment": 2.5,
     "default_scheme": "3x15-20",
-    "muscles": ["deltoïdes latéraux"]
+    "muscles": [
+      "deltoïdes latéraux"
+    ]
   },
   "Goblet Squat": {
     "type": "dumbbell",
     "increment": 5.0,
     "default_scheme": "3x12-15",
-    "muscles": ["quadriceps", "fessiers"]
+    "muscles": [
+      "quadriceps",
+      "fessiers"
+    ]
   },
   "Cable Fly": {
     "type": "cable",
     "increment": 2.5,
     "bar_weight": 0.0,
     "default_scheme": "3x12-15",
-    "muscles": ["pectoraux"]
+    "muscles": [
+      "pectoraux"
+    ]
   },
   "Face Pull": {
     "type": "cable",
     "increment": 2.5,
     "bar_weight": 0.0,
     "default_scheme": "3x15-20",
-    "muscles": ["deltoïdes postérieurs", "trapèzes"]
+    "muscles": [
+      "deltoïdes postérieurs",
+      "trapèzes"
+    ]
   },
   "Triceps Pushdown": {
     "type": "cable",
     "increment": 2.5,
     "bar_weight": 0.0,
     "default_scheme": "3x12-15",
-    "muscles": ["triceps"]
+    "muscles": [
+      "triceps"
+    ]
   },
   "Lat Pulldown": {
     "type": "cable",
     "increment": 5.0,
     "bar_weight": 0.0,
     "default_scheme": "3x10-12",
-    "muscles": ["grand dorsal", "biceps"]
+    "muscles": [
+      "grand dorsal",
+      "biceps"
+    ]
   },
   "Cable Lateral Raise": {
     "type": "cable",
     "increment": 2.5,
     "bar_weight": 0.0,
     "default_scheme": "3x15-20",
-    "muscles": ["deltoïdes latéraux"]
+    "muscles": [
+      "deltoïdes latéraux"
+    ]
   },
   "Cable Crunch": {
     "type": "cable",
     "increment": 5.0,
     "bar_weight": 0.0,
     "default_scheme": "3x15-20",
-    "muscles": ["abdominaux"]
+    "muscles": [
+      "abdominaux"
+    ]
   },
   "Pull-Up": {
     "type": "bodyweight",
     "increment": 0.0,
     "default_scheme": "3x MAX",
-    "muscles": ["grand dorsal", "biceps"]
+    "muscles": [
+      "grand dorsal",
+      "biceps"
+    ]
   },
   "Chin-Up": {
     "type": "bodyweight",
     "increment": 0.0,
     "default_scheme": "3x MAX",
-    "muscles": ["biceps", "grand dorsal"]
+    "muscles": [
+      "biceps",
+      "grand dorsal"
+    ]
   },
   "Dips": {
     "type": "bodyweight",
     "increment": 0.0,
     "default_scheme": "3x MAX",
-    "muscles": ["triceps", "pectoraux"]
+    "muscles": [
+      "triceps",
+      "pectoraux"
+    ]
   },
   "Push-Up": {
     "type": "bodyweight",
     "increment": 0.0,
     "default_scheme": "3x MAX",
-    "muscles": ["pectoraux", "triceps"]
+    "muscles": [
+      "pectoraux",
+      "triceps"
+    ]
   },
   "Bulgarian Split Squat": {
     "type": "bodyweight",
     "increment": 0.0,
     "default_scheme": "3x10-12",
-    "muscles": ["quadriceps", "fessiers"]
+    "muscles": [
+      "quadriceps",
+      "fessiers"
+    ]
   },
   "Hanging Leg Raise": {
     "type": "bodyweight",
     "increment": 0.0,
     "default_scheme": "3x12-15",
-    "muscles": ["abdominaux", "fléchisseurs de la hanche"]
+    "muscles": [
+      "abdominaux",
+      "fléchisseurs de la hanche"
+    ]
   },
   "Leg Extension": {
     "type": "machine",
     "increment": 5.0,
     "default_scheme": "3x12-15",
-    "muscles": ["quadriceps"]
+    "muscles": [
+      "quadriceps"
+    ]
   },
   "Leg Curl": {
     "type": "machine",
     "increment": 5.0,
     "default_scheme": "3x12-15",
-    "muscles": ["ischio-jambiers"]
+    "muscles": [
+      "ischio-jambiers"
+    ]
   },
   "Calf Raise": {
     "type": "machine",
     "increment": 5.0,
     "default_scheme": "4x15-20",
-    "muscles": ["mollets"]
+    "muscles": [
+      "mollets"
+    ]
+  },
+  "T Bar Row Supporté": {
+    "type": "dumbbell",
+    "increment": 5.0,
+    "bar_weight": 0.0,
+    "default_scheme": "3x8-12",
+    "muscles": [
+      "lats",
+      "trapèzes"
+    ],
+    "tips": ""
   }
 }

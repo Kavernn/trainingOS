@@ -1,21 +1,13 @@
 {
-  "Upper A": {
-    "Bench Press": "4x5-7",
-    "Barbell Row": "4x6-8",
-    "Incline DB Press": "3x8-10",
-    "Lat Pulldown": "3x8-10",
-    "Overhead Press": "3x6-8",
-    "Triceps Dips": "3x8"
-  },
+  "Upper A": {},
   "Upper B": {
-    "Incline DB Press": "4x8-10",
-    "T-Bar Row": "4x8-10",
-    "DB Bench Press": "3x10-12",
     "Seated Row": "3x10-12",
     "Lateral Raises": "4x12-15",
     "Triceps Extension": "3x10-12",
     "Hammer Curl": "3x10-12",
-    "Face Pull": "3x15"
+    "Face Pull": "3x15-20",
+    "Incline DB Press": "3x10-12",
+    "T Bar Row Supporté": "3x8-12"
   },
   "Lower": {
     "Back Squat": "4x5-7",

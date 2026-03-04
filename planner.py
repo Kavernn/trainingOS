@@ -68,7 +68,7 @@ def save_program(program: dict):
 
 
 # Charge une fois au démarrage du module
-PROGRAM = load_program()
+#PROGRAM = load_program()
 
 
 def get_today() -> str:
@@ -82,11 +82,13 @@ def get_week_schedule() -> dict:
 
 def get_suggested_weights_for_today(weights: dict) -> list[dict]:
     today_session = get_today()
-    if today_session not in PROGRAM:
+    program = load_program()  # ← recharge depuis le fichier
+
+    if today_session not in program:
         return []
 
     result = []
-    for exercise in PROGRAM[today_session]:
+    for exercise in program[today_session]:
         data = weights.get(exercise, {})
         current_total = data.get("current_weight", data.get("weight", 0.0))
         last_reps = data.get("last_reps", "")

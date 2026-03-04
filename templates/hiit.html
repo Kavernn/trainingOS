@@ -179,8 +179,8 @@
 {% set total     = hiit_log | length %}
 {% set rpes      = hiit_log | selectattr('rpe') | map(attribute='rpe') | list %}
 {% set rpe_moy   = (rpes | sum / rpes | length) | round(1) if rpes else 0 %}
-{% set completes = hiit_log | map(attribute='rounds_complétés') | sum %}
-{% set planifies = hiit_log | map(attribute='rounds_planifiés') | sum %}
+{% set completes = hiit_log | selectattr('rounds_complétés', 'defined') | map(attribute='rounds_complétés') | sum %}
+{% set planifies = hiit_log | selectattr('rounds_planifiés', 'defined') | map(attribute='rounds_planifiés') | sum %}
 
 <div class="stats-summary">
   <div class="summary-box">
@@ -201,8 +201,9 @@
 
 <!-- LISTE DES SÉANCES -->
 {% for entry in hiit_log %}
-{% set pct = ((entry['rounds_complétés'] / entry['rounds_planifiés']) * 100) | round | int if entry['rounds_planifiés'] > 0 else 0 %}
-
+{% set completes_entry = entry.get('rounds_complétés', entry.get('rounds_completes', 0)) %}
+{% set planifies_entry = entry.get('rounds_planifiés', entry.get('rounds_planifies', 0)) %}
+{% set pct = ((completes_entry / planifies_entry) * 100) | round | int if planifies_entry > 0 else 0 %}
 <div class="hiit-card">
 
   <div class="hiit-header">

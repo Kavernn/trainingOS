@@ -417,11 +417,36 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
 <script>
   // État global
   const logged   = {};
   const timers   = {};
   let   doneCount = 0;
+
+  // ── INITIALISATION ──────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    toggleExercise(1);
+
+    // --- AJOUT POUR LE DRAG AND DROP ---
+    // On cible le conteneur qui contient tes .exercise-card
+    // Dans ton HTML, c'est l'élément juste après le <h2>
+    const list = document.querySelector('main') || document.querySelector('.container');
+
+    if (list) {
+      Sortable.create(list, {
+        animation: 150,
+        handle: '.exercise-header', // On utilise l'entête pour dragger
+        draggable: '.exercise-card', // On ne déplace que les cartes
+        ghostClass: 'sortable-ghost', // Classe visuelle pendant le déplacement
+        onEnd: function() {
+          showToast("Ordre modifié ! ↕️");
+        }
+      });
+    }
+    // --- FIN AJOUT ---
+  });
 
   // ── TOGGLE EXERCICE ──────────────────────────────────
   function toggleExercise(idx) {

@@ -28,14 +28,184 @@
     border-bottom: 1px solid var(--border);
     margin-bottom: 16px;
   }
+
+  /* ── HEATMAP ── */
+  .heatmap-wrap {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .heatmap-grid {
+    display: grid;
+    grid-template-rows: repeat(7, 14px);
+    grid-auto-flow: column;
+    gap: 3px;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .heatmap-cell {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: #1e1e2a;
+    transition: all 0.15s;
+    cursor: default;
+    position: relative;
+  }
+
+  .heatmap-cell:hover::after {
+    content: attr(data-date);
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+    color: var(--text);
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .heatmap-cell.level-1 { background: #f9731633; }
+  .heatmap-cell.level-2 { background: #f9731666; }
+  .heatmap-cell.level-3 { background: #f97316aa; }
+  .heatmap-cell.level-4 { background: #f97316; }
+
+  .heatmap-months {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 4px;
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .heatmap-month-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .heatmap-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .heatmap-legend-cell {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  .heatmap-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .heatmap-stat {
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .heatmap-stat-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--orange);
+    line-height: 1;
+  }
+
+  .heatmap-stat-lbl {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 3px;
+  }
+  .muscle-filter {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.muscle-filter.active {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: white;
+}
 </style>
 {% endblock %}
 
 {% block content %}
 
+<!-- Données JSON injectées proprement -->
+<script id="weights-data"     type="application/json">{{ weights     | tojson }}</script>
+<script id="sessions-data"    type="application/json">{{ sessions    | tojson }}</script>
+<script id="hiitlog-data"     type="application/json">{{ hiit_log    | tojson }}</script>
+<script id="bodyweight-data"  type="application/json">{{ body_weight | tojson }}</script>
+
 <div class="flex-between mb-16">
   <h2 class="text-orange">📊 Dashboard</h2>
   <span class="text-muted" style="font-size: 0.8rem;">{{ now }}</span>
+</div>
+
+<!-- ── HEATMAP ── -->
+<div class="section-label">📅 Activité — 12 derniers mois</div>
+
+<div class="chart-card">
+  <h3>Calendrier d'entraînement</h3>
+
+  <div class="heatmap-stats" id="heatmap-stats">
+    <div class="heatmap-stat">
+      <div class="heatmap-stat-val" id="hm-total">—</div>
+      <div class="heatmap-stat-lbl">Séances</div>
+    </div>
+    <div class="heatmap-stat">
+      <div class="heatmap-stat-val" id="hm-streak">—</div>
+      <div class="heatmap-stat-lbl">Streak actuel</div>
+    </div>
+    <div class="heatmap-stat">
+      <div class="heatmap-stat-val" id="hm-best">—</div>
+      <div class="heatmap-stat-lbl">Meilleur streak</div>
+    </div>
+    <div class="heatmap-stat">
+      <div class="heatmap-stat-val" id="hm-month">—</div>
+      <div class="heatmap-stat-lbl">Ce mois</div>
+    </div>
+  </div>
+
+  <div class="heatmap-wrap">
+    <div class="heatmap-months" id="heatmap-months"></div>
+    <div class="heatmap-grid"  id="heatmap-grid"></div>
+  </div>
+
+  <div class="heatmap-legend">
+    <span>Moins</span>
+    <div class="heatmap-legend-cell" style="background:#1e1e2a;"></div>
+    <div class="heatmap-legend-cell" style="background:#f9731633;"></div>
+    <div class="heatmap-legend-cell" style="background:#f9731666;"></div>
+    <div class="heatmap-legend-cell" style="background:#f97316aa;"></div>
+    <div class="heatmap-legend-cell" style="background:#f97316;"></div>
+    <span>Plus</span>
+  </div>
 </div>
 
 <!-- MUSCU -->
@@ -76,6 +246,30 @@
   </div>
 </div>
 
+<!-- ANALYSE MUSCULAIRE -->
+<div class="section-label">💪 Analyse musculaire</div>
+
+<div class="chart-card">
+  <h3>Volume par groupe musculaire — semaine en cours</h3>
+
+  <!-- Sélecteur période -->
+  <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+    <button class="muscle-filter active" onclick="setMusclePeriod('week', this)">Cette semaine</button>
+    <button class="muscle-filter" onclick="setMusclePeriod('month', this)">Ce mois</button>
+    <button class="muscle-filter" onclick="setMusclePeriod('all', this)">Tout</button>
+  </div>
+
+  <div class="grid-2" style="align-items: center;">
+    <canvas id="muscleDonut" height="220"></canvas>
+    <canvas id="muscleBar"   height="220"></canvas>
+  </div>
+</div>
+
+<div class="chart-card">
+  <h3>Évolution volume par groupe — 4 dernières semaines</h3>
+  <canvas id="muscleEvol" height="120"></canvas>
+</div>
+
 <!-- POIDS CORPOREL -->
 <div class="section-label">⚖️ Poids corporel</div>
 
@@ -89,13 +283,12 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  // ── DONNÉES PYTHON → JS ───────────────────────────────
-  const weights    = {{ weights | tojson }};
-  const sessions   = {{ sessions | tojson }};
-  const hiitLog    = {{ hiit_log | tojson }};
-  const bodyWeight = {{ body_weight | tojson }};
+  // ── DONNÉES ───────────────────────────────────────────
+  const weights    = JSON.parse(document.getElementById('weights-data').textContent);
+  const sessions   = JSON.parse(document.getElementById('sessions-data').textContent);
+  const hiitLog    = JSON.parse(document.getElementById('hiitlog-data').textContent);
+  const bodyWeight = JSON.parse(document.getElementById('bodyweight-data').textContent);
 
-  // ── COULEURS ──────────────────────────────────────────
   const orange = '#f97316';
   const blue   = '#3b82f6';
   const green  = '#22c55e';
@@ -119,7 +312,146 @@
     }
   };
 
-  // ── CALCULS ───────────────────────────────────────────
+  // ── HEATMAP ───────────────────────────────────────────
+
+  function buildHeatmap() {
+    // Collecte toutes les dates d'entraînement
+    const gymDays = new Set();
+
+    // Sessions muscu
+    for (const [date] of Object.entries(sessions)) {
+      gymDays.add(date);
+    }
+
+    // Sessions HIIT
+    for (const entry of hiitLog) {
+      if (entry.date) gymDays.add(entry.date);
+    }
+
+    // Sessions muscu depuis weights aussi
+    for (const [ex, data] of Object.entries(weights)) {
+      if (ex === 'sessions') continue;
+      for (const entry of (data.history || [])) {
+        if (entry.date) gymDays.add(entry.date);
+      }
+    }
+
+    // Compte visites par date (pour les niveaux)
+    const visitCount = {};
+    for (const date of gymDays) {
+      visitCount[date] = (visitCount[date] || 0) + 1;
+    }
+
+    // Génère 365 jours en arrière depuis aujourd'hui
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Recule au dimanche précédent pour aligner la grille
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - 364);
+    const dayOfWeek = startDate.getDay();
+    startDate.setDate(startDate.getDate() - dayOfWeek);
+
+    const grid    = document.getElementById('heatmap-grid');
+    const months  = document.getElementById('heatmap-months');
+    grid.innerHTML   = '';
+    months.innerHTML = '';
+
+    const monthNames = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+    let lastMonth    = -1;
+    let colIndex     = 0;
+    let monthLabels  = [];
+
+    const d = new Date(startDate);
+    while (d <= today) {
+      const key     = d.toISOString().split('T')[0];
+      const visited = gymDays.has(key);
+      const count   = visitCount[key] || 0;
+
+      // Label mois
+      if (d.getMonth() !== lastMonth) {
+        monthLabels.push({ col: colIndex, label: monthNames[d.getMonth()] });
+        lastMonth = d.getMonth();
+      }
+
+      // Cellule
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+
+      if (visited) {
+        if (count >= 4)      cell.classList.add('level-4');
+        else if (count >= 3) cell.classList.add('level-3');
+        else if (count >= 2) cell.classList.add('level-2');
+        else                 cell.classList.add('level-1');
+      }
+
+      const label = d.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric', month: 'short' });
+      cell.dataset.date = visited ? `${label} ✅` : label;
+      grid.appendChild(cell);
+
+      // Avance d'un jour
+      d.setDate(d.getDate() + 1);
+      if (d.getDay() === 0) colIndex++;
+    }
+
+    // Place les labels de mois
+    const totalCols = colIndex + 1;
+    const cellSize  = 17; // 14px + 3px gap
+
+    monthLabels.forEach(({ col, label }) => {
+      const span = document.createElement('span');
+      span.className   = 'heatmap-month-label';
+      span.textContent = label;
+      span.style.width = cellSize + 'px';
+      span.style.marginLeft = col === 0 ? '0' : (col * cellSize - (col > 0 ? monthLabels[monthLabels.indexOf(monthLabels.find(m => m.col === col)) - 1]?.col * cellSize || 0 : 0)) + 'px';
+      months.appendChild(span);
+    });
+
+    // Recalcule les stats
+    const nowStr    = today.toISOString().split('T')[0];
+    const thisMonth = nowStr.slice(0, 7);
+    const totalSeances = gymDays.size;
+    const thisMonthCount = [...gymDays].filter(d => d.startsWith(thisMonth)).length;
+
+    // Streak actuel
+    let streak = 0;
+    const check = new Date(today);
+    while (gymDays.has(check.toISOString().split('T')[0])) {
+      streak++;
+      check.setDate(check.getDate() - 1);
+    }
+
+    // Meilleur streak
+    let bestStreak  = 0;
+    let tempStreak  = 0;
+    const allDates  = [...gymDays].sort();
+    let prevDate    = null;
+    for (const dateStr of allDates) {
+      const curr = new Date(dateStr);
+      if (prevDate) {
+        const diff = (curr - prevDate) / 86400000;
+        if (diff === 1) {
+          tempStreak++;
+          bestStreak = Math.max(bestStreak, tempStreak);
+        } else {
+          tempStreak = 1;
+        }
+      } else {
+        tempStreak = 1;
+      }
+      prevDate = curr;
+    }
+    bestStreak = Math.max(bestStreak, tempStreak);
+
+    document.getElementById('hm-total').textContent  = totalSeances;
+    document.getElementById('hm-streak').textContent = streak > 0 ? `🔥${streak}j` : '0';
+    document.getElementById('hm-best').textContent   = bestStreak > 0 ? `${bestStreak}j` : '0';
+    document.getElementById('hm-month').textContent  = thisMonthCount;
+  }
+
+  buildHeatmap();
+
+  // ── CALCULS GRAPHIQUES ────────────────────────────────
 
   function computeVolumeParSeance() {
     const vol = {};
@@ -133,10 +465,7 @@
       }
     }
     const sorted = Object.entries(vol).sort(([a], [b]) => a.localeCompare(b));
-    return {
-      labels: sorted.map(([d]) => d),
-      data:   sorted.map(([, v]) => Math.round(v))
-    };
+    return { labels: sorted.map(([d]) => d), data: sorted.map(([, v]) => Math.round(v)) };
   }
 
   function computeFrequenceParSemaine() {
@@ -144,17 +473,14 @@
     for (const [ex, data] of Object.entries(weights)) {
       if (ex === 'sessions') continue;
       for (const entry of (data.history || [])) {
-        const d   = new Date(entry.date);
-        const wk  = `${d.getFullYear()}-S${String(Math.ceil((d - new Date(d.getFullYear(), 0, 1)) / 604800000)).padStart(2, '0')}`;
+        const d  = new Date(entry.date);
+        const wk = `${d.getFullYear()}-S${String(Math.ceil((d - new Date(d.getFullYear(), 0, 1)) / 604800000)).padStart(2, '0')}`;
         if (!freq[wk]) freq[wk] = new Set();
         freq[wk].add(entry.date);
       }
     }
     const sorted = Object.entries(freq).sort(([a], [b]) => a.localeCompare(b));
-    return {
-      labels: sorted.map(([w]) => w),
-      data:   sorted.map(([, s]) => s.size)
-    };
+    return { labels: sorted.map(([w]) => w), data: sorted.map(([, s]) => s.size) };
   }
 
   function computeVolumeParSemaine() {
@@ -170,36 +496,27 @@
       }
     }
     const sorted = Object.entries(vol).sort(([a], [b]) => a.localeCompare(b));
-    return {
-      labels: sorted.map(([w]) => w),
-      data:   sorted.map(([, v]) => Math.round(v))
-    };
+    return { labels: sorted.map(([w]) => w), data: sorted.map(([, v]) => Math.round(v)) };
   }
 
   function computeRpeSeances() {
     const result = Object.entries(sessions)
       .filter(([, s]) => s.rpe)
       .sort(([a], [b]) => a.localeCompare(b));
-    return {
-      labels: result.map(([d]) => d),
-      data:   result.map(([, s]) => s.rpe)
-    };
+    return { labels: result.map(([d]) => d), data: result.map(([, s]) => s.rpe) };
   }
 
   function computeHiitRpe() {
     const sorted = [...hiitLog].filter(e => e.rpe).sort((a, b) => a.date.localeCompare(b.date));
-    return {
-      labels: sorted.map(e => e.date),
-      data:   sorted.map(e => e.rpe)
-    };
+    return { labels: sorted.map(e => e.date), data: sorted.map(e => e.rpe) };
   }
 
   function computeHiitRounds() {
     const sorted = [...hiitLog].sort((a, b) => a.date.localeCompare(b.date));
     return {
       labels:    sorted.map(e => e.date),
-      completes: sorted.map(e => e['rounds_complétés']),
-      planifies: sorted.map(e => e['rounds_planifiés'])
+      completes: sorted.map(e => e.rounds_completes || e['rounds_complétés'] || 0),
+      planifies: sorted.map(e => e.rounds_planifies || e['rounds_planifiés'] || 0)
     };
   }
 
@@ -216,62 +533,41 @@
 
   // ── GRAPHIQUES ────────────────────────────────────────
 
-  // Volume par séance
   const vs = computeVolumeParSeance();
   new Chart(document.getElementById('volumeSeance'), {
     type: 'bar',
-    data: {
-      labels: vs.labels,
-      datasets: [{ data: vs.data, backgroundColor: orange + '99', borderColor: orange, borderWidth: 1, borderRadius: 4 }]
-    },
+    data: { labels: vs.labels, datasets: [{ data: vs.data, backgroundColor: orange + '99', borderColor: orange, borderWidth: 1, borderRadius: 4 }] },
     options: defaults
   });
 
-  // Fréquence
   const fr = computeFrequenceParSemaine();
   new Chart(document.getElementById('frequence'), {
     type: 'bar',
-    data: {
-      labels: fr.labels,
-      datasets: [{ data: fr.data, backgroundColor: blue + '99', borderColor: blue, borderWidth: 1, borderRadius: 4 }]
-    },
+    data: { labels: fr.labels, datasets: [{ data: fr.data, backgroundColor: blue + '99', borderColor: blue, borderWidth: 1, borderRadius: 4 }] },
     options: defaults
   });
 
-  // Volume semaine
   const vw = computeVolumeParSemaine();
   new Chart(document.getElementById('volumeSemaine'), {
     type: 'line',
-    data: {
-      labels: vw.labels,
-      datasets: [{ data: vw.data, borderColor: green, backgroundColor: green + '22', borderWidth: 2, pointBackgroundColor: green, pointRadius: 4, fill: true, tension: 0.3 }]
-    },
+    data: { labels: vw.labels, datasets: [{ data: vw.data, borderColor: green, backgroundColor: green + '22', borderWidth: 2, pointBackgroundColor: green, pointRadius: 4, fill: true, tension: 0.3 }] },
     options: defaults
   });
 
-  // RPE séances
   const rpe = computeRpeSeances();
   new Chart(document.getElementById('rpeSeances'), {
     type: 'line',
-    data: {
-      labels: rpe.labels,
-      datasets: [{ data: rpe.data, borderColor: purple, backgroundColor: purple + '22', borderWidth: 2, pointBackgroundColor: purple, pointRadius: 5, fill: true, tension: 0.3 }]
-    },
+    data: { labels: rpe.labels, datasets: [{ data: rpe.data, borderColor: purple, backgroundColor: purple + '22', borderWidth: 2, pointBackgroundColor: purple, pointRadius: 5, fill: true, tension: 0.3 }] },
     options: rpeScale
   });
 
-  // HIIT RPE
   const hr = computeHiitRpe();
   new Chart(document.getElementById('hiitRpe'), {
     type: 'line',
-    data: {
-      labels: hr.labels,
-      datasets: [{ data: hr.data, borderColor: orange, backgroundColor: orange + '22', borderWidth: 2, pointBackgroundColor: orange, pointRadius: 5, fill: true, tension: 0.3 }]
-    },
+    data: { labels: hr.labels, datasets: [{ data: hr.data, borderColor: orange, backgroundColor: orange + '22', borderWidth: 2, pointBackgroundColor: orange, pointRadius: 5, fill: true, tension: 0.3 }] },
     options: rpeScale
   });
 
-  // HIIT Rounds
   const hrd = computeHiitRounds();
   new Chart(document.getElementById('hiitRounds'), {
     type: 'bar',
@@ -282,21 +578,14 @@
         { label: 'Complétés', data: hrd.completes, backgroundColor: green + '99', borderColor: green, borderWidth: 1, borderRadius: 4 }
       ]
     },
-    options: {
-      ...defaults,
-      plugins: { legend: { display: true, labels: { color: '#888' } } }
-    }
+    options: { ...defaults, plugins: { legend: { display: true, labels: { color: '#888' } } } }
   });
 
-  // Poids corporel
   const pw = computePoids();
   if (pw.data.length > 0) {
     new Chart(document.getElementById('poidsCorps'), {
       type: 'line',
-      data: {
-        labels: pw.labels,
-        datasets: [{ data: pw.data, borderColor: rose, backgroundColor: rose + '22', borderWidth: 2, pointBackgroundColor: rose, pointRadius: 4, fill: true, tension: 0.3 }]
-      },
+      data: { labels: pw.labels, datasets: [{ data: pw.data, borderColor: rose, backgroundColor: rose + '22', borderWidth: 2, pointBackgroundColor: rose, pointRadius: 4, fill: true, tension: 0.3 }] },
       options: {
         ...defaults,
         scales: {
@@ -306,5 +595,236 @@
       }
     });
   }
+  // ── ANALYSE MUSCULAIRE ────────────────────────────────
+
+// Groupes musculaires normalisés
+const MUSCLE_GROUPS = {
+  'pectoraux':              { label: 'Pecs',        color: '#f97316' },
+  'pectoraux supérieurs':   { label: 'Pecs',        color: '#f97316' },
+  'grand dorsal':           { label: 'Dos',         color: '#3b82f6' },
+  'lats':                   { label: 'Dos',         color: '#3b82f6' },
+  'rhomboïdes':             { label: 'Dos',         color: '#3b82f6' },
+  'haut du dos':            { label: 'Dos',         color: '#3b82f6' },
+  'quadriceps':             { label: 'Quadriceps',  color: '#22c55e' },
+  'ischio-jambiers':        { label: 'Ischio',      color: '#a855f7' },
+  'fessiers':               { label: 'Fessiers',    color: '#ec4899' },
+  'deltoïdes':              { label: 'Épaules',     color: '#f59e0b' },
+  'deltoïdes antérieurs':   { label: 'Épaules',     color: '#f59e0b' },
+  'deltoïdes latéraux':     { label: 'Épaules',     color: '#f59e0b' },
+  'deltoïdes postérieurs':  { label: 'Épaules',     color: '#f59e0b' },
+  'triceps':                { label: 'Triceps',     color: '#14b8a6' },
+  'biceps':                 { label: 'Biceps',      color: '#f43f5e' },
+  'biceps brachialis':      { label: 'Biceps',      color: '#f43f5e' },
+  'trapèzes':               { label: 'Trapèzes',    color: '#8b5cf6' },
+  'bas du dos':             { label: 'Bas du dos',  color: '#06b6d4' },
+  'abdominaux':             { label: 'Abdos',       color: '#84cc16' },
+  'mollets':                { label: 'Mollets',     color: '#fb923c' },
+  'avant-bras':             { label: 'Avant-bras',  color: '#a3a3a3' },
+  'fléchisseurs de la hanche': { label: 'Hanches', color: '#d946ef' },
+};
+
+function getMuscleVolume(sinceDate) {
+  const muscleVol = {};
+  const inv = {{ inventory | tojson }};
+
+  for (const [ex, data] of Object.entries(weights)) {
+    if (ex === 'sessions') continue;
+    const muscles = inv[ex]?.muscles || [];
+    if (!muscles.length) continue;
+
+    for (const entry of (data.history || [])) {
+      if (sinceDate && entry.date < sinceDate) continue;
+      const w    = entry.weight || 0;
+      const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
+      const vol  = w * reps.reduce((a, b) => a + b, 0);
+
+      for (const muscle of muscles) {
+        const group = MUSCLE_GROUPS[muscle.toLowerCase()]?.label || muscle;
+        muscleVol[group] = (muscleVol[group] || 0) + vol;
+      }
+    }
+  }
+  return muscleVol;
+}
+
+function getWeekStart(weeksAgo = 0) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay() - weeksAgo * 7);
+  return d.toISOString().split('T')[0];
+}
+
+function getMonthStart() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
+let donutChart = null;
+let barChart   = null;
+
+function renderMuscleCharts(sinceDate) {
+  const vol     = getMuscleVolume(sinceDate);
+  const sorted  = Object.entries(vol).sort(([, a], [, b]) => b - a);
+  const labels  = sorted.map(([g]) => g);
+  const values  = sorted.map(([, v]) => Math.round(v));
+  const colors  = labels.map(label => {
+    const entry = Object.values(MUSCLE_GROUPS).find(m => m.label === label);
+    return entry ? entry.color : '#666';
+  });
+
+  if (donutChart) donutChart.destroy();
+  if (barChart)   barChart.destroy();
+
+  if (!values.length) return;
+
+  // Donut
+  donutChart = new Chart(document.getElementById('muscleDonut'), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data:            values,
+        backgroundColor: colors.map(c => c + 'cc'),
+        borderColor:     colors,
+        borderWidth:     2,
+        hoverOffset:     8
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '65%',
+      plugins: {
+        legend: {
+          display:  true,
+          position: 'bottom',
+          labels:   { color: '#888', font: { size: 10 }, boxWidth: 12, padding: 8 }
+        }
+      }
+    }
+  });
+
+  // Bar horizontal
+  barChart = new Chart(document.getElementById('muscleBar'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data:            values,
+        backgroundColor: colors.map(c => c + '99'),
+        borderColor:     colors,
+        borderWidth:     1,
+        borderRadius:    4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#666' }, grid: { color: '#1e1e2a' } },
+        y: { ticks: { color: '#ccc', font: { size: 11 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+function setMusclePeriod(period, btn) {
+  document.querySelectorAll('.muscle-filter').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  let sinceDate = null;
+  if (period === 'week')  sinceDate = getWeekStart();
+  if (period === 'month') sinceDate = getMonthStart();
+
+  renderMuscleCharts(sinceDate);
+}
+
+// Init avec cette semaine
+renderMuscleCharts(getWeekStart());
+
+// ── ÉVOLUTION 4 SEMAINES ──────────────────────────────
+
+function buildMuscleEvol() {
+  const weekLabels = [];
+  const allGroups  = new Set();
+  const weekData   = [];
+
+  for (let i = 3; i >= 0; i--) {
+    const from = getWeekStart(i);
+    const to   = getWeekStart(i - 1);
+    weekLabels.push(`S-${i === 0 ? 'Actuelle' : i}`);
+    const vol = getMuscleVolume(from);
+
+    // Filtre au to si pas semaine actuelle
+    if (i > 0) {
+      for (const [ex, data] of Object.entries(weights)) {
+        if (ex === 'sessions') continue;
+        const inv2    = {{ inventory | tojson }};
+        const muscles = inv2[ex]?.muscles || [];
+        for (const entry of (data.history || [])) {
+          if (entry.date >= to) {
+            const w    = entry.weight || 0;
+            const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
+            const v    = w * reps.reduce((a, b) => a + b, 0);
+            for (const muscle of muscles) {
+              const group = MUSCLE_GROUPS[muscle.toLowerCase()]?.label || muscle;
+              vol[group]  = (vol[group] || 0) - v;
+            }
+          }
+        }
+      }
+    }
+
+    weekData.push(vol);
+    Object.keys(vol).forEach(g => allGroups.add(g));
+  }
+
+  // Top 5 groupes par volume total
+  const totals = {};
+  for (const vol of weekData) {
+    for (const [g, v] of Object.entries(vol)) {
+      totals[g] = (totals[g] || 0) + v;
+    }
+  }
+  const top5 = Object.entries(totals)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5)
+    .map(([g]) => g);
+
+  const datasets = top5.map(group => {
+    const entry = Object.values(MUSCLE_GROUPS).find(m => m.label === group);
+    const color = entry ? entry.color : '#666';
+    return {
+      label:           group,
+      data:            weekData.map(vol => Math.round(vol[group] || 0)),
+      borderColor:     color,
+      backgroundColor: color + '33',
+      borderWidth:     2,
+      pointRadius:     4,
+      fill:            false,
+      tension:         0.3
+    };
+  });
+
+  new Chart(document.getElementById('muscleEvol'), {
+    type: 'line',
+    data: { labels: weekLabels, datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color: '#888', font: { size: 10 }, boxWidth: 12 }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#666' }, grid: { color: '#1e1e2a' } },
+        y: { ticks: { color: '#666' }, grid: { color: '#1e1e2a' } }
+      }
+    }
+  });
+}
+
+buildMuscleEvol();
 </script>
 {% endblock %}

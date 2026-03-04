@@ -136,6 +136,11 @@
 
 {% block content %}
 
+<!-- Stocke l'inventaire complet en JSON pour le JS -->
+<script id="inventory-data" type="application/json">
+  {{ inventory | tojson }}
+</script>
+
 <div class="flex-between mb-16">
   <h2 class="text-orange">🏋️ Inventaire</h2>
   <button class="btn btn-primary" onclick="openAddModal()">+ Ajouter</button>
@@ -187,8 +192,16 @@
         {% endif %}
       </div>
       <div class="exo-actions">
-        <button class="btn-icon" onclick="openEditModal('{{ name }}', {{ info | tojson | e }})" title="Modifier">✏️</button>
-        <button class="btn-icon delete" onclick="deleteExo('{{ name }}')" title="Supprimer">🗑️</button>
+        <button
+          class="btn-icon"
+          data-exo-name="{{ name }}"
+          onclick="openEditModal(this)"
+          title="Modifier">✏️</button>
+        <button
+          class="btn-icon delete"
+          data-exo-name="{{ name }}"
+          onclick="deleteExo(this)"
+          title="Supprimer">🗑️</button>
       </div>
     </div>
     {% endfor %}
@@ -273,6 +286,9 @@
 
 {% block extra_js %}
 <script>
+  // Charge l'inventaire depuis le JSON injecté proprement
+  const inventory = JSON.parse(document.getElementById('inventory-data').textContent);
+
   let currentFilter = 'all';
   let deleteTarget  = null;
 
@@ -287,40 +303,48 @@
   function filterExos() {
     const query = document.getElementById('search').value.toLowerCase();
     document.querySelectorAll('.exo-row').forEach(row => {
-      const name    = row.dataset.name || '';
-      const type    = row.dataset.type || '';
-      const matchQ  = name.includes(query);
-      const matchT  = currentFilter === 'all' || type === currentFilter;
+      const name   = row.dataset.name || '';
+      const type   = row.dataset.type || '';
+      const matchQ = name.includes(query);
+      const matchT = currentFilter === 'all' || type === currentFilter;
       row.style.display = (matchQ && matchT) ? 'flex' : 'none';
     });
   }
 
   // ── MODAL AJOUTER ─────────────────────────────────────
   function openAddModal() {
-    document.getElementById('modal-form-title').textContent = '➕ Nouvel exercice';
-    document.getElementById('form-original-name').value = '';
-    document.getElementById('form-name').value      = '';
-    document.getElementById('form-type').value      = 'barbell';
-    document.getElementById('form-increment').value = '5';
-    document.getElementById('form-bar-weight').value = '45';
-    document.getElementById('form-scheme').value    = '3x8-12';
-    document.getElementById('form-muscles').value   = '';
-    document.getElementById('form-tips').value      = '';
+    document.getElementById('modal-form-title').textContent  = '➕ Nouvel exercice';
+    document.getElementById('form-original-name').value      = '';
+    document.getElementById('form-name').value               = '';
+    document.getElementById('form-type').value               = 'barbell';
+    document.getElementById('form-increment').value          = '5';
+    document.getElementById('form-bar-weight').value         = '45';
+    document.getElementById('form-scheme').value             = '3x8-12';
+    document.getElementById('form-muscles').value            = '';
+    document.getElementById('form-tips').value               = '';
     toggleBarreInput();
     document.getElementById('modal-form').classList.add('open');
   }
 
   // ── MODAL MODIFIER ────────────────────────────────────
-  function openEditModal(name, info) {
-    document.getElementById('modal-form-title').textContent = '✏️ Modifier ' + name;
-    document.getElementById('form-original-name').value    = name;
-    document.getElementById('form-name').value             = name;
-    document.getElementById('form-type').value             = info.type || 'machine';
-    document.getElementById('form-increment').value        = info.increment || 5;
-    document.getElementById('form-bar-weight').value       = info.bar_weight || 45;
-    document.getElementById('form-scheme').value           = info.default_scheme || '3x8-12';
-    document.getElementById('form-muscles').value          = (info.muscles || []).join(', ');
-    document.getElementById('form-tips').value             = info.tips || '';
+  function openEditModal(btn) {
+    const name = btn.dataset.exoName;
+    const info = inventory[name];
+
+    if (!info) {
+      showToast('Exercice introuvable !', 'error');
+      return;
+    }
+
+    document.getElementById('modal-form-title').textContent  = '✏️ Modifier ' + name;
+    document.getElementById('form-original-name').value      = name;
+    document.getElementById('form-name').value               = name;
+    document.getElementById('form-type').value               = info.type || 'machine';
+    document.getElementById('form-increment').value          = info.increment || 5;
+    document.getElementById('form-bar-weight').value         = info.bar_weight || 45;
+    document.getElementById('form-scheme').value             = info.default_scheme || '3x8-12';
+    document.getElementById('form-muscles').value            = (info.muscles || []).join(', ');
+    document.getElementById('form-tips').value               = info.tips || '';
     toggleBarreInput();
     document.getElementById('modal-form').classList.add('open');
   }
@@ -356,9 +380,9 @@
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        original_name: originalName,
+        original_name:  originalName,
         name, type, increment,
-        bar_weight: type === 'barbell' ? barWeight : 0,
+        bar_weight:     type === 'barbell' ? barWeight : 0,
         default_scheme: scheme,
         muscles, tips
       })
@@ -374,9 +398,9 @@
   }
 
   // ── SUPPRIMER ─────────────────────────────────────────
-  function deleteExo(name) {
-    deleteTarget = name;
-    document.getElementById('delete-name').textContent = name;
+  function deleteExo(btn) {
+    deleteTarget = btn.dataset.exoName;
+    document.getElementById('delete-name').textContent = deleteTarget;
     document.getElementById('modal-delete').classList.add('open');
   }
 

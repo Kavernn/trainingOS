@@ -9,6 +9,7 @@
   <meta name="theme-color" content="#0f0f13">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -417,7 +418,17 @@
     }
   </script>
 
-  {% block extra_js %}{% endblock %}
+  {% block extra_js %}
+   <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/static/sw.js")
+      .then(() => console.log("SW enregistré"))
+      .catch(err => console.log("SW erreur:", err));
+  }
+</script>
+  {% endblock %}
+
+
 
 </body>
 </html>

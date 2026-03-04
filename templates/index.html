@@ -73,13 +73,11 @@
   <div class="card-title">Planning de la semaine</div>
   <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 8px;">
     {% for jour, seance in schedule.items() %}
-
-  {% if seance in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery'] %}
-  <a href="/seance_speciale/{{ seance }}" style="text-decoration: none;">
+    {% if seance in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery'] %}
+    <a href="/seance_speciale/{{ seance }}" style="text-decoration: none;">
     {% else %}
-      <a href="/programme#{{ seance | replace(' ', '-') }}" style="text-decoration: none;">
+    <a href="/programme#{{ seance | replace(' ', '-') }}" style="text-decoration: none;">
     {% endif %}
-
       <div style="
         text-align: center;
         padding: 8px 4px;
@@ -99,6 +97,19 @@
     </a>
     {% endfor %}
   </div>
+</div>
+
+<!-- DASHBOARD VISITES GYM -->
+<div class="card mb-16">
+  <div class="card-title">🏋️ Visites au gym — 10 derniers jours</div>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+    <div>
+      <span style="font-family: 'Barlow Condensed'; font-size: 2rem; font-weight: 800; color: var(--orange);" id="visit-count">—</span>
+      <span class="text-muted" style="font-size: 0.85rem;"> / 10 jours</span>
+    </div>
+    <span class="badge badge-blue" id="visit-streak">— streak</span>
+  </div>
+  <canvas id="gymChart" height="80"></canvas>
 </div>
 
 <!-- OBJECTIFS -->
@@ -136,4 +147,75 @@
   </a>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<!-- Données sessions injectées proprement -->
+<script id="sessions-data" type="application/json">
+  {{ sessions | tojson }}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const sessions = JSON.parse(document.getElementById('sessions-data').textContent);
+
+  // Génère les 10 derniers jours
+  const days   = [];
+  const values = [];
+  const colors = [];
+
+  for (let i = 9; i >= 0; i--) {
+    const d   = new Date();
+    d.setDate(d.getDate() - i);
+    const key   = d.toISOString().split('T')[0];
+    const label = d.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric' });
+    const visited = sessions[key] ? 1 : 0;
+    days.push(label);
+    values.push(visited);
+    colors.push(visited ? '#f97316' : '#1e1e2a');
+  }
+
+  // Compteur visites
+  const visitCount = values.reduce((a, b) => a + b, 0);
+  document.getElementById('visit-count').textContent = visitCount;
+
+  // Streak consécutif (à partir d'aujourd'hui en remontant)
+  let streak = 0;
+  for (let i = values.length - 1; i >= 0; i--) {
+    if (values[i] === 1) streak++;
+    else break;
+  }
+  document.getElementById('visit-streak').textContent =
+    streak > 0 ? `🔥 ${streak} jour${streak > 1 ? 's' : ''} consécutif${streak > 1 ? 's' : ''}` : 'Aucun streak';
+
+  // Graphique
+  new Chart(document.getElementById('gymChart'), {
+    type: 'bar',
+    data: {
+      labels:   days,
+      datasets: [{
+        data:            values,
+        backgroundColor: colors,
+        borderColor:     colors,
+        borderWidth:     1,
+        borderRadius:    6,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { color: '#666', font: { size: 10 } },
+          grid:  { display: false }
+        },
+        y: {
+          display: false,
+          min: 0,
+          max: 1
+        }
+      }
+    }
+  });
+</script>
 {% endblock %}
