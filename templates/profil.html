@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+{% block title %}Profil — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .profile-hero {
+    background: linear-gradient(135deg, var(--bg2), var(--bg3));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .avatar-container {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
+    cursor: pointer;
+  }
+
+  .avatar-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--border);
+    transition: border-color 0.2s;
+  }
+
+  .avatar-container:hover .avatar-image {
+    border-color: var(--orange);
+  }
+
+  .avatar-edit-icon {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: var(--orange);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    border: 2px solid var(--bg2);
+  }
+
+  .profile-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .profile-sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .stat-box {
+    background: var(--bg3);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--orange);
+    line-height: 1;
+  }
+
+  .stat-lbl {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-row:last-child { border-bottom: none; }
+
+  .info-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .info-value {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .poids-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border)66;
+    font-size: 0.9rem;
+  }
+
+  .poids-entry:last-child { border-bottom: none; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .modal-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--orange);
+    margin-bottom: 20px;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    padding: 16px 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .goal-chip {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO PROFIL -->
+<div class="avatar-container" onclick="triggerPhotoUpload()">
+  <img
+    src="{{ url_for('static', filename='uploads/' + profile.photo) if profile.photo else url_for('static', filename='img/default-avatar.png') }}"
+    alt="Photo de profil"
+    class="avatar-image"
+    id="profile-avatar-img"
+  >
+  <div class="avatar-edit-icon">📷</div>
+</div>
+
+<input type="file" id="photo-input" style="display: none;" accept="image/*" onchange="uploadPhoto()">
+
+  <div class="profile-name">
+    <span>{{ profile.name or 'Athlète' }}</span>
+    <span style="font-size: 1.6rem;">💪</span>
+  </div>
+  <div class="profile-sub">
+    {{ profile.age or '—' }} ans &nbsp;·&nbsp;
+    {{ profile.weight or '—' }} kg &nbsp;·&nbsp;
+    {{ profile.height or '—' }} cm
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-val">{{ profile.age or '—' }}</div>
+      <div class="stat-lbl">Âge</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{{ profile.weight or '—' }}</div>
+      <div class="stat-lbl">Poids (kg)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{{ profile.height or '—' }}</div>
+      <div class="stat-lbl">Taille (cm)</div>
+    </div>
+  </div>
+</div>
+
+<!-- INFOS PROFIL -->
+<div class="card mb-16">
+  <div class="card-title">Informations</div>
+
+  <div class="info-row">
+    <span class="info-label">Niveau</span>
+    <span class="info-value text-orange">{{ profile.level | capitalize or '—' }}</span>
+  </div>
+
+  <div class="info-row">
+    <span class="info-label">Objectif principal</span>
+    <span class="goal-chip badge-orange">
+      {{ profile.goal | capitalize or '—' }}
+    </span>
+  </div>
+
+  <div class="info-row">
+    <span class="info-label">Unités</span>
+    <span class="info-value">{{ profile.units or 'lbs' }}</span>
+  </div>
+
+  <div class="info-row">
+    <span class="info-label">Sexe</span>
+    <span class="info-value">{{ 'Homme' if profile.sex == 'm' else 'Femme' if profile.sex == 'f' else '—' }}</span>
+  </div>
+
+  <button class="btn btn-secondary btn-block mt-16" onclick="openEditModal()">
+    ✏️ Modifier le profil
+  </button>
+</div>
+
+<!-- SUIVI POIDS CORPOREL -->
+<div class="card mb-16">
+  <div class="flex-between mb-16">
+    <div class="card-title" style="margin: 0;">⚖️ Poids corporel</div>
+    <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;" onclick="openPoidsModal()">
+      + Logger
+    </button>
+  </div>
+
+  <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 12px;">
+    Tendance : <strong class="text-orange">{{ tendance }}</strong>
+  </div>
+
+  {% if body_weight %}
+  {% for entry in body_weight %}
+  <div class="poids-entry">
+    <span class="text-muted">{{ entry.date }}</span>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      {% if entry.note %}
+      <span class="text-muted" style="font-size: 0.8rem;">{{ entry.note }}</span>
+      {% endif %}
+      <strong class="text-orange">{{ entry.poids }} kg</strong>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="text-muted" style="font-size: 0.9rem;">
+    Aucun poids loggué — commence à tracker dès aujourd'hui !
+  </p>
+  {% endif %}
+
+  <a href="/stats" class="btn btn-secondary btn-block mt-16">
+    📊 Voir la courbe complète
+  </a>
+</div>
+
+<!-- MODAL MODIFIER PROFIL -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Modifier le profil</div>
+
+    <div class="form-group">
+      <label>Nom</label>
+      <input type="text" id="edit-name" value="{{ profile.name or '' }}">
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Âge</label>
+        <input type="number" id="edit-age" value="{{ profile.age or '' }}">
+      </div>
+      <div class="form-group">
+        <label>Poids (kg)</label>
+        <input type="number" id="edit-weight" value="{{ profile.weight or '' }}" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>Taille (cm)</label>
+        <input type="number" id="edit-height" value="{{ profile.height or '' }}">
+      </div>
+      <div class="form-group">
+        <label>Sexe</label>
+        <select id="edit-sex">
+          <option value="m" {% if profile.sex == 'm' %}selected{% endif %}>Homme</option>
+          <option value="f" {% if profile.sex == 'f' %}selected{% endif %}>Femme</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Niveau</label>
+      <select id="edit-level">
+        <option value="débutant"      {% if profile.level == 'débutant' %}selected{% endif %}>Débutant</option>
+        <option value="intermédiaire" {% if profile.level == 'intermédiaire' %}selected{% endif %}>Intermédiaire</option>
+        <option value="avancé"        {% if profile.level == 'avancé' %}selected{% endif %}>Avancé</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Objectif principal</label>
+      <select id="edit-goal">
+        <option value="force"          {% if profile.goal == 'force' %}selected{% endif %}>Force</option>
+        <option value="hypertrophie"   {% if profile.goal == 'hypertrophie' %}selected{% endif %}>Hypertrophie</option>
+        <option value="perte de poids" {% if profile.goal == 'perte de poids' %}selected{% endif %}>Perte de poids</option>
+        <option value="recomposition"  {% if profile.goal == 'recomposition' %}selected{% endif %}>Recomposition</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Unités</label>
+      <select id="edit-units">
+        <option value="lbs" {% if profile.units == 'lbs' %}selected{% endif %}>lbs</option>
+        <option value="kg"  {% if profile.units == 'kg' %}selected{% endif %}>kg</option>
+      </select>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 8px;">
+      <button class="btn btn-secondary" style="flex: 1;" onclick="closeEditModal()">
+        Annuler
+      </button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="saveProfil()">
+        Sauvegarder ✅
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LOGGER POIDS -->
+<div class="modal-overlay" id="modal-poids">
+  <div class="modal-box">
+    <div class="modal-title">⚖️ Logger mon poids</div>
+
+    <div class="form-group">
+      <label>Poids aujourd'hui (kg)</label>
+      <input type="number" id="poids-val" placeholder="Ex: 80.5" step="0.1">
+    </div>
+
+    <div class="form-group">
+      <label>Note (optionnel)</label>
+      <input type="text" id="poids-note" placeholder="Ex: Après entraînement">
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 8px;">
+      <button class="btn btn-secondary" style="flex: 1;" onclick="closePoidsModal()">
+        Annuler
+      </button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="savePoids()">
+        Sauvegarder ✅
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── EDIT PROFIL ───────────────────────────────────────
+  function openEditModal()  { document.getElementById('modal-edit').classList.add('open');  }
+  function closeEditModal() { document.getElementById('modal-edit').classList.remove('open'); }
+
+  async function saveProfil() {
+    const data = {
+      name:   document.getElementById('edit-name').value.trim(),
+      age:    parseInt(document.getElementById('edit-age').value) || null,
+      weight: parseFloat(document.getElementById('edit-weight').value) || null,
+      height: parseInt(document.getElementById('edit-height').value) || null,
+      sex:    document.getElementById('edit-sex').value,
+      level:  document.getElementById('edit-level').value,
+      goal:   document.getElementById('edit-goal').value,
+      units:  document.getElementById('edit-units').value
+    };
+
+    const res = await fetch('/api/update_profile', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(data)
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      showToast('Profil mis à jour ! ✅');
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      showToast('Erreur !', 'error');
+    }
+  }
+
+  // ── POIDS CORPOREL ────────────────────────────────────
+  function openPoidsModal()  { document.getElementById('modal-poids').classList.add('open');  }
+  function closePoidsModal() { document.getElementById('modal-poids').classList.remove('open'); }
+// Cette fonction ouvre la fenêtre de sélection de fichier
+function triggerPhotoUpload() {
+  const input = document.getElementById('photo-input');
+  if (input) {
+    input.click();
+  } else {
+    console.error("L'élément photo-input est introuvable dans le DOM.");
+  }
+}
+
+// Cette fonction envoie l'image au serveur dès qu'elle est choisie
+async function uploadPhoto() {
+  const fileInput = document.getElementById('photo-input');
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  try {
+    const res = await fetch('/api/update_profile_photo', {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      // Met à jour l'image sans recharger
+      document.getElementById('profile-avatar-img').src = result.photo_url;
+      if (typeof showToast === "function") showToast('Photo mise à jour ! 📷');
+    } else {
+      alert("Erreur: " + result.error);
+    }
+  } catch (error) {
+    console.error('Erreur lors de l\'upload:', error);
+  }
+}
+  async function savePoids() {
+    const poids = parseFloat(document.getElementById('poids-val').value);
+    const note  = document.getElementById('poids-note').value.trim();
+
+    if (!poids) {
+      showToast('Entre ton poids !', 'error');
+      return;
+    }
+
+    const res = await fetch('/api/body_weight', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ poids, note })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(`${poids} kg sauvegardé ! ⚖️`);
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      showToast('Erreur !', 'error');
+    }
+  }
+
+  // Ferme modals si clic dehors
+  ['modal-edit', 'modal-poids'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('open');
+    });
+  });
+
+</script>
+{% endblock %}

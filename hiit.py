@@ -1,3 +1,18 @@
+import json
+from pathlib import Path
+
+# Chemin vers ton fichier de données
+HIIT_FILE = Path(__file__).parent / "data" / "hiit_log.json"
+
+def load_hiit_log():
+    if not HIIT_FILE.exists():
+        return []
+    try:
+        with open(HIIT_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return []
+
 HIIT_PHASES = [
     {"weeks": (1, 3),  "sprint": 30, "rest": 90, "rounds": 8,  "speed": "12-14 km/h"},
     {"weeks": (4, 6),  "sprint": 40, "rest": 80, "rounds": 9,  "speed": "13-15 km/h"},

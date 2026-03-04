@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block title %}Stats — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .chart-card h3 {
+    color: var(--orange);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    padding: 20px 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex-between mb-16">
+  <h2 class="text-orange">📊 Dashboard</h2>
+  <span class="text-muted" style="font-size: 0.8rem;">{{ now }}</span>
+</div>
+
+<!-- MUSCU -->
+<div class="section-label">🏋️ Entraînement musculaire</div>
+
+<div class="chart-card">
+  <h3>Volume total par séance (lbs × reps)</h3>
+  <canvas id="volumeSeance" height="120"></canvas>
+</div>
+
+<div class="grid-2">
+  <div class="chart-card">
+    <h3>Fréquence par semaine</h3>
+    <canvas id="frequence" height="160"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Volume par semaine</h3>
+    <canvas id="volumeSemaine" height="160"></canvas>
+  </div>
+</div>
+
+<div class="chart-card">
+  <h3>🎯 RPE dans le temps</h3>
+  <canvas id="rpeSeances" height="120"></canvas>
+</div>
+
+<!-- HIIT -->
+<div class="section-label">🏃 HIIT</div>
+
+<div class="grid-2">
+  <div class="chart-card">
+    <h3>RPE dans le temps</h3>
+    <canvas id="hiitRpe" height="160"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Rounds complétés vs planifiés</h3>
+    <canvas id="hiitRounds" height="160"></canvas>
+  </div>
+</div>
+
+<!-- POIDS CORPOREL -->
+<div class="section-label">⚖️ Poids corporel</div>
+
+<div class="chart-card">
+  <h3>Courbe de poids (kg)</h3>
+  <canvas id="poidsCorps" height="120"></canvas>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // ── DONNÉES PYTHON → JS ───────────────────────────────
+  const weights    = {{ weights | tojson }};
+  const sessions   = {{ sessions | tojson }};
+  const hiitLog    = {{ hiit_log | tojson }};
+  const bodyWeight = {{ body_weight | tojson }};
+
+  // ── COULEURS ──────────────────────────────────────────
+  const orange = '#f97316';
+  const blue   = '#3b82f6';
+  const green  = '#22c55e';
+  const purple = '#a855f7';
+  const rose   = '#f43f5e';
+
+  const defaults = {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#666' }, grid: { color: '#1e1e2a' } },
+      y: { ticks: { color: '#666' }, grid: { color: '#1e1e2a' } }
+    }
+  };
+
+  const rpeScale = {
+    ...defaults,
+    scales: {
+      x: { ticks: { color: '#666' }, grid: { color: '#1e1e2a' } },
+      y: { min: 1, max: 10, ticks: { color: '#666', stepSize: 1 }, grid: { color: '#1e1e2a' } }
+    }
+  };
+
+  // ── CALCULS ───────────────────────────────────────────
+
+  function computeVolumeParSeance() {
+    const vol = {};
+    for (const [ex, data] of Object.entries(weights)) {
+      if (ex === 'sessions') continue;
+      for (const entry of (data.history || [])) {
+        const date = entry.date;
+        const w    = entry.weight || 0;
+        const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
+        vol[date]  = (vol[date] || 0) + w * reps.reduce((a, b) => a + b, 0);
+      }
+    }
+    const sorted = Object.entries(vol).sort(([a], [b]) => a.localeCompare(b));
+    return {
+      labels: sorted.map(([d]) => d),
+      data:   sorted.map(([, v]) => Math.round(v))
+    };
+  }
+
+  function computeFrequenceParSemaine() {
+    const freq = {};
+    for (const [ex, data] of Object.entries(weights)) {
+      if (ex === 'sessions') continue;
+      for (const entry of (data.history || [])) {
+        const d   = new Date(entry.date);
+        const wk  = `${d.getFullYear()}-S${String(Math.ceil((d - new Date(d.getFullYear(), 0, 1)) / 604800000)).padStart(2, '0')}`;
+        if (!freq[wk]) freq[wk] = new Set();
+        freq[wk].add(entry.date);
+      }
+    }
+    const sorted = Object.entries(freq).sort(([a], [b]) => a.localeCompare(b));
+    return {
+      labels: sorted.map(([w]) => w),
+      data:   sorted.map(([, s]) => s.size)
+    };
+  }
+
+  function computeVolumeParSemaine() {
+    const vol = {};
+    for (const [ex, data] of Object.entries(weights)) {
+      if (ex === 'sessions') continue;
+      for (const entry of (data.history || [])) {
+        const d   = new Date(entry.date);
+        const wk  = `${d.getFullYear()}-S${String(Math.ceil((d - new Date(d.getFullYear(), 0, 1)) / 604800000)).padStart(2, '0')}`;
+        const w   = entry.weight || 0;
+        const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
+        vol[wk]   = (vol[wk] || 0) + w * reps.reduce((a, b) => a + b, 0);
+      }
+    }
+    const sorted = Object.entries(vol).sort(([a], [b]) => a.localeCompare(b));
+    return {
+      labels: sorted.map(([w]) => w),
+      data:   sorted.map(([, v]) => Math.round(v))
+    };
+  }
+
+  function computeRpeSeances() {
+    const result = Object.entries(sessions)
+      .filter(([, s]) => s.rpe)
+      .sort(([a], [b]) => a.localeCompare(b));
+    return {
+      labels: result.map(([d]) => d),
+      data:   result.map(([, s]) => s.rpe)
+    };
+  }
+
+  function computeHiitRpe() {
+    const sorted = [...hiitLog].filter(e => e.rpe).sort((a, b) => a.date.localeCompare(b.date));
+    return {
+      labels: sorted.map(e => e.date),
+      data:   sorted.map(e => e.rpe)
+    };
+  }
+
+  function computeHiitRounds() {
+    const sorted = [...hiitLog].sort((a, b) => a.date.localeCompare(b.date));
+    return {
+      labels:    sorted.map(e => e.date),
+      completes: sorted.map(e => e['rounds_complétés']),
+      planifies: sorted.map(e => e['rounds_planifiés'])
+    };
+  }
+
+  function computePoids() {
+    const sorted = [...bodyWeight].sort((a, b) => a.date.localeCompare(b.date));
+    const vals   = sorted.map(e => e.poids);
+    return {
+      labels: sorted.map(e => e.date),
+      data:   vals,
+      min:    Math.min(...vals) - 2,
+      max:    Math.max(...vals) + 2
+    };
+  }
+
+  // ── GRAPHIQUES ────────────────────────────────────────
+
+  // Volume par séance
+  const vs = computeVolumeParSeance();
+  new Chart(document.getElementById('volumeSeance'), {
+    type: 'bar',
+    data: {
+      labels: vs.labels,
+      datasets: [{ data: vs.data, backgroundColor: orange + '99', borderColor: orange, borderWidth: 1, borderRadius: 4 }]
+    },
+    options: defaults
+  });
+
+  // Fréquence
+  const fr = computeFrequenceParSemaine();
+  new Chart(document.getElementById('frequence'), {
+    type: 'bar',
+    data: {
+      labels: fr.labels,
+      datasets: [{ data: fr.data, backgroundColor: blue + '99', borderColor: blue, borderWidth: 1, borderRadius: 4 }]
+    },
+    options: defaults
+  });
+
+  // Volume semaine
+  const vw = computeVolumeParSemaine();
+  new Chart(document.getElementById('volumeSemaine'), {
+    type: 'line',
+    data: {
+      labels: vw.labels,
+      datasets: [{ data: vw.data, borderColor: green, backgroundColor: green + '22', borderWidth: 2, pointBackgroundColor: green, pointRadius: 4, fill: true, tension: 0.3 }]
+    },
+    options: defaults
+  });
+
+  // RPE séances
+  const rpe = computeRpeSeances();
+  new Chart(document.getElementById('rpeSeances'), {
+    type: 'line',
+    data: {
+      labels: rpe.labels,
+      datasets: [{ data: rpe.data, borderColor: purple, backgroundColor: purple + '22', borderWidth: 2, pointBackgroundColor: purple, pointRadius: 5, fill: true, tension: 0.3 }]
+    },
+    options: rpeScale
+  });
+
+  // HIIT RPE
+  const hr = computeHiitRpe();
+  new Chart(document.getElementById('hiitRpe'), {
+    type: 'line',
+    data: {
+      labels: hr.labels,
+      datasets: [{ data: hr.data, borderColor: orange, backgroundColor: orange + '22', borderWidth: 2, pointBackgroundColor: orange, pointRadius: 5, fill: true, tension: 0.3 }]
+    },
+    options: rpeScale
+  });
+
+  // HIIT Rounds
+  const hrd = computeHiitRounds();
+  new Chart(document.getElementById('hiitRounds'), {
+    type: 'bar',
+    data: {
+      labels: hrd.labels,
+      datasets: [
+        { label: 'Planifiés',  data: hrd.planifies, backgroundColor: blue + '44',  borderColor: blue,  borderWidth: 1, borderRadius: 4 },
+        { label: 'Complétés', data: hrd.completes, backgroundColor: green + '99', borderColor: green, borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: {
+      ...defaults,
+      plugins: { legend: { display: true, labels: { color: '#888' } } }
+    }
+  });
+
+  // Poids corporel
+  const pw = computePoids();
+  if (pw.data.length > 0) {
+    new Chart(document.getElementById('poidsCorps'), {
+      type: 'line',
+      data: {
+        labels: pw.labels,
+        datasets: [{ data: pw.data, borderColor: rose, backgroundColor: rose + '22', borderWidth: 2, pointBackgroundColor: rose, pointRadius: 4, fill: true, tension: 0.3 }]
+      },
+      options: {
+        ...defaults,
+        scales: {
+          x: { ticks: { color: '#666' }, grid: { color: '#1e1e2a' } },
+          y: { min: pw.min, max: pw.max, ticks: { color: '#666' }, grid: { color: '#1e1e2a' } }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

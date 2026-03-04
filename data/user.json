@@ -1,12 +1,12 @@
 {
   "name": "Vincent",
-  "age": "37",
-  "weight_kg": "80",
-  "height_cm": "170",
+  "age": 37,
+  "weight": 80,
+  "height": 170,
   "sex": "m",
-  "level": "avance",
-  "goal": "force",
+  "level": "intermédiaire",
+  "goal": "hypertrophie",
   "units": "kg",
-  "created": "2026-03-03T09:32:10.346747",
-  "last_updated": "2026-03-03T09:33:32.597001"
+  "last_updated": "2026-03-03T20:54:06.612521",
+  "photo": "Capture_decran_le_2026-03-03_a_20.53.50.png"
 }

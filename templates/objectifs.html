@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% block title %}Objectifs — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .goal-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+
+  .goal-card.achieved {
+    border-color: var(--green);
+    opacity: 0.8;
+  }
+
+  .goal-card.close {
+    border-color: var(--orange);
+  }
+
+  .goal-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+
+  .goal-numbers {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 10px;
+  }
+
+  .goal-current {
+    font-size: 2rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    color: var(--orange);
+    line-height: 1;
+  }
+
+  .goal-target {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .goal-pct {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .progress-wrap {
+    background: var(--bg3);
+    border-radius: 999px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--orange), var(--orange2));
+    transition: width 0.8s ease;
+  }
+
+  .progress-fill.achieved {
+    background: linear-gradient(90deg, var(--green), #16a34a);
+  }
+
+  .goal-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  .trophy {
+    font-size: 2.5rem;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .achieved-banner {
+    background: var(--green)22;
+    border: 1px solid var(--green)44;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--green);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 10px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .empty-state .icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open {
+    display: flex;
+  }
+
+  .modal-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .modal-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--orange);
+    margin-bottom: 20px;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    padding: 16px 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex-between mb-16">
+  <h2 class="text-orange">🎯 Objectifs</h2>
+  <button class="btn btn-primary" onclick="openModal()">
+    + Ajouter
+  </button>
+</div>
+
+{% if not goals %}
+<div class="empty-state">
+  <div class="icon">🎯</div>
+  <h3 class="text-orange">Aucun objectif défini</h3>
+  <p class="text-muted mt-8">Fixe-toi des objectifs de poids par exercice et suis ta progression !</p>
+  <button class="btn btn-primary mt-16" onclick="openModal()">
+    Créer mon premier objectif
+  </button>
+</div>
+
+{% else %}
+
+<!-- OBJECTIFS EN COURS -->
+{% set actifs = goals | selectattr('achieved', 'equalto', false) | list %}
+{% if actifs %}
+<div class="section-label">En cours</div>
+{% for g in actifs %}
+<div class="goal-card {% if g.pct >= 90 %}close{% endif %}">
+
+  <div class="goal-name">{{ g.exercise }}</div>
+
+  <div class="goal-numbers">
+    <div>
+      <div class="goal-current">{{ g.current }} lbs</div>
+      <div class="text-muted" style="font-size: 0.8rem;">actuel</div>
+    </div>
+    <div style="text-align: right;">
+      <div class="goal-pct">{{ g.pct }}%</div>
+      <div class="goal-target">
+        Objectif : <strong class="text-orange">{{ g.goal }} lbs</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-fill" style="width: {{ g.pct }}%"></div>
+  </div>
+
+  <div style="font-size: 0.85rem; color: var(--muted);">
+    Il reste <strong class="text-orange">{{ (g.goal - g.current) | round(1) }} lbs</strong> à atteindre
+  </div>
+
+  {% if g.pct >= 90 %}
+  <div class="achieved-banner mt-8">
+    🔥 T'es à {{ g.pct }}% — presque là !
+  </div>
+  {% endif %}
+
+  <div class="goal-meta">
+    {% if g.deadline %}
+    <span>📅 Deadline : {{ g.deadline }}</span>
+    {% endif %}
+    {% if g.note %}
+    <span>📝 {{ g.note }}</span>
+    {% endif %}
+  </div>
+
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- OBJECTIFS ATTEINTS -->
+{% set atteints = goals | selectattr('achieved', 'equalto', true) | list %}
+{% if atteints %}
+<div class="section-label">✅ Atteints</div>
+{% for g in atteints %}
+<div class="goal-card achieved">
+  <div class="flex-between">
+    <div>
+      <div class="goal-name">{{ g.exercise }}</div>
+      <div class="text-muted" style="font-size: 0.85rem; margin-top: 4px;">
+        Objectif : {{ g.goal }} lbs
+      </div>
+    </div>
+    <div style="font-size: 2rem;">🏆</div>
+  </div>
+
+  <div class="progress-wrap mt-8">
+    <div class="progress-fill achieved" style="width: 100%"></div>
+  </div>
+
+  <div class="achieved-banner mt-8">
+    ✅ Atteint le {{ g.achieved_on }} — Félicitations ! 🎉
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+
+{% endif %}
+
+<!-- MODAL AJOUTER OBJECTIF -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal-box">
+    <div class="modal-title">🎯 Nouvel objectif</div>
+
+    <div class="form-group">
+      <label>Exercice</label>
+      <input type="text" id="goal-exercise" placeholder="Ex: Bench Press" list="exercises-list">
+      <datalist id="exercises-list">
+        {% for g in goals %}
+        <option value="{{ g.exercise }}">
+        {% endfor %}
+      </datalist>
+    </div>
+
+    <div class="form-group">
+      <label>Objectif (lbs)</label>
+      <input type="number" id="goal-weight" placeholder="Ex: 225" step="2.5">
+    </div>
+
+    <div class="form-group">
+      <label>Deadline (optionnel)</label>
+      <input type="date" id="goal-deadline">
+    </div>
+
+    <div class="form-group">
+      <label>Note (optionnel)</label>
+      <input type="text" id="goal-note" placeholder="Ex: Objectif saison été">
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 8px;">
+      <button class="btn btn-secondary" style="flex: 1;" onclick="closeModal()">
+        Annuler
+      </button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="saveGoal()">
+        Sauvegarder ✅
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function openModal() {
+    document.getElementById('modal-add').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-add').classList.remove('open');
+  }
+
+  async function saveGoal() {
+    const exercise = document.getElementById('goal-exercise').value.trim();
+    const weight   = parseFloat(document.getElementById('goal-weight').value);
+    const deadline = document.getElementById('goal-deadline').value || null;
+    const note     = document.getElementById('goal-note').value.trim();
+
+    if (!exercise || !weight) {
+      showToast('Remplis le nom et le poids !', 'error');
+      return;
+    }
+
+    const res = await fetch('/api/set_goal', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ exercise, weight, deadline, note })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast('Objectif sauvegardé ! 🎯');
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      showToast('Erreur !', 'error');
+    }
+  }
+
+  // Ferme le modal si on clique dehors
+  document.getElementById('modal-add').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+{% endblock %}

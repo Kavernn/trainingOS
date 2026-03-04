@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+{% block title %}Inventaire — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .exo-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .exo-row:last-child { border-bottom: none; }
+  .exo-row:hover { background: var(--bg3); }
+
+  .exo-row-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  .exo-row-meta {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .exo-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .btn-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.15s;
+  }
+
+  .btn-icon:hover { border-color: var(--orange); color: var(--orange); }
+  .btn-icon.delete:hover { border-color: var(--rose); color: var(--rose); }
+
+  .search-bar {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    width: 100%;
+    margin-bottom: 16px;
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+  }
+
+  .search-bar:focus { border-color: var(--orange); }
+
+  .filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .filter-tab {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .filter-tab.active {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: white;
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 460px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--orange);
+    margin-bottom: 20px;
+  }
+
+  .muscle-tag {
+    display: inline-block;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin: 2px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex-between mb-16">
+  <h2 class="text-orange">🏋️ Inventaire</h2>
+  <button class="btn btn-primary" onclick="openAddModal()">+ Ajouter</button>
+</div>
+
+<!-- SEARCH -->
+<input
+  class="search-bar"
+  type="text"
+  id="search"
+  placeholder="🔍 Rechercher un exercice..."
+  oninput="filterExos()"
+>
+
+<!-- FILTRES PAR TYPE -->
+<div class="filter-tabs">
+  <div class="filter-tab active" onclick="setFilter('all', this)">Tous</div>
+  <div class="filter-tab" onclick="setFilter('barbell', this)">Barbell</div>
+  <div class="filter-tab" onclick="setFilter('dumbbell', this)">Dumbbell</div>
+  <div class="filter-tab" onclick="setFilter('machine', this)">Machine</div>
+  <div class="filter-tab" onclick="setFilter('cable', this)">Cable</div>
+  <div class="filter-tab" onclick="setFilter('bodyweight', this)">Bodyweight</div>
+</div>
+
+<!-- LISTE -->
+<div class="card" style="padding: 0; overflow: hidden;">
+  {% if not inventory %}
+  <div style="padding: 40px; text-align: center;" class="text-muted">
+    Aucun exercice dans l'inventaire.
+  </div>
+  {% else %}
+  <div id="exo-list">
+    {% for name, info in inventory.items() | sort %}
+    <div class="exo-row" data-name="{{ name | lower }}" data-type="{{ info.type }}">
+      <div>
+        <div class="exo-row-name">{{ name }}</div>
+        <div class="exo-row-meta">
+          {{ info.type }}
+          {% if info.muscles %}· {{ info.muscles | join(', ') }}{% endif %}
+          · incrément {{ info.increment }} lbs
+          {% if info.default_scheme %}· {{ info.default_scheme }}{% endif %}
+        </div>
+        {% if info.muscles %}
+        <div style="margin-top: 4px;">
+          {% for m in info.muscles %}
+          <span class="muscle-tag">{{ m }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="exo-actions">
+        <button class="btn-icon" onclick="openEditModal('{{ name }}', {{ info | tojson | e }})" title="Modifier">✏️</button>
+        <button class="btn-icon delete" onclick="deleteExo('{{ name }}')" title="Supprimer">🗑️</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- MODAL AJOUTER / MODIFIER -->
+<div class="modal-overlay" id="modal-form">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-form-title">➕ Nouvel exercice</div>
+
+    <input type="hidden" id="form-original-name">
+
+    <div class="form-group">
+      <label>Nom de l'exercice</label>
+      <input type="text" id="form-name" placeholder="Ex: Bench Press">
+    </div>
+
+    <div class="form-group">
+      <label>Type d'équipement</label>
+      <select id="form-type" onchange="toggleBarreInput()">
+        <option value="barbell">Barbell</option>
+        <option value="dumbbell">Dumbbell</option>
+        <option value="machine">Machine</option>
+        <option value="cable">Cable</option>
+        <option value="bodyweight">Bodyweight</option>
+      </select>
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Incrément (lbs)</label>
+        <input type="number" id="form-increment" value="5" step="2.5">
+      </div>
+      <div class="form-group" id="barre-group">
+        <label>Poids barre (lbs)</label>
+        <input type="number" id="form-bar-weight" value="45" step="5">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Scheme par défaut</label>
+      <input type="text" id="form-scheme" placeholder="Ex: 4x5-7" value="3x8-12">
+    </div>
+
+    <div class="form-group">
+      <label>Muscles ciblés (séparés par virgule)</label>
+      <input type="text" id="form-muscles" placeholder="Ex: pectoraux, triceps, deltoïdes">
+    </div>
+
+    <div class="form-group">
+      <label>Tips techniques (optionnel)</label>
+      <input type="text" id="form-tips" placeholder="Ex: Omoplates serrées, descendre vers le bas du pec">
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 8px;">
+      <button class="btn btn-secondary" style="flex: 1;" onclick="closeFormModal()">Annuler</button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="saveExo()">Sauvegarder ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMER SUPPRESSION -->
+<div class="modal-overlay" id="modal-delete">
+  <div class="modal-box" style="max-width: 360px;">
+    <div class="modal-title">🗑️ Supprimer ?</div>
+    <p style="color: var(--muted); margin-bottom: 20px;">
+      Supprimer <strong id="delete-name" class="text-orange"></strong> de l'inventaire ?
+      Cette action est irréversible.
+    </p>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn btn-secondary" style="flex: 1;" onclick="closeDeleteModal()">Annuler</button>
+      <button class="btn btn-primary" style="flex: 1; background: var(--rose);" onclick="confirmDelete()">
+        Supprimer
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  let currentFilter = 'all';
+  let deleteTarget  = null;
+
+  // ── FILTRES ───────────────────────────────────────────
+  function setFilter(type, el) {
+    currentFilter = type;
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    filterExos();
+  }
+
+  function filterExos() {
+    const query = document.getElementById('search').value.toLowerCase();
+    document.querySelectorAll('.exo-row').forEach(row => {
+      const name    = row.dataset.name || '';
+      const type    = row.dataset.type || '';
+      const matchQ  = name.includes(query);
+      const matchT  = currentFilter === 'all' || type === currentFilter;
+      row.style.display = (matchQ && matchT) ? 'flex' : 'none';
+    });
+  }
+
+  // ── MODAL AJOUTER ─────────────────────────────────────
+  function openAddModal() {
+    document.getElementById('modal-form-title').textContent = '➕ Nouvel exercice';
+    document.getElementById('form-original-name').value = '';
+    document.getElementById('form-name').value      = '';
+    document.getElementById('form-type').value      = 'barbell';
+    document.getElementById('form-increment').value = '5';
+    document.getElementById('form-bar-weight').value = '45';
+    document.getElementById('form-scheme').value    = '3x8-12';
+    document.getElementById('form-muscles').value   = '';
+    document.getElementById('form-tips').value      = '';
+    toggleBarreInput();
+    document.getElementById('modal-form').classList.add('open');
+  }
+
+  // ── MODAL MODIFIER ────────────────────────────────────
+  function openEditModal(name, info) {
+    document.getElementById('modal-form-title').textContent = '✏️ Modifier ' + name;
+    document.getElementById('form-original-name').value    = name;
+    document.getElementById('form-name').value             = name;
+    document.getElementById('form-type').value             = info.type || 'machine';
+    document.getElementById('form-increment').value        = info.increment || 5;
+    document.getElementById('form-bar-weight').value       = info.bar_weight || 45;
+    document.getElementById('form-scheme').value           = info.default_scheme || '3x8-12';
+    document.getElementById('form-muscles').value          = (info.muscles || []).join(', ');
+    document.getElementById('form-tips').value             = info.tips || '';
+    toggleBarreInput();
+    document.getElementById('modal-form').classList.add('open');
+  }
+
+  function closeFormModal() {
+    document.getElementById('modal-form').classList.remove('open');
+  }
+
+  function toggleBarreInput() {
+    const type  = document.getElementById('form-type').value;
+    const group = document.getElementById('barre-group');
+    group.style.display = type === 'barbell' ? 'block' : 'none';
+  }
+
+  // ── SAUVEGARDER ───────────────────────────────────────
+  async function saveExo() {
+    const originalName = document.getElementById('form-original-name').value;
+    const name         = document.getElementById('form-name').value.trim();
+    const type         = document.getElementById('form-type').value;
+    const increment    = parseFloat(document.getElementById('form-increment').value) || 5;
+    const barWeight    = parseFloat(document.getElementById('form-bar-weight').value) || 45;
+    const scheme       = document.getElementById('form-scheme').value.trim() || '3x8-12';
+    const musclesRaw   = document.getElementById('form-muscles').value;
+    const muscles      = musclesRaw.split(',').map(m => m.trim()).filter(Boolean);
+    const tips         = document.getElementById('form-tips').value.trim();
+
+    if (!name) {
+      showToast('Entre un nom !', 'error');
+      return;
+    }
+
+    const res = await fetch('/api/save_exercise', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        original_name: originalName,
+        name, type, increment,
+        bar_weight: type === 'barbell' ? barWeight : 0,
+        default_scheme: scheme,
+        muscles, tips
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(`${name} sauvegardé ! ✅`);
+      setTimeout(() => window.location.reload(), 1000);
+    } else {
+      showToast('Erreur !', 'error');
+    }
+  }
+
+  // ── SUPPRIMER ─────────────────────────────────────────
+  function deleteExo(name) {
+    deleteTarget = name;
+    document.getElementById('delete-name').textContent = name;
+    document.getElementById('modal-delete').classList.add('open');
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('modal-delete').classList.remove('open');
+    deleteTarget = null;
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+
+    const res = await fetch('/api/delete_exercise', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name: deleteTarget })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(`${deleteTarget} supprimé !`);
+      setTimeout(() => window.location.reload(), 1000);
+    } else {
+      showToast('Erreur !', 'error');
+    }
+    closeDeleteModal();
+  }
+
+  // Ferme modals si clic dehors
+  ['modal-form', 'modal-delete'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('open');
+    });
+  });
+</script>
+{% endblock %}

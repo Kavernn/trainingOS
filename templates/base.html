@@ -380,28 +380,29 @@
   </main>
 
   <!-- BOTTOM NAV -->
-  <nav class="bottom-nav">
-    <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
-      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-      Accueil
-    </a>
-    <a href="/seance" class="nav-item {% if request.path == '/seance' %}active{% endif %}">
-      <svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M6 12h12M2 7h4M18 7h4M2 17h4M18 17h4"/></svg>
-      Séance
-    </a>
-    <a href="/historique" class="nav-item {% if request.path == '/historique' %}active{% endif %}">
-      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      Historique
-    </a>
-    <a href="/stats" class="nav-item {% if request.path == '/stats' %}active{% endif %}">
-      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      Stats
-    </a>
-    <a href="/profil" class="nav-item {% if request.path == '/profil' %}active{% endif %}">
-      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      Profil
-    </a>
-  </nav>
+<nav class="bottom-nav">
+  <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Accueil
+  </a>
+  <a href="/seance" class="nav-item {% if request.path == '/seance' %}active{% endif %}">
+    <svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M6 12h12M2 7h4M18 7h4M2 17h4M18 17h4"/></svg>
+    Séance
+  </a>
+  <a href="/historique" class="nav-item {% if request.path == '/historique' %}active{% endif %}">
+    <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    Historique
+  </a>
+  <a href="/stats" class="nav-item {% if request.path == '/stats' %}active{% endif %}">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    Stats
+  </a>
+  <a href="/profil" class="nav-item {% if request.path == '/profil' %}active{% endif %}">
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Profil
+  </a>
+
+</nav>
 
   <!-- TOAST -->
   <div id="toast"></div>

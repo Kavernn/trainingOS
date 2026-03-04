@@ -48,6 +48,72 @@ def compute_volume_par_seance(weights: dict) -> list[dict]:
             for d, v in sorted(volume_par_date.items())]
 
 
+def compute_frequence_hebdo(weights: dict, hiit_log: list) -> dict:
+    from datetime import datetime
+    sessions_par_semaine = defaultdict(int)
+
+    # 1. On compte les séances de muscu (depuis l'historique de chaque exo)
+    dates_vues = set()
+    for ex, data in weights.items():
+        if isinstance(data, dict):
+            for entry in data.get("history", []):
+                dates_vues.add(entry.get("date"))
+
+    # 2. On ajoute les séances de HIIT
+    for entry in hiit_log:
+        dates_vues.add(entry.get("date"))
+
+    # 3. On groupe par numéro de semaine
+    for date_str in dates_vues:
+        if not date_str: continue
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            # Format: "Semaine 12"
+            num_semaine = dt.isocalendar()[1]
+            sessions_par_semaine[f"Sem {num_semaine}"] += 1
+        except:
+            continue
+
+    return dict(sorted(sessions_par_semaine.items()))
+
+
+from datetime import datetime
+from collections import defaultdict
+
+
+def get_frequence_hebdo_data(weights, hiit_log):
+    jours_entrainement = set()
+
+    # 1. On récupère les dates des séances de muscu
+    for ex_name, data in weights.items():
+        if isinstance(data, dict) and "history" in data:
+            for entry in data["history"]:
+                if "date" in entry:
+                    jours_entrainement.add(entry["date"])
+
+    # 2. On récupère les dates des séances de HIIT
+    for entry in hiit_log:
+        if isinstance(entry, dict) and "date" in entry:
+            jours_entrainement.add(entry["date"])
+
+    # 3. On groupe par semaine
+    frequence_par_semaine = defaultdict(int)
+    # On trie les dates pour avoir un graphique chronologique
+    for date_str in sorted(jours_entrainement):
+        try:
+            dt = datetime.strptime(date_str, "%Y-%m-%d")
+            # Création du label "Sem XX" (numéro de semaine)
+            semaine_label = f"Sem {dt.isocalendar()[1]}"
+            frequence_par_semaine[semaine_label] += 1
+        except:
+            continue
+
+    # On prépare les données pour Chart.js
+    labels = list(frequence_par_semaine.keys())
+    values = list(frequence_par_semaine.values())
+
+    # On retourne les 6 dernières semaines pour le dashboard
+    return labels[-6:], values[-6:]
 def compute_frequence_par_semaine(weights: dict) -> list[dict]:
     seances_par_semaine = defaultdict(set)
     for ex, data in weights.items():

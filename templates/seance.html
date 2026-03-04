@@ -1,199 +1,602 @@
 {% extends "base.html" %}
-{% block title %}Séance du jour — {{ today }}{% endblock %}
+{% block title %}Séance — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+
+  .exercise-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .exercise-card.done {
+    border-color: var(--green);
+    opacity: 0.7;
+  }
+
+  .exercise-header {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .exercise-header:hover {
+    background: var(--bg3);
+  }
+
+  .exercise-body {
+    padding: 0 20px 20px;
+    display: none;
+  }
+
+  .exercise-body.open {
+    display: block;
+  }
+
+  .exercise-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .history-mini {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .result-box {
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    font-size: 0.9rem;
+    display: none;
+  }
+
+  .result-box.show { display: block; }
+
+  .checkmark {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+
+  .checkmark.done {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .timer-bar {
+    height: 4px;
+    background: var(--bg3);
+    border-radius: 999px;
+    margin-top: 12px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .timer-fill {
+    height: 100%;
+    background: var(--orange);
+    border-radius: 999px;
+    transition: width 1s linear;
+  }
+
+  .timer-label {
+    font-size: 0.85rem;
+    color: var(--orange);
+    margin-top: 6px;
+    display: none;
+  }
+
+  .sets-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .set-btn {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .set-btn:hover    { border-color: var(--orange); color: var(--orange); }
+  .set-btn.active   { background: var(--orange); border-color: var(--orange); color: white; }
+  .set-btn .set-num { font-size: 0.65rem; color: inherit; opacity: 0.7; }
+
+  .summary-bar {
+    position: sticky;
+    bottom: 72px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+    z-index: 50;
+  }
+  /* --- AJOUT POUR LES DISQUES --- */
+  .plate-container {
+    display: flex;
+    gap: 4px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .plate-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 800;
+    font-size: 0.65rem;
+    color: white;
+    border: 1px solid rgba(0,0,0,0.2);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .p-45_0 { width: 32px; height: 32px; background: #004d99; }
+  .p-35_0 { width: 30px; height: 30px; background: #e6b800; color: #000; }
+  .p-25_0 { width: 28px; height: 28px; background: #008040; }
+  .p-10_0 { width: 24px; height: 24px; background: #f2f2f2; color: #000; }
+  .p-5_0  { width: 20px; height: 20px; background: #cc0000; }
+  .p-2_5  { width: 17px; height: 17px; background: #666; font-size: 0.5rem; }
+</style>
+{% endblock %}
 
 {% block content %}
 
-<div class="container mx-auto px-4 py-8">
-
-  <h1 class="text-3xl font-bold text-orange mb-2">Séance du jour</h1>
-  <p class="text-muted mb-8">{{ today }} — Semaine {{ week }}</p>
-
-  {% if is_hiit %}
-  <div class="alert alert-info mb-8">
-    🏃 HIIT de la semaine {{ week }} : {{ hiit_str }}
-  </div>
-  {% endif %}
-
-  {% if exercises|length == 0 %}
-  <div class="card text-center py-12">
-    <p class="text-xl text-muted">Aucun exercice prévu aujourd'hui</p>
-    <p class="text-sm mt-4">Repos ou HIIT ? Repose-toi bien ! 😴</p>
-  </div>
-  {% else %}
-  <div class="space-y-8">
-    {% for ex in exercises %}
-    <div class="card" id="exo-{{ loop.index }}">
-      <div class="card-title">{{ ex.name }}</div>
-
-      <div class="flex-between mb-4">
-        <span class="badge badge-blue">{{ ex.scheme }}</span>
-        <span class="text-muted text-sm">Suggéré : {{ ex.display }}</span>
-      </div>
-
-      {% if ex.muscles %}
-      <p class="text-sm text-muted mb-4">Muscles : {{ ex.muscles|join(', ') }}</p>
-      {% endif %}
-
-      {% if ex.history and ex.history|length > 0 %}
-      <div class="text-sm mb-4 text-muted">
-        Dernier : {{ ex.history[0].weight }} lbs × {{ ex.history[0].reps }}
-        {% if ex.history[0]['1rm'] is defined and ex.history[0]['1rm'] > 0 %}
-          (1RM ~{{ ex.history[0]['1rm'] }} lbs)
-        {% endif %}
-      </div>
-      {% endif %}
-
-      <form class="log-form mt-6" data-exo="{{ ex.name }}">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div>
-            <label class="block text-sm font-medium text-muted mb-2">
-              Poids utilisé ({{ ex.type }})
-            </label>
-            <input
-              type="number"
-              name="weight"
-              step="0.5"
-              placeholder="{{ ex.current }}"
-              class="input w-full"
-              required
-            >
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-muted mb-2">
-              Reps par série (ex: 8,7,6)
-            </label>
-            <input
-              type="text"
-              name="reps"
-              placeholder="8,7,6"
-              class="input w-full"
-              required
-            >
-          </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary w-full">
-          Log cet exercice
-        </button>
-
-        <div class="log-result mt-6 hidden p-4 bg-bg3 rounded-lg">
-          <p class="status text-green-400 font-medium mb-2"></p>
-          <p class="new-weight text-orange font-medium"></p>
-          <p class="1rm text-muted"></p>
-        </div>
-      </form>
+<!-- HIIT -->
+{% if is_hiit %}
+<div class="card mb-16">
+  <div class="card-title">🏃 HIIT — Semaine {{ week }}</div>
+  <h2 class="text-orange mt-8">{{ hiit_str }}</h2>
+  <div class="mt-16 grid-2">
+    <div class="form-group">
+      <label>Rounds complétés</label>
+      <input type="number" id="hiit-rounds" placeholder="Ex: 8" min="0" max="30">
     </div>
-    {% endfor %}
+    <div class="form-group">
+      <label>Vitesse max (km/h)</label>
+      <input type="number" id="hiit-speed" placeholder="Ex: 14.5" step="0.5">
+    </div>
+    <div class="form-group">
+      <label>RPE (1-10)</label>
+      <input type="number" id="hiit-rpe" placeholder="Ex: 8" min="1" max="10">
+    </div>
+    <div class="form-group">
+      <label>Ressenti</label>
+      <select id="hiit-feeling">
+        <option>Facile 😎</option>
+        <option selected>Correct 💪</option>
+        <option>Difficile 😤</option>
+        <option>Épuisant 💀</option>
+      </select>
+    </div>
   </div>
-
-  <!-- Fin de séance -->
-  <div class="card mt-12">
-    <div class="card-title">Terminer la séance</div>
-    <form id="finish-session" class="mt-6">
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-muted mb-2">RPE global (1-10)</label>
-        <input type="number" id="rpe" name="rpe" min="1" max="10" class="input w-full">
-      </div>
-
-      <div class="mb-6">
-        <label class="block text-sm font-medium text-muted mb-2">Commentaire / ressenti</label>
-        <textarea id="comment" name="comment" rows="3" class="input w-full"></textarea>
-      </div>
-
-      <button type="submit" class="btn btn-success w-full">
-        Séance terminée – Sauvegarder
-      </button>
-    </form>
+  <div class="form-group">
+    <label>Commentaire</label>
+    <input type="text" id="hiit-comment" placeholder="Notes libres...">
   </div>
-  {% endif %}
-
+  <button class="btn btn-primary btn-block" onclick="logHiit()">
+    Sauvegarder HIIT ✅
+  </button>
 </div>
 
-<!-- JavaScript -->
+{% else %}
+
+<!-- SÉANCE MUSCU -->
+<div class="flex-between mb-16">
+  <div>
+    <h2 class="text-orange">{{ today }}</h2>
+    <div class="text-muted" style="font-size: 0.85rem;">{{ exercises|length }} exercices</div>
+  </div>
+  <span class="badge badge-blue">Semaine {{ week }}</span>
+</div>
+
+{% if not exercises %}
+<div class="card">
+  <p class="text-muted">Aucun exercice programmé pour aujourd'hui.</p>
+  <a href="/" class="btn btn-secondary mt-16">Retour accueil</a>
+</div>
+{% else %}
+
+<!-- EXERCICES -->
+{% for ex in exercises %}
+<div class="exercise-card" id="card-{{ loop.index }}">
+
+  <div class="exercise-header" onclick="toggleExercise({{ loop.index }})">
+    <div>
+      <div class="exercise-name">{{ ex.name }}</div>
+      <div class="history-mini">
+        {{ ex.scheme }}
+        {% if ex.history %}
+        — Dernière : {{ ex.history[0].weight }} lbs × {{ ex.history[0].reps }}
+        {% endif %}
+      </div>
+      {% if ex.type == 'barbell' and ex.plates %}
+      <div class="plate-container">
+          {% for p in ex.plates %}
+              {# On transforme le float 45.0 en string "45_0" pour correspondre au CSS #}
+              <div class="plate-circle p-{{ p|string|replace('.', '_') }}">
+                  {{ p|string|replace('.0', '') }}
+              </div>
+          {% endfor %}
+      </div>
+{% endif %}
+    </div>
+    <div class="flex gap-8" style="align-items: center;">
+      {% if ex.type == 'barbell' %}
+        <span class="badge badge-orange">Barre</span>
+      {% elif ex.type == 'dumbbell' %}
+        <span class="badge badge-blue">DB</span>
+      {% else %}
+        <span class="badge badge-blue">{{ ex.type }}</span>
+      {% endif %}
+      <div class="checkmark" id="check-{{ loop.index }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="exercise-body" id="body-{{ loop.index }}">
+
+    <!-- Poids recommandé -->
+    <div class="alert alert-info" style="margin-bottom: 12px; font-size: 0.85rem;">
+      💡 Recommandé : <strong>{{ ex.display }}</strong>
+      {% if ex['1rm'] %}— 1RM estimé : {{ ex['1rm'] }} lbs{% endif %}
+    </div>
+
+    <!-- Inputs poids + reps -->
+    <div class="input-row">
+      <div class="form-group">
+        <label>
+          {% if ex.type == 'barbell' %}Poids par côté (lbs)
+          {% elif ex.type == 'dumbbell' %}Poids par haltère (lbs)
+          {% else %}Poids total (lbs){% endif %}
+        </label>
+        <input
+          type="number"
+          id="weight-{{ loop.index }}"
+          placeholder="{{ ex.current }}"
+          step="2.5"
+          onchange="updateTotal({{ loop.index }}, '{{ ex.type }}', {{ ex.history[0].weight if ex.history else 0 }})"
+        >
+      </div>
+      <div class="form-group">
+        <label>Reps par série (ex: 7,6,5)</label>
+        <input
+          type="text"
+          id="reps-{{ loop.index }}"
+          placeholder="7,6,5,5"
+        >
+      </div>
+    </div>
+
+    <!-- Total calculé si barbell/dumbbell -->
+    {% if ex.type in ['barbell', 'dumbbell'] %}
+    <div id="total-{{ loop.index }}" class="text-muted" style="font-size: 0.85rem; margin-top: -8px; margin-bottom: 12px;"></div>
+    {% endif %}
+
+    <!-- Résultat progression -->
+    <div class="result-box" id="result-{{ loop.index }}"></div>
+
+    <!-- Timer -->
+    <div class="timer-bar" id="timer-bar-{{ loop.index }}">
+      <div class="timer-fill" id="timer-fill-{{ loop.index }}"></div>
+    </div>
+    <div class="timer-label" id="timer-label-{{ loop.index }}"></div>
+
+    <!-- Boutons -->
+    <div style="display: flex; gap: 8px; margin-top: 16px;">
+      <button
+        class="btn btn-primary"
+        style="flex: 1;"
+        onclick="logExercise({{ loop.index }}, '{{ ex.name }}', '{{ ex.type }}', {{ ex.history[0].weight if ex.history else 0 }})"
+      >
+        ✅ Logger
+      </button>
+      <button
+        class="btn btn-secondary"
+        onclick="startTimer({{ loop.index }}, 120)"
+      >
+        ⏱ 2:00
+      </button>
+      <button
+        class="btn btn-secondary"
+        onclick="startTimer({{ loop.index }}, 180)"
+      >
+        ⏱ 3:00
+      </button>
+    </div>
+
+    <!-- Historique mini -->
+    {% if ex.history %}
+    <div class="mt-16">
+      <div class="card-title">Historique récent</div>
+      <table>
+        <thead><tr><th>Date</th><th>Poids</th><th>Reps</th><th>Note</th></tr></thead>
+        <tbody>
+          {% for h in ex.history %}
+          <tr>
+            <td class="text-muted">{{ h.date }}</td>
+            <td>{{ h.weight }} lbs</td>
+            <td>{{ h.reps }}</td>
+            <td class="{% if '+' in h.note|string %}text-green{% else %}text-muted{% endif %}">
+              {{ h.note }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endfor %}
+
+<!-- SUMMARY BAR -->
+<div class="summary-bar">
+  <div>
+    <span id="done-count" class="text-orange" style="font-family: 'Barlow Condensed'; font-size: 1.4rem; font-weight: 800;">0</span>
+    <span class="text-muted"> / {{ exercises|length }} exercices</span>
+  </div>
+  <button class="btn btn-success" onclick="finirSeance()">
+    Terminer la séance ✅
+  </button>
+</div>
+
+{% endif %}
+{% endif %}
+
+<!-- MODAL FIN DE SÉANCE -->
+<div id="modal-fin" style="
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+">
+  <div class="card" style="max-width: 400px; width: 100%;">
+    <h2 class="text-orange mb-16">💪 Séance terminée !</h2>
+    <div class="form-group">
+      <label>RPE global (1-10)</label>
+      <input type="number" id="fin-rpe" min="1" max="10" placeholder="8">
+    </div>
+    <div class="form-group">
+      <label>Commentaire</label>
+      <input type="text" id="fin-comment" placeholder="Bonne séance, fatigue OK...">
+    </div>
+    <button class="btn btn-primary btn-block" onclick="sauvegarderFin()">
+      Sauvegarder ✅
+    </button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  // Log individuel d'exercice
-  document.querySelectorAll('.log-form').forEach(form => {
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  // État global
+  const logged   = {};
+  const timers   = {};
+  let   doneCount = 0;
 
-      const exercise = form.dataset.exo;
-      const weight = form.querySelector('[name="weight"]').value.trim();
-      const reps = form.querySelector('[name="reps"]').value.trim();
+  // ── TOGGLE EXERCICE ──────────────────────────────────
+  function toggleExercise(idx) {
+    const body = document.getElementById(`body-${idx}`);
+    body.classList.toggle('open');
+  }
 
-      if (!weight || !reps) {
-        alert("Remplis le poids et les reps avant de valider !");
-        return;
-      }
-
-      const resultDiv = form.querySelector('.log-result');
-      resultDiv.classList.remove('hidden');
-      resultDiv.innerHTML = '<p class="text-muted animate-pulse">Enregistrement...</p>';
-
-      try {
-        const res = await fetch('/api/log', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ exercise, weight, reps })
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          let message = '<p class="text-green-400 font-medium mb-2">' + (data.status || 'Exercice logué !') + '</p>';
-
-          if (data.new_weight !== undefined) {
-            message += '<p class="text-orange font-medium">Prochain : ' + data.new_weight + ' lbs</p>';
-          }
-
-          if (data['1rm'] !== undefined && data['1rm'] > 0) {
-            message += '<p class="text-muted">1RM estimé : ' + data['1rm'] + ' lbs</p>';
-          }
-
-          if (data.achieved && data.achieved.length > 0) {
-            message += '<p class="text-yellow-400 font-bold mt-3">🏆 Objectif atteint : ' + data.achieved.join(', ') + ' ! 🎉</p>';
-          }
-
-          resultDiv.innerHTML = message;
-        } else {
-          resultDiv.innerHTML = '<p class="text-red-500">Erreur : ' + (data.error || 'Problème inconnu') + '</p>';
-        }
-      } catch (err) {
-        resultDiv.innerHTML = '<p class="text-red-500">Erreur réseau : ' + err.message + '</p>';
-      }
-    });
+  // Auto-ouvre le premier
+  document.addEventListener('DOMContentLoaded', () => {
+    toggleExercise(1);
   });
 
-  // Fin de séance (RPE + commentaire global)
-  const finishForm = document.getElementById('finish-session');
-  if (finishForm) {
-    finishForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  // ── CALCUL TOTAL ─────────────────────────────────────
+  function updateTotal(idx, type, barWeight = 45) {
+    const val   = parseFloat(document.getElementById(`weight-${idx}`).value);
+    const total = document.getElementById(`total-${idx}`);
+    if (!total || isNaN(val)) return;
 
-      const rpe = document.getElementById('rpe').value.trim();
-      const comment = document.getElementById('comment').value.trim();
-      const exos = Array.from(document.querySelectorAll('.log-form')).map(f => f.dataset.exo);
-
-      try {
-        const res = await fetch('/api/log_session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rpe, comment, exos })
-        });
-
-        const data = await res.json();
-        if (data.success) {
-          alert('Séance terminée et sauvegardée ! 💪');
-          window.location.href = '/';
-        } else {
-          alert('Erreur lors de la sauvegarde');
-        }
-      } catch (err) {
-        alert('Erreur réseau');
-      }
-    });
+    if (type === 'barbell') {
+      total.textContent = `→ Total barre : ${(val * 2 + barWeight).toFixed(1)} lbs`;
+    } else if (type === 'dumbbell') {
+      total.textContent = `→ Total : ${(val * 2).toFixed(1)} lbs`;
+    }
   }
-});
-</script>
 
+  // ── LOG EXERCICE ──────────────────────────────────────
+  async function logExercise(idx, name, type, barWeight = 45) {
+    const weightInput = parseFloat(document.getElementById(`weight-${idx}`).value);
+    const repsInput   = document.getElementById(`reps-${idx}`).value.trim();
+
+    if (!weightInput || !repsInput) {
+      showToast('Entre le poids et les reps !', 'error');
+      return;
+    }
+
+    // Calcule le poids total
+    let totalWeight = weightInput;
+    if (type === 'barbell')  totalWeight = weightInput * 2 + barWeight;
+    if (type === 'dumbbell') totalWeight = weightInput * 2;
+
+    const res  = await fetch('/api/log', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        exercise: name,
+        weight:   totalWeight,
+        reps:     repsInput
+      })
+    });
+
+    const data = await res.json();
+
+    // Affiche le résultat
+    const resultBox = document.getElementById(`result-${idx}`);
+    resultBox.classList.add('show');
+    resultBox.innerHTML = `
+      <div class="${data.increase ? 'text-green' : 'text-orange'}" style="font-weight: 600; margin-bottom: 4px;">
+        ${data.increase ? '✅ Augmente la prochaine fois !' : '🔄 Continue au même poids'}
+      </div>
+      <div class="text-muted">${data.status}</div>
+      <div class="mt-8">
+        Prochain poids : <strong class="text-orange">${data.new_weight} lbs</strong>
+        &nbsp;|&nbsp; 1RM estimé : <strong>${data['1rm']} lbs</strong>
+      </div>
+    `;
+
+    // Objectif atteint ?
+    if (data.achieved && data.achieved.length > 0) {
+      data.achieved.forEach(ex => {
+        showToast(`🏆 OBJECTIF ATTEINT : ${ex} !`, 'success');
+      });
+    }
+
+    // Marque comme fait
+    if (!logged[idx]) {
+      logged[idx] = true;
+      doneCount++;
+      document.getElementById('done-count').textContent = doneCount;
+      document.getElementById(`card-${idx}`).classList.add('done');
+      document.getElementById(`check-${idx}`).classList.add('done');
+
+      // Auto-ouvre le suivant
+      setTimeout(() => {
+        const next = idx + 1;
+        const nextBody = document.getElementById(`body-${next}`);
+        if (nextBody) {
+          document.getElementById(`body-${idx}`).classList.remove('open');
+          nextBody.classList.add('open');
+          nextBody.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 1500);
+    }
+
+    showToast(`${name} loggué ! ✅`);
+  }
+
+  // ── TIMER ─────────────────────────────────────────────
+  function startTimer(idx, seconds) {
+    if (timers[idx]) {
+      clearInterval(timers[idx]);
+      delete timers[idx];
+    }
+
+    const bar   = document.getElementById(`timer-bar-${idx}`);
+    const fill  = document.getElementById(`timer-fill-${idx}`);
+    const label = document.getElementById(`timer-label-${idx}`);
+
+    bar.style.display   = 'block';
+    label.style.display = 'block';
+    fill.style.width    = '100%';
+
+    let remaining = seconds;
+
+    function updateTimer() {
+      remaining--;
+      const pct  = (remaining / seconds) * 100;
+      const mins = Math.floor(remaining / 60);
+      const secs = remaining % 60;
+      fill.style.width    = `${pct}%`;
+      label.textContent   = `⏱ Repos : ${mins}:${secs.toString().padStart(2, '0')}`;
+
+      if (remaining <= 0) {
+        clearInterval(timers[idx]);
+        delete timers[idx];
+        label.textContent   = '✅ Repos terminé !';
+        label.style.color   = 'var(--green)';
+        setTimeout(() => {
+          bar.style.display   = 'none';
+          label.style.display = 'none';
+          label.style.color   = 'var(--orange)';
+        }, 3000);
+      }
+    }
+
+    timers[idx] = setInterval(updateTimer, 1000);
+    updateTimer();
+  }
+
+  // ── FIN DE SÉANCE ─────────────────────────────────────
+  function finirSeance() {
+    document.getElementById('modal-fin').style.display = 'flex';
+  }
+
+  async function sauvegarderFin() {
+    const rpe     = parseInt(document.getElementById('fin-rpe').value) || null;
+    const comment = document.getElementById('fin-comment').value.trim();
+    const exos    = {{ exercises | map(attribute='name') | list | tojson }};
+
+    await fetch('/api/log_session', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ rpe, comment, exos })
+    });
+
+    showToast('Séance sauvegardée ! 💪');
+    document.getElementById('modal-fin').style.display = 'none';
+    setTimeout(() => window.location.href = '/', 1500);
+  }
+
+  // ── LOG HIIT ──────────────────────────────────────────
+  async function logHiit() {
+    const rounds  = parseInt(document.getElementById('hiit-rounds').value) || 0;
+    const speed   = document.getElementById('hiit-speed').value || null;
+    const rpe     = parseInt(document.getElementById('hiit-rpe').value) || null;
+    const feeling = document.getElementById('hiit-feeling').value;
+    const comment = document.getElementById('hiit-comment').value.trim();
+
+    await fetch('/api/log_hiit', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ rounds, speed, rpe, feeling, comment })
+    });
+
+    showToast('HIIT sauvegardé ! 🏃');
+    setTimeout(() => window.location.href = '/', 1500);
+  }
+</script>
 {% endblock %}

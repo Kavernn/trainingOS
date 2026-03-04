@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}Historique — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .exo-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .exo-header {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .exo-header:hover { background: var(--bg3); }
+
+  .exo-body {
+    display: none;
+    padding: 0 20px 20px;
+  }
+
+  .exo-body.open { display: block; }
+
+  .exo-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .muscle-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .muscle-tag {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  .search-bar {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    width: 100%;
+    margin-bottom: 16px;
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+  }
+
+  .search-bar:focus { border-color: var(--orange); }
+
+  .pr-badge {
+    background: linear-gradient(135deg, var(--orange), var(--orange2));
+    color: white;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .trend-up   { color: var(--green); }
+  .trend-down { color: var(--rose);  }
+  .trend-flat { color: var(--muted); }
+
+  .mini-chart-wrap {
+    height: 60px;
+    margin: 12px 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex-between mb-16">
+  <h2 class="text-orange">📈 Historique</h2>
+  <span class="badge badge-blue">{{ exercices|length }} exercices</span>
+</div>
+
+<!-- SEARCH -->
+<input
+  class="search-bar"
+  type="text"
+  id="search"
+  placeholder="🔍 Rechercher un exercice..."
+  oninput="filterExercices()"
+>
+
+{% if not exercices %}
+<div class="card">
+  <p class="text-muted">Aucun exercice loggué pour l'instant.</p>
+  <a href="/seance" class="btn btn-primary mt-16">Logger ma première séance</a>
+</div>
+
+{% else %}
+
+<div id="exercices-list">
+{% for ex in exercices %}
+<div class="exo-card" data-name="{{ ex.name | lower }}">
+
+  <div class="exo-header" onclick="toggleExo('{{ loop.index }}')">
+    <div>
+      <div class="exo-name">{{ ex.name }}</div>
+      <div class="muscle-tags">
+        {% for m in ex.muscles %}
+        <span class="muscle-tag">{{ m }}</span>
+        {% endfor %}
+        {% if not ex.muscles %}
+        <span class="muscle-tag">{{ ex.type }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div style="text-align: right;">
+      <div class="text-orange" style="font-family: 'Barlow Condensed'; font-size: 1.3rem; font-weight: 800;">
+        {{ ex.current }} lbs
+      </div>
+      {% if ex.history | length >= 2 %}
+        {% set diff = ex.history[0].weight - ex.history[1].weight %}
+        {% if diff > 0 %}
+          <div class="trend-up" style="font-size: 0.8rem;">↑ +{{ diff }} lbs</div>
+        {% elif diff < 0 %}
+          <div class="trend-down" style="font-size: 0.8rem;">↓ {{ diff }} lbs</div>
+        {% else %}
+          <div class="trend-flat" style="font-size: 0.8rem;">→ stable</div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="exo-body" id="exo-body-{{ loop.index }}">
+
+    <!-- Mini graphique 1RM -->
+    {% if ex.history | length > 1 %}
+    <div class="mini-chart-wrap">
+      <canvas id="chart-{{ loop.index }}" height="60"></canvas>
+    </div>
+    {% endif %}
+
+    <!-- PR -->
+    {% if ex.history %}
+      {% set max_1rm = ex.history | map(attribute='1rm') | select | max %}
+      {% if max_1rm %}
+      <div class="flex-between mb-16">
+        <span class="text-muted" style="font-size: 0.85rem;">Meilleur 1RM estimé</span>
+        <span class="pr-badge">🏆 {{ max_1rm }} lbs</span>
+      </div>
+      {% endif %}
+    {% endif %}
+
+    <!-- Tableau historique -->
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Poids</th>
+          <th>Reps</th>
+          <th>1RM</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in ex.history %}
+        <tr>
+          <td class="text-muted">{{ h.date }}</td>
+          <td><strong>{{ h.weight }} lbs</strong></td>
+          <td>{{ h.reps }}</td>
+          <td>{{ h['1rm'] if h['1rm'] else '—' }}</td>
+          <td class="{% if h.note and '+' in h.note %}trend-up{% else %}trend-flat{% endif %}">
+            {{ h.note or '—' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+</div>
+
+<!-- Données pour les mini graphiques -->
+<script>
+  (function() {
+    const history = {{ ex.history | tojson }};
+    const idx     = {{ loop.index }};
+
+    // Attend que l'exo soit ouvert pour dessiner
+    document.querySelector(`[onclick="toggleExo('${idx}')"]`).addEventListener('click', function() {
+      setTimeout(() => drawMiniChart(idx, history), 50);
+    });
+  })();
+</script>
+
+{% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const drawnCharts = {};
+
+  function toggleExo(idx) {
+    const body = document.getElementById(`exo-body-${idx}`);
+    body.classList.toggle('open');
+  }
+
+  function drawMiniChart(idx, history) {
+    if (drawnCharts[idx]) return;
+    const canvas = document.getElementById(`chart-${idx}`);
+    if (!canvas) return;
+
+    const sorted  = [...history].reverse();
+    const labels  = sorted.map(h => h.date);
+    const oneRMs  = sorted.map(h => h['1rm'] || 0);
+    const weights = sorted.map(h => h.weight || 0);
+
+    drawnCharts[idx] = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: '1RM estimé',
+            data:   oneRMs,
+            borderColor:          '#f97316',
+            backgroundColor:      '#f9731622',
+            borderWidth:          2,
+            pointBackgroundColor: '#f97316',
+            pointRadius:          3,
+            fill:                 true,
+            tension:              0.3
+          },
+          {
+            label: 'Poids réel',
+            data:   weights,
+            borderColor:          '#3b82f6',
+            backgroundColor:      'transparent',
+            borderWidth:          1.5,
+            pointBackgroundColor: '#3b82f6',
+            pointRadius:          2,
+            borderDash:           [4, 4],
+            tension:              0.3
+          }
+        ]
+      },
+      options: {
+        responsive:  true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display:  true,
+            labels:   { color: '#666', font: { size: 10 } }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#555', font: { size: 9 } }, grid: { color: '#1e1e2a' } },
+          y: { ticks: { color: '#555', font: { size: 9 } }, grid: { color: '#1e1e2a' } }
+        }
+      }
+    });
+  }
+
+  function filterExercices() {
+    const query = document.getElementById('search').value.toLowerCase();
+    document.querySelectorAll('.exo-card').forEach(card => {
+      const name = card.dataset.name || '';
+      card.style.display = name.includes(query) ? 'block' : 'none';
+    });
+  }
+</script>
+{% endblock %}
