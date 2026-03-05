@@ -23,7 +23,7 @@ app = Flask(__name__,
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return render_template('base.html')
 
 START_DATE = date(2026, 3, 3)  # ← Change cette date si tu recommences un cycle
 
