@@ -20,10 +20,17 @@ from deload import analyser_deload, load_deload_state
 from goals import load_goals, check_goals_achieved, get_progress_bar
 from body_weight import load_body_weight, log_body_weight, get_tendance
 
-app = Flask(__name__)
-app.secret_key = "super-secret-key-change-me-in-production"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(BASE_DIR)
 
-UPLOAD_FOLDER      = 'static/uploads'
+app = Flask(
+    __name__,
+    template_folder=os.path.join(BASE_DIR, "templates"),
+    static_folder=os.path.join(BASE_DIR, "static")
+)
+app.secret_key = "super-secret-key-change-me-in-production"
+print("TEMPLATES:", app.template_folder)
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 HIIT_FILE = Path(__file__).parent / "data" / "hiit_log.json"

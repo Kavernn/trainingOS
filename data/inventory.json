@@ -1,0 +1,12 @@
+{
+  "Squat": {
+    "type": "barbell",
+    "increment": 5,
+    "bar_weight": 45
+  },
+  "Bench Press": {
+    "type": "barbell",
+    "increment": 5,
+    "bar_weight": 45
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Vince",
+  "age": null,
+  "weight_kg": null,
+  "height_cm": null,
+  "sex": null,
+  "level": "intermédiaire",
+  "goal": "force",
+  "units": "lbs",
+  "created": "2026-03-05T11:12:59.424531",
+  "last_updated": null
+}
