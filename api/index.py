@@ -2,6 +2,11 @@
 
 import sys
 from datetime import date, datetime
+import os
+import json
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
 
 from planner import get_today, get_week_schedule, get_suggested_weights_for_today, load_program, save_program
 from hiit import get_hiit_str
