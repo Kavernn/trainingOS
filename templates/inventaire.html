@@ -305,15 +305,16 @@
      data-category="{{ info.category | default('') }}"
      data-level="{{ info.level | default('') }}">
 
+<div style="width: 60px; height: 60px; flex-shrink: 0; background: #1a1a1a; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;">
   {% if info.gif_url %}
-  <div style="width: 60px; height: 60px; flex-shrink: 0; background: #000; border-radius: 8px; overflow: hidden; border: 1px solid var(--border);">
-    <img src="{{ info.gif_url }}" alt="Démo" style="width: 100%; height: 100%; object-fit: cover;">
-  </div>
+    <img src="{{ info.gif_url }}"
+         alt="{{ name }}"
+         style="width: 100%; height: 100%; object-fit: cover;"
+         onerror="this.onerror=null; this.src='https://via.placeholder.com/60?text=🏋️';">
   {% else %}
-  <div style="width: 60px; height: 60px; flex-shrink: 0; background: var(--bg2); border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border);">
-    <span style="font-size: 1.2rem; opacity: 0.3;">🏋️</span>
-  </div>
-  {% endif %}
+    <span style="font-size: 1.5rem; opacity: 0.3;">🏋️</span>
+  {% endif__':">
+</div>
 
   <div style="flex: 1; min-width: 0; margin-left: 4px;">
     <div class="exo-row-name">{{ name }}</div>
