@@ -3,8 +3,8 @@ from db import get_json, set_json
 def load_inventory() -> dict:
     return get_json("inventory", {})
 
-def save_inventory(inv: dict):
-    set_json("inventory", inv)
+def save_inventory(inv: dict) -> bool:
+    return set_json("inventory", inv)
 
 def add_exercise(name: str, info: dict):
     inv      = load_inventory()
