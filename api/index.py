@@ -248,6 +248,54 @@ def timer():
     )
 
 
+@app.route("/xp")
+def xp():
+    return render_template("xp.html",
+        weights   = load_weights(),
+        sessions  = load_sessions(),
+        hiit_log  = load_hiit_log_local(),
+        inventory = load_inventory(),
+        now       = datetime.now().strftime("%Y-%m-%d"),
+        week      = datetime.now().isocalendar()[1]
+    )
+
+
+@app.route("/bodycomp")
+def bodycomp():
+    bw = load_body_weight()
+    return render_template("bodycomp.html",
+        body_weight = bw,
+        profile     = load_user_profile(),
+        tendance    = get_tendance(bw) if bw else "Pas de données",
+        now         = datetime.now().strftime("%Y-%m-%d"),
+        week        = datetime.now().isocalendar()[1]
+    )
+
+
+@app.route("/intelligence")
+def intelligence():
+    return render_template("intelligence.html",
+        weights   = load_weights(),
+        sessions  = load_sessions(),
+        hiit_log  = load_hiit_log_local(),
+        inventory = load_inventory(),
+        now       = datetime.now().strftime("%Y-%m-%d"),
+        week      = datetime.now().isocalendar()[1]
+    )
+
+
+@app.route("/planificateur")
+def planificateur():
+    return render_template("planificateur.html",
+        weights      = load_weights(),
+        sessions     = load_sessions(),
+        hiit_log     = load_hiit_log_local(),
+        full_program = load_program(),
+        now          = datetime.now().strftime("%Y-%m-%d"),
+        week         = datetime.now().isocalendar()[1]
+    )
+
+
 @app.route("/stats")
 def stats():
     return render_template("stats.html",
@@ -581,6 +629,45 @@ def api_delete_body_weight():
         from db import set_json
         set_json("body_weight", new_entries)
         return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/ai/coach", methods=["POST"])
+def api_ai_coach():
+    import os, requests as req
+    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "OPENROUTER_API_KEY manquant dans .env"}), 500
+    try:
+        data   = request.get_json()
+        prompt = data.get("prompt", "")
+        if not prompt:
+            return jsonify({"error": "Prompt vide"}), 400
+
+        res = req.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://trainingos.app",
+                "X-Title": "TrainingOS"
+            },
+            json={
+                "model": "mistralai/mistral-7b-instruct",
+                "messages": [
+                    {"role": "system", "content": "Tu es un coach sportif expert en musculation et HIIT. Tu analyses les données d'entraînement et donnes des conseils précis, motivants et actionnables. Tu réponds toujours en français, de façon concise (max 6 phrases)."},
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 400,
+                "temperature": 0.7
+            },
+            timeout=20
+        )
+        result = res.json()
+        if "choices" in result:
+            return jsonify({"response": result["choices"][0]["message"]["content"]})
+        return jsonify({"error": result.get("error", {}).get("message", "Erreur API")}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

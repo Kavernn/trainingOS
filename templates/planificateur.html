@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}Planificateur — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .plan-hero {
+    background:linear-gradient(135deg,#0d1117,#101a12);
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;margin-bottom:14px;position:relative;overflow:hidden;
+  }
+  .plan-hero::before{
+    content:'';position:absolute;top:-50px;right:-50px;width:200px;height:200px;
+    background:radial-gradient(circle,#22c55e18 0%,transparent 70%);
+  }
+
+  .week-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    gap:4px;margin-bottom:14px;
+  }
+  .day-col{
+    background:var(--bg2);border:1px solid var(--border);
+    border-radius:8px;padding:6px 4px;text-align:center;
+    cursor:pointer;transition:all 0.15s;
+    min-height:90px;display:flex;flex-direction:column;gap:3px;
+  }
+  .day-col:hover{border-color:var(--green)55;}
+  .day-col.today{border-color:var(--orange)88;background:var(--orange)11;}
+  .day-col.rest{background:var(--bg3);}
+  .day-col.done{border-color:var(--green)66;background:var(--green)11;}
+  .day-col.planned{border-color:var(--blue)55;}
+  .day-name{font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:2px;}
+  .day-num{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--text);line-height:1;}
+  .day-tag{font-size:0.55rem;padding:2px 4px;border-radius:3px;font-weight:600;}
+  .day-tag.work{background:var(--orange)22;color:var(--orange);}
+  .day-tag.rest{background:var(--muted)22;color:var(--muted);}
+  .day-tag.done{background:var(--green)22;color:var(--green);}
+  .day-tag.hiit{background:var(--blue)22;color:var(--blue);}
+
+  .plan-card{
+    background:var(--bg2);border:1px solid var(--border);
+    border-radius:var(--radius);padding:16px;margin-bottom:10px;
+    transition:border-color 0.2s;
+  }
+  .plan-card:hover{border-color:var(--green)44;}
+  .plan-day-title{
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:1.1rem;font-weight:800;margin-bottom:6px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .plan-type{
+    font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;
+    padding:3px 8px;border-radius:4px;font-weight:700;
+  }
+  .plan-type.muscu  {background:var(--orange)22;color:var(--orange);}
+  .plan-type.hiit   {background:var(--blue)22;  color:var(--blue);}
+  .plan-type.repos  {background:var(--muted)22; color:var(--muted);}
+  .plan-type.actif  {background:var(--green)22; color:var(--green);}
+  .plan-reason{font-size:0.8rem;color:var(--muted);line-height:1.5;}
+  .plan-exos{
+    margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;
+  }
+  .exo-chip{
+    font-size:0.68rem;padding:3px 8px;border-radius:4px;
+    background:var(--bg3);border:1px solid var(--border);color:var(--muted);
+  }
+
+  .ai-plan-section{
+    background:linear-gradient(135deg,#0e1620,#13131a);
+    border:1px solid var(--green)33;border-radius:var(--radius);
+    padding:16px;margin-bottom:14px;
+  }
+  .ai-plan-title{
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:0.75rem;font-weight:800;letter-spacing:3px;
+    text-transform:uppercase;color:var(--green);margin-bottom:12px;
+  }
+  .ai-plan-output{
+    font-size:0.88rem;line-height:1.7;color:var(--text);
+    white-space:pre-wrap;min-height:40px;
+  }
+  .ai-plan-output.loading{color:var(--muted);font-style:italic;}
+  .btn-green{
+    background:var(--green)22;border:1px solid var(--green)55;
+    color:var(--green);border-radius:8px;padding:8px 16px;
+    font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;
+    font-weight:700;letter-spacing:1px;cursor:pointer;
+    transition:all 0.15s;text-transform:uppercase;
+  }
+  .btn-green:hover{background:var(--green)33;transform:translateY(-1px);}
+  .btn-green:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+  .section-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);padding:14px 0 8px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  .pulsing{animation:pulse 1.2s ease infinite;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .fu{animation:fadeUp 0.3s ease both;}
+  .fu1{animation-delay:.05s;}.fu2{animation-delay:.1s;}.fu3{animation-delay:.15s;}
+</style>
+{% endblock %}
+
+{% block content %}
+<script id="w-data" type="application/json">{{ weights  | tojson }}</script>
+<script id="s-data" type="application/json">{{ sessions | tojson }}</script>
+<script id="h-data" type="application/json">{{ hiit_log | tojson }}</script>
+<script id="prog-data" type="application/json">{{ full_program | tojson }}</script>
+
+<div class="flex-between mb-16">
+  <h2 class="text-green">📅 Planificateur</h2>
+</div>
+
+<!-- HERO SEMAINE -->
+<div class="plan-hero fu">
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:4px;">SEMAINE {{ week }}</div>
+  <div id="week-summary" style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--text);line-height:1.1;">Calcul du plan...</div>
+  <div id="week-sub" style="font-size:0.8rem;color:var(--muted);margin-top:6px;"></div>
+</div>
+
+<!-- GRID SEMAINE -->
+<div class="week-grid fu fu1" id="week-grid"></div>
+
+<!-- PLAN ALGORITHMIQUE -->
+<div class="section-title fu fu2">⚙️ Plan suggéré — algorithmique</div>
+<div id="algo-plan" class="fu fu2"></div>
+
+<!-- PLAN IA -->
+<div class="section-title fu fu3">🤖 Plan IA (OpenRouter)</div>
+<div class="ai-plan-section fu fu3">
+  <div class="ai-plan-title">📋 Programme personnalisé</div>
+  <div class="ai-plan-output loading pulsing" id="ai-plan-output">Clique pour générer ton plan de semaine...</div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn-green" onclick="generateAIPlan('semaine')">📅 Plan de la semaine</button>
+    <button class="btn-green" onclick="generateAIPlan('deload')">🔄 Plan deload</button>
+    <button class="btn-green" onclick="generateAIPlan('peak')">🔥 Semaine peak</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const W    = JSON.parse(document.getElementById('w-data').textContent);
+const S    = JSON.parse(document.getElementById('s-data').textContent);
+const H    = JSON.parse(document.getElementById('h-data').textContent);
+const PROG = JSON.parse(document.getElementById('prog-data').textContent||'{}');
+const DAYS_FR=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+
+function parseReps(r){ return String(r||'').split(',').map(Number).filter(n=>n>0); }
+
+function sessionFreq(days){
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cut=cutoff.toISOString().split('T')[0];
+  const d=new Set();
+  Object.values(W).forEach(v=>(v.history||[]).forEach(e=>e.date>=cut&&d.add(e.date)));
+  H.forEach(e=>e.date>=cut&&d.add(e.date));
+  return d.size;
+}
+
+function avgRPE(days){
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cut=cutoff.toISOString().split('T')[0];
+  const vals=Object.entries(S).filter(([d,s])=>d>=cut&&s.rpe).map(([,s])=>s.rpe);
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+}
+
+function getDoneThisWeek(){
+  const done=new Set();
+  const mon=new Date(); mon.setDate(mon.getDate()-mon.getDay()+1);
+  const monStr=mon.toISOString().split('T')[0];
+  Object.values(W).forEach(d=>(d.history||[]).forEach(e=>e.date>=monStr&&done.add(e.date)));
+  H.forEach(e=>e.date>=monStr&&done.add(e.date));
+  return done;
+}
+
+// ── GRILLE SEMAINE ────────────────────────────────────
+function renderWeekGrid(){
+  const done=getDoneThisWeek();
+  const today=new Date().toISOString().split('T')[0];
+  const grid=document.getElementById('week-grid');
+  const monday=new Date(); monday.setDate(monday.getDate()-monday.getDay()+1);
+  let html='';
+  for(let i=0;i<7;i++){
+    const d=new Date(monday); d.setDate(monday.getDate()+i);
+    const str=d.toISOString().split('T')[0];
+    const isToday=str===today;
+    const isDone=done.has(str);
+    const isPast=str<today;
+    const cls=isToday?'today':isDone?'done':isPast?'rest':'';
+    const tag=isDone?'<div class="day-tag done">✓</div>':isToday?'<div class="day-tag work">Auj.</div>':'';
+    html+=`<div class="day-col ${cls}">
+      <div class="day-name">${DAYS_FR[(d.getDay()+7)%7]}</div>
+      <div class="day-num">${d.getDate()}</div>
+      ${tag}
+    </div>`;
+  }
+  grid.innerHTML=html;
+
+  const doneCount=done.size;
+  document.getElementById('week-summary').textContent=`${doneCount}/5 séances`;
+  document.getElementById('week-sub').textContent=doneCount>=5?'🔥 Semaine complète ! Excellent.':doneCount>=3?`${5-doneCount} séances restantes pour atteindre ton objectif`:`Encore ${5-doneCount} séances pour atteindre 5 cette semaine`;
+}
+
+// ── PLAN ALGO ─────────────────────────────────────────
+function buildAlgoPlan(){
+  const freq7=sessionFreq(7);
+  const rpe=avgRPE(7);
+  const done=getDoneThisWeek();
+  const today=new Date();
+  const dayOfWeek=today.getDay(); // 0=dim
+  const daysLeft=7-dayOfWeek;
+  const remaining=Math.max(0,5-done.size);
+
+  // Détermine le type de semaine
+  let weekType='normal';
+  if(rpe>8.5) weekType='deload';
+  else if(freq7>=5&&rpe>7.5) weekType='light';
+  else if(freq7<3) weekType='boost';
+
+  const planTypes={
+    normal:  ['Muscu Push','Muscu Pull','Repos actif','Muscu Legs','HIIT','Muscu Full','Repos'],
+    deload:  ['Muscu léger','Repos','HIIT léger','Muscu léger','Repos','Marche','Repos'],
+    light:   ['Muscu modéré','Repos','HIIT','Muscu modéré','Repos','Muscu léger','Repos'],
+    boost:   ['Muscu Push','Muscu Pull','Muscu Legs','HIIT','Muscu Full','Repos','Repos'],
+  };
+
+  const plan=planTypes[weekType];
+  const reasons={
+    normal:'Fréquence et volume optimaux pour progresser.',
+    deload:'RPE élevé détecté — semaine allégée recommandée pour récupérer.',
+    light:'Bonne fréquence mais fatigue présente — réduis l\'intensité.',
+    boost:'Fréquence faible cette semaine — on met le paquet.',
+  };
+
+  document.getElementById('algo-plan').innerHTML=`
+    <div class="card" style="margin-bottom:10px;border-color:var(--green)33;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:var(--green);margin-bottom:6px;">TYPE DE SEMAINE : ${weekType.toUpperCase()}</div>
+      <div style="font-size:0.85rem;color:var(--muted);">${reasons[weekType]}</div>
+    </div>
+    ${plan.map((p,i)=>{
+      const d=new Date(); d.setDate(d.getDate()-d.getDay()+1+i);
+      const isToday=d.toISOString().split('T')[0]===new Date().toISOString().split('T')[0];
+      const type=p.toLowerCase().includes('repos')?'repos':p.toLowerCase().includes('hiit')?'hiit':p.toLowerCase().includes('actif')?'actif':'muscu';
+      return `<div class="plan-card${isToday?' today':''}">
+        <div class="plan-day-title">
+          ${DAYS_FR[(d.getDay()+7)%7]} ${d.getDate()}
+          <span class="plan-type ${type}">${p}</span>
+          ${isToday?'<span style="font-size:0.65rem;color:var(--orange);margin-left:auto;">← Aujourd\'hui</span>':''}
+        </div>
+        <div class="plan-reason">${getPlanReason(p,i)}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+function getPlanReason(type,day){
+  const reasons={
+    'Muscu Push':'Bench, OHP, Dips — focus pectoraux + épaules + triceps.',
+    'Muscu Pull':'Rowing, Pull-ups, Curl — focus dos + biceps.',
+    'Muscu Legs':'Squat, RDL, Leg press — focus quadriceps + ischio + fessiers.',
+    'Muscu Full':'Séance full-body, poids modéré, focus technique.',
+    'Muscu modéré':'Volume réduit à 80%, même exercices, moins de séries.',
+    'Muscu léger':'Volume à 60%, exercices de base seulement.',
+    'HIIT':'20-30 min interval training. Tabata ou 40/20.',
+    'HIIT léger':'10-15 min cardio modéré seulement.',
+    'Repos actif':'Marche 30 min, mobilité, stretching. Pas de charges.',
+    'Repos':'Récupération complète. Sommeil, nutrition, hydratation.',
+    'Marche':'Sortie légère 30-45 min. Active recovery.',
+  };
+  return reasons[type]||'Adapte selon ton énergie du moment.';
+}
+
+// ── IA OPENROUTER ─────────────────────────────────────
+async function generateAIPlan(mode){
+  const el=document.getElementById('ai-plan-output');
+  el.className='ai-plan-output loading pulsing';
+  el.textContent='Génération du plan en cours...';
+  document.querySelectorAll('.btn-green').forEach(b=>b.disabled=true);
+
+  const freq7=sessionFreq(7);
+  const rpe=avgRPE(7).toFixed(1);
+  const done=getDoneThisWeek().size;
+  const progKeys=Object.keys(PROG.schedule||{}).join(', ')||'non défini';
+
+  const ctx=`Athlète TrainingOS. Semaine en cours: ${done} séances faites. 7 derniers jours: ${freq7} séances, RPE moyen ${rpe}/10. Programme actuel: ${progKeys}.`;
+  const prompts={
+    semaine:`${ctx}\n\nCrée un plan de semaine détaillé pour les 7 prochains jours. Pour chaque jour, indique: type de séance (muscu/HIIT/repos), les groupes musculaires ciblés, et l'intensité recommandée. Adapte selon la fatigue actuelle. En français, format structuré jour par jour.`,
+    deload:`${ctx}\n\nCrée un plan de deload pour récupérer optimalement. Explique pourquoi le deload est nécessaire et détaille une semaine allégée. En français.`,
+    peak:`${ctx}\n\nCrée une semaine "peak" pour maximiser les performances. Volume et intensité élevés, récupération optimisée. En français.`,
+  };
+
+  try{
+    const res=await fetch('/api/ai/coach',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:prompts[mode]})
+    });
+    const data=await res.json();
+    el.className='ai-plan-output';
+    el.textContent=data.response||data.error||'Erreur inconnue';
+  }catch(e){
+    el.className='ai-plan-output';
+    el.style.color='var(--rose)';
+    el.textContent='Erreur API. Vérifie OPENROUTER_API_KEY dans ton .env';
+  }
+  document.querySelectorAll('.btn-green').forEach(b=>b.disabled=false);
+}
+
+renderWeekGrid();
+buildAlgoPlan();
+</script>
+{% endblock %}

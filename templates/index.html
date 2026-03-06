@@ -678,6 +678,30 @@
   <a href="/historique" class="btn btn-secondary btn-block">📈 Historique</a>
   <a href="/timer" class="btn btn-primary btn-block">⏱ Timer</a>
 </div>
+<div class="grid-2 fade-up delay-6" style="margin-top:8px;">
+  <a href="/xp" class="btn btn-secondary btn-block">🏆 XP & Badges</a>
+  <a href="/intelligence" class="btn btn-secondary btn-block">🧠 Intelligence</a>
+</div>
+<div class="grid-2 fade-up delay-6" style="margin-top:8px;">
+  <a href="/planificateur" class="btn btn-secondary btn-block">📅 Planificateur</a>
+  <a href="/bodycomp" class="btn btn-secondary btn-block">⚖️ Body Comp</a>
+</div>
+
+<!-- ── INSIGHT DU JOUR ── -->
+<div class="card fade-up delay-6" id="insight-card" style="margin-top:8px;border-left:3px solid var(--orange);display:none;">
+  <div class="card-title" style="margin-bottom:6px;">💡 Insight du jour</div>
+  <div id="insight-text" style="font-size:0.88rem;color:var(--text);line-height:1.5;"></div>
+</div>
+
+<!-- ── DERNIÈRE SÉANCE ── -->
+<div class="card fade-up delay-6" id="last-session-card" style="margin-top:8px;display:none;">
+  <div class="flex-between mb-8">
+    <div class="card-title" style="margin:0;">🕐 Dernière séance</div>
+    <span id="last-session-date" style="font-size:0.75rem;color:var(--muted);"></span>
+  </div>
+  <div id="last-session-list" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+  <a href="/historique" style="display:block;text-align:center;margin-top:10px;font-size:0.78rem;color:var(--muted);">Voir tout l'historique →</a>
+</div>
 
 {% endblock %}
 
