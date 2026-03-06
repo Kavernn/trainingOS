@@ -384,7 +384,10 @@ def api_save_exercise():
         "bar_weight":     float(data.get("bar_weight", 0)),
         "default_scheme": data.get("default_scheme", "3x8-12"),
         "muscles":        data.get("muscles", []),
-        "tips":           data.get("tips", "")
+        "tips":           data.get("tips", ""),
+        "category":       data.get("category", ""),
+        "pattern":        data.get("pattern", ""),
+        "level":          data.get("level", ""),
     }
 
     save_inventory(inv)

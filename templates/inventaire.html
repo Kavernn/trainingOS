@@ -6,10 +6,11 @@
   .exo-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     padding: 14px 16px;
     border-bottom: 1px solid var(--border);
     transition: background 0.15s;
+    gap: 12px;
   }
 
   .exo-row:last-child { border-bottom: none; }
@@ -31,6 +32,7 @@
     display: flex;
     gap: 8px;
     flex-shrink: 0;
+    margin-top: 2px;
   }
 
   .btn-icon {
@@ -67,18 +69,18 @@
 
   .filter-tabs {
     display: flex;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 6px;
+    margin-bottom: 8px;
     flex-wrap: wrap;
   }
 
   .filter-tab {
-    padding: 6px 14px;
+    padding: 5px 12px;
     border-radius: 20px;
     border: 1px solid var(--border);
     background: var(--bg3);
     color: var(--muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.15s;
   }
@@ -87,6 +89,63 @@
     background: var(--orange);
     border-color: var(--orange);
     color: white;
+  }
+
+  /* ── BADGES ── */
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  /* Type */
+  .tag-barbell    { background: #f9731622; color: #f97316; border: 1px solid #f9731644; }
+  .tag-dumbbell   { background: #3b82f622; color: #3b82f6; border: 1px solid #3b82f644; }
+  .tag-machine    { background: #a855f722; color: #a855f7; border: 1px solid #a855f744; }
+  .tag-cable      { background: #14b8a622; color: #14b8a6; border: 1px solid #14b8a644; }
+  .tag-bodyweight { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
+
+  /* Category */
+  .tag-push     { background: #f4433622; color: #f44336; border: 1px solid #f4433644; }
+  .tag-pull     { background: #2196f322; color: #2196f3; border: 1px solid #2196f344; }
+  .tag-legs     { background: #4caf5022; color: #4caf50; border: 1px solid #4caf5044; }
+  .tag-core     { background: #ff980022; color: #ff9800; border: 1px solid #ff980044; }
+  .tag-mobility { background: #9c27b022; color: #9c27b0; border: 1px solid #9c27b044; }
+
+  /* Level */
+  .tag-beginner     { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
+  .tag-intermediate { background: #f9731622; color: #f97316; border: 1px solid #f9731644; }
+  .tag-advanced     { background: #f43f5e22; color: #f43f5e; border: 1px solid #f43f5e44; }
+
+  /* Pattern */
+  .tag-pattern {
+    background: var(--bg3);
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+
+  /* Muscle tags */
+  .muscle-tag {
+    display: inline-block;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1px 8px;
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin: 2px;
   }
 
   .modal-overlay {
@@ -121,29 +180,77 @@
     margin-bottom: 20px;
   }
 
-  .muscle-tag {
-    display: inline-block;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 2px 10px;
-    font-size: 0.72rem;
+  .section-divider {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
     color: var(--muted);
-    margin: 2px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    margin: 16px 0 12px;
+  }
+
+  /* Stats bar en haut */
+  .inv-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .inv-stat {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  .inv-stat-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--orange);
+    line-height: 1;
+  }
+
+  .inv-stat-lbl {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
   }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- Stocke l'inventaire complet en JSON pour le JS -->
-<script id="inventory-data" type="application/json">
-  {{ inventory | tojson }}
-</script>
+<script id="inventory-data" type="application/json">{{ inventory | tojson }}</script>
 
 <div class="flex-between mb-16">
   <h2 class="text-orange">🏋️ Inventaire</h2>
   <button class="btn btn-primary" onclick="openAddModal()">+ Ajouter</button>
+</div>
+
+<!-- STATS RAPIDES -->
+<div class="inv-stats" id="inv-stats">
+  <div class="inv-stat">
+    <div class="inv-stat-val" id="stat-total">{{ inventory | length }}</div>
+    <div class="inv-stat-lbl">Total</div>
+  </div>
+  <div class="inv-stat">
+    <div class="inv-stat-val" id="stat-push">—</div>
+    <div class="inv-stat-lbl">Push</div>
+  </div>
+  <div class="inv-stat">
+    <div class="inv-stat-val" id="stat-pull">—</div>
+    <div class="inv-stat-lbl">Pull</div>
+  </div>
+  <div class="inv-stat">
+    <div class="inv-stat-val" id="stat-legs">—</div>
+    <div class="inv-stat-lbl">Legs</div>
+  </div>
 </div>
 
 <!-- SEARCH -->
@@ -155,14 +262,32 @@
   oninput="filterExos()"
 >
 
-<!-- FILTRES PAR TYPE -->
-<div class="filter-tabs">
-  <div class="filter-tab active" onclick="setFilter('all', this)">Tous</div>
-  <div class="filter-tab" onclick="setFilter('barbell', this)">Barbell</div>
-  <div class="filter-tab" onclick="setFilter('dumbbell', this)">Dumbbell</div>
-  <div class="filter-tab" onclick="setFilter('machine', this)">Machine</div>
-  <div class="filter-tab" onclick="setFilter('cable', this)">Cable</div>
-  <div class="filter-tab" onclick="setFilter('bodyweight', this)">Bodyweight</div>
+<!-- FILTRES TYPE -->
+<div class="filter-tabs" id="filter-type">
+  <div class="filter-tab active" onclick="setFilter('type','all',this)">Tous</div>
+  <div class="filter-tab" onclick="setFilter('type','barbell',this)">🏋️ Barbell</div>
+  <div class="filter-tab" onclick="setFilter('type','dumbbell',this)">💪 Dumbbell</div>
+  <div class="filter-tab" onclick="setFilter('type','machine',this)">⚙️ Machine</div>
+  <div class="filter-tab" onclick="setFilter('type','cable',this)">🔗 Cable</div>
+  <div class="filter-tab" onclick="setFilter('type','bodyweight',this)">🤸 Bodyweight</div>
+</div>
+
+<!-- FILTRES CATEGORY -->
+<div class="filter-tabs" id="filter-category">
+  <div class="filter-tab active" onclick="setFilter('cat','all',this)">Toutes</div>
+  <div class="filter-tab" onclick="setFilter('cat','push',this)">🔴 Push</div>
+  <div class="filter-tab" onclick="setFilter('cat','pull',this)">🔵 Pull</div>
+  <div class="filter-tab" onclick="setFilter('cat','legs',this)">🟢 Legs</div>
+  <div class="filter-tab" onclick="setFilter('cat','core',this)">🟠 Core</div>
+  <div class="filter-tab" onclick="setFilter('cat','mobility',this)">🟣 Mobility</div>
+</div>
+
+<!-- FILTRES LEVEL -->
+<div class="filter-tabs" id="filter-level" style="margin-bottom: 16px;">
+  <div class="filter-tab active" onclick="setFilter('lvl','all',this)">Tous niveaux</div>
+  <div class="filter-tab" onclick="setFilter('lvl','beginner',this)">🟢 Beginner</div>
+  <div class="filter-tab" onclick="setFilter('lvl','intermediate',this)">🟠 Intermediate</div>
+  <div class="filter-tab" onclick="setFilter('lvl','advanced',this)">🔴 Advanced</div>
 </div>
 
 <!-- LISTE -->
@@ -174,34 +299,65 @@
   {% else %}
   <div id="exo-list">
     {% for name, info in inventory.items() | sort %}
-    <div class="exo-row" data-name="{{ name | lower }}" data-type="{{ info.type }}">
-      <div>
+    <div class="exo-row"
+         data-name="{{ name | lower }}"
+         data-type="{{ info.type }}"
+         data-category="{{ info.category | default('') }}"
+         data-level="{{ info.level | default('') }}">
+      <div style="flex: 1; min-width: 0;">
         <div class="exo-row-name">{{ name }}</div>
         <div class="exo-row-meta">
-          {{ info.type }}
-          {% if info.muscles %}· {{ info.muscles | join(', ') }}{% endif %}
-          · incrément {{ info.increment }} lbs
-          {% if info.default_scheme %}· {{ info.default_scheme }}{% endif %}
+          +{{ info.increment }} lbs · {{ info.default_scheme }}
+          {% if info.bar_weight %} · barre {{ info.bar_weight }} lbs{% endif %}
         </div>
+
+        <!-- BADGES -->
+        <div class="badge-row">
+          <!-- Type -->
+          <span class="tag tag-{{ info.type }}">{{ info.type }}</span>
+
+          <!-- Category -->
+          {% if info.category %}
+          <span class="tag tag-{{ info.category }}">
+            {% if info.category == 'push' %}🔴{% elif info.category == 'pull' %}🔵{% elif info.category == 'legs' %}🟢{% elif info.category == 'core' %}🟠{% elif info.category == 'mobility' %}🟣{% endif %}
+            {{ info.category }}
+          </span>
+          {% endif %}
+
+          <!-- Pattern -->
+          {% if info.pattern %}
+          <span class="tag tag-pattern">{{ info.pattern | replace('_', ' ') }}</span>
+          {% endif %}
+
+          <!-- Level -->
+          {% if info.level %}
+          <span class="tag tag-{{ info.level }}">
+            {% if info.level == 'beginner' %}🟢{% elif info.level == 'intermediate' %}🟠{% elif info.level == 'advanced' %}🔴{% endif %}
+            {{ info.level }}
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Muscles -->
         {% if info.muscles %}
-        <div style="margin-top: 4px;">
+        <div style="margin-top: 5px;">
           {% for m in info.muscles %}
           <span class="muscle-tag">{{ m }}</span>
           {% endfor %}
         </div>
         {% endif %}
+
+        <!-- Tips -->
+        {% if info.tips %}
+        <div style="margin-top: 5px; font-size: 0.72rem; color: var(--muted); font-style: italic;">
+          💡 {{ info.tips }}
+        </div>
+        {% endif %}
       </div>
+
       <div class="exo-actions">
-        <button
-          class="btn-icon"
-          data-exo-name="{{ name }}"
-          onclick="openEditModal(this)"
-          title="Modifier">✏️</button>
-        <button
-          class="btn-icon delete"
-          data-exo-name="{{ name }}"
-          onclick="deleteExo(this)"
-          title="Supprimer">🗑️</button>
+        <button class="btn-icon" data-exo-name="{{ name }}" onclick="openEditModal(this)" title="Modifier">✏️</button>
+        <button class="btn-icon delete" data-exo-name="{{ name }}" onclick="deleteExo(this)" title="Supprimer">🗑️</button>
       </div>
     </div>
     {% endfor %}
@@ -221,8 +377,10 @@
       <input type="text" id="form-name" placeholder="Ex: Bench Press">
     </div>
 
+    <div class="section-divider">Équipement</div>
+
     <div class="form-group">
-      <label>Type d'équipement</label>
+      <label>Type</label>
       <select id="form-type" onchange="toggleBarreInput()">
         <option value="barbell">Barbell</option>
         <option value="dumbbell">Dumbbell</option>
@@ -243,6 +401,50 @@
       </div>
     </div>
 
+    <div class="section-divider">Classification</div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Catégorie</label>
+        <select id="form-category">
+          <option value="">— Aucune —</option>
+          <option value="push">🔴 Push</option>
+          <option value="pull">🔵 Pull</option>
+          <option value="legs">🟢 Legs</option>
+          <option value="core">🟠 Core</option>
+          <option value="mobility">🟣 Mobility</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Niveau</label>
+        <select id="form-level">
+          <option value="">— Aucun —</option>
+          <option value="beginner">🟢 Beginner</option>
+          <option value="intermediate">🟠 Intermediate</option>
+          <option value="advanced">🔴 Advanced</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Pattern de mouvement</label>
+      <select id="form-pattern">
+        <option value="">— Aucun —</option>
+        <option value="squat">Squat</option>
+        <option value="hinge">Hinge</option>
+        <option value="horizontal_push">Horizontal Push</option>
+        <option value="horizontal_pull">Horizontal Pull</option>
+        <option value="vertical_push">Vertical Push</option>
+        <option value="vertical_pull">Vertical Pull</option>
+        <option value="carry">Carry</option>
+        <option value="isolation">Isolation</option>
+        <option value="core">Core</option>
+        <option value="mobility">Mobility</option>
+      </select>
+    </div>
+
+    <div class="section-divider">Programme</div>
+
     <div class="form-group">
       <label>Scheme par défaut</label>
       <input type="text" id="form-scheme" placeholder="Ex: 4x5-7" value="3x8-12">
@@ -255,7 +457,7 @@
 
     <div class="form-group">
       <label>Tips techniques (optionnel)</label>
-      <input type="text" id="form-tips" placeholder="Ex: Omoplates serrées, descendre vers le bas du pec">
+      <input type="text" id="form-tips" placeholder="Ex: Omoplates serrées">
     </div>
 
     <div style="display: flex; gap: 8px; margin-top: 8px;">
@@ -265,19 +467,16 @@
   </div>
 </div>
 
-<!-- MODAL CONFIRMER SUPPRESSION -->
+<!-- MODAL SUPPRIMER -->
 <div class="modal-overlay" id="modal-delete">
   <div class="modal-box" style="max-width: 360px;">
     <div class="modal-title">🗑️ Supprimer ?</div>
     <p style="color: var(--muted); margin-bottom: 20px;">
       Supprimer <strong id="delete-name" class="text-orange"></strong> de l'inventaire ?
-      Cette action est irréversible.
     </p>
     <div style="display: flex; gap: 8px;">
       <button class="btn btn-secondary" style="flex: 1;" onclick="closeDeleteModal()">Annuler</button>
-      <button class="btn btn-primary" style="flex: 1; background: var(--rose);" onclick="confirmDelete()">
-        Supprimer
-      </button>
+      <button class="btn btn-primary" style="flex: 1; background: var(--rose);" onclick="confirmDelete()">Supprimer</button>
     </div>
   </div>
 </div>
@@ -286,80 +485,97 @@
 
 {% block extra_js %}
 <script>
-  // Charge l'inventaire depuis le JSON injecté proprement
   const inventory = JSON.parse(document.getElementById('inventory-data').textContent);
 
-  let currentFilter = 'all';
-  let deleteTarget  = null;
+  let filterType = 'all';
+  let filterCat  = 'all';
+  let filterLvl  = 'all';
+  let deleteTarget = null;
 
-  // ── FILTRES ───────────────────────────────────────────
-  function setFilter(type, el) {
-    currentFilter = type;
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  // ── Stats ──────────────────────────────────────────────
+  function computeStats() {
+    const vals = Object.values(inventory);
+    document.getElementById('stat-push').textContent = vals.filter(i => i.category === 'push').length;
+    document.getElementById('stat-pull').textContent = vals.filter(i => i.category === 'pull').length;
+    document.getElementById('stat-legs').textContent = vals.filter(i => i.category === 'legs').length;
+  }
+  computeStats();
+
+  // ── Filtres ────────────────────────────────────────────
+  function setFilter(kind, val, el) {
+    const groupMap = { type: 'filter-type', cat: 'filter-category', lvl: 'filter-level' };
+    document.querySelectorAll(`#${groupMap[kind]} .filter-tab`).forEach(t => t.classList.remove('active'));
     el.classList.add('active');
+    if (kind === 'type') filterType = val;
+    if (kind === 'cat')  filterCat  = val;
+    if (kind === 'lvl')  filterLvl  = val;
     filterExos();
   }
 
   function filterExos() {
     const query = document.getElementById('search').value.toLowerCase();
     document.querySelectorAll('.exo-row').forEach(row => {
-      const name   = row.dataset.name || '';
-      const type   = row.dataset.type || '';
-      const matchQ = name.includes(query);
-      const matchT = currentFilter === 'all' || type === currentFilter;
-      row.style.display = (matchQ && matchT) ? 'flex' : 'none';
+      const name  = row.dataset.name || '';
+      const type  = row.dataset.type || '';
+      const cat   = row.dataset.category || '';
+      const lvl   = row.dataset.level || '';
+      const ok    =
+        name.includes(query) &&
+        (filterType === 'all' || type === filterType) &&
+        (filterCat  === 'all' || cat  === filterCat)  &&
+        (filterLvl  === 'all' || lvl  === filterLvl);
+      row.style.display = ok ? 'flex' : 'none';
     });
   }
 
-  // ── MODAL AJOUTER ─────────────────────────────────────
+  // ── Modal Ajouter ──────────────────────────────────────
   function openAddModal() {
-    document.getElementById('modal-form-title').textContent  = '➕ Nouvel exercice';
-    document.getElementById('form-original-name').value      = '';
-    document.getElementById('form-name').value               = '';
-    document.getElementById('form-type').value               = 'barbell';
-    document.getElementById('form-increment').value          = '5';
-    document.getElementById('form-bar-weight').value         = '45';
-    document.getElementById('form-scheme').value             = '3x8-12';
-    document.getElementById('form-muscles').value            = '';
-    document.getElementById('form-tips').value               = '';
+    document.getElementById('modal-form-title').textContent = '➕ Nouvel exercice';
+    document.getElementById('form-original-name').value     = '';
+    document.getElementById('form-name').value              = '';
+    document.getElementById('form-type').value              = 'barbell';
+    document.getElementById('form-increment').value         = '5';
+    document.getElementById('form-bar-weight').value        = '45';
+    document.getElementById('form-scheme').value            = '3x8-12';
+    document.getElementById('form-muscles').value           = '';
+    document.getElementById('form-tips').value              = '';
+    document.getElementById('form-category').value          = '';
+    document.getElementById('form-pattern').value           = '';
+    document.getElementById('form-level').value             = '';
     toggleBarreInput();
     document.getElementById('modal-form').classList.add('open');
   }
 
-  // ── MODAL MODIFIER ────────────────────────────────────
+  // ── Modal Modifier ─────────────────────────────────────
   function openEditModal(btn) {
     const name = btn.dataset.exoName;
     const info = inventory[name];
+    if (!info) { showToast('Exercice introuvable !', 'error'); return; }
 
-    if (!info) {
-      showToast('Exercice introuvable !', 'error');
-      return;
-    }
-
-    document.getElementById('modal-form-title').textContent  = '✏️ Modifier ' + name;
-    document.getElementById('form-original-name').value      = name;
-    document.getElementById('form-name').value               = name;
-    document.getElementById('form-type').value               = info.type || 'machine';
-    document.getElementById('form-increment').value          = info.increment || 5;
-    document.getElementById('form-bar-weight').value         = info.bar_weight || 45;
-    document.getElementById('form-scheme').value             = info.default_scheme || '3x8-12';
-    document.getElementById('form-muscles').value            = (info.muscles || []).join(', ');
-    document.getElementById('form-tips').value               = info.tips || '';
+    document.getElementById('modal-form-title').textContent = '✏️ Modifier ' + name;
+    document.getElementById('form-original-name').value     = name;
+    document.getElementById('form-name').value              = name;
+    document.getElementById('form-type').value              = info.type || 'machine';
+    document.getElementById('form-increment').value         = info.increment || 5;
+    document.getElementById('form-bar-weight').value        = info.bar_weight || 45;
+    document.getElementById('form-scheme').value            = info.default_scheme || '3x8-12';
+    document.getElementById('form-muscles').value           = (info.muscles || []).join(', ');
+    document.getElementById('form-tips').value              = info.tips || '';
+    document.getElementById('form-category').value          = info.category || '';
+    document.getElementById('form-pattern').value           = info.pattern || '';
+    document.getElementById('form-level').value             = info.level || '';
     toggleBarreInput();
     document.getElementById('modal-form').classList.add('open');
   }
 
-  function closeFormModal() {
-    document.getElementById('modal-form').classList.remove('open');
-  }
+  function closeFormModal() { document.getElementById('modal-form').classList.remove('open'); }
 
   function toggleBarreInput() {
-    const type  = document.getElementById('form-type').value;
-    const group = document.getElementById('barre-group');
-    group.style.display = type === 'barbell' ? 'block' : 'none';
+    const type = document.getElementById('form-type').value;
+    document.getElementById('barre-group').style.display = type === 'barbell' ? 'block' : 'none';
   }
 
-  // ── SAUVEGARDER ───────────────────────────────────────
+  // ── Sauvegarder ────────────────────────────────────────
   async function saveExo() {
     const originalName = document.getElementById('form-original-name').value;
     const name         = document.getElementById('form-name').value.trim();
@@ -370,11 +586,11 @@
     const musclesRaw   = document.getElementById('form-muscles').value;
     const muscles      = musclesRaw.split(',').map(m => m.trim()).filter(Boolean);
     const tips         = document.getElementById('form-tips').value.trim();
+    const category     = document.getElementById('form-category').value;
+    const pattern      = document.getElementById('form-pattern').value;
+    const level        = document.getElementById('form-level').value;
 
-    if (!name) {
-      showToast('Entre un nom !', 'error');
-      return;
-    }
+    if (!name) { showToast('Entre un nom !', 'error'); return; }
 
     const res = await fetch('/api/save_exercise', {
       method:  'POST',
@@ -384,7 +600,7 @@
         name, type, increment,
         bar_weight:     type === 'barbell' ? barWeight : 0,
         default_scheme: scheme,
-        muscles, tips
+        muscles, tips, category, pattern, level
       })
     });
 
@@ -397,7 +613,7 @@
     }
   }
 
-  // ── SUPPRIMER ─────────────────────────────────────────
+  // ── Supprimer ──────────────────────────────────────────
   function deleteExo(btn) {
     deleteTarget = btn.dataset.exoName;
     document.getElementById('delete-name').textContent = deleteTarget;
@@ -411,13 +627,11 @@
 
   async function confirmDelete() {
     if (!deleteTarget) return;
-
     const res = await fetch('/api/delete_exercise', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ name: deleteTarget })
     });
-
     const data = await res.json();
     if (data.success) {
       showToast(`${deleteTarget} supprimé !`);
@@ -428,7 +642,6 @@
     closeDeleteModal();
   }
 
-  // Ferme modals si clic dehors
   ['modal-form', 'modal-delete'].forEach(id => {
     document.getElementById(id).addEventListener('click', function(e) {
       if (e.target === this) this.classList.remove('open');
