@@ -5,7 +5,7 @@ from db import get_json, set_json
 from datetime import datetime
 from typing import Dict, List
 from db import get_json, set_json
-from .progression import should_increase, next_weight
+from progression import should_increase, next_weight
 
 DEFAULT_PROGRAM = {
     "Upper A": {
