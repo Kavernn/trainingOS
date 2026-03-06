@@ -1,69 +1,89 @@
-const CACHE_NAME = 'trainingos-v2';  // Change le numéro de version quand tu mets à jour
+// ── TrainingOS Service Worker ──────────────────────────
+// ⚠️  CHANGE CE NUMÉRO À CHAQUE DÉPLOIEMENT pour forcer le refresh sur mobile
+const CACHE_NAME = 'trainingos-v3';
 
 const STATIC_ASSETS = [
-  '/',                          // page d'accueil
-  '/index.html',                // si tu en as un explicite
-  '/static/icon-192.png',
-  '/static/icon-512.png',
-  // Ajoute ici tes fichiers JS/CSS principaux, ex:
-  // '/static/js/main.chunk.js',
-  // '/static/css/main.css',
-  // etc.
+  '/static/icons/icon-192.png',
+  '/static/icons/icon-512.png',
+  '/static/manifest.json',
 ];
 
+// ── INSTALL ────────────────────────────────────────────
 self.addEventListener('install', event => {
-  console.log('Service Worker installing…');
+  console.log(`[SW] Installing ${CACHE_NAME}`);
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => self.skipWaiting())
+      .then(cache => cache.addAll(STATIC_ASSETS.filter(Boolean)))
+      .then(() => self.skipWaiting()) // activation immédiate sans attendre
   );
 });
 
+// ── ACTIVATE : supprime les vieux caches ───────────────
 self.addEventListener('activate', event => {
-  console.log('Service Worker activated');
-  // Nettoyage des anciens caches (très recommandé)
+  console.log(`[SW] Activating ${CACHE_NAME}`);
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
-            .map(key => caches.delete(key))
-      );
-    })
+    caches.keys()
+      .then(keys => Promise.all(
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => { console.log(`[SW] Deleting old cache: ${key}`); return caches.delete(key); })
+      ))
+      .then(() => self.clients.claim()) // prend le contrôle de tous les onglets immédiatement
   );
 });
 
+// ── FETCH ──────────────────────────────────────────────
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Ignorer les requêtes non-GET ou cross-origin non sécurisées
-  if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
+  // Ignore les requêtes non-GET
+  if (event.request.method !== 'GET') return;
 
-  // Stratégie Cache First pour les assets statiques
-  if (STATIC_ASSETS.includes(url.pathname) || url.pathname.match(/\.(js|css|png|jpg|svg|woff2?)$/)) {
+  // Ignore les APIs → toujours réseau
+  if (url.pathname.startsWith('/api/')) return;
+
+  // ── PAGES HTML → Network First ──────────────────────
+  // Toujours essayer le réseau d'abord pour avoir la version fraîche
+  if (event.request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(
-      caches.match(event.request)
-        .then(cached => cached || fetch(event.request).then(response => {
-          // Optionnel : mettre en cache les réponses réseau réussies
-          if (response && response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseToCache));
+      fetch(event.request)
+        .then(res => {
+          // Mise en cache de la page fraîche
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
           }
-          return response;
-        }))
+          return res;
+        })
+        .catch(() => {
+          // Offline → fallback sur la page cachée, ou l'accueil
+          return caches.match(event.request)
+            || caches.match('/');
+        })
     );
     return;
   }
 
-  // Pour les pages dynamiques : Network First, fallback sur cache si offline
+  // ── ASSETS STATIQUES (images, icons) → Cache First ──
+  if (url.pathname.match(/\.(png|jpg|jpeg|svg|ico|woff2?|ttf)$/)) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(res => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          }
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
+  // ── Tout le reste → Network First, fallback cache ───
   event.respondWith(
     fetch(event.request)
-      .catch(() => caches.match('/'))  // fallback sur la page d'accueil si offline
+      .catch(() => caches.match(event.request) || caches.match('/'))
   );
 });

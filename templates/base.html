@@ -421,23 +421,42 @@
     }
   </script>
 
-  <script>
-  // Idéalement : place ce bloc juste avant </body>
-  // OU dans un fichier .js externe avec defer
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {   // ← Ajout important
-      navigator.serviceWorker.register('/static/sw.js', { scope: '/' })  // ← scope explicite
-        .then(registration => {
-          console.log('✅ Service Worker enregistré avec succès ! Scope:', registration.scope);
+  <!-- Banner mise à jour -->
+  <div id="update-banner" style="
+    display:none; position:fixed; top:0; left:0; right:0; z-index:999;
+    background:var(--orange); color:white; text-align:center;
+    padding:10px 16px; font-family:'Barlow Condensed',sans-serif;
+    font-size:0.9rem; font-weight:700; letter-spacing:1px;
+    box-shadow:0 2px 12px rgba(0,0,0,0.4); cursor:pointer;
+  " onclick="window.location.reload(true)">
+    🔄 Nouvelle version disponible — Tap pour mettre à jour
+  </div>
 
-          // Bonus : écoute les updates (très utile en prod)
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+        .then(registration => {
+          // Vérifie les updates toutes les 60s
+          setInterval(() => registration.update(), 60000);
+
           registration.addEventListener('updatefound', () => {
-            console.log('Nouvelle version du SW détectée...');
+            const newSW = registration.installing;
+            newSW.addEventListener('statechange', () => {
+              // Quand le nouveau SW est installé et qu'un ancien existe → affiche banner
+              if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                document.getElementById('update-banner').style.display = 'block';
+              }
+            });
           });
         })
-        .catch(err => {
-          console.error('❌ Erreur lors de l\'enregistrement du Service Worker:', err);
-        });
+        .catch(err => console.error('SW error:', err));
+
+      // Si le SW prend le contrôle pendant la session → reload automatique
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) { refreshing = true; window.location.reload(); }
+      });
     });
   }
 </script>
