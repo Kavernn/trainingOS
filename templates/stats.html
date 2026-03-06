@@ -373,6 +373,25 @@
   const bodyWeight = JSON.parse(document.getElementById('bodyweight-data').textContent);
   const inventory  = JSON.parse(document.getElementById('inventory-data')?.textContent || '{}');
 
+  // ── DEBUG BANNER (à retirer une fois confirmé) ────────
+  (function showDebug() {
+    const exos      = Object.keys(weights).filter(k => k !== 'sessions');
+    const totalEntries = exos.reduce((n, ex) => n + (weights[ex]?.history?.length || 0), 0);
+    const banner = document.createElement('div');
+    banner.id = 'debug-banner';
+    banner.style.cssText = 'background:#1a1a24;border:1px solid #f9731644;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:0.8rem;color:#888;line-height:1.8;';
+    banner.innerHTML = `
+      <strong style="color:#f97316">🔍 Debug données</strong><br>
+      weights: <strong style="color:#fff">${exos.length} exercices</strong>, ${totalEntries} entrées total<br>
+      sessions: <strong style="color:#fff">${Object.keys(sessions).length} séances</strong><br>
+      hiitLog: <strong style="color:#fff">${hiitLog.length} entrées</strong><br>
+      bodyWeight: <strong style="color:#fff">${bodyWeight.length} entrées</strong><br>
+      inventory: <strong style="color:#fff">${Object.keys(inventory).length} exercices</strong><br>
+      <span style="color:#f9731688;font-size:0.72rem;">→ Retire ce bloc une fois les graphiques confirmés (supprime la fonction showDebug dans stats.html)</span>
+    `;
+    document.querySelector('.flex-between.mb-16')?.insertAdjacentElement('afterend', banner);
+  })();
+
   const orange = '#f97316';
   const blue   = '#3b82f6';
   const green  = '#22c55e';
@@ -385,6 +404,15 @@
     const wk = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
     return `${d.getFullYear()}-S${String(wk).padStart(2,'0')}`;
   }
+
+  // Reps peut être "8,8,8" ou [8,8,8] selon la source
+  function parseReps(reps) {
+    if (!reps) return [];
+    if (Array.isArray(reps)) return reps.map(Number).filter(n => n > 0);
+    return String(reps).split(',').map(Number).filter(n => n > 0);
+  }
+
+  function totalReps(reps) { return parseReps(reps).reduce((a,b)=>a+b,0); }
 
   const orange = '#f97316';
   const blue   = '#3b82f6';
@@ -556,9 +584,10 @@
       if (ex === 'sessions') continue;
       for (const entry of (data.history || [])) {
         const date = entry.date;
+        if (!date) continue;
         const w    = entry.weight || 0;
-        const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
-        vol[date]  = (vol[date] || 0) + w * reps.reduce((a, b) => a + b, 0);
+        const reps = parseReps(entry.reps);
+        vol[date]  = (vol[date] || 0) + w * totalReps(entry.reps);
       }
     }
     const sorted = Object.entries(vol).sort(([a], [b]) => a.localeCompare(b));
@@ -588,8 +617,8 @@
         const d   = new Date(entry.date);
         const wk  = `${d.getFullYear()}-S${String(Math.ceil((d - new Date(d.getFullYear(), 0, 1)) / 604800000)).padStart(2, '0')}`;
         const w   = entry.weight || 0;
-        const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
-        vol[wk]   = (vol[wk] || 0) + w * reps.reduce((a, b) => a + b, 0);
+        const reps = parseReps(entry.reps);
+        vol[wk]   = (vol[wk] || 0) + w * totalReps(entry.reps);
       }
     }
     const sorted = Object.entries(vol).sort(([a], [b]) => a.localeCompare(b));
@@ -670,7 +699,7 @@
       const cat = inventory[ex]?.category || '';
       if (!cat_colors[cat]) continue;
       for (const entry of (exdata.history || [])) {
-        const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
+        const reps = parseReps(entry.reps);
         const vol  = (entry.weight || 0) * reps.reduce((a,b)=>a+b,0);
         const wk   = weekKey(entry.date);
         if (!weeks.includes(wk)) weeks.push(wk);
@@ -707,7 +736,7 @@
     const totals = {};
     for (const [ex, data] of Object.entries(weights)) {
       for (const entry of (data.history || [])) {
-        const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
+        const reps = parseReps(entry.reps);
         totals[ex] = (totals[ex] || 0) + (entry.weight || 0) * reps.reduce((a,b)=>a+b,0);
       }
     }
@@ -751,7 +780,7 @@
     topExos.forEach((ex, i) => {
       const pts = [];
       for (const entry of [...(weights[ex]?.history||[])].sort((a,b)=>a.date.localeCompare(b.date))) {
-        const reps = (entry.reps||'').split(',').map(Number).filter(Boolean);
+        const reps = parseReps(entry.reps);
         const w    = entry.weight || 0;
         if (!reps.length || !w) continue;
         const avg  = reps.reduce((a,b)=>a+b,0)/reps.length;
@@ -819,7 +848,7 @@
     for (const [ex, data] of Object.entries(weights)) {
       const h = [...(data.history||[])].sort((a,b)=>b.date.localeCompare(a.date));
       for (const entry of h.slice(0,3)) {
-        const reps = (entry.reps||'').split(',').map(Number).filter(Boolean);
+        const reps = parseReps(entry.reps);
         const w = entry.weight||0;
         if (w && reps.length) {
           orm1[ex] = w * (1 + reps.reduce((a,b)=>a+b,0)/reps.length/30);
@@ -868,7 +897,7 @@
     const volByDate = {};
     for (const [ex, data] of Object.entries(weights)) {
       for (const entry of (data.history||[])) {
-        const reps = (entry.reps||'').split(',').map(Number).filter(Boolean);
+        const reps = parseReps(entry.reps);
         volByDate[entry.date] = (volByDate[entry.date]||0) + (entry.weight||0)*reps.reduce((a,b)=>a+b,0);
       }
     }
@@ -1019,8 +1048,8 @@ function getMuscleVolume(sinceDate) {
     for (const entry of (data.history || [])) {
       if (sinceDate && entry.date < sinceDate) continue;
       const w    = entry.weight || 0;
-      const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
-      const vol  = w * reps.reduce((a, b) => a + b, 0);
+      const reps = parseReps(entry.reps);
+      const vol  = w * totalReps(entry.reps);
 
       for (const muscle of muscles) {
         const group = MUSCLE_GROUPS[muscle.toLowerCase()]?.label || muscle;
@@ -1148,8 +1177,8 @@ function buildMuscleEvol() {
         for (const entry of (data.history || [])) {
           if (entry.date >= to) {
             const w    = entry.weight || 0;
-            const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
-            const v    = w * reps.reduce((a, b) => a + b, 0);
+            const reps = parseReps(entry.reps);
+            const v    = w * totalReps(entry.reps);
             for (const muscle of muscles) {
               const group = MUSCLE_GROUPS[muscle.toLowerCase()]?.label || muscle;
               vol[group]  = (vol[group] || 0) - v;
@@ -1237,8 +1266,8 @@ function getWeekStats(weeksAgo) {
     for (const entry of (data.history || [])) {
       if (entry.date < from || entry.date >= to) continue;
       const w    = entry.weight || 0;
-      const reps = (entry.reps || '').split(',').map(Number).filter(Boolean);
-      const vol  = w * reps.reduce((a, b) => a + b, 0);
+      const reps = parseReps(entry.reps);
+      const vol  = w * totalReps(entry.reps);
       volume += vol;
       seances.add(entry.date);
       exoVols[ex] = (exoVols[ex] || 0) + vol;
