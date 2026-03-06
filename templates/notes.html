@@ -4,15 +4,21 @@
 {% block extra_css %}
 <style>
   .session-card {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
     margin-bottom: 12px;
-    transition: border-color 0.2s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
-  .session-card:hover { border-color: var(--orange); }
+  .session-card:hover {
+    border-color: rgba(249,115,22,0.3);
+    box-shadow: 0 4px 20px rgba(249,115,22,0.1);
+  }
 
   .session-header {
     display: flex;
@@ -53,7 +59,7 @@
   }
 
   .exo-chip {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.05);
     border: 1px solid var(--border);
     border-radius: 20px;
     padding: 3px 10px;
@@ -62,7 +68,8 @@
   }
 
   .comment-box {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 14px;
     font-size: 0.85rem;
@@ -79,7 +86,9 @@
   }
 
   .summary-box {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px;

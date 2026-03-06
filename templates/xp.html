@@ -4,7 +4,9 @@
 {% block extra_css %}
 <style>
   .xp-hero {
-    background: linear-gradient(135deg, #13131a 0%, #1e1416 100%);
+    background: rgba(17,17,28,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px 20px 20px;
@@ -12,6 +14,7 @@
     text-align: center;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
   }
   .xp-hero::before {
     content: '';
@@ -56,7 +59,9 @@
     gap: 8px; margin-bottom: 14px;
   }
   .kpi {
-    background: var(--bg2); border: 1px solid var(--border);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
     border-radius: 10px; padding: 12px 6px; text-align: center;
   }
   .kpi-val {
@@ -75,7 +80,9 @@
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;
   }
   .bdg {
-    background: var(--bg2); border: 1px solid var(--border);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
     border-radius: 12px; padding: 14px 8px; text-align: center;
     position: relative; overflow: hidden; transition: transform 0.15s;
   }

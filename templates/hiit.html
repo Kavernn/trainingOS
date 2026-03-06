@@ -4,15 +4,21 @@
 {% block extra_css %}
 <style>
   .hiit-card {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
     margin-bottom: 12px;
-    transition: border-color 0.2s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    transition: border-color 0.2s, box-shadow 0.2s;
   }
 
-  .hiit-card:hover { border-color: var(--orange); }
+  .hiit-card:hover {
+    border-color: rgba(249,115,22,0.3);
+    box-shadow: 0 4px 20px rgba(249,115,22,0.1);
+  }
 
   .hiit-header {
     display: flex;
@@ -46,7 +52,8 @@
   }
 
   .hiit-stat {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px;
     text-align: center;
@@ -80,23 +87,6 @@
     margin-bottom: 4px;
   }
 
-  .progress-wrap {
-    background: var(--bg3);
-    border-radius: 999px;
-    height: 8px;
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, var(--orange), var(--orange2));
-  }
-
-  .progress-fill.full {
-    background: linear-gradient(90deg, var(--green), #16a34a);
-  }
-
   .feeling-badge {
     display: inline-block;
     padding: 3px 12px;
@@ -111,7 +101,8 @@
   .feeling-epuisant { background: var(--rose)22;   color: var(--rose);   border: 1px solid var(--rose)44;   }
 
   .comment-box {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 14px;
     font-size: 0.85rem;
@@ -133,7 +124,9 @@
   }
 
   .summary-box {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px;

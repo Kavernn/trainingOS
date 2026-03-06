@@ -4,11 +4,20 @@
 {% block extra_css %}
 <style>
   .exo-card {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 12px;
     overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .exo-card:hover {
+    border-color: rgba(249,115,22,0.3);
+    box-shadow: 0 4px 20px rgba(249,115,22,0.1);
   }
 
   .exo-header {
@@ -43,7 +52,7 @@
   }
 
   .muscle-tag {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.05);
     border: 1px solid var(--border);
     border-radius: 20px;
     padding: 2px 10px;
@@ -52,18 +61,8 @@
   }
 
   .search-bar {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    width: 100%;
     margin-bottom: 16px;
-    color: var(--text);
-    font-size: 1rem;
-    outline: none;
   }
-
-  .search-bar:focus { border-color: var(--orange); }
 
   .pr-badge {
     background: linear-gradient(135deg, var(--orange), var(--orange2));

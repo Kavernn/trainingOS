@@ -4,11 +4,14 @@
 {% block extra_css %}
 <style>
   .day-card {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 12px;
     overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   }
 
   .day-header {
@@ -67,7 +70,7 @@
     height: 32px;
     border-radius: 8px;
     border: 1px solid var(--border);
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
     color: var(--text);
     cursor: pointer;
     display: flex;

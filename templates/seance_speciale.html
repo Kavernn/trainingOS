@@ -4,12 +4,15 @@
 {% block extra_css %}
 <style>
   .hero-card {
-    background: linear-gradient(135deg, var(--bg2), var(--bg3));
+    background: rgba(17,17,28,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px 24px;
     margin-bottom: 16px;
     text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
   }
 
   .hero-icon { font-size: 3.5rem; margin-bottom: 12px; }
@@ -59,7 +62,7 @@
   }
 
   .timer-progress {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.06);
     border-radius: 999px;
     height: 12px;
     overflow: hidden;
@@ -87,7 +90,8 @@
   }
 
   .protocol-box {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 14px 10px;
     text-align: center;
@@ -128,7 +132,7 @@
     height: 28px;
     border-radius: 50%;
     border: 2px solid var(--border);
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -147,12 +151,15 @@
 
   /* ── QUOTE ── */
   .quote-card {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-left: 4px solid var(--orange);
     border-radius: 0 var(--radius) var(--radius) 0;
     padding: 16px 20px;
     margin-bottom: 16px;
     font-style: italic;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   }
 
   .quote-text {
@@ -169,11 +176,14 @@
 
   /* ── LOG ── */
   .log-section {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
     margin-top: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   }
 
   .log-title {
@@ -191,7 +201,8 @@
     height: 80px;
     border-radius: 50%;
     border: 3px solid var(--border);
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(8px);
     color: var(--muted);
     font-size: 2rem;
     cursor: pointer;

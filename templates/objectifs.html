@@ -4,11 +4,14 @@
 {% block extra_css %}
 <style>
   .goal-card {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
     margin-bottom: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
     transition: border-color 0.2s;
   }
 
@@ -56,25 +59,6 @@
     color: var(--text);
   }
 
-  .progress-wrap {
-    background: var(--bg3);
-    border-radius: 999px;
-    height: 10px;
-    overflow: hidden;
-    margin-bottom: 10px;
-  }
-
-  .progress-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, var(--orange), var(--orange2));
-    transition: width 0.8s ease;
-  }
-
-  .progress-fill.achieved {
-    background: linear-gradient(90deg, var(--green), #16a34a);
-  }
-
   .goal-meta {
     display: flex;
     gap: 12px;
@@ -116,7 +100,9 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 300;
     align-items: center;
     justify-content: center;
@@ -128,12 +114,15 @@
   }
 
   .modal-box {
-    background: var(--bg2);
-    border: 1px solid var(--border);
+    background: rgba(17,17,28,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: var(--radius);
     padding: 24px;
     width: 100%;
     max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   }
 
   .modal-title {

@@ -4,9 +4,12 @@
 {% block extra_css %}
 <style>
   .intel-hero {
-    background: linear-gradient(135deg,#0d1117,#121218);
+    background: rgba(17,17,28,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border); border-radius:var(--radius);
     padding:20px; margin-bottom:14px; position:relative; overflow:hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
   }
   .intel-hero::before{
     content:'';position:absolute;top:-60px;right:-40px;
@@ -14,9 +17,13 @@
     background:radial-gradient(circle,#a855f720 0%,transparent 70%);
   }
   .insight-card {
-    background:var(--bg2);border:1px solid var(--border);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border:1px solid var(--border);
     border-radius:var(--radius);padding:16px;margin-bottom:10px;
     position:relative;overflow:hidden;transition:border-color 0.2s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
   }
   .insight-card.critical { border-color:var(--rose)66; }
   .insight-card.warning  { border-color:var(--orange)66; }
@@ -39,9 +46,12 @@
   .insight-body {font-size:0.82rem;color:var(--muted);line-height:1.5;}
 
   .ai-section {
-    background:linear-gradient(135deg,#13131a,#0e1620);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border:1px solid var(--blue)33; border-radius:var(--radius);
     padding:18px; margin-bottom:14px;
+    box-shadow: 0 4px 16px rgba(59,130,246,0.08);
   }
   .ai-title {
     font-family:'Barlow Condensed',sans-serif;

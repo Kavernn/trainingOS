@@ -6,25 +6,8 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --bg:     #0b0b10;
-    --bg2:    #13131a;
-    --bg3:    #1c1c26;
-    --border: #2a2a3a;
-    --text:   #e8e8f0;
-    --muted:  #555566;
-    --orange: #f97316;
-    --green:  #22c55e;
-    --blue:   #3b82f6;
-    --red:    #ef4444;
-    --radius: 14px;
-  }
-
   body {
-    background: var(--bg);
-    color: var(--text);
     font-family: 'Barlow', sans-serif;
-    min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -200,25 +183,26 @@
   .btn-play {
     width: 80px;
     height: 80px;
-    background: var(--orange);
-    box-shadow: 0 0 24px var(--orange)55;
+    background: linear-gradient(135deg, var(--orange), var(--orange2));
+    box-shadow: 0 4px 20px rgba(249,115,22,0.45);
     color: white;
   }
 
   .btn-play:hover {
     transform: scale(1.06);
-    box-shadow: 0 0 32px var(--orange)77;
+    box-shadow: 0 6px 28px rgba(249,115,22,0.6);
   }
 
   .btn-play.running {
-    background: var(--bg3);
+    background: rgba(249,115,22,0.12);
     border: 2px solid var(--orange);
     color: var(--orange);
-    box-shadow: none;
+    box-shadow: 0 0 16px rgba(249,115,22,0.2);
   }
 
   .btn-reset {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(8px);
     border: 1px solid var(--border);
     color: var(--muted);
   }
@@ -230,7 +214,8 @@
   }
 
   .btn-skip {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(8px);
     border: 1px solid var(--border);
     color: var(--muted);
   }
@@ -252,7 +237,9 @@
   }
 
   .setting-card {
-    background: var(--bg2);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 14px;
@@ -310,7 +297,7 @@
     height: 30px;
     border-radius: 6px;
     border: 1px solid var(--border);
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
     color: var(--text);
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 1rem;
@@ -320,7 +307,7 @@
   }
 
   .setting-btn:hover {
-    background: var(--border);
+    background: rgba(255,255,255,0.08);
     transform: scale(1.05);
   }
 
@@ -351,7 +338,8 @@
     padding: 6px 14px;
     border-radius: 20px;
     border: 1px solid var(--border);
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(8px);
     color: var(--muted);
     font-family: 'Barlow Condensed', sans-serif;
     font-size: 0.8rem;
@@ -433,7 +421,6 @@
 <div id="flash-overlay"></div>
 
 <div style="font-size:0.7rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase;">Interval Timer</div>
-</div>
 
 <!-- Phase label -->
 <div class="phase-wrap">
@@ -860,343 +847,4 @@ setRing(1, 'idle');
 </script>
 {% endblock %}
 
-{% block extra_js %}
-<script>
-// ── STATE ─────────────────────────────────────────────
-let workSecs   = 40;
-let autoStart  = false; // Enchaîne work→rest→work sans pause
-let restSecs   = 20;
-let totalRounds = 8;
-
-let currentRound = 1;
-let phase        = 'idle'; // 'work' | 'rest' | 'idle' | 'done'
-let remaining    = 0;
-let interval     = null;
-let running      = false;
-
-// ── UTILS ─────────────────────────────────────────────
-function fmt(s) {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${String(sec).padStart(2,'0')}`;
-}
-
-function fmtFull(s) {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
-}
-
-// ── RING ──────────────────────────────────────────────
-const CIRCUMFERENCE = 2 * Math.PI * 120; // r=120 → 754
-
-function setRing(progress, ph) { // progress 0→1
-  const track = document.getElementById('ring-track');
-  const offset = CIRCUMFERENCE * (1 - progress);
-  track.style.strokeDashoffset = offset;
-  track.className = `ring-track ${ph}`;
-}
-
-// ── UI UPDATE ─────────────────────────────────────────
-function updateUI() {
-  const timeEl   = document.getElementById('time-display');
-  const roundEl  = document.getElementById('round-display');
-  const phaseEl  = document.getElementById('phase-label');
-
-  timeEl.textContent  = fmt(remaining);
-  timeEl.className    = `time-display ${phase}`;
-  phaseEl.className   = `phase-label ${phase}`;
-
-  if (phase === 'work') {
-    phaseEl.textContent = '⚡ WORK';
-    roundEl.textContent = `ROUND ${currentRound} / ${totalRounds}`;
-    setRing(remaining / workSecs, 'work');
-  } else if (phase === 'rest') {
-    phaseEl.textContent = '💤 REST';
-    roundEl.textContent = `ROUND ${currentRound} / ${totalRounds}`;
-    setRing(remaining / restSecs, 'rest');
-  } else if (phase === 'done') {
-    phaseEl.textContent = '✅ TERMINÉ';
-    phaseEl.className   = 'phase-label rest';
-    timeEl.textContent  = '🏆';
-    timeEl.className    = 'time-display rest';
-    roundEl.textContent = `${totalRounds} ROUNDS FAITS`;
-    setRing(1, 'rest');
-  } else {
-    phaseEl.textContent = 'PRÊT';
-    phaseEl.className   = 'phase-label idle';
-    roundEl.textContent = 'ROUND —';
-    timeEl.className    = 'time-display idle';
-    setRing(1, 'idle');
-  }
-
-  if (typeof updateCardHighlight === 'function') updateCardHighlight();
-  updateHistoryDots();
-  updateTotalTime();
-}
-
-function updateHistoryDots() {
-  const row = document.getElementById('history-row');
-  row.innerHTML = '';
-  for (let i = 1; i <= totalRounds; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'history-dot ';
-    if (i < currentRound) {
-      dot.className += 'done-work';
-    } else if (i === currentRound && phase === 'rest') {
-      dot.className += 'done-work';
-    } else {
-      dot.className += 'pending';
-    }
-    row.appendChild(dot);
-  }
-}
-
-function updateTotalTime() {
-  const total = (workSecs + restSecs) * totalRounds;
-  const el = document.getElementById('total-time');
-  el.innerHTML = `Durée totale estimée : <span>${fmtFull(total)}</span>`;
-}
-
-// ── FLASH + BEEP ──────────────────────────────────────
-function flash(ph) {
-  const overlay = document.getElementById('flash-overlay');
-  overlay.className = `flash-${ph}`;
-  overlay.classList.add('active');
-  setTimeout(() => overlay.classList.remove('active'), 300);
-  setTimeout(() => { overlay.classList.add('active'); setTimeout(() => overlay.classList.remove('active'), 300); }, 450);
-  setTimeout(() => { overlay.classList.add('active'); setTimeout(() => overlay.classList.remove('active'), 300); }, 900);
-
-  // Beep via Web Audio
-  try {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = ph === 'work' ? 880 : 440;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.3);
-    if (ph === 'done') {
-      setTimeout(() => {
-        const o2 = ctx.createOscillator(), g2 = ctx.createGain();
-        o2.connect(g2); g2.connect(ctx.destination);
-        o2.frequency.value = 1046;
-        g2.gain.setValueAtTime(0.3, ctx.currentTime);
-        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        o2.start(ctx.currentTime); o2.stop(ctx.currentTime + 0.5);
-      }, 350);
-    }
-  } catch(e) {}
-}
-
-// ── TIMER LOGIC ───────────────────────────────────────
-function startPhase(ph) {
-  phase     = ph;
-  remaining = ph === 'work' ? workSecs : restSecs;
-  updateUI();
-}
-
-function beepCountdown() {
-  // Un bip par seconde à 3, 2, 1 — synchronisé avec le tick
-  try {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = 1200;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.12);
-  } catch(e) {}
-}
-
-function finishWork() {
-  flash('rest');
-  if (currentRound >= totalRounds) {
-    clearInterval(interval); interval = null; running = false;
-    phase = 'done'; updateUI();
-    document.getElementById('btn-play').innerHTML = '▶';
-    document.getElementById('btn-play').classList.remove('running');
-    return;
-  }
-  if (autoStart) {
-    startPhase('rest');
-  } else {
-    // Pause — attend que l'user reprenne
-    clearInterval(interval); interval = null; running = false;
-    startPhase('rest');
-    document.getElementById('btn-play').innerHTML = '▶';
-    document.getElementById('btn-play').classList.remove('running');
-  }
-}
-
-function finishRest() {
-  flash('work');
-  currentRound++;
-  if (autoStart) {
-    startPhase('work');
-  } else {
-    clearInterval(interval); interval = null; running = false;
-    startPhase('work');
-    document.getElementById('btn-play').innerHTML = '▶';
-    document.getElementById('btn-play').classList.remove('running');
-  }
-}
-
-function tick() {
-  remaining--;
-  // Countdown beeps à 3, 2, 1 pendant WORK
-  if (phase === 'work' && remaining <= 3 && remaining > 0) beepCountdown();
-  if (remaining <= 0) {
-    if (phase === 'work') finishWork();
-    else finishRest();
-  } else {
-    updateUI();
-  }
-}
-
-function toggleTimer() {
-  const btn = document.getElementById('btn-play');
-  if (running) {
-    clearInterval(interval);
-    interval = null;
-    running  = false;
-    btn.innerHTML = '▶';
-    btn.classList.remove('running');
-  } else {
-    if (phase === 'idle' || phase === 'done') {
-      currentRound = 1;
-      startPhase('work');
-      flash('work');
-    }
-    running  = true;
-    interval = setInterval(tick, 1000);
-    btn.innerHTML = '⏸';
-    btn.classList.add('running');
-  }
-}
-
-function resetTimer() {
-  clearInterval(interval);
-  interval     = null;
-  running      = false;
-  phase        = 'idle';
-  currentRound = 1;
-  remaining    = workSecs;
-  document.getElementById('btn-play').innerHTML = '▶';
-  document.getElementById('btn-play').classList.remove('running');
-  updateUI();
-  document.getElementById('time-display').textContent = fmt(workSecs);
-  setRing(1, 'idle');
-}
-
-function skipPhase() {
-  if (!running && phase === 'idle') return;
-  clearInterval(interval);
-  if (phase === 'work') {
-    if (currentRound >= totalRounds) {
-      running = false;
-      phase   = 'done';
-      document.getElementById('btn-play').innerHTML = '▶';
-      document.getElementById('btn-play').classList.remove('running');
-      updateUI();
-      return;
-    }
-    flash('rest');
-    startPhase('rest');
-  } else {
-    flash('work');
-    currentRound++;
-    startPhase('work');
-  }
-  if (running) interval = setInterval(tick, 1000);
-}
-
-// ── SETTINGS ─────────────────────────────────────────
-function adjustTime(type, delta) {
-  if (type === 'work') {
-    workSecs = Math.max(5, workSecs + delta);
-    document.getElementById('work-display').textContent = fmt(workSecs);
-  } else {
-    restSecs = Math.max(5, restSecs + delta);
-    document.getElementById('rest-display').textContent = fmt(restSecs);
-  }
-  if (!running) resetTimer();
-  updateTotalTime();
-  clearActivePresets();
-}
-
-function adjustRounds(delta) {
-  totalRounds = Math.max(1, Math.min(99, totalRounds + delta));
-  document.getElementById('rounds-display').textContent = totalRounds;
-  if (!running) resetTimer();
-  updateTotalTime();
-  clearActivePresets();
-}
-
-function applyPreset(work, rest, rounds, btn) {
-  workSecs    = work;
-  restSecs    = rest;
-  totalRounds = rounds;
-  document.getElementById('work-display').textContent   = fmt(workSecs);
-  document.getElementById('rest-display').textContent   = fmt(restSecs);
-  document.getElementById('rounds-display').textContent = totalRounds;
-  clearActivePresets();
-  btn.classList.add('active');
-  if (!running) resetTimer();
-  updateTotalTime();
-}
-
-function jumpToPhase(ph) {
-  // Si timer en cours → switch de phase immédiatement
-  // Si timer arrêté → démarre directement cette phase
-  if (running) {
-    clearInterval(interval);
-    if (ph === 'rest') flash('rest');
-    else flash('work');
-    startPhase(ph);
-    interval = setInterval(tick, 1000);
-  } else {
-    phase = 'idle';
-    startPhase(ph);
-    flash(ph);
-    running  = true;
-    interval = setInterval(tick, 1000);
-    document.getElementById('btn-play').innerHTML = '⏸';
-    document.getElementById('btn-play').classList.add('running');
-  }
-  updateCardHighlight();
-}
-
-function updateCardHighlight() {
-  document.getElementById('card-work').classList.toggle('phase-active', phase === 'work');
-  document.getElementById('card-rest').classList.toggle('phase-active', phase === 'rest');
-  // Affiche les hints "tap" quand idle
-  const idle = !running;
-  document.getElementById('work-tap').style.opacity = idle ? '1' : '0';
-  document.getElementById('rest-tap').style.opacity = idle ? '1' : '0';
-}
-
-function toggleAutoStart(btn) {
-  autoStart = !autoStart;
-  btn.textContent = autoStart ? '⚡ Auto-start ON' : '⚡ Auto-start OFF';
-  btn.classList.toggle('active', autoStart);
-}
-
-function clearActivePresets() {
-  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-}
-
-// ── INIT ─────────────────────────────────────────────
-document.getElementById('work-display').textContent   = fmt(workSecs);
-document.getElementById('rest-display').textContent   = fmt(restSecs);
-document.getElementById('rounds-display').textContent = totalRounds;
-document.getElementById('time-display').textContent   = fmt(workSecs);
-updateHistoryDots();
-updateTotalTime();
-setRing(1, 'idle');
-</script>
-{% endblock %}
+{% block extra_js %}{% endblock %}

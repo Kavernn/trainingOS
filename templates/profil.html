@@ -4,12 +4,15 @@
 {% block extra_css %}
 <style>
   .profile-hero {
-    background: linear-gradient(135deg, var(--bg2), var(--bg3));
+    background: rgba(17,17,28,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px 24px;
     margin-bottom: 16px;
     text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
   }
 
   .avatar-container {
@@ -74,7 +77,9 @@
   }
 
   .stat-box {
-    background: var(--bg3);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 14px 10px;
     text-align: center;
@@ -130,7 +135,9 @@
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.85);
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 300;
     align-items: center;
     justify-content: center;
@@ -140,12 +147,15 @@
   .modal-overlay.open { display: flex; }
 
   .modal-box {
-    background: var(--bg2);
-    border: 1px solid var(--border);
+    background: rgba(17,17,28,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
     border-radius: var(--radius);
     padding: 24px;
     width: 100%;
     max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
   }
 
   .modal-title {

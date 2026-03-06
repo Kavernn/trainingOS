@@ -5,9 +5,12 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   .comp-hero {
-    background: linear-gradient(160deg, #0d1117 0%, #13131a 60%, #0a1628 100%);
+    background: rgba(17,17,28,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border); border-radius: var(--radius);
     padding: 24px; margin-bottom: 14px; position: relative; overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
   }
   .comp-hero::after {
     content: ''; position: absolute; top: -40px; right: -40px;
@@ -16,7 +19,10 @@
   }
   .comp-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-bottom: 14px; }
   .comp-card {
-    background: var(--bg2); border: 1px solid var(--border);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
     border-radius: 12px; padding: 16px; position: relative; overflow: hidden;
   }
   .comp-card::after { content:''; position:absolute; bottom:0;left:0;right:0;height:2px; }
@@ -35,7 +41,10 @@
   .flat { color: var(--muted); }
 
   .chart-card {
-    background: var(--bg2); border: 1px solid var(--border);
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
     border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
   }
   .chart-title {
