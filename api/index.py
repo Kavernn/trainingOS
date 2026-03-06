@@ -24,13 +24,17 @@ from body_weight  import load_body_weight, log_body_weight, get_tendance
 from db           import get_json, set_json
 
 # ── App config ──────────────────────────────────────────────
-_ON_VERCEL = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
-BASE_DIR   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_API_DIR  = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR  = os.path.dirname(_API_DIR)  # remonte à la racine
+
+# Sur Vercel, templates/static sont à la racine
+TEMPLATES = os.path.join(BASE_DIR, "templates")
+STATIC    = os.path.join(BASE_DIR, "static")
 
 app = Flask(
     __name__,
-    template_folder = os.path.join(BASE_DIR, "templates"),
-    static_folder   = os.path.join(BASE_DIR, "static"),
+    template_folder = TEMPLATES,
+    static_folder   = STATIC,
 )
 app.secret_key = os.getenv("SECRET_KEY", "trainingos-secret-change-in-prod")
 
