@@ -324,8 +324,40 @@
     </div>
 
     <div class="badge-row">
-        <span class="tag tag-{{ info.type }}">{{ info.type }}</span>
-        </div>
+      <span class="tag tag-{{ info.type }}">{{ info.type }}</span>
+
+      {% if info.category %}
+      <span class="tag tag-{{ info.category }}">
+        {% if info.category == 'push' %}🔴{% elif info.category == 'pull' %}🔵{% elif info.category == 'legs' %}🟢{% elif info.category == 'core' %}🟠{% elif info.category == 'mobility' %}🟣{% endif %}
+        {{ info.category }}
+      </span>
+      {% endif %}
+
+      {% if info.pattern %}
+      <span class="tag tag-pattern">{{ info.pattern | replace('_', ' ') }}</span>
+      {% endif %}
+
+      {% if info.level %}
+      <span class="tag tag-{{ info.level }}">
+        {% if info.level == 'beginner' %}🟢{% elif info.level == 'intermediate' %}🟠{% elif info.level == 'advanced' %}🔴{% endif %}
+        {{ info.level }}
+      </span>
+      {% endif %}
+    </div>
+
+    {% if info.muscles %}
+    <div style="margin-top: 5px;">
+      {% for m in info.muscles %}
+      <span class="muscle-tag">{{ m }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if info.tips %}
+    <div style="margin-top: 5px; font-size: 0.72rem; color: var(--muted); font-style: italic;">
+      💡 {{ info.tips }}
+    </div>
+    {% endif %}
   </div>
 
   <div class="exo-actions">
