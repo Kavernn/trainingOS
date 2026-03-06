@@ -269,6 +269,15 @@
 
   .setting-card.work-card::after { background: var(--orange); }
   .setting-card.rest-card::after { background: var(--green); }
+
+  .setting-card.phase-active {
+    box-shadow: 0 0 0 2px var(--orange);
+    transform: scale(1.02);
+  }
+  .setting-card.rest-card.phase-active {
+    box-shadow: 0 0 0 2px var(--green);
+  }
+  .setting-card { cursor: pointer; transition: all 0.15s; }
   .setting-card.rounds-card::after { background: var(--blue); }
 
   .setting-label {
@@ -452,21 +461,21 @@
 
 <!-- Settings -->
 <div class="settings-grid">
-  <div class="setting-card rest-card">
-    <div class="setting-label">💤 Rest</div>
+  <div class="setting-card rest-card" id="card-rest" onclick="jumpToPhase('rest')" title="Tap pour démarrer le Rest">
+    <div class="setting-label">💤 Rest <span id="rest-tap" style="font-size:0.55rem;color:var(--green);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
     <div class="setting-value" id="rest-display">0:20</div>
     <div class="setting-btns">
-      <button class="setting-btn" onclick="adjustTime('rest', -5)">−5s</button>
-      <button class="setting-btn" onclick="adjustTime('rest', +5)">+5s</button>
+      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', -5)">−5s</button>
+      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', +5)">+5s</button>
     </div>
   </div>
 
-  <div class="setting-card work-card">
-    <div class="setting-label">⚡ Work</div>
+  <div class="setting-card work-card" id="card-work" onclick="jumpToPhase('work')" title="Tap pour démarrer le Work">
+    <div class="setting-label">⚡ Work <span id="work-tap" style="font-size:0.55rem;color:var(--orange);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
     <div class="setting-value" id="work-display">0:40</div>
     <div class="setting-btns">
-      <button class="setting-btn" onclick="adjustTime('work', -5)">−5s</button>
-      <button class="setting-btn" onclick="adjustTime('work', +5)">+5s</button>
+      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', -5)">−5s</button>
+      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', +5)">+5s</button>
     </div>
   </div>
 
@@ -580,6 +589,7 @@ function updateUI() {
     setRing(1, 'idle');
   }
 
+  if (typeof updateCardHighlight === 'function') updateCardHighlight();
   updateHistoryDots();
   updateTotalTime();
 }
@@ -797,6 +807,36 @@ function applyPreset(work, rest, rounds, btn) {
   btn.classList.add('active');
   if (!running) resetTimer();
   updateTotalTime();
+}
+
+function jumpToPhase(ph) {
+  // Si timer en cours → switch de phase immédiatement
+  // Si timer arrêté → démarre directement cette phase
+  if (running) {
+    clearInterval(interval);
+    if (ph === 'rest') flash('rest');
+    else flash('work');
+    startPhase(ph);
+    interval = setInterval(tick, 1000);
+  } else {
+    phase = 'idle';
+    startPhase(ph);
+    flash(ph);
+    running  = true;
+    interval = setInterval(tick, 1000);
+    document.getElementById('btn-play').innerHTML = '⏸';
+    document.getElementById('btn-play').classList.add('running');
+  }
+  updateCardHighlight();
+}
+
+function updateCardHighlight() {
+  document.getElementById('card-work').classList.toggle('phase-active', phase === 'work');
+  document.getElementById('card-rest').classList.toggle('phase-active', phase === 'rest');
+  // Affiche les hints "tap" quand idle
+  const idle = !running;
+  document.getElementById('work-tap').style.opacity = idle ? '1' : '0';
+  document.getElementById('rest-tap').style.opacity = idle ? '1' : '0';
 }
 
 function toggleAutoStart(btn) {
@@ -890,6 +930,7 @@ function updateUI() {
     setRing(1, 'idle');
   }
 
+  if (typeof updateCardHighlight === 'function') updateCardHighlight();
   updateHistoryDots();
   updateTotalTime();
 }
@@ -1107,6 +1148,36 @@ function applyPreset(work, rest, rounds, btn) {
   btn.classList.add('active');
   if (!running) resetTimer();
   updateTotalTime();
+}
+
+function jumpToPhase(ph) {
+  // Si timer en cours → switch de phase immédiatement
+  // Si timer arrêté → démarre directement cette phase
+  if (running) {
+    clearInterval(interval);
+    if (ph === 'rest') flash('rest');
+    else flash('work');
+    startPhase(ph);
+    interval = setInterval(tick, 1000);
+  } else {
+    phase = 'idle';
+    startPhase(ph);
+    flash(ph);
+    running  = true;
+    interval = setInterval(tick, 1000);
+    document.getElementById('btn-play').innerHTML = '⏸';
+    document.getElementById('btn-play').classList.add('running');
+  }
+  updateCardHighlight();
+}
+
+function updateCardHighlight() {
+  document.getElementById('card-work').classList.toggle('phase-active', phase === 'work');
+  document.getElementById('card-rest').classList.toggle('phase-active', phase === 'rest');
+  // Affiche les hints "tap" quand idle
+  const idle = !running;
+  document.getElementById('work-tap').style.opacity = idle ? '1' : '0';
+  document.getElementById('rest-tap').style.opacity = idle ? '1' : '0';
 }
 
 function toggleAutoStart(btn) {
