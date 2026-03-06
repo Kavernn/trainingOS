@@ -166,6 +166,11 @@
     margin-bottom: 16px;
   }
 
+  .poids-chart-wrap {
+    position: relative;
+    margin-bottom: 12px;
+  }
+
   .goal-chip {
     display: inline-block;
     padding: 4px 14px;
@@ -265,6 +270,7 @@
 </div>
 
 <!-- SUIVI POIDS CORPOREL -->
+<script id="bodyweight-data" type="application/json">{{ body_weight_all | tojson }}</script>
 <div class="card mb-16">
   <div class="flex-between mb-16">
     <div class="card-title" style="margin: 0;">⚖️ Poids corporel</div>
@@ -277,15 +283,26 @@
     Tendance : <strong class="text-orange">{{ tendance }}</strong>
   </div>
 
+  <!-- Graphique inline -->
+  {% if body_weight_all and body_weight_all | length > 1 %}
+  <canvas id="poids-chart" height="120" style="margin-bottom: 16px;"></canvas>
+  {% endif %}
+
   {% if body_weight %}
   {% for entry in body_weight %}
-  <div class="poids-entry">
+  <div class="poids-entry" id="entry-{{ loop.index0 }}">
     <span class="text-muted">{{ entry.date }}</span>
     <div style="display: flex; align-items: center; gap: 12px;">
       {% if entry.note %}
       <span class="text-muted" style="font-size: 0.8rem;">{{ entry.note }}</span>
       {% endif %}
       <strong class="text-orange">{{ entry.poids }} kg</strong>
+      <button
+        onclick="deletePoids('{{ entry.date }}', '{{ entry.poids }}')"
+        style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:1rem; padding:2px 4px; transition:color 0.15s;"
+        onmouseover="this.style.color='var(--rose)'"
+        onmouseout="this.style.color='var(--muted)'"
+        title="Supprimer">✕</button>
     </div>
   </div>
   {% endfor %}
@@ -399,6 +416,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   // ── EDIT PROFIL ───────────────────────────────────────
   function openEditModal()  { document.getElementById('modal-edit').classList.add('open');  }
@@ -525,6 +543,83 @@ function resizeImage(file, maxSize, quality) {
       if (e.target === this) this.classList.remove('open');
     });
   });
+
+  // ── GRAPHIQUE POIDS ───────────────────────────────────
+  (function buildPoidsChart() {
+    const el = document.getElementById('poids-chart');
+    if (!el) return;
+    const raw = JSON.parse(document.getElementById('bodyweight-data').textContent || '[]');
+    const sorted = [...raw].sort((a, b) => a.date.localeCompare(b.date));
+    if (sorted.length < 2) return;
+
+    const labels = sorted.map(e => e.date);
+    const data   = sorted.map(e => e.poids);
+    const min    = Math.min(...data) - 1.5;
+    const max    = Math.max(...data) + 1.5;
+
+    // Gradient fill
+    const ctx  = el.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, el.offsetHeight || 120);
+    grad.addColorStop(0, 'rgba(249,115,22,0.3)');
+    grad.addColorStop(1, 'rgba(249,115,22,0.0)');
+
+    new Chart(el, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          borderColor:          '#f97316',
+          backgroundColor:      grad,
+          borderWidth:          2,
+          pointBackgroundColor: '#f97316',
+          pointRadius:          data.length > 20 ? 2 : 4,
+          pointHoverRadius:     6,
+          fill:                 true,
+          tension:              0.35,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.parsed.y} kg`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#555', maxTicksLimit: 6, font: { size: 10 } },
+            grid:  { color: '#1e1e2a' }
+          },
+          y: {
+            min, max,
+            ticks: { color: '#555', callback: v => v + ' kg' },
+            grid:  { color: '#1e1e2a' }
+          }
+        }
+      }
+    });
+  })();
+
+  // ── SUPPRIMER ENTRÉE POIDS ───────────────────────────
+  async function deletePoids(date, poids) {
+    if (!confirm(`Supprimer l'entrée ${poids} kg du ${date} ?`)) return;
+    const res  = await fetch('/api/body_weight/delete', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ date, poids: parseFloat(poids) })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Entrée supprimée ✓');
+      setTimeout(() => window.location.reload(), 800);
+    } else {
+      showToast('Erreur suppression', 'error');
+    }
+  }
 
 </script>
 {% endblock %}

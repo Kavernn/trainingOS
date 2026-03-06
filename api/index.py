@@ -266,9 +266,10 @@ def profil():
     body_weight = load_body_weight()
     tendance    = get_tendance(body_weight) if body_weight else "Pas de données"
     return render_template("profil.html",
-        profile     = profile,
-        body_weight = body_weight[:7] if body_weight else [],
-        tendance    = tendance
+        profile          = profile,
+        body_weight      = body_weight[:10] if body_weight else [],
+        body_weight_all  = body_weight,
+        tendance         = tendance
     )
 
 
@@ -562,6 +563,24 @@ def api_body_weight():
             return jsonify({"error": "Poids invalide"}), 400
         log_body_weight(poids, note)
         return jsonify({"success": True, "poids": poids})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/body_weight/delete", methods=["POST"])
+def api_delete_body_weight():
+    try:
+        data  = request.get_json()
+        date  = data.get("date", "")
+        poids = float(data.get("poids", 0))
+        entries = load_body_weight()
+        # Supprime la première entrée qui correspond à la date ET au poids
+        new_entries = [e for e in entries if not (e.get("date") == date and float(e.get("poids", 0)) == poids)]
+        if len(new_entries) == len(entries):
+            return jsonify({"success": False, "error": "Entrée introuvable"}), 404
+        from db import set_json
+        set_json("body_weight", new_entries)
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
