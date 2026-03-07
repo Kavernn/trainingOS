@@ -101,8 +101,20 @@ def index():
             "since":    deload_state.get("since", "")
         }
 
+    today_str  = get_today()
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    hiit_log   = load_hiit_log_local()
+
+    if today_str in ['HIIT 1', 'HIIT 2']:
+        already_logged_today = any(
+            e.get("date") == today_date and e.get("session_type") == today_str
+            for e in hiit_log
+        )
+    else:
+        already_logged_today = today_date in sessions
+
     return render_template("index.html",
-        today        = get_today(),
+        today        = today_str,
         week         = get_current_week(),
         profile      = profile,
         suggestions  = suggestions,
@@ -112,10 +124,11 @@ def index():
         deload_state = deload_state,
         sessions     = sessions,
         weights      = weights,
-        hiit_log          = load_hiit_log_local(),
-        now               = datetime.now().strftime("%A"),
-        nutrition_totals  = get_today_totals(),
-        nutrition_settings= load_nutrition_settings(),
+        hiit_log              = hiit_log,
+        now                   = datetime.now().strftime("%A"),
+        nutrition_totals      = get_today_totals(),
+        nutrition_settings    = load_nutrition_settings(),
+        already_logged_today  = already_logged_today,
     )
 
 

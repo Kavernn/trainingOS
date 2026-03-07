@@ -620,12 +620,12 @@
   </div>
 
   {% if today in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery'] %}
-  <a href="/seance_speciale/{{ today }}" class="btn btn-primary btn-block" style="margin-bottom: 16px;">
-    Commencer {{ today }} →
+  <a href="/seance_speciale/{{ today }}" class="btn {% if already_logged_today %}btn-secondary{% else %}btn-primary{% endif %} btn-block" style="margin-bottom: 16px;">
+    {% if already_logged_today %}✅ {{ today }} fait — Voir / 2ème séance{% else %}Commencer {{ today }} →{% endif %}
   </a>
   {% else %}
-  <a href="/seance" class="btn btn-primary btn-block" style="margin-bottom:{% if suggestions %}10px{% else %}16px{% endif %};">
-    🏋️ Logger ma séance
+  <a href="/seance" class="btn {% if already_logged_today %}btn-secondary{% else %}btn-primary{% endif %} btn-block" style="margin-bottom:{% if suggestions %}10px{% else %}16px{% endif %};">
+    {% if already_logged_today %}✅ Séance faite — Voir / 2ème séance{% else %}🏋️ Logger ma séance{% endif %}
   </a>
   {% if suggestions %}
   <div class="hero-suggestions">
