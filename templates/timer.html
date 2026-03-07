@@ -28,29 +28,8 @@
   #flash-overlay.flash-rest { background: rgba(34,197,94,0.18); }
   #flash-overlay.active     { opacity: 1; }
 
-  /* Masquer le top-header global sur cette page */
+  /* Page timer = full-screen, pas de header global */
   .top-header { display: none !important; }
-
-  /* ── HEADER ── */
-  .header {
-    width: 100%;
-    max-width: 420px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 28px;
-  }
-
-  .logo {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1rem;
-    font-weight: 800;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .logo span { color: var(--orange); }
 
   /* ── PHASE LABEL ── */
   .phase-wrap {
@@ -464,11 +443,6 @@
 
 {% block content %}
 <div id="flash-overlay"></div>
-
-<div class="header">
-  <div class="logo">⏱ <span>Interval Timer</span></div>
-  <a href="javascript:history.back()" style="color:var(--muted);font-size:1.4rem;text-decoration:none;" title="Retour">←</a>
-</div>
 
 <!-- Phase label -->
 <div class="phase-wrap">
