@@ -1106,12 +1106,24 @@ buildNextPR();
     return last;
   }
 
-  function getPastSessions(templateDow, limit = 3) {
-    const jsDay = templateDowToJsDay(templateDow);
+  const SPECIAL_TYPES = ['Yoga', 'Recovery', 'HIIT 1', 'HIIT 2'];
+
+  function getPastSessions(templateDow, seance, limit = 3) {
+    const jsDay   = templateDowToJsDay(templateDow);
+    const isMuscu = !SPECIAL_TYPES.includes(seance);
+
     return Object.entries(sessions)
-      .filter(([date]) => {
+      .filter(([date, sess]) => {
         const d = new Date(date + 'T12:00:00');
-        return d.getDay() === jsDay;
+        if (d.getDay() !== jsDay) return false;
+        const exos = sess.exos || sess.exercises || [];
+        if (isMuscu) {
+          // exclure les séances spéciales loggées ce jour-là
+          return !exos.some(e => SPECIAL_TYPES.includes(e));
+        } else {
+          // Yoga / Recovery : matcher par nom dans exos
+          return exos.some(e => e.toLowerCase().includes(seance.toLowerCase()));
+        }
       })
       .sort(([a], [b]) => b.localeCompare(a))
       .slice(0, limit);
@@ -1184,9 +1196,9 @@ buildNextPR();
         }
       }
     } else {
-      const past = getPastSessions(templateDow);
+      const past = getPastSessions(templateDow, seance);
       if (!past.length) {
-        html += `<div class="drawer-no-past">Aucune séance passée à ce jour</div>`;
+        html += `<div class="drawer-no-past">Aucune séance ${seance} passée</div>`;
       } else {
         for (const [date, sess] of past) {
           const rpe  = sess.rpe ? `RPE ${sess.rpe}` : '';
