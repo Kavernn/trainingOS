@@ -1,455 +1,215 @@
-# AI Agent Context — prompts.chat
+# AI Agent Context — TrainingOS
 
-This file provides the operational context for AI agents working on this repository.
-It includes project overview, architecture, coding rules, development workflow, and persistent state tracking.
-
-Agents should read this file before making any modifications.
+Ce fichier fournit le contexte opérationnel pour les agents IA travaillant sur ce dépôt.
+Lire ce fichier avant toute modification.
 
 ---
 
-# Project Overview
+# Vue d'ensemble du projet
 
-**prompts.chat** is a social platform where users share and discover AI prompts.
+**TrainingOS** est une Progressive Web App (PWA) d'entraînement personnel, déployée en serverless sur Vercel et accessible nativement sur iOS via Capacitor.
 
-Core capabilities:
+Fonctionnalités principales :
 
-* create prompts
-* browse prompts
-* save prompts to collections
-* favorite prompts
-* manage user accounts
-* admin moderation
-
-Primary goal: enable discovery and reuse of high-quality AI prompts.
+* planification hebdomadaire des séances
+* logging des exercices et suivi de progression (1RM, charges)
+* séances HIIT avec timer dédié
+* suivi nutritionnel et déficit calorique
+* historique et statistiques (Personal Records, volume)
+* coach IA (Claude Haiku/Sonnet) pour suggestions de programme et déload
+* objectifs, suivi poids corporel, composition corporelle
+* mode offline-first avec sync Supabase
 
 ---
 
-# Technology Stack
-
-Frontend
-
-* Next.js 16 (App Router)
-* React 19
-* TypeScript
+# Stack technique
 
 Backend
 
-* Next.js API routes
+* Python 3
+* Flask 3.1 (server-rendered via Jinja2)
+* Déployé sur Vercel (serverless, point d'entrée : `api/index.py`)
 
-Database
+Base de données
 
-* PostgreSQL
-* Prisma ORM
+* Supabase (PostgreSQL) — production
+* SQLite local (`.local_kv.db`) — dev / offline / cache
+* Stockage clé/valeur JSON (table `kv`)
 
-Authentication
+Mobile
 
-* NextAuth
+* Capacitor 6 (WKWebView iOS natif)
+* PWA : Service Worker + Web App Manifest
 
-Styling
+IA
 
-* TailwindCSS
-* shadcn/ui
-
-Forms
-
-* React Hook Form
-* Zod validation
-
-Internationalization
-
-* next-intl
+* Anthropic Claude — SDK `anthropic>=0.40.0`
+* Modèles : Sonnet 4.6 (analyse), Haiku (réponses rapides)
 
 ---
 
-# Development Environment
+# Environnement de développement
 
-Requirements
+Prérequis
 
-Node >= 20
-npm >= 10
-PostgreSQL
+* Python >= 3.10
+* pip
+* Node >= 18 (pour Capacitor/iOS uniquement)
+* Xcode (pour build iOS)
 
-Install dependencies
+Installation Python
 
-npm install
+```bash
+pip install -r requirements.txt
+```
 
-Start development server
+Variables d'environnement (fichier `.env` à la racine)
 
-npm run dev
+```
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
+SECRET_KEY=...
+ANTHROPIC_API_KEY=...
+APP_DATA_MODE=HYBRID   # ONLINE | OFFLINE | HYBRID
+```
 
-Application URL
+Lancer en local
 
-http://localhost:3000
+```bash
+python api/index.py
+# ou
+flask --app api/index run --debug
+```
 
----
-
-# Database Operations
-
-Run migrations
-
-npm run db:migrate
-
-Push schema (development only)
-
-npm run db:push
-
-Open Prisma Studio
-
-npm run db:studio
-
-Seed development data
-
-npm run db:seed
+URL locale : http://localhost:5000
 
 ---
 
-# Type Checking
+# Opérations Capacitor / iOS
 
-npx tsc --noEmit
+Synchroniser le projet web vers iOS
 
-All code must pass type checking before merging.
-
----
-
-# Key Files
-
-prompts.config.ts
-Main application configuration
-
-prisma/schema.prisma
-Database schema
-
-src/lib/db.ts
-Prisma client singleton
-
-src/lib/auth/index.ts
-NextAuth configuration
-
-messages/*.json
-Translation files
+```bash
+npm run sync        # cap sync
+npm run ios         # cap run ios
+npm run open:ios    # cap open ios (ouvre Xcode)
+```
 
 ---
 
-# Project Structure
+# Fichiers clés
 
-src/
-
-app/
-
-* (auth)
-* api
-* prompts
-* admin
-
-components/
-
-* ui
-* prompts
-
-lib/
-
-* ai
-* auth
-* plugins
+| Fichier | Rôle |
+|---|---|
+| `api/index.py` | Point d'entrée Flask + toutes les routes HTTP |
+| `api/db.py` | Couche données offline-first (Supabase + SQLite) |
+| `api/planner.py` | Planning hebdomadaire |
+| `api/progression.py` | Calcul 1RM, progression de charges |
+| `api/nutrition.py` | Tracker nutritionnel |
+| `api/sessions.py` | Gestion et log des séances |
+| `api/intelligence.py` (route) | Coach IA Claude |
+| `templates/base.html` | Layout commun (nav, safe area iOS) |
+| `static/sw.js` | Service Worker PWA |
+| `static/manifest.json` | PWA manifest |
+| `capacitor.config.ts` | Config Capacitor iOS |
+| `vercel.json` | Config déploiement Vercel |
 
 ---
 
-# Architecture
+# Structure du projet
 
-System flow
-
-User
-→ React Components
-→ Next.js API Routes
-→ Prisma ORM
-→ PostgreSQL
-
-Server Components are preferred by default.
-
----
-
-# Prompt Data Model
-
-A prompt contains:
-
-title
-description
-content
-tags
-author
-createdAt
-
-Users can
-
-* create prompts
-* edit prompts
-* browse prompts
-* favorite prompts
-* add prompts to collections
+```
+trainingOS/
+├── api/            # Backend Python (Flask + logique métier)
+├── templates/      # HTML Jinja2 (UI server-rendered)
+├── static/         # Assets, SW, manifest
+├── mobile/ios/     # Projet Xcode généré par Capacitor
+├── tests/          # Tests pytest
+├── data/           # Données de référence (exercices JSON)
+└── www/            # WebView Capacitor
+```
 
 ---
 
-# Authentication
+# Architecture données — db.py
 
-Authentication is handled by NextAuth.
+Stockage clé/valeur JSON en double couche :
 
-Responsibilities
+| Mode | Comportement |
+|---|---|
+| `ONLINE` | Lecture/écriture Supabase ; miroir SQLite local (dirty=0) |
+| `OFFLINE` | SQLite uniquement (dirty=1 pour sync future) |
+| `HYBRID` | Tente Supabase, fallback SQLite dirty |
 
-* login
-* session handling
-* user identity
+Conflit résolu par Last-Write-Wins via `updated_at` ISO UTC.
+Sur Vercel : filesystem readonly → Supabase uniquement.
 
-Auth logic location
-
-src/lib/auth
-
----
-
-# Coding Rules
-
-Default component type
-
-Server Components
-
-Use `"use client"` only when required:
-
-* React state
-* event handlers
-* browser APIs
+API publique : `get_json(key)`, `set_json(key, value)`, `update_json(key, patch)`, `append_json_list(key, entry)`, `sync_now()`
 
 ---
 
-# UI Rules
+# Règles de code
 
-Always use components from
-
-src/components/ui
-
-Do not recreate base UI primitives.
-
-Prefer composition over duplication.
+* Ne jamais accéder à Supabase directement — toujours passer par `db.get_json` / `db.set_json`
+* Les templates sont server-rendered : pas de framework JS frontend
+* Le JS dans les templates doit rester vanilla (pas de React, pas de build step)
+* Respecter la structure existante des routes dans `api/index.py`
+* Ne jamais committer `.env`, clés API, credentials
 
 ---
 
-# Styling
+# Règles UI
 
-Use TailwindCSS.
-
-Conditional classes should use:
-
-cn()
-
-Avoid custom CSS files unless required.
+* Toutes les pages héritent de `templates/base.html`
+* CSS inline dans les templates (pas de fichiers CSS séparés sauf `static/`)
+* Safe area iOS gérée dans `base.html` — ne pas dupliquer
+* Responsive mobile-first
 
 ---
 
-# Translation Rules
+# Workflow de développement
 
-All user-visible text must support internationalization.
+Pour implémenter une fonctionnalité :
 
-Server usage
-
-getTranslations()
-
-Client usage
-
-useTranslations()
-
-Never hardcode UI text.
+1. Ajouter la logique métier dans le module `api/` approprié (ou créer un nouveau module)
+2. Ajouter la route dans `api/index.py`
+3. Créer ou modifier le template Jinja2
+4. Tester en local
+5. Mettre à jour `STATE.md` et `TASKS.md`
+6. Commit + push sur la branche de travail
 
 ---
 
-# Forms
+# Sécurité
 
-Standard form stack
+Ne jamais committer :
 
-React Hook Form
-Zod validation
+* fichiers `.env`
+* clés API
+* credentials Supabase
+* tokens
 
-Do not introduce other form libraries.
-
----
-
-# Database Rules
-
-Prisma client must always be imported from
-
-@/lib/db
-
-Never create additional Prisma instances.
+Toujours stocker les secrets dans les variables d'environnement.
 
 ---
 
-# API Design Rules
+# Priorités agent
 
-API routes must
+Ordre de priorité lors de modifications :
 
-* validate input
-* return typed responses
-* handle errors explicitly
-
-Responses should be predictable and documented.
-
----
-
-# Development Workflow
-
-When implementing a feature
-
-1. Update Prisma schema if needed
-2. Run database migration
-3. Implement API route
-4. Implement server logic
-5. Build UI components
-6. Add translations
-7. Test locally
-8. Run lint and type check
-
----
-
-# Performance Guidelines
-
-Prefer
-
-Server Components
-
-Minimize client-side JavaScript.
-
-Only move logic to client components when necessary.
-
----
-
-# Security Rules
-
-Never commit
-
-.env files
-API keys
-database credentials
-tokens
-
-Secrets must be stored in environment variables.
-
----
-
-# Anti-Patterns
-
-Avoid
-
-duplicating UI components
-bypassing Prisma client
-hardcoding translations
-creating unnecessary client components
-committing secrets
-
----
-
-# Pre-Commit Checklist
-
-Before committing
-
-Run
-
-npm run lint
-
-and
-
-npx tsc --noEmit
-
-Verify
-
-* no lint errors
-* no TypeScript errors
-* translations added
-* no secrets committed
-
----
-
-# Agent Priorities
-
-When modifying code follow this priority order
-
-1. Security
-2. Database integrity
-3. Type safety
-4. UI consistency
+1. Sécurité (pas de fuite de secrets, pas d'injection)
+2. Intégrité des données (cohérence Supabase/SQLite)
+3. Compatibilité mobile/PWA
+4. Cohérence UI (base.html, safe area, responsive)
 5. Performance
 
-Higher priority rules must never be violated.
-
 ---
 
-# Project State
+# Glossaire
 
-This section can be updated by agents to track progress.
-
-Current development status
-
-* core prompt system implemented
-* authentication configured
-* UI components partially complete
-
-Known areas needing improvement
-
-* prompt discovery algorithms
-* prompt tagging UX
-* search and filtering
-
----
-
-# Task Queue
-
-Tasks agents may implement
-
-High priority
-
-* improve prompt search
-* implement prompt collections
-* optimize prompt listing performance
-
-Medium priority
-
-* add prompt rating system
-* improve admin moderation tools
-
-Low priority
-
-* UI polish
-* performance micro-optimizations
-
-Agents should select tasks from this list when contributing.
-
----
-
-# Decision Log
-
-This section records important architectural decisions.
-
-Example entries
-
-Decision: Use Prisma ORM
-Reason: type safety and schema migrations.
-
-Decision: Use Server Components by default
-Reason: performance and reduced client JavaScript.
-
-Decision: Use TailwindCSS + shadcn/ui
-Reason: consistent design system.
-
-Agents should append new decisions here when introducing major architectural changes.
-
----
-
-# Glossary
-
-Prompt
-An instruction template designed for use with AI models.
-
-Collection
-A group of prompts saved by a user.
-
-Favorite
-A bookmarked prompt.
-
-Agent
-An AI system assisting development in this repository.
+**Séance** : session d'entraînement musculaire ou HIIT loggée.
+**Inventaire / Programme** : liste des exercices et charges de référence de l'utilisateur.
+**1RM** : One Rep Max — charge maximale estimée pour un exercice.
+**Déload** : semaine de récupération à charge réduite, détectée automatiquement.
+**Dirty** : entrée SQLite locale non encore synchronisée avec Supabase.
+**Coach IA** : interface `intelligence.html` utilisant Claude pour analyser et suggérer.
