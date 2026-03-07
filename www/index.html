@@ -100,28 +100,34 @@
     </button>
   </div>
 
-  <script type="module">
-    import { Network } from '@capacitor/network';
-    import { SplashScreen } from '@capacitor/splash-screen';
-    import { StatusBar, Style } from '@capacitor/status-bar';
+  <script>
+    // Use Capacitor global bridge (no bundler needed)
+    function init() {
+      const cap = window.Capacitor;
+      if (!cap) return;
 
-    async function init() {
-      // Hide splash screen
-      await SplashScreen.hide();
+      const { SplashScreen, StatusBar, Network } = cap.Plugins;
 
-      // Configure status bar
-      await StatusBar.setStyle({ style: Style.Dark });
-      await StatusBar.setBackgroundColor({ color: '#0f0f17' });
+      if (SplashScreen) SplashScreen.hide();
 
-      // Watch network — reload as soon as connectivity is restored
-      Network.addListener('networkStatusChange', (status) => {
-        if (status.connected) {
-          window.location.reload();
-        }
-      });
+      if (StatusBar) {
+        StatusBar.setStyle({ style: 'DARK' });
+        StatusBar.setBackgroundColor({ color: '#0f0f17' });
+      }
+
+      if (Network) {
+        Network.addListener('networkStatusChange', function(status) {
+          if (status.connected) window.location.reload();
+        });
+      }
     }
 
-    init().catch(console.error);
+    // Wait for Capacitor to be ready
+    if (document.readyState === 'complete') {
+      init();
+    } else {
+      window.addEventListener('load', init);
+    }
   </script>
 </body>
 </html>
