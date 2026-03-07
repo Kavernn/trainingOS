@@ -457,6 +457,12 @@
   const purple = '#a855f7';
   const rose   = '#f43f5e';
 
+  // Use local calendar date — toISOString() returns UTC which breaks for UTC+ timezones
+  function localDateStr(d) {
+    const dd = d || new Date();
+    return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+  }
+
   function weekKey(dateStr) {
     const d = new Date(dateStr);
     const jan1 = new Date(d.getFullYear(), 0, 1);
@@ -494,7 +500,7 @@
 
     // Volume cette semaine
     const wStart = new Date(); wStart.setHours(0,0,0,0); wStart.setDate(wStart.getDate() - wStart.getDay());
-    const wKey = wStart.toISOString().split('T')[0];
+    const wKey = localDateStr(wStart);
     let volSem = 0;
     for (const [ex, data] of Object.entries(weights)) {
       if (ex === 'sessions') continue;
@@ -507,7 +513,7 @@
 
     // RPE moyen 30j
     const d30 = new Date(); d30.setDate(d30.getDate() - 30);
-    const d30key = d30.toISOString().split('T')[0];
+    const d30key = localDateStr(d30);
     const rpes = allDates.filter(d => d >= d30key && sessions[d]?.rpe).map(d => sessions[d].rpe);
     document.getElementById('kpi-avg-rpe').textContent =
       rpes.length ? (rpes.reduce((a,b)=>a+b,0) / rpes.length).toFixed(1) : '—';
@@ -653,7 +659,7 @@
 
     const d = new Date(startDate);
     while (d <= today) {
-      const key     = d.toISOString().split('T')[0];
+      const key     = localDateStr(d);
       const visited = gymDays.has(key);
       const count   = visitCount[key] || 0;
 
@@ -697,7 +703,7 @@
     });
 
     // Recalcule les stats
-    const nowStr    = today.toISOString().split('T')[0];
+    const nowStr    = localDateStr(today);
     const thisMonth = nowStr.slice(0, 7);
     const totalSeances = gymDays.size;
     const thisMonthCount = [...gymDays].filter(d => d.startsWith(thisMonth)).length;
@@ -705,7 +711,7 @@
     // Streak actuel
     let streak = 0;
     const check = new Date(today);
-    while (gymDays.has(check.toISOString().split('T')[0])) {
+    while (gymDays.has(localDateStr(check))) {
       streak++;
       check.setDate(check.getDate() - 1);
     }
@@ -1238,7 +1244,7 @@ function getWeekStart(weeksAgo = 0) {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - d.getDay() - weeksAgo * 7);
-  return d.toISOString().split('T')[0];
+  return localDateStr(d);
 }
 
 function getMonthStart() {
@@ -1328,6 +1334,7 @@ function setMusclePeriod(period, btn) {
 
 // Init avec cette semaine
 renderMuscleCharts(getWeekStart());
+buildMuscleEvol();
 
 // ── ÉVOLUTION 4 SEMAINES ──────────────────────────────
 
@@ -1422,8 +1429,8 @@ function getWeekRange(weeksAgo) {
   const to = new Date(from);
   to.setDate(to.getDate() + 7);
   return {
-    from: from.toISOString().split('T')[0],
-    to:   to.toISOString().split('T')[0]
+    from: localDateStr(from),
+    to:   localDateStr(to)
   };
 }
 

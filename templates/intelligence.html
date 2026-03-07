@@ -150,6 +150,11 @@ const S   = JSON.parse(document.getElementById('s-data').textContent);
 const H   = JSON.parse(document.getElementById('h-data').textContent);
 const INV = JSON.parse(document.getElementById('i-data').textContent||'{}');
 
+function localDateStr(d) {
+  const dd = d || new Date();
+  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+}
+
 function parseReps(r){ return String(r||'').split(',').map(Number).filter(n=>n>0); }
 
 function recentDates(n){
@@ -161,7 +166,7 @@ function recentDates(n){
 
 function volumeByMuscle(days){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
-  const cut=cutoff.toISOString().split('T')[0];
+  const cut=localDateStr(cutoff);
   const vol={};
   const GROUPS={
     pectorals:'Pecs',chest:'Pecs',
@@ -188,14 +193,14 @@ function volumeByMuscle(days){
 
 function avgRPE(days){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
-  const cut=cutoff.toISOString().split('T')[0];
+  const cut=localDateStr(cutoff);
   const vals=Object.entries(S).filter(([d,s])=>d>=cut&&s.rpe).map(([,s])=>s.rpe);
   return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
 }
 
 function sessionFreq(days){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
-  const cut=cutoff.toISOString().split('T')[0];
+  const cut=localDateStr(cutoff);
   const dates=new Set();
   Object.values(W).forEach(d=>(d.history||[]).forEach(e=>e.date>=cut&&dates.add(e.date)));
   H.forEach(e=>e.date>=cut&&dates.add(e.date));

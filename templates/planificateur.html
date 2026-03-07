@@ -163,11 +163,17 @@ const H    = JSON.parse(document.getElementById('h-data').textContent);
 const PROG = JSON.parse(document.getElementById('prog-data').textContent||'{}');
 const DAYS_FR=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
+// Use local calendar date — toISOString() returns UTC which breaks for UTC+ timezones
+function localDateStr(d) {
+  const dd = d || new Date();
+  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+}
+
 function parseReps(r){ return String(r||'').split(',').map(Number).filter(n=>n>0); }
 
 function sessionFreq(days){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
-  const cut=cutoff.toISOString().split('T')[0];
+  const cut=localDateStr(cutoff);
   const d=new Set();
   Object.values(W).forEach(v=>(v.history||[]).forEach(e=>e.date>=cut&&d.add(e.date)));
   H.forEach(e=>e.date>=cut&&d.add(e.date));
@@ -176,7 +182,7 @@ function sessionFreq(days){
 
 function avgRPE(days){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
-  const cut=cutoff.toISOString().split('T')[0];
+  const cut=localDateStr(cutoff);
   const vals=Object.entries(S).filter(([d,s])=>d>=cut&&s.rpe).map(([,s])=>s.rpe);
   return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
 }
@@ -184,7 +190,7 @@ function avgRPE(days){
 function getDoneThisWeek(){
   const done=new Set();
   const mon=new Date(); mon.setDate(mon.getDate()-mon.getDay()+1);
-  const monStr=mon.toISOString().split('T')[0];
+  const monStr=localDateStr(mon);
   Object.values(W).forEach(d=>(d.history||[]).forEach(e=>e.date>=monStr&&done.add(e.date)));
   H.forEach(e=>e.date>=monStr&&done.add(e.date));
   return done;
@@ -193,13 +199,13 @@ function getDoneThisWeek(){
 // ── GRILLE SEMAINE ────────────────────────────────────
 function renderWeekGrid(){
   const done=getDoneThisWeek();
-  const today=new Date().toISOString().split('T')[0];
+  const today=localDateStr();
   const grid=document.getElementById('week-grid');
   const monday=new Date(); monday.setDate(monday.getDate()-monday.getDay()+1);
   let html='';
   for(let i=0;i<7;i++){
     const d=new Date(monday); d.setDate(monday.getDate()+i);
-    const str=d.toISOString().split('T')[0];
+    const str=localDateStr(d);
     const isToday=str===today;
     const isDone=done.has(str);
     const isPast=str<today;
@@ -256,7 +262,7 @@ function buildAlgoPlan(){
     </div>
     ${plan.map((p,i)=>{
       const d=new Date(); d.setDate(d.getDate()-d.getDay()+1+i);
-      const isToday=d.toISOString().split('T')[0]===new Date().toISOString().split('T')[0];
+      const isToday=localDateStr(d)===localDateStr();
       const type=p.toLowerCase().includes('repos')?'repos':p.toLowerCase().includes('hiit')?'hiit':p.toLowerCase().includes('actif')?'actif':'muscu';
       return `<div class="plan-card${isToday?' today':''}">
         <div class="plan-day-title">

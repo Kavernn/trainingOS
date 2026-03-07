@@ -164,6 +164,11 @@ let bwData = JSON.parse(document.getElementById('bw-data').textContent || '[]');
 const prof = JSON.parse(document.getElementById('profile-data').textContent || '{}');
 const sorted = ()=>[...bwData].sort((a,b)=>a.date.localeCompare(b.date));
 
+function localDateStr(d) {
+  const dd = d || new Date();
+  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+}
+
 // ── BODY FAT ESTIMATE (Navy si dispo, sinon BMI) ──────
 function estimateBF(weightKg){
   const h = parseFloat(prof.height_cm||prof.taille||0);
@@ -198,8 +203,8 @@ function render(){
   document.getElementById('current-weight').textContent = w+' kg';
 
   // Déltas
-  const w7  = s.find(e=>{ const d=new Date(); d.setDate(d.getDate()-7); return e.date>=d.toISOString().split('T')[0]; });
-  const w30 = s.find(e=>{ const d=new Date(); d.setDate(d.getDate()-30); return e.date>=d.toISOString().split('T')[0]; });
+  const w7  = s.find(e=>{ const d=new Date(); d.setDate(d.getDate()-7); return e.date>=localDateStr(d); });
+  const w30 = s.find(e=>{ const d=new Date(); d.setDate(d.getDate()-30); return e.date>=localDateStr(d); });
 
   function deltaHTML(ref, id, noteId){
     if(!ref){ document.getElementById(id).textContent='—'; document.getElementById(noteId).textContent='Pas assez de données'; return; }
@@ -287,7 +292,7 @@ async function saveLog(){
   const r=await fetch('/api/body_weight',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({poids:p,note:n})});
   const d=await r.json();
   if(d.success){
-    const today=new Date().toISOString().split('T')[0];
+    const today=localDateStr();
     bwData.push({date:today,poids:p,note:n});
     render(); closeLog();
     document.getElementById('log-poids').value='';

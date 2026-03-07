@@ -423,10 +423,22 @@
   <header class="top-header">
     <span class="logo">💪 TRAININGOS</span>
     <div class="meta">
-      <div>{{ now if now else '' }}</div>
-      <div>Semaine {{ week if week else '' }}</div>
+      <div id="header-day"></div>
+      <div id="header-week"></div>
     </div>
   </header>
+  <script>
+    (function() {
+      const d = new Date();
+      document.getElementById('header-day').textContent =
+        d.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'short' });
+      // Semaine relative au programme (début 2026-03-03)
+      const START = new Date(2026, 2, 3); // 3 mars 2026
+      const diffDays = Math.floor((d - START) / 86400000);
+      const week = Math.max(1, Math.floor(diffDays / 7) + 1);
+      document.getElementById('header-week').textContent = 'Semaine ' + week;
+    })();
+  </script>
 
   <!-- CONTENU -->
   <main class="container">

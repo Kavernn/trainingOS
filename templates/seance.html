@@ -505,11 +505,6 @@
     body.classList.toggle('open');
   }
 
-  // Auto-ouvre le premier
-  document.addEventListener('DOMContentLoaded', () => {
-    toggleExercise(1);
-  });
-
   // ── CALCUL TOTAL ─────────────────────────────────────
   function updateTotal(idx, type, barWeight = 45) {
     const val   = parseFloat(document.getElementById(`weight-${idx}`).value);
@@ -594,7 +589,7 @@
     showToast(`${name} loggué ! ✅`);
   }
 
-  // ── TIMER ─────────────────────────────────────────────
+  // ── TIMER (wall-clock, no drift) ─────────────────────
   function startTimer(idx, seconds) {
     if (timers[idx]) {
       clearInterval(timers[idx]);
@@ -609,21 +604,22 @@
     label.style.display = 'block';
     fill.style.width    = '100%';
 
-    let remaining = seconds;
+    const startEpoch = Date.now();
 
     function updateTimer() {
-      remaining--;
+      const elapsed   = Math.floor((Date.now() - startEpoch) / 1000);
+      const remaining = Math.max(0, seconds - elapsed);
       const pct  = (remaining / seconds) * 100;
       const mins = Math.floor(remaining / 60);
       const secs = remaining % 60;
-      fill.style.width    = `${pct}%`;
-      label.textContent   = `⏱ Repos : ${mins}:${secs.toString().padStart(2, '0')}`;
+      fill.style.width  = `${pct}%`;
+      label.textContent = `⏱ Repos : ${mins}:${secs.toString().padStart(2, '0')}`;
 
       if (remaining <= 0) {
         clearInterval(timers[idx]);
         delete timers[idx];
-        label.textContent   = '✅ Repos terminé !';
-        label.style.color   = 'var(--green)';
+        label.textContent = '✅ Repos terminé !';
+        label.style.color = 'var(--green)';
         setTimeout(() => {
           bar.style.display   = 'none';
           label.style.display = 'none';
