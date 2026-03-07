@@ -236,6 +236,26 @@
   <span class="badge badge-blue">Semaine {{ week }}</span>
 </div>
 
+{% if already_logged %}
+<div class="card" style="border-color: rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); margin-bottom: 16px;">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 1.4rem;">⚠️</span>
+    <div>
+      <div style="font-weight: 700; color: var(--orange);">Séance déjà loggée aujourd'hui</div>
+      {% if previous_session %}
+      <div class="text-muted" style="font-size: 0.82rem;">
+        Loggée à {{ previous_session.logged_at }} — RPE {{ previous_session.rpe or '—' }}
+        {% if previous_session.comment %} · {{ previous_session.comment }}{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <button class="btn btn-secondary" style="margin-top: 12px; width: 100%;" onclick="forceRelog()">
+    ✏️ Modifier / Re-logger quand même
+  </button>
+</div>
+{% endif %}
+
 {% if not exercises %}
 <div class="card">
   <p class="text-muted">Aucun exercice programmé pour aujourd'hui.</p>
@@ -386,7 +406,7 @@
     <span id="done-count" class="text-orange" style="font-family: 'Barlow Condensed'; font-size: 1.4rem; font-weight: 800;">0</span>
     <span class="text-muted"> / {{ exercises|length }} exercices</span>
   </div>
-  <button class="btn btn-success" onclick="finirSeance()">
+  <button class="btn btn-success" id="btn-terminer" onclick="finirSeance()">
     Terminer la séance ✅
   </button>
 </div>
@@ -432,8 +452,24 @@
   const timers   = {};
   let   doneCount = 0;
 
+  const ALREADY_LOGGED = {{ 'true' if already_logged else 'false' }};
+  let   relogAllowed  = false;
+
+  function forceRelog() {
+    relogAllowed = true;
+    document.querySelector('.card[style*="rgba(249,115,22,0.06)"]').style.display = 'none';
+    showToast('Tu peux modifier ta séance ✏️');
+  }
+
   // ── INITIALISATION ──────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
+    if (ALREADY_LOGGED) {
+      const btn = document.getElementById('btn-terminer');
+      if (btn) {
+        btn.textContent = '✏️ Modifier la séance';
+        btn.style.background = 'var(--orange2)';
+      }
+    }
     toggleExercise(1);
 
     // --- AJOUT POUR LE DRAG AND DROP ---
@@ -594,6 +630,10 @@
 
   // ── FIN DE SÉANCE ─────────────────────────────────────
   function finirSeance() {
+    if (ALREADY_LOGGED && !relogAllowed) {
+      showToast('Séance déjà loggée ! Clique sur "Modifier / Re-logger quand même"', 'error');
+      return;
+    }
     document.getElementById('modal-fin').style.display = 'flex';
   }
 
