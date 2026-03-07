@@ -489,6 +489,17 @@
   .delay-4 { animation-delay: 0.20s; }
   .delay-5 { animation-delay: 0.25s; }
   .delay-6 { animation-delay: 0.30s; }
+
+  @media (max-width: 520px) {
+    .recap-stats { grid-template-columns: repeat(2, 1fr); }
+    .week-grid   { gap: 3px; }
+    .week-day    { padding: 6px 1px; }
+    .wd-label    { font-size: 0.5rem; }
+    .wd-name     { font-size: 0.55rem; }
+    .quick-nav   { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .qnav-icon   { font-size: 1.2rem; }
+    .qnav-lbl    { font-size: 0.5rem; }
+  }
 </style>
 {% endblock %}
 

@@ -183,6 +183,12 @@
   .p-10_0 { width: 24px; height: 24px; background: #f2f2f2; color: #000; }
   .p-5_0  { width: 20px; height: 20px; background: #cc0000; }
   .p-2_5  { width: 17px; height: 17px; background: #666; font-size: 0.5rem; }
+
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  @media (max-width: 520px) {
+    .sets-grid { grid-template-columns: repeat(2, 1fr); }
+  }
 </style>
 {% endblock %}
 
@@ -378,6 +384,7 @@
     {% if ex.history %}
     <div class="mt-16">
       <div class="card-title">Historique récent</div>
+      <div class="table-scroll">
       <table>
         <thead><tr><th>Date</th><th>Poids</th><th>Reps</th><th>Note</th></tr></thead>
         <tbody>
@@ -393,6 +400,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
     </div>
     {% endif %}
 

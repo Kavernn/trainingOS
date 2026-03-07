@@ -189,6 +189,10 @@
     font-weight: 600;
     text-transform: capitalize;
   }
+
+  @media (max-width: 520px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
 </style>
 {% endblock %}
 
