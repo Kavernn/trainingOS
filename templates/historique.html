@@ -121,14 +121,34 @@
     background: rgba(249,115,22,0.06);
     border: 1px solid rgba(249,115,22,0.18);
     border-radius: var(--radius);
-    padding: 12px 16px;
     margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .hiit-header {
+    padding: 12px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    cursor: pointer;
     font-size: 0.85rem;
   }
+  .hiit-header:hover { background: rgba(249,115,22,0.04); }
   .hiit-type { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1rem; color: var(--orange); }
+  .hiit-body { display: none; padding: 0 16px 14px; }
+  .hiit-body.open { display: block; }
+  .hiit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .hiit-field label { display: block; font-size: 0.7rem; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 1px; }
+  .hiit-field input, .hiit-field select {
+    width: 100%; padding: 5px 9px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); font-size: 0.85rem; box-sizing: border-box;
+  }
+  .hiit-field input:focus, .hiit-field select:focus { border-color: var(--orange); outline: none; }
 
   /* Tabs */
   .tab-bar { display: flex; gap: 6px; margin-bottom: 16px; }
@@ -242,18 +262,57 @@
 </div>
 {% else %}
 {% for h in hiit_list %}
-<div class="hiit-card">
-  <div>
-    <div class="hiit-type">{{ h.session_type or 'HIIT' }}</div>
-    <div class="text-muted" style="font-size:0.75rem; margin-top:2px;">
-      {{ h.date }}
-      {% if h.duration %} · {{ h.duration }} min{% endif %}
-      {% if h.notes %} · {{ h.notes[:50] }}{% endif %}
+<div class="hiit-card" id="hc-{{ loop.index0 }}">
+  <div class="hiit-header" onclick="toggleHiit({{ loop.index0 }})">
+    <div>
+      <div class="hiit-type">{{ h.session_type or 'HIIT' }}</div>
+      <div class="text-muted" style="font-size:0.75rem; margin-top:2px;">
+        {{ h.date }}
+        {% if h.duration %} · {{ h.duration }} min{% endif %}
+        {% if h.comment %} · {{ h.comment[:40] }}{% endif %}
+      </div>
+    </div>
+    {% if h.rpe %}
+    <span class="rpe-badge {% if h.rpe >= 8.5 %}high{% elif h.rpe >= 7 %}mid{% else %}low{% endif %}">RPE {{ h.rpe }}</span>
+    {% else %}
+    <span class="rpe-badge none">—</span>
+    {% endif %}
+  </div>
+
+  <div class="hiit-body" id="hb-{{ loop.index0 }}">
+    <div class="hiit-grid">
+      <div class="hiit-field">
+        <label>RPE</label>
+        <input type="number" min="1" max="10" step="0.5" id="hrpe-{{ loop.index0 }}" value="{{ h.rpe or '' }}" oninput="markHiitDirty({{ loop.index0 }})">
+      </div>
+      <div class="hiit-field">
+        <label>Feeling</label>
+        <select id="hfeel-{{ loop.index0 }}" onchange="markHiitDirty({{ loop.index0 }})">
+          <option value="">—</option>
+          {% for f in ['💪 Fort', '😊 Bon', '😐 Moyen', '😓 Dur', '🤢 Épuisant'] %}
+          <option value="{{ f }}" {% if h.feeling == f %}selected{% endif %}>{{ f }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="hiit-field">
+        <label>Rounds complétés</label>
+        <input type="number" min="0" id="hrounds-{{ loop.index0 }}" value="{{ h.rounds_completes or '' }}" oninput="markHiitDirty({{ loop.index0 }})">
+      </div>
+      <div class="hiit-field">
+        <label>Vitesse max (km/h)</label>
+        <input type="number" step="0.5" id="hspeed-{{ loop.index0 }}" value="{{ h.vitesse_max or '' }}" oninput="markHiitDirty({{ loop.index0 }})">
+      </div>
+      <div class="hiit-field" style="grid-column: 1/-1;">
+        <label>Commentaire</label>
+        <input type="text" id="hcomment-{{ loop.index0 }}" value="{{ h.comment or '' }}" oninput="markHiitDirty({{ loop.index0 }})">
+      </div>
+    </div>
+
+    <div class="session-actions">
+      <button class="btn-save" id="hsave-{{ loop.index0 }}" onclick="saveHiit({{ loop.index0 }})">💾 Sauvegarder</button>
+      <button class="btn-del" onclick="deleteHiit({{ loop.index0 }})">🗑 Supprimer</button>
     </div>
   </div>
-  {% if h.intensity %}
-  <span class="rpe-badge mid">{{ h.intensity }}</span>
-  {% endif %}
 </div>
 {% endfor %}
 {% endif %}
@@ -365,6 +424,63 @@ async function deleteSession(date) {
   } catch(e) {
     showToast('❌ Erreur de connexion');
   }
+}
+
+function toggleHiit(idx) {
+  document.getElementById('hb-' + idx).classList.toggle('open');
+}
+
+function markHiitDirty(idx) {
+  const btn = document.getElementById('hsave-' + idx);
+  if (btn) btn.style.display = 'inline-block';
+}
+
+async function saveHiit(idx) {
+  const btn = document.getElementById('hsave-' + idx);
+  btn.disabled = true; btn.textContent = '...';
+
+  const payload = {
+    index:            idx,
+    rpe:              parseFloat(document.getElementById('hrpe-'     + idx)?.value) || null,
+    feeling:          document.getElementById('hfeel-'   + idx)?.value || '',
+    rounds_completes: parseInt(document.getElementById('hrounds-' + idx)?.value)  || null,
+    vitesse_max:      parseFloat(document.getElementById('hspeed-'  + idx)?.value) || null,
+    comment:          document.getElementById('hcomment-'+ idx)?.value || '',
+  };
+  // Remove null fields
+  Object.keys(payload).forEach(k => payload[k] === null && delete payload[k]);
+
+  try {
+    const res  = await fetch('/api/hiit/edit', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success) {
+      btn.style.display = 'none';
+      showToast('✅ Session HIIT mise à jour');
+    } else {
+      showToast('❌ ' + (data.error || 'Erreur'));
+    }
+  } catch(e) { showToast('❌ Erreur de connexion'); }
+  btn.disabled = false; btn.textContent = '💾 Sauvegarder';
+}
+
+async function deleteHiit(idx) {
+  if (!confirm('Supprimer cette session HIIT ?')) return;
+  try {
+    const res  = await fetch('/api/delete_hiit', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({index: idx}),
+    });
+    const data = await res.json();
+    if (data.success) {
+      const card = document.getElementById('hc-' + idx);
+      card.style.opacity = '0'; card.style.transition = 'opacity 0.3s';
+      setTimeout(() => card.remove(), 300);
+      showToast('🗑 Session supprimée');
+    } else { showToast('❌ ' + (data.error || 'Erreur')); }
+  } catch(e) { showToast('❌ Erreur de connexion'); }
 }
 
 function showToast(msg) {

@@ -557,6 +557,28 @@ def api_delete_hiit():
     return jsonify({"error": "Index introuvable"}), 400
 
 
+@app.route("/api/hiit/edit", methods=["POST"])
+def api_hiit_edit():
+    try:
+        data     = request.get_json()
+        index    = data.get("index")
+        hiit_log = load_hiit_log_local()
+
+        if index is None or not (0 <= index < len(hiit_log)):
+            return jsonify({"error": "Index introuvable"}), 400
+
+        entry = hiit_log[index]
+        for field in ("rpe", "feeling", "comment", "rounds_completes",
+                      "vitesse_max", "vitesse_croisiere", "duration"):
+            if field in data:
+                entry[field] = data[field]
+
+        save_hiit_log_local(hiit_log)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/save_exercise", methods=["POST"])
 def api_save_exercise():
     data = request.json
