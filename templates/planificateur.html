@@ -108,6 +108,13 @@
   @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
   .fu{animation:fadeUp 0.3s ease both;}
   .fu1{animation-delay:.05s;}.fu2{animation-delay:.1s;}.fu3{animation-delay:.15s;}
+
+  @media (max-width: 520px) {
+    .week-grid     { gap: 3px; }
+    .week-day      { padding: 6px 2px; border-radius: 8px; }
+    .week-day-name { font-size: 0.55rem; }
+    .week-day-lbl  { font-size: 0.5rem; }
+  }
 </style>
 {% endblock %}
 

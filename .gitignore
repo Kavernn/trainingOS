@@ -22,3 +22,12 @@ __pycache__/
 # Logs et temporaires
 *.log
 *.tmp
+
+# Capacitor / Node
+node_modules/
+.npm/
+
+# Capacitor generated native projects (recreated via: npx cap add ios / npx cap add android)
+# Retire ces lignes si tu veux versionner les projets natifs Xcode/Android Studio
+# ios/
+# android/

@@ -48,6 +48,7 @@
     padding: 20px;
     margin-bottom: 16px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    overflow: hidden;
   }
 
   .chart-card h3 {
@@ -57,6 +58,8 @@
     letter-spacing: 1px;
     margin-bottom: 16px;
   }
+
+  canvas { max-width: 100%; }
 
   .section-label {
     font-size: 0.7rem;
@@ -190,6 +193,46 @@
   border-color: var(--orange);
   color: white;
 }
+
+.kpi-top {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 520px) {
+  .kpi-top { grid-template-columns: repeat(2, 1fr); }
+  .muscle-charts-grid { grid-template-columns: 1fr !important; }
+  .heatmap-stats { grid-template-columns: repeat(2, 1fr); }
+  .chart-card { padding: 14px 12px; }
+  .chart-card h3 { font-size: 0.78rem; margin-bottom: 12px; }
+  .pr-col-hide { display: none !important; }
+  .pr-row { grid-template-columns: 1fr 80px 36px; gap: 6px; }
+  .comp-kpis-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+  .section-label { font-size: 0.65rem; }
+}
+
+.no-data {
+  text-align: center;
+  color: var(--muted);
+  padding: 28px 16px;
+  font-size: 0.82rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  line-height: 1.6;
+}
+
+.pr-row {
+  display: grid;
+  grid-template-columns: 1fr 90px 70px 36px;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.pr-row:last-child { border-bottom: none; }
+.pr-row-header { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
 </style>
 {% endblock %}
 
@@ -205,6 +248,26 @@
 <div class="flex-between mb-16">
   <h2 class="text-orange">📊 Dashboard</h2>
   <span class="text-muted" style="font-size: 0.8rem;">{{ now }}</span>
+</div>
+
+<!-- ── KPIs GLOBAUX ── -->
+<div class="kpi-top">
+  <div class="comp-kpi">
+    <div class="comp-kpi-val" id="kpi-total">—</div>
+    <div class="comp-kpi-lbl">Séances total</div>
+  </div>
+  <div class="comp-kpi">
+    <div class="comp-kpi-val" id="kpi-mois">—</div>
+    <div class="comp-kpi-lbl">Ce mois-ci</div>
+  </div>
+  <div class="comp-kpi">
+    <div class="comp-kpi-val" id="kpi-vol-sem">—</div>
+    <div class="comp-kpi-lbl">Vol. sem. (lbs)</div>
+  </div>
+  <div class="comp-kpi">
+    <div class="comp-kpi-val" id="kpi-avg-rpe">—</div>
+    <div class="comp-kpi-lbl">RPE moy. 30j</div>
+  </div>
 </div>
 
 <!-- ── HEATMAP ── -->
@@ -245,6 +308,16 @@
     <div class="heatmap-legend-cell" style="background:#f97316aa;"></div>
     <div class="heatmap-legend-cell" style="background:#f97316;"></div>
     <span>Plus</span>
+  </div>
+</div>
+
+<!-- ── PERSONAL RECORDS ── -->
+<div class="section-label">🏆 Personal Records</div>
+
+<div class="chart-card">
+  <h3>Meilleurs 1RM estimés (formule Epley)</h3>
+  <div id="pr-table-container">
+    <div class="no-data">Chargement…</div>
   </div>
 </div>
 
@@ -296,7 +369,7 @@
 <!-- NOUVEAU : Scatter RPE vs Volume -->
 <div class="chart-card">
   <h3>🔬 Corrélation RPE vs Volume par séance</h3>
-  <canvas id="rpeVsVolume" height="200"></canvas>
+  <canvas id="rpeVsVolume" height="160"></canvas>
 </div>
 
 <!-- ANALYSE MUSCULAIRE -->
@@ -309,7 +382,7 @@
     <button class="muscle-filter" onclick="setMusclePeriod('month', this)">Ce mois</button>
     <button class="muscle-filter" onclick="setMusclePeriod('all', this)">Tout</button>
   </div>
-  <div class="grid-2" style="align-items: center;">
+  <div class="grid-2 muscle-charts-grid" style="align-items: center;">
     <canvas id="muscleDonut" height="220"></canvas>
     <canvas id="muscleBar"   height="220"></canvas>
   </div>
@@ -330,8 +403,8 @@
     <button class="muscle-filter" onclick="setCompWeek(2, this)">S-2</button>
     <button class="muscle-filter" onclick="setCompWeek(4, this)">S-4</button>
   </div>
-  <div id="comp-kpis" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;"></div>
-  <canvas id="compRadar" height="260"></canvas>
+  <div id="comp-kpis" class="comp-kpis-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;"></div>
+  <canvas id="compRadar" height="220"></canvas>
 </div>
 
 <div class="chart-card">
@@ -378,25 +451,6 @@
   const bodyWeight = JSON.parse(document.getElementById('bodyweight-data').textContent);
   const inventory  = JSON.parse(document.getElementById('inventory-data')?.textContent || '{}');
 
-  // ── DEBUG BANNER (à retirer une fois confirmé) ────────
-  (function showDebug() {
-    const exos      = Object.keys(weights).filter(k => k !== 'sessions');
-    const totalEntries = exos.reduce((n, ex) => n + (weights[ex]?.history?.length || 0), 0);
-    const banner = document.createElement('div');
-    banner.id = 'debug-banner';
-    banner.style.cssText = 'background:#1a1a24;border:1px solid #f9731644;border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:0.8rem;color:#888;line-height:1.8;';
-    banner.innerHTML = `
-      <strong style="color:#f97316">🔍 Debug données</strong><br>
-      weights: <strong style="color:#fff">${exos.length} exercices</strong>, ${totalEntries} entrées total<br>
-      sessions: <strong style="color:#fff">${Object.keys(sessions).length} séances</strong><br>
-      hiitLog: <strong style="color:#fff">${hiitLog.length} entrées</strong><br>
-      bodyWeight: <strong style="color:#fff">${bodyWeight.length} entrées</strong><br>
-      inventory: <strong style="color:#fff">${Object.keys(inventory).length} exercices</strong><br>
-      <span style="color:#f9731688;font-size:0.72rem;">→ Retire ce bloc une fois les graphiques confirmés (supprime la fonction showDebug dans stats.html)</span>
-    `;
-    document.querySelector('.flex-between.mb-16')?.insertAdjacentElement('afterend', banner);
-  })();
-
   const orange = '#f97316';
   const blue   = '#3b82f6';
   const green  = '#22c55e';
@@ -418,6 +472,111 @@
   }
 
   function totalReps(reps) { return parseReps(reps).reduce((a,b)=>a+b,0); }
+
+  // ── HELPER : affiche "no data" si canvas vide ─────────
+  function noData(canvasId, msg = 'Pas encore de données') {
+    const el = document.getElementById(canvasId);
+    if (!el) return;
+    const div = document.createElement('div');
+    div.className = 'no-data';
+    div.textContent = msg;
+    el.parentNode.replaceChild(div, el);
+  }
+
+  // ── KPIs GLOBAUX ──────────────────────────────────────
+  function buildTopKPIs() {
+    const allDates = Object.keys(sessions);
+    document.getElementById('kpi-total').textContent = allDates.length || '0';
+
+    const today = new Date();
+    const monthKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`;
+    document.getElementById('kpi-mois').textContent = allDates.filter(d => d >= monthKey).length || '0';
+
+    // Volume cette semaine
+    const wStart = new Date(); wStart.setHours(0,0,0,0); wStart.setDate(wStart.getDate() - wStart.getDay());
+    const wKey = wStart.toISOString().split('T')[0];
+    let volSem = 0;
+    for (const [ex, data] of Object.entries(weights)) {
+      if (ex === 'sessions') continue;
+      for (const e of (data.history || [])) {
+        if (e.date >= wKey) volSem += (e.weight || 0) * totalReps(e.reps);
+      }
+    }
+    document.getElementById('kpi-vol-sem').textContent =
+      volSem > 999 ? (volSem / 1000).toFixed(1) + 'k' : Math.round(volSem) || '0';
+
+    // RPE moyen 30j
+    const d30 = new Date(); d30.setDate(d30.getDate() - 30);
+    const d30key = d30.toISOString().split('T')[0];
+    const rpes = allDates.filter(d => d >= d30key && sessions[d]?.rpe).map(d => sessions[d].rpe);
+    document.getElementById('kpi-avg-rpe').textContent =
+      rpes.length ? (rpes.reduce((a,b)=>a+b,0) / rpes.length).toFixed(1) : '—';
+  }
+  buildTopKPIs();
+
+  // ── PERSONAL RECORDS ─────────────────────────────────
+  function buildPRTable() {
+    const prs = [];
+    for (const [ex, data] of Object.entries(weights)) {
+      if (ex === 'sessions') continue;
+      const history = [...(data.history || [])].sort((a,b) => a.date.localeCompare(b.date));
+      if (history.length < 1) continue;
+
+      let bestORM = 0, bestDate = '', currentORM = 0;
+
+      for (const entry of history) {
+        const reps = parseReps(entry.reps); const w = entry.weight || 0;
+        if (!w || !reps.length) continue;
+        const orm = w * (1 + reps.reduce((a,b)=>a+b,0)/reps.length / 30);
+        if (orm > bestORM) { bestORM = orm; bestDate = entry.date; }
+      }
+
+      const last = [...history].reverse();
+      for (const entry of last) {
+        const reps = parseReps(entry.reps); const w = entry.weight || 0;
+        if (!w || !reps.length) continue;
+        currentORM = w * (1 + reps.reduce((a,b)=>a+b,0)/reps.length / 30);
+        break;
+      }
+
+      // Trend : premier tiers vs dernier tiers des poids
+      const n = Math.max(1, Math.floor(history.length / 3));
+      const avgFirst = history.slice(0, n).reduce((s,e) => s+(e.weight||0),0) / n;
+      const avgLast  = history.slice(-n).reduce((s,e) => s+(e.weight||0),0) / n;
+      const diff = avgLast - avgFirst;
+      const trend = diff > avgFirst * 0.02 ? '↑' : diff < -avgFirst * 0.02 ? '↓' : '→';
+      const trendCls = trend === '↑' ? 'delta-up' : trend === '↓' ? 'delta-down' : 'delta-same';
+
+      if (bestORM > 0) prs.push({ ex, bestORM: Math.round(bestORM), currentORM: Math.round(currentORM), bestDate, trend, trendCls, n: history.length });
+    }
+
+    prs.sort((a,b) => b.bestORM - a.bestORM);
+    const container = document.getElementById('pr-table-container');
+
+    if (!prs.length) {
+      container.innerHTML = '<div class="no-data">Logger tes premières séances pour voir tes PRs ici !</div>';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="pr-row pr-row-header">
+        <span>Exercice</span>
+        <span style="text-align:right;">Meilleur 1RM</span>
+        <span class="pr-col-hide" style="text-align:right;">Actuel</span>
+        <span style="text-align:center;">↕</span>
+      </div>
+      ${prs.slice(0, 12).map((p, i) => `
+        <div class="pr-row">
+          <span style="font-weight:600;font-size:0.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${i===0?'🥇 ':''}${p.ex}</span>
+          <span style="text-align:right;color:var(--orange);font-family:'Barlow Condensed';font-weight:700;font-size:1rem;">${p.bestORM} lbs</span>
+          <span class="pr-col-hide" style="text-align:right;color:var(--muted);font-size:0.82rem;">${p.currentORM} lbs</span>
+          <span class="${p.trendCls}" style="text-align:center;font-size:1rem;font-weight:700;">${p.trend}</span>
+        </div>
+      `).join('')}
+      <div style="text-align:right;margin-top:8px;font-size:0.72rem;color:var(--muted);">Epley · ${prs.length} exercices trackés</div>
+    `;
+  }
+  buildPRTable();
 
   const orange = '#f97316';
   const blue   = '#3b82f6';
@@ -674,25 +833,31 @@
   // ── GRAPHIQUES ────────────────────────────────────────
 
   const vs = computeVolumeParSeance();
-  new Chart(document.getElementById('volumeSeance'), {
-    type: 'bar',
-    data: { labels: vs.labels, datasets: [{ data: vs.data, backgroundColor: orange + '99', borderColor: orange, borderWidth: 1, borderRadius: 4 }] },
-    options: defaults
-  });
+  if (vs.labels.length > 0) {
+    new Chart(document.getElementById('volumeSeance'), {
+      type: 'bar',
+      data: { labels: vs.labels, datasets: [{ data: vs.data, backgroundColor: orange + '99', borderColor: orange, borderWidth: 1, borderRadius: 4 }] },
+      options: defaults
+    });
+  } else { noData('volumeSeance'); }
 
   const fr = computeFrequenceParSemaine();
-  new Chart(document.getElementById('frequence'), {
-    type: 'bar',
-    data: { labels: fr.labels, datasets: [{ data: fr.data, backgroundColor: blue + '99', borderColor: blue, borderWidth: 1, borderRadius: 4 }] },
-    options: defaults
-  });
+  if (fr.labels.length > 0) {
+    new Chart(document.getElementById('frequence'), {
+      type: 'bar',
+      data: { labels: fr.labels, datasets: [{ data: fr.data, backgroundColor: blue + '99', borderColor: blue, borderWidth: 1, borderRadius: 4 }] },
+      options: defaults
+    });
+  } else { noData('frequence'); }
 
   const vw = computeVolumeParSemaine();
-  new Chart(document.getElementById('volumeSemaine'), {
-    type: 'line',
-    data: { labels: vw.labels, datasets: [{ data: vw.data, borderColor: green, backgroundColor: green + '22', borderWidth: 2, pointBackgroundColor: green, pointRadius: 4, fill: true, tension: 0.3 }] },
-    options: defaults
-  });
+  if (vw.labels.length > 0) {
+    new Chart(document.getElementById('volumeSemaine'), {
+      type: 'line',
+      data: { labels: vw.labels, datasets: [{ data: vw.data, borderColor: green, backgroundColor: green + '22', borderWidth: 2, pointBackgroundColor: green, pointRadius: 4, fill: true, tension: 0.3 }] },
+      options: defaults
+    });
+  } else { noData('volumeSemaine'); }
 
   // ── NOUVEAU : Ratio Push/Pull/Legs/Core ───────────────
   (function buildPushPullLegs() {
@@ -956,27 +1121,31 @@
         }
       }
     });
-  }
+  } else { noData('hiitSpeeds', 'Aucune vitesse HIIT enregistrée'); }
 
   const hr = computeHiitRpe();
-  new Chart(document.getElementById('hiitRpe'), {
-    type: 'line',
-    data: { labels: hr.labels, datasets: [{ data: hr.data, borderColor: orange, backgroundColor: orange + '22', borderWidth: 2, pointBackgroundColor: orange, pointRadius: 5, fill: true, tension: 0.3 }] },
-    options: rpeScale
-  });
+  if (hr.labels.length > 0) {
+    new Chart(document.getElementById('hiitRpe'), {
+      type: 'line',
+      data: { labels: hr.labels, datasets: [{ data: hr.data, borderColor: orange, backgroundColor: orange + '22', borderWidth: 2, pointBackgroundColor: orange, pointRadius: 5, fill: true, tension: 0.3 }] },
+      options: rpeScale
+    });
+  } else { noData('hiitRpe', 'Aucune séance HIIT loggée'); }
 
   const hrd = computeHiitRounds();
-  new Chart(document.getElementById('hiitRounds'), {
-    type: 'bar',
-    data: {
-      labels: hrd.labels,
-      datasets: [
-        { label: 'Planifiés',  data: hrd.planifies, backgroundColor: blue + '44',  borderColor: blue,  borderWidth: 1, borderRadius: 4 },
-        { label: 'Complétés', data: hrd.completes, backgroundColor: green + '99', borderColor: green, borderWidth: 1, borderRadius: 4 }
-      ]
-    },
-    options: { ...defaults, plugins: { legend: { display: true, labels: { color: '#888' } } } }
-  });
+  if (hrd.labels.length > 0) {
+    new Chart(document.getElementById('hiitRounds'), {
+      type: 'bar',
+      data: {
+        labels: hrd.labels,
+        datasets: [
+          { label: 'Planifiés',  data: hrd.planifies, backgroundColor: blue + '44',  borderColor: blue,  borderWidth: 1, borderRadius: 4 },
+          { label: 'Complétés', data: hrd.completes, backgroundColor: green + '99', borderColor: green, borderWidth: 1, borderRadius: 4 }
+        ]
+      },
+      options: { ...defaults, plugins: { legend: { display: true, labels: { color: '#888' } } } }
+    });
+  } else { noData('hiitRounds', 'Aucune séance HIIT loggée'); }
 
   const pw = computePoids();
   if (pw.data.length > 0) {
@@ -991,7 +1160,7 @@
         }
       }
     });
-  }
+  } else { noData('poidsCorps', 'Aucune pesée enregistrée — va dans Body Comp pour commencer !'); }
   // ── ANALYSE MUSCULAIRE ────────────────────────────────
 
 // Groupes musculaires normalisés
@@ -1388,7 +1557,7 @@ function buildComparison(weeksAgo) {
         r: {
           ticks:       { display: false },
           grid:        { color: '#2a2a3a' },
-          pointLabels: { color: '#999', font: { size: 10 } },
+          pointLabels: { color: '#999', font: { size: window.innerWidth < 520 ? 8 : 10 } },
           angleLines:  { color: '#2a2a3a' }
         }
       }

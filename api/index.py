@@ -119,11 +119,16 @@ def programme():
 
 @app.route("/seance")
 def seance():
-    weights = load_weights()
-    today   = get_today()
+    weights  = load_weights()
+    today    = get_today()
+    sessions = load_sessions()
+    today_date = datetime.now().strftime("%Y-%m-%d")
 
     if today in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery']:
         return redirect(url_for('seance_speciale', session_type=today))
+
+    already_logged   = today_date in sessions
+    previous_session = sessions.get(today_date)
 
     program   = load_program()
     inv       = load_inventory()
@@ -160,11 +165,13 @@ def seance():
             })
 
     return render_template("seance.html",
-        today    = today,
-        exercises = exercises,
-        is_hiit  = "HIIT" in today,
-        hiit_str = get_hiit_str(get_current_week()) if "HIIT" in today else "",
-        week     = get_current_week()
+        today            = today,
+        exercises        = exercises,
+        is_hiit          = "HIIT" in today,
+        hiit_str         = get_hiit_str(get_current_week()) if "HIIT" in today else "",
+        week             = get_current_week(),
+        already_logged   = already_logged,
+        previous_session = previous_session
     )
 
 
@@ -482,6 +489,17 @@ def api_save_exercise():
 
     if not success:
         return jsonify({"success": False, "error": "Erreur de sauvegarde Supabase"}), 500
+
+    # Si renommage, mettre à jour le programme partout
+    if original_name and original_name != name:
+        program = load_program()
+        changed = False
+        for jour, exos in program.items():
+            if original_name in exos:
+                exos[name] = exos.pop(original_name)
+                changed = True
+        if changed:
+            save_program(program)
 
     return jsonify({"success": True, "gif_url": gif_url})
 

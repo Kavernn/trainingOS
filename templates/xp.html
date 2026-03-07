@@ -111,6 +111,11 @@
   .fu { animation: fadeUp 0.3s ease both; }
   .fu1 { animation-delay: 0.05s; } .fu2 { animation-delay: 0.1s; }
   .fu3 { animation-delay: 0.15s; } .fu4 { animation-delay: 0.2s; }
+
+  @media (max-width: 520px) {
+    .kpi-row    { grid-template-columns: repeat(2, 1fr); }
+    .badges-grid { grid-template-columns: repeat(2, 1fr); }
+  }
 </style>
 {% endblock %}
 

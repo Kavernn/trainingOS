@@ -414,6 +414,48 @@
 
   .flashing { animation: flashBg 0.4s ease 3; }
 
+  /* ── RESPONSIVE MOBILE ── */
+  @media (max-width: 520px) {
+    body { padding: 10px 10px 80px; }
+
+    .ring-container {
+      width: min(240px, 72vw);
+      height: min(240px, 72vw);
+      margin-bottom: 18px;
+    }
+
+    .time-display { font-size: 3.8rem; letter-spacing: -1px; }
+
+    .btn-play  { width: 68px; height: 68px; font-size: 1.3rem; }
+    .btn-ctrl  { width: 54px; height: 54px; font-size: 1.2rem; }
+    .controls  { gap: 10px; margin-bottom: 18px; }
+
+    .settings-grid {
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .setting-card { padding: 10px; }
+    .setting-value { font-size: 1.6rem; margin-bottom: 8px; }
+    .setting-btn   { height: 28px; font-size: 0.9rem; }
+
+    .presets { margin-bottom: 12px; }
+    .preset-btn { font-size: 0.72rem; padding: 5px 10px; }
+
+    .phase-wrap { margin-bottom: 12px; }
+    .history-dot { width: 10px; height: 10px; }
+  }
+
+  @media (max-width: 360px) {
+    .ring-container {
+      width: 200px;
+      height: 200px;
+    }
+    .time-display { font-size: 3.2rem; }
+    .btn-play  { width: 60px; height: 60px; }
+    .btn-ctrl  { width: 48px; height: 48px; }
+  }
+
 </style>
 {% endblock %}
 
