@@ -439,13 +439,13 @@ def api_session_edit():
         if exercise_edits:
             weights = load_weights()
             for edit in exercise_edits:
-                ex     = edit.get("exercise")
-                new_w  = edit.get("weight")
-                new_r  = edit.get("reps")
+                ex    = edit.get("exercise")
+                new_w = edit.get("weight")
+                new_r = edit.get("reps")
                 if not ex or ex not in weights:
                     continue
                 history = weights[ex].get("history", [])
-                # Find existing entry for this date
+                # Find and update existing entry for this date
                 updated = False
                 for entry in history:
                     if entry.get("date") == date:
@@ -453,14 +453,24 @@ def api_session_edit():
                             entry["weight"] = float(new_w)
                         if new_r is not None:
                             entry["reps"] = str(new_r)
+                        # Recalculate 1RM (Epley) so stats/PRs stay accurate
+                        w = entry["weight"]
+                        reps_list = [int(x) for x in str(entry["reps"]).split(",") if x.strip().isdigit()]
+                        if reps_list and w:
+                            avg_reps = sum(reps_list) / len(reps_list)
+                            entry["1rm"] = round(w * (1 + avg_reps / 30), 1)
                         updated = True
                         break
                 if not updated:
-                    # Date not in history, insert new entry
-                    history.insert(0, {"date": date, "weight": float(new_w or 0), "reps": str(new_r or "")})
+                    w = float(new_w or 0)
+                    r = str(new_r or "")
+                    reps_list = [int(x) for x in r.split(",") if x.strip().isdigit()]
+                    avg_reps  = sum(reps_list) / len(reps_list) if reps_list else 0
+                    one_rm    = round(w * (1 + avg_reps / 30), 1) if w and avg_reps else 0
+                    history.insert(0, {"date": date, "weight": w, "reps": r, "1rm": one_rm})
                     weights[ex]["history"] = history[:20]
-                # Recalculate current_weight / last_reps if this is the most recent entry
-                if history and history[0].get("date") <= date:
+                # Always recalculate current_weight/last_reps from the most recent entry
+                if history:
                     most_recent = max(history, key=lambda e: e.get("date", ""))
                     weights[ex]["current_weight"] = most_recent["weight"]
                     weights[ex]["last_reps"]      = most_recent["reps"]
