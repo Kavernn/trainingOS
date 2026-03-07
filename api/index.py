@@ -211,21 +211,43 @@ def seance_speciale(session_type):
 
 @app.route("/historique")
 def historique():
-    weights   = load_weights()
-    inv       = load_inventory()
-    exercices = []
+    weights  = load_weights()
+    sessions = load_sessions()
+    hiit_log = load_hiit_log_local()
+
+    # Build index: date -> list of {exercise, weight, reps}
+    ex_by_date = {}
     for ex, data in weights.items():
-        if ex == "sessions":
-            continue
-        info = inv.get(ex, {})
-        exercices.append({
-            "name":    ex,
-            "type":    info.get("type", "—"),
-            "muscles": info.get("muscles", []),
-            "history": data.get("history", [])[:10],
-            "current": data.get("current_weight", 0)
+        for entry in data.get("history", []):
+            d = entry.get("date")
+            if not d:
+                continue
+            ex_by_date.setdefault(d, []).append({
+                "exercise": ex,
+                "weight":   entry.get("weight", 0),
+                "reps":     entry.get("reps", ""),
+            })
+
+    # Merge muscu sessions and HIIT into unified list sorted by date desc
+    all_dates = set(sessions.keys()) | set(ex_by_date.keys())
+    session_list = []
+    for d in sorted(all_dates, reverse=True):
+        s = sessions.get(d, {})
+        session_list.append({
+            "date":    d,
+            "type":    "muscu",
+            "rpe":     s.get("rpe"),
+            "comment": s.get("comment", ""),
+            "exos":    ex_by_date.get(d, []),
         })
-    return render_template("historique.html", exercices=exercices)
+
+    hiit_list = sorted(hiit_log, key=lambda x: x.get("date",""), reverse=True)
+
+    return render_template("historique.html",
+        session_list = session_list[:60],
+        hiit_list    = hiit_list[:30],
+        weights      = weights,
+    )
 
 
 @app.route("/hiit")
@@ -388,6 +410,96 @@ def api_log():
             "1rm":        onerm,
             "achieved":   achieved
         })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session/edit", methods=["POST"])
+def api_session_edit():
+    """Edit an existing session: RPE, comment, and/or individual exercise weight/reps."""
+    try:
+        data    = request.get_json()
+        date    = data.get("date")
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+
+        # Update sessions store (RPE / comment)
+        sessions = load_sessions()
+        if date not in sessions:
+            sessions[date] = {}
+        if "rpe" in data:
+            sessions[date]["rpe"] = data["rpe"]
+        if "comment" in data:
+            sessions[date]["comment"] = data["comment"]
+        from sessions import save_sessions
+        save_sessions(sessions)
+
+        # Update weights store for each exercise edit
+        exercise_edits = data.get("exercises", [])
+        if exercise_edits:
+            weights = load_weights()
+            for edit in exercise_edits:
+                ex     = edit.get("exercise")
+                new_w  = edit.get("weight")
+                new_r  = edit.get("reps")
+                if not ex or ex not in weights:
+                    continue
+                history = weights[ex].get("history", [])
+                # Find existing entry for this date
+                updated = False
+                for entry in history:
+                    if entry.get("date") == date:
+                        if new_w is not None:
+                            entry["weight"] = float(new_w)
+                        if new_r is not None:
+                            entry["reps"] = str(new_r)
+                        updated = True
+                        break
+                if not updated:
+                    # Date not in history, insert new entry
+                    history.insert(0, {"date": date, "weight": float(new_w or 0), "reps": str(new_r or "")})
+                    weights[ex]["history"] = history[:20]
+                # Recalculate current_weight / last_reps if this is the most recent entry
+                if history and history[0].get("date") <= date:
+                    most_recent = max(history, key=lambda e: e.get("date", ""))
+                    weights[ex]["current_weight"] = most_recent["weight"]
+                    weights[ex]["last_reps"]      = most_recent["reps"]
+            save_weights(weights)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session/delete", methods=["POST"])
+def api_session_delete():
+    """Delete an entire session (removes from sessions store + weights history)."""
+    try:
+        data = request.get_json()
+        date = data.get("date")
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+
+        # Remove from sessions
+        sessions = load_sessions()
+        sessions.pop(date, None)
+        from sessions import save_sessions
+        save_sessions(sessions)
+
+        # Remove matching history entries from weights
+        weights = load_weights()
+        for ex in weights:
+            history = weights[ex].get("history", [])
+            weights[ex]["history"] = [e for e in history if e.get("date") != date]
+            # Recalculate current values from remaining history
+            remaining = weights[ex]["history"]
+            if remaining:
+                most_recent = max(remaining, key=lambda e: e.get("date", ""))
+                weights[ex]["current_weight"] = most_recent["weight"]
+                weights[ex]["last_reps"]      = most_recent["reps"]
+        save_weights(weights)
+
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
