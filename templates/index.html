@@ -951,11 +951,25 @@ function buildRecap() {
     ? exos.map(e => `<span class="recap-exo-tag">${e}</span>`).join('')
     : '<span class="recap-exo-tag text-muted">—</span>';
 
+  // Déduire le vrai type de séance depuis les exos loggés
+  const SPECIAL_TYPES_RECAP = ['Yoga', 'Recovery', 'HIIT 1', 'HIIT 2'];
+  const fullProg = JSON.parse(document.getElementById('program-data').textContent || '{}');
+  let sessionTitle = SPECIAL_TYPES_RECAP.find(s => exos.includes(s));
+  if (!sessionTitle) {
+    // Cherche la meilleure correspondance avec le programme
+    let bestMatch = 0;
+    for (const [type, exercises] of Object.entries(fullProg)) {
+      const overlap = exos.filter(e => e in exercises).length;
+      if (overlap > bestMatch) { bestMatch = overlap; sessionTitle = type; }
+    }
+  }
+  sessionTitle = sessionTitle || TODAY;
+
   sectionEl.innerHTML = `
     <div class="recap-card">
       <div class="recap-header">
         <span class="recap-badge">✅ Séance faite</span>
-        <span class="recap-title">${TODAY}</span>
+        <span class="recap-title">${sessionTitle}</span>
       </div>
       <div class="recap-stats">
         <div class="recap-stat">

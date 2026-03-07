@@ -395,7 +395,8 @@ def api_log():
 def api_log_session():
     try:
         data    = request.get_json()
-        today   = datetime.now().strftime("%Y-%m-%d")
+        # Utilise la date locale du client si fournie (évite le décalage UTC/EST)
+        today   = data.get("date") or datetime.now().strftime("%Y-%m-%d")
         rpe     = data.get("rpe")
         comment = data.get("comment", "")
         exos    = data.get("exos", [])
@@ -412,7 +413,7 @@ def api_log_hiit():
     hiit_log = load_hiit_log_local()
 
     entry = {
-        "date":               datetime.now().strftime("%Y-%m-%d"),
+        "date":               data.get("date") or datetime.now().strftime("%Y-%m-%d"),
         "week":               week,
         "session_type":       data.get("session_type", "HIIT"),
         "rounds_planifies":   data.get("rounds", 0),

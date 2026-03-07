@@ -649,7 +649,7 @@
     await fetch('/api/log_session', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ rpe, comment, exos })
+      body:    JSON.stringify({ rpe, comment, exos, date: new Date().toLocaleDateString('en-CA') })
     });
 
     showToast('Séance sauvegardée ! 💪');

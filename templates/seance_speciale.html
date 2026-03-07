@@ -815,14 +815,15 @@
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        rounds,           // ✅ clé attendue par api_log_hiit
+        rounds,
         speed: vitesse_max,
         vitesse_croisiere,
         rpe,
         feeling,
         comment,
         session_type: "{{ session_type }}",
-        week: {{ week }}
+        week: {{ week }},
+        date: new Date().toLocaleDateString('en-CA')
       })
     });
 
@@ -849,7 +850,8 @@
       body:    JSON.stringify({
         rpe,
         comment: `[${type.toUpperCase()}${done ? ' ✅' : ''}] ${comment}`,
-        exos:    ["{{ session_type }}"]
+        exos:    ["{{ session_type }}"],
+        date:    new Date().toLocaleDateString('en-CA')
       })
     });
 
