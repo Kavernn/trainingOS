@@ -420,6 +420,7 @@
 <body>
 
   <!-- HEADER -->
+  {% block header %}
   <header class="top-header">
     <span class="logo">💪 TRAININGOS</span>
     <div class="meta">
@@ -427,6 +428,7 @@
       <div>Semaine {{ week if week else '' }}</div>
     </div>
   </header>
+  {% endblock %}
 
   <!-- CONTENU -->
   <main class="container">
