@@ -591,6 +591,7 @@
 <script id="goals-data"    type="application/json">{{ goals       | tojson }}</script>
 <script id="program-data"  type="application/json">{{ full_program | tojson }}</script>
 <script id="wfull-data"    type="application/json">{{ weights      | tojson }}</script>
+<script id="hiitlog-data"  type="application/json">{{ hiit_log     | tojson }}</script>
 
 {% if deload_state.active %}
 <div class="alert alert-warning fade-up">
@@ -1086,10 +1087,11 @@ buildNextPR();
 (function() {
   const fullProgram = JSON.parse(document.getElementById('program-data').textContent || '{}');
   const wfull       = JSON.parse(document.getElementById('wfull-data').textContent  || '{}');
+  const hiitLog     = JSON.parse(document.getElementById('hiitlog-data').textContent || '[]');
 
   const SPECIAL_INFO = {
-    'HIIT 1':   { icon: '🏃', desc: 'Simulation shift hockey — sprint 45s / repos 75s / 10 rounds' },
-    'HIIT 2':   { icon: '🏃', desc: 'Simulation shift hockey — sprint 45s / repos 75s / 10 rounds' },
+    'HIIT 1':   { icon: '🏃', desc: 'Simulation shift hockey — sprint 30s / repos 90s / 8-10 rounds' },
+    'HIIT 2':   { icon: '🏃', desc: 'Simulation shift hockey — sprint 30s / repos 90s / 8-10 rounds' },
     'Yoga':     { icon: '🧘', desc: 'Mobilité & flexibilité — 45 min' },
     'Recovery': { icon: '☯️', desc: 'Récupération active — 30 min' },
   };
@@ -1131,11 +1133,12 @@ buildNextPR();
   }
 
   function buildDrawerContent(seance, templateDow) {
-    const isMuscu = ['Upper A', 'Upper B', 'Lower'].includes(seance);
+    const isMuscu   = ['Upper A', 'Upper B', 'Lower'].includes(seance);
+    const isHIIT    = seance === 'HIIT 1' || seance === 'HIIT 2';
     const isSpecial = SPECIAL_INFO[seance];
     let html = '';
 
-    // ── Programme ──
+    // ── Programme / Info ──
     if (isMuscu && fullProgram[seance]) {
       html += `<div class="drawer-section-title">📋 Programme</div>`;
       for (const [ex, sets] of Object.entries(fullProgram[seance])) {
@@ -1157,29 +1160,70 @@ buildNextPR();
 
     // ── Dernières séances similaires ──
     html += `<div class="drawer-section-title">🕐 Dernières séances similaires</div>`;
-    const past = getPastSessions(templateDow);
-    if (!past.length) {
-      html += `<div class="drawer-no-past">Aucune séance passée à ce jour</div>`;
-    } else {
-      for (const [date, sess] of past) {
-        const rpe    = sess.rpe  ? `RPE ${sess.rpe}` : '';
-        const exos   = getExercisesOnDate(date);
-        const exRows = exos.map(({ex, entry}) => {
-          const repsStr = Array.isArray(entry.reps) ? entry.reps.join(', ') : entry.reps;
-          return `<span style="color:var(--orange)">${ex}</span> ${entry.weight} lbs · ${repsStr} reps`;
-        }).join('<br>');
 
-        html += `
-          <div class="drawer-past-card">
-            <div class="drawer-past-header">
-              <span class="drawer-past-date">${formatDate(date)}</span>
-              ${rpe ? `<span class="drawer-past-rpe">${rpe}</span>` : ''}
-            </div>
-            <div class="drawer-past-ex">${exRows || '<span style="color:var(--muted);font-style:italic">Aucun détail</span>'}</div>
+    if (isHIIT) {
+      // Utilise hiit_log filtré par session_type
+      const pastHIIT = hiitLog.filter(e => e.session_type === seance)
+                               .sort((a,b) => b.date.localeCompare(a.date));
+      if (!pastHIIT.length) {
+        html += `<div class="drawer-no-past">Aucune séance ${seance} loggée</div>`;
+      } else {
+        const first3 = pastHIIT.slice(0, 3);
+        const rest   = pastHIIT.slice(3);
+
+        first3.forEach(e => { html += renderHIITCard(e); });
+
+        if (rest.length) {
+          html += `<button onclick="this.nextElementSibling.style.display='block';this.style.display='none';"
+            style="width:100%;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px;font-size:0.8rem;cursor:pointer;margin-top:4px;">
+            Voir ${rest.length} séance${rest.length>1?'s':''} de plus ▾
+          </button>
+          <div style="display:none;">
+            ${rest.map(renderHIITCard).join('')}
           </div>`;
+        }
+      }
+    } else {
+      const past = getPastSessions(templateDow);
+      if (!past.length) {
+        html += `<div class="drawer-no-past">Aucune séance passée à ce jour</div>`;
+      } else {
+        for (const [date, sess] of past) {
+          const rpe  = sess.rpe ? `RPE ${sess.rpe}` : '';
+          const exos = getExercisesOnDate(date);
+          const exRows = exos.map(({ex, entry}) => {
+            const repsStr = Array.isArray(entry.reps) ? entry.reps.join(', ') : entry.reps;
+            return `<span style="color:var(--orange)">${ex}</span> ${entry.weight} lbs · ${repsStr} reps`;
+          }).join('<br>');
+          html += `
+            <div class="drawer-past-card">
+              <div class="drawer-past-header">
+                <span class="drawer-past-date">${formatDate(date)}</span>
+                ${rpe ? `<span class="drawer-past-rpe">${rpe}</span>` : ''}
+              </div>
+              <div class="drawer-past-ex">${exRows || '<span style="color:var(--muted);font-style:italic">Aucun détail</span>'}</div>
+            </div>`;
+        }
       }
     }
     return html;
+  }
+
+  function renderHIITCard(e) {
+    const rounds  = e.rounds_completes != null ? `${e.rounds_completes}/${e.rounds_planifies} rounds` : '';
+    const speed   = e.vitesse_max      ? `Sprint ${e.vitesse_max} km/h` : '';
+    const cruise  = e.vitesse_croisiere ? `Croisière ${e.vitesse_croisiere} km/h` : '';
+    const feeling = e.feeling || '';
+    const comment = e.comment ? `<br><span style="color:var(--muted);font-style:italic">${e.comment}</span>` : '';
+    const details = [rounds, speed, cruise, feeling].filter(Boolean).join(' · ');
+    return `
+      <div class="drawer-past-card">
+        <div class="drawer-past-header">
+          <span class="drawer-past-date">${formatDate(e.date)}</span>
+          ${e.rpe ? `<span class="drawer-past-rpe">RPE ${e.rpe}</span>` : ''}
+        </div>
+        <div class="drawer-past-ex">${details || '—'}${comment}</div>
+      </div>`;
   }
 
   function openDrawer(seance, jour, templateDow) {

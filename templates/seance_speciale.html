@@ -357,6 +357,53 @@
   </button>
 </div>
 
+<!-- HISTORIQUE HIIT -->
+{% set past_hiit = hiit_log | selectattr('session_type', 'equalto', session_type) | list %}
+{% if past_hiit %}
+<div class="log-section" style="margin-top:16px;">
+  <div class="log-title">📅 Historique {{ session_type }}</div>
+
+  {% for entry in past_hiit[:3] %}
+  <div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+      <span style="font-size:0.82rem; color:var(--muted);">{{ entry.date }}</span>
+      {% if entry.rpe %}<span style="font-size:0.75rem; font-weight:600; color:var(--orange);">RPE {{ entry.rpe }}</span>{% endif %}
+    </div>
+    <div style="font-size:0.8rem; color:var(--text); line-height:1.6;">
+      {% if entry.rounds_completes is not none %}{{ entry.rounds_completes }}/{{ entry.rounds_planifies }} rounds{% endif %}
+      {% if entry.vitesse_max %} · Sprint {{ entry.vitesse_max }} km/h{% endif %}
+      {% if entry.vitesse_croisiere %} · Croisière {{ entry.vitesse_croisiere }} km/h{% endif %}
+      {% if entry.feeling and entry.feeling != '—' %} · {{ entry.feeling }}{% endif %}
+    </div>
+    {% if entry.comment %}<div style="font-size:0.75rem; color:var(--muted); font-style:italic; margin-top:2px;">{{ entry.comment }}</div>{% endif %}
+  </div>
+  {% endfor %}
+
+  {% if past_hiit | length > 3 %}
+  <details style="margin-top:8px;">
+    <summary style="font-size:0.78rem; color:var(--muted); cursor:pointer; list-style:none; padding:6px 0;">
+      Voir {{ (past_hiit | length) - 3 }} séance{{ 's' if (past_hiit | length) - 3 > 1 else '' }} de plus ▾
+    </summary>
+    {% for entry in past_hiit[3:] %}
+    <div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <span style="font-size:0.82rem; color:var(--muted);">{{ entry.date }}</span>
+        {% if entry.rpe %}<span style="font-size:0.75rem; font-weight:600; color:var(--orange);">RPE {{ entry.rpe }}</span>{% endif %}
+      </div>
+      <div style="font-size:0.8rem; color:var(--text); line-height:1.6;">
+        {% if entry.rounds_completes is not none %}{{ entry.rounds_completes }}/{{ entry.rounds_planifies }} rounds{% endif %}
+        {% if entry.vitesse_max %} · Sprint {{ entry.vitesse_max }} km/h{% endif %}
+        {% if entry.vitesse_croisiere %} · Croisière {{ entry.vitesse_croisiere }} km/h{% endif %}
+        {% if entry.feeling and entry.feeling != '—' %} · {{ entry.feeling }}{% endif %}
+      </div>
+      {% if entry.comment %}<div style="font-size:0.75rem; color:var(--muted); font-style:italic; margin-top:2px;">{{ entry.comment }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+
 {% endif %}
 
 <!-- ══════════════════════════════════════════════════ -->

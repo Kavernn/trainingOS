@@ -105,6 +105,8 @@ def index():
         full_program = full_program,
         deload_state = deload_state,
         sessions     = sessions,
+        weights      = weights,
+        hiit_log     = load_hiit_log_local(),
         now          = datetime.now().strftime("%A")
     )
 
@@ -203,6 +205,7 @@ def seance_speciale(session_type):
                            session_type=session_type,
                            protocole=protocole,
                            week=week,
+                           hiit_log=load_hiit_log_local(),
                            now=datetime.now().strftime("%Y-%m-%d")
                            )
 
