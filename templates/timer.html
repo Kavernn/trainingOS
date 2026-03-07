@@ -725,6 +725,8 @@ let audioCtx = null;
 function getCtx() {
   if (!audioCtx || audioCtx.state === 'closed')
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended')
+    audioCtx.resume().catch(() => {});
   return audioCtx;
 }
 
@@ -911,10 +913,11 @@ function currentPhaseLen() {
 }
 
 function startPhase(ph) {
-  phase           = ph;
-  remaining       = ph === 'work' ? workSecs : ph === 'rest' ? restSecs : 5;
-  phaseStartEpoch = Date.now();
-  lastBeepAt      = -1;
+  phase             = ph;
+  remaining         = ph === 'work' ? workSecs : ph === 'rest' ? restSecs : 5;
+  phaseStartEpoch   = Date.now();
+  pausedAtRemaining = remaining; // évite que resume reconstruit un epoch avec une valeur stale
+  lastBeepAt        = -1;
   updateUI();
 }
 
