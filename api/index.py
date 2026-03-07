@@ -296,6 +296,7 @@ def intelligence():
         sessions  = load_sessions(),
         hiit_log  = load_hiit_log_local(),
         inventory = load_inventory(),
+        program   = db.get_json("program", {}),
         now       = datetime.now().strftime("%Y-%m-%d"),
         week      = datetime.now().isocalendar()[1]
     )
@@ -665,14 +666,19 @@ def api_ai_coach():
 
         client = _anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
-            model="claude-haiku-4-5",
-            max_tokens=600,
+            model="claude-sonnet-4-6",
+            max_tokens=800,
             system=(
-                "Tu es un coach sportif expert en musculation, HIIT et périodisation. "
-                "Tu analyses les données d'entraînement réelles de l'utilisateur et donnes des conseils "
-                "précis, motivants et actionnables. Tu réponds toujours en français, de façon concise "
-                "(max 6 phrases). Sois direct, pratique et encourageant. "
-                "Utilise les données fournies pour personnaliser tes réponses."
+                "Tu es un coach sportif expert en musculation, HIIT et périodisation de l'entraînement. "
+                "Tu reçois des données réelles d'entraînement et tu les analyses avec rigueur. "
+                "Règles importantes:\n"
+                "- Ne compare JAMAIS le volume brut (lbs×reps) entre groupes musculaires — les jambes "
+                "utilisent toujours des charges plus lourdes, ça ne veut pas dire qu'elles sont sur-entraînées.\n"
+                "- Utilise le NOMBRE DE SETS par groupe musculaire comme indicateur de volume réel.\n"
+                "- Pour les suggestions de programme, sois précis: nomme les exercices à ajouter/retirer/modifier "
+                "avec les schemes (ex: 3x8-10, 4x5-7).\n"
+                "- Pour le HIIT, analyse la fréquence, les types et la récupération entre sessions.\n"
+                "- Réponds toujours en français, de façon directe et actionnable. Max 7 phrases."
             ),
             messages=[{"role": "user", "content": prompt}]
         )
