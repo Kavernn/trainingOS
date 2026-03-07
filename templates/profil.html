@@ -240,10 +240,10 @@
 <div class="modal-overlay" id="modal-photo">
   <div class="modal-box" style="max-width: 320px;">
     <div class="modal-title">📷 Photo de profil</div>
-    <button class="btn btn-secondary btn-block mb-16" onclick="document.getElementById('photo-input-file').click(); closePhotoModal()">
+    <button class="btn btn-secondary btn-block mb-16" onclick="pickFromGallery()">
       🖼️ Choisir depuis la galerie
     </button>
-    <button class="btn btn-primary btn-block" onclick="document.getElementById('photo-input-camera').click(); closePhotoModal()">
+    <button class="btn btn-primary btn-block" onclick="takePhoto()">
       📷 Prendre une photo
     </button>
     <button class="btn btn-secondary btn-block mt-8" onclick="closePhotoModal()">
@@ -473,6 +473,71 @@ function triggerPhotoUpload() {
 
 function closePhotoModal() {
   document.getElementById('modal-photo').classList.remove('open');
+}
+
+function _isNative() {
+  return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+}
+
+async function _captureCameraPhoto(source) {
+  const Camera = window.Capacitor.Plugins.Camera;
+  const photo = await Camera.getPhoto({
+    resultType: 'dataUrl',
+    source: source,
+    quality: 82,
+    width: 400,
+    height: 400,
+    correctOrientation: true
+  });
+  return photo.dataUrl;
+}
+
+async function takePhoto() {
+  closePhotoModal();
+  if (_isNative()) {
+    try {
+      const dataUrl = await _captureCameraPhoto('CAMERA');
+      await _sendPhoto(dataUrl);
+    } catch (err) {
+      if (!String(err).includes('cancelled') && !String(err).includes('cancel')) {
+        showToast('Erreur caméra : ' + err.message, 'error');
+      }
+    }
+  } else {
+    document.getElementById('photo-input-camera').click();
+  }
+}
+
+async function pickFromGallery() {
+  closePhotoModal();
+  if (_isNative()) {
+    try {
+      const dataUrl = await _captureCameraPhoto('PHOTOS');
+      await _sendPhoto(dataUrl);
+    } catch (err) {
+      if (!String(err).includes('cancelled') && !String(err).includes('cancel')) {
+        showToast('Erreur galerie : ' + err.message, 'error');
+      }
+    }
+  } else {
+    document.getElementById('photo-input-file').click();
+  }
+}
+
+async function _sendPhoto(dataUrl) {
+  showToast('Mise à jour…');
+  const res = await fetch('/api/update_profile_photo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ photo_b64: dataUrl })
+  });
+  const result = await res.json();
+  if (result.success) {
+    document.getElementById('profile-avatar-img').src = dataUrl;
+    showToast('Photo mise à jour ! 📷');
+  } else {
+    showToast('Erreur: ' + (result.error || '?'), 'error');
+  }
 }
 
 async function uploadPhoto(input) {
