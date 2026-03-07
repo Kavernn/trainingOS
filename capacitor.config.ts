@@ -31,13 +31,12 @@ const config: CapacitorConfig = {
   },
 
   ios: {
+    path: 'mobile/ios',
     // Allows the WKWebView to occupy the full screen including safe areas
     contentInset: 'always',
     allowsLinkPreview: false,
     scrollEnabled: true,
     backgroundColor: '#0f0f17',
-    // Required for camera/microphone if the app ever records workouts
-    // Add usage descriptions in ios/App/App/Info.plist
   },
 };
 
