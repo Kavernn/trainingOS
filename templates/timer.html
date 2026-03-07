@@ -8,10 +8,60 @@
 
   body {
     font-family: 'Barlow', sans-serif;
+  }
+
+  /* ── DESKTOP LAYOUT ── */
+  .timer-layout {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 24px 16px 48px;
+  }
+
+  .timer-left, .timer-right { width: 100%; }
+
+  @media (min-width: 768px) {
+    .timer-layout {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 48px;
+      padding: 40px 32px 64px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .timer-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      width: auto;
+    }
+
+    .timer-right {
+      flex: 1;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Bigger ring on desktop */
+    .ring-container {
+      width: 360px !important;
+      height: 360px !important;
+    }
+
+    .time-display { font-size: 7rem !important; }
+
+    .btn-play  { width: 88px !important; height: 88px !important; }
+    .btn-ctrl  { width: 70px !important; height: 70px !important; }
+
+    .settings-grid { max-width: 100% !important; }
+    .presets       { max-width: 100% !important; }
+    .history-row   { max-width: 100% !important; }
+    .total-time    { max-width: 100% !important; }
+    .phase-wrap    { max-width: 100% !important; }
   }
 
   /* ── FLASH OVERLAY ── */
@@ -462,92 +512,106 @@
 {% block content %}
 <div id="flash-overlay"></div>
 
-<div style="font-size:0.7rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase;">Interval Timer</div>
+<div class="timer-layout">
 
-<!-- Phase label -->
-<div class="phase-wrap">
-  <div class="phase-label idle" id="phase-label">PRÊT</div>
-</div>
+  <!-- ── COLONNE GAUCHE : ring + contrôles ── -->
+  <div class="timer-left">
 
-<!-- Ring -->
-<div class="ring-container" id="ring-container">
-  <svg viewBox="0 0 260 260">
-    <circle class="ring-bg"    cx="130" cy="130" r="120"/>
-    <circle class="ring-track idle" cx="130" cy="130" r="120" id="ring-track"/>
-  </svg>
-  <div class="ring-center">
-    <div class="time-display idle" id="time-display">00:00</div>
-    <div class="round-display"    id="round-display">ROUND —</div>
-  </div>
-</div>
+    <div style="font-size:0.7rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:20px;">Interval Timer</div>
 
-<!-- Contrôles -->
-<div class="controls">
-  <button class="btn-ctrl btn-reset" id="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
-  <button class="btn-ctrl btn-play"  id="btn-play"  onclick="toggleTimer()">▶</button>
-  <button class="btn-ctrl btn-skip"  id="btn-skip"  onclick="skipPhase()"  title="Passer la phase">⏭</button>
-</div>
-
-<!-- Settings -->
-<div class="settings-grid">
-  <div class="setting-card rest-card" id="card-rest" onclick="jumpToPhase('rest')" title="Tap pour démarrer le Rest">
-    <div class="setting-label">💤 Rest <span id="rest-tap" style="font-size:0.55rem;color:var(--green);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
-    <div class="setting-value" id="rest-display">0:20</div>
-    <div class="setting-btns">
-      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', -5)">−5s</button>
-      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', +5)">+5s</button>
+    <!-- Phase label -->
+    <div class="phase-wrap">
+      <div class="phase-label idle" id="phase-label">PRÊT</div>
     </div>
-  </div>
 
-  <div class="setting-card work-card" id="card-work" onclick="jumpToPhase('work')" title="Tap pour démarrer le Work">
-    <div class="setting-label">⚡ Work <span id="work-tap" style="font-size:0.55rem;color:var(--orange);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
-    <div class="setting-value" id="work-display">0:40</div>
-    <div class="setting-btns">
-      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', -5)">−5s</button>
-      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', +5)">+5s</button>
+    <!-- Ring -->
+    <div class="ring-container" id="ring-container">
+      <svg viewBox="0 0 260 260">
+        <circle class="ring-bg"    cx="130" cy="130" r="120"/>
+        <circle class="ring-track idle" cx="130" cy="130" r="120" id="ring-track"/>
+      </svg>
+      <div class="ring-center">
+        <div class="time-display idle" id="time-display">00:00</div>
+        <div class="round-display"    id="round-display">ROUND —</div>
+      </div>
     </div>
-  </div>
 
-  <div class="setting-card rounds-card">
-    <div class="setting-label">🔁 Rounds</div>
-    <div class="setting-value" id="rounds-display">8</div>
-    <div class="setting-btns">
-      <button class="setting-btn" onclick="adjustRounds(-1)">−1</button>
-      <button class="setting-btn" onclick="adjustRounds(+1)">+1</button>
-      <button class="setting-btn" onclick="adjustRounds(-5)">−5</button>
-      <button class="setting-btn" onclick="adjustRounds(+5)">+5</button>
+    <!-- Contrôles -->
+    <div class="controls">
+      <button class="btn-ctrl btn-reset" id="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
+      <button class="btn-ctrl btn-play"  id="btn-play"  onclick="toggleTimer()">▶</button>
+      <button class="btn-ctrl btn-skip"  id="btn-skip"  onclick="skipPhase()"  title="Passer la phase">⏭</button>
     </div>
+
   </div>
-</div>
 
-<!-- Auto-start toggle -->
-<div class="presets" style="margin-bottom:10px;">
-  <div class="presets-label">Options</div>
-  <div class="presets-row">
-    <button class="preset-btn" id="autostart-btn" onclick="toggleAutoStart(this)">
-      ⚡ Auto-start OFF
-    </button>
+  <!-- ── COLONNE DROITE : settings + presets + historique ── -->
+  <div class="timer-right">
+
+    <!-- Settings -->
+    <div class="settings-grid">
+      <div class="setting-card rest-card" id="card-rest" onclick="jumpToPhase('rest')" title="Tap pour démarrer le Rest">
+        <div class="setting-label">💤 Rest <span id="rest-tap" style="font-size:0.55rem;color:var(--green);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
+        <div class="setting-value" id="rest-display">0:20</div>
+        <div class="setting-btns">
+          <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', -5)">−5s</button>
+          <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', +5)">+5s</button>
+        </div>
+      </div>
+
+      <div class="setting-card work-card" id="card-work" onclick="jumpToPhase('work')" title="Tap pour démarrer le Work">
+        <div class="setting-label">⚡ Work <span id="work-tap" style="font-size:0.55rem;color:var(--orange);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
+        <div class="setting-value" id="work-display">0:40</div>
+        <div class="setting-btns">
+          <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', -5)">−5s</button>
+          <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', +5)">+5s</button>
+        </div>
+      </div>
+
+      <div class="setting-card rounds-card">
+        <div class="setting-label">🔁 Rounds</div>
+        <div class="setting-value" id="rounds-display">8</div>
+        <div class="setting-btns">
+          <button class="setting-btn" onclick="adjustRounds(-1)">−1</button>
+          <button class="setting-btn" onclick="adjustRounds(+1)">+1</button>
+          <button class="setting-btn" onclick="adjustRounds(-5)">−5</button>
+          <button class="setting-btn" onclick="adjustRounds(+5)">+5</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto-start toggle -->
+    <div class="presets" style="margin-bottom:10px;">
+      <div class="presets-label">Options</div>
+      <div class="presets-row">
+        <button class="preset-btn" id="autostart-btn" onclick="toggleAutoStart(this)">
+          ⚡ Auto-start OFF
+        </button>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div class="presets">
+      <div class="presets-label">Presets rapides</div>
+      <div class="presets-row">
+        <button class="preset-btn" onclick="applyPreset(40,20,8,this)">Tabata</button>
+        <button class="preset-btn" onclick="applyPreset(30,15,10,this)">30/15×10</button>
+        <button class="preset-btn" onclick="applyPreset(60,30,6,this)">60/30×6</button>
+        <button class="preset-btn" onclick="applyPreset(45,15,8,this)">45/15×8</button>
+        <button class="preset-btn" onclick="applyPreset(20,10,8,this)">Tabata Court</button>
+        <button class="preset-btn" onclick="applyPreset(90,30,5,this)">Shift Hockey</button>
+      </div>
+    </div>
+
+    <!-- History dots -->
+    <div class="history-row" id="history-row"></div>
+
+    <!-- Total time -->
+    <div class="total-time" id="total-time"></div>
+
   </div>
+
 </div>
-
-<!-- Presets -->
-<div class="presets">
-  <div class="presets-label">Presets rapides</div>
-  <div class="presets-row">
-    <button class="preset-btn" onclick="applyPreset(40,20,8,this)">Tabata</button>
-    <button class="preset-btn" onclick="applyPreset(30,15,10,this)">30/15×10</button>
-    <button class="preset-btn" onclick="applyPreset(60,30,6,this)">60/30×6</button>
-    <button class="preset-btn" onclick="applyPreset(45,15,8,this)">45/15×8</button>
-    <button class="preset-btn" onclick="applyPreset(20,10,8,this)">Tabata Court</button>
-    <button class="preset-btn" onclick="applyPreset(90,30,5,this)">Shift Hockey</button>
-  </div>
-</div>
-
-<!-- History dots -->
-<div class="history-row" id="history-row"></div>
-
-<!-- Total time -->
-<div class="total-time" id="total-time"></div>
 
 <script>
 // ── STATE ─────────────────────────────────────────────
