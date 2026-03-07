@@ -28,6 +28,9 @@
   #flash-overlay.flash-rest { background: rgba(34,197,94,0.18); }
   #flash-overlay.active     { opacity: 1; }
 
+  /* Masquer le top-header global sur cette page */
+  .top-header { display: none !important; }
+
   /* ── HEADER ── */
   .header {
     width: 100%;
@@ -462,7 +465,10 @@
 {% block content %}
 <div id="flash-overlay"></div>
 
-<div style="font-size:0.7rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase;">Interval Timer</div>
+<div class="header">
+  <div class="logo">⏱ <span>Interval Timer</span></div>
+  <a href="javascript:history.back()" style="color:var(--muted);font-size:1.4rem;text-decoration:none;" title="Retour">←</a>
+</div>
 
 <!-- Phase label -->
 <div class="phase-wrap">
