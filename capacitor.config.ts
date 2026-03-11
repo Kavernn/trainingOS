@@ -6,11 +6,10 @@ const config: CapacitorConfig = {
   webDir: 'www',
 
   // The app loads content from the deployed Flask/Vercel backend.
-  // Replace the URL below with your actual production domain if it differs.
   server: {
-    url: 'https://trainingos.app',
+    url: 'https://training-os-rho.vercel.app',
     cleartext: false,
-    allowNavigation: ['trainingos.app'],
+    allowNavigation: ['training-os-rho.vercel.app'],
   },
 
   plugins: {
