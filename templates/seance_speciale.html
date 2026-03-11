@@ -484,6 +484,15 @@
 <div class="log-section">
   <div class="log-title">📋 Logger la séance</div>
 
+  {% if already_logged %}
+  <div style="border: 1px solid rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 1.4rem;">✅</span>
+    <div>
+      <div style="font-weight: 700; color: var(--orange);">Séance déjà loggée aujourd'hui</div>
+      {% if previous_session %}<div class="text-muted" style="font-size: 0.82rem;">Loggée à {{ previous_session.logged_at }} — RPE {{ previous_session.rpe or '—' }}</div>{% endif %}
+    </div>
+  </div>
+  {% else %}
   <button class="completion-btn" id="yoga-done-btn" onclick="toggleDone('yoga')">
     ✓
   </button>
@@ -501,6 +510,7 @@
   <button class="btn btn-primary btn-block" onclick="logSpeciale('yoga')">
     Sauvegarder ✅
   </button>
+  {% endif %}
 </div>
 
 {% endif %}
@@ -559,6 +569,15 @@
 <div class="log-section">
   <div class="log-title">📋 Logger la séance</div>
 
+  {% if already_logged %}
+  <div style="border: 1px solid rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 1.4rem;">✅</span>
+    <div>
+      <div style="font-weight: 700; color: var(--orange);">Séance déjà loggée aujourd'hui</div>
+      {% if previous_session %}<div class="text-muted" style="font-size: 0.82rem;">Loggée à {{ previous_session.logged_at }} — RPE {{ previous_session.rpe or '—' }}</div>{% endif %}
+    </div>
+  </div>
+  {% else %}
   <button class="completion-btn" id="recovery-done-btn" onclick="toggleDone('recovery')">
     ✓
   </button>
@@ -576,6 +595,7 @@
   <button class="btn btn-primary btn-block" onclick="logSpeciale('recovery')">
     Sauvegarder ✅
   </button>
+  {% endif %}
 </div>
 
 {% endif %}
@@ -900,6 +920,10 @@
       haptic('success');
       showToast(`${type === 'yoga' ? 'Yoga' : 'Recovery'} sauvegardé ! ✅`);
       setTimeout(() => window.location.href = '/', 1500);
+    } else if (data.error === 'already_logged') {
+      showToast('Séance déjà loggée aujourd\'hui !', 'error');
+    } else {
+      showToast('Erreur sauvegarde !', 'error');
     }
   }
 </script>

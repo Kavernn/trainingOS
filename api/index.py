@@ -1121,12 +1121,15 @@ def api_set_goal():
 @app.route("/api/body_weight", methods=["POST"])
 def api_body_weight():
     try:
-        data  = request.get_json()
-        poids = float(data.get("poids", 0))
-        note  = data.get("note", "")
+        data     = request.get_json()
+        poids    = float(data.get("poids", 0))
+        note     = data.get("note", "")
+        body_fat = data.get("body_fat")
+        if body_fat is not None:
+            body_fat = float(body_fat)
         if not poids:
             return jsonify({"error": "Poids invalide"}), 400
-        log_body_weight(poids, note)
+        log_body_weight(poids, note, body_fat)
         return jsonify({"success": True, "poids": poids})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
