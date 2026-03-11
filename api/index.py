@@ -18,7 +18,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from flask import Flask, render_template, jsonify, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 
-from planner      import get_today, get_week_schedule, get_suggested_weights_for_today, load_program, save_program
+from planner      import (get_today, get_week_schedule, get_suggested_weights_for_today,
+                           load_program, save_program,
+                           load_program_v2, save_program_v2,
+                           load_schedule, save_schedule,
+                           get_today_v2, get_today_blocks, get_week_schedule_v2)
 from hiit         import get_hiit_str
 from log_workout  import load_weights, save_weights, log_single_exercise
 from inventory    import load_inventory, save_inventory, calculate_plates
@@ -34,6 +38,10 @@ from nutrition    import (load_settings as load_nutrition_settings,
                           add_entry as nutrition_add_entry,
                           delete_entry as nutrition_delete_entry,
                           get_recent_days)
+from block_session import (load_sessions_v2, save_sessions_v2, log_session_v2,
+                            session_v2_exists, get_session_v2, delete_session_v2,
+                            edit_session_v2, get_last_sessions_v2, get_block_type_icon,
+                            STRENGTH, HIIT, CARDIO)
 from db           import get_json, set_json
 from db           import _ON_VERCEL
 
@@ -185,68 +193,120 @@ def inventaire():
 @app.route("/programme")
 def programme():
     return render_template("programme.html",
-        program   = load_program(),
-        inventory = load_inventory(),
-        today     = get_today(),
-        schedule  = get_week_schedule()
+        program    = load_program(),
+        program_v2 = load_program_v2(),
+        inventory  = load_inventory(),
+        today      = get_today_v2(),
+        schedule   = get_week_schedule(),
+        schedule_v2= load_schedule(),
     )
 
 
 @app.route("/seance")
 def seance():
-    weights  = load_weights()
-    today    = get_today()
-    sessions = load_sessions()
+    weights    = load_weights()
+    today      = get_today_v2()   # uses schedule_v2
     today_date = datetime.now().strftime("%Y-%m-%d")
+    sessions   = load_sessions()
+    inv        = load_inventory()
+    week       = get_current_week()
 
-    if today in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery']:
-        return redirect(url_for('seance_speciale', session_type=today))
+    # Check already-logged state across both v1 and v2
+    hiit_log         = load_hiit_log_local()
+    already_logged_v2 = session_v2_exists(today_date)
+    already_logged_v1 = (today_date in sessions) or any(
+        e.get("date") == today_date and e.get("session_type") == today
+        for e in hiit_log
+    )
+    already_logged   = already_logged_v2 or already_logged_v1
+    previous_session = get_session_v2(today_date) or sessions.get(today_date)
 
-    already_logged   = today_date in sessions
-    previous_session = sessions.get(today_date)
+    # Build enriched block list for the template
+    blocks    = get_today_blocks()
+    ui_blocks = []
+    for block in blocks:
+        btype = block.get("type", "")
+        if btype == STRENGTH:
+            exercises = []
+            for ex, scheme in block.get("exercises", {}).items():
+                data    = weights.get(ex, {})
+                ex_info = inv.get(ex, {})
+                current = data.get("current_weight", 0) or 0
+                ex_type = ex_info.get("type", "machine")
+                bar_w   = ex_info.get("bar_weight", 45.0)
+                if ex_type == "barbell" and current:
+                    display = f"{(current - bar_w) / 2:.1f} lbs par côté"
+                elif ex_type == "dumbbell" and current:
+                    display = f"{current / 2:.1f} lbs par haltère"
+                else:
+                    display = f"{current:.1f} lbs" if current else "À définir"
+                plates_needed = calculate_plates(current, bar_w) if ex_type == "barbell" and current > bar_w else []
+                exercises.append({
+                    "name":    ex,
+                    "scheme":  scheme,
+                    "current": current,
+                    "display": display,
+                    "type":    ex_type,
+                    "plates":  plates_needed,
+                    "history": data.get("history", [])[:3],
+                    "1rm":     data.get("history", [{}])[0].get("1rm", 0) if data.get("history") else 0
+                })
+            ui_blocks.append({"type": STRENGTH, "exercises": exercises})
 
-    program   = load_program()
-    inv       = load_inventory()
-    exercises = []
-
-    if today in program:
-        for ex, scheme in program[today].items():
-            data    = weights.get(ex, {})
-            ex_info = inv.get(ex, {})
-            current = data.get("current_weight", 0) or 0
-            ex_type = ex_info.get("type", "machine")
-            bar_w   = ex_info.get("bar_weight", 45.0)
-
-            if ex_type == "barbell" and current:
-                display = f"{(current - bar_w) / 2:.1f} lbs par côté"
-            elif ex_type == "dumbbell" and current:
-                display = f"{current / 2:.1f} lbs par haltère"
-            else:
-                display = f"{current:.1f} lbs" if current else "À définir"
-
-            plates_needed = []
-            if ex_type == "barbell" and current > bar_w:
-                plates_needed = calculate_plates(current, bar_w)
-
-            exercises.append({
-                "name":    ex,
-                "scheme":  scheme,
-                "current": current,
-                "display": display,
-                "type":    ex_type,
-                "plates":  plates_needed,
-                "history": data.get("history", [])[:3],
-                "1rm":     data.get("history", [{}])[0].get("1rm", 0) if data.get("history") else 0
+        elif btype == HIIT:
+            ui_blocks.append({
+                "type":         HIIT,
+                "rounds":       block.get("rounds", 8),
+                "sprint":       block.get("sprint", 30),
+                "rest":         block.get("rest", 90),
+                "speed_target": block.get("speed_target", "12-14 km/h"),
+                "hiit_str":     get_hiit_str(week),
             })
+
+        elif btype == CARDIO:
+            ui_blocks.append({
+                "type":         CARDIO,
+                "duration_min": block.get("duration_min", 30),
+                "distance_km":  block.get("distance_km", 0.0),
+                "cardio_type":  block.get("cardio_type", "steady-state"),
+            })
+
+    # Fallback: legacy strength-only session (no blocks defined)
+    if not ui_blocks:
+        program = load_program()
+        if today in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery']:
+            return redirect(url_for('seance_speciale', session_type=today))
+        if today in program:
+            exercises = []
+            for ex, scheme in program[today].items():
+                data    = weights.get(ex, {})
+                ex_info = inv.get(ex, {})
+                current = data.get("current_weight", 0) or 0
+                ex_type = ex_info.get("type", "machine")
+                bar_w   = ex_info.get("bar_weight", 45.0)
+                if ex_type == "barbell" and current:
+                    display = f"{(current - bar_w) / 2:.1f} lbs par côté"
+                elif ex_type == "dumbbell" and current:
+                    display = f"{current / 2:.1f} lbs par haltère"
+                else:
+                    display = f"{current:.1f} lbs" if current else "À définir"
+                plates_needed = calculate_plates(current, bar_w) if ex_type == "barbell" and current > bar_w else []
+                exercises.append({
+                    "name":    ex, "scheme":  scheme, "current": current,
+                    "display": display, "type": ex_type, "plates": plates_needed,
+                    "history": data.get("history", [])[:3],
+                    "1rm":     data.get("history", [{}])[0].get("1rm", 0) if data.get("history") else 0
+                })
+            ui_blocks = [{"type": STRENGTH, "exercises": exercises}]
 
     return render_template("seance.html",
         today            = today,
-        exercises        = exercises,
-        is_hiit          = "HIIT" in today,
-        hiit_str         = get_hiit_str(get_current_week()) if "HIIT" in today else "",
-        week             = get_current_week(),
+        ui_blocks        = ui_blocks,
+        week             = week,
         already_logged   = already_logged,
-        previous_session = previous_session
+        previous_session = previous_session,
+        program_v2       = load_program_v2(),
+        inventory        = inv,
     )
 
 
@@ -293,11 +353,12 @@ def seance_speciale(session_type):
 
 @app.route("/historique")
 def historique():
-    weights  = load_weights()
-    sessions = load_sessions()
-    hiit_log = load_hiit_log_local()
+    weights     = load_weights()
+    sessions    = load_sessions()
+    hiit_log    = load_hiit_log_local()
+    sessions_v2 = load_sessions_v2()
 
-    # Build index: date -> list of {exercise, weight, reps}
+    # Build index: date -> list of {exercise, weight, reps} from weights history
     ex_by_date = {}
     for ex, data in weights.items():
         for entry in data.get("history", []):
@@ -310,25 +371,40 @@ def historique():
                 "reps":     entry.get("reps", ""),
             })
 
-    # Merge muscu sessions and HIIT into unified list sorted by date desc
-    all_dates = set(sessions.keys()) | set(ex_by_date.keys())
+    # Collect all dates from v1 sessions and v2 sessions
+    all_dates = set(sessions.keys()) | set(ex_by_date.keys()) | set(sessions_v2.keys())
     session_list = []
     for d in sorted(all_dates, reverse=True):
-        s = sessions.get(d, {})
-        session_list.append({
-            "date":    d,
-            "type":    "muscu",
-            "rpe":     s.get("rpe"),
-            "comment": s.get("comment", ""),
-            "exos":    ex_by_date.get(d, []),
-        })
+        if d in sessions_v2:
+            # New modular session — include block summary
+            sv2 = sessions_v2[d]
+            blocks = sv2.get("blocks", [])
+            session_list.append({
+                "date":     d,
+                "type":     "v2",
+                "template": sv2.get("template", ""),
+                "blocks":   blocks,
+                "rpe":      next((b.get("rpe") for b in blocks if b.get("rpe")), None),
+                "comment":  next((b.get("comment", "") for b in blocks if b.get("comment")), ""),
+                "exos":     ex_by_date.get(d, []),
+            })
+        elif d in sessions or d in ex_by_date:
+            s = sessions.get(d, {})
+            session_list.append({
+                "date":    d,
+                "type":    "muscu",
+                "rpe":     s.get("rpe"),
+                "comment": s.get("comment", ""),
+                "exos":    ex_by_date.get(d, []),
+            })
 
     hiit_list = sorted(hiit_log, key=lambda x: x.get("date",""), reverse=True)
 
     return render_template("historique.html",
-        session_list = session_list[:60],
-        hiit_list    = hiit_list[:30],
-        weights      = weights,
+        session_list      = session_list[:60],
+        hiit_list         = hiit_list[:30],
+        weights           = weights,
+        get_block_type_icon = get_block_type_icon,
     )
 
 
@@ -409,13 +485,16 @@ def intelligence():
 @app.route("/planificateur")
 def planificateur():
     return render_template("planificateur.html",
-        weights      = load_weights(),
-        sessions     = load_sessions(),
-        hiit_log     = load_hiit_log_local(),
-        full_program = load_program(),
-        schedule     = get_week_schedule(),
-        now          = datetime.now().strftime("%Y-%m-%d"),
-        week         = datetime.now().isocalendar()[1]
+        weights          = load_weights(),
+        sessions         = load_sessions(),
+        hiit_log         = load_hiit_log_local(),
+        full_program     = load_program(),
+        schedule         = get_week_schedule(),
+        schedule_v2      = load_schedule(),
+        program_v2       = load_program_v2(),
+        week_schedule_v2 = get_week_schedule_v2(),
+        now              = datetime.now().strftime("%Y-%m-%d"),
+        week             = datetime.now().isocalendar()[1]
     )
 
 
@@ -687,6 +766,179 @@ def api_hiit_edit():
 
         save_hiit_log_local(hiit_log)
         return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/log_session_v2", methods=["POST"])
+def api_log_session_v2():
+    """
+    Log a multi-block session.
+    Payload: {date, template, blocks: [{type, ...modality-specific fields}]}
+    Strength block exo data is ALSO logged to weights history via existing log_single_exercise.
+    """
+    try:
+        data     = request.get_json()
+        today    = data.get("date") or datetime.now().strftime("%Y-%m-%d")
+        template = data.get("template", "")
+        blocks   = data.get("blocks", [])
+
+        if session_v2_exists(today):
+            return jsonify({"error": "already_logged"}), 409
+
+        # For strength blocks: log individual exercises to weights history
+        weights = load_weights()
+        for block in blocks:
+            if block.get("type") == STRENGTH:
+                for ex_data in block.get("exercise_logs", []):
+                    ex      = ex_data.get("exercise")
+                    weight  = float(ex_data.get("weight", 0))
+                    reps_str = ex_data.get("reps", "")
+                    if not ex or not reps_str:
+                        continue
+                    reps_list = parse_reps(reps_str)
+                    reps      = ",".join(map(str, reps_list))
+                    increase  = should_increase(reps, ex)
+                    new_w     = next_weight(ex, weight) if increase else weight
+                    onerm     = estimate_1rm(weight, reps)
+                    history_entry = {
+                        "date":   today,
+                        "weight": round(weight, 1),
+                        "reps":   reps,
+                        "note":   f"+{new_w - weight:.1f}" if increase else "stagné",
+                        "1rm":    onerm
+                    }
+                    if ex not in weights:
+                        weights[ex] = {"history": []}
+                    weights[ex].setdefault("history", []).insert(0, history_entry)
+                    weights[ex]["history"]        = weights[ex]["history"][:20]
+                    weights[ex]["current_weight"] = round(new_w, 1)
+                    weights[ex]["last_reps"]      = reps
+                    weights[ex]["last_logged"]    = datetime.now().strftime("%Y-%m-%d %H:%M")
+        save_weights(weights)
+        check_goals_achieved(weights)
+
+        log_session_v2(today, template, blocks)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session_v2/edit", methods=["POST"])
+def api_session_v2_edit():
+    try:
+        data        = request.get_json()
+        date        = data.get("date")
+        block_index = data.get("block_index")  # None = top-level
+        changes     = data.get("changes", {})
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+        ok = edit_session_v2(date, block_index, changes)
+        return jsonify({"success": ok})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session_v2/delete", methods=["POST"])
+def api_session_v2_delete():
+    try:
+        date = request.get_json().get("date")
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+        ok = delete_session_v2(date)
+        return jsonify({"success": ok})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/schedule", methods=["POST"])
+def api_schedule():
+    """Update a single day's session assignment. Payload: {day: "0"-"6", session_name: str}"""
+    try:
+        data         = request.get_json()
+        day          = str(data.get("day", ""))
+        session_name = data.get("session_name", "")
+        if day not in [str(i) for i in range(7)]:
+            return jsonify({"error": "Jour invalide (0-6)"}), 400
+        schedule      = load_schedule()
+        schedule[day] = session_name
+        save_schedule(schedule)
+        return jsonify({"success": True, "schedule": schedule})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/programme_v2", methods=["POST"])
+def api_programme_v2():
+    """
+    CRUD for session templates (program_v2).
+    Actions: add_template, delete_template, add_block, remove_block, reorder_blocks, update_block
+    """
+    try:
+        data    = request.get_json()
+        action  = data.get("action", "")
+        program = load_program_v2()
+
+        if action == "add_template":
+            name = data.get("name", "").strip()
+            if not name:
+                return jsonify({"error": "Nom manquant"}), 400
+            if name in program:
+                return jsonify({"error": "Nom déjà utilisé"}), 409
+            program[name] = {"blocks": []}
+            save_program_v2(program)
+
+        elif action == "delete_template":
+            name = data.get("name", "")
+            program.pop(name, None)
+            save_program_v2(program)
+
+        elif action == "add_block":
+            name      = data.get("name", "")
+            block_def = data.get("block", {})
+            if name not in program:
+                return jsonify({"error": "Template introuvable"}), 404
+            program[name]["blocks"].append(block_def)
+            save_program_v2(program)
+
+        elif action == "remove_block":
+            name  = data.get("name", "")
+            index = data.get("index")
+            if name not in program:
+                return jsonify({"error": "Template introuvable"}), 404
+            blocks = program[name]["blocks"]
+            if index is None or not (0 <= index < len(blocks)):
+                return jsonify({"error": "Index invalide"}), 400
+            blocks.pop(index)
+            save_program_v2(program)
+
+        elif action == "reorder_blocks":
+            name  = data.get("name", "")
+            order = data.get("order", [])  # list of new indices
+            if name not in program:
+                return jsonify({"error": "Template introuvable"}), 404
+            blocks = program[name]["blocks"]
+            if sorted(order) != list(range(len(blocks))):
+                return jsonify({"error": "Ordre invalide"}), 400
+            program[name]["blocks"] = [blocks[i] for i in order]
+            save_program_v2(program)
+
+        elif action == "update_block":
+            name    = data.get("name", "")
+            index   = data.get("index")
+            changes = data.get("changes", {})
+            if name not in program:
+                return jsonify({"error": "Template introuvable"}), 404
+            blocks = program[name]["blocks"]
+            if index is None or not (0 <= index < len(blocks)):
+                return jsonify({"error": "Index invalide"}), 400
+            blocks[index].update(changes)
+            save_program_v2(program)
+
+        else:
+            return jsonify({"error": f"Action inconnue: {action}"}), 400
+
+        return jsonify({"success": True, "program_v2": program})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

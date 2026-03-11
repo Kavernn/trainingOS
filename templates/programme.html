@@ -165,17 +165,168 @@
 
 {% block content %}
 
+<!-- ═══════════════════════════════════════════════════════════
+     SESSION TEMPLATES (program_v2 — modular blocks)
+═══════════════════════════════════════════════════════════ -->
 <div class="flex-between mb-16">
-  <h2 class="text-orange">📅 Programme</h2>
-  <a href="/inventaire" class="btn btn-secondary" style="font-size: 0.85rem; padding: 8px 14px;">
-    🏋️ Inventaire
-  </a>
+  <h2 class="text-orange">📅 Modèles de séance</h2>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="btn btn-primary" style="font-size:0.82rem;padding:8px 14px;" onclick="openNewTemplateModal()">+ Nouveau modèle</button>
+    <a href="/inventaire" class="btn btn-secondary" style="font-size:0.85rem;padding:8px 14px;">🏋️ Inventaire</a>
+  </div>
+</div>
+
+<div id="templates-container">
+{% for tname, tdata in program_v2.items() %}
+<div class="day-card" id="tpl-{{ loop.index }}">
+  <div class="day-header" onclick="toggleDay('tpl-body-{{ loop.index }}')">
+    <div>
+      <div class="day-name">{{ tname }}</div>
+      <div class="text-muted" style="font-size:0.8rem;">
+        {% for b in tdata.blocks %}
+          {% if b.type == 'strength' %}🏋️ Force{% elif b.type == 'hiit' %}⚡ HIIT{% elif b.type == 'cardio' %}🏃 Cardio{% endif %}
+          {% if not loop.last %} · {% endif %}
+        {% endfor %}
+        {% if not tdata.blocks %}Modèle vide{% endif %}
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="btn btn-secondary" style="padding:6px 12px;font-size:0.8rem;"
+        onclick="event.stopPropagation(); openAddBlockToTemplate('{{ tname }}')">+ Bloc</button>
+      <button class="btn btn-secondary" style="padding:6px 10px;font-size:0.8rem;border-color:rgba(239,68,68,0.4);color:var(--rose);"
+        onclick="event.stopPropagation(); deleteTemplate('{{ tname }}')">🗑</button>
+      <span class="text-muted">▾</span>
+    </div>
+  </div>
+  <div class="day-body" id="tpl-body-{{ loop.index }}">
+    {% if not tdata.blocks %}
+    <p class="text-muted" style="font-size:0.9rem;padding:8px 0;">Aucun bloc — ajoutes-en un avec le bouton +</p>
+    {% else %}
+    {% for block in tdata.blocks %}
+    <div class="exo-row" style="align-items:flex-start;">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex:1;">
+        <span class="drag-handle" style="margin-top:2px;">⠿</span>
+        <div style="flex:1;">
+          <div class="exo-name">
+            {% if block.type == 'strength' %}🏋️ Force
+            {% elif block.type == 'hiit' %}⚡ HIIT
+            {% elif block.type == 'cardio' %}🏃 Cardio
+            {% endif %}
+          </div>
+          <div class="exo-scheme">
+            {% if block.type == 'strength' %}
+              {{ block.exercises | length }} exercice{% if block.exercises | length != 1 %}s{% endif %}:
+              {{ block.exercises.keys() | join(', ') if block.exercises else 'Aucun' }}
+            {% elif block.type == 'hiit' %}
+              {{ block.rounds }} rounds · {{ block.sprint }}s sprint / {{ block.rest }}s repos · {{ block.speed_target }}
+            {% elif block.type == 'cardio' %}
+              {{ block.duration_min }} min · {{ block.cardio_type }}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="exo-actions">
+        <button class="btn-icon delete" title="Supprimer ce bloc"
+          onclick="removeBlockFromTemplate('{{ tname }}', {{ loop.index0 }})">🗑️</button>
+        {% if not loop.first %}
+        <button class="btn-icon" title="Monter"
+          onclick="moveBlock('{{ tname }}', {{ loop.index0 }}, {{ loop.index0 - 1 }})">↑</button>
+        {% endif %}
+        {% if not loop.last %}
+        <button class="btn-icon" title="Descendre"
+          onclick="moveBlock('{{ tname }}', {{ loop.index0 }}, {{ loop.index0 + 1 }})">↓</button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+</div>
+
+<!-- ── MODAL: Nouveau modèle ── -->
+<div class="modal-overlay" id="modal-new-template">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-title">✨ Nouveau modèle de séance</div>
+    <div class="form-group">
+      <label>Nom du modèle</label>
+      <input type="text" id="new-template-name" placeholder="Ex: Full Body, Upper + HIIT...">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('modal-new-template')">Annuler</button>
+      <button class="btn btn-primary"   style="flex:1;" onclick="confirmNewTemplate()">Créer ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Ajouter un bloc à un modèle ── -->
+<div class="modal-overlay" id="modal-add-block-tpl">
+  <div class="modal-box" style="max-width:440px;">
+    <div class="modal-title">➕ Ajouter un bloc</div>
+    <input type="hidden" id="add-block-template-name">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;">
+      <button class="btn btn-secondary" onclick="selectBlockType('strength')" id="bt-strength" style="flex-direction:column;padding:16px 8px;display:flex;align-items:center;gap:4px;">
+        <span style="font-size:1.5rem;">🏋️</span><span style="font-size:0.8rem;font-weight:700;">Force</span>
+      </button>
+      <button class="btn btn-secondary" onclick="selectBlockType('hiit')" id="bt-hiit" style="flex-direction:column;padding:16px 8px;display:flex;align-items:center;gap:4px;">
+        <span style="font-size:1.5rem;">⚡</span><span style="font-size:0.8rem;font-weight:700;">HIIT</span>
+      </button>
+      <button class="btn btn-secondary" onclick="selectBlockType('cardio')" id="bt-cardio" style="flex-direction:column;padding:16px 8px;display:flex;align-items:center;gap:4px;">
+        <span style="font-size:1.5rem;">🏃</span><span style="font-size:0.8rem;font-weight:700;">Cardio</span>
+      </button>
+    </div>
+
+    <!-- Strength block form -->
+    <div id="block-form-strength" style="display:none;">
+      <div class="form-group">
+        <label>Exercices (sélectionne depuis l'inventaire)</label>
+        <input class="exo-picker-search" type="text" id="search-block-exo" placeholder="🔍 Rechercher..." oninput="filterPicker('picker-block-exo', this.value)">
+        <div class="exo-picker-list" id="picker-block-exo" style="max-height:180px;overflow-y:auto;"></div>
+        <div id="selected-exos" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+    </div>
+
+    <!-- HIIT block form -->
+    <div id="block-form-hiit" style="display:none;">
+      <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group"><label>Rounds</label><input type="number" id="hiit-rounds-tpl" value="8" min="1"></div>
+        <div class="form-group"><label>Sprint (s)</label><input type="number" id="hiit-sprint-tpl" value="30" min="10"></div>
+        <div class="form-group"><label>Repos (s)</label><input type="number" id="hiit-rest-tpl" value="90" min="10"></div>
+        <div class="form-group"><label>Vitesse cible</label><input type="text" id="hiit-speed-tpl" value="12-14 km/h"></div>
+      </div>
+    </div>
+
+    <!-- Cardio block form -->
+    <div id="block-form-cardio" style="display:none;">
+      <div class="grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="form-group"><label>Durée (min)</label><input type="number" id="cardio-duration-tpl" value="30" min="1"></div>
+        <div class="form-group"><label>Type</label>
+          <select id="cardio-type-tpl">
+            <option>steady-state</option><option>tempo</option><option>fasted</option><option>autre</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeModal('modal-add-block-tpl')">Annuler</button>
+      <button class="btn btn-primary"   style="flex:1;" onclick="confirmAddBlock()">Ajouter ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- Separator -->
+<div style="height:1px;background:var(--border);margin:28px 0;"></div>
+
+<div class="flex-between mb-16">
+  <h2 class="text-orange" style="font-size:1.1rem;">📋 Exercices par template (legacy)</h2>
 </div>
 
 {% for jour, exercices in program.items() %}
 <div class="day-card" id="{{ jour | replace(' ', '-') }}">
 
-  <div class="day-header" onclick="toggleDay({{ loop.index }})">
+  <div class="day-header" onclick="toggleDayLegacy({{ loop.index }})"  >
     <div>
       <div class="day-name">{{ jour }}</div>
       <div class="text-muted" style="font-size: 0.8rem;">
@@ -305,12 +456,164 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script>
   // ── DONNÉES GLOBALES ──────────────────────────────────
-  const inventory = {{ inventory | tojson }};
-  const program   = {{ program | tojson }};
-  let selectedExo = null;
+  const inventory  = {{ inventory | tojson }};
+  const program    = {{ program | tojson }};
+  const programV2  = {{ program_v2 | tojson }};
+  const scheduleV2 = {{ schedule_v2 | tojson }};
+  let selectedExo  = null;
+  let selectedBlockType = null;
+  const selectedStrengthExos = {}; // { name: scheme }
 
-  // ── TOGGLE JOUR ───────────────────────────────────────
-  function toggleDay(idx) {
+  // ── TOGGLE (by id string) ─────────────────────────────
+  function toggleDay(id) {
+    const body = document.getElementById(id);
+    if (body) body.classList.toggle('open');
+  }
+
+  // ══════════════════════════════════════════════════════
+  // TEMPLATE BUILDER (program_v2)
+  // ══════════════════════════════════════════════════════
+
+  function openNewTemplateModal() {
+    document.getElementById('new-template-name').value = '';
+    document.getElementById('modal-new-template').classList.add('open');
+  }
+
+  async function confirmNewTemplate() {
+    const name = document.getElementById('new-template-name').value.trim();
+    if (!name) { showToast('Entre un nom !', 'error'); return; }
+    const res  = await fetch('/api/programme_v2', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'add_template', name })
+    });
+    const data = await res.json();
+    if (data.success) { showToast('Modèle créé ! ✅'); closeModal('modal-new-template'); setTimeout(() => location.reload(), 700); }
+    else showToast(data.error || 'Erreur', 'error');
+  }
+
+  async function deleteTemplate(name) {
+    if (!confirm(`Supprimer le modèle "${name}" ?`)) return;
+    const res  = await fetch('/api/programme_v2', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'delete_template', name })
+    });
+    const data = await res.json();
+    if (data.success) { showToast('Modèle supprimé'); setTimeout(() => location.reload(), 700); }
+    else showToast(data.error || 'Erreur', 'error');
+  }
+
+  function openAddBlockToTemplate(name) {
+    document.getElementById('add-block-template-name').value = name;
+    selectedBlockType = null;
+    Object.keys(selectedStrengthExos).forEach(k => delete selectedStrengthExos[k]);
+    ['strength','hiit','cardio'].forEach(t => {
+      document.getElementById('block-form-' + t).style.display = 'none';
+      document.getElementById('bt-' + t).style.borderColor = '';
+    });
+    document.getElementById('search-block-exo').value = '';
+    document.getElementById('selected-exos').innerHTML = '';
+    document.getElementById('modal-add-block-tpl').classList.add('open');
+  }
+
+  function selectBlockType(type) {
+    selectedBlockType = type;
+    ['strength','hiit','cardio'].forEach(t => {
+      document.getElementById('block-form-' + t).style.display = t === type ? 'block' : 'none';
+      document.getElementById('bt-' + t).style.borderColor = t === type ? 'var(--orange)' : '';
+    });
+    if (type === 'strength') buildBlockExoPicker();
+  }
+
+  function buildBlockExoPicker() {
+    const container = document.getElementById('picker-block-exo');
+    container.innerHTML = '';
+    Object.entries(inventory).sort(([a],[b]) => a.localeCompare(b)).forEach(([name, info]) => {
+      const div = document.createElement('div');
+      div.className = 'exo-option';
+      div.dataset.name = name.toLowerCase();
+      div.innerHTML = `<div class="exo-option-name">${name}</div><div class="exo-option-meta">${info.type} · ${info.default_scheme||'—'}</div>`;
+      div.onclick = () => {
+        if (selectedStrengthExos[name]) {
+          delete selectedStrengthExos[name];
+          div.classList.remove('selected');
+        } else {
+          selectedStrengthExos[name] = info.default_scheme || '3x8-12';
+          div.classList.add('selected');
+        }
+        renderSelectedExos();
+      };
+      container.appendChild(div);
+    });
+  }
+
+  function renderSelectedExos() {
+    const el = document.getElementById('selected-exos');
+    el.innerHTML = Object.entries(selectedStrengthExos).map(([name, scheme]) =>
+      `<span style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.3);border-radius:6px;padding:3px 8px;font-size:0.8rem;">
+        ${name} <span style="color:var(--orange)">${scheme}</span>
+      </span>`
+    ).join('');
+  }
+
+  async function confirmAddBlock() {
+    const name = document.getElementById('add-block-template-name').value;
+    if (!selectedBlockType) { showToast('Sélectionne un type de bloc !', 'error'); return; }
+
+    let block = { type: selectedBlockType };
+    if (selectedBlockType === 'strength') {
+      if (Object.keys(selectedStrengthExos).length === 0) { showToast('Sélectionne au moins un exercice !', 'error'); return; }
+      block.exercises = { ...selectedStrengthExos };
+    } else if (selectedBlockType === 'hiit') {
+      block.rounds       = parseInt(document.getElementById('hiit-rounds-tpl').value) || 8;
+      block.sprint       = parseInt(document.getElementById('hiit-sprint-tpl').value) || 30;
+      block.rest         = parseInt(document.getElementById('hiit-rest-tpl').value) || 90;
+      block.speed_target = document.getElementById('hiit-speed-tpl').value || '12-14 km/h';
+    } else if (selectedBlockType === 'cardio') {
+      block.duration_min = parseInt(document.getElementById('cardio-duration-tpl').value) || 30;
+      block.cardio_type  = document.getElementById('cardio-type-tpl').value;
+      block.distance_km  = 0;
+    }
+
+    const res  = await fetch('/api/programme_v2', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'add_block', name, block })
+    });
+    const data = await res.json();
+    if (data.success) { showToast('Bloc ajouté ! ✅'); closeModal('modal-add-block-tpl'); setTimeout(() => location.reload(), 700); }
+    else showToast(data.error || 'Erreur', 'error');
+  }
+
+  async function removeBlockFromTemplate(name, index) {
+    if (!confirm('Supprimer ce bloc ?')) return;
+    const res  = await fetch('/api/programme_v2', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'remove_block', name, index })
+    });
+    const data = await res.json();
+    if (data.success) { showToast('Bloc supprimé'); setTimeout(() => location.reload(), 700); }
+    else showToast(data.error || 'Erreur', 'error');
+  }
+
+  async function moveBlock(name, fromIdx, toIdx) {
+    const blocks = programV2[name]?.blocks || [];
+    const order  = Array.from({length: blocks.length}, (_, i) => i);
+    // Swap
+    [order[fromIdx], order[toIdx]] = [order[toIdx], order[fromIdx]];
+    const res  = await fetch('/api/programme_v2', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: 'reorder_blocks', name, order })
+    });
+    const data = await res.json();
+    if (data.success) { setTimeout(() => location.reload(), 300); }
+    else showToast(data.error || 'Erreur', 'error');
+  }
+
+  // ══════════════════════════════════════════════════════
+  // LEGACY PROGRAM (v1)
+  // ══════════════════════════════════════════════════════
+
+  // ── TOGGLE JOUR (legacy, by index number) ─────────────────────────────────────────
+  function toggleDayLegacy(idx) {
     const body = document.getElementById(`day-${idx}`);
     body.classList.toggle('open');
   }

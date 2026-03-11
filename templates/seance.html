@@ -3,7 +3,7 @@
 
 {% block extra_css %}
 <style>
-
+  /* ── Exercise cards ── */
   .exercise-card {
     background: var(--glass);
     backdrop-filter: blur(16px);
@@ -15,425 +15,331 @@
     transition: border-color 0.2s, box-shadow 0.2s;
     box-shadow: 0 4px 20px rgba(0,0,0,0.25);
   }
-
-  .exercise-card.done {
-    border-color: rgba(34,197,94,0.3);
-    opacity: 0.65;
-  }
-
+  .exercise-card.done { border-color: rgba(34,197,94,0.3); opacity: 0.65; }
   .exercise-header {
     padding: 16px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    transition: background 0.15s;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; transition: background 0.15s;
   }
-
   .exercise-header:hover { background: rgba(255,255,255,0.03); }
-
-  .exercise-body {
-    padding: 0 20px 20px;
-    display: none;
-  }
-
+  .exercise-body { padding: 0 20px 20px; display: none; }
   .exercise-body.open { display: block; }
-
-  .exercise-name {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.25rem;
-    font-weight: 700;
-  }
-
-  .history-mini {
-    font-size: 0.78rem;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-
-  .input-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 16px;
-  }
-
-  .result-box {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 16px;
-    margin-top: 12px;
-    font-size: 0.9rem;
-    display: none;
-  }
-
+  .exercise-name { font-family: 'Barlow Condensed', sans-serif; font-size: 1.25rem; font-weight: 700; }
+  .history-mini { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .result-box { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-top: 12px; font-size: 0.9rem; display: none; }
   .result-box.show { display: block; }
-
-  .checkmark {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.05);
-    border: 2px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.25s ease;
-  }
-
-  .checkmark.done {
-    background: var(--green);
-    border-color: var(--green);
-    box-shadow: 0 0 12px rgba(34,197,94,0.4);
-  }
-
-  .timer-bar {
-    height: 4px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 999px;
-    margin-top: 12px;
-    overflow: hidden;
-    display: none;
-  }
-
-  .timer-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--orange), var(--orange3));
-    border-radius: 999px;
-    transition: width 1s linear;
-  }
-
-  .timer-label {
-    font-size: 0.85rem;
-    color: var(--orange);
-    margin-top: 6px;
-    display: none;
-    font-weight: 600;
-  }
-
-  .sets-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-top: 12px;
-  }
-
-  .set-btn {
-    aspect-ratio: 1;
-    border-radius: 10px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .set-btn:hover  { border-color: rgba(249,115,22,0.4); color: var(--orange); }
-  .set-btn.active { background: linear-gradient(135deg, var(--orange), var(--orange2)); border-color: var(--orange); color: white; box-shadow: 0 4px 12px rgba(249,115,22,0.35); }
-  .set-btn .set-num { font-size: 0.6rem; color: inherit; opacity: 0.7; }
-
+  .checkmark { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.25s ease; }
+  .checkmark.done { background: var(--green); border-color: var(--green); box-shadow: 0 0 12px rgba(34,197,94,0.4); }
+  .timer-bar { height: 4px; background: rgba(255,255,255,0.06); border-radius: 999px; margin-top: 12px; overflow: hidden; display: none; }
+  .timer-fill { height: 100%; background: linear-gradient(90deg, var(--orange), var(--orange3)); border-radius: 999px; transition: width 1s linear; }
+  .timer-label { font-size: 0.85rem; color: var(--orange); margin-top: 6px; display: none; font-weight: 600; }
   .summary-bar {
-    position: sticky;
-    bottom: 80px;
+    position: sticky; bottom: 80px;
     background: rgba(11, 11, 20, 0.92);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 24px;
-    z-index: 50;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;
+    margin-top: 24px; z-index: 50; box-shadow: 0 4px 24px rgba(0,0,0,0.4);
   }
-  /* --- AJOUT POUR LES DISQUES --- */
-  .plate-container {
-    display: flex;
-    gap: 4px;
-    margin-top: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .plate-circle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    font-weight: 800;
-    font-size: 0.65rem;
-    color: white;
-    border: 1px solid rgba(0,0,0,0.2);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  }
-  .p-45_0 { width: 32px; height: 32px; background: #004d99; }
-  .p-35_0 { width: 30px; height: 30px; background: #e6b800; color: #000; }
-  .p-25_0 { width: 28px; height: 28px; background: #008040; }
-  .p-10_0 { width: 24px; height: 24px; background: #f2f2f2; color: #000; }
-  .p-5_0  { width: 20px; height: 20px; background: #cc0000; }
-  .p-2_5  { width: 17px; height: 17px; background: #666; font-size: 0.5rem; }
-
+  /* ── Plates ── */
+  .plate-container { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+  .plate-circle { display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 800; font-size: 0.65rem; color: white; border: 1px solid rgba(0,0,0,0.2); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .p-45_0 { width:32px;height:32px;background:#004d99; }
+  .p-35_0 { width:30px;height:30px;background:#e6b800;color:#000; }
+  .p-25_0 { width:28px;height:28px;background:#008040; }
+  .p-10_0 { width:24px;height:24px;background:#f2f2f2;color:#000; }
+  .p-5_0  { width:20px;height:20px;background:#cc0000; }
+  .p-2_5  { width:17px;height:17px;background:#666;font-size:0.5rem; }
   .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+  /* ── Block sections ── */
+  .block-section {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .block-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 20px;
+    background: rgba(255,255,255,0.03);
+    cursor: pointer;
+    user-select: none;
+  }
+  .block-header:hover { background: rgba(255,255,255,0.05); }
+  .block-icon { font-size: 1.3rem; }
+  .block-title { font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; font-weight: 700; flex: 1; }
+  .block-body { padding: 16px 20px 20px; }
+  .block-body.collapsed { display: none; }
+  .block-chevron { transition: transform 0.2s; color: var(--muted); }
+  .block-chevron.open { transform: rotate(180deg); }
+
+  /* ── Add block modal ── */
+  .block-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+  .block-type-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 20px 10px; gap: 8px;
+    background: var(--glass); border: 1px solid var(--border); border-radius: var(--radius);
+    cursor: pointer; transition: all 0.15s; color: var(--text);
+  }
+  .block-type-btn:hover { border-color: var(--orange); background: rgba(249,115,22,0.08); }
+  .block-type-btn .icon { font-size: 2rem; }
+  .block-type-btn .label { font-size: 0.85rem; font-weight: 600; }
+
   @media (max-width: 520px) {
-    .sets-grid { grid-template-columns: repeat(2, 1fr); }
+    .input-row { grid-template-columns: 1fr 1fr; }
+    .block-type-grid { grid-template-columns: repeat(3, 1fr); }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 
-<!-- HIIT -->
-{% if is_hiit %}
-<div class="card mb-16">
-  <div class="card-title">🏃 HIIT — Semaine {{ week }}</div>
-  <h2 class="text-orange mt-8">{{ hiit_str }}</h2>
-  <div class="mt-16 grid-2">
-    <div class="form-group">
-      <label>Rounds complétés</label>
-      <input type="number" id="hiit-rounds" placeholder="Ex: 8" min="0" max="30">
-    </div>
-    <div class="form-group">
-      <label>Vitesse max (km/h)</label>
-      <input type="number" id="hiit-speed" placeholder="Ex: 14.5" step="0.5">
-    </div>
-    <div class="form-group">
-      <label>RPE (1-10)</label>
-      <input type="number" id="hiit-rpe" placeholder="Ex: 8" min="1" max="10">
-    </div>
-    <div class="form-group">
-      <label>Ressenti</label>
-      <select id="hiit-feeling">
-        <option>Facile 😎</option>
-        <option selected>Correct 💪</option>
-        <option>Difficile 😤</option>
-        <option>Épuisant 💀</option>
-      </select>
-    </div>
-  </div>
-  <div class="form-group">
-    <label>Commentaire</label>
-    <input type="text" id="hiit-comment" placeholder="Notes libres...">
-  </div>
-  <button class="btn btn-primary btn-block" onclick="logHiit()">
-    Sauvegarder HIIT ✅
-  </button>
-</div>
-
-{% else %}
-
-<!-- SÉANCE MUSCU -->
+<!-- Header -->
 <div class="flex-between mb-16">
   <div>
     <h2 class="text-orange">{{ today }}</h2>
-    <div class="text-muted" style="font-size: 0.85rem;">{{ exercises|length }} exercices</div>
+    <div class="text-muted" style="font-size: 0.85rem;">
+      {{ ui_blocks|length }} bloc{% if ui_blocks|length != 1 %}s{% endif %}
+    </div>
   </div>
   <span class="badge badge-blue">Semaine {{ week }}</span>
 </div>
 
+<!-- Already logged banner -->
 {% if already_logged %}
-<div class="card" id="already-logged-banner" style="border-color: rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); margin-bottom: 16px;">
-  <div style="display: flex; align-items: center; gap: 10px;">
-    <span style="font-size: 1.4rem;">✅</span>
+<div class="card" id="already-logged-banner"
+     style="border-color:rgba(249,115,22,0.4);background:rgba(249,115,22,0.06);margin-bottom:16px;">
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span style="font-size:1.4rem;">✅</span>
     <div>
-      <div style="font-weight: 700; color: var(--orange);">Séance déjà loggée aujourd'hui</div>
+      <div style="font-weight:700;color:var(--orange);">Séance déjà loggée aujourd'hui</div>
       {% if previous_session %}
-      <div class="text-muted" style="font-size: 0.82rem;">
-        Loggée à {{ previous_session.logged_at }} — RPE {{ previous_session.rpe or '—' }}
-        {% if previous_session.comment %} · {{ previous_session.comment }}{% endif %}
+      <div class="text-muted" style="font-size:0.82rem;">
+        {% if previous_session.logged_at %}Loggée à {{ previous_session.logged_at }}{% endif %}
+        {% if previous_session.get('blocks') %}
+          — {{ previous_session.blocks|length }} bloc(s)
+        {% elif previous_session.rpe %}
+          — RPE {{ previous_session.rpe }}
+        {% endif %}
       </div>
       {% endif %}
     </div>
   </div>
-  <button class="btn btn-secondary" style="margin-top: 12px; width: 100%;" onclick="startSecondSession()">
-    + Logger une 2ème séance
-  </button>
 </div>
 {% endif %}
 
-{% if not exercises %}
+<!-- No blocks: empty state -->
+{% if not ui_blocks %}
 <div class="card">
-  <p class="text-muted">Aucun exercice programmé pour aujourd'hui.</p>
-  <a href="/" class="btn btn-secondary mt-16">Retour accueil</a>
+  <p class="text-muted">Aucun bloc programmé pour aujourd'hui.</p>
+  <a href="/programme" class="btn btn-secondary mt-16">Configurer le programme</a>
 </div>
 {% else %}
 
-<!-- EXERCICES -->
-{% for ex in exercises %}
-<div class="exercise-card" id="card-{{ loop.index }}">
+<!-- BLOCK SECTIONS -->
+<div id="blocks-container">
 
-  <div class="exercise-header" onclick="toggleExercise({{ loop.index }})">
-    <div>
-      <div class="exercise-name">{{ ex.name }}</div>
-      <div class="history-mini">
-        {{ ex.scheme }}
+{% for block in ui_blocks %}
+{% set bid = "block-" ~ loop.index %}
+
+<!-- ── STRENGTH BLOCK ── -->
+{% if block.type == 'strength' %}
+<div class="block-section" data-block-index="{{ loop.index0 }}" data-block-type="strength">
+  <div class="block-header" onclick="toggleBlock('{{ bid }}')">
+    <span class="block-icon">🏋️</span>
+    <span class="block-title">Force — {{ block.exercises|length }} exercice{% if block.exercises|length != 1 %}s{% endif %}</span>
+    <svg class="block-chevron open" id="chev-{{ bid }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="block-body" id="body-{{ bid }}">
+    {% for ex in block.exercises %}
+    {% set eid = bid ~ "-ex-" ~ loop.index %}
+    <div class="exercise-card" id="card-{{ eid }}">
+      <div class="exercise-header" onclick="toggleExercise('{{ eid }}')">
+        <div>
+          <div class="exercise-name">{{ ex.name }}</div>
+          <div class="history-mini">
+            {{ ex.scheme }}
+            {% if ex.history %}— Dernière : {{ ex.history[0].weight }} lbs × {{ ex.history[0].reps }}{% endif %}
+          </div>
+          {% if ex.type == 'barbell' and ex.plates %}
+          <div class="plate-container">
+            {% for p in ex.plates %}
+            <div class="plate-circle p-{{ p|string|replace('.','_') }}">{{ p|string|replace('.0','') }}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        <div class="flex gap-8" style="align-items:center;">
+          {% if ex.type == 'barbell' %}<span class="badge badge-orange">Barre</span>
+          {% elif ex.type == 'dumbbell' %}<span class="badge badge-blue">DB</span>
+          {% else %}<span class="badge badge-blue">{{ ex.type }}</span>{% endif %}
+          <div class="checkmark" id="check-{{ eid }}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+        </div>
+      </div>
+      <div class="exercise-body" id="exbody-{{ eid }}">
+        <div class="alert alert-info" style="margin-bottom:12px;font-size:0.85rem;">
+          💡 Recommandé : <strong>{{ ex.display }}</strong>
+          {% if ex['1rm'] %}— 1RM estimé : {{ ex['1rm'] }} lbs{% endif %}
+        </div>
+        <div class="input-row">
+          <div class="form-group">
+            <label>{% if ex.type=='barbell' %}Poids par côté (lbs){% elif ex.type=='dumbbell' %}Poids par haltère (lbs){% else %}Poids total (lbs){% endif %}</label>
+            <input type="number" id="weight-{{ eid }}" placeholder="{{ ex.current }}" step="2.5"
+              onchange="updateTotal('{{ eid }}','{{ ex.type }}',{{ ex.history[0].weight if ex.history else 0 }})">
+          </div>
+          <div class="form-group">
+            <label>Reps par série (ex: 7,6,5)</label>
+            <input type="text" id="reps-{{ eid }}" placeholder="7,6,5,5">
+          </div>
+        </div>
+        {% if ex.type in ['barbell','dumbbell'] %}
+        <div id="total-{{ eid }}" class="text-muted" style="font-size:0.85rem;margin-top:-8px;margin-bottom:12px;"></div>
+        {% endif %}
+        <div class="result-box" id="result-{{ eid }}"></div>
+        <div class="timer-bar" id="timer-bar-{{ eid }}"><div class="timer-fill" id="timer-fill-{{ eid }}"></div></div>
+        <div class="timer-label" id="timer-label-{{ eid }}"></div>
+        <div style="display:flex;gap:8px;margin-top:16px;">
+          <button class="btn btn-primary" style="flex:1;"
+            onclick="logExercise('{{ eid }}','{{ ex.name }}','{{ ex.type }}',{{ ex.history[0].weight if ex.history else 0 }})">
+            ✅ Logger
+          </button>
+          <button class="btn btn-secondary" onclick="startTimer('{{ eid }}',120)">⏱ 2:00</button>
+          <button class="btn btn-secondary" onclick="startTimer('{{ eid }}',180)">⏱ 3:00</button>
+        </div>
         {% if ex.history %}
-        — Dernière : {{ ex.history[0].weight }} lbs × {{ ex.history[0].reps }}
+        <div class="mt-16">
+          <div class="card-title">Historique récent</div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Date</th><th>Poids</th><th>Reps</th><th>Note</th></tr></thead>
+              <tbody>
+                {% for h in ex.history %}
+                <tr>
+                  <td class="text-muted">{{ h.date }}</td>
+                  <td>{{ h.weight }} lbs</td>
+                  <td>{{ h.reps }}</td>
+                  <td class="{% if '+' in h.note|string %}text-green{% else %}text-muted{% endif %}">{{ h.note }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
         {% endif %}
       </div>
-      {% if ex.type == 'barbell' and ex.plates %}
-      <div class="plate-container">
-          {% for p in ex.plates %}
-              {# On transforme le float 45.0 en string "45_0" pour correspondre au CSS #}
-              <div class="plate-circle p-{{ p|string|replace('.', '_') }}">
-                  {{ p|string|replace('.0', '') }}
-              </div>
-          {% endfor %}
-      </div>
-{% endif %}
     </div>
-    <div class="flex gap-8" style="align-items: center;">
-      {% if ex.type == 'barbell' %}
-        <span class="badge badge-orange">Barre</span>
-      {% elif ex.type == 'dumbbell' %}
-        <span class="badge badge-blue">DB</span>
-      {% else %}
-        <span class="badge badge-blue">{{ ex.type }}</span>
-      {% endif %}
-      <div class="checkmark" id="check-{{ loop.index }}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </div>
-    </div>
-  </div>
-
-  <div class="exercise-body" id="body-{{ loop.index }}">
-
-    <!-- Poids recommandé -->
-    <div class="alert alert-info" style="margin-bottom: 12px; font-size: 0.85rem;">
-      💡 Recommandé : <strong>{{ ex.display }}</strong>
-      {% if ex['1rm'] %}— 1RM estimé : {{ ex['1rm'] }} lbs{% endif %}
-    </div>
-
-    <!-- Inputs poids + reps -->
-    <div class="input-row">
-      <div class="form-group">
-        <label>
-          {% if ex.type == 'barbell' %}Poids par côté (lbs)
-          {% elif ex.type == 'dumbbell' %}Poids par haltère (lbs)
-          {% else %}Poids total (lbs){% endif %}
-        </label>
-        <input
-          type="number"
-          id="weight-{{ loop.index }}"
-          placeholder="{{ ex.current }}"
-          step="2.5"
-          onchange="updateTotal({{ loop.index }}, '{{ ex.type }}', {{ ex.history[0].weight if ex.history else 0 }})"
-        >
-      </div>
-      <div class="form-group">
-        <label>Reps par série (ex: 7,6,5)</label>
-        <input
-          type="text"
-          id="reps-{{ loop.index }}"
-          placeholder="7,6,5,5"
-        >
-      </div>
-    </div>
-
-    <!-- Total calculé si barbell/dumbbell -->
-    {% if ex.type in ['barbell', 'dumbbell'] %}
-    <div id="total-{{ loop.index }}" class="text-muted" style="font-size: 0.85rem; margin-top: -8px; margin-bottom: 12px;"></div>
-    {% endif %}
-
-    <!-- Résultat progression -->
-    <div class="result-box" id="result-{{ loop.index }}"></div>
-
-    <!-- Timer -->
-    <div class="timer-bar" id="timer-bar-{{ loop.index }}">
-      <div class="timer-fill" id="timer-fill-{{ loop.index }}"></div>
-    </div>
-    <div class="timer-label" id="timer-label-{{ loop.index }}"></div>
-
-    <!-- Boutons -->
-    <div style="display: flex; gap: 8px; margin-top: 16px;">
-      <button
-        class="btn btn-primary"
-        style="flex: 1;"
-        onclick="logExercise({{ loop.index }}, '{{ ex.name }}', '{{ ex.type }}', {{ ex.history[0].weight if ex.history else 0 }})"
-      >
-        ✅ Logger
-      </button>
-      <button
-        class="btn btn-secondary"
-        onclick="startTimer({{ loop.index }}, 120)"
-      >
-        ⏱ 2:00
-      </button>
-      <button
-        class="btn btn-secondary"
-        onclick="startTimer({{ loop.index }}, 180)"
-      >
-        ⏱ 3:00
-      </button>
-    </div>
-
-    <!-- Historique mini -->
-    {% if ex.history %}
-    <div class="mt-16">
-      <div class="card-title">Historique récent</div>
-      <div class="table-scroll">
-      <table>
-        <thead><tr><th>Date</th><th>Poids</th><th>Reps</th><th>Note</th></tr></thead>
-        <tbody>
-          {% for h in ex.history %}
-          <tr>
-            <td class="text-muted">{{ h.date }}</td>
-            <td>{{ h.weight }} lbs</td>
-            <td>{{ h.reps }}</td>
-            <td class="{% if '+' in h.note|string %}text-green{% else %}text-muted{% endif %}">
-              {{ h.note }}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      </div>
-    </div>
-    {% endif %}
-
+    {% endfor %}
   </div>
 </div>
+
+<!-- ── HIIT BLOCK ── -->
+{% elif block.type == 'hiit' %}
+<div class="block-section" data-block-index="{{ loop.index0 }}" data-block-type="hiit">
+  <div class="block-header" onclick="toggleBlock('{{ bid }}')">
+    <span class="block-icon">⚡</span>
+    <span class="block-title">HIIT — {{ block.rounds }} rounds</span>
+    <svg class="block-chevron open" id="chev-{{ bid }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="block-body" id="body-{{ bid }}">
+    <div class="alert alert-info" style="margin-bottom:16px;font-size:0.85rem;">
+      🏃 {{ block.sprint }}s sprint / {{ block.rest }}s repos × {{ block.rounds }} rounds
+      &nbsp;|&nbsp; Vitesse cible : {{ block.speed_target }}
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Rounds complétés</label>
+        <input type="number" id="{{ bid }}-rounds" placeholder="{{ block.rounds }}" min="0" max="30">
+      </div>
+      <div class="form-group">
+        <label>Vitesse max (km/h)</label>
+        <input type="number" id="{{ bid }}-speed" placeholder="13.0" step="0.5">
+      </div>
+      <div class="form-group">
+        <label>RPE (1-10)</label>
+        <input type="number" id="{{ bid }}-rpe" placeholder="8" min="1" max="10">
+      </div>
+      <div class="form-group">
+        <label>Ressenti</label>
+        <select id="{{ bid }}-feeling">
+          <option>Facile 😎</option>
+          <option selected>Correct 💪</option>
+          <option>Difficile 😤</option>
+          <option>Épuisant 💀</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Commentaire</label>
+      <input type="text" id="{{ bid }}-comment" placeholder="Notes libres...">
+    </div>
+  </div>
+</div>
+
+<!-- ── CARDIO BLOCK ── -->
+{% elif block.type == 'cardio' %}
+<div class="block-section" data-block-index="{{ loop.index0 }}" data-block-type="cardio">
+  <div class="block-header" onclick="toggleBlock('{{ bid }}')">
+    <span class="block-icon">🏃</span>
+    <span class="block-title">Cardio — {{ block.cardio_type }}</span>
+    <svg class="block-chevron open" id="chev-{{ bid }}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+  <div class="block-body" id="body-{{ bid }}">
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Durée (min)</label>
+        <input type="number" id="{{ bid }}-duration" placeholder="{{ block.duration_min }}" min="1">
+      </div>
+      <div class="form-group">
+        <label>Distance (km)</label>
+        <input type="number" id="{{ bid }}-distance" placeholder="{{ block.distance_km }}" step="0.1" min="0">
+      </div>
+      <div class="form-group">
+        <label>RPE (1-10)</label>
+        <input type="number" id="{{ bid }}-rpe" placeholder="6" min="1" max="10">
+      </div>
+      <div class="form-group">
+        <label>Type</label>
+        <select id="{{ bid }}-type">
+          <option {% if block.cardio_type=='steady-state' %}selected{% endif %}>steady-state</option>
+          <option {% if block.cardio_type=='tempo' %}selected{% endif %}>tempo</option>
+          <option {% if block.cardio_type=='fasted' %}selected{% endif %}>fasted</option>
+          <option {% if block.cardio_type=='autre' %}selected{% endif %}>autre</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Commentaire</label>
+      <input type="text" id="{{ bid }}-comment" placeholder="Notes libres...">
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endfor %}
+
+</div>{# end blocks-container #}
+
+<!-- Add block button -->
+<button class="btn btn-secondary btn-block" onclick="openAddBlockModal()" style="margin-bottom:16px;">
+  + Ajouter un bloc
+</button>
 
 <!-- SUMMARY BAR -->
 <div class="summary-bar">
   <div>
-    <span id="done-count" class="text-orange" style="font-family: 'Barlow Condensed'; font-size: 1.4rem; font-weight: 800;">0</span>
-    <span class="text-muted"> / {{ exercises|length }} exercices</span>
+    <span id="done-count" class="text-orange" style="font-family:'Barlow Condensed';font-size:1.4rem;font-weight:800;">0</span>
+    <span class="text-muted"> exercices loggés</span>
   </div>
-  <button class="btn btn-success" id="btn-terminer" onclick="finirSeance()">
-    Terminer la séance ✅
-  </button>
+  <button class="btn btn-success" onclick="finirSeance()">Terminer la séance ✅</button>
 </div>
-
-{% endif %}
 {% endif %}
 
-<!-- MODAL FIN DE SÉANCE -->
-<div id="modal-fin" style="
-  display: none;
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(8px);
-  z-index: 300;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-">
-  <div class="card" style="max-width: 400px; width: 100%; border-color: rgba(249,115,22,0.2); box-shadow: 0 24px 64px rgba(0,0,0,0.6)">
+<!-- ── MODAL FIN DE SÉANCE ── -->
+<div id="modal-fin" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div class="card" style="max-width:400px;width:100%;border-color:rgba(249,115,22,0.2);box-shadow:0 24px 64px rgba(0,0,0,0.6)">
     <h2 class="text-orange mb-16">💪 Séance terminée !</h2>
     <div class="form-group">
       <label>RPE global (1-10)</label>
@@ -443,9 +349,28 @@
       <label>Commentaire</label>
       <input type="text" id="fin-comment" placeholder="Bonne séance, fatigue OK...">
     </div>
-    <button class="btn btn-primary btn-block" onclick="sauvegarderFin()">
-      Sauvegarder ✅
-    </button>
+    <button class="btn btn-primary btn-block" onclick="sauvegarderFin()">Sauvegarder ✅</button>
+    <button class="btn btn-secondary btn-block" style="margin-top:8px;" onclick="document.getElementById('modal-fin').style.display='none'">Annuler</button>
+  </div>
+</div>
+
+<!-- ── MODAL ADD BLOCK ── -->
+<div id="modal-add-block" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:300;align-items:center;justify-content:center;padding:20px;">
+  <div class="card" style="max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.6)">
+    <h2 class="mb-8">Ajouter un bloc</h2>
+    <p class="text-muted" style="font-size:0.85rem;">Choisis le type de modalité à ajouter à cette séance.</p>
+    <div class="block-type-grid">
+      <button class="block-type-btn" onclick="addAdHocBlock('strength')">
+        <span class="icon">🏋️</span><span class="label">Force</span>
+      </button>
+      <button class="block-type-btn" onclick="addAdHocBlock('hiit')">
+        <span class="icon">⚡</span><span class="label">HIIT</span>
+      </button>
+      <button class="block-type-btn" onclick="addAdHocBlock('cardio')">
+        <span class="icon">🏃</span><span class="label">Cardio</span>
+      </button>
+    </div>
+    <button class="btn btn-secondary btn-block" style="margin-top:16px;" onclick="document.getElementById('modal-add-block').style.display='none'">Annuler</button>
   </div>
 </div>
 
@@ -455,182 +380,285 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
-  // État global
-  const logged   = {};
-  const timers   = {};
+  const logged    = {};
+  const timers    = {};
   let   doneCount = 0;
-
+  const TODAY_STR  = '{{ today }}';
   const ALREADY_LOGGED = {{ 'true' if already_logged else 'false' }};
-  let   secondSession  = false;
 
-  function startSecondSession() {
-    secondSession = true;
-    document.getElementById('already-logged-banner').style.display = 'none';
-    showToast('Mode 2ème séance activé 💪');
-  }
+  // ad-hoc blocks added at runtime (appended to blocks payload at save)
+  const adHocBlocks = [];
+  let adHocCount = 0;
 
-  // ── INITIALISATION ──────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    toggleExercise(1);
+    // Open first block body
+    const firstBody = document.querySelector('.block-body');
+    if (firstBody) firstBody.classList.remove('collapsed');
 
-    // --- AJOUT POUR LE DRAG AND DROP ---
-    // On cible le conteneur qui contient tes .exercise-card
-    // Dans ton HTML, c'est l'élément juste après le <h2>
-    const list = document.querySelector('main') || document.querySelector('.container');
-
-    if (list) {
-      Sortable.create(list, {
+    // Drag-and-drop for block sections
+    const container = document.getElementById('blocks-container');
+    if (container) {
+      Sortable.create(container, {
         animation: 150,
-        handle: '.exercise-header', // On utilise l'entête pour dragger
-        draggable: '.exercise-card', // On ne déplace que les cartes
-        ghostClass: 'sortable-ghost', // Classe visuelle pendant le déplacement
-        onEnd: function() {
-          showToast("Ordre modifié ! ↕️");
-        }
+        handle: '.block-header',
+        draggable: '.block-section',
+        onEnd: () => showToast('Ordre des blocs modifié ↕️')
       });
     }
-    // --- FIN AJOUT ---
   });
 
-  // ── TOGGLE EXERCICE ──────────────────────────────────
-  function toggleExercise(idx) {
-    const body = document.getElementById(`body-${idx}`);
-    body.classList.toggle('open');
+  // ── Toggle block collapse ──
+  function toggleBlock(bid) {
+    const body = document.getElementById('body-' + bid);
+    const chev = document.getElementById('chev-' + bid);
+    body.classList.toggle('collapsed');
+    chev.classList.toggle('open');
   }
 
-  // ── CALCUL TOTAL ─────────────────────────────────────
-  function updateTotal(idx, type, barWeight = 45) {
-    const val   = parseFloat(document.getElementById(`weight-${idx}`).value);
-    const total = document.getElementById(`total-${idx}`);
+  // ── Toggle exercise card ──
+  function toggleExercise(eid) {
+    document.getElementById('exbody-' + eid).classList.toggle('open');
+  }
+
+  // ── Weight total display ──
+  function updateTotal(eid, type, barWeight = 45) {
+    const val   = parseFloat(document.getElementById('weight-' + eid).value);
+    const total = document.getElementById('total-' + eid);
     if (!total || isNaN(val)) return;
-
-    if (type === 'barbell') {
-      total.textContent = `→ Total barre : ${(val * 2 + barWeight).toFixed(1)} lbs`;
-    } else if (type === 'dumbbell') {
-      total.textContent = `→ Total : ${(val * 2).toFixed(1)} lbs`;
-    }
+    if (type === 'barbell')  total.textContent = `→ Total barre : ${(val * 2 + barWeight).toFixed(1)} lbs`;
+    else if (type === 'dumbbell') total.textContent = `→ Total : ${(val * 2).toFixed(1)} lbs`;
   }
 
-  // ── LOG EXERCICE ──────────────────────────────────────
-  async function logExercise(idx, name, type, barWeight = 45) {
-    const weightInput = parseFloat(document.getElementById(`weight-${idx}`).value);
-    const repsInput   = document.getElementById(`reps-${idx}`).value.trim();
+  // ── Log exercise (live, calls /api/log) ──
+  async function logExercise(eid, name, type, barWeight = 45) {
+    const weightInput = parseFloat(document.getElementById('weight-' + eid).value);
+    const repsInput   = document.getElementById('reps-' + eid).value.trim();
+    if (!weightInput || !repsInput) { showToast('Entre le poids et les reps !', 'error'); return; }
 
-    if (!weightInput || !repsInput) {
-      showToast('Entre le poids et les reps !', 'error');
-      return;
-    }
-
-    // Calcule le poids total
     let totalWeight = weightInput;
     if (type === 'barbell')  totalWeight = weightInput * 2 + barWeight;
     if (type === 'dumbbell') totalWeight = weightInput * 2;
 
     const res  = await fetch('/api/log', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({
-        exercise: name,
-        weight:   totalWeight,
-        reps:     repsInput
-      })
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ exercise: name, weight: totalWeight, reps: repsInput })
     });
-
     const data = await res.json();
 
-    // Affiche le résultat
-    const resultBox = document.getElementById(`result-${idx}`);
+    const resultBox = document.getElementById('result-' + eid);
     resultBox.classList.add('show');
     resultBox.innerHTML = `
-      <div class="${data.increase ? 'text-green' : 'text-orange'}" style="font-weight: 600; margin-bottom: 4px;">
+      <div class="${data.increase ? 'text-green' : 'text-orange'}" style="font-weight:600;margin-bottom:4px;">
         ${data.increase ? '✅ Augmente la prochaine fois !' : '🔄 Continue au même poids'}
       </div>
       <div class="text-muted">${data.status}</div>
-      <div class="mt-8">
-        Prochain poids : <strong class="text-orange">${data.new_weight} lbs</strong>
-        &nbsp;|&nbsp; 1RM estimé : <strong>${data['1rm']} lbs</strong>
-      </div>
+      <div class="mt-8">Prochain : <strong class="text-orange">${data.new_weight} lbs</strong> &nbsp;|&nbsp; 1RM : <strong>${data['1rm']} lbs</strong></div>
     `;
 
-    // Objectif atteint ?
     if (data.achieved && data.achieved.length > 0) {
-      data.achieved.forEach(ex => {
-        showToast(`🏆 OBJECTIF ATTEINT : ${ex} !`, 'success');
-      });
+      data.achieved.forEach(ex => showToast(`🏆 OBJECTIF ATTEINT : ${ex} !`, 'success'));
     }
 
-    // Marque comme fait
-    if (!logged[idx]) {
-      logged[idx] = true;
+    if (!logged[eid]) {
+      logged[eid] = { exercise: name, weight: totalWeight, reps: repsInput };
       doneCount++;
       document.getElementById('done-count').textContent = doneCount;
-      document.getElementById(`card-${idx}`).classList.add('done');
-      document.getElementById(`check-${idx}`).classList.add('done');
-
-      // Auto-ouvre le suivant
+      document.getElementById('card-' + eid).classList.add('done');
+      document.getElementById('check-' + eid).classList.add('done');
       setTimeout(() => {
-        const next = idx + 1;
-        const nextBody = document.getElementById(`body-${next}`);
+        const parts = eid.split('-ex-');
+        const nextEid = parts[0] + '-ex-' + (parseInt(parts[1]) + 1);
+        const nextBody = document.getElementById('exbody-' + nextEid);
         if (nextBody) {
-          document.getElementById(`body-${idx}`).classList.remove('open');
+          document.getElementById('exbody-' + eid).classList.remove('open');
           nextBody.classList.add('open');
           nextBody.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 1500);
+    } else {
+      logged[eid] = { exercise: name, weight: totalWeight, reps: repsInput };
     }
 
     haptic('medium');
     showToast(`${name} loggué ! ✅`);
   }
 
-  // ── TIMER (wall-clock, no drift) ─────────────────────
-  function startTimer(idx, seconds) {
-    if (timers[idx]) {
-      clearInterval(timers[idx]);
-      delete timers[idx];
-    }
-
-    const bar   = document.getElementById(`timer-bar-${idx}`);
-    const fill  = document.getElementById(`timer-fill-${idx}`);
-    const label = document.getElementById(`timer-label-${idx}`);
-
-    bar.style.display   = 'block';
-    label.style.display = 'block';
-    fill.style.width    = '100%';
-
+  // ── Timer ──
+  function startTimer(eid, seconds) {
+    if (timers[eid]) { clearInterval(timers[eid]); delete timers[eid]; }
+    const bar   = document.getElementById('timer-bar-' + eid);
+    const fill  = document.getElementById('timer-fill-' + eid);
+    const label = document.getElementById('timer-label-' + eid);
+    bar.style.display = label.style.display = 'block';
+    fill.style.width = '100%';
     const startEpoch = Date.now();
-
-    function updateTimer() {
+    function tick() {
       const elapsed   = Math.floor((Date.now() - startEpoch) / 1000);
       const remaining = Math.max(0, seconds - elapsed);
-      const pct  = (remaining / seconds) * 100;
-      const mins = Math.floor(remaining / 60);
-      const secs = remaining % 60;
-      fill.style.width  = `${pct}%`;
-      label.textContent = `⏱ Repos : ${mins}:${secs.toString().padStart(2, '0')}`;
-
+      fill.style.width = `${(remaining / seconds) * 100}%`;
+      const m = Math.floor(remaining / 60), s = remaining % 60;
+      label.textContent = `⏱ Repos : ${m}:${s.toString().padStart(2,'0')}`;
       if (remaining <= 0) {
-        clearInterval(timers[idx]);
-        delete timers[idx];
-        haptic('warning');
-        label.textContent = '✅ Repos terminé !';
-        label.style.color = 'var(--green)';
-        setTimeout(() => {
-          bar.style.display   = 'none';
-          label.style.display = 'none';
-          label.style.color   = 'var(--orange)';
-        }, 3000);
+        clearInterval(timers[eid]); delete timers[eid];
+        haptic('warning'); label.textContent = '✅ Repos terminé !'; label.style.color = 'var(--green)';
+        setTimeout(() => { bar.style.display = label.style.display = 'none'; label.style.color = 'var(--orange)'; }, 3000);
       }
     }
-
-    timers[idx] = setInterval(updateTimer, 1000);
-    updateTimer();
+    timers[eid] = setInterval(tick, 1000); tick();
   }
 
-  // ── FIN DE SÉANCE ─────────────────────────────────────
+  // ── Open add-block modal ──
+  function openAddBlockModal() {
+    document.getElementById('modal-add-block').style.display = 'flex';
+  }
+
+  // ── Add ad-hoc block (rendered dynamically) ──
+  function addAdHocBlock(type) {
+    document.getElementById('modal-add-block').style.display = 'none';
+    adHocCount++;
+    const bid = 'adhoc-block-' + adHocCount;
+    const container = document.getElementById('blocks-container');
+    let html = '';
+
+    if (type === 'strength') {
+      html = `
+        <div class="block-section" data-block-index="adhoc-${adHocCount}" data-block-type="strength" id="${bid}">
+          <div class="block-header" onclick="toggleBlock('${bid}')">
+            <span class="block-icon">🏋️</span>
+            <span class="block-title">Force (personnalisé)</span>
+            <svg class="block-chevron open" id="chev-${bid}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="block-body" id="body-${bid}">
+            <div class="form-group">
+              <label>Exercices loggués (sera inclus via les logs individuels)</label>
+              <input type="text" id="${bid}-notes" placeholder="Notes sur ce bloc force...">
+            </div>
+          </div>
+        </div>`;
+      adHocBlocks.push({ type: 'strength', ref: bid, exercise_logs: [] });
+
+    } else if (type === 'hiit') {
+      html = `
+        <div class="block-section" data-block-index="adhoc-${adHocCount}" data-block-type="hiit" id="${bid}">
+          <div class="block-header" onclick="toggleBlock('${bid}')">
+            <span class="block-icon">⚡</span>
+            <span class="block-title">HIIT (ajouté)</span>
+            <svg class="block-chevron open" id="chev-${bid}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="block-body" id="body-${bid}">
+            <div class="grid-2">
+              <div class="form-group"><label>Rounds complétés</label><input type="number" id="${bid}-rounds" placeholder="8" min="0" max="30"></div>
+              <div class="form-group"><label>Vitesse max (km/h)</label><input type="number" id="${bid}-speed" placeholder="13.0" step="0.5"></div>
+              <div class="form-group"><label>RPE (1-10)</label><input type="number" id="${bid}-rpe" placeholder="8" min="1" max="10"></div>
+              <div class="form-group"><label>Ressenti</label>
+                <select id="${bid}-feeling">
+                  <option>Facile 😎</option><option selected>Correct 💪</option><option>Difficile 😤</option><option>Épuisant 💀</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group"><label>Commentaire</label><input type="text" id="${bid}-comment" placeholder="Notes libres..."></div>
+          </div>
+        </div>`;
+      adHocBlocks.push({ type: 'hiit', ref: bid });
+
+    } else if (type === 'cardio') {
+      html = `
+        <div class="block-section" data-block-index="adhoc-${adHocCount}" data-block-type="cardio" id="${bid}">
+          <div class="block-header" onclick="toggleBlock('${bid}')">
+            <span class="block-icon">🏃</span>
+            <span class="block-title">Cardio (ajouté)</span>
+            <svg class="block-chevron open" id="chev-${bid}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="block-body" id="body-${bid}">
+            <div class="grid-2">
+              <div class="form-group"><label>Durée (min)</label><input type="number" id="${bid}-duration" placeholder="30" min="1"></div>
+              <div class="form-group"><label>Distance (km)</label><input type="number" id="${bid}-distance" placeholder="0" step="0.1" min="0"></div>
+              <div class="form-group"><label>RPE (1-10)</label><input type="number" id="${bid}-rpe" placeholder="6" min="1" max="10"></div>
+              <div class="form-group"><label>Type</label>
+                <select id="${bid}-type">
+                  <option>steady-state</option><option>tempo</option><option>fasted</option><option>autre</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group"><label>Commentaire</label><input type="text" id="${bid}-comment" placeholder="Notes libres..."></div>
+          </div>
+        </div>`;
+      adHocBlocks.push({ type: 'cardio', ref: bid });
+    }
+
+    container.insertAdjacentHTML('beforeend', html);
+    showToast(`Bloc ${type} ajouté ✅`);
+  }
+
+  // ── Collect all block data at save ──
+  function collectBlocks(globalRpe, globalComment) {
+    const blocks = [];
+
+    // Collect from rendered template blocks
+    document.querySelectorAll('#blocks-container .block-section:not([id^="adhoc"])').forEach(section => {
+      const btype = section.dataset.blockType;
+      const bid   = section.querySelector('.block-header + .block-body')?.id?.replace('body-', '') || '';
+
+      if (btype === 'strength') {
+        // Collect exercise logs from logged dict
+        const exLogs = Object.values(logged).filter(l => l.exercise);
+        blocks.push({ type: 'strength', rpe: globalRpe, comment: globalComment, exercise_logs: exLogs });
+
+      } else if (btype === 'hiit') {
+        blocks.push({
+          type:             'hiit',
+          rounds_completes: parseInt(document.getElementById(bid + '-rounds')?.value) || 0,
+          vitesse_max:      document.getElementById(bid + '-speed')?.value || '',
+          rpe:              parseInt(document.getElementById(bid + '-rpe')?.value) || null,
+          feeling:          document.getElementById(bid + '-feeling')?.value || '',
+          comment:          document.getElementById(bid + '-comment')?.value || '',
+        });
+
+      } else if (btype === 'cardio') {
+        blocks.push({
+          type:         'cardio',
+          duration_min: parseInt(document.getElementById(bid + '-duration')?.value) || 0,
+          distance_km:  parseFloat(document.getElementById(bid + '-distance')?.value) || 0,
+          rpe:          parseInt(document.getElementById(bid + '-rpe')?.value) || null,
+          cardio_type:  document.getElementById(bid + '-type')?.value || 'steady-state',
+          comment:      document.getElementById(bid + '-comment')?.value || '',
+        });
+      }
+    });
+
+    // Collect ad-hoc blocks
+    adHocBlocks.forEach(adh => {
+      const bid = adh.ref;
+      if (adh.type === 'strength') {
+        blocks.push({ type: 'strength', rpe: globalRpe, comment: document.getElementById(bid + '-notes')?.value || '', exercise_logs: [] });
+      } else if (adh.type === 'hiit') {
+        blocks.push({
+          type:             'hiit',
+          rounds_completes: parseInt(document.getElementById(bid + '-rounds')?.value) || 0,
+          vitesse_max:      document.getElementById(bid + '-speed')?.value || '',
+          rpe:              parseInt(document.getElementById(bid + '-rpe')?.value) || null,
+          feeling:          document.getElementById(bid + '-feeling')?.value || '',
+          comment:          document.getElementById(bid + '-comment')?.value || '',
+        });
+      } else if (adh.type === 'cardio') {
+        blocks.push({
+          type:         'cardio',
+          duration_min: parseInt(document.getElementById(bid + '-duration')?.value) || 0,
+          distance_km:  parseFloat(document.getElementById(bid + '-distance')?.value) || 0,
+          rpe:          parseInt(document.getElementById(bid + '-rpe')?.value) || null,
+          cardio_type:  document.getElementById(bid + '-type')?.value || 'steady-state',
+          comment:      document.getElementById(bid + '-comment')?.value || '',
+        });
+      }
+    });
+
+    return blocks;
+  }
+
+  // ── Fin de séance modal ──
   function finirSeance() {
-    if (ALREADY_LOGGED && !secondSession) {
-      showToast('Séance déjà loggée ! Clique sur "+ Logger une 2ème séance" pour en ajouter une autre.', 'error');
+    if (ALREADY_LOGGED) {
+      showToast('Séance déjà loggée aujourd\'hui !', 'error');
       return;
     }
     document.getElementById('modal-fin').style.display = 'flex';
@@ -639,35 +667,24 @@
   async function sauvegarderFin() {
     const rpe     = parseInt(document.getElementById('fin-rpe').value) || null;
     const comment = document.getElementById('fin-comment').value.trim();
-    const exos    = {{ exercises | map(attribute='name') | list | tojson }};
+    const blocks  = collectBlocks(rpe, comment);
+    const date    = new Date().toLocaleDateString('en-CA');
 
-    await fetch('/api/log_session', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ rpe, comment, exos, date: new Date().toLocaleDateString('en-CA'), second_session: secondSession })
+    const res = await fetch('/api/log_session_v2', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date, template: TODAY_STR, blocks })
     });
+    const data = await res.json();
+
+    if (data.error === 'already_logged') {
+      showToast('Séance déjà loggée !', 'error');
+      document.getElementById('modal-fin').style.display = 'none';
+      return;
+    }
 
     haptic('success');
     showToast('Séance sauvegardée ! 💪');
     document.getElementById('modal-fin').style.display = 'none';
-    setTimeout(() => window.location.href = '/', 1500);
-  }
-
-  // ── LOG HIIT ──────────────────────────────────────────
-  async function logHiit() {
-    const rounds  = parseInt(document.getElementById('hiit-rounds').value) || 0;
-    const speed   = document.getElementById('hiit-speed').value || null;
-    const rpe     = parseInt(document.getElementById('hiit-rpe').value) || null;
-    const feeling = document.getElementById('hiit-feeling').value;
-    const comment = document.getElementById('hiit-comment').value.trim();
-
-    await fetch('/api/log_hiit', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ rounds, speed, rpe, feeling, comment })
-    });
-
-    showToast('HIIT sauvegardé ! 🏃');
     setTimeout(() => window.location.href = '/', 1500);
   }
 </script>

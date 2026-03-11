@@ -150,11 +150,14 @@
 {% endblock %}
 
 {% block content %}
-<script id="w-data"    type="application/json">{{ weights      | tojson }}</script>
-<script id="s-data"    type="application/json">{{ sessions     | tojson }}</script>
-<script id="h-data"    type="application/json">{{ hiit_log     | tojson }}</script>
-<script id="prog-data" type="application/json">{{ full_program | tojson }}</script>
-<script id="sched-data" type="application/json">{{ schedule    | tojson }}</script>
+<script id="w-data"       type="application/json">{{ weights           | tojson }}</script>
+<script id="s-data"       type="application/json">{{ sessions          | tojson }}</script>
+<script id="h-data"       type="application/json">{{ hiit_log          | tojson }}</script>
+<script id="prog-data"    type="application/json">{{ full_program      | tojson }}</script>
+<script id="sched-data"   type="application/json">{{ schedule          | tojson }}</script>
+<script id="sched-v2"     type="application/json">{{ schedule_v2       | tojson }}</script>
+<script id="prog-v2-data" type="application/json">{{ program_v2        | tojson }}</script>
+<script id="wsched-v2"    type="application/json">{{ week_schedule_v2  | tojson }}</script>
 
 <div class="flex-between mb-16">
   <h2 class="text-green">📅 Planificateur</h2>
@@ -169,6 +172,10 @@
 
 <!-- GRID SEMAINE -->
 <div class="week-grid fu fu1" id="week-grid"></div>
+
+<!-- ══ PLANNING MODULAIRE ══ -->
+<div class="section-title fu fu2">🗓️ Planning hebdomadaire — modifier</div>
+<div id="sched-editor" class="fu fu2" style="margin-bottom:14px;"></div>
 
 <!-- PLAN ALGORITHMIQUE -->
 <div class="section-title fu fu2">⚙️ Plan suggéré — algorithmique</div>
@@ -501,5 +508,54 @@ async function applyAll() {
 
 renderWeekGrid();
 buildAlgoPlan();
+renderSchedEditor();
+
+// ── SCHEDULE EDITOR ───────────────────────────────────
+const SCHED_V2  = JSON.parse(document.getElementById('sched-v2').textContent  || '{}');
+const PROG_V2   = JSON.parse(document.getElementById('prog-v2-data').textContent || '{}');
+const WSCHED_V2 = JSON.parse(document.getElementById('wsched-v2').textContent || '{}');
+
+const BLOCK_ICONS = { strength: '🏋️', hiit: '⚡', cardio: '🏃' };
+const DAY_LABELS  = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+function renderSchedEditor() {
+  const el = document.getElementById('sched-editor');
+  const templateNames = Object.keys(PROG_V2);
+
+  let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+  DAY_LABELS.forEach((label, i) => {
+    const dayData  = WSCHED_V2[label] || {};
+    const name     = dayData.name || '—';
+    const bTypes   = dayData.block_types || [];
+    const badges   = bTypes.map(t => `<span style="font-size:0.7rem;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);border:1px solid var(--border);">${BLOCK_ICONS[t]||''} ${t}</span>`).join(' ');
+
+    const opts = templateNames.map(n =>
+      `<option value="${n}" ${n === name ? 'selected' : ''}>${n}</option>`
+    ).join('');
+
+    html += `<div class="plan-card" style="display:flex;align-items:center;gap:12px;padding:12px 16px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;min-width:36px;">${label}</div>
+      <div style="flex:1;">
+        <div style="font-size:0.9rem;font-weight:600;margin-bottom:4px;">${name}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">${badges || '<span style="font-size:0.75rem;color:var(--muted);">Aucun bloc</span>'}</div>
+      </div>
+      <select onchange="changeDay(${i}, this.value)" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:6px 10px;font-size:0.82rem;cursor:pointer;">
+        ${opts}
+      </select>
+    </div>`;
+  });
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function changeDay(dayIndex, sessionName) {
+  const res  = await fetch('/api/schedule', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ day: String(dayIndex), session_name: sessionName })
+  });
+  const data = await res.json();
+  if (data.success) showToast(`Planning mis à jour : ${DAY_LABELS[dayIndex]} → ${sessionName} ✅`);
+  else showToast(data.error || 'Erreur', 'error');
+}
 </script>
 {% endblock %}
