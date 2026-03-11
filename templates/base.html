@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{% block title %}TrainingOS{% endblock %}</title>
 
   <!-- PWA -->
@@ -53,7 +53,7 @@
       background-attachment: fixed;
       color: var(--text);
       min-height: 100vh;
-      padding-bottom: 86px;
+      padding-bottom: calc(86px + env(safe-area-inset-bottom));
     }
 
     /* ── TYPOGRAPHY ───────────────────────────────────── */
@@ -290,6 +290,7 @@
       -webkit-backdrop-filter: blur(24px);
       border-bottom: 1px solid var(--border);
       padding: 14px 20px;
+      padding-top: calc(14px + env(safe-area-inset-top));
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -328,7 +329,10 @@
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-around;
-      padding: 10px 8px 18px;
+      padding: 10px 8px;
+      padding-bottom: calc(18px + env(safe-area-inset-bottom));
+      padding-left: calc(8px + env(safe-area-inset-left));
+      padding-right: calc(8px + env(safe-area-inset-right));
       z-index: 100;
     }
 
@@ -370,7 +374,7 @@
     /* ── TOAST ────────────────────────────────────────── */
     #toast {
       position: fixed;
-      bottom: 96px;
+      bottom: calc(96px + env(safe-area-inset-bottom));
       left: 50%;
       transform: translateX(-50%) translateY(20px);
       background: rgba(17, 17, 28, 0.96);
@@ -424,11 +428,22 @@
   <header class="top-header">
     <span class="logo">💪 TRAININGOS</span>
     <div class="meta">
-      <div>{{ now if now else '' }}</div>
-      <div>Semaine {{ week if week else '' }}</div>
+      <div id="header-day"></div>
+      <div id="header-week"></div>
     </div>
   </header>
-  {% endblock %}
+  <script>
+    (function() {
+      const d = new Date();
+      document.getElementById('header-day').textContent =
+        d.toLocaleDateString('fr-CA', { weekday: 'long', day: 'numeric', month: 'short' });
+      // Semaine relative au programme (début 2026-03-03)
+      const START = new Date(2026, 2, 3); // 3 mars 2026
+      const diffDays = Math.floor((d - START) / 86400000);
+      const week = Math.max(1, Math.floor(diffDays / 7) + 1);
+      document.getElementById('header-week').textContent = 'Semaine ' + week;
+    })();
+  </script>
 
   <!-- CONTENU -->
   <main class="container">
@@ -484,10 +499,39 @@
     🔄 Nouvelle version disponible — Tap pour mettre à jour
   </div>
 
+  <!-- ── CAPACITOR NATIVE BRIDGE ──────────────────────────────────────────── -->
+  <script>
+  /**
+   * haptic(style) — feedback haptique via Capacitor (iOS natif).
+   * Silencieux sur web/PWA installée.
+   * Styles : 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error'
+   */
+  window.haptic = (function() {
+    const CAP = window.Capacitor;
+    if (!CAP || !CAP.isNativePlatform || !CAP.isNativePlatform()) return () => {};
+
+    const Haptics = CAP.Plugins && CAP.Plugins.Haptics;
+    if (!Haptics) return () => {};
+
+    const IMPACT  = { light: 'LIGHT', medium: 'MEDIUM', heavy: 'HEAVY' };
+    const NOTIFY  = { success: 'SUCCESS', warning: 'WARNING', error: 'ERROR' };
+
+    return function haptic(style = 'medium') {
+      try {
+        if (NOTIFY[style]) {
+          Haptics.notification({ type: NOTIFY[style] });
+        } else {
+          Haptics.impact({ style: IMPACT[style] || 'MEDIUM' });
+        }
+      } catch (_) {}
+    };
+  })();
+  </script>
+
   <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/static/sw.js', { scope: '/' })
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
         .then(registration => {
           // Vérifie les updates toutes les 60s
           setInterval(() => registration.update(), 60000);

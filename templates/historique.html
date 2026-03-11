@@ -3,285 +3,577 @@
 
 {% block extra_css %}
 <style>
-  .exo-card {
-    background: rgba(17,17,28,0.6);
+  .session-card {
+    background: rgba(17,17,28,0.7);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     margin-bottom: 12px;
     overflow: hidden;
     box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s;
   }
+  .session-card:hover { border-color: rgba(249,115,22,0.25); }
 
-  .exo-card:hover {
-    border-color: rgba(249,115,22,0.3);
-    box-shadow: 0 4px 20px rgba(249,115,22,0.1);
-  }
-
-  .exo-header {
-    padding: 16px 20px;
+  .session-header {
+    padding: 14px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
-    transition: background 0.15s;
+    user-select: none;
   }
+  .session-header:hover { background: rgba(255,255,255,0.02); }
 
-  .exo-header:hover { background: var(--bg3); }
-
-  .exo-body {
-    display: none;
-    padding: 0 20px 20px;
-  }
-
-  .exo-body.open { display: block; }
-
-  .exo-name {
+  .session-date {
     font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.2rem;
+    font-size: 1rem;
     font-weight: 700;
+    color: var(--text);
   }
-
-  .muscle-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 8px;
+  .session-meta {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 2px;
   }
-
-  .muscle-tag {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid var(--border);
+  .rpe-badge {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 3px 10px;
     border-radius: 20px;
-    padding: 2px 10px;
-    font-size: 0.72rem;
+    border: 1px solid;
+  }
+  .rpe-badge.high  { color: var(--rose);   border-color: var(--rose)44;   background: var(--rose)11; }
+  .rpe-badge.mid   { color: var(--orange); border-color: var(--orange)44; background: var(--orange)11; }
+  .rpe-badge.low   { color: var(--green);  border-color: var(--green)44;  background: var(--green)11; }
+  .rpe-badge.none  { color: var(--muted);  border-color: var(--border);   background: transparent; }
+
+  .session-body {
+    display: none;
+    padding: 0 16px 16px;
+  }
+  .session-body.open { display: block; }
+
+  /* Exercise rows in a session */
+  .exo-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.85rem;
+  }
+  .exo-row:last-of-type { border-bottom: none; }
+  .exo-row-name { font-weight: 600; }
+
+  /* Editable fields */
+  .editable {
+    cursor: pointer;
+    padding: 3px 7px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    min-width: 52px;
+    text-align: center;
+    font-family: inherit;
+    font-size: 0.85rem;
+    background: transparent;
+    color: var(--text);
+  }
+  .editable:hover  { border-color: var(--border); background: var(--bg3); }
+  .editable:focus  { border-color: var(--orange); outline: none; background: var(--bg3); }
+  .editable.dirty  { border-color: var(--orange)88; color: var(--orange); }
+
+  .session-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-save  { background: var(--orange)22; border: 1px solid var(--orange)55; color: var(--orange); font-size: 0.78rem; padding: 5px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; display: none; }
+  .btn-del   { background: var(--rose)11;   border: 1px solid var(--rose)33;   color: var(--rose);   font-size: 0.78rem; padding: 5px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+  .btn-save:hover { background: var(--orange)33; }
+  .btn-del:hover  { background: var(--rose)22; }
+
+  /* RPE field in edit mode */
+  .rpe-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 0.82rem;
     color: var(--muted);
   }
-
-  .search-bar {
-    margin-bottom: 16px;
+  .rpe-input {
+    width: 52px; padding: 4px 8px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); font-size: 0.85rem; text-align: center;
   }
+  .rpe-input:focus { border-color: var(--orange); outline: none; }
 
-  .pr-badge {
-    background: linear-gradient(135deg, var(--orange), var(--orange2));
-    color: white;
-    border-radius: 6px;
-    padding: 2px 8px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 1px;
+  /* HIIT sessions */
+  .hiit-card {
+    background: rgba(249,115,22,0.06);
+    border: 1px solid rgba(249,115,22,0.18);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
   }
-
-  .trend-up   { color: var(--green); }
-  .trend-down { color: var(--rose);  }
-  .trend-flat { color: var(--muted); }
-
-  .mini-chart-wrap {
-    height: 60px;
-    margin: 12px 0;
+  .hiit-header {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-size: 0.85rem;
   }
+  .hiit-header:hover { background: rgba(249,115,22,0.04); }
+  .hiit-type { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1rem; color: var(--orange); }
+  .hiit-body { display: none; padding: 0 16px 14px; }
+  .hiit-body.open { display: block; }
+  .hiit-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .hiit-field label { display: block; font-size: 0.7rem; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 1px; }
+  .hiit-field input, .hiit-field select {
+    width: 100%; padding: 5px 9px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text); font-size: 0.85rem; box-sizing: border-box;
+  }
+  .hiit-field input:focus, .hiit-field select:focus { border-color: var(--orange); outline: none; }
+
+  /* Tabs */
+  .tab-bar { display: flex; gap: 6px; margin-bottom: 16px; }
+  .tab-btn {
+    padding: 7px 18px; border-radius: 20px; font-size: 0.78rem; font-weight: 700;
+    letter-spacing: 0.5px; cursor: pointer; border: 1px solid var(--border);
+    background: transparent; color: var(--muted); transition: all 0.15s;
+  }
+  .tab-btn.active { background: var(--orange)22; border-color: var(--orange)55; color: var(--orange); }
+
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 20px; font-size: 0.85rem; color: var(--text);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4); opacity: 0;
+    transition: opacity 0.3s; z-index: 999; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
 </style>
 {% endblock %}
 
 {% block content %}
 
 <div class="flex-between mb-16">
-  <h2 class="text-orange">📈 Historique</h2>
-  <span class="badge badge-blue">{{ exercices|length }} exercices</span>
+  <h2 class="text-orange">📋 Historique</h2>
+  <span class="badge badge-blue">{{ session_list|length }} séances</span>
 </div>
 
-<!-- SEARCH -->
-<input
-  class="search-bar"
-  type="text"
-  id="search"
-  placeholder="🔍 Rechercher un exercice..."
-  oninput="filterExercices()"
->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('muscu', this)">🏋️ Musculation</button>
+  <button class="tab-btn" onclick="showTab('hiit', this)">⚡ HIIT</button>
+</div>
 
-{% if not exercices %}
+<!-- MUSCULATION TAB -->
+<div id="tab-muscu">
+{% if not session_list %}
 <div class="card">
-  <p class="text-muted">Aucun exercice loggué pour l'instant.</p>
+  <p class="text-muted">Aucune séance loggée pour l'instant.</p>
   <a href="/seance" class="btn btn-primary mt-16">Logger ma première séance</a>
 </div>
-
 {% else %}
 
-<div id="exercices-list">
-{% for ex in exercices %}
-<div class="exo-card" data-name="{{ ex.name | lower }}">
+{% for session in session_list %}
 
-  <div class="exo-header" onclick="toggleExo('{{ loop.index }}')">
+{# ── V2 SESSION (multi-block) ── #}
+{% if session.type == 'v2' %}
+<div class="session-card" id="sc-{{ session.date }}">
+  <div class="session-header" onclick="toggleSession('{{ session.date }}')">
     <div>
-      <div class="exo-name">{{ ex.name }}</div>
-      <div class="muscle-tags">
-        {% for m in ex.muscles %}
-        <span class="muscle-tag">{{ m }}</span>
+      <div class="session-date">{{ session.date }}
+        <span style="font-size:0.72rem;font-weight:600;color:var(--orange);margin-left:6px;">NEW</span>
+      </div>
+      <div class="session-meta">
+        {{ session.template }}
+        — {% for block in session.blocks %}
+          {% if block.type == 'strength' %}🏋️{% elif block.type == 'hiit' %}⚡{% elif block.type == 'cardio' %}🏃{% endif %}
         {% endfor %}
-        {% if not ex.muscles %}
-        <span class="muscle-tag">{{ ex.type }}</span>
-        {% endif %}
+        {% if session.comment %} · {{ session.comment[:40] }}{% endif %}
       </div>
     </div>
-    <div style="text-align: right;">
-      <div class="text-orange" style="font-family: 'Barlow Condensed'; font-size: 1.3rem; font-weight: 800;">
-        {{ ex.current }} lbs
+    {% if session.rpe %}
+      <span class="rpe-badge {% if session.rpe >= 8.5 %}high{% elif session.rpe >= 7 %}mid{% else %}low{% endif %}">
+        RPE {{ session.rpe }}
+      </span>
+    {% else %}
+      <span class="rpe-badge none">—</span>
+    {% endif %}
+  </div>
+  <div class="session-body" id="sb-{{ session.date }}">
+    {% for block in session.blocks %}
+    <div style="border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:8px;">
+      <div style="font-weight:700;margin-bottom:6px;font-size:0.9rem;">
+        {% if block.type == 'strength' %}🏋️ Force{% elif block.type == 'hiit' %}⚡ HIIT{% elif block.type == 'cardio' %}🏃 Cardio{% endif %}
+        {% if block.rpe %}<span class="text-muted" style="font-size:0.8rem;font-weight:400;margin-left:6px;">RPE {{ block.rpe }}</span>{% endif %}
       </div>
-      {% if ex.history | length >= 2 %}
-        {% set diff = ex.history[0].weight - ex.history[1].weight %}
-        {% if diff > 0 %}
-          <div class="trend-up" style="font-size: 0.8rem;">↑ +{{ diff }} lbs</div>
-        {% elif diff < 0 %}
-          <div class="trend-down" style="font-size: 0.8rem;">↓ {{ diff }} lbs</div>
+      {% if block.type == 'strength' %}
+        {% if session.exos %}
+        {% for exo in session.exos %}
+        <div class="exo-row" style="grid-template-columns:1fr auto auto;font-size:0.82rem;">
+          <span class="exo-row-name">{{ exo.exercise }}</span>
+          <span class="text-orange">{{ exo.weight }} lbs</span>
+          <span class="text-muted">{{ exo.reps }}</span>
+        </div>
+        {% endfor %}
         {% else %}
-          <div class="trend-flat" style="font-size: 0.8rem;">→ stable</div>
+        <span class="text-muted" style="font-size:0.82rem;">Exercices loggés via historique individuel</span>
         {% endif %}
-      {% endif %}
-    </div>
-  </div>
-
-  <div class="exo-body" id="exo-body-{{ loop.index }}">
-
-    <!-- Mini graphique 1RM -->
-    {% if ex.history | length > 1 %}
-    <div class="mini-chart-wrap">
-      <canvas id="chart-{{ loop.index }}" height="60"></canvas>
-    </div>
-    {% endif %}
-
-    <!-- PR -->
-    {% if ex.history %}
-      {% set max_1rm = ex.history | map(attribute='1rm') | select | max %}
-      {% if max_1rm %}
-      <div class="flex-between mb-16">
-        <span class="text-muted" style="font-size: 0.85rem;">Meilleur 1RM estimé</span>
-        <span class="pr-badge">🏆 {{ max_1rm }} lbs</span>
+      {% elif block.type == 'hiit' %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82rem;">
+        <span class="text-muted">Rounds complétés</span><span>{{ block.rounds_completes or '—' }}</span>
+        <span class="text-muted">Vitesse max</span><span>{{ block.vitesse_max or '—' }} km/h</span>
+        <span class="text-muted">Ressenti</span><span>{{ block.feeling or '—' }}</span>
+        {% if block.comment %}<span class="text-muted">Note</span><span>{{ block.comment }}</span>{% endif %}
+      </div>
+      {% elif block.type == 'cardio' %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.82rem;">
+        <span class="text-muted">Durée</span><span>{{ block.duration_min or '—' }} min</span>
+        {% if block.distance_km %}<span class="text-muted">Distance</span><span>{{ block.distance_km }} km</span>{% endif %}
+        {% if block.comment %}<span class="text-muted">Note</span><span>{{ block.comment }}</span>{% endif %}
       </div>
       {% endif %}
-    {% endif %}
-
-    <!-- Tableau historique -->
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Poids</th>
-          <th>Reps</th>
-          <th>1RM</th>
-          <th>Note</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for h in ex.history %}
-        <tr>
-          <td class="text-muted">{{ h.date }}</td>
-          <td><strong>{{ h.weight }} lbs</strong></td>
-          <td>{{ h.reps }}</td>
-          <td>{{ h['1rm'] if h['1rm'] else '—' }}</td>
-          <td class="{% if h.note and '+' in h.note %}trend-up{% else %}trend-flat{% endif %}">
-            {{ h.note or '—' }}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-
+    </div>
+    {% endfor %}
+    <div class="session-actions">
+      <button class="btn-del" onclick="deleteSessionV2('{{ session.date }}')">🗑 Supprimer</button>
+    </div>
   </div>
 </div>
 
-<!-- Données pour les mini graphiques -->
-<script>
-  (function() {
-    const history = {{ ex.history | tojson }};
-    const idx     = {{ loop.index }};
+{# ── LEGACY V1 SESSION ── #}
+{% elif session.exos %}
+<div class="session-card" id="sc-{{ session.date }}">
+  <div class="session-header" onclick="toggleSession('{{ session.date }}')">
+    <div>
+      <div class="session-date">{{ session.date }}</div>
+      <div class="session-meta">{{ session.exos|length }} exercice{{ 's' if session.exos|length > 1 }}
+        {% if session.comment %} · {{ session.comment[:40] }}{% endif %}
+      </div>
+    </div>
+    {% if session.rpe %}
+      <span class="rpe-badge {% if session.rpe >= 8.5 %}high{% elif session.rpe >= 7 %}mid{% else %}low{% endif %}">
+        RPE {{ session.rpe }}
+      </span>
+    {% else %}
+      <span class="rpe-badge none">—</span>
+    {% endif %}
+  </div>
 
-    // Attend que l'exo soit ouvert pour dessiner
-    document.querySelector(`[onclick="toggleExo('${idx}')"]`).addEventListener('click', function() {
-      setTimeout(() => drawMiniChart(idx, history), 50);
-    });
-  })();
-</script>
+  <div class="session-body" id="sb-{{ session.date }}">
+    <div class="rpe-field">
+      <span>RPE :</span>
+      <input class="rpe-input" type="number" min="1" max="10" step="0.5"
+             id="rpe-{{ session.date }}"
+             value="{{ session.rpe or '' }}"
+             oninput="markDirty('{{ session.date }}')">
+      <span style="font-size:0.75rem;">/10</span>
+    </div>
 
-{% endfor %}
+    {% for exo in session.exos %}
+    <div class="exo-row">
+      <span class="exo-row-name">{{ exo.exercise }}</span>
+      <span class="text-muted" style="font-size:0.75rem;">poids</span>
+      <input class="editable" type="number" step="2.5"
+             id="w-{{ session.date }}-{{ loop.index0 }}"
+             data-date="{{ session.date }}"
+             data-exercise="{{ exo.exercise }}"
+             data-field="weight"
+             value="{{ exo.weight }}"
+             oninput="markDirty('{{ session.date }}')">
+      <input class="editable" type="text"
+             id="r-{{ session.date }}-{{ loop.index0 }}"
+             data-date="{{ session.date }}"
+             data-exercise="{{ exo.exercise }}"
+             data-field="reps"
+             value="{{ exo.reps }}"
+             placeholder="6,6,5"
+             oninput="markDirty('{{ session.date }}')">
+    </div>
+    {% endfor %}
+
+    <div class="session-actions">
+      <button class="btn-save" id="save-{{ session.date }}" onclick="saveSession('{{ session.date }}')">💾 Sauvegarder</button>
+      <button class="btn-del" onclick="deleteSession('{{ session.date }}')">🗑 Supprimer</button>
+    </div>
+  </div>
 </div>
+{% endif %}{# end if v2 / elif exos #}
+{% endfor %}
+
 {% endif %}
+</div>
+
+<!-- HIIT TAB -->
+<div id="tab-hiit" style="display:none;">
+{% if not hiit_list %}
+<div class="card">
+  <p class="text-muted">Aucune séance HIIT loggée.</p>
+</div>
+{% else %}
+{% for h in hiit_list %}
+<div class="hiit-card" id="hc-{{ loop.index0 }}">
+  <div class="hiit-header" onclick="toggleHiit({{ loop.index0 }})">
+    <div>
+      <div class="hiit-type">{{ h.session_type or 'HIIT' }}</div>
+      <div class="text-muted" style="font-size:0.75rem; margin-top:2px;">
+        {{ h.date }}
+        {% if h.duration %} · {{ h.duration }} min{% endif %}
+        {% if h.comment %} · {{ h.comment[:40] }}{% endif %}
+      </div>
+    </div>
+    {% if h.rpe %}
+    <span class="rpe-badge {% if h.rpe >= 8.5 %}high{% elif h.rpe >= 7 %}mid{% else %}low{% endif %}">RPE {{ h.rpe }}</span>
+    {% else %}
+    <span class="rpe-badge none">—</span>
+    {% endif %}
+  </div>
+
+  <div class="hiit-body" id="hb-{{ loop.index0 }}">
+    <div class="hiit-grid">
+      <div class="hiit-field">
+        <label>RPE</label>
+        <input type="number" min="1" max="10" step="0.5" id="hrpe-{{ loop.index0 }}" value="{{ h.rpe or '' }}" oninput="markHiitDirty({{ loop.index0 }})">
+      </div>
+      <div class="hiit-field">
+        <label>Feeling</label>
+        <select id="hfeel-{{ loop.index0 }}" onchange="markHiitDirty({{ loop.index0 }})">
+          <option value="">—</option>
+          {% for f in ['💪 Fort', '😊 Bon', '😐 Moyen', '😓 Dur', '🤢 Épuisant'] %}
+          <option value="{{ f }}" {% if h.feeling == f %}selected{% endif %}>{{ f }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="hiit-field">
+        <label>Rounds complétés</label>
+        <input type="number" min="0" id="hrounds-{{ loop.index0 }}" value="{{ h.rounds_completes or '' }}" oninput="markHiitDirty({{ loop.index0 }})">
+      </div>
+      <div class="hiit-field">
+        <label>Vitesse max (km/h)</label>
+        <input type="number" step="0.5" id="hspeed-{{ loop.index0 }}" value="{{ h.vitesse_max or '' }}" oninput="markHiitDirty({{ loop.index0 }})">
+      </div>
+      <div class="hiit-field" style="grid-column: 1/-1;">
+        <label>Commentaire</label>
+        <input type="text" id="hcomment-{{ loop.index0 }}" value="{{ h.comment or '' }}" oninput="markHiitDirty({{ loop.index0 }})">
+      </div>
+    </div>
+
+    <div class="session-actions">
+      <button class="btn-save" id="hsave-{{ loop.index0 }}" onclick="saveHiit({{ loop.index0 }})">💾 Sauvegarder</button>
+      <button class="btn-del" onclick="deleteHiit({{ loop.index0 }})">🗑 Supprimer</button>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+</div>
+
+<div class="toast" id="toast"></div>
 
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const drawnCharts = {};
+function showTab(tab, btn) {
+  document.getElementById('tab-muscu').style.display = tab === 'muscu' ? 'block' : 'none';
+  document.getElementById('tab-hiit').style.display  = tab === 'hiit'  ? 'block' : 'none';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
 
-  function toggleExo(idx) {
-    const body = document.getElementById(`exo-body-${idx}`);
-    body.classList.toggle('open');
-  }
+function toggleSession(date) {
+  const body = document.getElementById('sb-' + date);
+  body.classList.toggle('open');
+}
 
-  function drawMiniChart(idx, history) {
-    if (drawnCharts[idx]) return;
-    const canvas = document.getElementById(`chart-${idx}`);
-    if (!canvas) return;
+function markDirty(date) {
+  const saveBtn = document.getElementById('save-' + date);
+  if (saveBtn) saveBtn.style.display = 'inline-block';
+  // Highlight changed fields
+  document.querySelectorAll(`[data-date="${date}"]`).forEach(el => {
+    if (el.dataset.original !== undefined && el.value !== el.dataset.original) {
+      el.classList.add('dirty');
+    }
+  });
+}
 
-    const sorted  = [...history].reverse();
-    const labels  = sorted.map(h => h.date);
-    const oneRMs  = sorted.map(h => h['1rm'] || 0);
-    const weights = sorted.map(h => h.weight || 0);
+// Store original values on page load
+document.querySelectorAll('.editable').forEach(el => {
+  el.dataset.original = el.value;
+});
 
-    drawnCharts[idx] = new Chart(canvas, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: '1RM estimé',
-            data:   oneRMs,
-            borderColor:          '#f97316',
-            backgroundColor:      '#f9731622',
-            borderWidth:          2,
-            pointBackgroundColor: '#f97316',
-            pointRadius:          3,
-            fill:                 true,
-            tension:              0.3
-          },
-          {
-            label: 'Poids réel',
-            data:   weights,
-            borderColor:          '#3b82f6',
-            backgroundColor:      'transparent',
-            borderWidth:          1.5,
-            pointBackgroundColor: '#3b82f6',
-            pointRadius:          2,
-            borderDash:           [4, 4],
-            tension:              0.3
-          }
-        ]
-      },
-      options: {
-        responsive:  true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display:  true,
-            labels:   { color: '#666', font: { size: 10 } }
-          }
-        },
-        scales: {
-          x: { ticks: { color: '#555', font: { size: 9 } }, grid: { color: '#1e1e2a' } },
-          y: { ticks: { color: '#555', font: { size: 9 } }, grid: { color: '#1e1e2a' } }
-        }
-      }
+async function saveSession(date) {
+  const rpeEl = document.getElementById('rpe-' + date);
+  const rpe   = rpeEl ? parseFloat(rpeEl.value) || null : null;
+
+  // Collect exercise edits by exercise name (last value wins if duplicate)
+  const exMap = {};
+  document.querySelectorAll(`[data-date="${date}"]`).forEach(el => {
+    const ex = el.dataset.exercise;
+    if (!exMap[ex]) exMap[ex] = {};
+    exMap[ex][el.dataset.field] = el.value;
+  });
+  const exercises = Object.entries(exMap).map(([exercise, fields]) => ({
+    exercise,
+    weight: parseFloat(fields.weight) || 0,
+    reps:   fields.reps || '',
+  }));
+
+  const btn = document.getElementById('save-' + date);
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  try {
+    const res  = await fetch('/api/session/edit', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({date, rpe, exercises}),
     });
+    const data = await res.json();
+    if (data.success) {
+      btn.style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = '💾 Sauvegarder';
+      // Update originals
+      document.querySelectorAll(`[data-date="${date}"]`).forEach(el => {
+        el.dataset.original = el.value;
+        el.classList.remove('dirty');
+      });
+      showToast('✅ Séance mise à jour');
+    } else {
+      showToast('❌ ' + (data.error || 'Erreur'));
+      btn.disabled = false;
+      btn.textContent = '💾 Sauvegarder';
+    }
+  } catch(e) {
+    showToast('❌ Erreur de connexion');
+    btn.disabled = false;
+    btn.textContent = '💾 Sauvegarder';
   }
+}
 
-  function filterExercices() {
-    const query = document.getElementById('search').value.toLowerCase();
-    document.querySelectorAll('.exo-card').forEach(card => {
-      const name = card.dataset.name || '';
-      card.style.display = name.includes(query) ? 'block' : 'none';
+async function deleteSession(date) {
+  if (!confirm(`Supprimer la séance du ${date} ?\nCette action supprimera aussi les données de poids associées.`)) return;
+
+  try {
+    const res  = await fetch('/api/session/delete', {
+      method:  'POST',
+      headers: {'Content-Type': 'application/json'},
+      body:    JSON.stringify({date}),
     });
+    const data = await res.json();
+    if (data.success) {
+      const card = document.getElementById('sc-' + date);
+      card.style.opacity = '0';
+      card.style.transition = 'opacity 0.3s';
+      setTimeout(() => card.remove(), 300);
+      showToast('🗑 Séance supprimée');
+    } else {
+      showToast('❌ ' + (data.error || 'Erreur'));
+    }
+  } catch(e) {
+    showToast('❌ Erreur de connexion');
   }
+}
+
+async function deleteSessionV2(date) {
+  if (!confirm(`Supprimer la séance du ${date} ?`)) return;
+  try {
+    const res  = await fetch('/api/session_v2/delete', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ date })
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('sc-' + date)?.remove();
+      showToast('🗑 Séance supprimée');
+    } else {
+      showToast('❌ ' + (data.error || 'Erreur'));
+    }
+  } catch(e) {
+    showToast('❌ Erreur de connexion');
+  }
+}
+
+function toggleHiit(idx) {
+  document.getElementById('hb-' + idx).classList.toggle('open');
+}
+
+function markHiitDirty(idx) {
+  const btn = document.getElementById('hsave-' + idx);
+  if (btn) btn.style.display = 'inline-block';
+}
+
+async function saveHiit(idx) {
+  const btn = document.getElementById('hsave-' + idx);
+  btn.disabled = true; btn.textContent = '...';
+
+  const payload = {
+    index:            idx,
+    rpe:              parseFloat(document.getElementById('hrpe-'     + idx)?.value) || null,
+    feeling:          document.getElementById('hfeel-'   + idx)?.value || '',
+    rounds_completes: parseInt(document.getElementById('hrounds-' + idx)?.value)  || null,
+    vitesse_max:      parseFloat(document.getElementById('hspeed-'  + idx)?.value) || null,
+    comment:          document.getElementById('hcomment-'+ idx)?.value || '',
+  };
+  // Remove null fields
+  Object.keys(payload).forEach(k => payload[k] === null && delete payload[k]);
+
+  try {
+    const res  = await fetch('/api/hiit/edit', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.success) {
+      btn.style.display = 'none';
+      showToast('✅ Session HIIT mise à jour');
+    } else {
+      showToast('❌ ' + (data.error || 'Erreur'));
+    }
+  } catch(e) { showToast('❌ Erreur de connexion'); }
+  btn.disabled = false; btn.textContent = '💾 Sauvegarder';
+}
+
+async function deleteHiit(idx) {
+  if (!confirm('Supprimer cette session HIIT ?')) return;
+  try {
+    const res  = await fetch('/api/delete_hiit', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({index: idx}),
+    });
+    const data = await res.json();
+    if (data.success) {
+      const card = document.getElementById('hc-' + idx);
+      card.style.opacity = '0'; card.style.transition = 'opacity 0.3s';
+      setTimeout(() => card.remove(), 300);
+      showToast('🗑 Session supprimée');
+    } else { showToast('❌ ' + (data.error || 'Erreur')); }
+  } catch(e) { showToast('❌ Erreur de connexion'); }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
 </script>
 {% endblock %}

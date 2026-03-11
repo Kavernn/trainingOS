@@ -23,6 +23,9 @@ __pycache__/
 *.log
 *.tmp
 
+# Base de données locale (données utilisateur, ne pas versionner)
+.local_kv.db
+
 # Capacitor / Node
 node_modules/
 .npm/

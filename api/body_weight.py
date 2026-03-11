@@ -4,13 +4,16 @@ from datetime import datetime
 def load_body_weight() -> list:
     return get_json("body_weight", [])
 
-def log_body_weight(poids: float, note: str = ""):
-    data = load_body_weight()
-    data.insert(0, {
+def log_body_weight(poids: float, note: str = "", body_fat: float = None):
+    data  = load_body_weight()
+    entry = {
         "date":  datetime.now().strftime("%Y-%m-%d"),
         "poids": poids,
         "note":  note
-    })
+    }
+    if body_fat is not None:
+        entry["body_fat"] = body_fat
+    data.insert(0, entry)
     set_json("body_weight", data)
 
 def get_tendance(body_weight: list) -> str:

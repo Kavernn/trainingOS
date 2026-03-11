@@ -141,14 +141,23 @@
 <!-- Modal log -->
 <div class="modal-overlay" id="modal-log">
   <div class="modal-card">
-    <div class="modal-title">⚖️ Logger mon poids</div>
-    <div class="form-group">
-      <label>Poids (kg)</label>
-      <input type="number" id="log-poids" placeholder="Ex: 82.5" step="0.1">
+    <div class="modal-title">⚖️ Logger ma composition</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Poids (kg) *</label>
+        <input type="number" id="log-poids" placeholder="Ex: 82.5" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>% Masse grasse <span style="color:var(--muted);font-size:0.75rem;">(optionnel)</span></label>
+        <input type="number" id="log-bf" placeholder="Ex: 18.5" step="0.1" min="3" max="50">
+      </div>
     </div>
     <div class="form-group">
       <label>Note (optionnel)</label>
-      <input type="text" id="log-note" placeholder="Ex: Matin à jeun">
+      <input type="text" id="log-note" placeholder="Ex: Matin à jeun, après DEXA...">
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:12px;">
+      Sans % MG, la masse grasse est estimée automatiquement (Navy/BMI).
     </div>
     <button class="btn btn-primary btn-block" onclick="saveLog()">Sauvegarder</button>
     <button class="btn btn-secondary btn-block mt-8" onclick="closeLog()">Annuler</button>
@@ -164,25 +173,29 @@ let bwData = JSON.parse(document.getElementById('bw-data').textContent || '[]');
 const prof = JSON.parse(document.getElementById('profile-data').textContent || '{}');
 const sorted = ()=>[...bwData].sort((a,b)=>a.date.localeCompare(b.date));
 
-// ── BODY FAT ESTIMATE (Navy si dispo, sinon BMI) ──────
-function estimateBF(weightKg){
+function localDateStr(d) {
+  const dd = d || new Date();
+  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+}
+
+// ── BODY FAT — manuelle en priorité, sinon Navy/BMI ──
+function estimateBF(weightKg, manualBF){
+  if(manualBF != null && manualBF > 0) return manualBF;
   const h = parseFloat(prof.height_cm||prof.taille||0);
   const age = parseInt(prof.age||30);
   const neck = parseFloat(prof.neck_cm||0);
   const waist = parseFloat(prof.waist_cm||prof.abdomen_cm||0);
   if(h>0 && neck>0 && waist>0){
-    // Navy formula (homme)
     const bf = 495/(1.0324-0.19077*Math.log10(waist-neck)+0.15456*Math.log10(h))-450;
     return Math.max(5, Math.min(50, bf));
   }
-  // Fallback BMI-based (Deurenberg)
   if(h>0){
     const bmi = weightKg/((h/100)**2);
     return 1.2*bmi + 0.23*age - 10.8 - 5.4;
   }
-  // Default 18% si rien
   return 18;
 }
+function isManualBF(entry){ return entry.body_fat != null && entry.body_fat > 0; }
 
 function render(){
   const s = sorted();
@@ -192,14 +205,15 @@ function render(){
   }
   const last = s[s.length-1];
   const w = last.poids;
-  const bf = estimateBF(w);
+  const bf = estimateBF(w, last.body_fat);
   const lbm = w*(1-bf/100);
+  const fatMass = w*(bf/100);
 
   document.getElementById('current-weight').textContent = w+' kg';
 
   // Déltas
-  const w7  = s.find(e=>{ const d=new Date(); d.setDate(d.getDate()-7); return e.date>=d.toISOString().split('T')[0]; });
-  const w30 = s.find(e=>{ const d=new Date(); d.setDate(d.getDate()-30); return e.date>=d.toISOString().split('T')[0]; });
+  const w7  = s.find(e=>{ const d=new Date(); d.setDate(d.getDate()-7); return e.date>=localDateStr(d); });
+  const w30 = s.find(e=>{ const d=new Date(); d.setDate(d.getDate()-30); return e.date>=localDateStr(d); });
 
   function deltaHTML(ref, id, noteId){
     if(!ref){ document.getElementById(id).textContent='—'; document.getElementById(noteId).textContent='Pas assez de données'; return; }
@@ -216,8 +230,10 @@ function render(){
 
   document.getElementById('lbm').textContent  = lbm.toFixed(1)+' kg';
   document.getElementById('fat').textContent  = bf.toFixed(1)+' %';
-  document.getElementById('lbm-note').textContent  = `~${bf.toFixed(0)}% masse grasse`;
-  document.getElementById('fat-note').textContent  = bf<15?'🟢 Athlétique':bf<22?'🟡 Fit':bf<28?'🟠 Normal':'🔴 Élevé';
+  document.getElementById('lbm-note').textContent  = `Masse grasse : ${fatMass.toFixed(1)} kg`;
+  const bfLabel = bf<8?'🔵 Très maigre':bf<15?'🟢 Athlétique':bf<22?'🟡 Fit':bf<28?'🟠 Normal':'🔴 Élevé';
+  const bfSource = isManualBF(last) ? ' · mesure manuelle' : ' · estimé';
+  document.getElementById('fat-note').textContent = bfLabel + bfSource;
 
   // Tendance
   const last5 = s.slice(-5);
@@ -234,17 +250,26 @@ function render(){
   buildChart('weight-chart', s.map(e=>e.date), s.map(e=>e.poids), '#3b82f6', 'Poids (kg)');
   // Chart masse maigre
   buildChart('lbm-chart', s.map(e=>e.date), s.map(e=>{
-    const b=estimateBF(e.poids);
+    const b=estimateBF(e.poids, e.body_fat);
     return parseFloat((e.poids*(1-b/100)).toFixed(1));
   }), '#22c55e', 'Masse maigre (kg)');
 
   // Liste
   const list = [...s].reverse().slice(0,20);
-  document.getElementById('log-list').innerHTML = list.map(e=>`
-    <div class="log-entry">
-      <div><div style="font-weight:600;">${e.poids} kg</div><div class="log-date">${e.date}${e.note?' — '+e.note:''}</div></div>
+  document.getElementById('log-list').innerHTML = list.map(e=>{
+    const b = estimateBF(e.poids, e.body_fat);
+    const lm = (e.poids*(1-b/100)).toFixed(1);
+    const badge = isManualBF(e)
+      ? `<span style="font-size:0.7rem;background:var(--blue)22;color:var(--blue);border-radius:4px;padding:1px 6px;">📐 ${b.toFixed(1)}%</span>`
+      : `<span style="font-size:0.7rem;background:var(--border);color:var(--muted);border-radius:4px;padding:1px 6px;">~${b.toFixed(1)}%</span>`;
+    return `<div class="log-entry">
+      <div>
+        <div style="font-weight:600;display:flex;align-items:center;gap:8px;">${e.poids} kg ${badge}</div>
+        <div class="log-date">${e.date} · maigre ${lm} kg${e.note?' — '+e.note:''}</div>
+      </div>
       <button class="log-del" onclick="deleteEntry('${e.date}',${e.poids})">✕</button>
-    </div>`).join('') || '<p class="text-muted" style="font-size:0.9rem;padding:8px 0;">Aucune entrée</p>';
+    </div>`;
+  }).join('') || '<p class="text-muted" style="font-size:0.9rem;padding:8px 0;">Aucune entrée</p>';
 }
 
 let wChart=null, lChart=null;
@@ -281,16 +306,22 @@ function openLog(){ document.getElementById('modal-log').classList.add('open'); 
 function closeLog(){ document.getElementById('modal-log').classList.remove('open'); }
 
 async function saveLog(){
-  const p=parseFloat(document.getElementById('log-poids').value);
-  const n=document.getElementById('log-note').value.trim();
+  const p  = parseFloat(document.getElementById('log-poids').value);
+  const bf = parseFloat(document.getElementById('log-bf').value) || null;
+  const n  = document.getElementById('log-note').value.trim();
   if(!p){ showToast('Entre ton poids','error'); return; }
-  const r=await fetch('/api/body_weight',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({poids:p,note:n})});
+  const payload = {poids:p, note:n};
+  if(bf) payload.body_fat = bf;
+  const r=await fetch('/api/body_weight',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   const d=await r.json();
   if(d.success){
-    const today=new Date().toISOString().split('T')[0];
-    bwData.push({date:today,poids:p,note:n});
+    const today=localDateStr();
+    const entry = {date:today, poids:p, note:n};
+    if(bf) entry.body_fat = bf;
+    bwData.push(entry);
     render(); closeLog();
     document.getElementById('log-poids').value='';
+    document.getElementById('log-bf').value='';
     document.getElementById('log-note').value='';
     showToast(`${p} kg sauvegardé ⚖️`);
   } else showToast('Erreur sauvegarde','error');

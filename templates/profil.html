@@ -240,10 +240,10 @@
 <div class="modal-overlay" id="modal-photo">
   <div class="modal-box" style="max-width: 320px;">
     <div class="modal-title">📷 Photo de profil</div>
-    <button class="btn btn-secondary btn-block mb-16" onclick="document.getElementById('photo-input-file').click(); closePhotoModal()">
+    <button class="btn btn-secondary btn-block mb-16" onclick="pickFromGallery()">
       🖼️ Choisir depuis la galerie
     </button>
-    <button class="btn btn-primary btn-block" onclick="document.getElementById('photo-input-camera').click(); closePhotoModal()">
+    <button class="btn btn-primary btn-block" onclick="takePhoto()">
       📷 Prendre une photo
     </button>
     <button class="btn btn-secondary btn-block mt-8" onclick="closePhotoModal()">
@@ -326,9 +326,66 @@
   </p>
   {% endif %}
 
-  <a href="/stats" class="btn btn-secondary btn-block mt-16">
+  <a href="/bodycomp" class="btn btn-secondary btn-block mt-16">
     📊 Voir la courbe complète
   </a>
+</div>
+
+<!-- BODY COMPOSITION -->
+<div class="card mb-16">
+  <div class="flex-between mb-16">
+    <div class="card-title" style="margin:0;">🧬 Composition corporelle</div>
+    <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="openCompModal()">+ Logger</button>
+  </div>
+
+  <div class="stats-row" id="comp-stats" style="margin-top:0;">
+    <div class="stat-box">
+      <div class="stat-val" id="comp-lbm">—</div>
+      <div class="stat-lbl">Masse maigre</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="comp-fat-pct" style="color:#f43f5e;">—</div>
+      <div class="stat-lbl">% Masse grasse</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="comp-fat-kg" style="color:#f43f5e;">—</div>
+      <div class="stat-lbl">Masse grasse</div>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;font-size:0.82rem;color:var(--muted);" id="comp-source">—</div>
+
+  <a href="/bodycomp" class="btn btn-secondary btn-block mt-16" style="font-size:0.85rem;">
+    📈 Historique & courbes détaillées
+  </a>
+</div>
+
+<!-- MODAL LOGGER COMPOSITION -->
+<div class="modal-overlay" id="modal-comp">
+  <div class="modal-box">
+    <div class="modal-title">🧬 Logger ma composition</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Poids (kg) *</label>
+        <input type="number" id="comp-poids" placeholder="Ex: 82.5" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>% Masse grasse <span style="color:var(--muted);font-size:0.75rem;">(optionnel)</span></label>
+        <input type="number" id="comp-bf" placeholder="Ex: 18.5" step="0.1" min="3" max="50">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Note (optionnel)</label>
+      <input type="text" id="comp-note" placeholder="Ex: Matin à jeun, DEXA...">
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:12px;">
+      Sans % MG, la masse grasse est estimée automatiquement.
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeCompModal()">Annuler</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveComp()">Sauvegarder ✅</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL MODIFIER PROFIL -->
@@ -475,6 +532,71 @@ function closePhotoModal() {
   document.getElementById('modal-photo').classList.remove('open');
 }
 
+function _isNative() {
+  return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+}
+
+async function _captureCameraPhoto(source) {
+  const Camera = window.Capacitor.Plugins.Camera;
+  const photo = await Camera.getPhoto({
+    resultType: 'dataUrl',
+    source: source,
+    quality: 82,
+    width: 400,
+    height: 400,
+    correctOrientation: true
+  });
+  return photo.dataUrl;
+}
+
+async function takePhoto() {
+  closePhotoModal();
+  if (_isNative()) {
+    try {
+      const dataUrl = await _captureCameraPhoto('CAMERA');
+      await _sendPhoto(dataUrl);
+    } catch (err) {
+      if (!String(err).includes('cancelled') && !String(err).includes('cancel')) {
+        showToast('Erreur caméra : ' + err.message, 'error');
+      }
+    }
+  } else {
+    document.getElementById('photo-input-camera').click();
+  }
+}
+
+async function pickFromGallery() {
+  closePhotoModal();
+  if (_isNative()) {
+    try {
+      const dataUrl = await _captureCameraPhoto('PHOTOS');
+      await _sendPhoto(dataUrl);
+    } catch (err) {
+      if (!String(err).includes('cancelled') && !String(err).includes('cancel')) {
+        showToast('Erreur galerie : ' + err.message, 'error');
+      }
+    }
+  } else {
+    document.getElementById('photo-input-file').click();
+  }
+}
+
+async function _sendPhoto(dataUrl) {
+  showToast('Mise à jour…');
+  const res = await fetch('/api/update_profile_photo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ photo_b64: dataUrl })
+  });
+  const result = await res.json();
+  if (result.success) {
+    document.getElementById('profile-avatar-img').src = dataUrl;
+    showToast('Photo mise à jour ! 📷');
+  } else {
+    showToast('Erreur: ' + (result.error || '?'), 'error');
+  }
+}
+
 async function uploadPhoto(input) {
   const file = input.files[0];
   if (!file) return;
@@ -556,6 +678,75 @@ function resizeImage(file, maxSize, quality) {
     document.getElementById(id).addEventListener('click', function(e) {
       if (e.target === this) this.classList.remove('open');
     });
+  });
+
+  // ── BODY COMPOSITION ─────────────────────────────────
+  (function initBodyComp() {
+    const raw  = JSON.parse(document.getElementById('bodyweight-data').textContent || '[]');
+    if (!raw.length) return;
+    const sorted = [...raw].sort((a, b) => a.date.localeCompare(b.date));
+    const last   = sorted[sorted.length - 1];
+    const w      = last.poids;
+
+    // Estimate BF (manual > Navy > BMI)
+    const profData = {{ profile | tojson }};
+    function getBF(entry) {
+      if (entry.body_fat != null && entry.body_fat > 0) return { val: entry.body_fat, manual: true };
+      const h    = parseFloat(profData.height || profData.height_cm || 0);
+      const age  = parseInt(profData.age || 30);
+      const neck = parseFloat(profData.neck_cm || 0);
+      const waist= parseFloat(profData.waist_cm || profData.abdomen_cm || 0);
+      if (h > 0 && neck > 0 && waist > 0) {
+        const bf = 495 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(h)) - 450;
+        return { val: Math.max(5, Math.min(50, bf)), manual: false };
+      }
+      if (h > 0) {
+        const bmi = w / ((h / 100) ** 2);
+        return { val: Math.max(3, 1.2 * bmi + 0.23 * age - 10.8 - 5.4), manual: false };
+      }
+      return { val: 18, manual: false };
+    }
+
+    const { val: bf, manual } = getBF(last);
+    const lbm     = (w * (1 - bf / 100)).toFixed(1);
+    const fatKg   = (w * (bf / 100)).toFixed(1);
+    const bfLabel = bf < 8  ? '🔵 Très maigre'
+                  : bf < 15 ? '🟢 Athlétique'
+                  : bf < 22 ? '🟡 Fit'
+                  : bf < 28 ? '🟠 Normal' : '🔴 Élevé';
+
+    document.getElementById('comp-lbm').textContent     = lbm + ' kg';
+    document.getElementById('comp-fat-pct').textContent = bf.toFixed(1) + ' %';
+    document.getElementById('comp-fat-kg').textContent  = fatKg + ' kg';
+    document.getElementById('comp-source').textContent  =
+      bfLabel + (manual ? ' · mesure manuelle · ' : ' · estimé · ') + 'maj ' + last.date;
+  })();
+
+  function openCompModal()  { document.getElementById('modal-comp').classList.add('open'); }
+  function closeCompModal() { document.getElementById('modal-comp').classList.remove('open'); }
+
+  async function saveComp() {
+    const poids = parseFloat(document.getElementById('comp-poids').value);
+    const bf    = parseFloat(document.getElementById('comp-bf').value) || null;
+    const note  = document.getElementById('comp-note').value.trim();
+    if (!poids) { showToast('Entre ton poids !', 'error'); return; }
+    const payload = { poids, note };
+    if (bf) payload.body_fat = bf;
+    const res  = await fetch('/api/body_weight', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`${poids} kg sauvegardé 🧬`);
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      showToast('Erreur !', 'error');
+    }
+  }
+
+  document.getElementById('modal-comp').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
   });
 
   // ── GRAPHIQUE POIDS ───────────────────────────────────

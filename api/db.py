@@ -29,8 +29,8 @@ if MODE != "OFFLINE":
             if MODE == "ONLINE":
                 # Pas de credentials → bascule HYBRID pour autoriser cache local
                 MODE = "HYBRID"
-    except Exception:
-        # Supabase SDK indisponible → on retombe HYBRID/OFFLINE
+    except BaseException:
+        # Supabase SDK indisponible (incl. pyo3 panics) → on retombe HYBRID/OFFLINE
         if MODE == "ONLINE":
             MODE = "HYBRID"
 

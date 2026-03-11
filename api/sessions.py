@@ -17,6 +17,24 @@ def log_session(date: str, rpe, comment: str, exos: list):
     }
     save_sessions(sessions)
 
+
+def log_second_session(date: str, rpe, comment: str, exos: list):
+    """Ajoute une deuxième séance à la journée sans écraser la première."""
+    sessions = load_sessions()
+    entry = sessions.setdefault(date, {"exos": [], "logged_at": datetime.now().strftime("%Y-%m-%d %H:%M")})
+    extra = entry.setdefault("extra_sessions", [])
+    extra.append({
+        "rpe":       rpe,
+        "comment":   comment,
+        "exos":      exos,
+        "logged_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+    })
+    save_sessions(sessions)
+
+
+def session_exists(date: str) -> bool:
+    return date in load_sessions()
+
 def get_last_sessions(n: int = 10) -> list:
     sessions = load_sessions()
     result   = []

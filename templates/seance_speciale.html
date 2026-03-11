@@ -227,6 +227,28 @@
 
 {% block content %}
 
+{% if already_logged %}
+<div class="card" id="already-logged-banner" style="border-color: rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); margin-bottom: 16px;">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 1.4rem;">✅</span>
+    <div>
+      <div style="font-weight: 700; color: var(--orange);">{{ session_type }} déjà loggé aujourd'hui</div>
+      {% if previous_session %}
+      <div class="text-muted" style="font-size: 0.82rem;">
+        {% if previous_session.logged_at %}Loggé à {{ previous_session.logged_at }}{% endif %}
+        {% if previous_session.rpe %} — RPE {{ previous_session.rpe }}{% endif %}
+        {% if previous_session.rounds_completes is defined %} — {{ previous_session.rounds_completes }} rounds{% endif %}
+        {% if previous_session.comment %} · {{ previous_session.comment }}{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <button class="btn btn-secondary" style="margin-top: 12px; width: 100%;" onclick="startSecondSession()">
+    + Logger une 2ème séance
+  </button>
+</div>
+{% endif %}
+
 <!-- QUOTE DU JOUR -->
 <div class="quote-card">
   <div class="quote-text" id="quote-text">Loading...</div>
@@ -357,6 +379,53 @@
   </button>
 </div>
 
+<!-- HISTORIQUE HIIT -->
+{% set past_hiit = hiit_log | selectattr('session_type', 'equalto', session_type) | list %}
+{% if past_hiit %}
+<div class="log-section" style="margin-top:16px;">
+  <div class="log-title">📅 Historique {{ session_type }}</div>
+
+  {% for entry in past_hiit[:3] %}
+  <div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+      <span style="font-size:0.82rem; color:var(--muted);">{{ entry.date }}</span>
+      {% if entry.rpe %}<span style="font-size:0.75rem; font-weight:600; color:var(--orange);">RPE {{ entry.rpe }}</span>{% endif %}
+    </div>
+    <div style="font-size:0.8rem; color:var(--text); line-height:1.6;">
+      {% if entry.rounds_completes is not none %}{{ entry.rounds_completes }}/{{ entry.rounds_planifies }} rounds{% endif %}
+      {% if entry.vitesse_max %} · Sprint {{ entry.vitesse_max }} km/h{% endif %}
+      {% if entry.vitesse_croisiere %} · Croisière {{ entry.vitesse_croisiere }} km/h{% endif %}
+      {% if entry.feeling and entry.feeling != '—' %} · {{ entry.feeling }}{% endif %}
+    </div>
+    {% if entry.comment %}<div style="font-size:0.75rem; color:var(--muted); font-style:italic; margin-top:2px;">{{ entry.comment }}</div>{% endif %}
+  </div>
+  {% endfor %}
+
+  {% if past_hiit | length > 3 %}
+  <details style="margin-top:8px;">
+    <summary style="font-size:0.78rem; color:var(--muted); cursor:pointer; list-style:none; padding:6px 0;">
+      Voir {{ (past_hiit | length) - 3 }} séance{{ 's' if (past_hiit | length) - 3 > 1 else '' }} de plus ▾
+    </summary>
+    {% for entry in past_hiit[3:] %}
+    <div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <span style="font-size:0.82rem; color:var(--muted);">{{ entry.date }}</span>
+        {% if entry.rpe %}<span style="font-size:0.75rem; font-weight:600; color:var(--orange);">RPE {{ entry.rpe }}</span>{% endif %}
+      </div>
+      <div style="font-size:0.8rem; color:var(--text); line-height:1.6;">
+        {% if entry.rounds_completes is not none %}{{ entry.rounds_completes }}/{{ entry.rounds_planifies }} rounds{% endif %}
+        {% if entry.vitesse_max %} · Sprint {{ entry.vitesse_max }} km/h{% endif %}
+        {% if entry.vitesse_croisiere %} · Croisière {{ entry.vitesse_croisiere }} km/h{% endif %}
+        {% if entry.feeling and entry.feeling != '—' %} · {{ entry.feeling }}{% endif %}
+      </div>
+      {% if entry.comment %}<div style="font-size:0.75rem; color:var(--muted); font-style:italic; margin-top:2px;">{{ entry.comment }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+
 {% endif %}
 
 <!-- ══════════════════════════════════════════════════ -->
@@ -415,6 +484,15 @@
 <div class="log-section">
   <div class="log-title">📋 Logger la séance</div>
 
+  {% if already_logged %}
+  <div style="border: 1px solid rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 1.4rem;">✅</span>
+    <div>
+      <div style="font-weight: 700; color: var(--orange);">Séance déjà loggée aujourd'hui</div>
+      {% if previous_session %}<div class="text-muted" style="font-size: 0.82rem;">Loggée à {{ previous_session.logged_at }} — RPE {{ previous_session.rpe or '—' }}</div>{% endif %}
+    </div>
+  </div>
+  {% else %}
   <button class="completion-btn" id="yoga-done-btn" onclick="toggleDone('yoga')">
     ✓
   </button>
@@ -432,6 +510,7 @@
   <button class="btn btn-primary btn-block" onclick="logSpeciale('yoga')">
     Sauvegarder ✅
   </button>
+  {% endif %}
 </div>
 
 {% endif %}
@@ -490,6 +569,15 @@
 <div class="log-section">
   <div class="log-title">📋 Logger la séance</div>
 
+  {% if already_logged %}
+  <div style="border: 1px solid rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 1.4rem;">✅</span>
+    <div>
+      <div style="font-weight: 700; color: var(--orange);">Séance déjà loggée aujourd'hui</div>
+      {% if previous_session %}<div class="text-muted" style="font-size: 0.82rem;">Loggée à {{ previous_session.logged_at }} — RPE {{ previous_session.rpe or '—' }}</div>{% endif %}
+    </div>
+  </div>
+  {% else %}
   <button class="completion-btn" id="recovery-done-btn" onclick="toggleDone('recovery')">
     ✓
   </button>
@@ -507,6 +595,7 @@
   <button class="btn btn-primary btn-block" onclick="logSpeciale('recovery')">
     Sauvegarder ✅
   </button>
+  {% endif %}
 </div>
 
 {% endif %}
@@ -515,6 +604,16 @@
 
 {% block extra_js %}
 <script>
+  // ── PROTECTION DOUBLE LOG ─────────────────────────────
+  const ALREADY_LOGGED = {{ 'true' if already_logged else 'false' }};
+  let   secondSession  = false;
+
+  function startSecondSession() {
+    secondSession = true;
+    document.getElementById('already-logged-banner').style.display = 'none';
+    showToast('Mode 2ème séance activé 💪');
+  }
+
   // ── QUOTES ────────────────────────────────────────────
   const quotes = [
     { text: "The pain you feel today will be the strength you feel tomorrow.", author: "— Arnold Schwarzenegger" },
@@ -757,30 +856,33 @@
   }
 
   async function logHIIT() {
-    const rounds       = parseInt(document.getElementById('log-rounds').value) || MAX_ROUNDS;
-    const vitesse_max  = parseFloat(document.getElementById('log-speed').value) || null;
+    if (ALREADY_LOGGED && !secondSession) {
+      showToast('Séance déjà loggée ! Clique sur "+ Logger une 2ème séance".', 'error');
+      return;
+    }
+
+    const rounds            = parseInt(document.getElementById('log-rounds').value) || MAX_ROUNDS;
+    const vitesse_max       = parseFloat(document.getElementById('log-speed').value) || null;
     const vitesse_croisiere = parseFloat(document.getElementById('log-cruise').value) || null;
-    const rpe          = parseInt(document.getElementById('log-rpe').value) || null;
-    const feeling      = document.getElementById('log-feeling').value;
-    const comment      = document.getElementById('log-comment').value.trim();
+    const rpe               = parseInt(document.getElementById('log-rpe').value) || null;
+    const feeling           = document.getElementById('log-feeling').value;
+    const comment           = document.getElementById('log-comment').value.trim();
 
     const res = await fetch('/api/log_hiit', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
-        rounds,           // ✅ clé attendue par api_log_hiit
-        speed: vitesse_max,
-        vitesse_croisiere,
-        rpe,
-        feeling,
-        comment,
-        session_type: "{{ session_type }}",
-        week: {{ week }}
+        rounds, speed: vitesse_max, vitesse_croisiere, rpe, feeling, comment,
+        session_type:   "{{ session_type }}",
+        week:           {{ week }},
+        date:           new Date().toLocaleDateString('en-CA'),
+        second_session: secondSession
       })
     });
 
     const data = await res.json();
     if (data.success) {
+      haptic('success');
       showToast('HIIT sauvegardé ! 🏃');
       setTimeout(() => window.location.href = '/', 1500);
     } else {
@@ -790,6 +892,11 @@
 
   // ── LOG YOGA / RECOVERY ───────────────────────────────
   async function logSpeciale(type) {
+    if (ALREADY_LOGGED && !secondSession) {
+      showToast('Séance déjà loggée ! Clique sur "+ Logger une 2ème séance".', 'error');
+      return;
+    }
+
     const rpeId     = type === 'yoga' ? 'yoga-rpe' : 'recovery-rpe';
     const commentId = type === 'yoga' ? 'yoga-comment' : 'recovery-comment';
     const rpe       = parseInt(document.getElementById(rpeId).value) || null;
@@ -801,15 +908,22 @@
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         rpe,
-        comment: `[${type.toUpperCase()}${done ? ' ✅' : ''}] ${comment}`,
-        exos:    ["{{ session_type }}"]
+        comment:        `[${type.toUpperCase()}${done ? ' ✅' : ''}] ${comment}`,
+        exos:           ["{{ session_type }}"],
+        date:           new Date().toLocaleDateString('en-CA'),
+        second_session: secondSession
       })
     });
 
     const data = await res.json();
     if (data.success) {
+      haptic('success');
       showToast(`${type === 'yoga' ? 'Yoga' : 'Recovery'} sauvegardé ! ✅`);
       setTimeout(() => window.location.href = '/', 1500);
+    } else if (data.error === 'already_logged') {
+      showToast('Séance déjà loggée aujourd\'hui !', 'error');
+    } else {
+      showToast('Erreur sauvegarde !', 'error');
     }
   }
 </script>
