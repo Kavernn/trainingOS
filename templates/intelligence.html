@@ -105,6 +105,7 @@
 <script id="s-data" type="application/json">{{ sessions | tojson }}</script>
 <script id="h-data" type="application/json">{{ hiit_log | tojson }}</script>
 <script id="i-data" type="application/json">{{ inventory| tojson }}</script>
+<script id="p-data" type="application/json">{{ program  | tojson }}</script>
 
 <div class="flex-between mb-16">
   <h2 style="color:#a855f7;">🧠 Intelligence</h2>
@@ -126,18 +127,21 @@
   <div id="muscle-map" class="muscle-map"></div>
 </div>
 
-<!-- IA OPENROUTER -->
-<div class="section-title fu fu3">🤖 Analyse IA (OpenRouter)</div>
+<!-- IA CLAUDE -->
+<div class="section-title fu fu3">🤖 Coach IA — Claude</div>
 
 <div class="ai-section fu fu3">
   <div class="ai-title">
-    <span>💬</span> Coaching personnalisé
+    <span>💬</span> Coaching personnalisé par Claude
   </div>
-  <div class="ai-response loading pulsing" id="ai-coach">Clique pour générer une analyse...</div>
+  <div class="ai-response loading pulsing" id="ai-coach">Clique sur un bouton pour obtenir une analyse personnalisée...</div>
   <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
-    <button class="btn-ai" id="btn-analyse" onclick="runAI('analyse')">📊 Analyser mes données</button>
-    <button class="btn-ai" onclick="runAI('fatigue')">😴 Évaluer ma fatigue</button>
-    <button class="btn-ai" onclick="runAI('suggestion')">🎯 Suggérer ma prochaine séance</button>
+    <button class="btn-ai" onclick="runAI('analyse')">📊 Analyser</button>
+    <button class="btn-ai" onclick="runAI('fatigue')">😴 Fatigue</button>
+    <button class="btn-ai" onclick="runAI('suggestion')">🎯 Prochaine séance</button>
+    <button class="btn-ai" onclick="runAI('progression')">📈 Progression</button>
+    <button class="btn-ai" onclick="runAI('programme')" style="border-color:var(--purple)55;color:var(--purple);background:var(--purple)11;">🏋️ Modifier programme</button>
+    <button class="btn-ai" onclick="runAI('hiit')" style="border-color:var(--orange)55;color:var(--orange);background:var(--orange)11;">⚡ Optimiser HIIT</button>
   </div>
 </div>
 
@@ -145,10 +149,16 @@
 
 {% block extra_js %}
 <script>
-const W   = JSON.parse(document.getElementById('w-data').textContent);
-const S   = JSON.parse(document.getElementById('s-data').textContent);
-const H   = JSON.parse(document.getElementById('h-data').textContent);
-const INV = JSON.parse(document.getElementById('i-data').textContent||'{}');
+const W    = JSON.parse(document.getElementById('w-data').textContent);
+const S    = JSON.parse(document.getElementById('s-data').textContent);
+const H    = JSON.parse(document.getElementById('h-data').textContent);
+const INV  = JSON.parse(document.getElementById('i-data').textContent||'{}');
+const PROG = JSON.parse(document.getElementById('p-data').textContent||'{}');
+
+function localDateStr(d) {
+  const dd = d || new Date();
+  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+}
 
 function parseReps(r){ return String(r||'').split(',').map(Number).filter(n=>n>0); }
 
@@ -161,7 +171,7 @@ function recentDates(n){
 
 function volumeByMuscle(days){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
-  const cut=cutoff.toISOString().split('T')[0];
+  const cut=localDateStr(cutoff);
   const vol={};
   const GROUPS={
     pectorals:'Pecs',chest:'Pecs',
@@ -188,14 +198,14 @@ function volumeByMuscle(days){
 
 function avgRPE(days){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
-  const cut=cutoff.toISOString().split('T')[0];
+  const cut=localDateStr(cutoff);
   const vals=Object.entries(S).filter(([d,s])=>d>=cut&&s.rpe).map(([,s])=>s.rpe);
   return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
 }
 
 function sessionFreq(days){
   const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
-  const cut=cutoff.toISOString().split('T')[0];
+  const cut=localDateStr(cutoff);
   const dates=new Set();
   Object.values(W).forEach(d=>(d.history||[]).forEach(e=>e.date>=cut&&dates.add(e.date)));
   H.forEach(e=>e.date>=cut&&dates.add(e.date));
@@ -270,51 +280,192 @@ function renderMuscleMap(){
   }).join('');
 }
 
-// ── AI OPENROUTER ─────────────────────────────────────
-async function runAI(mode){
-  const el=document.getElementById('ai-coach');
-  const btn=document.getElementById('btn-analyse');
-  el.className='ai-response loading pulsing';
-  el.textContent='Analyse en cours...';
-  document.querySelectorAll('.btn-ai').forEach(b=>b.disabled=true);
+// ── AI CLAUDE ─────────────────────────────────────────
 
-  // Prépare le contexte condensé
-  const freq7=sessionFreq(7);
-  const rpe7=avgRPE(7).toFixed(1);
-  const vol7=volumeByMuscle(7);
-  const prs=Object.entries(W).map(([ex,d])=>{
-    let best=0;
-    (d.history||[]).forEach(e=>{
-      const r=parseReps(e.reps),w=e.weight||0;
-      if(!r.length||!w) return;
-      const orm=w*(1+r.reduce((a,b)=>a+b,0)/r.length/30);
-      if(orm>best) best=orm;
+// Groupes musculaires par exercice (via inventory)
+const MUSCLE_GROUPS = {
+  pectorals:'Pecs', chest:'Pecs', pecs:'Pecs',
+  lats:'Dos', back:'Dos', 'lower back':'Dos', rhomboids:'Dos', traps:'Dos',
+  quads:'Jambes', hamstrings:'Jambes', glutes:'Jambes', calves:'Jambes', 'hip flexors':'Jambes',
+  delts:'Épaules', shoulders:'Épaules', 'front delt':'Épaules', 'side delt':'Épaules', 'rear delt':'Épaules',
+  biceps:'Biceps', triceps:'Triceps',
+  abs:'Core', core:'Core', obliques:'Core',
+};
+
+function getMuscleGroup(exName) {
+  const inv = INV[exName];
+  if (!inv) return null;
+  const muscles = Array.isArray(inv.muscles) ? inv.muscles : [inv.category];
+  for (const m of muscles) {
+    const g = MUSCLE_GROUPS[(m||'').toLowerCase()];
+    if (g) return g;
+  }
+  return null;
+}
+
+function setsPerMuscle(days) {
+  const cutoff = localDateStr(new Date(Date.now() - days * 864e5));
+  const sets = {};
+  for (const [ex, d] of Object.entries(W)) {
+    const grp = getMuscleGroup(ex);
+    if (!grp) continue;
+    for (const e of (d.history || [])) {
+      if (e.date < cutoff) continue;
+      const nSets = parseReps(e.reps).length || 1;
+      sets[grp] = (sets[grp] || 0) + nSets;
+    }
+  }
+  return sets;
+}
+
+function buildAIContext() {
+  const cut7  = localDateStr(new Date(Date.now() -  7 * 864e5));
+  const cut14 = localDateStr(new Date(Date.now() - 14 * 864e5));
+  const cut30 = localDateStr(new Date(Date.now() - 30 * 864e5));
+  const cut60 = localDateStr(new Date(Date.now() - 60 * 864e5));
+
+  const freq7  = sessionFreq(7);
+  const freq14 = sessionFreq(14);
+  const rpe7   = avgRPE(7).toFixed(1);
+
+  // Sets par muscle (pas volume brut)
+  const sets7  = setsPerMuscle(7);
+  const sets14 = setsPerMuscle(14);
+
+  // Muscles non travaillés cette semaine
+  const allGroups = ['Pecs','Dos','Jambes','Épaules','Biceps','Triceps'];
+  const neglected = allGroups.filter(g => !sets7[g]);
+
+  // Top PRs (1RM Epley)
+  const prs = Object.entries(W).map(([ex, d]) => {
+    let best = 0;
+    (d.history || []).forEach(e => {
+      const r = parseReps(e.reps), w = e.weight || 0;
+      if (!r.length || !w) return;
+      const orm = w * (1 + r.reduce((a,b)=>a+b,0)/r.length / 30);
+      if (orm > best) best = orm;
     });
-    return best>0?`${ex}:${Math.round(best)}lbs`:null;
-  }).filter(Boolean).slice(0,5).join(', ');
+    return best > 0 ? `${ex}: ~${Math.round(best)} lbs` : null;
+  }).filter(Boolean).slice(0, 8);
 
-  const ctx=`Athlète TrainingOS. Cette semaine: ${freq7} séances, RPE moyen ${rpe7}/10. Volume par muscle: ${JSON.stringify(vol7)}. Top PRs (1RM estimé): ${prs||'aucun encore'}. Séances HIIT: ${H.length} total.`;
+  // Progression par exercice (30j vs 30j précédents)
+  const progressions = [], stagnations = [];
+  for (const [ex, d] of Object.entries(W)) {
+    const h = d.history || [];
+    const r  = h.filter(e => e.date >= cut30).map(e => e.weight || 0);
+    const o  = h.filter(e => e.date >= cut60 && e.date < cut30).map(e => e.weight || 0);
+    if (!r.length || !o.length) continue;
+    const avgR = r.reduce((a,b)=>a+b,0)/r.length;
+    const avgO = o.reduce((a,b)=>a+b,0)/o.length;
+    const pct  = ((avgR - avgO) / avgO * 100).toFixed(0);
+    if (pct >= 3)  progressions.push(`${ex} +${pct}%`);
+    else if (pct <= -3) stagnations.push(`${ex} ${pct}%`);
+    else if (r.length >= 3) stagnations.push(`${ex} stagne`);
+  }
 
-  const prompts={
-    analyse: `${ctx}\n\nFais une analyse courte et actionnable de mon entraînement (5-6 phrases max). Identifie les points forts, les axes d'amélioration, et une recommandation concrète pour cette semaine. Réponds en français, de façon directe et motivante.`,
-    fatigue: `${ctx}\n\nÉvalue mon niveau de fatigue et de récupération. Est-ce que je suis en surcharge, en sous-entraînement, ou dans la zone optimale ? Donne une recommandation concrète pour les 3 prochains jours. En français, 4-5 phrases max.`,
-    suggestion: `${ctx}\n\nSuggère-moi la prochaine séance idéale selon mes données. Quel type de séance, quels muscles cibler, quelle intensité viser ? Sois précis et pratique. En français, 4-5 phrases max.`,
+  // Programme actuel
+  const progLines = Object.entries(PROG).map(([jour, exos]) =>
+    `  ${jour}: ${Object.entries(exos).map(([e,s])=>`${e} (${s})`).join(', ')}`
+  );
+
+  // HIIT résumé
+  const hiit7  = H.filter(e => e.date >= cut7);
+  const hiit30 = H.filter(e => e.date >= cut30);
+  const hiitTypes = {};
+  hiit30.forEach(e => { hiitTypes[e.session_type||'HIIT'] = (hiitTypes[e.session_type||'HIIT']||0)+1; });
+
+  // Dernière séance
+  const allDates = new Set();
+  Object.values(W).forEach(d => (d.history||[]).forEach(e => e.date && allDates.add(e.date)));
+  H.forEach(e => e.date && allDates.add(e.date));
+  const lastDate = [...allDates].sort().at(-1) || 'aucune';
+
+  return { freq7, freq14, rpe7, sets7, sets14, neglected, prs,
+           progressions: progressions.slice(0,6), stagnations: stagnations.slice(0,6),
+           progLines, hiit7: hiit7.length, hiit30: hiit30.length, hiitTypes,
+           hiitRecent: H.slice(-5).reverse(), lastDate };
+}
+
+async function runAI(mode) {
+  const el = document.getElementById('ai-coach');
+  el.className = 'ai-response loading pulsing';
+  el.textContent = 'Claude analyse tes données...';
+  document.querySelectorAll('.btn-ai').forEach(b => b.disabled = true);
+
+  const c = buildAIContext();
+
+  const ctx = [
+    `=== Données TrainingOS — ${localDateStr(new Date())} ===`,
+    ``,
+    `FRÉQUENCE: ${c.freq7} séances/7j, ${c.freq14}/14j | Dernière: ${c.lastDate} | RPE moyen 7j: ${c.rpe7}/10`,
+    ``,
+    `SETS PAR GROUPE MUSCULAIRE (7 derniers jours):`,
+    ...Object.entries(c.sets7).map(([g,s]) => `  ${g}: ${s} sets`),
+    c.neglected.length ? `  Non travaillés: ${c.neglected.join(', ')}` : '',
+    ``,
+    `SETS PAR GROUPE (14 derniers jours):`,
+    ...Object.entries(c.sets14).map(([g,s]) => `  ${g}: ${s} sets`),
+    ``,
+    `TOP PRs ESTIMÉS (1RM Epley): ${c.prs.join(' | ')||'aucun'}`,
+    c.progressions.length ? `PROGRESSION 30j: ${c.progressions.join(', ')}` : '',
+    c.stagnations.length  ? `STAGNATION/RÉGRESSION: ${c.stagnations.join(', ')}` : '',
+    ``,
+    `PROGRAMME ACTUEL:`,
+    ...c.progLines,
+    ``,
+    `HIIT: ${c.hiit7} sessions cette semaine, ${c.hiit30} ce mois`,
+    Object.keys(c.hiitTypes).length ? `Types: ${Object.entries(c.hiitTypes).map(([t,n])=>`${t}×${n}`).join(', ')}` : '',
+    c.hiitRecent.length ? `5 dernières sessions HIIT: ${c.hiitRecent.map(e=>`${e.date} ${e.session_type||''} ${e.duration||''}min`).join(' | ')}` : '',
+  ].filter(s => s !== undefined && s !== null && s !== '').join('\n');
+
+  const prompts = {
+    analyse:
+      `${ctx}\n\nFais une analyse globale et personnalisée de mon entraînement (5-6 phrases). `+
+      `Identifie les points forts, les déséquilibres musculaires (basés sur les sets, pas le poids), `+
+      `et donne UNE recommandation concrète prioritaire pour cette semaine.`,
+
+    fatigue:
+      `${ctx}\n\nÉvalue mon niveau de fatigue et de récupération. `+
+      `Basé sur la fréquence, le RPE et la distribution des sets, suis-je en surcharge, sous-entraîné ou dans la zone optimale ? `+
+      `Donne des recommandations concrètes pour les 3 prochains jours (muscu + HIIT). 4-5 phrases.`,
+
+    suggestion:
+      `${ctx}\n\nSuggère la prochaine séance idéale. `+
+      `Quel jour du programme prioriser ? Quels exercices et à quelle intensité (RPE cible) ? `+
+      `Tiens compte des muscles négligés et de la récupération. Sois précis. 4-5 phrases.`,
+
+    progression:
+      `${ctx}\n\nAnalyse ma progression sur 30-60 jours exercice par exercice. `+
+      `Quels exercices avancent bien ? Lesquels stagnent et pourquoi ? `+
+      `Que dois-je ajuster dans ma technique ou ma programmation pour débloquer ces exercices ? 5-6 phrases.`,
+
+    programme:
+      `${ctx}\n\nAnalyse mon programme actuel et propose des modifications concrètes. `+
+      `Y a-t-il des déséquilibres agoniste/antagoniste ? Des exercices redondants ? Des groupes sous-représentés ? `+
+      `Propose des changements précis: exercices à ajouter/remplacer avec leurs schemes (ex: 3x8-10). `+
+      `Justifie chaque changement. 6-7 phrases.`,
+
+    hiit:
+      `${ctx}\n\nAnalyse mes sessions HIIT et propose des optimisations. `+
+      `La fréquence est-elle adaptée à ma charge musculaire ? Y a-t-il assez de récupération ? `+
+      `Suggère des ajustements concrets: fréquence idéale, types de sessions à privilégier, `+
+      `placement dans la semaine par rapport à la musculation. 5-6 phrases.`,
   };
 
   try {
-    const res=await fetch('/api/ai/coach',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({prompt:prompts[mode]})
+    const res = await fetch('/api/ai/coach', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt: prompts[mode]})
     });
-    const data=await res.json();
-    el.className='ai-response';
-    el.textContent=data.response||data.error||'Erreur inconnue';
-  } catch(e){
-    el.className='ai-response error';
-    el.textContent='Erreur de connexion à l\'API. Vérifie ta clé OpenRouter dans .env';
+    const data = await res.json();
+    el.className = 'ai-response fu';
+    el.textContent = data.response || data.error || 'Erreur inconnue';
+  } catch(e) {
+    el.className = 'ai-response error';
+    el.textContent = 'Erreur de connexion. Vérifie que ANTHROPIC_API_KEY est configurée.';
   }
-  document.querySelectorAll('.btn-ai').forEach(b=>b.disabled=false);
+  document.querySelectorAll('.btn-ai').forEach(b => b.disabled = false);
 }
 
 renderInsights();

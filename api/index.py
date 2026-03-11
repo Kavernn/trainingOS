@@ -5,22 +5,43 @@ from threading import Timer
 from datetime import datetime, date
 from pathlib import Path
 
+# Charge le .env pour le dev local (no-op sur Vercel)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / '.env')
+except ImportError:
+    pass
+
 # ✅ Ajoute /api au path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, render_template, jsonify, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 
-from planner      import get_today, get_week_schedule, get_suggested_weights_for_today, load_program, save_program
+from planner      import (get_today, get_week_schedule, get_suggested_weights_for_today,
+                           load_program, save_program,
+                           load_program_v2, save_program_v2,
+                           load_schedule, save_schedule,
+                           get_today_v2, get_today_blocks, get_week_schedule_v2)
 from hiit         import get_hiit_str
 from log_workout  import load_weights, save_weights, log_single_exercise
 from inventory    import load_inventory, save_inventory, calculate_plates
-from sessions     import load_sessions, log_session
+from sessions     import load_sessions, log_session, log_second_session, session_exists
 from user_profile import load_user_profile, save_user_profile
 from progression  import estimate_1rm, should_increase, next_weight, parse_reps, progression_status
 from deload       import analyser_deload, load_deload_state
 from goals        import load_goals, check_goals_achieved, get_progress_bar, set_goal
 from body_weight  import load_body_weight, log_body_weight, get_tendance
+from nutrition    import (load_settings as load_nutrition_settings,
+                          save_settings as save_nutrition_settings,
+                          get_today_entries, get_today_totals,
+                          add_entry as nutrition_add_entry,
+                          delete_entry as nutrition_delete_entry,
+                          get_recent_days)
+from block_session import (load_sessions_v2, save_sessions_v2, log_session_v2,
+                            session_v2_exists, get_session_v2, delete_session_v2,
+                            edit_session_v2, get_last_sessions_v2, get_block_type_icon,
+                            STRENGTH, HIIT, CARDIO)
 from db           import get_json, set_json
 from db           import _ON_VERCEL
 
@@ -88,8 +109,20 @@ def index():
             "since":    deload_state.get("since", "")
         }
 
+    today_str  = get_today()
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    hiit_log   = load_hiit_log_local()
+
+    if today_str in ['HIIT 1', 'HIIT 2']:
+        already_logged_today = any(
+            e.get("date") == today_date and e.get("session_type") == today_str
+            for e in hiit_log
+        )
+    else:
+        already_logged_today = today_date in sessions
+
     return render_template("index.html",
-        today        = get_today(),
+        today        = today_str,
         week         = get_current_week(),
         profile      = profile,
         suggestions  = suggestions,
@@ -98,8 +131,58 @@ def index():
         full_program = full_program,
         deload_state = deload_state,
         sessions     = sessions,
-        now          = datetime.now().strftime("%A")
+        weights      = weights,
+        hiit_log              = hiit_log,
+        now                   = datetime.now().strftime("%A"),
+        nutrition_totals      = get_today_totals(),
+        nutrition_settings    = load_nutrition_settings(),
+        already_logged_today  = already_logged_today,
     )
+
+
+@app.route("/nutrition")
+def nutrition():
+    settings = load_nutrition_settings()
+    entries  = get_today_entries()
+    totals   = get_today_totals()
+    recent   = get_recent_days(7)
+    return render_template("nutrition.html",
+        settings = settings,
+        entries  = entries,
+        totals   = totals,
+        recent   = recent,
+        today    = datetime.now().strftime("%Y-%m-%d"),
+    )
+
+
+@app.route("/api/nutrition/add", methods=["POST"])
+def api_nutrition_add():
+    data  = request.get_json()
+    entry = nutrition_add_entry(
+        nom      = data.get("nom", ""),
+        calories = float(data.get("calories", 0)),
+        proteines= float(data.get("proteines", 0)),
+        glucides = float(data.get("glucides", 0)),
+        lipides  = float(data.get("lipides", 0)),
+    )
+    return jsonify({"success": True, "entry": entry, "totals": get_today_totals()})
+
+
+@app.route("/api/nutrition/delete", methods=["POST"])
+def api_nutrition_delete():
+    data = request.get_json()
+    ok   = nutrition_delete_entry(data.get("id", ""))
+    return jsonify({"success": ok, "totals": get_today_totals()})
+
+
+@app.route("/api/nutrition/settings", methods=["POST"])
+def api_nutrition_settings():
+    data = request.get_json()
+    save_nutrition_settings(
+        int(data.get("limite_calories", 2200)),
+        int(data.get("objectif_proteines", 160)),
+    )
+    return jsonify({"success": True})
 
 
 @app.route("/inventaire")
@@ -110,68 +193,120 @@ def inventaire():
 @app.route("/programme")
 def programme():
     return render_template("programme.html",
-        program   = load_program(),
-        inventory = load_inventory(),
-        today     = get_today(),
-        schedule  = get_week_schedule()
+        program    = load_program(),
+        program_v2 = load_program_v2(),
+        inventory  = load_inventory(),
+        today      = get_today_v2(),
+        schedule   = get_week_schedule(),
+        schedule_v2= load_schedule(),
     )
 
 
 @app.route("/seance")
 def seance():
-    weights  = load_weights()
-    today    = get_today()
-    sessions = load_sessions()
+    weights    = load_weights()
+    today      = get_today_v2()   # uses schedule_v2
     today_date = datetime.now().strftime("%Y-%m-%d")
+    sessions   = load_sessions()
+    inv        = load_inventory()
+    week       = get_current_week()
 
-    if today in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery']:
-        return redirect(url_for('seance_speciale', session_type=today))
+    # Check already-logged state across both v1 and v2
+    hiit_log         = load_hiit_log_local()
+    already_logged_v2 = session_v2_exists(today_date)
+    already_logged_v1 = (today_date in sessions) or any(
+        e.get("date") == today_date and e.get("session_type") == today
+        for e in hiit_log
+    )
+    already_logged   = already_logged_v2 or already_logged_v1
+    previous_session = get_session_v2(today_date) or sessions.get(today_date)
 
-    already_logged   = today_date in sessions
-    previous_session = sessions.get(today_date)
+    # Build enriched block list for the template
+    blocks    = get_today_blocks()
+    ui_blocks = []
+    for block in blocks:
+        btype = block.get("type", "")
+        if btype == STRENGTH:
+            exercises = []
+            for ex, scheme in block.get("exercises", {}).items():
+                data    = weights.get(ex, {})
+                ex_info = inv.get(ex, {})
+                current = data.get("current_weight", 0) or 0
+                ex_type = ex_info.get("type", "machine")
+                bar_w   = ex_info.get("bar_weight", 45.0)
+                if ex_type == "barbell" and current:
+                    display = f"{(current - bar_w) / 2:.1f} lbs par côté"
+                elif ex_type == "dumbbell" and current:
+                    display = f"{current / 2:.1f} lbs par haltère"
+                else:
+                    display = f"{current:.1f} lbs" if current else "À définir"
+                plates_needed = calculate_plates(current, bar_w) if ex_type == "barbell" and current > bar_w else []
+                exercises.append({
+                    "name":    ex,
+                    "scheme":  scheme,
+                    "current": current,
+                    "display": display,
+                    "type":    ex_type,
+                    "plates":  plates_needed,
+                    "history": data.get("history", [])[:3],
+                    "1rm":     data.get("history", [{}])[0].get("1rm", 0) if data.get("history") else 0
+                })
+            ui_blocks.append({"type": STRENGTH, "exercises": exercises})
 
-    program   = load_program()
-    inv       = load_inventory()
-    exercises = []
-
-    if today in program:
-        for ex, scheme in program[today].items():
-            data    = weights.get(ex, {})
-            ex_info = inv.get(ex, {})
-            current = data.get("current_weight", 0) or 0
-            ex_type = ex_info.get("type", "machine")
-            bar_w   = ex_info.get("bar_weight", 45.0)
-
-            if ex_type == "barbell" and current:
-                display = f"{(current - bar_w) / 2:.1f} lbs par côté"
-            elif ex_type == "dumbbell" and current:
-                display = f"{current / 2:.1f} lbs par haltère"
-            else:
-                display = f"{current:.1f} lbs" if current else "À définir"
-
-            plates_needed = []
-            if ex_type == "barbell" and current > bar_w:
-                plates_needed = calculate_plates(current, bar_w)
-
-            exercises.append({
-                "name":    ex,
-                "scheme":  scheme,
-                "current": current,
-                "display": display,
-                "type":    ex_type,
-                "plates":  plates_needed,
-                "history": data.get("history", [])[:3],
-                "1rm":     data.get("history", [{}])[0].get("1rm", 0) if data.get("history") else 0
+        elif btype == HIIT:
+            ui_blocks.append({
+                "type":         HIIT,
+                "rounds":       block.get("rounds", 8),
+                "sprint":       block.get("sprint", 30),
+                "rest":         block.get("rest", 90),
+                "speed_target": block.get("speed_target", "12-14 km/h"),
+                "hiit_str":     get_hiit_str(week),
             })
+
+        elif btype == CARDIO:
+            ui_blocks.append({
+                "type":         CARDIO,
+                "duration_min": block.get("duration_min", 30),
+                "distance_km":  block.get("distance_km", 0.0),
+                "cardio_type":  block.get("cardio_type", "steady-state"),
+            })
+
+    # Fallback: legacy strength-only session (no blocks defined)
+    if not ui_blocks:
+        program = load_program()
+        if today in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery']:
+            return redirect(url_for('seance_speciale', session_type=today))
+        if today in program:
+            exercises = []
+            for ex, scheme in program[today].items():
+                data    = weights.get(ex, {})
+                ex_info = inv.get(ex, {})
+                current = data.get("current_weight", 0) or 0
+                ex_type = ex_info.get("type", "machine")
+                bar_w   = ex_info.get("bar_weight", 45.0)
+                if ex_type == "barbell" and current:
+                    display = f"{(current - bar_w) / 2:.1f} lbs par côté"
+                elif ex_type == "dumbbell" and current:
+                    display = f"{current / 2:.1f} lbs par haltère"
+                else:
+                    display = f"{current:.1f} lbs" if current else "À définir"
+                plates_needed = calculate_plates(current, bar_w) if ex_type == "barbell" and current > bar_w else []
+                exercises.append({
+                    "name":    ex, "scheme":  scheme, "current": current,
+                    "display": display, "type": ex_type, "plates": plates_needed,
+                    "history": data.get("history", [])[:3],
+                    "1rm":     data.get("history", [{}])[0].get("1rm", 0) if data.get("history") else 0
+                })
+            ui_blocks = [{"type": STRENGTH, "exercises": exercises}]
 
     return render_template("seance.html",
         today            = today,
-        exercises        = exercises,
-        is_hiit          = "HIIT" in today,
-        hiit_str         = get_hiit_str(get_current_week()) if "HIIT" in today else "",
-        week             = get_current_week(),
+        ui_blocks        = ui_blocks,
+        week             = week,
         already_logged   = already_logged,
-        previous_session = previous_session
+        previous_session = previous_session,
+        program_v2       = load_program_v2(),
+        inventory        = inv,
     )
 
 
@@ -192,30 +327,85 @@ def seance_speciale(session_type):
     else:
         protocole = {"rounds": 10, "sprint_spd": 14.0, "jog_spd": 7.0, "duree": 25}
 
+    today_date = datetime.now().strftime("%Y-%m-%d")
+    hiit_log   = load_hiit_log_local()
+
+    if session_type in ['HIIT 1', 'HIIT 2']:
+        previous_session = next(
+            (e for e in hiit_log if e.get("date") == today_date and e.get("session_type") == session_type),
+            None
+        )
+        already_logged = previous_session is not None
+    else:
+        sessions         = load_sessions()
+        already_logged   = today_date in sessions
+        previous_session = sessions.get(today_date)
+
     return render_template("seance_speciale.html",
                            session_type=session_type,
                            protocole=protocole,
                            week=week,
-                           now=datetime.now().strftime("%Y-%m-%d")
+                           hiit_log=hiit_log,
+                           now=today_date,
+                           already_logged=already_logged,
+                           previous_session=previous_session,
                            )
 
 @app.route("/historique")
 def historique():
-    weights   = load_weights()
-    inv       = load_inventory()
-    exercices = []
+    weights     = load_weights()
+    sessions    = load_sessions()
+    hiit_log    = load_hiit_log_local()
+    sessions_v2 = load_sessions_v2()
+
+    # Build index: date -> list of {exercise, weight, reps} from weights history
+    ex_by_date = {}
     for ex, data in weights.items():
-        if ex == "sessions":
-            continue
-        info = inv.get(ex, {})
-        exercices.append({
-            "name":    ex,
-            "type":    info.get("type", "—"),
-            "muscles": info.get("muscles", []),
-            "history": data.get("history", [])[:10],
-            "current": data.get("current_weight", 0)
-        })
-    return render_template("historique.html", exercices=exercices)
+        for entry in data.get("history", []):
+            d = entry.get("date")
+            if not d:
+                continue
+            ex_by_date.setdefault(d, []).append({
+                "exercise": ex,
+                "weight":   entry.get("weight", 0),
+                "reps":     entry.get("reps", ""),
+            })
+
+    # Collect all dates from v1 sessions and v2 sessions
+    all_dates = set(sessions.keys()) | set(ex_by_date.keys()) | set(sessions_v2.keys())
+    session_list = []
+    for d in sorted(all_dates, reverse=True):
+        if d in sessions_v2:
+            # New modular session — include block summary
+            sv2 = sessions_v2[d]
+            blocks = sv2.get("blocks", [])
+            session_list.append({
+                "date":     d,
+                "type":     "v2",
+                "template": sv2.get("template", ""),
+                "blocks":   blocks,
+                "rpe":      next((b.get("rpe") for b in blocks if b.get("rpe")), None),
+                "comment":  next((b.get("comment", "") for b in blocks if b.get("comment")), ""),
+                "exos":     ex_by_date.get(d, []),
+            })
+        elif d in sessions or d in ex_by_date:
+            s = sessions.get(d, {})
+            session_list.append({
+                "date":    d,
+                "type":    "muscu",
+                "rpe":     s.get("rpe"),
+                "comment": s.get("comment", ""),
+                "exos":    ex_by_date.get(d, []),
+            })
+
+    hiit_list = sorted(hiit_log, key=lambda x: x.get("date",""), reverse=True)
+
+    return render_template("historique.html",
+        session_list      = session_list[:60],
+        hiit_list         = hiit_list[:30],
+        weights           = weights,
+        get_block_type_icon = get_block_type_icon,
+    )
 
 
 @app.route("/hiit")
@@ -286,6 +476,7 @@ def intelligence():
         sessions  = load_sessions(),
         hiit_log  = load_hiit_log_local(),
         inventory = load_inventory(),
+        program   = load_program(),
         now       = datetime.now().strftime("%Y-%m-%d"),
         week      = datetime.now().isocalendar()[1]
     )
@@ -294,12 +485,16 @@ def intelligence():
 @app.route("/planificateur")
 def planificateur():
     return render_template("planificateur.html",
-        weights      = load_weights(),
-        sessions     = load_sessions(),
-        hiit_log     = load_hiit_log_local(),
-        full_program = load_program(),
-        now          = datetime.now().strftime("%Y-%m-%d"),
-        week         = datetime.now().isocalendar()[1]
+        weights          = load_weights(),
+        sessions         = load_sessions(),
+        hiit_log         = load_hiit_log_local(),
+        full_program     = load_program(),
+        schedule         = get_week_schedule(),
+        schedule_v2      = load_schedule(),
+        program_v2       = load_program_v2(),
+        week_schedule_v2 = get_week_schedule_v2(),
+        now              = datetime.now().strftime("%Y-%m-%d"),
+        week             = datetime.now().isocalendar()[1]
     )
 
 
@@ -381,15 +576,125 @@ def api_log():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/session/edit", methods=["POST"])
+def api_session_edit():
+    """Edit an existing session: RPE, comment, and/or individual exercise weight/reps."""
+    try:
+        data    = request.get_json()
+        date    = data.get("date")
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+
+        # Update sessions store (RPE / comment)
+        sessions = load_sessions()
+        if date not in sessions:
+            sessions[date] = {}
+        if "rpe" in data:
+            sessions[date]["rpe"] = data["rpe"]
+        if "comment" in data:
+            sessions[date]["comment"] = data["comment"]
+        from sessions import save_sessions
+        save_sessions(sessions)
+
+        # Update weights store for each exercise edit
+        exercise_edits = data.get("exercises", [])
+        if exercise_edits:
+            weights = load_weights()
+            for edit in exercise_edits:
+                ex    = edit.get("exercise")
+                new_w = edit.get("weight")
+                new_r = edit.get("reps")
+                if not ex or ex not in weights:
+                    continue
+                history = weights[ex].get("history", [])
+                # Find and update existing entry for this date
+                updated = False
+                for entry in history:
+                    if entry.get("date") == date:
+                        if new_w is not None:
+                            entry["weight"] = float(new_w)
+                        if new_r is not None:
+                            entry["reps"] = str(new_r)
+                        # Recalculate 1RM (Epley) so stats/PRs stay accurate
+                        w = entry["weight"]
+                        reps_list = [int(x) for x in str(entry["reps"]).split(",") if x.strip().isdigit()]
+                        if reps_list and w:
+                            avg_reps = sum(reps_list) / len(reps_list)
+                            entry["1rm"] = round(w * (1 + avg_reps / 30), 1)
+                        updated = True
+                        break
+                if not updated:
+                    w = float(new_w or 0)
+                    r = str(new_r or "")
+                    reps_list = [int(x) for x in r.split(",") if x.strip().isdigit()]
+                    avg_reps  = sum(reps_list) / len(reps_list) if reps_list else 0
+                    one_rm    = round(w * (1 + avg_reps / 30), 1) if w and avg_reps else 0
+                    history.insert(0, {"date": date, "weight": w, "reps": r, "1rm": one_rm})
+                    weights[ex]["history"] = history[:20]
+                # Always recalculate current_weight/last_reps from the most recent entry
+                if history:
+                    most_recent = max(history, key=lambda e: e.get("date", ""))
+                    weights[ex]["current_weight"] = most_recent["weight"]
+                    weights[ex]["last_reps"]      = most_recent["reps"]
+            save_weights(weights)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session/delete", methods=["POST"])
+def api_session_delete():
+    """Delete an entire session (removes from sessions store + weights history)."""
+    try:
+        data = request.get_json()
+        date = data.get("date")
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+
+        # Remove from sessions
+        sessions = load_sessions()
+        sessions.pop(date, None)
+        from sessions import save_sessions
+        save_sessions(sessions)
+
+        # Remove matching history entries from weights
+        weights = load_weights()
+        for ex in weights:
+            history = weights[ex].get("history", [])
+            weights[ex]["history"] = [e for e in history if e.get("date") != date]
+            # Recalculate current values from remaining history
+            remaining = weights[ex]["history"]
+            if remaining:
+                most_recent = max(remaining, key=lambda e: e.get("date", ""))
+                weights[ex]["current_weight"] = most_recent["weight"]
+                weights[ex]["last_reps"]      = most_recent["reps"]
+        save_weights(weights)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/log_session", methods=["POST"])
 def api_log_session():
     try:
-        data    = request.get_json()
-        today   = datetime.now().strftime("%Y-%m-%d")
-        rpe     = data.get("rpe")
-        comment = data.get("comment", "")
-        exos    = data.get("exos", [])
-        log_session(today, rpe, comment, exos)
+        data           = request.get_json()
+        # Utilise la date locale du client si fournie (évite le décalage UTC/EST)
+        today          = data.get("date") or datetime.now().strftime("%Y-%m-%d")
+        rpe            = data.get("rpe")
+        comment        = data.get("comment", "")
+        exos           = data.get("exos", [])
+        second_session = data.get("second_session", False)
+
+        if session_exists(today) and not second_session:
+            return jsonify({"error": "already_logged"}), 409
+
+        if second_session:
+            log_second_session(today, rpe, comment, exos)
+        else:
+            log_session(today, rpe, comment, exos)
+
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -397,14 +702,24 @@ def api_log_session():
 
 @app.route("/api/log_hiit", methods=["POST"])
 def api_log_hiit():
-    data     = request.json
-    week     = get_current_week()
-    hiit_log = load_hiit_log_local()
+    data           = request.json
+    week           = get_current_week()
+    today          = data.get("date") or datetime.now().strftime("%Y-%m-%d")
+    session_type   = data.get("session_type", "HIIT")
+    second_session = data.get("second_session", False)
+    hiit_log       = load_hiit_log_local()
+
+    already_today = any(
+        e.get("date") == today and e.get("session_type") == session_type
+        for e in hiit_log
+    )
+    if already_today and not second_session:
+        return jsonify({"error": "already_logged"}), 409
 
     entry = {
-        "date":               datetime.now().strftime("%Y-%m-%d"),
+        "date":               today,
         "week":               week,
-        "session_type":       data.get("session_type", "HIIT"),
+        "session_type":       session_type,
         "rounds_planifies":   data.get("rounds", 0),
         "rounds_completes":   data.get("rounds", 0),
         "vitesse_max":        data.get("speed"),
@@ -431,6 +746,201 @@ def api_delete_hiit():
         return jsonify({"success": True})
 
     return jsonify({"error": "Index introuvable"}), 400
+
+
+@app.route("/api/hiit/edit", methods=["POST"])
+def api_hiit_edit():
+    try:
+        data     = request.get_json()
+        index    = data.get("index")
+        hiit_log = load_hiit_log_local()
+
+        if index is None or not (0 <= index < len(hiit_log)):
+            return jsonify({"error": "Index introuvable"}), 400
+
+        entry = hiit_log[index]
+        for field in ("rpe", "feeling", "comment", "rounds_completes",
+                      "vitesse_max", "vitesse_croisiere", "duration"):
+            if field in data:
+                entry[field] = data[field]
+
+        save_hiit_log_local(hiit_log)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/log_session_v2", methods=["POST"])
+def api_log_session_v2():
+    """
+    Log a multi-block session.
+    Payload: {date, template, blocks: [{type, ...modality-specific fields}]}
+    Strength block exo data is ALSO logged to weights history via existing log_single_exercise.
+    """
+    try:
+        data     = request.get_json()
+        today    = data.get("date") or datetime.now().strftime("%Y-%m-%d")
+        template = data.get("template", "")
+        blocks   = data.get("blocks", [])
+
+        if session_v2_exists(today):
+            return jsonify({"error": "already_logged"}), 409
+
+        # For strength blocks: log individual exercises to weights history
+        weights = load_weights()
+        for block in blocks:
+            if block.get("type") == STRENGTH:
+                for ex_data in block.get("exercise_logs", []):
+                    ex      = ex_data.get("exercise")
+                    weight  = float(ex_data.get("weight", 0))
+                    reps_str = ex_data.get("reps", "")
+                    if not ex or not reps_str:
+                        continue
+                    reps_list = parse_reps(reps_str)
+                    reps      = ",".join(map(str, reps_list))
+                    increase  = should_increase(reps, ex)
+                    new_w     = next_weight(ex, weight) if increase else weight
+                    onerm     = estimate_1rm(weight, reps)
+                    history_entry = {
+                        "date":   today,
+                        "weight": round(weight, 1),
+                        "reps":   reps,
+                        "note":   f"+{new_w - weight:.1f}" if increase else "stagné",
+                        "1rm":    onerm
+                    }
+                    if ex not in weights:
+                        weights[ex] = {"history": []}
+                    weights[ex].setdefault("history", []).insert(0, history_entry)
+                    weights[ex]["history"]        = weights[ex]["history"][:20]
+                    weights[ex]["current_weight"] = round(new_w, 1)
+                    weights[ex]["last_reps"]      = reps
+                    weights[ex]["last_logged"]    = datetime.now().strftime("%Y-%m-%d %H:%M")
+        save_weights(weights)
+        check_goals_achieved(weights)
+
+        log_session_v2(today, template, blocks)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session_v2/edit", methods=["POST"])
+def api_session_v2_edit():
+    try:
+        data        = request.get_json()
+        date        = data.get("date")
+        block_index = data.get("block_index")  # None = top-level
+        changes     = data.get("changes", {})
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+        ok = edit_session_v2(date, block_index, changes)
+        return jsonify({"success": ok})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session_v2/delete", methods=["POST"])
+def api_session_v2_delete():
+    try:
+        date = request.get_json().get("date")
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+        ok = delete_session_v2(date)
+        return jsonify({"success": ok})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/schedule", methods=["POST"])
+def api_schedule():
+    """Update a single day's session assignment. Payload: {day: "0"-"6", session_name: str}"""
+    try:
+        data         = request.get_json()
+        day          = str(data.get("day", ""))
+        session_name = data.get("session_name", "")
+        if day not in [str(i) for i in range(7)]:
+            return jsonify({"error": "Jour invalide (0-6)"}), 400
+        schedule      = load_schedule()
+        schedule[day] = session_name
+        save_schedule(schedule)
+        return jsonify({"success": True, "schedule": schedule})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/programme_v2", methods=["POST"])
+def api_programme_v2():
+    """
+    CRUD for session templates (program_v2).
+    Actions: add_template, delete_template, add_block, remove_block, reorder_blocks, update_block
+    """
+    try:
+        data    = request.get_json()
+        action  = data.get("action", "")
+        program = load_program_v2()
+
+        if action == "add_template":
+            name = data.get("name", "").strip()
+            if not name:
+                return jsonify({"error": "Nom manquant"}), 400
+            if name in program:
+                return jsonify({"error": "Nom déjà utilisé"}), 409
+            program[name] = {"blocks": []}
+            save_program_v2(program)
+
+        elif action == "delete_template":
+            name = data.get("name", "")
+            program.pop(name, None)
+            save_program_v2(program)
+
+        elif action == "add_block":
+            name      = data.get("name", "")
+            block_def = data.get("block", {})
+            if name not in program:
+                return jsonify({"error": "Template introuvable"}), 404
+            program[name]["blocks"].append(block_def)
+            save_program_v2(program)
+
+        elif action == "remove_block":
+            name  = data.get("name", "")
+            index = data.get("index")
+            if name not in program:
+                return jsonify({"error": "Template introuvable"}), 404
+            blocks = program[name]["blocks"]
+            if index is None or not (0 <= index < len(blocks)):
+                return jsonify({"error": "Index invalide"}), 400
+            blocks.pop(index)
+            save_program_v2(program)
+
+        elif action == "reorder_blocks":
+            name  = data.get("name", "")
+            order = data.get("order", [])  # list of new indices
+            if name not in program:
+                return jsonify({"error": "Template introuvable"}), 404
+            blocks = program[name]["blocks"]
+            if sorted(order) != list(range(len(blocks))):
+                return jsonify({"error": "Ordre invalide"}), 400
+            program[name]["blocks"] = [blocks[i] for i in order]
+            save_program_v2(program)
+
+        elif action == "update_block":
+            name    = data.get("name", "")
+            index   = data.get("index")
+            changes = data.get("changes", {})
+            if name not in program:
+                return jsonify({"error": "Template introuvable"}), 404
+            blocks = program[name]["blocks"]
+            if index is None or not (0 <= index < len(blocks)):
+                return jsonify({"error": "Index invalide"}), 400
+            blocks[index].update(changes)
+            save_program_v2(program)
+
+        else:
+            return jsonify({"error": f"Action inconnue: {action}"}), 400
+
+        return jsonify({"success": True, "program_v2": program})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/save_exercise", methods=["POST"])
@@ -611,12 +1121,15 @@ def api_set_goal():
 @app.route("/api/body_weight", methods=["POST"])
 def api_body_weight():
     try:
-        data  = request.get_json()
-        poids = float(data.get("poids", 0))
-        note  = data.get("note", "")
+        data     = request.get_json()
+        poids    = float(data.get("poids", 0))
+        note     = data.get("note", "")
+        body_fat = data.get("body_fat")
+        if body_fat is not None:
+            body_fat = float(body_fat)
         if not poids:
             return jsonify({"error": "Poids invalide"}), 400
-        log_body_weight(poids, note)
+        log_body_weight(poids, note, body_fat)
         return jsonify({"success": True, "poids": poids})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -639,41 +1152,84 @@ def api_delete_body_weight():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/ai/propose", methods=["POST"])
+def api_ai_propose():
+    """Claude returns structured program modification proposals as JSON."""
+    import os, json as _json
+    import anthropic as _anthropic
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY manquant"}), 500
+    try:
+        data    = request.get_json()
+        context = data.get("context", "")
+        if not context:
+            return jsonify({"error": "Contexte manquant"}), 400
+
+        client  = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1500,
+            system=(
+                "Tu es un coach expert en programmation musculaire. "
+                "Tu reçois des données d'entraînement et tu proposes des modifications concrètes au programme. "
+                "Tu DOIS répondre UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après. "
+                "Format exact de chaque proposition:\n"
+                '{"jour": "Nom du jour/session", "action": "add|remove|replace|scheme", '
+                '"exercise": "nom (pour add)", "old_exercise": "nom (pour remove/replace)", '
+                '"new_exercise": "nom (pour replace)", "scheme": "ex: 3x8-10", '
+                '"reason": "explication courte en français"}\n'
+                "Propose 3 à 6 modifications pertinentes basées sur les données. "
+                "Ne compare jamais le volume brut entre muscles — utilise les sets."
+            ),
+            messages=[{"role": "user", "content": context}]
+        )
+        raw = message.content[0].text.strip()
+        # Extract JSON array from response
+        start = raw.find('[')
+        end   = raw.rfind(']') + 1
+        if start == -1 or end == 0:
+            return jsonify({"error": "Réponse non structurée", "raw": raw}), 500
+        proposals = _json.loads(raw[start:end])
+        return jsonify({"proposals": proposals})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/ai/coach", methods=["POST"])
 def api_ai_coach():
-    import os, requests as req
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    import os
+    import anthropic as _anthropic
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
-        return jsonify({"error": "OPENROUTER_API_KEY manquant dans .env"}), 500
+        return jsonify({"error": "ANTHROPIC_API_KEY manquant dans .env"}), 500
     try:
         data   = request.get_json()
         prompt = data.get("prompt", "")
         if not prompt:
             return jsonify({"error": "Prompt vide"}), 400
 
-        res = req.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://trainingos.app",
-                "X-Title": "TrainingOS"
-            },
-            json={
-                "model": "mistralai/mistral-7b-instruct",
-                "messages": [
-                    {"role": "system", "content": "Tu es un coach sportif expert en musculation et HIIT. Tu analyses les données d'entraînement et donnes des conseils précis, motivants et actionnables. Tu réponds toujours en français, de façon concise (max 6 phrases)."},
-                    {"role": "user", "content": prompt}
-                ],
-                "max_tokens": 400,
-                "temperature": 0.7
-            },
-            timeout=20
+        client = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=800,
+            system=(
+                "Tu es un coach sportif expert en musculation, HIIT et périodisation de l'entraînement. "
+                "Tu reçois des données réelles d'entraînement et tu les analyses avec rigueur. "
+                "Règles importantes:\n"
+                "- Ne compare JAMAIS le volume brut (lbs×reps) entre groupes musculaires — les jambes "
+                "utilisent toujours des charges plus lourdes, ça ne veut pas dire qu'elles sont sur-entraînées.\n"
+                "- Utilise le NOMBRE DE SETS par groupe musculaire comme indicateur de volume réel.\n"
+                "- Pour les suggestions de programme, sois précis: nomme les exercices à ajouter/retirer/modifier "
+                "avec les schemes (ex: 3x8-10, 4x5-7).\n"
+                "- Pour le HIIT, analyse la fréquence, les types et la récupération entre sessions.\n"
+                "- Réponds toujours en français, de façon directe et actionnable. Max 7 phrases."
+            ),
+            messages=[{"role": "user", "content": prompt}]
         )
-        result = res.json()
-        if "choices" in result:
-            return jsonify({"response": result["choices"][0]["message"]["content"]})
-        return jsonify({"error": result.get("error", {}).get("message", "Erreur API")}), 500
+        return jsonify({"response": message.content[0].text})
+    except _anthropic.AuthenticationError:
+        return jsonify({"error": "Clé ANTHROPIC_API_KEY invalide"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -700,11 +1256,28 @@ def api_deload():
 
 @app.route("/sw.js")
 def service_worker():
-    return send_from_directory(
-        os.path.join(BASE_DIR, "static"),
-        "sw.js",
-        mimetype="application/javascript"
+    # Version = SHA git sur Vercel, timestamp horaire en local
+    # Change automatiquement à chaque déploiement → nouveau CACHE_NAME → SW update → reload
+    build_version = (
+        os.getenv('VERCEL_GIT_COMMIT_SHA', '')[:8]
+        or datetime.now().strftime('%Y%m%d%H')
     )
+    with open(os.path.join(BASE_DIR, "static", "sw.js")) as f:
+        content = f.read()
+    # Remplace le CACHE_NAME hardcodé par la version du build
+    import re
+    content = re.sub(
+        r"(const CACHE_NAME\s*=\s*')[^']*(')",
+        f"\\g<1>trainingos-{build_version}\\2",
+        content
+    )
+    from flask import make_response
+    resp = make_response(content, 200)
+    resp.headers['Content-Type']  = 'application/javascript'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma']        = 'no-cache'
+    resp.headers['Expires']       = '0'
+    return resp
 
 
 # ── Lancement local ──────────────────────────────────────────
@@ -721,8 +1294,11 @@ def find_free_port(start=5000, end=5100):
 
 
 if __name__ == "__main__":
-    port = find_free_port()
+    # PORT stocké dans l'env pour que le child du reloader utilise le même
+    port = int(os.environ.setdefault("PORT", str(find_free_port())))
     url  = f"http://localhost:{port}"
     print(f"🚀 TrainingOS → {url}")
-    Timer(1.0, lambda: webbrowser.open(url)).start()
-    app.run(debug=True, use_reloader=False, host="0.0.0.0", port=port)
+    # N'ouvre le navigateur que dans le processus principal (pas le child du reloader)
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        Timer(1.0, lambda: webbrowser.open(url)).start()
+    app.run(debug=True, use_reloader=True, host="0.0.0.0", port=port)

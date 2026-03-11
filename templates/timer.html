@@ -8,10 +8,62 @@
 
   body {
     font-family: 'Barlow', sans-serif;
+  }
+
+  /* ── DESKTOP LAYOUT ── */
+  .timer-layout {
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 24px 16px 48px;
+  }
+
+  .timer-left, .timer-right { width: 100%; }
+
+  @media (min-width: 768px) {
+    .timer-layout {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 48px;
+      padding: 40px 32px 64px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .timer-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      width: auto;
+    }
+
+    .timer-right {
+      flex: 1;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Bigger ring on desktop */
+    .ring-container {
+      width: 360px !important;
+      height: 360px !important;
+    }
+
+    .time-display { font-size: 7rem !important; }
+
+    .btn-play  { width: 88px !important; height: 88px !important; }
+    .btn-ctrl  { width: 70px !important; height: 70px !important; }
+
+    .settings-grid { max-width: 100% !important; }
+    .presets       { max-width: 100% !important; }
+    .history-row   { max-width: 100% !important; }
+    .total-time    { max-width: 100% !important; }
+    .phase-wrap    { max-width: 100% !important; }
+    .options-grid  { max-width: 100% !important; }
+    .kbd-hints     { max-width: 100% !important; }
   }
 
   /* ── FLASH OVERLAY ── */
@@ -24,9 +76,10 @@
     transition: opacity 0.05s;
   }
 
-  #flash-overlay.flash-work { background: rgba(249,115,22,0.18); }
-  #flash-overlay.flash-rest { background: rgba(34,197,94,0.18); }
-  #flash-overlay.active     { opacity: 1; }
+  #flash-overlay.flash-work      { background: rgba(249,115,22,0.18); }
+  #flash-overlay.flash-rest      { background: rgba(34,197,94,0.18); }
+  #flash-overlay.flash-countdown { background: rgba(220,38,38,0.28); }
+  #flash-overlay.active          { opacity: 1; }
 
   /* ── HEADER ── */
   .header {
@@ -176,7 +229,7 @@
     align-items: center;
     justify-content: center;
     font-size: 1.4rem;
-    transition: all 0.15s;
+    transition: transform 0.15s, box-shadow 0.15s;
     position: relative;
   }
 
@@ -264,7 +317,7 @@
   .setting-card.rest-card.phase-active {
     box-shadow: 0 0 0 2px var(--green);
   }
-  .setting-card { cursor: pointer; transition: all 0.15s; }
+  .setting-card { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
   .setting-card.rounds-card::after { background: var(--blue); }
 
   .setting-label {
@@ -414,6 +467,49 @@
 
   .flashing { animation: flashBg 0.4s ease 3; }
 
+  /* ── OPTIONS GRID ── */
+  .options-grid {
+    width: 100%; max-width: 420px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 7px;
+    margin-bottom: 14px;
+  }
+
+  .opt-btn {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px; padding: 10px 6px;
+    border-radius: 10px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03); color: var(--muted);
+    cursor: pointer; transition: all 0.15s;
+    font-family: 'Barlow', sans-serif;
+  }
+
+  .opt-btn .opt-icon  { font-size: 1.05rem; }
+  .opt-btn .opt-label { font-size: 0.52rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+
+  .opt-btn.active                 { background: var(--orange)18; border-color: var(--orange)55; color: var(--orange); }
+  .opt-btn.active.sound-opt       { background: var(--blue)18;   border-color: var(--blue)55;   color: var(--blue);   }
+  .opt-btn.active.vibe-opt        { background: var(--green)18;  border-color: var(--green)55;  color: var(--green);  }
+  .opt-btn.active.wake-opt        { background: #a855f718;        border-color: #a855f755;        color: #a855f7;        }
+  .opt-btn.active.prepare-opt     { background: var(--rose)18;   border-color: var(--rose)55;   color: var(--rose);   }
+
+  /* Keyboard shortcut hints */
+  .kbd-hints {
+    width: 100%; max-width: 420px;
+    display: flex; gap: 14px; flex-wrap: wrap;
+    margin-top: 2px; margin-bottom: 16px;
+    opacity: 0.36;
+  }
+
+  .kbd-hint { font-size: 0.6rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+  .kbd-hint kbd {
+    display: inline-block; padding: 1px 5px;
+    border: 1px solid var(--border); border-radius: 4px;
+    font-size: 0.58rem; background: rgba(255,255,255,0.04);
+    font-family: monospace;
+  }
+
   /* ── RESPONSIVE MOBILE ── */
   @media (max-width: 520px) {
     body { padding: 10px 10px 80px; }
@@ -462,163 +558,324 @@
 {% block content %}
 <div id="flash-overlay"></div>
 
-<div style="font-size:0.7rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase;">Interval Timer</div>
+<div class="timer-layout">
 
-<!-- Phase label -->
-<div class="phase-wrap">
-  <div class="phase-label idle" id="phase-label">PRÊT</div>
-</div>
+  <!-- ── COLONNE GAUCHE : ring + contrôles ── -->
+  <div class="timer-left">
 
-<!-- Ring -->
-<div class="ring-container" id="ring-container">
-  <svg viewBox="0 0 260 260">
-    <circle class="ring-bg"    cx="130" cy="130" r="120"/>
-    <circle class="ring-track idle" cx="130" cy="130" r="120" id="ring-track"/>
-  </svg>
-  <div class="ring-center">
-    <div class="time-display idle" id="time-display">00:00</div>
-    <div class="round-display"    id="round-display">ROUND —</div>
-  </div>
-</div>
+    <div style="font-size:0.7rem; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:20px;">Interval Timer</div>
 
-<!-- Contrôles -->
-<div class="controls">
-  <button class="btn-ctrl btn-reset" id="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
-  <button class="btn-ctrl btn-play"  id="btn-play"  onclick="toggleTimer()">▶</button>
-  <button class="btn-ctrl btn-skip"  id="btn-skip"  onclick="skipPhase()"  title="Passer la phase">⏭</button>
-</div>
-
-<!-- Settings -->
-<div class="settings-grid">
-  <div class="setting-card rest-card" id="card-rest" onclick="jumpToPhase('rest')" title="Tap pour démarrer le Rest">
-    <div class="setting-label">💤 Rest <span id="rest-tap" style="font-size:0.55rem;color:var(--green);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
-    <div class="setting-value" id="rest-display">0:20</div>
-    <div class="setting-btns">
-      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', -5)">−5s</button>
-      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', +5)">+5s</button>
+    <!-- Phase label -->
+    <div class="phase-wrap">
+      <div class="phase-label idle" id="phase-label">PRÊT</div>
     </div>
-  </div>
 
-  <div class="setting-card work-card" id="card-work" onclick="jumpToPhase('work')" title="Tap pour démarrer le Work">
-    <div class="setting-label">⚡ Work <span id="work-tap" style="font-size:0.55rem;color:var(--orange);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
-    <div class="setting-value" id="work-display">0:40</div>
-    <div class="setting-btns">
-      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', -5)">−5s</button>
-      <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', +5)">+5s</button>
+    <!-- Ring -->
+    <div class="ring-container" id="ring-container">
+      <svg viewBox="0 0 260 260">
+        <circle class="ring-bg"    cx="130" cy="130" r="120"/>
+        <circle class="ring-track idle" cx="130" cy="130" r="120" id="ring-track"/>
+      </svg>
+      <div class="ring-center">
+        <div class="time-display idle" id="time-display">00:00</div>
+        <div class="round-display"    id="round-display">ROUND —</div>
+      </div>
     </div>
-  </div>
 
-  <div class="setting-card rounds-card">
-    <div class="setting-label">🔁 Rounds</div>
-    <div class="setting-value" id="rounds-display">8</div>
-    <div class="setting-btns">
-      <button class="setting-btn" onclick="adjustRounds(-1)">−1</button>
-      <button class="setting-btn" onclick="adjustRounds(+1)">+1</button>
-      <button class="setting-btn" onclick="adjustRounds(-5)">−5</button>
-      <button class="setting-btn" onclick="adjustRounds(+5)">+5</button>
+    <!-- Contrôles -->
+    <div class="controls">
+      <button class="btn-ctrl btn-reset" id="btn-reset" onclick="resetTimer()" title="Reset">↺</button>
+      <button class="btn-ctrl btn-play"  id="btn-play"  onclick="toggleTimer()">▶</button>
+      <button class="btn-ctrl btn-skip"  id="btn-skip"  onclick="skipPhase()"  title="Passer la phase">⏭</button>
     </div>
+
   </div>
-</div>
 
-<!-- Auto-start toggle -->
-<div class="presets" style="margin-bottom:10px;">
-  <div class="presets-label">Options</div>
-  <div class="presets-row">
-    <button class="preset-btn" id="autostart-btn" onclick="toggleAutoStart(this)">
-      ⚡ Auto-start OFF
-    </button>
+  <!-- ── COLONNE DROITE : settings + presets + historique ── -->
+  <div class="timer-right">
+
+    <!-- Settings -->
+    <div class="settings-grid">
+      <div class="setting-card rest-card" id="card-rest" onclick="jumpToPhase('rest')" title="Tap pour démarrer le Rest">
+        <div class="setting-label">💤 Rest <span id="rest-tap" style="font-size:0.55rem;color:var(--green);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
+        <div class="setting-value" id="rest-display">0:20</div>
+        <div class="setting-btns">
+          <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', -5)">−5s</button>
+          <button class="setting-btn" onclick="event.stopPropagation();adjustTime('rest', +5)">+5s</button>
+        </div>
+      </div>
+
+      <div class="setting-card work-card" id="card-work" onclick="jumpToPhase('work')" title="Tap pour démarrer le Work">
+        <div class="setting-label">⚡ Work <span id="work-tap" style="font-size:0.55rem;color:var(--orange);opacity:0;transition:opacity 0.3s;">▶ tap</span></div>
+        <div class="setting-value" id="work-display">0:40</div>
+        <div class="setting-btns">
+          <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', -5)">−5s</button>
+          <button class="setting-btn" onclick="event.stopPropagation();adjustTime('work', +5)">+5s</button>
+        </div>
+      </div>
+
+      <div class="setting-card rounds-card">
+        <div class="setting-label">🔁 Rounds</div>
+        <div class="setting-value" id="rounds-display">8</div>
+        <div class="setting-btns">
+          <button class="setting-btn" onclick="adjustRounds(-1)">−1</button>
+          <button class="setting-btn" onclick="adjustRounds(+1)">+1</button>
+          <button class="setting-btn" onclick="adjustRounds(-5)">−5</button>
+          <button class="setting-btn" onclick="adjustRounds(+5)">+5</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div style="margin-bottom:4px;">
+      <div class="presets-label">Options</div>
+      <div class="options-grid">
+        <button class="opt-btn" id="opt-autostart" onclick="toggleOpt('autostart',this)" title="Enchaîne work→rest→work sans pause">
+          <span class="opt-icon">⚡</span><span class="opt-label">Auto</span>
+        </button>
+        <button class="opt-btn active sound-opt" id="opt-sound" onclick="toggleOpt('sound',this)" title="Sons ON/OFF">
+          <span class="opt-icon">🔊</span><span class="opt-label">Sons</span>
+        </button>
+        <button class="opt-btn vibe-opt" id="opt-vibration" onclick="toggleOpt('vibration',this)" title="Vibration (mobile)">
+          <span class="opt-icon">📳</span><span class="opt-label">Vibrer</span>
+        </button>
+        <button class="opt-btn wake-opt" id="opt-wakelock" onclick="toggleOpt('wakelock',this)" title="Garder l'écran allumé pendant l'entraînement">
+          <span class="opt-icon">💡</span><span class="opt-label">Écran</span>
+        </button>
+        <button class="opt-btn prepare-opt" id="opt-prepare" onclick="toggleOpt('prepare',this)" title="Compte à rebours 5s avant de démarrer">
+          <span class="opt-icon">🎯</span><span class="opt-label">Préparer</span>
+        </button>
+      </div>
+    </div>
+    <!-- Keyboard hints -->
+    <div class="kbd-hints">
+      <span class="kbd-hint"><kbd>Space</kbd> Play/Pause</span>
+      <span class="kbd-hint"><kbd>R</kbd> Reset</span>
+      <span class="kbd-hint"><kbd>→</kbd> Passer</span>
+    </div>
+
+    <!-- Presets -->
+    <div class="presets">
+      <div class="presets-label">Presets rapides</div>
+      <div class="presets-row">
+        <button class="preset-btn" onclick="applyPreset(40,20,8,this)">Tabata</button>
+        <button class="preset-btn" onclick="applyPreset(30,15,10,this)">30/15×10</button>
+        <button class="preset-btn" onclick="applyPreset(60,30,6,this)">60/30×6</button>
+        <button class="preset-btn" onclick="applyPreset(45,15,8,this)">45/15×8</button>
+        <button class="preset-btn" onclick="applyPreset(20,10,8,this)">Tabata Court</button>
+        <button class="preset-btn" onclick="applyPreset(90,30,5,this)">Shift Hockey</button>
+      </div>
+    </div>
+
+    <!-- History dots -->
+    <div class="history-row" id="history-row"></div>
+
+    <!-- Total time -->
+    <div class="total-time" id="total-time"></div>
+
   </div>
+
 </div>
-
-<!-- Presets -->
-<div class="presets">
-  <div class="presets-label">Presets rapides</div>
-  <div class="presets-row">
-    <button class="preset-btn" onclick="applyPreset(40,20,8,this)">Tabata</button>
-    <button class="preset-btn" onclick="applyPreset(30,15,10,this)">30/15×10</button>
-    <button class="preset-btn" onclick="applyPreset(60,30,6,this)">60/30×6</button>
-    <button class="preset-btn" onclick="applyPreset(45,15,8,this)">45/15×8</button>
-    <button class="preset-btn" onclick="applyPreset(20,10,8,this)">Tabata Court</button>
-    <button class="preset-btn" onclick="applyPreset(90,30,5,this)">Shift Hockey</button>
-  </div>
-</div>
-
-<!-- History dots -->
-<div class="history-row" id="history-row"></div>
-
-<!-- Total time -->
-<div class="total-time" id="total-time"></div>
 
 <script>
 // ── STATE ─────────────────────────────────────────────
-let workSecs   = 40;
-let autoStart  = false; // Enchaîne work→rest→work sans pause
-let restSecs   = 20;
+let workSecs    = 40;
+let restSecs    = 20;
 let totalRounds = 8;
 
-let currentRound = 1;
-let phase        = 'idle'; // 'work' | 'rest' | 'idle' | 'done'
-let remaining    = 0;
-let interval     = null;
-let running      = false;
+let currentRound      = 1;
+let phase             = 'idle'; // 'prepare' | 'work' | 'rest' | 'idle' | 'done'
+let remaining         = 0;
+let interval          = null;
+let running           = false;
+let phaseStartEpoch   = null;
+let pausedAtRemaining = 0;
+let lastBeepAt        = -1;
+
+// Options
+let autoStart   = false;
+let soundOn     = true;
+let vibrationOn = false;
+let wakeLockOn  = false;
+let prepareOn   = false;
+
+// Wake Lock
+let wakeLock = null;
 
 // ── UTILS ─────────────────────────────────────────────
 function fmt(s) {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${String(sec).padStart(2,'0')}`;
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 }
-
 function fmtFull(s) {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+  const m = Math.floor(s/60);
+  return m > 0 ? `${m}m ${s%60}s` : `${s}s`;
 }
 
 // ── RING ──────────────────────────────────────────────
-const CIRCUMFERENCE = 2 * Math.PI * 120; // r=120 → 754
+const CIRCUMFERENCE = 2 * Math.PI * 120;
 
-function setRing(progress, ph) { // progress 0→1
+function setRing(progress, ph) {
   const track = document.getElementById('ring-track');
-  const offset = CIRCUMFERENCE * (1 - progress);
-  track.style.strokeDashoffset = offset;
+  track.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
   track.className = `ring-track ${ph}`;
+}
+
+// ── SOUND ─────────────────────────────────────────────
+let audioCtx = null;
+function getCtx() {
+  if (!audioCtx || audioCtx.state === 'closed')
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended')
+    audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+
+function playSound(type) {
+  if (!soundOn) return;
+  try {
+    const ctx = getCtx(), now = ctx.currentTime;
+
+    if (type === 'countdown') {
+      // Sharp click — 3, 2, 1
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'square'; o.frequency.value = 1400;
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(0.72, now + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      o.start(now); o.stop(now + 0.15);
+
+    } else if (type === 'work') {
+      // High-energy double blip — GO!
+      [0, 0.16].forEach(d => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(1046, now + d);
+        o.frequency.exponentialRampToValueAtTime(880, now + d + 0.15);
+        g.gain.setValueAtTime(0, now + d);
+        g.gain.linearRampToValueAtTime(0.92, now + d + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.001, now + d + 0.25);
+        o.start(now + d); o.stop(now + d + 0.25);
+      });
+
+    } else if (type === 'rest') {
+      // Calming low tone
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = 528;
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(0.88, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      o.start(now); o.stop(now + 0.6);
+
+    } else if (type === 'done') {
+      // Triumphant 3-note rise
+      [[523,0],[659,0.22],[1046,0.44]].forEach(([freq, d]) => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sine'; o.frequency.value = freq;
+        g.gain.setValueAtTime(0, now + d);
+        g.gain.linearRampToValueAtTime(0.88, now + d + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, now + d + 0.5);
+        o.start(now + d); o.stop(now + d + 0.5);
+      });
+
+    } else if (type === 'prepare') {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = 660;
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(0.5, now + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      o.start(now); o.stop(now + 0.1);
+    }
+  } catch(e) {}
+}
+
+// ── VIBRATION ─────────────────────────────────────────
+function vibrate(pattern) {
+  if (!vibrationOn || !navigator.vibrate) return;
+  navigator.vibrate(pattern);
+}
+
+// ── WAKE LOCK ─────────────────────────────────────────
+async function requestWakeLock() {
+  if (!wakeLockOn || !('wakeLock' in navigator)) return;
+  try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release().catch(()=>{}); wakeLock = null; }
+}
+// Re-acquire after tab regain (browser auto-releases it)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && wakeLockOn && running) requestWakeLock();
+});
+
+// ── FLASH ─────────────────────────────────────────────
+function flash(ph) {
+  const ov = document.getElementById('flash-overlay');
+  ov.className = `flash-${ph}`;
+  [0, 380, 760].forEach(d => {
+    setTimeout(() => {
+      ov.classList.add('active');
+      setTimeout(() => ov.classList.remove('active'), 270);
+    }, d);
+  });
+  setTimeout(() => { ov.className = ''; }, 760 + 270 + 50);
+}
+
+function flashCountdown() {
+  const ov = document.getElementById('flash-overlay');
+  ov.className = 'flash-countdown';
+  ov.classList.add('active');
+  setTimeout(() => { ov.classList.remove('active'); ov.className = ''; }, 110);
 }
 
 // ── UI UPDATE ─────────────────────────────────────────
 function updateUI() {
-  const timeEl   = document.getElementById('time-display');
-  const roundEl  = document.getElementById('round-display');
-  const phaseEl  = document.getElementById('phase-label');
+  const timeEl  = document.getElementById('time-display');
+  const roundEl = document.getElementById('round-display');
+  const phaseEl = document.getElementById('phase-label');
 
-  timeEl.textContent  = fmt(remaining);
-  timeEl.className    = `time-display ${phase}`;
-  phaseEl.className   = `phase-label ${phase}`;
-
-  if (phase === 'work') {
+  if (phase === 'prepare') {
+    timeEl.textContent  = fmt(remaining);
+    timeEl.className    = 'time-display idle';
+    phaseEl.textContent = '🎯 PRÊT…';
+    phaseEl.className   = 'phase-label idle';
+    roundEl.textContent = 'DÉMARRAGE DANS…';
+    setRing(remaining / 5, 'idle');
+  } else if (phase === 'work') {
+    timeEl.textContent  = fmt(remaining);
+    timeEl.className    = 'time-display work';
     phaseEl.textContent = '⚡ WORK';
+    phaseEl.className   = 'phase-label work';
     roundEl.textContent = `ROUND ${currentRound} / ${totalRounds}`;
     setRing(remaining / workSecs, 'work');
   } else if (phase === 'rest') {
+    timeEl.textContent  = fmt(remaining);
+    timeEl.className    = 'time-display rest';
     phaseEl.textContent = '💤 REST';
+    phaseEl.className   = 'phase-label rest';
     roundEl.textContent = `ROUND ${currentRound} / ${totalRounds}`;
     setRing(remaining / restSecs, 'rest');
   } else if (phase === 'done') {
-    phaseEl.textContent = '✅ TERMINÉ';
-    phaseEl.className   = 'phase-label rest';
     timeEl.textContent  = '🏆';
     timeEl.className    = 'time-display rest';
+    phaseEl.textContent = '✅ TERMINÉ';
+    phaseEl.className   = 'phase-label rest';
     roundEl.textContent = `${totalRounds} ROUNDS FAITS`;
     setRing(1, 'rest');
   } else {
+    timeEl.textContent  = fmt(workSecs);
+    timeEl.className    = 'time-display idle';
     phaseEl.textContent = 'PRÊT';
     phaseEl.className   = 'phase-label idle';
     roundEl.textContent = 'ROUND —';
-    timeEl.className    = 'time-display idle';
     setRing(1, 'idle');
   }
 
-  if (typeof updateCardHighlight === 'function') updateCardHighlight();
+  updateCardHighlight();
   updateHistoryDots();
   updateTotalTime();
 }
@@ -628,250 +885,229 @@ function updateHistoryDots() {
   row.innerHTML = '';
   for (let i = 1; i <= totalRounds; i++) {
     const dot = document.createElement('div');
-    dot.className = 'history-dot ';
-    if (i < currentRound) {
-      dot.className += 'done-work';
-    } else if (i === currentRound && phase === 'rest') {
-      dot.className += 'done-work';
-    } else {
-      dot.className += 'pending';
-    }
+    dot.className = 'history-dot ' + (
+      i < currentRound                              ? 'done-work' :
+      i === currentRound && phase === 'rest'        ? 'done-work' :
+      'pending'
+    );
     row.appendChild(dot);
   }
 }
 
 function updateTotalTime() {
-  const total = (workSecs + restSecs) * totalRounds;
-  const el = document.getElementById('total-time');
-  el.innerHTML = `Durée totale estimée : <span>${fmtFull(total)}</span>`;
+  const total = (workSecs + restSecs) * totalRounds + (prepareOn ? 5 : 0);
+  document.getElementById('total-time').innerHTML =
+    `Durée totale estimée : <span>${fmtFull(total)}</span>`;
 }
 
-// ── FLASH + BEEP ──────────────────────────────────────
-function flash(ph) {
-  const overlay = document.getElementById('flash-overlay');
-  overlay.className = `flash-${ph}`;
-  overlay.classList.add('active');
-  setTimeout(() => overlay.classList.remove('active'), 300);
-  setTimeout(() => { overlay.classList.add('active'); setTimeout(() => overlay.classList.remove('active'), 300); }, 450);
-  setTimeout(() => { overlay.classList.add('active'); setTimeout(() => overlay.classList.remove('active'), 300); }, 900);
-
-  // Beep via Web Audio
-  try {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = ph === 'work' ? 880 : 440;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.3);
-    if (ph === 'done') {
-      setTimeout(() => {
-        const o2 = ctx.createOscillator(), g2 = ctx.createGain();
-        o2.connect(g2); g2.connect(ctx.destination);
-        o2.frequency.value = 1046;
-        g2.gain.setValueAtTime(0.3, ctx.currentTime);
-        g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-        o2.start(ctx.currentTime); o2.stop(ctx.currentTime + 0.5);
-      }, 350);
-    }
-  } catch(e) {}
+function updateCardHighlight() {
+  document.getElementById('card-work').classList.toggle('phase-active', phase === 'work');
+  document.getElementById('card-rest').classList.toggle('phase-active', phase === 'rest');
+  const idle = !running;
+  document.getElementById('work-tap').style.opacity = idle ? '1' : '0';
+  document.getElementById('rest-tap').style.opacity = idle ? '1' : '0';
 }
 
 // ── TIMER LOGIC ───────────────────────────────────────
+function currentPhaseLen() {
+  return phase === 'work' ? workSecs : phase === 'rest' ? restSecs : 5;
+}
+
 function startPhase(ph) {
-  phase     = ph;
-  remaining = ph === 'work' ? workSecs : restSecs;
+  phase             = ph;
+  remaining         = ph === 'work' ? workSecs : ph === 'rest' ? restSecs : 5;
+  phaseStartEpoch   = Date.now();
+  pausedAtRemaining = remaining; // évite que resume reconstruit un epoch avec une valeur stale
+  lastBeepAt        = -1;
   updateUI();
 }
 
-function beepCountdown() {
-  // Un bip par seconde à 3, 2, 1 — synchronisé avec le tick
-  try {
-    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
-    const osc  = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = 1200;
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.12);
-  } catch(e) {}
+function setPlayBtn(playing) {
+  const btn = document.getElementById('btn-play');
+  btn.innerHTML = playing ? '⏸' : '▶';
+  btn.classList.toggle('running', playing);
 }
 
 function finishWork() {
-  flash('rest');
   if (currentRound >= totalRounds) {
     clearInterval(interval); interval = null; running = false;
-    phase = 'done'; updateUI();
-    document.getElementById('btn-play').innerHTML = '▶';
-    document.getElementById('btn-play').classList.remove('running');
+    phase = 'done'; remaining = 0;
+    flash('rest'); playSound('done');
+    vibrate([100, 80, 100, 80, 300]);
+    releaseWakeLock(); setPlayBtn(false); updateUI();
     return;
   }
+  flash('rest'); playSound('rest'); vibrate([200]);
   if (autoStart) {
     startPhase('rest');
   } else {
-    // Pause — attend que l'user reprenne
     clearInterval(interval); interval = null; running = false;
-    startPhase('rest');
-    document.getElementById('btn-play').innerHTML = '▶';
-    document.getElementById('btn-play').classList.remove('running');
+    startPhase('rest'); releaseWakeLock(); setPlayBtn(false);
   }
 }
 
 function finishRest() {
-  flash('work');
   currentRound++;
+  flash('work'); playSound('work'); vibrate([100, 50, 100]);
   if (autoStart) {
     startPhase('work');
   } else {
     clearInterval(interval); interval = null; running = false;
-    startPhase('work');
-    document.getElementById('btn-play').innerHTML = '▶';
-    document.getElementById('btn-play').classList.remove('running');
+    startPhase('work'); releaseWakeLock(); setPlayBtn(false);
   }
 }
 
+function finishPrepare() {
+  flash('work'); playSound('work'); vibrate([100, 50, 100]);
+  startPhase('work');
+}
+
 function tick() {
-  remaining--;
-  // Countdown beeps à 3, 2, 1 pendant WORK
-  if (phase === 'work' && remaining <= 3 && remaining > 0) beepCountdown();
+  if (!running || phaseStartEpoch === null) return;
+  const elapsed = Math.floor((Date.now() - phaseStartEpoch) / 1000);
+  remaining = Math.max(0, currentPhaseLen() - elapsed);
+
+  // Countdown beeps + flash at 3, 2, 1 (work and prepare phases)
+  if ((phase === 'work' || phase === 'prepare' || phase === 'rest') &&
+      remaining <= 3 && remaining > 0 && remaining !== lastBeepAt) {
+    playSound('countdown');
+    flashCountdown();
+    vibrate([25]);
+    lastBeepAt = remaining;
+  }
+
   if (remaining <= 0) {
-    if (phase === 'work') finishWork();
-    else finishRest();
+    if      (phase === 'work')    finishWork();
+    else if (phase === 'rest')    finishRest();
+    else if (phase === 'prepare') finishPrepare();
   } else {
     updateUI();
   }
 }
 
 function toggleTimer() {
-  const btn = document.getElementById('btn-play');
   if (running) {
-    clearInterval(interval);
-    interval = null;
-    running  = false;
-    btn.innerHTML = '▶';
-    btn.classList.remove('running');
+    pausedAtRemaining = remaining;
+    phaseStartEpoch   = null;
+    clearInterval(interval); interval = null; running = false;
+    releaseWakeLock(); setPlayBtn(false);
   } else {
+    // Initialise l'AudioContext pendant ce geste utilisateur
+    // pour que les beeps 3,2,1 (déclenchés par setInterval) fonctionnent
+    getCtx();
     if (phase === 'idle' || phase === 'done') {
       currentRound = 1;
-      startPhase('work');
-      flash('work');
+      startPhase(prepareOn ? 'prepare' : 'work');
+      // Pas de flash au démarrage — uniquement aux transitions de phase
+    } else {
+      phaseStartEpoch = Date.now() - (currentPhaseLen() - pausedAtRemaining) * 1000;
     }
     running  = true;
-    interval = setInterval(tick, 1000);
-    btn.innerHTML = '⏸';
-    btn.classList.add('running');
+    interval = setInterval(tick, 250);
+    requestWakeLock(); setPlayBtn(true);
   }
 }
 
 function resetTimer() {
   clearInterval(interval);
-  interval     = null;
-  running      = false;
-  phase        = 'idle';
-  currentRound = 1;
-  remaining    = workSecs;
-  document.getElementById('btn-play').innerHTML = '▶';
-  document.getElementById('btn-play').classList.remove('running');
-  updateUI();
-  document.getElementById('time-display').textContent = fmt(workSecs);
+  interval = null; running = false; phase = 'idle'; currentRound = 1;
+  remaining = workSecs; phaseStartEpoch = null; pausedAtRemaining = 0; lastBeepAt = -1;
+  releaseWakeLock(); setPlayBtn(false); updateUI();
   setRing(1, 'idle');
 }
 
 function skipPhase() {
   if (!running && phase === 'idle') return;
   clearInterval(interval);
-  if (phase === 'work') {
+  if (phase === 'prepare') {
+    finishPrepare();
+  } else if (phase === 'work') {
     if (currentRound >= totalRounds) {
-      running = false;
-      phase   = 'done';
-      document.getElementById('btn-play').innerHTML = '▶';
-      document.getElementById('btn-play').classList.remove('running');
-      updateUI();
-      return;
+      running = false; phase = 'done';
+      releaseWakeLock(); setPlayBtn(false); updateUI(); return;
     }
-    flash('rest');
-    startPhase('rest');
-  } else {
-    flash('work');
-    currentRound++;
-    startPhase('work');
+    flash('rest'); playSound('rest'); startPhase('rest');
+  } else if (phase === 'rest') {
+    flash('work'); playSound('work'); currentRound++; startPhase('work');
   }
-  if (running) interval = setInterval(tick, 1000);
+  if (running) interval = setInterval(tick, 250);
 }
+
+// ── PAGE VISIBILITY ───────────────────────────────────
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && running && phaseStartEpoch !== null) tick();
+});
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.code === 'Space')                          { e.preventDefault(); toggleTimer(); }
+  if (e.code === 'KeyR')                           resetTimer();
+  if (e.code === 'ArrowRight' || e.code === 'KeyN') skipPhase();
+});
 
 // ── SETTINGS ─────────────────────────────────────────
 function adjustTime(type, delta) {
-  if (type === 'work') {
-    workSecs = Math.max(5, workSecs + delta);
-    document.getElementById('work-display').textContent = fmt(workSecs);
-  } else {
-    restSecs = Math.max(5, restSecs + delta);
-    document.getElementById('rest-display').textContent = fmt(restSecs);
-  }
+  if (type === 'work') { workSecs = Math.max(5, workSecs + delta); document.getElementById('work-display').textContent = fmt(workSecs); }
+  else                 { restSecs = Math.max(5, restSecs + delta); document.getElementById('rest-display').textContent = fmt(restSecs); }
   if (!running) resetTimer();
-  updateTotalTime();
-  clearActivePresets();
+  updateTotalTime(); clearActivePresets();
 }
 
 function adjustRounds(delta) {
   totalRounds = Math.max(1, Math.min(99, totalRounds + delta));
   document.getElementById('rounds-display').textContent = totalRounds;
   if (!running) resetTimer();
-  updateTotalTime();
-  clearActivePresets();
+  updateTotalTime(); clearActivePresets();
 }
 
 function applyPreset(work, rest, rounds, btn) {
-  workSecs    = work;
-  restSecs    = rest;
-  totalRounds = rounds;
+  workSecs = work; restSecs = rest; totalRounds = rounds;
   document.getElementById('work-display').textContent   = fmt(workSecs);
   document.getElementById('rest-display').textContent   = fmt(restSecs);
   document.getElementById('rounds-display').textContent = totalRounds;
-  clearActivePresets();
-  btn.classList.add('active');
+  clearActivePresets(); btn.classList.add('active');
   if (!running) resetTimer();
   updateTotalTime();
 }
 
 function jumpToPhase(ph) {
-  // Si timer en cours → switch de phase immédiatement
-  // Si timer arrêté → démarre directement cette phase
-  if (running) {
-    clearInterval(interval);
-    if (ph === 'rest') flash('rest');
-    else flash('work');
-    startPhase(ph);
-    interval = setInterval(tick, 1000);
-  } else {
-    phase = 'idle';
-    startPhase(ph);
-    flash(ph);
-    running  = true;
-    interval = setInterval(tick, 1000);
-    document.getElementById('btn-play').innerHTML = '⏸';
-    document.getElementById('btn-play').classList.add('running');
+  const alreadyActive = running || (phase !== 'idle' && phase !== 'done');
+  clearInterval(interval);
+  if (alreadyActive) flash(ph); // flash seulement si on switche en cours de session
+  playSound(ph); startPhase(ph);
+  running  = true;
+  interval = setInterval(tick, 250);
+  requestWakeLock(); setPlayBtn(true); updateCardHighlight();
+}
+
+// ── OPTIONS ──────────────────────────────────────────
+function toggleOpt(opt, btn) {
+  switch(opt) {
+    case 'autostart':
+      autoStart = !autoStart;
+      btn.classList.toggle('active', autoStart);
+      break;
+    case 'sound':
+      soundOn = !soundOn;
+      btn.classList.toggle('active', soundOn);
+      btn.querySelector('.opt-icon').textContent = soundOn ? '🔊' : '🔇';
+      break;
+    case 'vibration':
+      vibrationOn = !vibrationOn;
+      btn.classList.toggle('active', vibrationOn);
+      break;
+    case 'wakelock':
+      wakeLockOn = !wakeLockOn;
+      btn.classList.toggle('active', wakeLockOn);
+      if (wakeLockOn && running) requestWakeLock(); else releaseWakeLock();
+      break;
+    case 'prepare':
+      prepareOn = !prepareOn;
+      btn.classList.toggle('active', prepareOn);
+      updateTotalTime();
+      break;
   }
-  updateCardHighlight();
-}
-
-function updateCardHighlight() {
-  document.getElementById('card-work').classList.toggle('phase-active', phase === 'work');
-  document.getElementById('card-rest').classList.toggle('phase-active', phase === 'rest');
-  // Affiche les hints "tap" quand idle
-  const idle = !running;
-  document.getElementById('work-tap').style.opacity = idle ? '1' : '0';
-  document.getElementById('rest-tap').style.opacity = idle ? '1' : '0';
-}
-
-function toggleAutoStart(btn) {
-  autoStart = !autoStart;
-  btn.textContent = autoStart ? '⚡ Auto-start ON' : '⚡ Auto-start OFF';
-  btn.classList.toggle('active', autoStart);
 }
 
 function clearActivePresets() {
@@ -882,9 +1118,7 @@ function clearActivePresets() {
 document.getElementById('work-display').textContent   = fmt(workSecs);
 document.getElementById('rest-display').textContent   = fmt(restSecs);
 document.getElementById('rounds-display').textContent = totalRounds;
-document.getElementById('time-display').textContent   = fmt(workSecs);
-updateHistoryDots();
-updateTotalTime();
+updateUI();
 setRing(1, 'idle');
 </script>
 {% endblock %}
