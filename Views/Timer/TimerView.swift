@@ -1,77 +1,84 @@
 import SwiftUI
+import AVFoundation
 
 struct TimerView: View {
     @State private var workSecs = 40
     @State private var restSecs = 20
+    @State private var prepareSecs = 5
     @State private var totalRounds = 8
     @State private var currentRound = 1
     @State private var phase: TimerPhase = .idle
     @State private var remaining = 40
     @State private var running = false
-    @State private var timer: Foundation.Timer?
+    @State private var timerTask: Task<Void, Never>? = nil
+    @State private var beepPlayer: AVAudioPlayer?
 
-    enum TimerPhase { case idle, work, rest, done }
+    enum TimerPhase { case idle, prepare, work, rest, done }
 
     var phaseColor: Color {
         switch phase {
-        case .work: return .orange
-        case .rest: return .green
-        case .done: return .green
-        case .idle: return .gray
+        case .prepare: return .yellow
+        case .work:    return .orange
+        case .rest:    return .green
+        case .done:    return .green
+        case .idle:    return .gray
         }
     }
 
     var progress: Double {
         switch phase {
-        case .work: return Double(remaining) / Double(workSecs)
-        case .rest: return Double(remaining) / Double(restSecs)
-        default:    return 1.0
+        case .prepare: return prepareSecs > 0 ? Double(remaining) / Double(prepareSecs) : 1
+        case .work:    return workSecs > 0 ? Double(remaining) / Double(workSecs) : 1
+        case .rest:    return restSecs > 0 ? Double(remaining) / Double(restSecs) : 1
+        default:       return 1.0
         }
     }
 
     var phaseLabel: String {
         switch phase {
-        case .work: return "⚡ WORK"
-        case .rest: return "💤 REST"
-        case .done: return "✅ TERMINÉ"
-        case .idle: return "PRÊT"
+        case .prepare: return "PRÉPARE"
+        case .work:    return "WORK"
+        case .rest:    return "REST"
+        case .done:    return "TERMINÉ"
+        case .idle:    return "PRÊT"
         }
     }
 
     var body: some View {
-        ZStack {
-            Color(hex: "080810").ignoresSafeArea()
+        ScrollView {
+            VStack(spacing: 20) {
 
-            VStack(spacing: 24) {
-                // Phase label
+                // Phase badge
                 Text(phaseLabel)
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: 12, weight: .black))
                     .tracking(4)
                     .foregroundColor(phaseColor)
                     .padding(.horizontal, 20)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 7)
                     .background(phaseColor.opacity(0.12))
-                    .cornerRadius(6)
+                    .clipShape(Capsule())
+                    .padding(.top, 12)
 
                 // Ring
                 ZStack {
                     Circle()
-                        .stroke(Color(hex: "191926"), lineWidth: 12)
-                        .frame(width: 220, height: 220)
+                        .stroke(Color(hex: "191926"), lineWidth: 14)
+                        .frame(width: 200, height: 200)
 
                     Circle()
                         .trim(from: 0, to: progress)
-                        .stroke(phaseColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                        .frame(width: 220, height: 220)
+                        .stroke(phaseColor, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                        .frame(width: 200, height: 200)
                         .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.25), value: progress)
+                        .animation(.linear(duration: 0.3), value: progress)
 
                     VStack(spacing: 4) {
                         Text(formatTime(remaining))
-                            .font(.system(size: 64, weight: .black, design: .rounded))
+                            .font(.system(size: 58, weight: .black, design: .rounded))
                             .foregroundColor(phaseColor)
                             .monospacedDigit()
-                        if phase != .idle {
+                            .contentTransition(.numericText())
+                        if phase == .work || phase == .rest {
                             Text("ROUND \(currentRound) / \(totalRounds)")
                                 .font(.system(size: 11, weight: .semibold))
                                 .tracking(2)
@@ -80,187 +87,290 @@ struct TimerView: View {
                     }
                 }
 
-                // Controls
+                // −5s / +5s ajustement du décompte actif
+                if phase != .idle && phase != .done {
+                    HStack(spacing: 16) {
+                        Button {
+                            remaining = max(1, remaining - 5)
+                        } label: {
+                            Text("−5s")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(phaseColor)
+                                .frame(width: 72, height: 36)
+                                .background(phaseColor.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(phaseColor.opacity(0.3), lineWidth: 1))
+                        }
+                        Button {
+                            remaining += 5
+                        } label: {
+                            Text("+5s")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(phaseColor)
+                                .frame(width: 72, height: 36)
+                                .background(phaseColor.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(phaseColor.opacity(0.3), lineWidth: 1))
+                        }
+                    }
+                }
+
+                // Play / Reset / Skip
                 HStack(spacing: 20) {
-                    Button(action: resetTimer) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 20, weight: .semibold))
-                            .frame(width: 56, height: 56)
-                            .background(Color(hex: "191926"))
-                            .foregroundColor(.gray)
-                            .clipShape(Circle())
+                    CircleButton(icon: "arrow.counterclockwise", size: 52, color: .gray) {
+                        stopTimer()
+                        phase = .idle; currentRound = 1; remaining = prepareSecs
                     }
-
-                    Button(action: toggleTimer) {
-                        Image(systemName: running ? "pause.fill" : "play.fill")
-                            .font(.system(size: 26, weight: .semibold))
-                            .frame(width: 72, height: 72)
-                            .background(running ? Color.orange.opacity(0.15) : Color.orange)
-                            .foregroundColor(running ? .orange : .white)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(running ? Color.orange : Color.clear, lineWidth: 2))
-                    }
-
-                    Button(action: skipPhase) {
-                        Image(systemName: "forward.end.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                            .frame(width: 56, height: 56)
-                            .background(Color(hex: "191926"))
-                            .foregroundColor(.gray)
-                            .clipShape(Circle())
+                    CircleButton(
+                        icon: running ? "pause.fill" : "play.fill",
+                        size: 68,
+                        color: .orange,
+                        filled: !running
+                    ) { toggleTimer() }
+                    CircleButton(icon: "forward.end.fill", size: 52, color: .gray) {
+                        skipPhase()
                     }
                 }
-
-                // Settings
-                HStack(spacing: 10) {
-                    SettingCard(title: "💤 REST", value: "\(restSecs)s", color: .green) {
-                        HStack(spacing: 6) {
-                            Button("-5s") { restSecs = max(5, restSecs - 5); if !running { resetTimer() } }
-                                .settingBtnStyle()
-                            Button("+5s") { restSecs += 5; if !running { resetTimer() } }
-                                .settingBtnStyle()
-                        }
-                    }
-                    SettingCard(title: "⚡ WORK", value: "\(workSecs)s", color: .orange) {
-                        HStack(spacing: 6) {
-                            Button("-5s") { workSecs = max(5, workSecs - 5); if !running { resetTimer() } }
-                                .settingBtnStyle()
-                            Button("+5s") { workSecs += 5; if !running { resetTimer() } }
-                                .settingBtnStyle()
-                        }
-                    }
-                }
-
-                // Rounds
-                HStack {
-                    Text("🔁 ROUNDS")
-                        .font(.system(size: 11, weight: .semibold))
-                        .tracking(2)
-                        .foregroundColor(.gray)
-                    Spacer()
-                    Button("-1") { totalRounds = max(1, totalRounds - 1); if !running { resetTimer() } }
-                        .settingBtnStyle()
-                    Text("\(totalRounds)")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.blue)
-                        .frame(width: 40)
-                    Button("+1") { totalRounds = min(99, totalRounds + 1); if !running { resetTimer() } }
-                        .settingBtnStyle()
-                }
-                .padding(14)
-                .background(Color(hex: "11111c"))
-                .cornerRadius(12)
 
                 // Round dots
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 5) {
-                        ForEach(1...totalRounds, id: \.self) { i in
-                            RoundedRectangle(cornerRadius: 3)
+                    HStack(spacing: 6) {
+                        ForEach(1...max(1, totalRounds), id: \.self) { i in
+                            Circle()
                                 .fill(i < currentRound ? Color.orange :
-                                      (i == currentRound && phase == .rest) ? Color.orange :
+                                      i == currentRound && phase != .idle ? phaseColor :
                                       Color(hex: "191926"))
-                                .frame(width: 14, height: 14)
+                                .frame(width: 12, height: 12)
+                                .animation(.easeInOut(duration: 0.2), value: currentRound)
                         }
                     }
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, 4)
                 }
 
-                Spacer()
+                Divider().background(Color.white.opacity(0.07))
+
+                // Settings — PRÉPARE, WORK, REST, ROUNDS (désactivés pendant le run)
+                VStack(spacing: 10) {
+                    TimerStepperRow(
+                        label: "⏱  PRÉPARE",
+                        value: $prepareSecs,
+                        color: .yellow,
+                        step: 1,
+                        min: 1,
+                        max: 60,
+                        onChanged: { _ in }
+                    )
+                    TimerStepperRow(
+                        label: "⚡  WORK",
+                        value: $workSecs,
+                        color: .orange,
+                        step: 5,
+                        min: 5,
+                        max: 300,
+                        onChanged: { _ in if !running { remaining = workSecs; phase = .idle } }
+                    )
+                    TimerStepperRow(
+                        label: "💤  REST",
+                        value: $restSecs,
+                        color: .green,
+                        step: 5,
+                        min: 5,
+                        max: 300,
+                        onChanged: { _ in }
+                    )
+                    TimerStepperRow(
+                        label: "🔁  ROUNDS",
+                        value: $totalRounds,
+                        color: .blue,
+                        step: 1,
+                        min: 1,
+                        max: 99,
+                        onChanged: { _ in }
+                    )
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 24)
+                .disabled(running)
+                .opacity(running ? 0.4 : 1)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 24)
         }
+        .background(AmbientBackground(color: phaseColor))
+        .onDisappear { stopTimer() }
     }
 
+    // MARK: - Helpers
     private func formatTime(_ s: Int) -> String {
         "\(s / 60):\(String(format: "%02d", s % 60))"
     }
 
     private func toggleTimer() {
         if running {
-            running = false
-            timer?.invalidate()
-            timer = nil
+            stopTimer()
         } else {
             if phase == .idle || phase == .done {
                 currentRound = 1
-                phase = .work
-                remaining = workSecs
+                phase = .prepare
+                remaining = prepareSecs
             }
             running = true
-            timer = Foundation.Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-                tick()
-            }
+            timerTask = Task { await runLoop() }
+        }
+    }
+
+    private func stopTimer() {
+        running = false
+        timerTask?.cancel()
+        timerTask = nil
+    }
+
+    @MainActor
+    private func runLoop() async {
+        while running && !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard running && !Task.isCancelled else { break }
+            tick()
         }
     }
 
     private func tick() {
-        guard running else { return }
-        remaining -= 1
-        if remaining <= 0 {
-            switch phase {
-            case .work:
-                if currentRound >= totalRounds {
-                    phase = .done; running = false; timer?.invalidate()
-                } else {
-                    phase = .rest; remaining = restSecs
-                }
-            case .rest:
-                currentRound += 1; phase = .work; remaining = workSecs
-            default: break
-            }
+        guard running, remaining > 0 else {
+            if remaining <= 0 { advance() }
+            return
         }
+        remaining -= 1
+        if remaining <= 3 && remaining > 0 {
+            beepPlayer = makeBeep(hz: 880, duration: 0.12)
+            beepPlayer?.play()
+            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+        }
+        if remaining <= 0 { advance() }
     }
 
-    private func resetTimer() {
-        running = false; timer?.invalidate(); timer = nil
-        phase = .idle; currentRound = 1; remaining = workSecs
+    private func advance() {
+        switch phase {
+        case .prepare:
+            phase = .work
+            remaining = workSecs
+        case .work:
+            if currentRound >= totalRounds {
+                phase = .done
+                running = false
+                timerTask?.cancel()
+            } else {
+                phase = .rest
+                remaining = restSecs
+            }
+        case .rest:
+            currentRound += 1
+            phase = .work
+            remaining = workSecs
+        default:
+            break
+        }
     }
 
     private func skipPhase() {
         switch phase {
+        case .prepare:
+            phase = .work; remaining = workSecs
         case .work:
-            if currentRound >= totalRounds { phase = .done; running = false; timer?.invalidate() }
-            else { phase = .rest; remaining = restSecs }
+            if currentRound >= totalRounds {
+                phase = .done; running = false; timerTask?.cancel()
+            } else {
+                phase = .rest; remaining = restSecs
+            }
         case .rest:
             currentRound += 1; phase = .work; remaining = workSecs
-        default: break
+        case .idle:
+            currentRound = 1; phase = .prepare; remaining = prepareSecs
+            running = true
+            timerTask = Task { await runLoop() }
+        default:
+            break
         }
     }
 }
 
-struct SettingCard<Content: View>: View {
-    let title: String
-    let value: String
+// MARK: - Stepper Row
+struct TimerStepperRow: View {
+    let label: String
+    @Binding var value: Int
     let color: Color
-    @ViewBuilder let buttons: () -> Content
+    let step: Int
+    let min: Int
+    let max: Int
+    var onChanged: (Int) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(2)
-                .foregroundColor(.gray)
-            Text(value)
-                .font(.system(size: 26, weight: .black))
-                .foregroundColor(color)
-            buttons()
+        HStack {
+            Text(label)
+                .font(.system(size: 13, weight: .bold))
+                .tracking(1)
+                .foregroundColor(.white)
+                .frame(width: 100, alignment: .leading)
+
+            Spacer()
+
+            HStack(spacing: 0) {
+                Button {
+                    if value - step >= min {
+                        value -= step
+                        onChanged(value)
+                    }
+                } label: {
+                    Image(systemName: "minus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                        .foregroundColor(value - step >= min ? .white : .gray.opacity(0.3))
+                }
+
+                Text("\(value)\(step > 1 ? "s" : "")")
+                    .font(.system(size: 20, weight: .black))
+                    .foregroundColor(color)
+                    .frame(width: 64, alignment: .center)
+                    .monospacedDigit()
+
+                Button {
+                    if value + step <= max {
+                        value += step
+                        onChanged(value)
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                        .foregroundColor(value + step <= max ? color : .gray.opacity(0.3))
+                }
+            }
+            .background(Color(hex: "191926"))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
         .background(Color(hex: "11111c"))
-        .cornerRadius(12)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
 
-extension View {
-    func settingBtnStyle() -> some View {
-        self
-            .font(.system(size: 12, weight: .bold))
-            .foregroundColor(.white)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Color.white.opacity(0.06))
-            .cornerRadius(6)
+// MARK: - Circle Button
+struct CircleButton: View {
+    let icon: String
+    let size: CGFloat
+    let color: Color
+    var filled: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: size * 0.35, weight: .semibold))
+                .frame(width: size, height: size)
+                .background(filled ? color : color.opacity(0.12))
+                .foregroundColor(filled ? .white : color)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(filled ? Color.clear : color.opacity(0.3), lineWidth: 1.5))
+                .shadow(color: filled ? color.opacity(0.4) : .clear, radius: 12, y: 4)
+        }
+        .buttonStyle(SpringButtonStyle(scale: 0.92))
     }
 }
