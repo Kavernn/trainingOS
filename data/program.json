@@ -1,0 +1,20 @@
+{
+  "Upper A": {},
+  "Upper B": {
+    "Seated Row": "3x10-12",
+    "Lateral Raises": "4x12-15",
+    "Triceps Extension": "3x10-12",
+    "Hammer Curl": "3x10-12",
+    "Face Pull": "3x15-20",
+    "Incline DB Press": "3x10-12",
+    "T Bar Row Supporté": "3x8-12"
+  },
+  "Lower": {
+    "Back Squat": "4x5-7",
+    "Leg Press": "3x10-12",
+    "Leg Curl": "3x10-12",
+    "Romanian Deadlift": "3x8-10",
+    "Calf Raise": "3x12-15",
+    "Abs": "3x12-15"
+  }
+}

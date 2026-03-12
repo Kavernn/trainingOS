@@ -1,0 +1,1940 @@
+# api/index.py
+from __future__ import annotations
+import os, sys, json, socket, webbrowser
+from threading import Timer
+from datetime import datetime, date
+from pathlib import Path
+
+# Charge le .env pour le dev local (no-op sur Vercel)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / '.env')
+except ImportError:
+    pass
+
+# ✅ Ajoute /api au path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# ── Timezone Montréal (gère l'heure d'été) ───────────────────
+def _now_mtl() -> datetime:
+    # 1. zoneinfo + tzdata
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo("America/Montreal"))
+    except Exception:
+        pass
+    # 2. pytz
+    try:
+        import pytz
+        return datetime.now(pytz.timezone("America/Montreal"))
+    except Exception:
+        pass
+    # 3. Calcul DST manuel (aucune dépendance)
+    from datetime import timezone, timedelta as td
+    utc = datetime.now(timezone.utc)
+    def nth_sunday(y, m, n):
+        first = datetime(y, m, 1)
+        return first + td(days=(6 - first.weekday()) % 7 + 7 * (n - 1))
+    y = utc.year
+    dst_start = nth_sunday(y, 3,  2).replace(hour=7, tzinfo=timezone.utc)
+    dst_end   = nth_sunday(y, 11, 1).replace(hour=6, tzinfo=timezone.utc)
+    offset = -4 if dst_start <= utc < dst_end else -5
+    return utc.astimezone(timezone(td(hours=offset)))
+
+def _today_mtl() -> str:
+    return _now_mtl().strftime("%Y-%m-%d")
+
+from flask import Flask, render_template, jsonify, request, redirect, url_for, send_from_directory
+from werkzeug.utils import secure_filename
+
+from planner      import get_today, get_today_date, get_week_schedule, get_suggested_weights_for_today, load_program, save_program
+from blocks       import (make_strength_block, make_hiit_block, make_cardio_block,
+                           get_block, get_strength_exercises,
+                           upsert_block, remove_block, reorder_blocks)
+from hiit         import get_hiit_str
+from log_workout  import load_weights, save_weights, log_single_exercise
+from inventory    import load_inventory, save_inventory, calculate_plates
+from sessions     import load_sessions, log_session, log_second_session, session_exists
+from user_profile import load_user_profile, save_user_profile
+from progression  import estimate_1rm, should_increase, next_weight, parse_reps, progression_status
+from deload       import analyser_deload, load_deload_state
+from goals        import load_goals, check_goals_achieved, get_progress_bar, set_goal
+from body_weight  import load_body_weight, log_body_weight, get_tendance
+from nutrition    import (load_settings as load_nutrition_settings,
+                          save_settings as save_nutrition_settings,
+                          get_today_entries, get_today_totals,
+                          add_entry as nutrition_add_entry,
+                          delete_entry as nutrition_delete_entry,
+                          get_recent_days)
+from db           import get_json, set_json
+from db           import _ON_VERCEL
+
+# ── App config ──────────────────────────────────────────────
+_API_DIR  = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR  = os.path.dirname(_API_DIR)  # remonte à la racine
+
+# Sur Vercel, templates/static sont à la racine
+TEMPLATES = os.path.join(BASE_DIR, "templates")
+STATIC    = os.path.join(BASE_DIR, "static")
+
+app = Flask(
+    __name__,
+    template_folder = TEMPLATES,
+    static_folder   = STATIC,
+)
+app.secret_key = os.getenv("SECRET_KEY", "trainingos-secret-change-in-prod")
+
+UPLOAD_FOLDER      = os.path.join(BASE_DIR, "static", "uploads")
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+RAPID_API_KEY = os.getenv("X_RAPIDAPI_KEY")
+
+
+# ── Helpers ─────────────────────────────────────────────────
+
+def get_current_week() -> int:
+    START_DATE = date(2026, 3, 3)
+    delta      = date.today() - START_DATE
+    return max(1, (delta.days // 7) + 1)
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def load_hiit_log_local() -> list:
+    return get_json("hiit_log", [])
+
+
+def save_hiit_log_local(hiit_log: list):
+    set_json("hiit_log", hiit_log)
+
+
+# ── Pages HTML ───────────────────────────────────────────────
+
+@app.route("/")
+def index():
+    weights      = load_weights()
+    profile      = load_user_profile()
+    suggestions  = get_suggested_weights_for_today(weights)
+    goals        = load_goals()
+    full_program = load_program()
+    deload_state = load_deload_state()
+    sessions     = load_sessions()
+
+    goals_progress = {}
+    for ex, goal in goals.items():
+        current = weights.get(ex, {}).get("current_weight", 0) or 0
+        goals_progress[ex] = {
+            "current":  current,
+            "goal":     goal["goal_weight"],
+            "bar":      get_progress_bar(current, goal["goal_weight"]),
+            "achieved": goal.get("achieved", False),
+            "since":    deload_state.get("since", "")
+        }
+
+    today_str  = get_today()
+    today_date = _today_mtl()
+    hiit_log   = load_hiit_log_local()
+
+    if today_str in ['HIIT 1', 'HIIT 2']:
+        already_logged_today = any(
+            e.get("date") == today_date and e.get("session_type") == today_str
+            for e in hiit_log
+        )
+    else:
+        already_logged_today = today_date in sessions
+
+    return render_template("index.html",
+        today        = today_str,
+        week         = get_current_week(),
+        profile      = profile,
+        suggestions  = suggestions,
+        goals        = goals_progress,
+        schedule     = get_week_schedule(),
+        full_program = full_program,
+        deload_state = deload_state,
+        sessions     = sessions,
+        weights      = weights,
+        hiit_log              = hiit_log,
+        now                   = datetime.now().strftime("%A"),
+        nutrition_totals      = get_today_totals(),
+        nutrition_settings    = load_nutrition_settings(),
+        already_logged_today  = already_logged_today,
+    )
+
+
+@app.route("/nutrition")
+def nutrition():
+    settings = load_nutrition_settings()
+    entries  = get_today_entries()
+    totals   = get_today_totals()
+    recent   = get_recent_days(7)
+    return render_template("nutrition.html",
+        settings = settings,
+        entries  = entries,
+        totals   = totals,
+        recent   = recent,
+        today    = _today_mtl(),
+    )
+
+
+@app.route("/api/nutrition/add", methods=["POST"])
+def api_nutrition_add():
+    data  = request.get_json()
+    entry = nutrition_add_entry(
+        nom      = data.get("nom", ""),
+        calories = float(data.get("calories", 0)),
+        proteines= float(data.get("proteines", 0)),
+        glucides = float(data.get("glucides", 0)),
+        lipides  = float(data.get("lipides", 0)),
+    )
+    return jsonify({"success": True, "entry": entry, "totals": get_today_totals()})
+
+
+@app.route("/api/nutrition/delete", methods=["POST"])
+def api_nutrition_delete():
+    data = request.get_json()
+    ok   = nutrition_delete_entry(data.get("id", ""))
+    return jsonify({"success": ok, "totals": get_today_totals()})
+
+
+@app.route("/api/nutrition/settings", methods=["POST"])
+def api_nutrition_settings():
+    data = request.get_json()
+    save_nutrition_settings(
+        int(data.get("limite_calories", 2200)),
+        int(data.get("objectif_proteines", 160)),
+    )
+    return jsonify({"success": True})
+
+
+@app.route("/inventaire")
+def inventaire():
+    return render_template("inventaire.html", inventory=load_inventory())
+
+
+@app.route("/programme")
+def programme():
+    return render_template("programme.html",
+        program   = load_program(),
+        inventory = load_inventory(),
+        today     = get_today(),
+        schedule  = get_week_schedule()
+    )
+
+
+@app.route("/seance")
+def seance():
+    weights  = load_weights()
+    today    = get_today()
+    sessions = load_sessions()
+    today_date = _today_mtl()
+
+    if today in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery']:
+        return redirect(url_for('seance_speciale', session_type=today))
+
+    already_logged   = today_date in sessions
+    previous_session = sessions.get(today_date)
+
+    program   = load_program()
+    inv       = load_inventory()
+    exercises = []
+
+    if today in program:
+        for ex, scheme in program[today].items():
+            data    = weights.get(ex, {})
+            ex_info = inv.get(ex, {})
+            current = data.get("current_weight", 0) or 0
+            ex_type = ex_info.get("type", "machine")
+            bar_w   = ex_info.get("bar_weight", 45.0)
+
+            if ex_type == "barbell" and current:
+                display = f"{(current - bar_w) / 2:.1f} lbs par côté"
+            elif ex_type == "dumbbell" and current:
+                display = f"{current / 2:.1f} lbs par haltère"
+            else:
+                display = f"{current:.1f} lbs" if current else "À définir"
+
+            plates_needed = []
+            if ex_type == "barbell" and current > bar_w:
+                plates_needed = calculate_plates(current, bar_w)
+
+            exercises.append({
+                "name":    ex,
+                "scheme":  scheme,
+                "current": current,
+                "display": display,
+                "type":    ex_type,
+                "plates":  plates_needed,
+                "history": data.get("history", [])[:3],
+                "1rm":     data.get("history", [{}])[0].get("1rm", 0) if data.get("history") else 0
+            })
+
+    return render_template("seance.html",
+        today            = today,
+        exercises        = exercises,
+        is_hiit          = "HIIT" in today,
+        hiit_str         = get_hiit_str(get_current_week()) if "HIIT" in today else "",
+        week             = get_current_week(),
+        already_logged   = already_logged,
+        previous_session = previous_session
+    )
+
+
+@app.route("/seance_speciale/<path:session_type>")
+def seance_speciale(session_type):
+    from urllib.parse import unquote
+    session_type = unquote(session_type)  # ← décode HIIT%201 → HIIT 1
+
+    week = get_current_week()
+    if week <= 4:
+        protocole = {"rounds": 8, "sprint_spd": 13.0, "jog_spd": 6.5, "duree": 20}
+    elif week <= 8:
+        protocole = {"rounds": 10, "sprint_spd": 13.0, "jog_spd": 6.5, "duree": 25}
+    elif week <= 12:
+        protocole = {"rounds": 12, "sprint_spd": 13.0, "jog_spd": 6.5, "duree": 28}
+    elif week <= 16:
+        protocole = {"rounds": 8, "sprint_spd": 14.0, "jog_spd": 7.0, "duree": 20}
+    else:
+        protocole = {"rounds": 10, "sprint_spd": 14.0, "jog_spd": 7.0, "duree": 25}
+
+    today_date = _today_mtl()
+    hiit_log   = load_hiit_log_local()
+
+    if session_type in ['HIIT 1', 'HIIT 2']:
+        previous_session = next(
+            (e for e in hiit_log if e.get("date") == today_date and e.get("session_type") == session_type),
+            None
+        )
+        already_logged = previous_session is not None
+    else:
+        sessions         = load_sessions()
+        already_logged   = today_date in sessions
+        previous_session = sessions.get(today_date)
+
+    return render_template("seance_speciale.html",
+                           session_type=session_type,
+                           protocole=protocole,
+                           week=week,
+                           hiit_log=hiit_log,
+                           now=today_date,
+                           already_logged=already_logged,
+                           previous_session=previous_session,
+                           )
+
+@app.route("/historique")
+def historique():
+    weights  = load_weights()
+    sessions = load_sessions()
+    hiit_log = load_hiit_log_local()
+
+    # Build index: date -> list of {exercise, weight, reps}
+    ex_by_date = {}
+    for ex, data in weights.items():
+        for entry in data.get("history", []):
+            d = entry.get("date")
+            if not d:
+                continue
+            ex_by_date.setdefault(d, []).append({
+                "exercise": ex,
+                "weight":   entry.get("weight", 0),
+                "reps":     entry.get("reps", ""),
+            })
+
+    # Merge muscu sessions and HIIT into unified list sorted by date desc
+    all_dates = set(sessions.keys()) | set(ex_by_date.keys())
+    session_list = []
+    for d in sorted(all_dates, reverse=True):
+        s = sessions.get(d, {})
+        session_list.append({
+            "date":    d,
+            "type":    "muscu",
+            "rpe":     s.get("rpe"),
+            "comment": s.get("comment", ""),
+            "exos":    ex_by_date.get(d, []),
+        })
+
+    hiit_list = sorted(hiit_log, key=lambda x: x.get("date",""), reverse=True)
+
+    return render_template("historique.html",
+        session_list = session_list[:60],
+        hiit_list    = hiit_list[:30],
+        weights      = weights,
+    )
+
+
+@app.route("/hiit")
+def hiit_historique():
+    return render_template("hiit.html", hiit_log=load_hiit_log_local())
+
+
+@app.route("/notes")
+def notes():
+    return render_template("notes.html", sessions=load_sessions())
+
+
+@app.route("/objectifs")
+def objectifs():
+    weights    = load_weights()
+    goals      = load_goals()
+    goals_data = []
+    for ex, goal in goals.items():
+        current = weights.get(ex, {}).get("current_weight", 0) or 0
+        pct     = min(current / goal["goal_weight"] * 100, 100) if goal["goal_weight"] else 0
+        goals_data.append({
+            "exercise": ex,
+            "current":  current,
+            "goal":     goal["goal_weight"],
+            "pct":      round(pct, 1),
+            "achieved": goal.get("achieved", False),
+            "deadline": goal.get("deadline", ""),
+        })
+    return render_template("objectifs.html", goals=goals_data)
+
+
+@app.route("/timer")
+def timer():
+    return render_template("timer.html",
+        now  = _today_mtl(),
+        week = datetime.now().isocalendar()[1]
+    )
+
+
+@app.route("/xp")
+def xp():
+    return render_template("xp.html",
+        weights   = load_weights(),
+        sessions  = load_sessions(),
+        hiit_log  = load_hiit_log_local(),
+        inventory = load_inventory(),
+        now       = _today_mtl(),
+        week      = datetime.now().isocalendar()[1]
+    )
+
+
+@app.route("/bodycomp")
+def bodycomp():
+    bw = load_body_weight()
+    return render_template("bodycomp.html",
+        body_weight = bw,
+        profile     = load_user_profile(),
+        tendance    = get_tendance(bw) if bw else "Pas de données",
+        now         = _today_mtl(),
+        week        = datetime.now().isocalendar()[1]
+    )
+
+
+@app.route("/intelligence")
+def intelligence():
+    return render_template("intelligence.html",
+        weights   = load_weights(),
+        sessions  = load_sessions(),
+        hiit_log  = load_hiit_log_local(),
+        inventory = load_inventory(),
+        program   = load_program(),
+        now       = _today_mtl(),
+        week      = datetime.now().isocalendar()[1]
+    )
+
+
+@app.route("/planificateur")
+def planificateur():
+    return render_template("planificateur.html",
+        weights      = load_weights(),
+        sessions     = load_sessions(),
+        hiit_log     = load_hiit_log_local(),
+        full_program = load_program(),
+        schedule     = get_week_schedule(),
+        now          = _today_mtl(),
+        week         = datetime.now().isocalendar()[1]
+    )
+
+
+@app.route("/stats")
+def stats():
+    return render_template("stats.html",
+        weights     = load_weights(),
+        sessions    = load_sessions(),
+        hiit_log    = load_hiit_log_local(),
+        body_weight = load_body_weight(),
+        inventory   = load_inventory(),
+        now         = _today_mtl()
+    )
+
+
+@app.route("/profil")
+def profil():
+    profile     = load_user_profile()
+    body_weight = load_body_weight()
+    tendance    = get_tendance(body_weight) if body_weight else "Pas de données"
+    return render_template("profil.html",
+        profile          = profile,
+        body_weight      = body_weight[:10] if body_weight else [],
+        body_weight_all  = body_weight,
+        tendance         = tendance
+    )
+
+
+# ── API ──────────────────────────────────────────────────────
+
+@app.route("/api/log", methods=["POST"])
+def api_log():
+    try:
+        data     = request.get_json()
+        exercise = data.get("exercise")
+        weight   = float(data.get("weight", 0))
+        reps_str = data.get("reps", "")
+
+        if not exercise or not reps_str:
+            return jsonify({"error": "Données manquantes"}), 400
+
+        weights   = load_weights()
+        reps_list = parse_reps(reps_str)
+        reps      = ",".join(map(str, reps_list))
+        status    = progression_status(reps, exercise)
+        increase  = should_increase(reps, exercise)
+        new_w     = next_weight(exercise, weight) if increase else weight
+        onerm     = estimate_1rm(weight, reps)
+
+        history_entry = {
+            "date":   _today_mtl(),
+            "weight": round(weight, 1),
+            "reps":   reps,
+            "note":   f"+{new_w - weight:.1f}" if increase else "stagné",
+            "1rm":    onerm
+        }
+
+        if exercise not in weights:
+            weights[exercise] = {"history": []}
+
+        weights[exercise].setdefault("history", []).insert(0, history_entry)
+        weights[exercise]["history"]        = weights[exercise]["history"][:20]
+        weights[exercise]["current_weight"] = round(new_w, 1)
+        weights[exercise]["last_reps"]      = reps
+        weights[exercise]["last_logged"]    = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        save_weights(weights)
+        achieved = check_goals_achieved(weights)
+
+        return jsonify({
+            "success":    True,
+            "status":     status,
+            "increase":   increase,
+            "new_weight": new_w,
+            "1rm":        onerm,
+            "achieved":   achieved
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session/edit", methods=["POST"])
+def api_session_edit():
+    """Edit an existing session: RPE, comment, and/or individual exercise weight/reps."""
+    try:
+        data    = request.get_json()
+        date    = data.get("date")
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+
+        # Update sessions store (RPE / comment)
+        sessions = load_sessions()
+        if date not in sessions:
+            sessions[date] = {}
+        if "rpe" in data:
+            sessions[date]["rpe"] = data["rpe"]
+        if "comment" in data:
+            sessions[date]["comment"] = data["comment"]
+        from sessions import save_sessions
+        save_sessions(sessions)
+
+        # Update weights store for each exercise edit
+        exercise_edits = data.get("exercises", [])
+        if exercise_edits:
+            weights = load_weights()
+            for edit in exercise_edits:
+                ex    = edit.get("exercise")
+                new_w = edit.get("weight")
+                new_r = edit.get("reps")
+                if not ex or ex not in weights:
+                    continue
+                history = weights[ex].get("history", [])
+                # Find and update existing entry for this date
+                updated = False
+                for entry in history:
+                    if entry.get("date") == date:
+                        if new_w is not None:
+                            entry["weight"] = float(new_w)
+                        if new_r is not None:
+                            entry["reps"] = str(new_r)
+                        # Recalculate 1RM (Epley) so stats/PRs stay accurate
+                        w = entry["weight"]
+                        reps_list = [int(x) for x in str(entry["reps"]).split(",") if x.strip().isdigit()]
+                        if reps_list and w:
+                            avg_reps = sum(reps_list) / len(reps_list)
+                            entry["1rm"] = round(w * (1 + avg_reps / 30), 1)
+                        updated = True
+                        break
+                if not updated:
+                    w = float(new_w or 0)
+                    r = str(new_r or "")
+                    reps_list = [int(x) for x in r.split(",") if x.strip().isdigit()]
+                    avg_reps  = sum(reps_list) / len(reps_list) if reps_list else 0
+                    one_rm    = round(w * (1 + avg_reps / 30), 1) if w and avg_reps else 0
+                    history.insert(0, {"date": date, "weight": w, "reps": r, "1rm": one_rm})
+                    weights[ex]["history"] = history[:20]
+                # Always recalculate current_weight/last_reps from the most recent entry
+                if history:
+                    most_recent = max(history, key=lambda e: e.get("date", ""))
+                    weights[ex]["current_weight"] = most_recent["weight"]
+                    weights[ex]["last_reps"]      = most_recent["reps"]
+            save_weights(weights)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session/delete", methods=["POST"])
+def api_session_delete():
+    """Delete an entire session (removes from sessions store + weights history)."""
+    try:
+        data = request.get_json()
+        date = data.get("date")
+        if not date:
+            return jsonify({"error": "date manquante"}), 400
+
+        # Remove from sessions
+        sessions = load_sessions()
+        sessions.pop(date, None)
+        from sessions import save_sessions
+        save_sessions(sessions)
+
+        # Remove matching history entries from weights
+        weights = load_weights()
+        for ex in weights:
+            history = weights[ex].get("history", [])
+            weights[ex]["history"] = [e for e in history if e.get("date") != date]
+            # Recalculate current values from remaining history
+            remaining = weights[ex]["history"]
+            if remaining:
+                most_recent = max(remaining, key=lambda e: e.get("date", ""))
+                weights[ex]["current_weight"] = most_recent["weight"]
+                weights[ex]["last_reps"]      = most_recent["reps"]
+        save_weights(weights)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/log_session", methods=["POST"])
+def api_log_session():
+    try:
+        data           = request.get_json()
+        # Utilise la date locale du client si fournie (évite le décalage UTC/EST)
+        today          = data.get("date") or _today_mtl()
+        rpe            = data.get("rpe")
+        comment        = data.get("comment", "")
+        exos           = data.get("exos", [])
+        blocks         = data.get("blocks")
+        second_session = data.get("second_session", False)
+        duration_min   = data.get("duration_min")
+        energy_pre     = data.get("energy_pre")
+
+        if session_exists(today) and not second_session:
+            return jsonify({"error": "already_logged"}), 409
+
+        if second_session:
+            log_second_session(today, rpe, comment, exos, duration_min, energy_pre, blocks=blocks)
+        else:
+            log_session(today, rpe, comment, exos, duration_min, energy_pre, blocks=blocks)
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/log_hiit", methods=["POST"])
+def api_log_hiit():
+    data           = request.json
+    week           = get_current_week()
+    today          = data.get("date") or _today_mtl()
+    session_type   = data.get("session_type", "HIIT")
+    second_session = data.get("second_session", False)
+    hiit_log       = load_hiit_log_local()
+
+    already_today = any(
+        e.get("date") == today and e.get("session_type") == session_type
+        for e in hiit_log
+    )
+    if already_today and not second_session:
+        return jsonify({"error": "already_logged"}), 409
+
+    entry = {
+        "date":               today,
+        "week":               week,
+        "session_type":       session_type,
+        "rounds_planifies":   data.get("rounds", 0),
+        "rounds_completes":   data.get("rounds", 0),
+        "vitesse_max":        data.get("speed"),
+        "vitesse_croisiere":  data.get("vitesse_croisiere"),
+        "rpe":                data.get("rpe"),
+        "feeling":            data.get("feeling", "—"),
+        "comment":            data.get("comment", "")
+    }
+
+    hiit_log.insert(0, entry)
+    save_hiit_log_local(hiit_log)
+    return jsonify({"success": True})
+
+
+@app.route("/api/delete_hiit", methods=["POST"])
+def api_delete_hiit():
+    data     = request.json
+    hiit_log = load_hiit_log_local()
+
+    # Support deletion by index OR by date+session_type
+    index = data.get("index")
+    if index is not None and 0 <= index < len(hiit_log):
+        hiit_log.pop(index)
+        save_hiit_log_local(hiit_log)
+        return jsonify({"success": True})
+
+    date         = data.get("date")
+    session_type = data.get("session_type")
+    if date and session_type:
+        before = len(hiit_log)
+        hiit_log = [e for e in hiit_log if not (e.get("date") == date and e.get("session_type") == session_type)]
+        if len(hiit_log) < before:
+            save_hiit_log_local(hiit_log)
+            return jsonify({"success": True})
+
+    return jsonify({"error": "Entrée introuvable"}), 400
+
+
+@app.route("/api/hiit/edit", methods=["POST"])
+def api_hiit_edit():
+    try:
+        data     = request.get_json()
+        index    = data.get("index")
+        hiit_log = load_hiit_log_local()
+
+        if index is None or not (0 <= index < len(hiit_log)):
+            return jsonify({"error": "Index introuvable"}), 400
+
+        entry = hiit_log[index]
+        for field in ("rpe", "feeling", "comment", "rounds_completes",
+                      "vitesse_max", "vitesse_croisiere", "duration"):
+            if field in data:
+                entry[field] = data[field]
+
+        save_hiit_log_local(hiit_log)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/save_exercise", methods=["POST"])
+def api_save_exercise():
+    data = request.json
+    original_name = data.get("original_name", "")
+    name = data.get("name", "").strip()
+
+    if not name:
+        return jsonify({"error": "Nom manquant"}), 400
+
+    inv = load_inventory()
+
+    # Gestion du renommage
+    if original_name and original_name != name and original_name in inv:
+        del inv[original_name]
+
+    # --- RECHERCHE AUTOMATIQUE DU GIF ---
+    # On récupère le GIF actuel s'il existe pour ne pas le perdre
+    existing_gif = inv.get(name, {}).get("gif_url")
+    gif_url = data.get("gif_url") or existing_gif
+
+    # Si on n'a toujours pas de GIF et qu'on a une clé API, on cherche
+    if not gif_url and RAPID_API_KEY:
+        try:
+            api_url = f"https://exercisedb.p.rapidapi.com/exercises/name/{name.lower()}"
+            headers = {
+                "X-RapidAPI-Key": RAPID_API_KEY,
+                "X-RapidAPI-Host": "exercisedb.p.rapidapi.com"
+            }
+            # On limite à 1 résultat pour économiser le quota
+            response = requests.get(api_url, headers=headers, params={"limit": "1"}, timeout=5)
+            if response.status_code == 200:
+                res_json = response.json()
+                if res_json and len(res_json) > 0:
+                    gif_url = res_json[0].get("gifUrl")
+        except Exception as e:
+            print(f"Erreur ExerciseDB : {e}")
+
+    # Mise à jour du dictionnaire avec tes champs existants + le GIF
+    inv[name] = {
+        "type": data.get("type", "machine"),
+        "increment": float(data.get("increment", 5)),
+        "bar_weight": float(data.get("bar_weight", 0)),
+        "default_scheme": data.get("default_scheme", "3x8-12"),
+        "muscles": data.get("muscles", []),
+        "tips": data.get("tips", ""),
+        "category": data.get("category", ""),
+        "pattern": data.get("pattern", ""),
+        "level": data.get("level", ""),
+        "gif_url": gif_url  # Ajout du lien vers la démo
+    }
+
+    # Sauvegarde via db.py (Supabase)
+    success = save_inventory(inv)
+
+    if not success:
+        return jsonify({"success": False, "error": "Erreur de sauvegarde Supabase"}), 500
+
+    # Si renommage, mettre à jour le programme partout
+    if original_name and original_name != name:
+        program = load_program()
+        changed = False
+        for jour, exos in program.items():
+            if original_name in exos:
+                exos[name] = exos.pop(original_name)
+                changed = True
+        if changed:
+            save_program(program)
+
+    return jsonify({"success": True, "gif_url": gif_url})
+
+
+@app.route("/api/delete_exercise", methods=["POST"])
+def api_delete_exercise():
+    name = request.json.get("name")
+    inv  = load_inventory()
+
+    if name not in inv:
+        return jsonify({"error": "Exercice introuvable"}), 404
+
+    del inv[name]
+    save_inventory(inv)
+    return jsonify({"success": True})
+
+
+@app.route("/api/programme", methods=["POST"])
+def api_programme():
+    data    = request.json
+    action  = data.get("action")
+    jour    = data.get("jour")
+    program = load_program()
+
+    if jour not in program:
+        return jsonify({"error": "Jour invalide"}), 400
+
+    session_def = program[jour]
+    blks        = session_def.get("blocks", [])
+
+    # ── Exercise-level actions (operate on the strength block) ──────────────
+    if action in ("add", "remove", "scheme", "replace", "reorder"):
+        strength = get_block(blks, "strength") or make_strength_block({}, order=0)
+        exercises = strength.get("exercises", {})
+
+        if action == "add":
+            exercise = data.get("exercise")
+            scheme   = data.get("scheme", "3x8-12")
+            if exercise in exercises:
+                return jsonify({"error": "Déjà dans le programme"}), 400
+            exercises[exercise] = scheme
+
+        elif action == "remove":
+            exercises.pop(data.get("exercise"), None)
+
+        elif action == "scheme":
+            exercise = data.get("exercise")
+            if exercise in exercises:
+                exercises[exercise] = data.get("scheme")
+
+        elif action == "replace":
+            old_ex = data.get("old_exercise")
+            new_ex = data.get("new_exercise")
+            exercises.pop(old_ex, None)
+            exercises[new_ex] = data.get("scheme", "3x8-12")
+
+        elif action == "reorder":
+            ordre     = data.get("ordre", [])
+            exercises = {ex: exercises[ex] for ex in ordre if ex in exercises}
+
+        strength["exercises"] = exercises
+        session_def["blocks"] = upsert_block(blks, strength)
+        program[jour] = session_def
+
+    elif action == "rename":
+        # Rename across ALL sessions + inventory
+        old_ex = data.get("old_exercise")
+        new_ex = data.get("new_exercise")
+        for sdef in program.values():
+            sb = get_block(sdef.get("blocks", []), "strength")
+            if sb and old_ex in sb.get("exercises", {}):
+                sb["exercises"][new_ex] = sb["exercises"].pop(old_ex)
+        inv = load_inventory()
+        if old_ex in inv:
+            inv[new_ex] = inv.pop(old_ex)
+            save_inventory(inv)
+
+    # ── Block-level actions ──────────────────────────────────────────────────
+    elif action == "add_block":
+        block_type    = data.get("block_type")
+        if block_type == "strength":
+            new_block = make_strength_block(data.get("exercises", {}), order=len(blks))
+        elif block_type == "hiit":
+            new_block = make_hiit_block(data.get("hiit_config"), order=len(blks))
+        elif block_type == "cardio":
+            new_block = make_cardio_block(data.get("cardio_config"), order=len(blks))
+        else:
+            return jsonify({"error": "block_type invalide"}), 400
+        session_def["blocks"] = upsert_block(blks, new_block)
+        program[jour] = session_def
+
+    elif action == "remove_block":
+        session_def["blocks"] = remove_block(blks, data.get("block_type", ""))
+        program[jour] = session_def
+
+    elif action == "reorder_blocks":
+        session_def["blocks"] = reorder_blocks(blks, data.get("order", []))
+        program[jour] = session_def
+
+    save_program(program)
+    return jsonify({"success": True})
+
+
+@app.route("/api/update_profile", methods=["POST"])
+def api_update_profile():
+    existing = load_user_profile()
+    existing.update({k: v for k, v in request.json.items() if v is not None})
+    ok = save_user_profile(existing)
+    if ok:
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "Erreur sauvegarde Supabase"}), 500
+
+
+@app.route("/api/update_profile_photo", methods=["POST"])
+def api_update_profile_photo():
+    # Reçoit du JSON avec photo_b64 déjà compressée/redimensionnée côté client
+    data = request.get_json(silent=True) or {}
+    data_url = data.get("photo_b64", "")
+
+    if not data_url or not data_url.startswith("data:image"):
+        return jsonify({"success": False, "error": "Image invalide"}), 400
+
+    # Vérifie la taille (~600KB max en base64 = ~450KB image)
+    if len(data_url) > 800_000:
+        return jsonify({"success": False, "error": "Image trop lourde après compression"}), 400
+
+    profile = load_user_profile()
+    profile["photo_b64"] = data_url
+    profile.pop("photo", None)
+    ok = save_user_profile(profile)
+
+    if ok:
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "Erreur sauvegarde"}), 500
+
+
+@app.route("/api/set_goal", methods=["POST"])
+def api_set_goal():
+    data     = request.json
+    exercise = data.get("exercise")
+    weight   = float(data.get("weight", 0))
+    deadline = data.get("deadline")
+    note     = data.get("note", "")
+
+    if not exercise or not weight:
+        return jsonify({"error": "Données manquantes"}), 400
+
+    set_goal(exercise, weight, deadline, note)
+    return jsonify({"success": True})
+
+
+@app.route("/api/body_weight", methods=["POST"])
+def api_body_weight():
+    try:
+        data     = request.get_json()
+        poids     = float(data.get("poids", 0))
+        note      = data.get("note", "")
+        body_fat  = data.get("body_fat")
+        waist_cm  = data.get("waist_cm")
+        arms_cm   = data.get("arms_cm")
+        chest_cm  = data.get("chest_cm")
+        thighs_cm = data.get("thighs_cm")
+        hips_cm   = data.get("hips_cm")
+        for key, val in [("body_fat", body_fat), ("waist_cm", waist_cm),
+                         ("arms_cm", arms_cm), ("chest_cm", chest_cm),
+                         ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
+            if val is not None:
+                locals()[key]  # already set
+        body_fat  = float(body_fat)  if body_fat  is not None else None
+        waist_cm  = float(waist_cm)  if waist_cm  is not None else None
+        arms_cm   = float(arms_cm)   if arms_cm   is not None else None
+        chest_cm  = float(chest_cm)  if chest_cm  is not None else None
+        thighs_cm = float(thighs_cm) if thighs_cm is not None else None
+        hips_cm   = float(hips_cm)   if hips_cm   is not None else None
+        if not poids:
+            return jsonify({"error": "Poids invalide"}), 400
+        log_body_weight(poids, note, body_fat, waist_cm, arms_cm, chest_cm, thighs_cm, hips_cm)
+        return jsonify({"success": True, "poids": poids})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/body_weight/update", methods=["POST"])
+def api_update_body_weight():
+    try:
+        data      = request.get_json()
+        date      = data.get("date", "")
+        old_poids = float(data.get("old_poids", 0))
+        new_poids = float(data.get("poids", 0))
+        body_fat  = data.get("body_fat")
+        if body_fat is not None:
+            body_fat = float(body_fat)
+        note = data.get("note", "")
+        entries  = load_body_weight()
+        updated  = False
+        for e in entries:
+            if e.get("date") == date and float(e.get("poids", 0)) == old_poids:
+                e["poids"] = new_poids
+                e["note"]  = note
+                if body_fat is not None:
+                    e["body_fat"] = body_fat
+                elif "body_fat" in e:
+                    del e["body_fat"]
+                for field in ["waist_cm", "arms_cm", "chest_cm", "thighs_cm", "hips_cm"]:
+                    val = data.get(field)
+                    if val is not None:
+                        e[field] = float(val)
+                    elif field in e:
+                        del e[field]
+                updated = True
+                break
+        if not updated:
+            return jsonify({"success": False, "error": "Entrée introuvable"}), 404
+        set_json("body_weight", entries)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/body_weight/delete", methods=["POST"])
+def api_delete_body_weight():
+    try:
+        data  = request.get_json()
+        date  = data.get("date", "")
+        poids = float(data.get("poids", 0))
+        entries = load_body_weight()
+        # Supprime la première entrée qui correspond à la date ET au poids
+        new_entries = [e for e in entries if not (e.get("date") == date and float(e.get("poids", 0)) == poids)]
+        if len(new_entries) == len(entries):
+            return jsonify({"success": False, "error": "Entrée introuvable"}), 404
+        set_json("body_weight", new_entries)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/ai/propose", methods=["POST"])
+def api_ai_propose():
+    """Claude returns structured program modification proposals as JSON."""
+    import os, json as _json
+    import anthropic as _anthropic
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY manquant"}), 500
+    try:
+        data    = request.get_json()
+        context = data.get("context", "")
+        if not context:
+            return jsonify({"error": "Contexte manquant"}), 400
+
+        client  = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=1500,
+            system=(
+                "Tu es un coach expert en programmation musculaire. "
+                "Tu reçois des données d'entraînement et tu proposes des modifications concrètes au programme. "
+                "Tu DOIS répondre UNIQUEMENT avec un tableau JSON valide, sans texte avant ni après. "
+                "Format exact de chaque proposition:\n"
+                '{"jour": "Nom du jour/session", "action": "add|remove|replace|scheme", '
+                '"exercise": "nom (pour add)", "old_exercise": "nom (pour remove/replace)", '
+                '"new_exercise": "nom (pour replace)", "scheme": "ex: 3x8-10", '
+                '"reason": "explication courte en français"}\n'
+                "Propose 3 à 6 modifications pertinentes basées sur les données. "
+                "Ne compare jamais le volume brut entre muscles — utilise les sets."
+            ),
+            messages=[{"role": "user", "content": context}]
+        )
+        raw = message.content[0].text.strip()
+        # Extract JSON array from response
+        start = raw.find('[')
+        end   = raw.rfind(']') + 1
+        if start == -1 or end == 0:
+            return jsonify({"error": "Réponse non structurée", "raw": raw}), 500
+        proposals = _json.loads(raw[start:end])
+        return jsonify({"proposals": proposals})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/ai/coach", methods=["POST"])
+def api_ai_coach():
+    import os
+    import anthropic as _anthropic
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY manquant dans .env"}), 500
+    try:
+        data   = request.get_json()
+        prompt = data.get("prompt", "")
+        if not prompt:
+            return jsonify({"error": "Prompt vide"}), 400
+
+        client = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=800,
+            system=(
+                "Tu es un coach sportif expert en musculation, HIIT et périodisation de l'entraînement. "
+                "Tu reçois des données réelles d'entraînement et tu les analyses avec rigueur. "
+                "Règles importantes:\n"
+                "- Ne compare JAMAIS le volume brut (lbs×reps) entre groupes musculaires — les jambes "
+                "utilisent toujours des charges plus lourdes, ça ne veut pas dire qu'elles sont sur-entraînées.\n"
+                "- Utilise le NOMBRE DE SETS par groupe musculaire comme indicateur de volume réel.\n"
+                "- Pour les suggestions de programme, sois précis: nomme les exercices à ajouter/retirer/modifier "
+                "avec les schemes (ex: 3x8-10, 4x5-7).\n"
+                "- Pour le HIIT, analyse la fréquence, les types et la récupération entre sessions.\n"
+                "- Réponds toujours en français, de façon directe et actionnable. Max 7 phrases."
+            ),
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return jsonify({"response": message.content[0].text})
+    except _anthropic.AuthenticationError:
+        return jsonify({"error": "Clé ANTHROPIC_API_KEY invalide"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/weights")
+def api_weights():
+    return jsonify(load_weights())
+
+
+@app.route("/api/inventory")
+def api_inventory():
+    return jsonify(load_inventory())
+
+
+@app.route("/api/sessions")
+def api_sessions():
+    return jsonify(load_sessions())
+
+
+@app.route("/api/deload")
+def api_deload():
+    return jsonify(analyser_deload(load_weights()))
+
+
+@app.route("/sw.js")
+def service_worker():
+    # Version = SHA git sur Vercel, timestamp horaire en local
+    # Change automatiquement à chaque déploiement → nouveau CACHE_NAME → SW update → reload
+    build_version = (
+        os.getenv('VERCEL_GIT_COMMIT_SHA', '')[:8]
+        or datetime.now().strftime('%Y%m%d%H')
+    )
+    with open(os.path.join(BASE_DIR, "static", "sw.js")) as f:
+        content = f.read()
+    # Remplace le CACHE_NAME hardcodé par la version du build
+    import re
+    content = re.sub(
+        r"(const CACHE_NAME\s*=\s*')[^']*(')",
+        f"\\g<1>trainingos-{build_version}\\2",
+        content
+    )
+    from flask import make_response
+    resp = make_response(content, 200)
+    resp.headers['Content-Type']  = 'application/javascript'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma']        = 'no-cache'
+    resp.headers['Expires']       = '0'
+    return resp
+
+
+@app.route("/api/dashboard")
+def api_dashboard():
+    weights      = load_weights()
+    sessions     = load_sessions()
+    profile      = load_user_profile()
+    goals        = load_goals()
+    full_program = load_program()
+    hiit_log     = load_hiit_log_local()
+    today_str    = get_today()
+    today_date   = get_today_date()
+    schedule     = get_week_schedule()
+    suggestions  = get_suggested_weights_for_today(weights)
+    nutrition_totals = get_today_totals()
+
+    if today_str in ['HIIT 1', 'HIIT 2']:
+        already_logged_today = any(
+            e.get("date") == today_date and e.get("session_type") == today_str
+            for e in hiit_log
+        )
+    else:
+        already_logged_today = today_date in sessions
+
+    goals_progress = {}
+    for ex, goal in goals.items():
+        current = weights.get(ex, {}).get("current_weight", 0) or 0
+        goals_progress[ex] = {
+            "current":  current,
+            "goal":     goal["goal_weight"],
+            "achieved": goal.get("achieved", False),
+        }
+
+    # Merge HIIT sessions into sessions dict so the heatmap shows them too.
+    # If a date already has a muscu session, keep it; otherwise insert a minimal entry.
+    merged_sessions = dict(sessions)
+    for entry in hiit_log:
+        d = entry.get("date")
+        if d and d not in merged_sessions:
+            merged_sessions[d] = {"session_type": entry.get("session_type", "HIIT")}
+
+    return jsonify({
+        "today":               today_str,
+        "week":                get_current_week(),
+        "today_date":          today_date,
+        "already_logged_today": already_logged_today,
+        "schedule":            schedule,
+        "sessions":            merged_sessions,
+        "suggestions":         suggestions,
+        "goals":               goals_progress,
+        "full_program":        full_program,
+        "nutrition_totals":    nutrition_totals,
+        "profile":             profile,
+    })
+
+
+# ── JSON GET endpoints ───────────────────────────────────────
+
+@app.route("/api/seance_data")
+def api_seance_data():
+    weights   = load_weights()
+    sessions  = load_sessions()
+    full_program = load_program()
+    today_str = get_today()
+    suggestions = get_suggested_weights_for_today(weights)
+    hiit_log  = load_hiit_log_local()
+    today_date = get_today_date()
+    schedule  = get_week_schedule()
+    inventory = load_inventory()
+
+    if today_str in ['HIIT 1', 'HIIT 2']:
+        already_logged = any(
+            e.get("date") == today_date and e.get("session_type") == today_str
+            for e in hiit_log
+        )
+    else:
+        already_logged = today_date in sessions
+
+    return jsonify({
+        "today": today_str,
+        "today_date": today_date,
+        "already_logged": already_logged,
+        "schedule": schedule,
+        "full_program": full_program,
+        "suggestions": suggestions,
+        "weights": weights,
+        "week": get_current_week(),
+    })
+
+
+@app.route("/api/stats_data")
+def api_stats_data():
+    weights      = load_weights()
+    sessions     = load_sessions()
+    hiit_log     = load_hiit_log_local()
+    body_weight  = load_body_weight()
+    recovery_log = load_recovery_log()
+    nutr_settings = load_nutrition_settings()
+    nutr_entries  = get_recent_days(7)
+    return jsonify({
+        "weights":          weights,
+        "sessions":         sessions,
+        "hiit_log":         hiit_log,
+        "body_weight":      body_weight,
+        "recovery_log":     recovery_log,
+        "nutrition_target": nutr_settings,
+        "nutrition_days":   nutr_entries,
+        "week":             get_current_week(),
+    })
+
+
+@app.route("/api/objectifs_data")
+def api_objectifs_data():
+    weights = load_weights()
+    goals   = load_goals()
+    goals_progress = {}
+    for ex, goal in goals.items():
+        current = weights.get(ex, {}).get("current_weight", 0) or 0
+        goals_progress[ex] = {
+            "current":  current,
+            "goal":     goal["goal_weight"],
+            "bar":      get_progress_bar(current, goal["goal_weight"]),
+            "achieved": goal.get("achieved", False),
+            "deadline": goal.get("deadline", ""),
+            "note":     goal.get("note", ""),
+        }
+    return jsonify({"goals": goals_progress})
+
+
+@app.route("/api/profil_data")
+def api_profil_data():
+    profile     = load_user_profile()
+    body_weight = load_body_weight()
+    tendance    = get_tendance(body_weight)
+    return jsonify({
+        "profile":     profile,
+        "body_weight": body_weight,
+        "tendance":    tendance,
+    })
+
+
+@app.route("/api/nutrition_data")
+def api_nutrition_data():
+    settings = load_nutrition_settings()
+    entries  = get_today_entries()
+    totals   = get_today_totals()
+    history  = get_recent_days(7)
+    return jsonify({
+        "settings": settings,
+        "entries":  entries,
+        "totals":   totals,
+        "history":  history,
+    })
+
+
+@app.route("/api/hiit_data")
+def api_hiit_data():
+    hiit_log = load_hiit_log_local()
+    total    = len(hiit_log)
+    avg_rpe  = round(sum(e.get("rpe", 0) for e in hiit_log) / total, 1) if total else 0
+    return jsonify({
+        "hiit_log": hiit_log,
+        "total":    total,
+        "avg_rpe":  avg_rpe,
+    })
+
+
+@app.route("/api/notes_data")
+def api_notes_data():
+    sessions = load_sessions()
+    total    = len(sessions)
+    rpes     = [s.get("rpe") for s in sessions.values() if s.get("rpe")]
+    avg_rpe  = round(sum(rpes) / len(rpes), 1) if rpes else 0
+    return jsonify({
+        "sessions": sessions,
+        "total":    total,
+        "avg_rpe":  avg_rpe,
+    })
+
+
+@app.route("/api/programme_data")
+def api_programme_data():
+    full_program = load_program()
+    schedule     = get_week_schedule()
+    inventory    = load_inventory()
+    return jsonify({
+        "full_program": full_program,
+        "schedule":     schedule,
+        "inventory":    [ex for ex in inventory] if isinstance(inventory, list) else list(inventory.keys()),
+    })
+
+
+@app.route("/api/inventaire_data")
+def api_inventaire_data():
+    inventory = load_inventory()
+    return jsonify({"inventory": inventory})
+
+
+@app.route("/api/historique_data")
+def api_historique_data():
+    weights  = load_weights()
+    sessions = load_sessions()
+    hiit_log = load_hiit_log_local()
+
+    ex_by_date = {}
+    for ex, data in weights.items():
+        for entry in data.get("history", []):
+            d = entry.get("date")
+            if not d:
+                continue
+            ex_by_date.setdefault(d, []).append({
+                "exercise": ex,
+                "weight":   entry.get("weight", 0),
+                "reps":     entry.get("reps", ""),
+            })
+
+    all_dates = set(sessions.keys()) | set(ex_by_date.keys())
+    session_list = []
+    for d in sorted(all_dates, reverse=True):
+        s = sessions.get(d, {})
+        session_list.append({
+            "date":    d,
+            "rpe":     s.get("rpe"),
+            "comment": s.get("comment", ""),
+            "exos":    ex_by_date.get(d, []),
+        })
+
+    hiit_list = sorted(hiit_log, key=lambda x: x.get("date", ""), reverse=True)
+    return jsonify({
+        "session_list": session_list[:60],
+        "hiit_list":    hiit_list[:30],
+    })
+
+
+@app.route("/api/bodycomp_data")
+def api_bodycomp_data():
+    body_weight = load_body_weight()
+    profile     = load_user_profile()
+    tendance    = get_tendance(body_weight)
+    return jsonify({
+        "body_weight": body_weight,
+        "profile":     profile,
+        "tendance":    tendance,
+    })
+
+
+# ── Cardio ───────────────────────────────────────────────────
+
+def load_cardio_log():
+    return get_json("cardio_log") or []
+
+def save_cardio_log(data):
+    set_json("cardio_log", data)
+
+@app.route("/api/cardio_data")
+def api_cardio_data():
+    log = load_cardio_log()
+    return jsonify({"cardio_log": sorted(log, key=lambda x: x.get("date", ""), reverse=True)})
+
+@app.route("/api/log_cardio", methods=["POST"])
+def api_log_cardio():
+    data = request.get_json()
+    log  = load_cardio_log()
+    entry = {
+        "date":         data.get("date", date.today().isoformat()),
+        "type":         data.get("type", "course"),
+        "duration_min": data.get("duration_min"),
+        "distance_km":  data.get("distance_km"),
+        "avg_pace":     data.get("avg_pace"),
+        "avg_hr":       data.get("avg_hr"),
+        "cadence":      data.get("cadence"),
+        "calories":     data.get("calories"),
+        "rpe":          data.get("rpe"),
+        "notes":        data.get("notes", ""),
+    }
+    log.insert(0, entry)
+    save_cardio_log(log)
+    return jsonify({"ok": True})
+
+@app.route("/api/delete_cardio", methods=["POST"])
+def api_delete_cardio():
+    data = request.get_json()
+    d    = data.get("date")
+    t    = data.get("type")
+    log  = load_cardio_log()
+    log  = [e for e in log if not (e.get("date") == d and e.get("type") == t)]
+    save_cardio_log(log)
+    return jsonify({"ok": True})
+
+
+# ── Récupération ──────────────────────────────────────────────
+
+def load_recovery_log():
+    return get_json("recovery_log") or []
+
+def save_recovery_log(data):
+    set_json("recovery_log", data)
+
+@app.route("/api/recovery_data")
+def api_recovery_data():
+    log = load_recovery_log()
+    return jsonify({"recovery_log": sorted(log, key=lambda x: x.get("date", ""), reverse=True)})
+
+@app.route("/api/log_recovery", methods=["POST"])
+def api_log_recovery():
+    data = request.get_json()
+    log  = load_recovery_log()
+    entry = {
+        "date":          data.get("date", date.today().isoformat()),
+        "sleep_hours":   data.get("sleep_hours"),
+        "sleep_quality": data.get("sleep_quality"),
+        "resting_hr":    data.get("resting_hr"),
+        "hrv":           data.get("hrv"),
+        "steps":         data.get("steps"),
+        "soreness":      data.get("soreness"),
+        "notes":         data.get("notes", ""),
+    }
+    idx = next((i for i, e in enumerate(log) if e.get("date") == entry["date"]), None)
+    if idx is not None:
+        log[idx] = entry
+    else:
+        log.insert(0, entry)
+    save_recovery_log(log)
+    return jsonify({"ok": True})
+
+@app.route("/api/delete_recovery", methods=["POST"])
+def api_delete_recovery():
+    data = request.get_json()
+    d    = data.get("date")
+    log  = load_recovery_log()
+    log  = [e for e in log if e.get("date") != d]
+    save_recovery_log(log)
+    return jsonify({"ok": True})
+
+
+# ── Health Dashboard ─────────────────────────────────────────
+
+from health_data import get_daily_health_summary, get_weekly_health_summary
+
+@app.route("/api/health/daily_summary")
+def api_health_daily_summary():
+    """
+    Résumé santé unifié pour un jour donné.
+    ?date=YYYY-MM-DD  (défaut : aujourd'hui)
+    """
+    target_date = request.args.get("date")
+    return jsonify(get_daily_health_summary(target_date))
+
+
+@app.route("/api/health/weekly_summary")
+def api_health_weekly_summary():
+    """
+    Résumés des N derniers jours (du plus récent au plus ancien).
+    ?days=7  (défaut : 7)
+    """
+    try:
+        days = int(request.args.get("days", 7))
+        days = max(1, min(days, 90))
+    except ValueError:
+        days = 7
+    return jsonify(get_weekly_health_summary(days))
+
+
+# ── Life Stress Engine ────────────────────────────────────────
+
+from life_stress_engine import get_life_stress_score, get_recent_life_stress_trend, refresh_life_stress_score
+
+@app.route("/api/life_stress/score")
+def api_life_stress_score():
+    """
+    Life Stress Score pour un jour donné (0 = surmenage, 100 = récupération optimale).
+    ?date=YYYY-MM-DD  (défaut : aujourd'hui)
+    ?refresh=true     (force le recalcul)
+    """
+    target_date = request.args.get("date")
+    force_refresh = request.args.get("refresh", "false").lower() == "true"
+    if force_refresh:
+        return jsonify(refresh_life_stress_score(target_date))
+    return jsonify(get_life_stress_score(target_date))
+
+
+@app.route("/api/life_stress/trend")
+def api_life_stress_trend():
+    """
+    Tendance LSS sur les N derniers jours (du plus récent au plus ancien).
+    ?days=7  (défaut : 7, max : 90)
+    """
+    try:
+        days = int(request.args.get("days", 7))
+        days = max(1, min(days, 90))
+    except ValueError:
+        days = 7
+    return jsonify(get_recent_life_stress_trend(days))
+
+
+# ── PSS — Perceived Stress Scale ─────────────────────────────
+
+from pss import (
+    save_pss_record, get_history as pss_get_history,
+    check_due as pss_check_due, get_questions
+)
+
+@app.route("/api/pss/questions")
+def api_pss_questions():
+    """
+    Retourne les questions PSS à afficher.
+    ?short=true  → PSS-4 (4 questions, défaut : false)
+    """
+    is_short = request.args.get("short", "false").lower() == "true"
+    return jsonify(get_questions(is_short))
+
+
+@app.route("/api/pss/submit", methods=["POST"])
+def api_pss_submit():
+    """
+    Soumet un questionnaire PSS et persiste le résultat.
+
+    Body JSON :
+    {
+      "responses":       [int × 10 ou × 4],
+      "is_short":        bool (défaut false),
+      "notes":           str (optionnel),
+      "triggers":        [str] (optionnel, max 2),
+      "trigger_ratings": { "travail": 3 } (optionnel)
+    }
+    """
+    data = request.get_json(silent=True) or {}
+    responses = data.get("responses")
+    if not responses:
+        return jsonify({"error": "responses requis"}), 400
+
+    try:
+        record = save_pss_record(
+            responses       = [int(r) for r in responses],
+            is_short        = bool(data.get("is_short", False)),
+            notes           = data.get("notes"),
+            triggers        = data.get("triggers"),
+            trigger_ratings = data.get("trigger_ratings"),
+        )
+        return jsonify(record), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 422
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/pss/history")
+def api_pss_history():
+    """
+    Historique des enregistrements PSS.
+    ?type=full|short  (défaut : tous)
+    ?limit=20
+    """
+    pss_type = request.args.get("type")
+    try:
+        limit = int(request.args.get("limit", 20))
+    except ValueError:
+        limit = 20
+    return jsonify(pss_get_history(pss_type, limit))
+
+
+@app.route("/api/pss/check_due")
+def api_pss_check_due():
+    """
+    Vérifie si un test PSS est dû.
+    ?type=full|short  (défaut : full)
+    """
+    pss_type = request.args.get("type", "full")
+    return jsonify(pss_check_due(pss_type))
+
+
+@app.route("/api/pss/delete", methods=["POST"])
+def api_pss_delete():
+    """Supprime un enregistrement PSS par id. Body JSON: {"id": "..."}"""
+    from db import get_json, set_json
+    data = request.get_json() or {}
+    record_id = data.get("id")
+    if not record_id:
+        return jsonify({"error": "id requis"}), 400
+    records = get_json("pss_records", [])
+    before = len(records)
+    records = [r for r in records if r.get("id") != record_id]
+    if len(records) == before:
+        return jsonify({"error": "introuvable"}), 404
+    set_json("pss_records", records)
+    return jsonify({"success": True})
+
+
+# ── Sommeil ──────────────────────────────────────────────────
+
+from sleep import (
+    save_sleep_entry, get_history as sleep_get_history,
+    get_today as sleep_get_today, get_stats as sleep_get_stats,
+    delete_entry as sleep_delete_entry
+)
+
+@app.route("/api/sleep/log", methods=["POST"])
+def api_sleep_log():
+    data = request.get_json() or {}
+    bedtime   = data.get("bedtime")
+    wake_time = data.get("wake_time")
+    quality   = data.get("quality")
+    if not bedtime or not wake_time or quality is None:
+        return jsonify({"error": "bedtime, wake_time et quality requis"}), 400
+    try:
+        entry = save_sleep_entry(
+            bedtime   = bedtime,
+            wake_time = wake_time,
+            quality   = int(quality),
+            notes     = data.get("notes"),
+        )
+        return jsonify(entry)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/sleep/history")
+def api_sleep_history():
+    try:
+        limit = int(request.args.get("limit", 30))
+    except ValueError:
+        limit = 30
+    return jsonify(sleep_get_history(limit))
+
+@app.route("/api/sleep/today")
+def api_sleep_today():
+    entry = sleep_get_today()
+    return jsonify(entry if entry else {})
+
+@app.route("/api/sleep/stats")
+def api_sleep_stats():
+    return jsonify(sleep_get_stats())
+
+@app.route("/api/sleep/delete", methods=["POST"])
+def api_sleep_delete():
+    data = request.get_json() or {}
+    record_id = data.get("id")
+    if not record_id:
+        return jsonify({"error": "id requis"}), 400
+    if sleep_delete_entry(record_id):
+        return jsonify({"success": True})
+    return jsonify({"error": "introuvable"}), 404
+
+
+# ── Santé Mentale ────────────────────────────────────────────
+
+from mood import (
+    EMOTIONS, save_mood_entry, get_history as mood_get_history,
+    get_today_entry as mood_today_entry, check_due as mood_check_due,
+    generate_insights as mood_insights,
+)
+from journal import (
+    get_today_prompt, save_entry as journal_save,
+    get_entries, search_entries, get_entry_count,
+)
+from breathwork import (
+    TECHNIQUES, log_session as bw_log,
+    get_history as bw_history, get_stats as bw_stats_fn,
+)
+from self_care import (
+    get_habits, add_habit, delete_habit,
+    log_today as sc_log, get_today_status, get_streaks,
+)
+from mental_health_dashboard import get_summary as mh_summary
+
+# — Mood —
+
+@app.route("/api/mood/emotions")
+def api_mood_emotions():
+    return jsonify(EMOTIONS)
+
+
+@app.route("/api/mood/log", methods=["POST"])
+def api_mood_log():
+    data = request.get_json(silent=True) or {}
+    score = data.get("score")
+    if score is None:
+        return jsonify({"error": "score requis (1-10)"}), 400
+    try:
+        entry = save_mood_entry(
+            score    = int(score),
+            emotions = data.get("emotions", []),
+            notes    = data.get("notes"),
+            triggers = data.get("triggers"),
+        )
+        return jsonify(entry), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 422
+
+
+@app.route("/api/mood/history")
+def api_mood_history():
+    try:
+        days = int(request.args.get("days", 30))
+    except ValueError:
+        days = 30
+    return jsonify(mood_get_history(days))
+
+
+@app.route("/api/mood/today")
+def api_mood_today():
+    entry = mood_today_entry()
+    return jsonify(entry) if entry else jsonify(None)
+
+
+@app.route("/api/mood/check_due")
+def api_mood_check_due():
+    return jsonify(mood_check_due())
+
+
+@app.route("/api/mood/insights")
+def api_mood_insights():
+    try:
+        days = int(request.args.get("days", 30))
+    except ValueError:
+        days = 30
+    return jsonify(mood_insights(days))
+
+
+# — Journal —
+
+@app.route("/api/journal/today_prompt")
+def api_journal_today_prompt():
+    return jsonify({"prompt": get_today_prompt()})
+
+
+@app.route("/api/journal/save", methods=["POST"])
+def api_journal_save():
+    data = request.get_json(silent=True) or {}
+    prompt  = data.get("prompt", "")
+    content = data.get("content", "")
+    try:
+        entry = journal_save(prompt, content)
+        return jsonify(entry), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 422
+
+
+@app.route("/api/journal/entries")
+def api_journal_entries():
+    try:
+        limit = int(request.args.get("limit", 30))
+    except ValueError:
+        limit = 30
+    return jsonify(get_entries(limit))
+
+
+@app.route("/api/journal/search")
+def api_journal_search():
+    q = request.args.get("q", "")
+    return jsonify(search_entries(q))
+
+
+# — Breathwork —
+
+@app.route("/api/breathwork/techniques")
+def api_breathwork_techniques():
+    return jsonify(TECHNIQUES)
+
+
+@app.route("/api/breathwork/log", methods=["POST"])
+def api_breathwork_log():
+    data = request.get_json(silent=True) or {}
+    technique_id = data.get("technique_id")
+    if not technique_id:
+        return jsonify({"error": "technique_id requis"}), 400
+    try:
+        session = bw_log(
+            technique_id = technique_id,
+            duration_sec = int(data.get("duration_sec", 0)),
+            cycles       = int(data.get("cycles", 0)),
+        )
+        return jsonify(session), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 422
+
+
+@app.route("/api/breathwork/history")
+def api_breathwork_history():
+    try:
+        days = int(request.args.get("days", 30))
+    except ValueError:
+        days = 30
+    return jsonify(bw_history(days))
+
+
+@app.route("/api/breathwork/stats")
+def api_breathwork_stats():
+    try:
+        days = int(request.args.get("days", 7))
+    except ValueError:
+        days = 7
+    return jsonify(bw_stats_fn(days))
+
+
+# — Self-Care Habits —
+
+@app.route("/api/self_care/habits")
+def api_self_care_habits():
+    return jsonify(get_habits())
+
+
+@app.route("/api/self_care/habits", methods=["POST"])
+def api_self_care_habits_add():
+    data = request.get_json(silent=True) or {}
+    name = data.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "name requis"}), 400
+    habit = add_habit(
+        name     = name,
+        icon     = data.get("icon", "star.fill"),
+        category = data.get("category", "mental"),
+    )
+    return jsonify(habit), 201
+
+
+@app.route("/api/self_care/habits/<habit_id>", methods=["DELETE"])
+def api_self_care_habits_delete(habit_id: str):
+    deleted = delete_habit(habit_id)
+    if not deleted:
+        return jsonify({"error": "Habitude introuvable"}), 404
+    return jsonify({"deleted": habit_id})
+
+
+@app.route("/api/self_care/log", methods=["POST"])
+def api_self_care_log():
+    data = request.get_json(silent=True) or {}
+    habit_ids = data.get("habit_ids", [])
+    return jsonify(sc_log(habit_ids))
+
+
+@app.route("/api/self_care/today")
+def api_self_care_today():
+    return jsonify(get_today_status())
+
+
+@app.route("/api/self_care/streaks")
+def api_self_care_streaks():
+    return jsonify(get_streaks())
+
+
+# — Dashboard santé mentale —
+
+@app.route("/api/mental_health/summary")
+def api_mental_health_summary():
+    try:
+        days = int(request.args.get("days", 7))
+    except ValueError:
+        days = 7
+    return jsonify(mh_summary(days))
+
+
+# ── Lancement local ──────────────────────────────────────────
+
+def find_free_port(start=5000, end=5100):
+    for port in range(start, end):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(("0.0.0.0", port))
+                return port
+            except OSError:
+                continue
+    raise RuntimeError("Aucun port libre")
+
+
+if __name__ == "__main__":
+    # PORT stocké dans l'env pour que le child du reloader utilise le même
+    port = int(os.environ.setdefault("PORT", str(find_free_port())))
+    url  = f"http://localhost:{port}"
+    print(f"🚀 TrainingOS → {url}")
+    # N'ouvre le navigateur que dans le processus principal (pas le child du reloader)
+    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
+        Timer(1.0, lambda: webbrowser.open(url)).start()
+    app.run(debug=True, use_reloader=True, host="0.0.0.0", port=port)

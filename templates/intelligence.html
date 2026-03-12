@@ -1,0 +1,474 @@
+{% extends "base.html" %}
+{% block title %}Intelligence — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .intel-hero {
+    background: rgba(17,17,28,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border); border-radius:var(--radius);
+    padding:20px; margin-bottom:14px; position:relative; overflow:hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .intel-hero::before{
+    content:'';position:absolute;top:-60px;right:-40px;
+    width:220px;height:220px;
+    background:radial-gradient(circle,#a855f720 0%,transparent 70%);
+  }
+  .insight-card {
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border:1px solid var(--border);
+    border-radius:var(--radius);padding:16px;margin-bottom:10px;
+    position:relative;overflow:hidden;transition:border-color 0.2s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .insight-card.critical { border-color:var(--rose)66; }
+  .insight-card.warning  { border-color:var(--orange)66; }
+  .insight-card.good     { border-color:var(--green)66; }
+  .insight-card.info     { border-color:var(--blue)66; }
+  .insight-card::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+  .insight-card.critical::after{background:var(--rose);}
+  .insight-card.warning::after {background:var(--orange);}
+  .insight-card.good::after    {background:var(--green);}
+  .insight-card.info::after    {background:var(--blue);}
+  .insight-type {
+    font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;
+    margin-bottom:5px;font-weight:700;
+  }
+  .insight-card.critical .insight-type{color:var(--rose);}
+  .insight-card.warning  .insight-type{color:var(--orange);}
+  .insight-card.good     .insight-type{color:var(--green);}
+  .insight-card.info     .insight-type{color:var(--blue);}
+  .insight-title{font-weight:700;font-size:0.95rem;margin-bottom:4px;}
+  .insight-body {font-size:0.82rem;color:var(--muted);line-height:1.5;}
+
+  .ai-section {
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border:1px solid var(--blue)33; border-radius:var(--radius);
+    padding:18px; margin-bottom:14px;
+    box-shadow: 0 4px 16px rgba(59,130,246,0.08);
+  }
+  .ai-title {
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:0.75rem;font-weight:800;letter-spacing:3px;
+    text-transform:uppercase;color:var(--blue);margin-bottom:12px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .ai-response {
+    font-size:0.88rem;line-height:1.7;color:var(--text);
+    white-space:pre-wrap;min-height:60px;
+  }
+  .ai-response.loading{color:var(--muted);font-style:italic;}
+  .ai-response.error  {color:var(--rose);}
+
+  .btn-ai {
+    background:var(--blue)22;border:1px solid var(--blue)55;
+    color:var(--blue);border-radius:8px;padding:8px 16px;
+    font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;
+    font-weight:700;letter-spacing:1px;cursor:pointer;
+    transition:all 0.15s;text-transform:uppercase;
+  }
+  .btn-ai:hover{background:var(--blue)33;transform:translateY(-1px);}
+  .btn-ai:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+  .muscle-map{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;}
+  .muscle-chip{
+    padding:6px 8px;border-radius:8px;font-size:0.72rem;font-weight:600;
+    text-align:center;border:1px solid;
+  }
+  .muscle-chip.hot  {background:var(--rose)22;color:var(--rose);border-color:var(--rose)44;}
+  .muscle-chip.warm {background:var(--orange)22;color:var(--orange);border-color:var(--orange)44;}
+  .muscle-chip.cold {background:var(--blue)22;color:var(--blue);border-color:var(--blue)44;}
+  .muscle-chip.ok   {background:var(--green)22;color:var(--green);border-color:var(--green)44;}
+
+  .section-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);padding:14px 0 8px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  .pulsing{animation:pulse 1.2s ease infinite;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .fu{animation:fadeUp 0.3s ease both;}
+  .fu1{animation-delay:.05s;}.fu2{animation-delay:.1s;}.fu3{animation-delay:.15s;}
+
+  @media (max-width: 520px) {
+    .muscle-map { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<script id="w-data" type="application/json">{{ weights  | tojson }}</script>
+<script id="s-data" type="application/json">{{ sessions | tojson }}</script>
+<script id="h-data" type="application/json">{{ hiit_log | tojson }}</script>
+<script id="i-data" type="application/json">{{ inventory| tojson }}</script>
+<script id="p-data" type="application/json">{{ program  | tojson }}</script>
+
+<div class="flex-between mb-16">
+  <h2 style="color:#a855f7;">🧠 Intelligence</h2>
+</div>
+
+<div class="intel-hero fu">
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:6px;">ANALYSE DU JOUR</div>
+  <div id="hero-insight" style="font-size:1.1rem;font-weight:600;color:var(--text);line-height:1.4;">Analyse en cours...</div>
+  <div id="hero-sub" style="font-size:0.78rem;color:var(--muted);margin-top:6px;"></div>
+</div>
+
+<!-- INSIGHTS AUTO -->
+<div class="section-title fu fu1">⚡ Insights automatiques</div>
+<div id="insights-list" class="fu fu1"></div>
+
+<!-- MAP MUSCULAIRE -->
+<div class="section-title fu fu2">💪 Carte musculaire — 7 derniers jours</div>
+<div class="card fu fu2" style="margin-bottom:14px;">
+  <div id="muscle-map" class="muscle-map"></div>
+</div>
+
+<!-- IA CLAUDE -->
+<div class="section-title fu fu3">🤖 Coach IA — Claude</div>
+
+<div class="ai-section fu fu3">
+  <div class="ai-title">
+    <span>💬</span> Coaching personnalisé par Claude
+  </div>
+  <div class="ai-response loading pulsing" id="ai-coach">Clique sur un bouton pour obtenir une analyse personnalisée...</div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn-ai" onclick="runAI('analyse')">📊 Analyser</button>
+    <button class="btn-ai" onclick="runAI('fatigue')">😴 Fatigue</button>
+    <button class="btn-ai" onclick="runAI('suggestion')">🎯 Prochaine séance</button>
+    <button class="btn-ai" onclick="runAI('progression')">📈 Progression</button>
+    <button class="btn-ai" onclick="runAI('programme')" style="border-color:var(--purple)55;color:var(--purple);background:var(--purple)11;">🏋️ Modifier programme</button>
+    <button class="btn-ai" onclick="runAI('hiit')" style="border-color:var(--orange)55;color:var(--orange);background:var(--orange)11;">⚡ Optimiser HIIT</button>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const W    = JSON.parse(document.getElementById('w-data').textContent);
+const S    = JSON.parse(document.getElementById('s-data').textContent);
+const H    = JSON.parse(document.getElementById('h-data').textContent);
+const INV  = JSON.parse(document.getElementById('i-data').textContent||'{}');
+const PROG = JSON.parse(document.getElementById('p-data').textContent||'{}');
+
+function localDateStr(d) {
+  const dd = d || new Date();
+  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+}
+
+function parseReps(r){ return String(r||'').split(',').map(Number).filter(n=>n>0); }
+
+function recentDates(n){
+  const all=new Set();
+  Object.values(W).forEach(d=>(d.history||[]).forEach(e=>e.date&&all.add(e.date)));
+  H.forEach(e=>e.date&&all.add(e.date));
+  return [...all].sort().slice(-n);
+}
+
+function volumeByMuscle(days){
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cut=localDateStr(cutoff);
+  const vol={};
+  const GROUPS={
+    pectorals:'Pecs',chest:'Pecs',
+    lats:'Dos',back:'Dos','lower back':'Dos',
+    quads:'Jambes',hamstrings:'Jambes',glutes:'Jambes',calves:'Jambes',
+    delts:'Épaules',shoulders:'Épaules',
+    biceps:'Biceps',triceps:'Triceps',
+    abs:'Core','hip flexors':'Core',
+    push:'Push',pull:'Pull',legs:'Jambes',core:'Core',
+  };
+  for(const[ex,d] of Object.entries(W)){
+    const muscles=(INV[ex]?.muscles||[INV[ex]?.category]).filter(Boolean);
+    for(const e of (d.history||[])){
+      if(e.date<cut) continue;
+      const reps=parseReps(e.reps); const v=(e.weight||0)*reps.reduce((a,b)=>a+b,0);
+      muscles.forEach(m=>{
+        const g=GROUPS[m.toLowerCase()]||m;
+        vol[g]=(vol[g]||0)+v;
+      });
+    }
+  }
+  return vol;
+}
+
+function avgRPE(days){
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cut=localDateStr(cutoff);
+  const vals=Object.entries(S).filter(([d,s])=>d>=cut&&s.rpe).map(([,s])=>s.rpe);
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+}
+
+function sessionFreq(days){
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cut=localDateStr(cutoff);
+  const dates=new Set();
+  Object.values(W).forEach(d=>(d.history||[]).forEach(e=>e.date>=cut&&dates.add(e.date)));
+  H.forEach(e=>e.date>=cut&&dates.add(e.date));
+  return dates.size;
+}
+
+// ── INSIGHTS AUTOMATIQUES ────────────────────────────
+function generateInsights(){
+  const insights=[];
+  const freq7=sessionFreq(7),freq14=sessionFreq(14);
+  const rpe7=avgRPE(7);
+  const vol7=volumeByMuscle(7);
+  const vol30=volumeByMuscle(30);
+  const allMuscles=['Pecs','Dos','Jambes','Épaules','Biceps','Triceps'];
+
+  // Fatigue
+  if(rpe7>=8.5) insights.push({type:'critical',icon:'🔴',title:'Surcharge détectée',body:`RPE moyen cette semaine : ${rpe7.toFixed(1)}/10. Ton système nerveux est probablement surchargé. Considère un deload de 3-5 jours.`});
+  else if(rpe7>=7.5) insights.push({type:'warning',icon:'🟡',title:'Fatigue élevée',body:`RPE moyen : ${rpe7.toFixed(1)}/10. Tu pousses fort — assure-toi de bien dormir et de manger suffisamment.`});
+  else if(rpe7>0) insights.push({type:'good',icon:'🟢',title:'Zone optimale',body:`RPE moyen : ${rpe7.toFixed(1)}/10. Tu t'entraînes dans une zone de progression idéale.`});
+
+  // Fréquence
+  if(freq7===0) insights.push({type:'warning',icon:'😴',title:'Aucune séance cette semaine',body:'Tu n\'as pas encore entraîné cette semaine. Même 20 minutes maintient le momentum.'});
+  else if(freq7>=6) insights.push({type:'warning',icon:'⚠️',title:'Sur-entraînement potentiel',body:`${freq7} séances en 7 jours — assure-toi d'inclure au moins 1 jour de repos complet.`});
+  else insights.push({type:'good',icon:'✅',title:`${freq7} séances cette semaine`,body:freq7>=4?'Excellente régularité ! Continue comme ça.':'Tu es en bonne voie — vise 4-5 séances/semaine.'});
+
+  // Muscles négligés
+  const neglected=allMuscles.filter(m=>!vol7[m]||vol7[m]<1000);
+  if(neglected.length>0) insights.push({type:'info',icon:'💡',title:'Muscles à prioriser',body:`Ces groupes n'ont pas été travaillés cette semaine : ${neglected.join(', ')}. Planifie une séance ciblée.`});
+
+  // Tendance volume
+  const vol7Total=Object.values(vol7).reduce((a,b)=>a+b,0);
+  const vol14Total=Object.values(volumeByMuscle(14)).reduce((a,b)=>a+b,0);
+  const vol7Prev=vol14Total-vol7Total;
+  if(vol7Prev>0){
+    const change=((vol7Total-vol7Prev)/vol7Prev*100).toFixed(0);
+    if(parseFloat(change)>15) insights.push({type:'good',icon:'📈',title:'Volume en hausse',body:`+${change}% de volume cette semaine vs la précédente. Bonne progression de la charge.`});
+    else if(parseFloat(change)<-20) insights.push({type:'warning',icon:'📉',title:'Volume en baisse',body:`${change}% de volume vs la semaine passée. Normal en deload, sinon attention à la régularité.`});
+  }
+
+  return insights;
+}
+
+function renderInsights(){
+  const ins=generateInsights();
+  if(!ins.length){
+    document.getElementById('insights-list').innerHTML='<p class="text-muted" style="font-size:0.9rem;">Logge quelques séances pour voir tes insights !</p>';
+    document.getElementById('hero-insight').textContent='Pas encore assez de données.';
+    return;
+  }
+  // Hero = premier insight
+  document.getElementById('hero-insight').textContent=ins[0].icon+' '+ins[0].title;
+  document.getElementById('hero-sub').textContent=ins[0].body;
+
+  document.getElementById('insights-list').innerHTML=ins.map(i=>`
+    <div class="insight-card ${i.type}">
+      <div class="insight-type">${i.type==='critical'?'🚨 Critique':i.type==='warning'?'⚠️ Attention':i.type==='good'?'✅ Positif':'ℹ️ Info'}</div>
+      <div class="insight-title">${i.icon} ${i.title}</div>
+      <div class="insight-body">${i.body}</div>
+    </div>`).join('');
+}
+
+function renderMuscleMap(){
+  const vol=volumeByMuscle(7);
+  const all=['Pecs','Dos','Jambes','Épaules','Biceps','Triceps','Core'];
+  const max=Math.max(...Object.values(vol),1);
+  document.getElementById('muscle-map').innerHTML=all.map(m=>{
+    const v=vol[m]||0;
+    const pct=v/max;
+    const cls=pct>0.7?'hot':pct>0.4?'warm':pct>0.1?'ok':'cold';
+    const bar=pct>0?` (${Math.round(pct*100)}%)`:'';
+    return `<div class="muscle-chip ${cls}">${m}${bar}</div>`;
+  }).join('');
+}
+
+// ── AI CLAUDE ─────────────────────────────────────────
+
+// Groupes musculaires par exercice (via inventory)
+const MUSCLE_GROUPS = {
+  pectorals:'Pecs', chest:'Pecs', pecs:'Pecs',
+  lats:'Dos', back:'Dos', 'lower back':'Dos', rhomboids:'Dos', traps:'Dos',
+  quads:'Jambes', hamstrings:'Jambes', glutes:'Jambes', calves:'Jambes', 'hip flexors':'Jambes',
+  delts:'Épaules', shoulders:'Épaules', 'front delt':'Épaules', 'side delt':'Épaules', 'rear delt':'Épaules',
+  biceps:'Biceps', triceps:'Triceps',
+  abs:'Core', core:'Core', obliques:'Core',
+};
+
+function getMuscleGroup(exName) {
+  const inv = INV[exName];
+  if (!inv) return null;
+  const muscles = Array.isArray(inv.muscles) ? inv.muscles : [inv.category];
+  for (const m of muscles) {
+    const g = MUSCLE_GROUPS[(m||'').toLowerCase()];
+    if (g) return g;
+  }
+  return null;
+}
+
+function setsPerMuscle(days) {
+  const cutoff = localDateStr(new Date(Date.now() - days * 864e5));
+  const sets = {};
+  for (const [ex, d] of Object.entries(W)) {
+    const grp = getMuscleGroup(ex);
+    if (!grp) continue;
+    for (const e of (d.history || [])) {
+      if (e.date < cutoff) continue;
+      const nSets = parseReps(e.reps).length || 1;
+      sets[grp] = (sets[grp] || 0) + nSets;
+    }
+  }
+  return sets;
+}
+
+function buildAIContext() {
+  const cut7  = localDateStr(new Date(Date.now() -  7 * 864e5));
+  const cut14 = localDateStr(new Date(Date.now() - 14 * 864e5));
+  const cut30 = localDateStr(new Date(Date.now() - 30 * 864e5));
+  const cut60 = localDateStr(new Date(Date.now() - 60 * 864e5));
+
+  const freq7  = sessionFreq(7);
+  const freq14 = sessionFreq(14);
+  const rpe7   = avgRPE(7).toFixed(1);
+
+  // Sets par muscle (pas volume brut)
+  const sets7  = setsPerMuscle(7);
+  const sets14 = setsPerMuscle(14);
+
+  // Muscles non travaillés cette semaine
+  const allGroups = ['Pecs','Dos','Jambes','Épaules','Biceps','Triceps'];
+  const neglected = allGroups.filter(g => !sets7[g]);
+
+  // Top PRs (1RM Epley)
+  const prs = Object.entries(W).map(([ex, d]) => {
+    let best = 0;
+    (d.history || []).forEach(e => {
+      const r = parseReps(e.reps), w = e.weight || 0;
+      if (!r.length || !w) return;
+      const orm = w * (1 + r.reduce((a,b)=>a+b,0)/r.length / 30);
+      if (orm > best) best = orm;
+    });
+    return best > 0 ? `${ex}: ~${Math.round(best)} lbs` : null;
+  }).filter(Boolean).slice(0, 8);
+
+  // Progression par exercice (30j vs 30j précédents)
+  const progressions = [], stagnations = [];
+  for (const [ex, d] of Object.entries(W)) {
+    const h = d.history || [];
+    const r  = h.filter(e => e.date >= cut30).map(e => e.weight || 0);
+    const o  = h.filter(e => e.date >= cut60 && e.date < cut30).map(e => e.weight || 0);
+    if (!r.length || !o.length) continue;
+    const avgR = r.reduce((a,b)=>a+b,0)/r.length;
+    const avgO = o.reduce((a,b)=>a+b,0)/o.length;
+    const pct  = ((avgR - avgO) / avgO * 100).toFixed(0);
+    if (pct >= 3)  progressions.push(`${ex} +${pct}%`);
+    else if (pct <= -3) stagnations.push(`${ex} ${pct}%`);
+    else if (r.length >= 3) stagnations.push(`${ex} stagne`);
+  }
+
+  // Programme actuel
+  const progLines = Object.entries(PROG).map(([jour, exos]) =>
+    `  ${jour}: ${Object.entries(exos).map(([e,s])=>`${e} (${s})`).join(', ')}`
+  );
+
+  // HIIT résumé
+  const hiit7  = H.filter(e => e.date >= cut7);
+  const hiit30 = H.filter(e => e.date >= cut30);
+  const hiitTypes = {};
+  hiit30.forEach(e => { hiitTypes[e.session_type||'HIIT'] = (hiitTypes[e.session_type||'HIIT']||0)+1; });
+
+  // Dernière séance
+  const allDates = new Set();
+  Object.values(W).forEach(d => (d.history||[]).forEach(e => e.date && allDates.add(e.date)));
+  H.forEach(e => e.date && allDates.add(e.date));
+  const lastDate = [...allDates].sort().at(-1) || 'aucune';
+
+  return { freq7, freq14, rpe7, sets7, sets14, neglected, prs,
+           progressions: progressions.slice(0,6), stagnations: stagnations.slice(0,6),
+           progLines, hiit7: hiit7.length, hiit30: hiit30.length, hiitTypes,
+           hiitRecent: H.slice(-5).reverse(), lastDate };
+}
+
+async function runAI(mode) {
+  const el = document.getElementById('ai-coach');
+  el.className = 'ai-response loading pulsing';
+  el.textContent = 'Claude analyse tes données...';
+  document.querySelectorAll('.btn-ai').forEach(b => b.disabled = true);
+
+  const c = buildAIContext();
+
+  const ctx = [
+    `=== Données TrainingOS — ${localDateStr(new Date())} ===`,
+    ``,
+    `FRÉQUENCE: ${c.freq7} séances/7j, ${c.freq14}/14j | Dernière: ${c.lastDate} | RPE moyen 7j: ${c.rpe7}/10`,
+    ``,
+    `SETS PAR GROUPE MUSCULAIRE (7 derniers jours):`,
+    ...Object.entries(c.sets7).map(([g,s]) => `  ${g}: ${s} sets`),
+    c.neglected.length ? `  Non travaillés: ${c.neglected.join(', ')}` : '',
+    ``,
+    `SETS PAR GROUPE (14 derniers jours):`,
+    ...Object.entries(c.sets14).map(([g,s]) => `  ${g}: ${s} sets`),
+    ``,
+    `TOP PRs ESTIMÉS (1RM Epley): ${c.prs.join(' | ')||'aucun'}`,
+    c.progressions.length ? `PROGRESSION 30j: ${c.progressions.join(', ')}` : '',
+    c.stagnations.length  ? `STAGNATION/RÉGRESSION: ${c.stagnations.join(', ')}` : '',
+    ``,
+    `PROGRAMME ACTUEL:`,
+    ...c.progLines,
+    ``,
+    `HIIT: ${c.hiit7} sessions cette semaine, ${c.hiit30} ce mois`,
+    Object.keys(c.hiitTypes).length ? `Types: ${Object.entries(c.hiitTypes).map(([t,n])=>`${t}×${n}`).join(', ')}` : '',
+    c.hiitRecent.length ? `5 dernières sessions HIIT: ${c.hiitRecent.map(e=>`${e.date} ${e.session_type||''} ${e.duration||''}min`).join(' | ')}` : '',
+  ].filter(s => s !== undefined && s !== null && s !== '').join('\n');
+
+  const prompts = {
+    analyse:
+      `${ctx}\n\nFais une analyse globale et personnalisée de mon entraînement (5-6 phrases). `+
+      `Identifie les points forts, les déséquilibres musculaires (basés sur les sets, pas le poids), `+
+      `et donne UNE recommandation concrète prioritaire pour cette semaine.`,
+
+    fatigue:
+      `${ctx}\n\nÉvalue mon niveau de fatigue et de récupération. `+
+      `Basé sur la fréquence, le RPE et la distribution des sets, suis-je en surcharge, sous-entraîné ou dans la zone optimale ? `+
+      `Donne des recommandations concrètes pour les 3 prochains jours (muscu + HIIT). 4-5 phrases.`,
+
+    suggestion:
+      `${ctx}\n\nSuggère la prochaine séance idéale. `+
+      `Quel jour du programme prioriser ? Quels exercices et à quelle intensité (RPE cible) ? `+
+      `Tiens compte des muscles négligés et de la récupération. Sois précis. 4-5 phrases.`,
+
+    progression:
+      `${ctx}\n\nAnalyse ma progression sur 30-60 jours exercice par exercice. `+
+      `Quels exercices avancent bien ? Lesquels stagnent et pourquoi ? `+
+      `Que dois-je ajuster dans ma technique ou ma programmation pour débloquer ces exercices ? 5-6 phrases.`,
+
+    programme:
+      `${ctx}\n\nAnalyse mon programme actuel et propose des modifications concrètes. `+
+      `Y a-t-il des déséquilibres agoniste/antagoniste ? Des exercices redondants ? Des groupes sous-représentés ? `+
+      `Propose des changements précis: exercices à ajouter/remplacer avec leurs schemes (ex: 3x8-10). `+
+      `Justifie chaque changement. 6-7 phrases.`,
+
+    hiit:
+      `${ctx}\n\nAnalyse mes sessions HIIT et propose des optimisations. `+
+      `La fréquence est-elle adaptée à ma charge musculaire ? Y a-t-il assez de récupération ? `+
+      `Suggère des ajustements concrets: fréquence idéale, types de sessions à privilégier, `+
+      `placement dans la semaine par rapport à la musculation. 5-6 phrases.`,
+  };
+
+  try {
+    const res = await fetch('/api/ai/coach', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({prompt: prompts[mode]})
+    });
+    const data = await res.json();
+    el.className = 'ai-response fu';
+    el.textContent = data.response || data.error || 'Erreur inconnue';
+  } catch(e) {
+    el.className = 'ai-response error';
+    el.textContent = 'Erreur de connexion. Vérifie que ANTHROPIC_API_KEY est configurée.';
+  }
+  document.querySelectorAll('.btn-ai').forEach(b => b.disabled = false);
+}
+
+renderInsights();
+renderMuscleMap();
+</script>
+{% endblock %}

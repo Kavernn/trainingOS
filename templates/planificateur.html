@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+{% block title %}Planificateur — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .plan-hero {
+    background: rgba(17,17,28,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;margin-bottom:14px;position:relative;overflow:hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .plan-hero::before{
+    content:'';position:absolute;top:-50px;right:-50px;width:200px;height:200px;
+    background:radial-gradient(circle,#22c55e18 0%,transparent 70%);
+  }
+
+  .week-grid{
+    display:grid;grid-template-columns:repeat(7,1fr);
+    gap:4px;margin-bottom:14px;
+  }
+  .day-col{
+    background: rgba(17,17,28,0.5);
+    backdrop-filter: blur(8px);
+    border:1px solid var(--border);
+    border-radius:8px;padding:6px 4px;text-align:center;
+    cursor:pointer;transition:all 0.15s;
+    min-height:90px;display:flex;flex-direction:column;gap:3px;
+  }
+  .day-col:hover{border-color:var(--green)55;}
+  .day-col.today{border-color:var(--orange)88;background:var(--orange)11;}
+  .day-col.rest{background:var(--bg3);}
+  .day-col.done{border-color:var(--green)66;background:var(--green)11;}
+  .day-col.planned{border-color:var(--blue)55;}
+  .day-name{font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:2px;}
+  .day-num{font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;font-weight:800;color:var(--text);line-height:1;}
+  .day-tag{font-size:0.55rem;padding:2px 4px;border-radius:3px;font-weight:600;}
+  .day-tag.work{background:var(--orange)22;color:var(--orange);}
+  .day-tag.rest{background:var(--muted)22;color:var(--muted);}
+  .day-tag.done{background:var(--green)22;color:var(--green);}
+  .day-tag.hiit{background:var(--blue)22;color:var(--blue);}
+
+  .plan-card{
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border:1px solid var(--border);
+    border-radius:var(--radius);padding:16px;margin-bottom:10px;
+    transition:border-color 0.2s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .plan-card:hover{border-color:var(--green)44;}
+  .plan-day-title{
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:1.1rem;font-weight:800;margin-bottom:6px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .plan-type{
+    font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;
+    padding:3px 8px;border-radius:4px;font-weight:700;
+  }
+  .plan-type.muscu  {background:var(--orange)22;color:var(--orange);}
+  .plan-type.hiit   {background:var(--blue)22;  color:var(--blue);}
+  .plan-type.repos  {background:var(--muted)22; color:var(--muted);}
+  .plan-type.actif  {background:var(--green)22; color:var(--green);}
+  .plan-reason{font-size:0.8rem;color:var(--muted);line-height:1.5;}
+  .plan-exos{
+    margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;
+  }
+  .exo-chip{
+    font-size:0.68rem;padding:3px 8px;border-radius:4px;
+    background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);
+  }
+
+  .ai-plan-section{
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border:1px solid var(--green)33;border-radius:var(--radius);
+    padding:16px;margin-bottom:14px;
+    box-shadow: 0 4px 16px rgba(34,197,94,0.06);
+  }
+  .ai-plan-title{
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:0.75rem;font-weight:800;letter-spacing:3px;
+    text-transform:uppercase;color:var(--green);margin-bottom:12px;
+  }
+  .ai-plan-output{
+    font-size:0.88rem;line-height:1.7;color:var(--text);
+    white-space:pre-wrap;min-height:40px;
+  }
+  .ai-plan-output.loading{color:var(--muted);font-style:italic;}
+  .btn-green{
+    background:var(--green)22;border:1px solid var(--green)55;
+    color:var(--green);border-radius:8px;padding:8px 16px;
+    font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;
+    font-weight:700;letter-spacing:1px;cursor:pointer;
+    transition:all 0.15s;text-transform:uppercase;
+  }
+  .btn-green:hover{background:var(--green)33;transform:translateY(-1px);}
+  .btn-green:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+  .section-title{font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--muted);padding:14px 0 8px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  .pulsing{animation:pulse 1.2s ease infinite;}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .fu{animation:fadeUp 0.3s ease both;}
+  .fu1{animation-delay:.05s;}.fu2{animation-delay:.1s;}.fu3{animation-delay:.15s;}
+
+  /* Proposal cards */
+  .proposal-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    background: rgba(17,17,28,0.6);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    transition: border-color 0.2s, opacity 0.3s;
+  }
+  .proposal-card.accepted { border-color: var(--green)66; background: var(--green)08; opacity: 0.6; }
+  .proposal-card.rejected { border-color: var(--rose)44;  background: var(--rose)05;  opacity: 0.4; }
+  .proposal-body { flex: 1; }
+  .proposal-action {
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 2px;
+    font-weight: 700; margin-bottom: 4px;
+  }
+  .proposal-action.add     { color: var(--green); }
+  .proposal-action.remove  { color: var(--rose); }
+  .proposal-action.replace { color: var(--orange); }
+  .proposal-action.scheme  { color: var(--blue); }
+  .proposal-title  { font-weight: 700; font-size: 0.9rem; margin-bottom: 3px; }
+  .proposal-reason { font-size: 0.78rem; color: var(--muted); }
+  .proposal-btns   { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .btn-accept { background: var(--green)22; border: 1px solid var(--green)55; color: var(--green); padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+  .btn-reject { background: var(--rose)11;  border: 1px solid var(--rose)33;  color: var(--rose);  padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+  .btn-accept:hover { background: var(--green)33; }
+  .btn-reject:hover { background: var(--rose)22; }
+
+  @media (max-width: 520px) {
+    .week-grid     { gap: 3px; }
+    .week-day      { padding: 6px 2px; border-radius: 8px; }
+    .week-day-name { font-size: 0.55rem; }
+    .week-day-lbl  { font-size: 0.5rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<script id="w-data"    type="application/json">{{ weights      | tojson }}</script>
+<script id="s-data"    type="application/json">{{ sessions     | tojson }}</script>
+<script id="h-data"    type="application/json">{{ hiit_log     | tojson }}</script>
+<script id="prog-data" type="application/json">{{ full_program | tojson }}</script>
+<script id="sched-data" type="application/json">{{ schedule    | tojson }}</script>
+
+<div class="flex-between mb-16">
+  <h2 class="text-green">📅 Planificateur</h2>
+</div>
+
+<!-- HERO SEMAINE -->
+<div class="plan-hero fu">
+  <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:3px;color:var(--muted);margin-bottom:4px;">SEMAINE {{ week }}</div>
+  <div id="week-summary" style="font-family:'Barlow Condensed',sans-serif;font-size:2rem;font-weight:900;color:var(--text);line-height:1.1;">Calcul du plan...</div>
+  <div id="week-sub" style="font-size:0.8rem;color:var(--muted);margin-top:6px;"></div>
+</div>
+
+<!-- GRID SEMAINE -->
+<div class="week-grid fu fu1" id="week-grid"></div>
+
+<!-- PLAN ALGORITHMIQUE -->
+<div class="section-title fu fu2">⚙️ Plan suggéré — algorithmique</div>
+<div id="algo-plan" class="fu fu2"></div>
+
+<!-- PLAN IA -->
+<div class="section-title fu fu3">🤖 Optimisation IA — Claude</div>
+<div class="ai-plan-section fu fu3">
+  <div class="ai-plan-title">📋 Analyse & propositions</div>
+  <div class="ai-plan-output loading pulsing" id="ai-plan-output">Clique pour générer une analyse ou des propositions de modifications...</div>
+  <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn-green" onclick="generateAIPlan('semaine')">📅 Plan de semaine</button>
+    <button class="btn-green" onclick="generateAIPlan('deload')">🔄 Plan deload</button>
+    <button class="btn-green" onclick="generateAIPlan('peak')">🔥 Semaine peak</button>
+    <button class="btn-green" onclick="proposeChanges()" style="border-color:var(--purple)55;color:var(--purple);background:var(--purple)11;">🏋️ Proposer modifications programme</button>
+  </div>
+</div>
+
+<!-- PROPOSAL REVIEW -->
+<div id="proposal-section" style="display:none;">
+  <div class="section-title">✏️ Propositions — Accepter ou Refuser</div>
+  <div id="proposals-list"></div>
+  <div style="display:flex;gap:8px;margin-top:8px;" id="proposal-bulk" style="display:none;">
+    <button class="btn-green" onclick="applyAll()" id="btn-apply-all">✅ Tout accepter</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const W      = JSON.parse(document.getElementById('w-data').textContent);
+const S      = JSON.parse(document.getElementById('s-data').textContent);
+const H      = JSON.parse(document.getElementById('h-data').textContent);
+const PROG   = JSON.parse(document.getElementById('prog-data').textContent||'{}');
+const SCHED  = JSON.parse(document.getElementById('sched-data').textContent||'{}');
+// SCHED = {"Lun":"Upper A","Mar":"HIIT 1",...} — the real schedule
+const DAYS_FR=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const SCHED_KEYS=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']; // matches Mon-Sun
+
+// Use local calendar date — toISOString() returns UTC which breaks for UTC+ timezones
+function localDateStr(d) {
+  const dd = d || new Date();
+  return `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+}
+
+function parseReps(r){ return String(r||'').split(',').map(Number).filter(n=>n>0); }
+
+function sessionFreq(days){
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cut=localDateStr(cutoff);
+  const d=new Set();
+  Object.values(W).forEach(v=>(v.history||[]).forEach(e=>e.date>=cut&&d.add(e.date)));
+  H.forEach(e=>e.date>=cut&&d.add(e.date));
+  return d.size;
+}
+
+function avgRPE(days){
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
+  const cut=localDateStr(cutoff);
+  const vals=Object.entries(S).filter(([d,s])=>d>=cut&&s.rpe).map(([,s])=>s.rpe);
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+}
+
+function getDoneThisWeek(){
+  const done=new Set();
+  const mon=new Date(); mon.setDate(mon.getDate()-mon.getDay()+1);
+  const monStr=localDateStr(mon);
+  Object.values(W).forEach(d=>(d.history||[]).forEach(e=>e.date>=monStr&&done.add(e.date)));
+  H.forEach(e=>e.date>=monStr&&done.add(e.date));
+  return done;
+}
+
+// ── GRILLE SEMAINE ────────────────────────────────────
+function renderWeekGrid(){
+  const done=getDoneThisWeek();
+  const today=localDateStr();
+  const grid=document.getElementById('week-grid');
+  const monday=new Date(); monday.setDate(monday.getDate()-monday.getDay()+1);
+  let html='';
+  for(let i=0;i<7;i++){
+    const d=new Date(monday); d.setDate(monday.getDate()+i);
+    const str=localDateStr(d);
+    const isToday=str===today;
+    const isDone=done.has(str);
+    const isPast=str<today;
+    const cls=isToday?'today':isDone?'done':isPast?'rest':'';
+    const tag=isDone?'<div class="day-tag done">✓</div>':isToday?'<div class="day-tag work">Auj.</div>':'';
+    html+=`<div class="day-col ${cls}">
+      <div class="day-name">${DAYS_FR[(d.getDay()+7)%7]}</div>
+      <div class="day-num">${d.getDate()}</div>
+      ${tag}
+    </div>`;
+  }
+  grid.innerHTML=html;
+
+  const doneCount=done.size;
+  document.getElementById('week-summary').textContent=`${doneCount}/5 séances`;
+  document.getElementById('week-sub').textContent=doneCount>=5?'🔥 Semaine complète ! Excellent.':doneCount>=3?`${5-doneCount} séances restantes pour atteindre ton objectif`:`Encore ${5-doneCount} séances pour atteindre 5 cette semaine`;
+}
+
+// ── PLAN ALGO (utilise le vrai schedule) ──────────────
+function buildAlgoPlan(){
+  const freq7    = sessionFreq(7);
+  const rpe      = avgRPE(7);
+  const done     = getDoneThisWeek();
+  const todayStr = localDateStr();
+
+  let weekType = 'normal';
+  if(rpe > 8.5)              weekType = 'deload';
+  else if(freq7 >= 5 && rpe > 7.5) weekType = 'light';
+  else if(freq7 < 3)         weekType = 'boost';
+
+  const weekTypeLabels = {
+    normal:'Fréquence et volume optimaux pour progresser.',
+    deload:'RPE élevé détecté — intensité réduite recommandée.',
+    light: 'Bonne fréquence mais fatigue présente — réduis l\'intensité.',
+    boost: 'Fréquence faible cette semaine — on met le paquet.',
+  };
+
+  // Build week cards using the REAL schedule
+  const monday = new Date();
+  monday.setDate(monday.getDate() - (monday.getDay() === 0 ? 6 : monday.getDay() - 1));
+
+  const cards = SCHED_KEYS.map((dayKey, i) => {
+    const d       = new Date(monday); d.setDate(monday.getDate() + i);
+    const str     = localDateStr(d);
+    const seance  = SCHED[dayKey] || '—';
+    const isToday = str === todayStr;
+    const isDone  = done.has(str);
+    const isPast  = str < todayStr;
+
+    const isSpecial = ['HIIT 1','HIIT 2','Yoga','Recovery'].includes(seance);
+    const isHIIT    = seance.includes('HIIT');
+    const isRest    = seance === 'Recovery';
+    const type      = isHIIT ? 'hiit' : isRest ? 'repos' : isSpecial ? 'actif' : 'muscu';
+
+    // Intensity hint based on weekType
+    let hint = '';
+    if(weekType === 'deload' && type === 'muscu') hint = ' — volume −40%, focus technique';
+    else if(weekType === 'light' && type === 'muscu') hint = ' — volume −20%';
+    else if(weekType === 'boost' && type === 'muscu') hint = ' — pousse fort !';
+
+    // Exercises for muscu sessions
+    const exos = (PROG[seance] && type === 'muscu')
+      ? Object.entries(PROG[seance]).map(([e,s])=>`<span class="exo-chip">${e} <span style="color:var(--orange)">${s}</span></span>`).join('')
+      : '';
+
+    const status = isDone
+      ? '<span style="font-size:0.65rem;color:var(--green);margin-left:auto;">✓ Fait</span>'
+      : isToday
+        ? '<span style="font-size:0.65rem;color:var(--orange);margin-left:auto;">← Aujourd\'hui</span>'
+        : '';
+
+    return `<div class="plan-card" style="${isToday?'border-color:var(--orange)55;background:var(--orange)08;':''}${isDone?'border-color:var(--green)44;opacity:0.7;':''}">
+      <div class="plan-day-title">
+        ${dayKey} ${d.getDate()}
+        <span class="plan-type ${type}">${seance}</span>
+        ${status}
+      </div>
+      ${hint ? `<div style="font-size:0.75rem;color:var(--orange);margin-bottom:4px;">${hint}</div>` : ''}
+      ${exos ? `<div class="plan-exos">${exos}</div>` : ''}
+    </div>`;
+  });
+
+  document.getElementById('algo-plan').innerHTML = `
+    <div class="card" style="margin-bottom:10px;border-color:var(--green)33;">
+      <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:2px;color:var(--green);margin-bottom:4px;">SEMAINE ${weekType.toUpperCase()}</div>
+      <div style="font-size:0.82rem;color:var(--muted);">${weekTypeLabels[weekType]}</div>
+    </div>
+    ${cards.join('')}`;
+}
+
+// ── IA CLAUDE — Plan texte ─────────────────────────────
+function buildPlanContext(){
+  const freq7  = sessionFreq(7);
+  const rpe    = avgRPE(7).toFixed(1);
+  const done   = getDoneThisWeek().size;
+  const sched  = Object.entries(SCHED).map(([d,s])=>`${d}: ${s}`).join(', ');
+  const progSummary = Object.entries(PROG).map(([j,exos])=>
+    `${j}: ${Object.keys(exos).join(', ')}`
+  ).join('\n');
+  return `Programme actuel:\n${sched}\n\nExercices par séance:\n${progSummary}\n\nSemaine: ${done} séances faites, ${freq7}/7j total, RPE moyen ${rpe}/10.`;
+}
+
+async function generateAIPlan(mode){
+  const el = document.getElementById('ai-plan-output');
+  el.className = 'ai-plan-output loading pulsing';
+  el.textContent = 'Claude génère ton plan...';
+  document.querySelectorAll('.btn-green').forEach(b => b.disabled = true);
+
+  const ctx = buildPlanContext();
+  const prompts = {
+    semaine: `${ctx}\n\nCrée un plan pour les 7 prochains jours en respectant mon schedule actuel. Pour chaque jour, indique le type de séance, les muscles ciblés et l'intensité recommandée. Adapte selon la fatigue. En français, jour par jour.`,
+    deload:  `${ctx}\n\nJe veux faire une semaine de deload. Explique pourquoi et détaille comment adapter chaque séance (volume, intensité). En français.`,
+    peak:    `${ctx}\n\nJe veux une semaine peak pour maximiser mes performances. Comment adapter chaque séance du programme ? En français.`,
+  };
+
+  try {
+    const res  = await fetch('/api/ai/coach', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({prompt: prompts[mode]})
+    });
+    const data = await res.json();
+    el.className = 'ai-plan-output';
+    el.textContent = data.response || data.error || 'Erreur inconnue';
+  } catch(e) {
+    el.className = 'ai-plan-output';
+    el.style.color = 'var(--rose)';
+    el.textContent = 'Erreur de connexion.';
+  }
+  document.querySelectorAll('.btn-green').forEach(b => b.disabled = false);
+}
+
+// ── PROPOSITIONS DE MODIFICATIONS ─────────────────────
+let pendingProposals = [];
+
+async function proposeChanges() {
+  const el = document.getElementById('ai-plan-output');
+  el.className = 'ai-plan-output loading pulsing';
+  el.textContent = 'Claude analyse ton programme et prépare des propositions...';
+  document.querySelectorAll('.btn-green').forEach(b => b.disabled = true);
+  document.getElementById('proposal-section').style.display = 'none';
+
+  const ctx = buildPlanContext();
+  const context = `${ctx}\n\nAnalyse mon programme actuel et propose des modifications concrètes (3 à 6 propositions). Identifie les déséquilibres, exercices redondants, ou groupes musculaires sous-représentés. Chaque proposition doit être applicable directement.`;
+
+  try {
+    const res  = await fetch('/api/ai/propose', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({context})
+    });
+    const data = await res.json();
+    if(data.error) {
+      el.textContent = '❌ ' + data.error;
+      el.className = 'ai-plan-output';
+    } else {
+      el.textContent = `${data.proposals.length} proposition${data.proposals.length>1?'s':''} générée${data.proposals.length>1?'s':''} — revois-les ci-dessous.`;
+      el.className = 'ai-plan-output';
+      renderProposals(data.proposals);
+    }
+  } catch(e) {
+    el.className = 'ai-plan-output';
+    el.textContent = 'Erreur de connexion.';
+  }
+  document.querySelectorAll('.btn-green').forEach(b => b.disabled = false);
+}
+
+function renderProposals(proposals) {
+  pendingProposals = proposals.map((p, i) => ({...p, id: i, status: 'pending'}));
+  const section = document.getElementById('proposal-section');
+  const list    = document.getElementById('proposals-list');
+
+  list.innerHTML = pendingProposals.map(p => {
+    const actionLabel = {add:'Ajouter', remove:'Supprimer', replace:'Remplacer', scheme:'Modifier scheme'}[p.action] || p.action;
+    let title = '';
+    if(p.action === 'add')     title = `${p.exercise} <span style="color:var(--muted);font-weight:400;">dans ${p.jour}</span> <span style="color:var(--green)">${p.scheme||''}</span>`;
+    if(p.action === 'remove')  title = `${p.old_exercise} <span style="color:var(--muted);font-weight:400;">de ${p.jour}</span>`;
+    if(p.action === 'replace') title = `${p.old_exercise} → ${p.new_exercise} <span style="color:var(--orange)">${p.scheme||''}</span> <span style="color:var(--muted);font-weight:400;">dans ${p.jour}</span>`;
+    if(p.action === 'scheme')  title = `${p.exercise} <span style="color:var(--muted);font-weight:400;">dans ${p.jour}</span> : nouveau scheme <span style="color:var(--orange)">${p.scheme}</span>`;
+
+    return `<div class="proposal-card" id="prop-${p.id}">
+      <div class="proposal-body">
+        <div class="proposal-action ${p.action}">${actionLabel}</div>
+        <div class="proposal-title">${title}</div>
+        <div class="proposal-reason">${p.reason}</div>
+      </div>
+      <div class="proposal-btns">
+        <button class="btn-accept" id="acc-${p.id}" onclick="acceptProposal(${p.id})">✓ Accepter</button>
+        <button class="btn-reject" onclick="rejectProposal(${p.id})">✗ Refuser</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  section.style.display = 'block';
+  document.getElementById('proposal-bulk').style.display = 'flex';
+}
+
+async function acceptProposal(id) {
+  const p    = pendingProposals.find(x => x.id === id);
+  if(!p || p.status !== 'pending') return;
+
+  const card = document.getElementById('prop-' + id);
+  card.querySelector('.btn-accept').disabled = true;
+  card.querySelector('.btn-accept').textContent = '...';
+
+  // Map proposal to /api/programme payload
+  let payload = {action: p.action, jour: p.jour};
+  if(p.action === 'add')     { payload.exercise = p.exercise;     payload.scheme = p.scheme; }
+  if(p.action === 'remove')  { payload.exercise = p.old_exercise; }
+  if(p.action === 'replace') { payload.old_exercise = p.old_exercise; payload.new_exercise = p.new_exercise; payload.scheme = p.scheme; }
+  if(p.action === 'scheme')  { payload.exercise = p.exercise; payload.scheme = p.scheme; }
+
+  try {
+    const res  = await fetch('/api/programme', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if(data.success !== false) {
+      p.status = 'accepted';
+      card.classList.add('accepted');
+      card.querySelector('.btn-accept').textContent = '✓ Accepté';
+      card.querySelector('.btn-reject').style.display = 'none';
+    } else {
+      card.querySelector('.btn-accept').textContent = '✓ Accepter';
+      card.querySelector('.btn-accept').disabled = false;
+      alert('Erreur: ' + (data.error || 'Inconnue'));
+    }
+  } catch(e) {
+    card.querySelector('.btn-accept').textContent = '✓ Accepter';
+    card.querySelector('.btn-accept').disabled = false;
+  }
+}
+
+function rejectProposal(id) {
+  const p    = pendingProposals.find(x => x.id === id);
+  if(!p) return;
+  p.status = 'rejected';
+  const card = document.getElementById('prop-' + id);
+  card.classList.add('rejected');
+  card.querySelector('.btn-accept').style.display = 'none';
+  card.querySelector('.btn-reject').textContent = '✗ Refusé';
+  card.querySelector('.btn-reject').disabled = true;
+}
+
+async function applyAll() {
+  const pending = pendingProposals.filter(p => p.status === 'pending');
+  for(const p of pending) await acceptProposal(p.id);
+}
+
+renderWeekGrid();
+buildAlgoPlan();
+</script>
+{% endblock %}

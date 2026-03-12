@@ -1,0 +1,930 @@
+{% extends "base.html" %}
+{% block title %}{{ session_type }} — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hero-card {
+    background: rgba(17,17,28,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    margin-bottom: 16px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .hero-icon { font-size: 3.5rem; margin-bottom: 12px; }
+
+  .hero-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--orange);
+  }
+
+  .hero-sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+
+  /* ── TIMER ── */
+  .timer-display {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 5rem;
+    font-weight: 800;
+    line-height: 1;
+    margin: 16px 0;
+    transition: color 0.3s;
+  }
+
+  .timer-sprint  { color: var(--rose); }
+  .timer-jogging { color: var(--green); }
+  .timer-idle    { color: var(--orange); }
+  .timer-yoga    { color: var(--blue); }
+
+  .timer-phase {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .round-counter {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.1rem;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .timer-progress {
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+    height: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .timer-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.5s linear, background 0.3s;
+  }
+
+  .timer-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .protocol-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .protocol-box {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+
+  .protocol-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--orange);
+    line-height: 1;
+  }
+
+  .protocol-lbl {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  /* ── YOGA / RECOVERY ── */
+  .move-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border)66;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .move-item:last-child { border-bottom: none; }
+  .move-item.done { opacity: 0.45; }
+
+  .move-check {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+  }
+
+  .move-item.done .move-check {
+    background: var(--green);
+    border-color: var(--green);
+  }
+
+  .move-name { font-weight: 600; font-size: 0.95rem; }
+  .move-duration { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── QUOTE ── */
+  .quote-card {
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-left: 4px solid var(--orange);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    font-style: italic;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  .quote-text {
+    font-size: 1rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .quote-author {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* ── LOG ── */
+  .log-section {
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  .log-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .completion-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(8px);
+    color: var(--muted);
+    font-size: 2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    transition: all 0.2s;
+  }
+
+  .completion-btn.done {
+    border-color: var(--green);
+    background: var(--green)22;
+    color: var(--green);
+  }
+
+  @media (max-width: 520px) {
+    .protocol-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if already_logged %}
+<div class="card" id="already-logged-banner" style="border-color: rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); margin-bottom: 16px;">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 1.4rem;">✅</span>
+    <div>
+      <div style="font-weight: 700; color: var(--orange);">{{ session_type }} déjà loggé aujourd'hui</div>
+      {% if previous_session %}
+      <div class="text-muted" style="font-size: 0.82rem;">
+        {% if previous_session.logged_at %}Loggé à {{ previous_session.logged_at }}{% endif %}
+        {% if previous_session.rpe %} — RPE {{ previous_session.rpe }}{% endif %}
+        {% if previous_session.rounds_completes is defined %} — {{ previous_session.rounds_completes }} rounds{% endif %}
+        {% if previous_session.comment %} · {{ previous_session.comment }}{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <button class="btn btn-secondary" style="margin-top: 12px; width: 100%;" onclick="startSecondSession()">
+    + Logger une 2ème séance
+  </button>
+</div>
+{% endif %}
+
+<!-- QUOTE DU JOUR -->
+<div class="quote-card">
+  <div class="quote-text" id="quote-text">Loading...</div>
+  <div class="quote-author" id="quote-author"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- HIIT -->
+<!-- ══════════════════════════════════════════════════ -->
+{% if session_type in ['HIIT 1', 'HIIT 2'] %}
+
+<div class="hero-card">
+  <div class="hero-icon">🏃</div>
+  <div class="hero-title">{{ session_type }}</div>
+  <div class="hero-sub">Simulation shift hockey — Semaine {{ week }}</div>
+</div>
+
+<!-- Protocole du jour -->
+<div class="card mb-16">
+  <div class="card-title">Protocole du jour</div>
+  <div class="protocol-grid">
+    <div class="protocol-box">
+      <div class="protocol-val" id="proto-rounds">{{ protocole.rounds }}</div>
+      <div class="protocol-lbl">Rounds</div>
+    </div>
+    <div class="protocol-box">
+      <div class="protocol-val">{{ protocole.sprint_spd }}</div>
+      <div class="protocol-lbl">Sprint km/h</div>
+    </div>
+    <div class="protocol-box">
+      <div class="protocol-val">{{ protocole.jog_spd }}</div>
+      <div class="protocol-lbl">Jogging km/h</div>
+    </div>
+    <div class="protocol-box">
+      <div class="protocol-val">30s</div>
+      <div class="protocol-lbl">Sprint</div>
+    </div>
+    <div class="protocol-box">
+      <div class="protocol-val">1m30</div>
+      <div class="protocol-lbl">Récup</div>
+    </div>
+    <div class="protocol-box">
+      <div class="protocol-val">{{ protocole.duree }}</div>
+      <div class="protocol-lbl">Minutes</div>
+    </div>
+  </div>
+</div>
+
+<!-- TIMER HIIT -->
+<div class="card mb-16" style="text-align: center;">
+  <div class="card-title">Timer interactif</div>
+
+  <div class="timer-phase" id="phase-label">Prêt ?</div>
+  <div class="timer-display timer-idle" id="timer-display">0:30</div>
+  <div class="round-counter" id="round-label">Round 0 / {{ protocole.rounds }}</div>
+
+  <div class="timer-progress">
+    <div class="timer-progress-fill" id="timer-fill" style="width: 100%; background: var(--orange);"></div>
+  </div>
+
+  <div class="timer-controls">
+    <button class="btn btn-primary" id="btn-start" onclick="startHIIT()">
+      ▶ Démarrer
+    </button>
+    <button class="btn btn-secondary" id="btn-pause" onclick="pauseHIIT()" style="display:none;">
+      ⏸ Pause
+    </button>
+    <button class="btn btn-secondary" onclick="resetHIIT()">
+      ↺ Reset
+    </button>
+  </div>
+
+  <div id="hiit-done-msg" style="display:none; margin-top: 16px;">
+    <div class="text-green" style="font-family: 'Barlow Condensed'; font-size: 1.5rem; font-weight: 800;">
+      🎉 Séance terminée ! Belle job !
+    </div>
+  </div>
+</div>
+
+<!-- LOG HIIT -->
+<div class="log-section">
+  <div class="log-title">📋 Logger la séance</div>
+
+  <div class="grid-2">
+    <div class="form-group">
+      <label>Rounds complétés</label>
+      <input type="number" id="log-rounds" placeholder="{{ protocole.rounds }}" min="0" max="20">
+    </div>
+    <div class="form-group">
+      <label>Vitesse sprint max (km/h)</label>
+      <input type="number" id="log-speed" placeholder="{{ protocole.sprint_spd }}" step="0.5">
+    </div>
+    <div class="form-group">
+      <label>Vitesse de croisière (km/h)</label>
+      <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px;">
+        {% for spd in [6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0] %}
+        <button type="button"
+          class="filter-tab"
+          onclick="setCruiseSpeed({{ spd }}, this)">
+          {{ spd }}
+        </button>
+        {% endfor %}
+      </div>
+      <input type="number" id="log-cruise" placeholder="{{ protocole.jog_spd }}" step="0.5">
+    </div>
+    <div class="form-group">
+      <label>RPE (1-10)</label>
+      <input type="number" id="log-rpe" placeholder="8" min="1" max="10">
+    </div>
+    <div class="form-group">
+      <label>Ressenti</label>
+      <select id="log-feeling">
+        <option>Facile 😎</option>
+        <option selected>Correct 💪</option>
+        <option>Difficile 😤</option>
+        <option>Épuisant 💀</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Commentaire</label>
+    <input type="text" id="log-comment" placeholder="Ex: Bon shift, jambes lourdes en fin...">
+  </div>
+
+  <button class="btn btn-primary btn-block" onclick="logHIIT()">
+    Sauvegarder ✅
+  </button>
+</div>
+
+<!-- HISTORIQUE HIIT -->
+{% set past_hiit = hiit_log | selectattr('session_type', 'equalto', session_type) | list %}
+{% if past_hiit %}
+<div class="log-section" style="margin-top:16px;">
+  <div class="log-title">📅 Historique {{ session_type }}</div>
+
+  {% for entry in past_hiit[:3] %}
+  <div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+      <span style="font-size:0.82rem; color:var(--muted);">{{ entry.date }}</span>
+      {% if entry.rpe %}<span style="font-size:0.75rem; font-weight:600; color:var(--orange);">RPE {{ entry.rpe }}</span>{% endif %}
+    </div>
+    <div style="font-size:0.8rem; color:var(--text); line-height:1.6;">
+      {% if entry.rounds_completes is not none %}{{ entry.rounds_completes }}/{{ entry.rounds_planifies }} rounds{% endif %}
+      {% if entry.vitesse_max %} · Sprint {{ entry.vitesse_max }} km/h{% endif %}
+      {% if entry.vitesse_croisiere %} · Croisière {{ entry.vitesse_croisiere }} km/h{% endif %}
+      {% if entry.feeling and entry.feeling != '—' %} · {{ entry.feeling }}{% endif %}
+    </div>
+    {% if entry.comment %}<div style="font-size:0.75rem; color:var(--muted); font-style:italic; margin-top:2px;">{{ entry.comment }}</div>{% endif %}
+  </div>
+  {% endfor %}
+
+  {% if past_hiit | length > 3 %}
+  <details style="margin-top:8px;">
+    <summary style="font-size:0.78rem; color:var(--muted); cursor:pointer; list-style:none; padding:6px 0;">
+      Voir {{ (past_hiit | length) - 3 }} séance{{ 's' if (past_hiit | length) - 3 > 1 else '' }} de plus ▾
+    </summary>
+    {% for entry in past_hiit[3:] %}
+    <div style="padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <span style="font-size:0.82rem; color:var(--muted);">{{ entry.date }}</span>
+        {% if entry.rpe %}<span style="font-size:0.75rem; font-weight:600; color:var(--orange);">RPE {{ entry.rpe }}</span>{% endif %}
+      </div>
+      <div style="font-size:0.8rem; color:var(--text); line-height:1.6;">
+        {% if entry.rounds_completes is not none %}{{ entry.rounds_completes }}/{{ entry.rounds_planifies }} rounds{% endif %}
+        {% if entry.vitesse_max %} · Sprint {{ entry.vitesse_max }} km/h{% endif %}
+        {% if entry.vitesse_croisiere %} · Croisière {{ entry.vitesse_croisiere }} km/h{% endif %}
+        {% if entry.feeling and entry.feeling != '—' %} · {{ entry.feeling }}{% endif %}
+      </div>
+      {% if entry.comment %}<div style="font-size:0.75rem; color:var(--muted); font-style:italic; margin-top:2px;">{{ entry.comment }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endif %}
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- YOGA -->
+<!-- ══════════════════════════════════════════════════ -->
+{% if session_type == 'Yoga' %}
+
+<div class="hero-card">
+  <div class="hero-icon">🧘</div>
+  <div class="hero-title">Yoga Vinyasa</div>
+  <div class="hero-sub">Flow dynamique — {{ now }}</div>
+</div>
+
+<!-- Timer yoga -->
+<div class="card mb-16" style="text-align: center;">
+  <div class="card-title">Timer de séance</div>
+  <div class="timer-display timer-yoga" id="yoga-timer">45:00</div>
+  <div class="timer-controls">
+    <button class="btn btn-primary" onclick="startYogaTimer()">▶ Démarrer</button>
+    <button class="btn btn-secondary" onclick="pauseYogaTimer()">⏸ Pause</button>
+    <button class="btn btn-secondary" onclick="resetYogaTimer()">↺ Reset</button>
+  </div>
+</div>
+
+<!-- Séquence Vinyasa -->
+<div class="card mb-16">
+  <div class="card-title">Séquence du jour</div>
+  {% set yoga_moves = [
+    ("🙏 Child's Pose", "Balasana — 2 min"),
+    ("🐱 Cat-Cow", "Chakravakasana — 1 min"),
+    ("🐶 Downward Dog", "Adho Mukha — 1 min"),
+    ("🦁 Low Lunge", "Anjaneyasana — 45s chaque côté"),
+    ("⚡ Warrior I", "Virabhadrasana I — 45s chaque côté"),
+    ("⚡ Warrior II", "Virabhadrasana II — 45s chaque côté"),
+    ("🔺 Triangle Pose", "Trikonasana — 45s chaque côté"),
+    ("🌊 Plank to Chaturanga", "Flow — 5 répétitions"),
+    ("🐍 Cobra / Upward Dog", "Bhujangasana — 30s"),
+    ("🦅 Eagle Pose", "Garudasana — 45s chaque côté"),
+    ("🧎 Pigeon Pose", "Eka Pada — 2 min chaque côté"),
+    ("🌙 Seated Forward Fold", "Paschimottanasana — 2 min"),
+    ("💤 Savasana", "Relaxation finale — 3 min")
+  ] %}
+
+  {% for move, duration in yoga_moves %}
+  <div class="move-item" id="yoga-move-{{ loop.index }}" onclick="toggleMove('yoga-move-{{ loop.index }}')">
+    <div class="move-check">✓</div>
+    <div>
+      <div class="move-name">{{ move }}</div>
+      <div class="move-duration">{{ duration }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Log yoga -->
+<div class="log-section">
+  <div class="log-title">📋 Logger la séance</div>
+
+  {% if already_logged %}
+  <div style="border: 1px solid rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 1.4rem;">✅</span>
+    <div>
+      <div style="font-weight: 700; color: var(--orange);">Séance déjà loggée aujourd'hui</div>
+      {% if previous_session %}<div class="text-muted" style="font-size: 0.82rem;">Loggée à {{ previous_session.logged_at }} — RPE {{ previous_session.rpe or '—' }}</div>{% endif %}
+    </div>
+  </div>
+  {% else %}
+  <button class="completion-btn" id="yoga-done-btn" onclick="toggleDone('yoga')">
+    ✓
+  </button>
+
+  <div class="form-group">
+    <label>RPE / Intensité (1-10)</label>
+    <input type="number" id="yoga-rpe" placeholder="6" min="1" max="10">
+  </div>
+  <div class="form-group">
+    <label>Notes libres</label>
+    <textarea id="yoga-comment" rows="3" placeholder="Comment tu te sens ? Poses difficiles ? Progrès notés ?..."
+      style="width:100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 14px; font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none;"></textarea>
+  </div>
+
+  <button class="btn btn-primary btn-block" onclick="logSpeciale('yoga')">
+    Sauvegarder ✅
+  </button>
+  {% endif %}
+</div>
+
+{% endif %}
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- RECOVERY -->
+<!-- ══════════════════════════════════════════════════ -->
+{% if session_type == 'Recovery' %}
+
+<div class="hero-card">
+  <div class="hero-icon">☯️</div>
+  <div class="hero-title">Tai Chi Recovery</div>
+  <div class="hero-sub">Récupération active — {{ now }}</div>
+</div>
+
+<!-- Timer recovery -->
+<div class="card mb-16" style="text-align: center;">
+  <div class="card-title">Timer de séance</div>
+  <div class="timer-display timer-yoga" id="recovery-timer">30:00</div>
+  <div class="timer-controls">
+    <button class="btn btn-primary" onclick="startRecoveryTimer()">▶ Démarrer</button>
+    <button class="btn btn-secondary" onclick="pauseRecoveryTimer()">⏸ Pause</button>
+    <button class="btn btn-secondary" onclick="resetRecoveryTimer()">↺ Reset</button>
+  </div>
+</div>
+
+<!-- Séquence Recovery -->
+<div class="card mb-16">
+  <div class="card-title">Séquence Tai Chi & Mobilité</div>
+  {% set recovery_moves = [
+    ("🌅 Ouverture — Respiration", "5 respirations profondes debout — 2 min"),
+    ("☯️ Tai Chi — Commencing Form", "Mouvements d'ouverture lents — 3 min"),
+    ("🌊 Wave Hands Like Clouds", "Rotation tronc fluide — 2 min"),
+    ("🦅 Single Whip", "Équilibre et extension — 2 min chaque côté"),
+    ("🐍 Spinal Roll", "Vertèbre par vertèbre — 1 min"),
+    ("🦵 Hip Circles", "Rotation hanches — 1 min chaque côté"),
+    ("🧎 90/90 Hip Stretch", "Mobilité hanches — 2 min chaque côté"),
+    ("💪 Shoulder CARs", "Contrôle articulaire épaules — 1 min chaque côté"),
+    ("🦶 Ankle Circles & Rolls", "Mobilité chevilles — 1 min chaque côté"),
+    ("🌙 Lying Spinal Twist", "Torsion allongée — 2 min chaque côté"),
+    ("💤 Respiration finale", "Box breathing 4-4-4-4 — 3 min")
+  ] %}
+
+  {% for move, duration in recovery_moves %}
+  <div class="move-item" id="recovery-move-{{ loop.index }}" onclick="toggleMove('recovery-move-{{ loop.index }}')">
+    <div class="move-check">✓</div>
+    <div>
+      <div class="move-name">{{ move }}</div>
+      <div class="move-duration">{{ duration }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Log recovery -->
+<div class="log-section">
+  <div class="log-title">📋 Logger la séance</div>
+
+  {% if already_logged %}
+  <div style="border: 1px solid rgba(249,115,22,0.4); background: rgba(249,115,22,0.06); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 10px;">
+    <span style="font-size: 1.4rem;">✅</span>
+    <div>
+      <div style="font-weight: 700; color: var(--orange);">Séance déjà loggée aujourd'hui</div>
+      {% if previous_session %}<div class="text-muted" style="font-size: 0.82rem;">Loggée à {{ previous_session.logged_at }} — RPE {{ previous_session.rpe or '—' }}</div>{% endif %}
+    </div>
+  </div>
+  {% else %}
+  <button class="completion-btn" id="recovery-done-btn" onclick="toggleDone('recovery')">
+    ✓
+  </button>
+
+  <div class="form-group">
+    <label>Niveau de récupération ressenti (1-10)</label>
+    <input type="number" id="recovery-rpe" placeholder="7" min="1" max="10">
+  </div>
+  <div class="form-group">
+    <label>Notes libres</label>
+    <textarea id="recovery-comment" rows="3" placeholder="Zones de tension ? Comment tu te sens après ? Progrès mobilité ?..."
+      style="width:100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 14px; font-family: inherit; font-size: 0.95rem; resize: vertical; outline: none;"></textarea>
+  </div>
+
+  <button class="btn btn-primary btn-block" onclick="logSpeciale('recovery')">
+    Sauvegarder ✅
+  </button>
+  {% endif %}
+</div>
+
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── PROTECTION DOUBLE LOG ─────────────────────────────
+  const ALREADY_LOGGED = {{ 'true' if already_logged else 'false' }};
+  let   secondSession  = false;
+
+  function startSecondSession() {
+    secondSession = true;
+    document.getElementById('already-logged-banner').style.display = 'none';
+    showToast('Mode 2ème séance activé 💪');
+  }
+
+  // ── QUOTES ────────────────────────────────────────────
+  const quotes = [
+    { text: "The pain you feel today will be the strength you feel tomorrow.", author: "— Arnold Schwarzenegger" },
+    { text: "Champions aren't made in gyms. Champions are made from something deep inside them.", author: "— Muhammad Ali" },
+    { text: "It never gets easier, you just get better.", author: "— Unknown" },
+    { text: "The only bad workout is the one that didn't happen.", author: "— Unknown" },
+    { text: "Push yourself because no one else is going to do it for you.", author: "— Unknown" },
+    { text: "Train insane or remain the same.", author: "— Unknown" },
+    { text: "Your body can stand almost anything. It's your mind that you have to convince.", author: "— Unknown" },
+    { text: "Sweat is just fat crying.", author: "— Unknown" },
+    { text: "Success starts with self-discipline.", author: "— Unknown" },
+    { text: "The difference between try and triumph is a little umph.", author: "— Marvin Phillips" },
+    { text: "Don't wish for it. Work for it.", author: "— Unknown" },
+    { text: "Be stronger than your excuses.", author: "— Unknown" },
+    { text: "Every rep, every set, every drop of sweat is an investment in yourself.", author: "— Unknown" },
+    { text: "Hockey is a unique sport. You need the skill of a surgeon and the heart of a warrior.", author: "— Unknown" },
+    { text: "Skate to where the puck is going, not where it has been.", author: "— Wayne Gretzky" }
+  ];
+
+  // Quote du jour basée sur la date
+  const todayIdx = new Date().getDate() % quotes.length;
+  document.getElementById('quote-text').textContent  = quotes[todayIdx].text;
+  document.getElementById('quote-author').textContent = quotes[todayIdx].author;
+
+  // ── HIIT TIMER ────────────────────────────────────────
+  const SPRINT_TIME = 30;
+  const JOG_TIME    = 90;
+  const MAX_ROUNDS  = {{ protocole.rounds if protocole else 8 }};
+
+  let hiitInterval  = null;
+  let hiitRunning   = false;
+  let currentRound  = 0;
+  let isSprint      = false;
+  let timeLeft      = 0;
+  let totalPhaseTime = 0;
+
+  function startHIIT() {
+    if (hiitRunning) return;
+    hiitRunning = true;
+
+    document.getElementById('btn-start').style.display = 'none';
+    document.getElementById('btn-pause').style.display = 'inline-flex';
+
+    if (currentRound === 0) {
+      // Commence par le jogging de mise en chauffe
+      startPhase(false);
+    }
+
+    hiitInterval = setInterval(tickHIIT, 1000);
+  }
+
+  function startPhase(sprint) {
+    isSprint       = sprint;
+    timeLeft       = sprint ? SPRINT_TIME : JOG_TIME;
+    totalPhaseTime = timeLeft;
+
+    const phaseLabel = document.getElementById('phase-label');
+    const display    = document.getElementById('timer-display');
+    const fill       = document.getElementById('timer-fill');
+
+    if (sprint) {
+      phaseLabel.textContent = '🔥 SPRINT !';
+      display.className      = 'timer-display timer-sprint';
+      fill.style.background  = 'var(--rose)';
+      playBeep(880, 0.3);
+    } else {
+      phaseLabel.textContent = currentRound > 0 ? '🟢 JOGGING' : '🟡 Mise en route';
+      display.className      = 'timer-display timer-jogging';
+      fill.style.background  = 'var(--green)';
+      playBeep(440, 0.2);
+    }
+
+    updateTimerDisplay();
+  }
+
+  function tickHIIT() {
+    if (timeLeft <= 0) {
+      if (isSprint) {
+        currentRound++;
+        document.getElementById('round-label').textContent = `Round ${currentRound} / ${MAX_ROUNDS}`;
+        if (currentRound >= MAX_ROUNDS) {
+          finishHIIT();
+          return;
+        }
+        startPhase(false);
+      } else {
+        startPhase(true);
+      }
+      return;
+    }
+
+    timeLeft--;
+    updateTimerDisplay();
+  }
+
+  function updateTimerDisplay() {
+    const mins = Math.floor(timeLeft / 60);
+    const secs = timeLeft % 60;
+    document.getElementById('timer-display').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    const pct = (timeLeft / totalPhaseTime) * 100;
+    document.getElementById('timer-fill').style.width = `${pct}%`;
+  }
+
+  function pauseHIIT() {
+    if (!hiitRunning) return;
+    clearInterval(hiitInterval);
+    hiitRunning = false;
+    document.getElementById('btn-start').style.display  = 'inline-flex';
+    document.getElementById('btn-pause').style.display  = 'none';
+    document.getElementById('btn-start').textContent    = '▶ Reprendre';
+  }
+
+  function resetHIIT() {
+    clearInterval(hiitInterval);
+    hiitRunning   = false;
+    currentRound  = 0;
+    isSprint      = false;
+    timeLeft      = SPRINT_TIME;
+    totalPhaseTime = SPRINT_TIME;
+
+    document.getElementById('btn-start').style.display  = 'inline-flex';
+    document.getElementById('btn-pause').style.display  = 'none';
+    document.getElementById('btn-start').textContent    = '▶ Démarrer';
+    document.getElementById('phase-label').textContent  = 'Prêt ?';
+    document.getElementById('timer-display').textContent = '0:30';
+    document.getElementById('timer-display').className  = 'timer-display timer-idle';
+    document.getElementById('round-label').textContent  = `Round 0 / ${MAX_ROUNDS}`;
+    document.getElementById('timer-fill').style.width   = '100%';
+    document.getElementById('timer-fill').style.background = 'var(--orange)';
+    document.getElementById('hiit-done-msg').style.display = 'none';
+  }
+
+  function finishHIIT() {
+    clearInterval(hiitInterval);
+    hiitRunning = false;
+    document.getElementById('phase-label').textContent     = '✅ TERMINÉ !';
+    document.getElementById('timer-display').textContent   = '0:00';
+    document.getElementById('timer-display').className     = 'timer-display timer-jogging';
+    document.getElementById('btn-start').style.display     = 'none';
+    document.getElementById('btn-pause').style.display     = 'none';
+    document.getElementById('hiit-done-msg').style.display = 'block';
+    document.getElementById('log-rounds').value            = MAX_ROUNDS;
+    playBeep(660, 0.5);
+  }
+
+  // ── SON ───────────────────────────────────────────────
+  function playBeep(freq = 440, duration = 0.2) {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + duration);
+    } catch(e) {}
+  }
+
+  // ── YOGA / RECOVERY TIMER ─────────────────────────────
+  let yogaSeconds   = 45 * 60;
+  let yogaRunning   = false;
+  let yogaInterval  = null;
+
+  let recoverySeconds  = 30 * 60;
+  let recoveryRunning  = false;
+  let recoveryInterval = null;
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  function startYogaTimer() {
+    if (yogaRunning) return;
+    yogaRunning  = true;
+    yogaInterval = setInterval(() => {
+      yogaSeconds--;
+      document.getElementById('yoga-timer').textContent = formatTime(yogaSeconds);
+      if (yogaSeconds <= 0) { clearInterval(yogaInterval); yogaRunning = false; playBeep(660, 0.5); }
+    }, 1000);
+  }
+
+  function pauseYogaTimer() {
+    clearInterval(yogaInterval);
+    yogaRunning = false;
+  }
+
+  function resetYogaTimer() {
+    clearInterval(yogaInterval);
+    yogaRunning  = false;
+    yogaSeconds  = 45 * 60;
+    document.getElementById('yoga-timer').textContent = formatTime(yogaSeconds);
+  }
+
+  function startRecoveryTimer() {
+    if (recoveryRunning) return;
+    recoveryRunning  = true;
+    recoveryInterval = setInterval(() => {
+      recoverySeconds--;
+      document.getElementById('recovery-timer').textContent = formatTime(recoverySeconds);
+      if (recoverySeconds <= 0) { clearInterval(recoveryInterval); recoveryRunning = false; playBeep(660, 0.5); }
+    }, 1000);
+  }
+
+  function pauseRecoveryTimer() {
+    clearInterval(recoveryInterval);
+    recoveryRunning = false;
+  }
+
+  function resetRecoveryTimer() {
+    clearInterval(recoveryInterval);
+    recoveryRunning  = false;
+    recoverySeconds  = 30 * 60;
+    document.getElementById('recovery-timer').textContent = formatTime(recoverySeconds);
+  }
+
+  // ── MOVES CHECKLIST ───────────────────────────────────
+  function toggleMove(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('done');
+  }
+
+  // ── COMPLETION BTN ────────────────────────────────────
+  let doneState = {};
+  function toggleDone(type) {
+    doneState[type] = !doneState[type];
+    const btn = document.getElementById(`${type}-done-btn`);
+    btn.classList.toggle('done', doneState[type]);
+  }
+
+  // ── LOG HIIT ──────────────────────────────────────────
+  function setCruiseSpeed(val, btn) {
+    document.getElementById('log-cruise').value = val;
+    document.querySelectorAll('#log-cruise-btns .filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  async function logHIIT() {
+    if (ALREADY_LOGGED && !secondSession) {
+      showToast('Séance déjà loggée ! Clique sur "+ Logger une 2ème séance".', 'error');
+      return;
+    }
+
+    const rounds            = parseInt(document.getElementById('log-rounds').value) || MAX_ROUNDS;
+    const vitesse_max       = parseFloat(document.getElementById('log-speed').value) || null;
+    const vitesse_croisiere = parseFloat(document.getElementById('log-cruise').value) || null;
+    const rpe               = parseInt(document.getElementById('log-rpe').value) || null;
+    const feeling           = document.getElementById('log-feeling').value;
+    const comment           = document.getElementById('log-comment').value.trim();
+
+    const res = await fetch('/api/log_hiit', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        rounds, speed: vitesse_max, vitesse_croisiere, rpe, feeling, comment,
+        session_type:   "{{ session_type }}",
+        week:           {{ week }},
+        date:           new Date().toLocaleDateString('en-CA'),
+        second_session: secondSession
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      haptic('success');
+      showToast('HIIT sauvegardé ! 🏃');
+      setTimeout(() => window.location.href = '/', 1500);
+    } else {
+      showToast('Erreur sauvegarde !', 'error');
+    }
+  }
+
+  // ── LOG YOGA / RECOVERY ───────────────────────────────
+  async function logSpeciale(type) {
+    if (ALREADY_LOGGED && !secondSession) {
+      showToast('Séance déjà loggée ! Clique sur "+ Logger une 2ème séance".', 'error');
+      return;
+    }
+
+    const rpeId     = type === 'yoga' ? 'yoga-rpe' : 'recovery-rpe';
+    const commentId = type === 'yoga' ? 'yoga-comment' : 'recovery-comment';
+    const rpe       = parseInt(document.getElementById(rpeId).value) || null;
+    const comment   = document.getElementById(commentId).value.trim();
+    const done      = doneState[type] || false;
+
+    const res = await fetch('/api/log_session', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        rpe,
+        comment:        `[${type.toUpperCase()}${done ? ' ✅' : ''}] ${comment}`,
+        exos:           ["{{ session_type }}"],
+        date:           new Date().toLocaleDateString('en-CA'),
+        second_session: secondSession
+      })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      haptic('success');
+      showToast(`${type === 'yoga' ? 'Yoga' : 'Recovery'} sauvegardé ! ✅`);
+      setTimeout(() => window.location.href = '/', 1500);
+    } else if (data.error === 'already_logged') {
+      showToast('Séance déjà loggée aujourd\'hui !', 'error');
+    } else {
+      showToast('Erreur sauvegarde !', 'error');
+    }
+  }
+</script>
+{% endblock %}

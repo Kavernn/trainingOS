@@ -1,0 +1,131 @@
+{
+  "Bench Press": {
+    "weight": 167.5,
+    "last_reps": "5,5,5,5",
+    "last_logged": "2026-03-02 16:05",
+    "input_value": 60.0,
+    "input_type": "barbell"
+  },
+  "Barbell Row": {
+    "weight": 137.5,
+    "last_reps": "8,8,8",
+    "last_logged": "2026-03-02 16:05",
+    "input_value": 45.0,
+    "input_type": "barbell"
+  },
+  "Incline DB Press": {
+    "weight": 122.5,
+    "last_reps": "8,8,8",
+    "last_logged": "2026-03-04 12:47",
+    "input_value": 60.0,
+    "input_type": "dumbbell",
+    "history": [
+      {
+        "date": "2026-03-04",
+        "weight": 120.0,
+        "reps": "8,8,8",
+        "note": "+5.0",
+        "1rm": 152.0
+      }
+    ],
+    "current_weight": 125.0
+  },
+  "Lat Pulldown": {
+    "weight": 165.0,
+    "last_reps": "8,8,8",
+    "last_logged": "2026-03-02 16:05",
+    "input_value": 165.0,
+    "input_type": "total"
+  },
+  "Overhead Press": {
+    "weight": 102.5,
+    "last_reps": "8,8,8",
+    "last_logged": "2026-03-02 16:06",
+    "input_value": 50.0,
+    "input_type": "dumbbell"
+  },
+  "Seated Row": {
+    "history": [
+      {
+        "date": "2026-03-04",
+        "weight": 143.0,
+        "reps": "6,6,6",
+        "note": "stagné",
+        "1rm": 171.6
+      }
+    ],
+    "current_weight": 143.0,
+    "last_reps": "6,6,6",
+    "last_logged": "2026-03-04 12:46"
+  },
+  "Triceps Extension": {
+    "history": [
+      {
+        "date": "2026-03-04",
+        "weight": 43.5,
+        "reps": "8,8,8",
+        "note": "stagné",
+        "1rm": 55.1
+      }
+    ],
+    "current_weight": 43.5,
+    "last_reps": "8,8,8",
+    "last_logged": "2026-03-04 12:47"
+  },
+  "Hammer Curl": {
+    "history": [
+      {
+        "date": "2026-03-04",
+        "weight": 60.0,
+        "reps": "8,8,8",
+        "note": "stagné",
+        "1rm": 76.0
+      }
+    ],
+    "current_weight": 60.0,
+    "last_reps": "8,8,8",
+    "last_logged": "2026-03-04 12:47"
+  },
+  "Face Pull": {
+    "history": [
+      {
+        "date": "2026-03-04",
+        "weight": 60.0,
+        "reps": "10,10,10",
+        "note": "stagné",
+        "1rm": 80.0
+      }
+    ],
+    "current_weight": 60.0,
+    "last_reps": "10,10,10",
+    "last_logged": "2026-03-04 12:47"
+  },
+  "T Bar Row Supporté": {
+    "history": [
+      {
+        "date": "2026-03-04",
+        "weight": 100.0,
+        "reps": "8,8,8",
+        "note": "stagné",
+        "1rm": 126.7
+      }
+    ],
+    "current_weight": 100.0,
+    "last_reps": "8,8,8",
+    "last_logged": "2026-03-04 12:47"
+  },
+  "Lateral Raises": {
+    "history": [
+      {
+        "date": "2026-03-04",
+        "weight": 17.5,
+        "reps": "8,8,8",
+        "note": "stagné",
+        "1rm": 22.2
+      }
+    ],
+    "current_weight": 17.5,
+    "last_reps": "8,8,8",
+    "last_logged": "2026-03-04 12:47"
+  }
+}

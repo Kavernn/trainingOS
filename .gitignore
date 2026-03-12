@@ -1,0 +1,50 @@
+# Environnements virtuels Python
+venv/
+.venv/
+env/
+.venv
+env
+ENV/
+pyvenv.cfg
+pip-selfcheck.json
+
+# Fichiers Python cachés / compilés
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Fichiers IDE / éditeurs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs et temporaires
+*.log
+*.tmp
+
+# Base de données locale (données utilisateur, ne pas versionner)
+.local_kv.db
+
+# Secrets
+.env
+.env.*
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Vercel
+.vercel/
+
+# Capacitor / Node
+node_modules/
+.npm/
+
+# Capacitor generated native projects (recreated via: npx cap add ios / npx cap add android)
+# Retire ces lignes si tu veux versionner les projets natifs Xcode/Android Studio
+# ios/
+# android/
+# Xcode user data
+*.xcuserstate
+xcuserdata/

@@ -1,0 +1,1226 @@
+import SwiftUI
+import Combine
+import AVFoundation
+
+struct SeanceView: View {
+    @StateObject private var vm = SeanceViewModel()
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+
+                if vm.isLoading {
+                    ProgressView().tint(.orange)
+                } else if let data = vm.seanceData {
+                    seanceContent(data: data)
+                } else if let err = vm.error {
+                    ErrorView(message: err) { Task { await vm.load() } }
+                }
+            }
+            .navigationTitle("Séance")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .task { await vm.load() }
+    }
+
+    @ViewBuilder
+    private func seanceContent(data: SeanceData) -> some View {
+        if data.alreadyLogged {
+            AlreadyLoggedSeanceView(data: data, vm: vm)
+        } else if data.localToday == "HIIT 1" || data.localToday == "HIIT 2" {
+            HIITSeanceView(sessionType: data.localToday, vm: vm)
+        } else if data.localToday == "Yoga" || data.localToday == "Recovery" {
+            SpecialSeanceView(sessionType: data.localToday, vm: vm)
+        } else {
+            WorkoutSeanceView(data: data, vm: vm)
+        }
+    }
+}
+
+// MARK: - Already Logged → Recap + Tomorrow Preview + Extra
+struct AlreadyLoggedSeanceView: View {
+    let data: SeanceData
+    @ObservedObject var vm: SeanceViewModel
+    @State private var showExtra = false
+
+    var todaySession: SessionEntry? {
+        APIService.shared.dashboard?.sessions[data.todayDate]
+    }
+
+    var sessionColor: Color {
+        switch data.localToday {
+        case "Upper A", "Upper B", "Lower": return .orange
+        case "HIIT 1", "HIIT 2":           return .red
+        case "Yoga":                        return .purple
+        case "Recovery":                    return .green
+        default:                            return .gray
+        }
+    }
+
+    var tomorrowType: String {
+        // Calendar.current (Gregorian): Sun=1, Mon=2, …, Sat=7
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        let todayIdx = (weekday + 5) % 7   // 0=Lun … 6=Dim
+        let tomorrowIdx = (todayIdx + 1) % 7
+        let keys = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+        return data.schedule[keys[tomorrowIdx]] ?? "Repos"
+    }
+
+    var tomorrowColor: Color {
+        switch tomorrowType {
+        case "Upper A", "Upper B", "Lower": return .orange
+        case "HIIT 1", "HIIT 2":           return .red
+        case "Yoga":                        return .purple
+        case "Recovery":                    return .green
+        default:                            return .gray
+        }
+    }
+
+    var tomorrowExercises: [(String, String)] {
+        guard let program = data.fullProgram[tomorrowType] else { return [] }
+        return program.map { ($0.key, $0.value) }.sorted { $0.0 < $1.0 }
+    }
+
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
+
+                // ── Header ──────────────────────────────────────────────
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle().fill(Color.green.opacity(0.15)).frame(width: 72, height: 72)
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.green)
+                    }
+                    Text("Séance complétée")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(data.localToday)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(sessionColor)
+                        .padding(.horizontal, 14).padding(.vertical, 5)
+                        .background(sessionColor.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+                .padding(.top, 24)
+
+                // ── Recap aujourd'hui ────────────────────────────────────
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("RÉCAP D'AUJOURD'HUI")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(2)
+                        .foregroundColor(.gray)
+
+                    if let session = todaySession {
+                        // RPE + stats row
+                        HStack(spacing: 12) {
+                            if let rpe = session.rpe {
+                                VStack(spacing: 3) {
+                                    Text(String(format: "%.1f", rpe))
+                                        .font(.system(size: 24, weight: .black))
+                                        .foregroundColor(rpeColor(rpe))
+                                    Text("RPE")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .tracking(1)
+                                        .foregroundColor(.gray)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(rpeColor(rpe).opacity(0.08))
+                                .cornerRadius(10)
+                            }
+                            if let exos = session.exos {
+                                VStack(spacing: 3) {
+                                    Text("\(exos.count)")
+                                        .font(.system(size: 24, weight: .black))
+                                        .foregroundColor(sessionColor)
+                                    Text("EXOS")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .tracking(1)
+                                        .foregroundColor(.gray)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(sessionColor.opacity(0.08))
+                                .cornerRadius(10)
+                            }
+                        }
+
+                        // Exercise list
+                        if let exos = session.exos, !exos.isEmpty {
+                            VStack(spacing: 0) {
+                                ForEach(exos, id: \.self) { exo in
+                                    HStack {
+                                        Circle()
+                                            .fill(sessionColor.opacity(0.3))
+                                            .frame(width: 5, height: 5)
+                                        Text(exo)
+                                            .font(.system(size: 13))
+                                            .foregroundColor(.white.opacity(0.85))
+                                        Spacer()
+                                    }
+                                    .padding(.vertical, 6)
+                                    Divider().background(Color.white.opacity(0.04))
+                                }
+                            }
+                        }
+
+                        // Comment
+                        if let comment = session.comment, !comment.isEmpty {
+                            HStack(spacing: 8) {
+                                Image(systemName: "quote.bubble")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.blue)
+                                Text(comment)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.gray)
+                                    .italic()
+                                Spacer()
+                            }
+                        }
+                    } else {
+                        Text("Données non disponibles")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(16)
+                .background(Color(hex: "11111c"))
+                .cornerRadius(16)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.green.opacity(0.2), lineWidth: 1))
+                .padding(.horizontal, 16)
+
+                // ── Aperçu demain ────────────────────────────────────────
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("DEMAIN")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(2)
+                            .foregroundColor(.gray)
+                        Spacer()
+                        Text(tomorrowType)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(tomorrowColor)
+                            .padding(.horizontal, 12).padding(.vertical, 5)
+                            .background(tomorrowColor.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+
+                    if tomorrowExercises.isEmpty {
+                        Text(tomorrowType == "Repos" ? "Journée de repos 🛌" : "Aucun exercice défini")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(tomorrowExercises.prefix(5), id: \.0) { name, scheme in
+                                HStack {
+                                    Circle()
+                                        .fill(tomorrowColor.opacity(0.25))
+                                        .frame(width: 5, height: 5)
+                                    Text(name)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.75))
+                                    Spacer()
+                                    Text(scheme)
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(.vertical, 6)
+                                Divider().background(Color.white.opacity(0.04))
+                            }
+                            if tomorrowExercises.count > 5 {
+                                Text("+ \(tomorrowExercises.count - 5) exercices")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.gray)
+                                    .padding(.top, 4)
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+                .background(Color(hex: "11111c"))
+                .cornerRadius(16)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(tomorrowColor.opacity(0.15), lineWidth: 1))
+                .padding(.horizontal, 16)
+
+                // ── Séance supplémentaire ────────────────────────────────
+                Button(action: { showExtra = true }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 18))
+                        Text("Faire une séance supplémentaire")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [sessionColor, sessionColor.opacity(0.7)],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                    .foregroundColor(.white)
+                    .cornerRadius(14)
+                    .shadow(color: sessionColor.opacity(0.3), radius: 10, y: 4)
+                }
+                .buttonStyle(SpringButtonStyle())
+                .padding(.horizontal, 16)
+                .padding(.bottom, 32)
+            }
+        }
+        .sheet(isPresented: $showExtra) {
+            ExtraSessionSheet(data: data)
+        }
+    }
+
+    private func rpeColor(_ v: Double) -> Color {
+        if v <= 4 { return .green }
+        if v <= 6 { return .yellow }
+        if v <= 8 { return .orange }
+        return .red
+    }
+}
+
+// MARK: - Extra Session Sheet
+struct ExtraSessionSheet: View {
+    let data: SeanceData
+    @StateObject private var extraVM = SeanceViewModel()
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                Group {
+                    if data.localToday == "HIIT 1" || data.localToday == "HIIT 2" {
+                        HIITSeanceView(sessionType: data.localToday, vm: extraVM)
+                    } else if data.localToday == "Yoga" || data.localToday == "Recovery" {
+                        SpecialSeanceView(sessionType: data.localToday, vm: extraVM)
+                    } else {
+                        WorkoutSeanceView(data: data, vm: extraVM)
+                    }
+                }
+            }
+            .navigationTitle("Séance supplémentaire")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Fermer") { dismiss() }.foregroundColor(.orange)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Workout Seance (Upper/Lower)
+struct WorkoutSeanceView: View {
+    let data: SeanceData
+    @ObservedObject var vm: SeanceViewModel
+    @State private var rpe: Double = 7
+    @State private var comment = ""
+    @State private var showFinish = false
+
+    // Programme edit
+    @State private var localProgram: [String: String] = [:]
+    @State private var inventory: [String] = []
+    @State private var addTarget: SeanceName?
+    @State private var editTarget: ExerciseTarget?
+    @State private var isEditMode = false
+    @State private var showRestTimer = false
+
+    private var exercises: [(String, String)] {
+        localProgram.map { ($0.key, $0.value) }.sorted { $0.0 < $1.0 }
+    }
+
+    @ViewBuilder private var exerciseSection: some View {
+        if isEditMode {
+            VStack(spacing: 0) {
+                ForEach(exercises, id: \.0) { name, scheme in
+                    HStack(spacing: 12) {
+                        // Delete
+                        Button {
+                            Task { await deleteExercise(name) }
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(.red)
+                        }
+                        // Edit scheme
+                        Button {
+                            editTarget = ExerciseTarget(seance: data.localToday, exercise: name, scheme: scheme)
+                        } label: {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(name)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.white)
+                                    Text(scheme)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.gray)
+                                }
+                                Spacer()
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.orange.opacity(0.7))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color(hex: "11111c"))
+                    Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
+                }
+                Button { addTarget = SeanceName(id: data.localToday) } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill").foregroundColor(.orange)
+                        Text("Ajouter un exercice")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+            }
+            .background(Color(hex: "11111c"))
+            .cornerRadius(14)
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+            .padding(.horizontal, 16)
+        } else {
+            ForEach(exercises, id: \.0) { name, scheme in
+                ExerciseCard(
+                    name: name,
+                    scheme: scheme,
+                    weightData: data.weights[name],
+                    logResult: $vm.logResults[name],
+                    onLogged: nil
+                )
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    @ViewBuilder private var rpeCommentSection: some View {
+        VStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("RPE")
+                        .font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Spacer()
+                    Text("\(rpe, specifier: "%.1f")")
+                        .font(.system(size: 20, weight: .black)).foregroundColor(rpeColor(rpe))
+                }
+                Slider(value: $rpe, in: 1...10, step: 0.5).tint(rpeColor(rpe))
+            }
+            .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("COMMENTAIRE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                TextField("Comment ça s'est passé ?", text: $comment, axis: .vertical)
+                    .font(.system(size: 14)).foregroundColor(.white).tint(.orange)
+                    .lineLimit(3, reservesSpace: true)
+                    .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+            }
+            .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+        }
+        .padding(.horizontal, 16)
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(data.localToday.uppercased())
+                            .font(.system(size: 13, weight: .black))
+                            .tracking(3)
+                            .foregroundColor(.orange)
+                        Text("Semaine \(data.week)")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                    }
+                    Spacer()
+                    Text("\(exercises.count) exercices")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                    Button {
+                        withAnimation { isEditMode.toggle() }
+                    } label: {
+                        Image(systemName: isEditMode ? "checkmark.circle.fill" : "pencil.circle")
+                            .font(.system(size: 20))
+                            .foregroundColor(isEditMode ? .green : .orange)
+                    }
+                    .padding(.leading, 8)
+                    Button {
+                        showRestTimer = true
+                    } label: {
+                        Image(systemName: "timer")
+                            .font(.system(size: 20))
+                            .foregroundColor(.cyan)
+                    }
+                    .padding(.leading, 4)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+
+                exerciseSection
+
+                rpeCommentSection
+
+                Button(action: { showFinish = true }) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                        Text("Terminer la séance").font(.system(size: 15, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Color.orange).foregroundColor(.white).cornerRadius(14)
+                }
+                .padding(.horizontal, 16).padding(.bottom, 24)
+            }
+        }
+        .sheet(isPresented: $showFinish) {
+            FinishSessionSheet(
+                exercises: exercises.map(\.0),
+                logResults: vm.logResults,
+                rpe: $rpe,
+                comment: $comment,
+                onSubmit: { dur, energy in
+                    Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energy) }
+                }
+            )
+            .presentationDetents([.medium, .large])
+        }
+        .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
+            Button("OK") { Task { await vm.load() } }
+        }
+        .alert("Erreur", isPresented: .constant(vm.submitError != nil)) {
+            Button("OK") { vm.submitError = nil }
+        } message: {
+            Text(vm.submitError ?? "")
+        }
+        .sheet(item: $addTarget) { sn in
+            AddExerciseSheet(seance: sn.id, inventory: inventory) { ex, scheme in
+                Task { await addExercise(ex, scheme: scheme) }
+            }
+        }
+        .sheet(item: $editTarget) { target in
+            EditSchemeSheet(target: target) { newName, newScheme in
+                Task { await editExercise(oldName: target.exercise, newName: newName, scheme: newScheme) }
+            }
+        }
+        .sheet(isPresented: $showRestTimer) {
+            RestTimerSheet()
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        .task { await loadInventory() }
+    }
+
+    private func rpeColor(_ v: Double) -> Color {
+        if v <= 4 { return .green }; if v <= 6 { return .yellow }; if v <= 8 { return .orange }; return .red
+    }
+
+    // MARK: - Programme mutations
+
+    private func loadInventory() async {
+        // Pre-initialize from cached data immediately so mutations work before network responds
+        let cached = data.fullProgram[data.localToday] ?? [:]
+        await MainActor.run { localProgram = cached }
+
+        guard let url = URL(string: "https://training-os-rho.vercel.app/api/programme_data"),
+              let (networkData, _) = try? await URLSession.shared.data(from: url),
+              let json = try? JSONSerialization.jsonObject(with: networkData) as? [String: Any]
+        else { return }
+        let inv  = (json["inventory"] as? [String]) ?? []
+        let prog = (json["full_program"] as? [String: [String: String]])?[data.localToday] ?? cached
+        await MainActor.run {
+            inventory    = inv
+            localProgram = prog
+        }
+    }
+
+    private func postProgramme(_ body: [String: Any]) async {
+        guard let url = URL(string: "https://training-os-rho.vercel.app/api/programme") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        _ = try? await URLSession.shared.data(for: req)
+    }
+
+    private func addExercise(_ name: String, scheme: String) async {
+        await postProgramme(["action": "add", "jour": data.localToday, "exercise": name, "scheme": scheme])
+        await MainActor.run { localProgram[name] = scheme }
+    }
+
+    private func deleteExercise(_ name: String) async {
+        await postProgramme(["action": "remove", "jour": data.localToday, "exercise": name])
+        await MainActor.run { localProgram.removeValue(forKey: name) }
+    }
+
+    private func editExercise(oldName: String, newName: String, scheme: String) async {
+        if oldName != newName {
+            // rename synce tous les jours du programme + inventaire
+            await postProgramme(["action": "rename", "jour": data.localToday, "old_exercise": oldName, "new_exercise": newName])
+            await postProgramme(["action": "scheme", "jour": data.localToday, "exercise": newName, "scheme": scheme])
+            await MainActor.run {
+                localProgram.removeValue(forKey: oldName)
+                localProgram[newName] = scheme
+            }
+        } else {
+            await postProgramme(["action": "scheme", "jour": data.localToday, "exercise": oldName, "scheme": scheme])
+            await MainActor.run { localProgram[oldName] = scheme }
+        }
+    }
+}
+
+// MARK: - Exercise Card
+struct ExerciseCard: View {
+    let name: String
+    let scheme: String
+    let weightData: WeightData?
+    @Binding var logResult: ExerciseLogResult?
+    var onLogged: (() -> Void)? = nil
+    @ObservedObject private var units = UnitSettings.shared
+
+    @State private var weightStr = ""
+    @State private var repSets: [String] = []
+    @State private var showHistory = false
+    @State private var logStatus: LogStatus? = nil
+
+    enum LogStatus { case success(Double), stagné }
+
+    var currentWeight: Double { weightData?.currentWeight ?? 0 }
+    var lastReps: String { weightData?.lastReps ?? "—" }
+
+    private var setsCount: Int {
+        let s = scheme.lowercased()
+        if let x = s.firstIndex(of: "x") {
+            let before = String(s[s.startIndex..<x])
+            if let n = Int(before) { return max(1, min(n, 8)) }
+        }
+        return 3
+    }
+
+    private var repsStr: String {
+        repSets.filter { !$0.isEmpty }.joined(separator: ",")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(name).font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                    Text(scheme).font(.system(size: 12)).foregroundColor(.gray)
+                }
+                Spacer()
+                if logResult != nil {
+                    Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(.system(size: 20))
+                }
+            }
+
+            // Poids actuel / dernières reps
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("POIDS ACTUEL").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
+                    Text(currentWeight > 0 ? units.format(currentWeight) : "—")
+                        .font(.system(size: 16, weight: .black)).foregroundColor(.orange)
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("DERNIÈRES REPS").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
+                    Text(lastReps).font(.system(size: 16, weight: .black)).foregroundColor(.white)
+                }
+            }
+
+            // Poids
+            VStack(alignment: .leading, spacing: 4) {
+                Text("POIDS (\(units.label.uppercased()))").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
+                TextField("0.0", text: $weightStr)
+                    .keyboardType(.decimalPad)
+                    .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
+                    .padding(10).background(Color(hex: "191926")).cornerRadius(8)
+            }
+
+            // Reps par set
+            VStack(alignment: .leading, spacing: 6) {
+                Text("REPS PAR SET").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
+                HStack(spacing: 8) {
+                    ForEach(repSets.indices, id: \.self) { i in
+                        VStack(spacing: 3) {
+                            Text("S\(i + 1)")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.gray)
+                            TextField("0", text: $repSets[i])
+                                .keyboardType(.numberPad)
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .frame(width: 44, height: 40)
+                                .background(Color(hex: "191926"))
+                                .cornerRadius(8)
+                        }
+                    }
+                    Spacer()
+                    Button(action: logExercise) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.system(size: 38))
+                            .foregroundColor(.orange)
+                    }
+                    .padding(.top, 12)
+                }
+            }
+
+            // Statut
+            if let status = logStatus {
+                HStack(spacing: 6) {
+                    switch status {
+                    case .success(let newW):
+                        Image(systemName: "arrow.up.circle.fill").foregroundColor(.green)
+                        Text("Loggé! \(units.format(newW))")
+                            .font(.system(size: 13, weight: .semibold)).foregroundColor(.green)
+                    case .stagné:
+                        Image(systemName: "equal.circle.fill").foregroundColor(.yellow)
+                        Text("Stagné — même poids").font(.system(size: 13, weight: .semibold)).foregroundColor(.yellow)
+                    }
+                }
+            }
+
+            // Historique
+            if let history = weightData?.history, !history.isEmpty {
+                Button(action: { showHistory.toggle() }) {
+                    HStack {
+                        Text("Historique (\(history.count))").font(.system(size: 12)).foregroundColor(.gray)
+                        Spacer()
+                        Image(systemName: showHistory ? "chevron.up" : "chevron.down").font(.system(size: 11)).foregroundColor(.gray)
+                    }
+                }
+                if showHistory {
+                    VStack(spacing: 4) {
+                        ForEach(history.prefix(5), id: \.date) { entry in
+                            HStack {
+                                Text(entry.date ?? "—").font(.system(size: 11)).foregroundColor(.gray)
+                                Spacer()
+                                Text(units.format(entry.weight ?? 0)).font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                                Text(entry.reps ?? "—").font(.system(size: 11)).foregroundColor(.gray)
+                                if let note = entry.note, !note.isEmpty {
+                                    Text(note).font(.system(size: 10)).foregroundColor(note.hasPrefix("+") ? .green : .yellow)
+                                }
+                            }
+                        }
+                    }
+                    .padding(8).background(Color(hex: "0d0d1a")).cornerRadius(8)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(logResult != nil ? Color.green.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1))
+        .cornerRadius(14)
+        .onAppear {
+            if currentWeight > 0 { weightStr = units.inputStr(currentWeight) }
+            if repSets.isEmpty { repSets = Array(repeating: "", count: setsCount) }
+        }
+        .onChange(of: setsCount) {
+            if repSets.count != setsCount {
+                repSets = Array(repeating: "", count: setsCount)
+            }
+        }
+    }
+
+    private func logExercise() {
+        guard let displayW = Double(weightStr.replacingOccurrences(of: ",", with: ".")),
+              !repsStr.isEmpty else { return }
+        let w = units.toStorage(displayW)
+        logResult = ExerciseLogResult(name: name, weight: w, reps: repsStr)
+        logStatus = .success(displayW)
+        onLogged?()
+        Task { _ = try? await APIService.shared.logExercise(exercise: name, weight: w, reps: repsStr) }
+    }
+}
+
+// MARK: - Finish Sheet
+struct FinishSessionSheet: View {
+    let exercises: [String]
+    let logResults: [String: ExerciseLogResult]
+    @Binding var rpe: Double
+    @Binding var comment: String
+    var onSubmit: (Double?, Int?) -> Void   // (durationMin, energyPre)
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var durationStr = ""
+    @State private var energyPre: Int = 3   // 1–5
+
+    var loggedCount: Int { logResults.count }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 16) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundColor(.orange)
+                            Text("Terminer la séance").font(.system(size: 22, weight: .bold)).foregroundColor(.white)
+                            Text("\(loggedCount) / \(exercises.count) exercices loggés").font(.system(size: 14)).foregroundColor(.gray)
+                        }.padding(.top, 20)
+
+                        // Durée
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("DURÉE (min)").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            TextField("ex: 60", text: $durationStr)
+                                        .keyboardType(.numberPad)
+                                .keyboardType(.numberPad)
+                                .foregroundColor(.white).tint(.orange)
+                                .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                        }
+                        .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+
+                        // Énergie pré-séance
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("ÉNERGIE AVANT LA SÉANCE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Spacer()
+                                Text(energyLabel(energyPre))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(energyColor(energyPre))
+                            }
+                            HStack(spacing: 8) {
+                                ForEach(1...5, id: \.self) { i in
+                                    Button(action: { energyPre = i }) {
+                                        VStack(spacing: 4) {
+                                            Image(systemName: i <= energyPre ? "bolt.fill" : "bolt")
+                                                .font(.system(size: 20))
+                                                .foregroundColor(i <= energyPre ? energyColor(energyPre) : .gray.opacity(0.3))
+                                            Text("\(i)").font(.system(size: 9)).foregroundColor(.gray)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                            }
+                        }
+                        .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+
+                        // RPE
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("RPE GLOBAL").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Spacer()
+                                Text("\(rpe, specifier: "%.1f")").font(.system(size: 24, weight: .black)).foregroundColor(.orange)
+                            }
+                            Slider(value: $rpe, in: 1...10, step: 0.5).tint(.orange)
+                        }
+                        .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+
+                        // Notes
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("NOTES").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            TextField("Commentaire optionnel...", text: $comment, axis: .vertical)
+                                .foregroundColor(.white).tint(.orange)
+                                .lineLimit(3, reservesSpace: true)
+                                .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                        }
+                        .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+
+                        Button(action: {
+                            let dur = Double(durationStr)
+                            onSubmit(dur, energyPre)
+                            dismiss()
+                        }) {
+                            Text("Enregistrer la séance")
+                                .font(.system(size: 16, weight: .bold)).frame(maxWidth: .infinity).padding(.vertical, 14)
+                                .background(Color.orange).foregroundColor(.white).cornerRadius(14)
+                        }
+                        .padding(.horizontal, 20).padding(.bottom, 24)
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+            }
+        }
+    }
+
+    private func energyLabel(_ v: Int) -> String {
+        switch v {
+        case 1: return "Épuisé 😴"
+        case 2: return "Fatigué 😕"
+        case 3: return "Normal 😐"
+        case 4: return "En forme 💪"
+        default: return "Excellent ⚡"
+        }
+    }
+    private func energyColor(_ v: Int) -> Color {
+        switch v {
+        case 1, 2: return .red
+        case 3: return .yellow
+        default: return .green
+        }
+    }
+}
+
+// MARK: - HIIT Seance
+struct HIITSeanceView: View {
+    let sessionType: String
+    @ObservedObject var vm: SeanceViewModel
+    @State private var rounds = 8
+    @State private var workTime = 40
+    @State private var restTime = 20
+    @State private var rpe: Double = 7
+    @State private var notes = ""
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                VStack(spacing: 12) {
+                    Image(systemName: "figure.run").font(.system(size: 48)).foregroundColor(.red)
+                    Text(sessionType).font(.system(size: 24, weight: .black)).foregroundColor(.white)
+                }.padding(.top, 20)
+
+                VStack(spacing: 12) {
+                    StepperRow(title: "ROUNDS", value: $rounds, range: 1...30)
+                    StepperRow(title: "WORK (s)", value: $workTime, range: 10...120, step: 5)
+                    StepperRow(title: "REST (s)", value: $restTime, range: 5...120, step: 5)
+                }.padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        Spacer()
+                        Text("\(rpe, specifier: "%.1f")").font(.system(size: 20, weight: .black)).foregroundColor(.orange)
+                    }
+                    Slider(value: $rpe, in: 1...10, step: 0.5).tint(.orange)
+                }
+                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    TextField("Notes optionnelles...", text: $notes, axis: .vertical)
+                        .foregroundColor(.white).lineLimit(3, reservesSpace: true)
+                }
+                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+
+                Button(action: logHIIT) {
+                    Text("Enregistrer HIIT")
+                        .font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .background(Color.red).foregroundColor(.white).cornerRadius(14)
+                }
+                .padding(.horizontal, 16).padding(.bottom, 24)
+            }
+        }
+        .alert("HIIT enregistré ✅", isPresented: $vm.showSuccess) {
+            Button("OK") { Task { await vm.load() } }
+        }
+    }
+
+    private func logHIIT() {
+        Task {
+            try? await APIService.shared.logHIIT(
+                sessionType: sessionType, rounds: rounds,
+                workTime: workTime, restTime: restTime, rpe: rpe, notes: notes
+            )
+            await vm.load()
+            vm.showSuccess = true
+        }
+    }
+}
+
+// MARK: - Special (Yoga/Recovery)
+struct SpecialSeanceView: View {
+    let sessionType: String
+    @ObservedObject var vm: SeanceViewModel
+    @State private var rpe: Double = 5
+    @State private var comment = ""
+
+    var color: Color { sessionType == "Yoga" ? .purple : .green }
+    var icon: String  { sessionType == "Yoga" ? "figure.mind.and.body" : "heart.fill" }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                VStack(spacing: 12) {
+                    Image(systemName: icon).font(.system(size: 48)).foregroundColor(color)
+                    Text(sessionType).font(.system(size: 24, weight: .black)).foregroundColor(.white)
+                }.padding(.top, 24)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        Spacer()
+                        Text("\(rpe, specifier: "%.1f")").font(.system(size: 20, weight: .black)).foregroundColor(color)
+                    }
+                    Slider(value: $rpe, in: 1...10, step: 0.5).tint(color)
+                }
+                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    TextField("Comment c'était ?", text: $comment, axis: .vertical)
+                        .foregroundColor(.white).tint(.orange)
+                        .lineLimit(3, reservesSpace: true)
+                        .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                }
+                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+
+                Button(action: logSession) {
+                    Text("Enregistrer \(sessionType)")
+                        .font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .background(color).foregroundColor(.white).cornerRadius(14)
+                }
+                .padding(.horizontal, 16).padding(.bottom, 24)
+            }
+        }
+        .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
+            Button("OK") { Task { await vm.load() } }
+        }
+    }
+
+    private func logSession() {
+        Task {
+            try? await APIService.shared.logSession(exos: [sessionType], rpe: rpe, comment: comment)
+            await vm.load()
+            vm.showSuccess = true
+        }
+    }
+}
+
+// MARK: - Stepper Row
+struct StepperRow: View {
+    let title: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    var step: Int = 1
+
+    var body: some View {
+        HStack {
+            Text(title).font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+            Spacer()
+            HStack(spacing: 12) {
+                Button(action: { if value - step >= range.lowerBound { value -= step } }) {
+                    Image(systemName: "minus.circle.fill").font(.system(size: 28)).foregroundColor(.gray)
+                }
+                Text("\(value)").font(.system(size: 20, weight: .black)).foregroundColor(.white).frame(width: 50, alignment: .center)
+                Button(action: { if value + step <= range.upperBound { value += step } }) {
+                    Image(systemName: "plus.circle.fill").font(.system(size: 28)).foregroundColor(.orange)
+                }
+            }
+        }
+        .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+    }
+}
+
+// MARK: - Rest Timer Sheet
+struct RestTimerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var totalSeconds = 120
+    @State private var remaining = 120
+    @State private var isRunning = false
+    @State private var timerTask: Task<Void, Never>?
+    @State private var beepPlayer: AVAudioPlayer?
+
+    private var progress: Double {
+        totalSeconds > 0 ? Double(remaining) / Double(totalSeconds) : 0
+    }
+    private var timerColor: Color {
+        if progress > 0.5 { return .green }
+        if progress > 0.25 { return .yellow }
+        return .red
+    }
+
+    var body: some View {
+        ZStack {
+            Color(hex: "080810").ignoresSafeArea()
+            VStack(spacing: 28) {
+                Text("REPOS")
+                    .font(.system(size: 12, weight: .black))
+                    .tracking(4)
+                    .foregroundColor(.gray)
+                    .padding(.top, 8)
+
+                // Ring
+                ZStack {
+                    Circle()
+                        .stroke(Color.white.opacity(0.07), lineWidth: 14)
+                        .frame(width: 180, height: 180)
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(timerColor, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                        .frame(width: 180, height: 180)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 0.5), value: progress)
+                    Text(formatTime(remaining))
+                        .font(.system(size: 52, weight: .black, design: .rounded))
+                        .foregroundColor(timerColor)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                }
+
+                // Adjust buttons
+                HStack(spacing: 16) {
+                    adjustButton(label: "−10s") {
+                        let newVal = max(10, remaining - 10)
+                        remaining = newVal
+                        if !isRunning { totalSeconds = newVal }
+                    }
+                    adjustButton(label: "+10s") {
+                        remaining += 10
+                        if !isRunning { totalSeconds = remaining }
+                    }
+                }
+
+                // Play/Pause + Reset
+                HStack(spacing: 20) {
+                    // Reset
+                    Button {
+                        stopTimer()
+                        remaining = totalSeconds
+                    } label: {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.7))
+                            .frame(width: 56, height: 56)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Circle())
+                    }
+
+                    // Play / Pause
+                    Button {
+                        if isRunning { stopTimer() } else { startTimer() }
+                    } label: {
+                        Image(systemName: isRunning ? "pause.fill" : "play.fill")
+                            .font(.system(size: 26, weight: .bold))
+                            .foregroundColor(.black)
+                            .frame(width: 72, height: 72)
+                            .background(timerColor)
+                            .clipShape(Circle())
+                    }
+
+                    // Fermer
+                    Button {
+                        stopTimer()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.7))
+                            .frame(width: 56, height: 56)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Circle())
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .onDisappear { stopTimer() }
+    }
+
+    private func startTimer() {
+        guard remaining > 0 else { return }
+        isRunning = true
+        timerTask = Task { await runLoop() }
+    }
+
+    private func stopTimer() {
+        isRunning = false
+        timerTask?.cancel()
+        timerTask = nil
+    }
+
+    private func adjustButton(label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(timerColor)
+                .frame(width: 80, height: 40)
+                .background(timerColor.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    private func formatTime(_ s: Int) -> String {
+        "\(s / 60):\(String(format: "%02d", s % 60))"
+    }
+
+    @MainActor
+    private func runLoop() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard !Task.isCancelled else { break }
+            if remaining > 0 {
+                remaining -= 1
+                if remaining <= 3 && remaining > 0 {
+                    playBeep(hz: 880)
+                    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                } else if remaining == 0 {
+                    isRunning = false
+                    playBeep(hz: 1200)
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+            }
+        }
+    }
+
+    private func playBeep(hz: Double) {
+        beepPlayer = makeBeep(hz: hz, duration: hz > 1000 ? 0.35 : 0.12)
+        beepPlayer?.play()
+    }
+}
+
+
+// MARK: - Error View
+struct ErrorView: View {
+    let message: String
+    let retry: () -> Void
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "wifi.slash").font(.system(size: 48)).foregroundColor(.gray)
+            Text("Erreur").foregroundColor(.white).font(.headline)
+            Text(message).font(.caption).foregroundColor(.gray).multilineTextAlignment(.center)
+            Button("Réessayer", action: retry).foregroundColor(.orange)
+        }.padding()
+    }
+}
+
+// MARK: - ViewModel
+struct ExerciseLogResult {
+    let name: String
+    let weight: Double
+    let reps: String
+}
+
+@MainActor
+class SeanceViewModel: ObservableObject {
+    @Published var seanceData: SeanceData?
+    @Published var isLoading = false
+    @Published var error: String?
+    @Published var logResults: [String: ExerciseLogResult] = [:]
+    @Published var showSuccess = false
+    @Published var submitError: String?
+
+    func load() async {
+        isLoading = true; error = nil
+        do {
+            seanceData = try await APIService.shared.fetchSeanceData()
+            logResults = [:]
+        } catch { self.error = error.localizedDescription }
+        isLoading = false
+    }
+
+    func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil) async {
+        let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
+        do {
+            try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
+                                                   durationMin: durationMin, energyPre: energyPre)
+            showSuccess = true
+            await APIService.shared.fetchDashboard()
+        } catch { submitError = error.localizedDescription }
+    }
+}

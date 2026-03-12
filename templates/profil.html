@@ -1,0 +1,830 @@
+{% extends "base.html" %}
+{% block title %}Profil — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .profile-hero {
+    background: rgba(17,17,28,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    margin-bottom: 16px;
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .avatar-container {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 16px;
+    cursor: pointer;
+  }
+
+  .avatar-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--border);
+    transition: border-color 0.2s;
+  }
+
+  .avatar-container:hover .avatar-image {
+    border-color: var(--orange);
+  }
+
+  .avatar-edit-icon {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background: var(--orange);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    border: 2px solid var(--bg2);
+  }
+
+  .profile-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .profile-sub {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .stat-box {
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--orange);
+    line-height: 1;
+  }
+
+  .stat-lbl {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-row:last-child { border-bottom: none; }
+
+  .info-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .info-value {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .poids-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border)66;
+    font-size: 0.9rem;
+  }
+
+  .poids-entry:last-child { border-bottom: none; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: rgba(17,17,28,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+
+  .modal-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--orange);
+    margin-bottom: 20px;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    padding: 16px 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .poids-chart-wrap {
+    position: relative;
+    margin-bottom: 12px;
+  }
+
+  .goal-chip {
+    display: inline-block;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  @media (max-width: 520px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO PROFIL -->
+<div class="avatar-container" onclick="triggerPhotoUpload()">
+  <img
+    src="{{ profile.photo_b64 if profile.photo_b64 else url_for('static', filename='img/default-avatar.png') }}"
+    alt="Photo de profil"
+    class="avatar-image"
+    id="profile-avatar-img"
+  >
+  <div class="avatar-edit-icon">📷</div>
+</div>
+
+<input type="file" id="photo-input-file"   style="display: none;" accept="image/*"            onchange="uploadPhoto(this)">
+<input type="file" id="photo-input-camera" style="display: none;" accept="image/*" capture="user" onchange="uploadPhoto(this)">
+  <div class="profile-name">
+    <span>{{ profile.name or 'Athlète' }}</span>
+    <span style="font-size: 1.6rem;">💪</span>
+  </div>
+  <div class="profile-sub">
+    {{ profile.age or '—' }} ans &nbsp;·&nbsp;
+    {{ profile.weight or '—' }} kg &nbsp;·&nbsp;
+    {{ profile.height or '—' }} cm
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-val">{{ profile.age or '—' }}</div>
+      <div class="stat-lbl">Âge</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{{ profile.weight or '—' }}</div>
+      <div class="stat-lbl">Poids (kg)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{{ profile.height or '—' }}</div>
+      <div class="stat-lbl">Taille (cm)</div>
+    </div>
+  </div>
+</div>
+<!-- MODAL PHOTO -->
+<div class="modal-overlay" id="modal-photo">
+  <div class="modal-box" style="max-width: 320px;">
+    <div class="modal-title">📷 Photo de profil</div>
+    <button class="btn btn-secondary btn-block mb-16" onclick="pickFromGallery()">
+      🖼️ Choisir depuis la galerie
+    </button>
+    <button class="btn btn-primary btn-block" onclick="takePhoto()">
+      📷 Prendre une photo
+    </button>
+    <button class="btn btn-secondary btn-block mt-8" onclick="closePhotoModal()">
+      Annuler
+    </button>
+  </div>
+</div>
+
+<!-- INFOS PROFIL -->
+<div class="card mb-16">
+  <div class="card-title">Informations</div>
+
+  <div class="info-row">
+    <span class="info-label">Niveau</span>
+    <span class="info-value text-orange">{{ profile.level | capitalize or '—' }}</span>
+  </div>
+
+  <div class="info-row">
+    <span class="info-label">Objectif principal</span>
+    <span class="goal-chip badge-orange">
+      {{ profile.goal | capitalize or '—' }}
+    </span>
+  </div>
+
+  <div class="info-row">
+    <span class="info-label">Unités</span>
+    <span class="info-value">{{ profile.units or 'lbs' }}</span>
+  </div>
+
+  <div class="info-row">
+    <span class="info-label">Sexe</span>
+    <span class="info-value">{{ 'Homme' if profile.sex == 'm' else 'Femme' if profile.sex == 'f' else '—' }}</span>
+  </div>
+
+  <button class="btn btn-secondary btn-block mt-16" onclick="openEditModal()">
+    ✏️ Modifier le profil
+  </button>
+</div>
+
+<!-- SUIVI POIDS CORPOREL -->
+<script id="bodyweight-data" type="application/json">{{ body_weight_all | tojson }}</script>
+<div class="card mb-16">
+  <div class="flex-between mb-16">
+    <div class="card-title" style="margin: 0;">⚖️ Poids corporel</div>
+    <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.85rem;" onclick="openPoidsModal()">
+      + Logger
+    </button>
+  </div>
+
+  <div style="font-size: 0.9rem; color: var(--muted); margin-bottom: 12px;">
+    Tendance : <strong class="text-orange">{{ tendance }}</strong>
+  </div>
+
+  <!-- Graphique inline -->
+  {% if body_weight_all and body_weight_all | length > 1 %}
+  <canvas id="poids-chart" height="120" style="margin-bottom: 16px;"></canvas>
+  {% endif %}
+
+  {% if body_weight %}
+  {% for entry in body_weight %}
+  <div class="poids-entry" id="entry-{{ loop.index0 }}">
+    <span class="text-muted">{{ entry.date }}</span>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      {% if entry.note %}
+      <span class="text-muted" style="font-size: 0.8rem;">{{ entry.note }}</span>
+      {% endif %}
+      <strong class="text-orange">{{ entry.poids }} kg</strong>
+      <button
+        onclick="deletePoids('{{ entry.date }}', '{{ entry.poids }}')"
+        style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:1rem; padding:2px 4px; transition:color 0.15s;"
+        onmouseover="this.style.color='var(--rose)'"
+        onmouseout="this.style.color='var(--muted)'"
+        title="Supprimer">✕</button>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <p class="text-muted" style="font-size: 0.9rem;">
+    Aucun poids loggué — commence à tracker dès aujourd'hui !
+  </p>
+  {% endif %}
+
+  <a href="/bodycomp" class="btn btn-secondary btn-block mt-16">
+    📊 Voir la courbe complète
+  </a>
+</div>
+
+<!-- BODY COMPOSITION -->
+<div class="card mb-16">
+  <div class="flex-between mb-16">
+    <div class="card-title" style="margin:0;">🧬 Composition corporelle</div>
+    <button class="btn btn-secondary" style="padding:6px 14px;font-size:0.85rem;" onclick="openCompModal()">+ Logger</button>
+  </div>
+
+  <div class="stats-row" id="comp-stats" style="margin-top:0;">
+    <div class="stat-box">
+      <div class="stat-val" id="comp-lbm">—</div>
+      <div class="stat-lbl">Masse maigre</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="comp-fat-pct" style="color:#f43f5e;">—</div>
+      <div class="stat-lbl">% Masse grasse</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="comp-fat-kg" style="color:#f43f5e;">—</div>
+      <div class="stat-lbl">Masse grasse</div>
+    </div>
+  </div>
+
+  <div style="margin-top:12px;font-size:0.82rem;color:var(--muted);" id="comp-source">—</div>
+
+  <a href="/bodycomp" class="btn btn-secondary btn-block mt-16" style="font-size:0.85rem;">
+    📈 Historique & courbes détaillées
+  </a>
+</div>
+
+<!-- MODAL LOGGER COMPOSITION -->
+<div class="modal-overlay" id="modal-comp">
+  <div class="modal-box">
+    <div class="modal-title">🧬 Logger ma composition</div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Poids (kg) *</label>
+        <input type="number" id="comp-poids" placeholder="Ex: 82.5" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>% Masse grasse <span style="color:var(--muted);font-size:0.75rem;">(optionnel)</span></label>
+        <input type="number" id="comp-bf" placeholder="Ex: 18.5" step="0.1" min="3" max="50">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Note (optionnel)</label>
+      <input type="text" id="comp-note" placeholder="Ex: Matin à jeun, DEXA...">
+    </div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:12px;">
+      Sans % MG, la masse grasse est estimée automatiquement.
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="closeCompModal()">Annuler</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveComp()">Sauvegarder ✅</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MODIFIER PROFIL -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal-box">
+    <div class="modal-title">✏️ Modifier le profil</div>
+
+    <div class="form-group">
+      <label>Nom</label>
+      <input type="text" id="edit-name" value="{{ profile.name or '' }}">
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label>Âge</label>
+        <input type="number" id="edit-age" value="{{ profile.age or '' }}">
+      </div>
+      <div class="form-group">
+        <label>Poids (kg)</label>
+        <input type="number" id="edit-weight" value="{{ profile.weight or '' }}" step="0.1">
+      </div>
+      <div class="form-group">
+        <label>Taille (cm)</label>
+        <input type="number" id="edit-height" value="{{ profile.height or '' }}">
+      </div>
+      <div class="form-group">
+        <label>Sexe</label>
+        <select id="edit-sex">
+          <option value="m" {% if profile.sex == 'm' %}selected{% endif %}>Homme</option>
+          <option value="f" {% if profile.sex == 'f' %}selected{% endif %}>Femme</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Niveau</label>
+      <select id="edit-level">
+        <option value="débutant"      {% if profile.level == 'débutant' %}selected{% endif %}>Débutant</option>
+        <option value="intermédiaire" {% if profile.level == 'intermédiaire' %}selected{% endif %}>Intermédiaire</option>
+        <option value="avancé"        {% if profile.level == 'avancé' %}selected{% endif %}>Avancé</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Objectif principal</label>
+      <select id="edit-goal">
+        <option value="force"          {% if profile.goal == 'force' %}selected{% endif %}>Force</option>
+        <option value="hypertrophie"   {% if profile.goal == 'hypertrophie' %}selected{% endif %}>Hypertrophie</option>
+        <option value="perte de poids" {% if profile.goal == 'perte de poids' %}selected{% endif %}>Perte de poids</option>
+        <option value="recomposition"  {% if profile.goal == 'recomposition' %}selected{% endif %}>Recomposition</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Unités</label>
+      <select id="edit-units">
+        <option value="lbs" {% if profile.units == 'lbs' %}selected{% endif %}>lbs</option>
+        <option value="kg"  {% if profile.units == 'kg' %}selected{% endif %}>kg</option>
+      </select>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 8px;">
+      <button class="btn btn-secondary" style="flex: 1;" onclick="closeEditModal()">
+        Annuler
+      </button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="saveProfil()">
+        Sauvegarder ✅
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LOGGER POIDS -->
+<div class="modal-overlay" id="modal-poids">
+  <div class="modal-box">
+    <div class="modal-title">⚖️ Logger mon poids</div>
+
+    <div class="form-group">
+      <label>Poids aujourd'hui (kg)</label>
+      <input type="number" id="poids-val" placeholder="Ex: 80.5" step="0.1">
+    </div>
+
+    <div class="form-group">
+      <label>Note (optionnel)</label>
+      <input type="text" id="poids-note" placeholder="Ex: Après entraînement">
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 8px;">
+      <button class="btn btn-secondary" style="flex: 1;" onclick="closePoidsModal()">
+        Annuler
+      </button>
+      <button class="btn btn-primary" style="flex: 1;" onclick="savePoids()">
+        Sauvegarder ✅
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // ── EDIT PROFIL ───────────────────────────────────────
+  function openEditModal()  { document.getElementById('modal-edit').classList.add('open');  }
+  function closeEditModal() { document.getElementById('modal-edit').classList.remove('open'); }
+
+  async function saveProfil() {
+    const data = {
+      name:   document.getElementById('edit-name').value.trim(),
+      age:    parseInt(document.getElementById('edit-age').value) || null,
+      weight: parseFloat(document.getElementById('edit-weight').value) || null,
+      height: parseInt(document.getElementById('edit-height').value) || null,
+      sex:    document.getElementById('edit-sex').value,
+      level:  document.getElementById('edit-level').value,
+      goal:   document.getElementById('edit-goal').value,
+      units:  document.getElementById('edit-units').value
+    };
+
+    const res = await fetch('/api/update_profile', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(data)
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      showToast('Profil mis à jour ! ✅');
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      showToast('Erreur !', 'error');
+    }
+  }
+
+  // ── POIDS CORPOREL ────────────────────────────────────
+  function openPoidsModal()  { document.getElementById('modal-poids').classList.add('open');  }
+  function closePoidsModal() { document.getElementById('modal-poids').classList.remove('open'); }
+// Cette fonction ouvre la fenêtre de sélection de fichier
+function triggerPhotoUpload() {
+  document.getElementById('modal-photo').classList.add('open');
+}
+
+function closePhotoModal() {
+  document.getElementById('modal-photo').classList.remove('open');
+}
+
+function _isNative() {
+  return window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+}
+
+async function _captureCameraPhoto(source) {
+  const Camera = window.Capacitor.Plugins.Camera;
+  const photo = await Camera.getPhoto({
+    resultType: 'dataUrl',
+    source: source,
+    quality: 82,
+    width: 400,
+    height: 400,
+    correctOrientation: true
+  });
+  return photo.dataUrl;
+}
+
+async function takePhoto() {
+  closePhotoModal();
+  if (_isNative()) {
+    try {
+      const dataUrl = await _captureCameraPhoto('CAMERA');
+      await _sendPhoto(dataUrl);
+    } catch (err) {
+      if (!String(err).includes('cancelled') && !String(err).includes('cancel')) {
+        showToast('Erreur caméra : ' + err.message, 'error');
+      }
+    }
+  } else {
+    document.getElementById('photo-input-camera').click();
+  }
+}
+
+async function pickFromGallery() {
+  closePhotoModal();
+  if (_isNative()) {
+    try {
+      const dataUrl = await _captureCameraPhoto('PHOTOS');
+      await _sendPhoto(dataUrl);
+    } catch (err) {
+      if (!String(err).includes('cancelled') && !String(err).includes('cancel')) {
+        showToast('Erreur galerie : ' + err.message, 'error');
+      }
+    }
+  } else {
+    document.getElementById('photo-input-file').click();
+  }
+}
+
+async function _sendPhoto(dataUrl) {
+  showToast('Mise à jour…');
+  const res = await fetch('/api/update_profile_photo', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ photo_b64: dataUrl })
+  });
+  const result = await res.json();
+  if (result.success) {
+    document.getElementById('profile-avatar-img').src = dataUrl;
+    showToast('Photo mise à jour ! 📷');
+  } else {
+    showToast('Erreur: ' + (result.error || '?'), 'error');
+  }
+}
+
+async function uploadPhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  showToast('Compression en cours…');
+
+  try {
+    const dataUrl = await resizeImage(file, 400, 0.82);
+    const res = await fetch('/api/update_profile_photo', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ photo_b64: dataUrl })
+    });
+    const result = await res.json();
+    if (result.success) {
+      document.getElementById('profile-avatar-img').src = dataUrl;
+      showToast('Photo mise à jour ! 📷');
+    } else {
+      showToast('Erreur: ' + (result.error || '?'), 'error');
+    }
+  } catch (err) {
+    showToast('Erreur upload : ' + err.message, 'error');
+  }
+  input.value = '';
+}
+
+function resizeImage(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+      else        { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+      const canvas = document.createElement('canvas');
+      canvas.width  = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => reject(new Error("Impossible de lire l'image"));
+    img.src = url;
+  });
+}
+
+// Ajoute modal-photo dans la liste des fermetures
+['modal-edit', 'modal-poids', 'modal-photo'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+});
+  async function savePoids() {
+    const poids = parseFloat(document.getElementById('poids-val').value);
+    const note  = document.getElementById('poids-note').value.trim();
+
+    if (!poids) {
+      showToast('Entre ton poids !', 'error');
+      return;
+    }
+
+    const res = await fetch('/api/body_weight', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ poids, note })
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      showToast(`${poids} kg sauvegardé ! ⚖️`);
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      showToast('Erreur !', 'error');
+    }
+  }
+
+  // Ferme modals si clic dehors
+  ['modal-edit', 'modal-poids'].forEach(id => {
+    document.getElementById(id).addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('open');
+    });
+  });
+
+  // ── BODY COMPOSITION ─────────────────────────────────
+  (function initBodyComp() {
+    const raw  = JSON.parse(document.getElementById('bodyweight-data').textContent || '[]');
+    if (!raw.length) return;
+    const sorted = [...raw].sort((a, b) => a.date.localeCompare(b.date));
+    const last   = sorted[sorted.length - 1];
+    const w      = last.poids;
+
+    // Estimate BF (manual > Navy > BMI)
+    const profData = {{ profile | tojson }};
+    function getBF(entry) {
+      if (entry.body_fat != null && entry.body_fat > 0) return { val: entry.body_fat, manual: true };
+      const h    = parseFloat(profData.height || profData.height_cm || 0);
+      const age  = parseInt(profData.age || 30);
+      const neck = parseFloat(profData.neck_cm || 0);
+      const waist= parseFloat(profData.waist_cm || profData.abdomen_cm || 0);
+      if (h > 0 && neck > 0 && waist > 0) {
+        const bf = 495 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(h)) - 450;
+        return { val: Math.max(5, Math.min(50, bf)), manual: false };
+      }
+      if (h > 0) {
+        const bmi = w / ((h / 100) ** 2);
+        return { val: Math.max(3, 1.2 * bmi + 0.23 * age - 10.8 - 5.4), manual: false };
+      }
+      return { val: 18, manual: false };
+    }
+
+    const { val: bf, manual } = getBF(last);
+    const lbm     = (w * (1 - bf / 100)).toFixed(1);
+    const fatKg   = (w * (bf / 100)).toFixed(1);
+    const bfLabel = bf < 8  ? '🔵 Très maigre'
+                  : bf < 15 ? '🟢 Athlétique'
+                  : bf < 22 ? '🟡 Fit'
+                  : bf < 28 ? '🟠 Normal' : '🔴 Élevé';
+
+    document.getElementById('comp-lbm').textContent     = lbm + ' kg';
+    document.getElementById('comp-fat-pct').textContent = bf.toFixed(1) + ' %';
+    document.getElementById('comp-fat-kg').textContent  = fatKg + ' kg';
+    document.getElementById('comp-source').textContent  =
+      bfLabel + (manual ? ' · mesure manuelle · ' : ' · estimé · ') + 'maj ' + last.date;
+  })();
+
+  function openCompModal()  { document.getElementById('modal-comp').classList.add('open'); }
+  function closeCompModal() { document.getElementById('modal-comp').classList.remove('open'); }
+
+  async function saveComp() {
+    const poids = parseFloat(document.getElementById('comp-poids').value);
+    const bf    = parseFloat(document.getElementById('comp-bf').value) || null;
+    const note  = document.getElementById('comp-note').value.trim();
+    if (!poids) { showToast('Entre ton poids !', 'error'); return; }
+    const payload = { poids, note };
+    if (bf) payload.body_fat = bf;
+    const res  = await fetch('/api/body_weight', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`${poids} kg sauvegardé 🧬`);
+      setTimeout(() => window.location.reload(), 1200);
+    } else {
+      showToast('Erreur !', 'error');
+    }
+  }
+
+  document.getElementById('modal-comp').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+
+  // ── GRAPHIQUE POIDS ───────────────────────────────────
+  (function buildPoidsChart() {
+    const el = document.getElementById('poids-chart');
+    if (!el) return;
+    const raw = JSON.parse(document.getElementById('bodyweight-data').textContent || '[]');
+    const sorted = [...raw].sort((a, b) => a.date.localeCompare(b.date));
+    if (sorted.length < 2) return;
+
+    const labels = sorted.map(e => e.date);
+    const data   = sorted.map(e => e.poids);
+    const min    = Math.min(...data) - 1.5;
+    const max    = Math.max(...data) + 1.5;
+
+    // Gradient fill
+    const ctx  = el.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, el.offsetHeight || 120);
+    grad.addColorStop(0, 'rgba(249,115,22,0.3)');
+    grad.addColorStop(1, 'rgba(249,115,22,0.0)');
+
+    new Chart(el, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          borderColor:          '#f97316',
+          backgroundColor:      grad,
+          borderWidth:          2,
+          pointBackgroundColor: '#f97316',
+          pointRadius:          data.length > 20 ? 2 : 4,
+          pointHoverRadius:     6,
+          fill:                 true,
+          tension:              0.35,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.parsed.y} kg`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#555', maxTicksLimit: 6, font: { size: 10 } },
+            grid:  { color: '#1e1e2a' }
+          },
+          y: {
+            min, max,
+            ticks: { color: '#555', callback: v => v + ' kg' },
+            grid:  { color: '#1e1e2a' }
+          }
+        }
+      }
+    });
+  })();
+
+  // ── SUPPRIMER ENTRÉE POIDS ───────────────────────────
+  async function deletePoids(date, poids) {
+    if (!confirm(`Supprimer l'entrée ${poids} kg du ${date} ?`)) return;
+    const res  = await fetch('/api/body_weight/delete', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ date, poids: parseFloat(poids) })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Entrée supprimée ✓');
+      setTimeout(() => window.location.reload(), 800);
+    } else {
+      showToast('Erreur suppression', 'error');
+    }
+  }
+
+</script>
+{% endblock %}

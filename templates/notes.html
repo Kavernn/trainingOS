@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}Notes & RPE — TrainingOS{% endblock %}
+
+{% block extra_css %}
+<style>
+  .session-card {
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .session-card:hover {
+    border-color: rgba(249,115,22,0.3);
+    box-shadow: 0 4px 20px rgba(249,115,22,0.1);
+  }
+
+  .session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .session-date {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+  }
+
+  .rpe-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .rpe-low  { background: var(--green)22;  color: var(--green);  border: 2px solid var(--green);  }
+  .rpe-mid  { background: var(--orange)22; color: var(--orange); border: 2px solid var(--orange); }
+  .rpe-high { background: var(--rose)22;   color: var(--rose);   border: 2px solid var(--rose);   }
+  .rpe-none { background: var(--bg3);      color: var(--muted);  border: 2px solid var(--border); }
+
+  .exos-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .exo-chip {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
+  .comment-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 8px;
+  }
+
+  .stats-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .summary-box {
+    background: rgba(17,17,28,0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .summary-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--orange);
+    line-height: 1;
+  }
+
+  .summary-lbl {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+  }
+
+  .logged-at {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  @media (max-width: 520px) {
+    .stats-summary { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="flex-between mb-16">
+  <h2 class="text-orange">📋 Notes & RPE</h2>
+  <span class="badge badge-blue">{{ sessions | length }} séances</span>
+</div>
+
+{% if not sessions %}
+<div class="empty-state">
+  <div style="font-size: 4rem; margin-bottom: 16px;">📋</div>
+  <h3 class="text-orange">Aucune note enregistrée</h3>
+  <p class="text-muted mt-8">
+    Les notes et RPE sont sauvegardés automatiquement<br>
+    à la fin de chaque séance loggée.
+  </p>
+  <a href="/seance" class="btn btn-primary mt-16">Logger ma séance</a>
+</div>
+
+{% else %}
+
+<!-- RÉSUMÉ GLOBAL -->
+{% set rpes = [] %}
+{% for date, session in sessions.items() %}
+  {% if session.rpe %}
+    {% set _ = rpes.append(session.rpe) %}
+  {% endif %}
+{% endfor %}
+{% set rpe_moy = (rpes | sum / rpes | length) | round(1) if rpes else 0 %}
+
+<div class="stats-summary">
+  <div class="summary-box">
+    <div class="summary-val">{{ sessions | length }}</div>
+    <div class="summary-lbl">Séances</div>
+  </div>
+  <div class="summary-box">
+    <div class="summary-val">{{ rpe_moy }}</div>
+    <div class="summary-lbl">RPE moyen</div>
+  </div>
+  <div class="summary-box">
+    <div class="summary-val">{{ rpes | length }}</div>
+    <div class="summary-lbl">Avec RPE</div>
+  </div>
+</div>
+
+<!-- GRAPHIQUE RPE -->
+{% if rpes | length > 1 %}
+<div class="card mb-16">
+  <div class="card-title">Évolution du RPE</div>
+  <canvas id="rpeChart" height="80"></canvas>
+</div>
+{% endif %}
+
+<!-- LISTE DES SÉANCES -->
+{% for date, session in sessions | dictsort | reverse %}
+{% set rpe = session.rpe %}
+
+<div class="session-card">
+  <div class="session-header">
+    <div>
+      <div class="session-date">{{ date }}</div>
+      {% if session.logged_at %}
+      <div class="logged-at">Loggé à {{ session.logged_at }}</div>
+      {% endif %}
+    </div>
+
+    {% if rpe %}
+      {% if rpe <= 6 %}
+        <div class="rpe-circle rpe-low">{{ rpe }}</div>
+      {% elif rpe <= 8 %}
+        <div class="rpe-circle rpe-mid">{{ rpe }}</div>
+      {% else %}
+        <div class="rpe-circle rpe-high">{{ rpe }}</div>
+      {% endif %}
+    {% else %}
+      <div class="rpe-circle rpe-none">—</div>
+    {% endif %}
+  </div>
+
+  {% if session.exos %}
+  <div class="exos-list">
+    {% for exo in session.exos %}
+    <span class="exo-chip">{{ exo }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if session.comment %}
+  <div class="comment-box">💬 {{ session.comment }}</div>
+  {% endif %}
+</div>
+
+{% endfor %}
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+{% if sessions %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const sessions = {{ sessions | tojson }};
+
+  const rpeData = Object.entries(sessions)
+    .filter(([, s]) => s.rpe)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  if (rpeData.length > 1) {
+    const labels = rpeData.map(([d]) => d);
+    const values = rpeData.map(([, s]) => s.rpe);
+
+    new Chart(document.getElementById('rpeChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data:                values,
+          borderColor:         '#a855f7',
+          backgroundColor:     '#a855f722',
+          borderWidth:         2,
+          pointBackgroundColor: values.map(v =>
+            v <= 6 ? '#22c55e' : v <= 8 ? '#f97316' : '#f43f5e'
+          ),
+          pointRadius: 5,
+          fill:        true,
+          tension:     0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#666' }, grid: { color: '#1e1e2a' } },
+          y: {
+            min: 1, max: 10,
+            ticks: { color: '#666', stepSize: 1 },
+            grid: { color: '#1e1e2a' }
+          }
+        }
+      }
+    });
+  }
+</script>
+{% endif %}
+{% endblock %}

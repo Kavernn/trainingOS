@@ -1,0 +1,17 @@
+{
+  "appId": "com.kavernn.trainingos",
+  "appName": "TrainingOS",
+  "webDir": "www",
+  "server": {
+    "url": "https://training-os-rho.vercel.app",
+    "cleartext": false,
+    "allowNavigation": [
+      "training-os-rho.vercel.app"
+    ]
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#080810",
+    "scrollEnabled": false
+  }
+}
