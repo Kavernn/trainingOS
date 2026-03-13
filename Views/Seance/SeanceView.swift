@@ -1045,9 +1045,10 @@ struct AddHIITSheet: View {
         private var inputHint: Double {
             guard currentWeight > 0 else { return 0 }
             switch equipmentType {
-            case "barbell":  return (currentWeight - 45) / 2
-            case "dumbbell": return currentWeight / 2
-            default:         return currentWeight
+            case "barbell":    return (currentWeight - 45) / 2
+            case "dumbbell":   return currentWeight / 2
+            case "bodyweight": return 0   // field = additional weight (vest/belt), not body weight
+            default:           return currentWeight
             }
         }
 
