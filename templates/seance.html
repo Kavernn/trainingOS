@@ -271,7 +271,7 @@
 
 <!-- EXERCICES -->
 {% for ex in exercises %}
-<div class="exercise-card" id="card-{{ loop.index }}">
+<div class="exercise-card{% if ex.logged_today %} done{% endif %}" id="card-{{ loop.index }}" data-logged="{{ 'true' if ex.logged_today else 'false' }}">
 
   <div class="exercise-header" onclick="toggleExercise({{ loop.index }})">
     <div>
@@ -301,7 +301,7 @@
       {% else %}
         <span class="badge badge-blue">{{ ex.type }}</span>
       {% endif %}
-      <div class="checkmark" id="check-{{ loop.index }}">
+      <div class="checkmark{% if ex.logged_today %} done{% endif %}" id="check-{{ loop.index }}">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
@@ -361,10 +361,11 @@
     <div style="display: flex; gap: 8px; margin-top: 16px;">
       <button
         class="btn btn-primary"
-        style="flex: 1;"
+        style="flex: 1;{% if ex.logged_today %} opacity: 0.5; cursor: not-allowed;{% endif %}"
+        {% if ex.logged_today %}disabled{% endif %}
         onclick="logExercise({{ loop.index }}, '{{ ex.name }}', '{{ ex.type }}', {{ ex.history[0].weight if ex.history else 0 }})"
       >
-        ✅ Logger
+        {% if ex.logged_today %}✅ Déjà loggué{% else %}✅ Logger{% endif %}
       </button>
       <button
         class="btn btn-secondary"
@@ -455,6 +456,13 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
+  // Server-provided logged state (rendered at page load)
+  const SERVER_LOGGED = {
+    {% for ex in exercises %}
+    {{ loop.index }}: {{ 'true' if ex.logged_today else 'false' }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  };
+
   // État global
   const logged   = {};
   const timers   = {};
@@ -471,25 +479,35 @@
 
   // ── INITIALISATION ──────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
-    toggleExercise(1);
+    // Restore persisted logged state from server
+    let firstUnlogged = null;
+    for (const [idx, isLogged] of Object.entries(SERVER_LOGGED)) {
+      const i = parseInt(idx);
+      if (isLogged) {
+        logged[i] = true;
+        doneCount++;
+        document.getElementById(`card-${i}`).classList.add('done');
+        document.getElementById(`check-${i}`).classList.add('done');
+        _lockExerciseUI(i);
+      } else if (firstUnlogged === null) {
+        firstUnlogged = i;
+      }
+    }
+    document.getElementById('done-count').textContent = doneCount;
 
-    // --- AJOUT POUR LE DRAG AND DROP ---
-    // On cible le conteneur qui contient tes .exercise-card
-    // Dans ton HTML, c'est l'élément juste après le <h2>
+    // Open first unlogged exercise (or first if all done)
+    toggleExercise(firstUnlogged !== null ? firstUnlogged : 1);
+
     const list = document.querySelector('main') || document.querySelector('.container');
-
     if (list) {
       Sortable.create(list, {
         animation: 150,
-        handle: '.exercise-header', // On utilise l'entête pour dragger
-        draggable: '.exercise-card', // On ne déplace que les cartes
-        ghostClass: 'sortable-ghost', // Classe visuelle pendant le déplacement
-        onEnd: function() {
-          showToast("Ordre modifié ! ↕️");
-        }
+        handle: '.exercise-header',
+        draggable: '.exercise-card',
+        ghostClass: 'sortable-ghost',
+        onEnd: function() { showToast("Ordre modifié ! ↕️"); }
       });
     }
-    // --- FIN AJOUT ---
   });
 
   // ── TOGGLE EXERCICE ──────────────────────────────────
@@ -508,6 +526,17 @@
       total.textContent = `→ Total barre : ${(val * 2 + barWeight).toFixed(1)} lbs`;
     } else if (type === 'dumbbell') {
       total.textContent = `→ Total : ${(val * 2).toFixed(1)} lbs`;
+    }
+  }
+
+  // ── VERROUILLER UI EXERCICE LOGGUÉ ───────────────────
+  function _lockExerciseUI(idx) {
+    const btn = document.querySelector(`#body-${idx} .btn-primary`);
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '✅ Déjà loggué';
+      btn.style.opacity = '0.5';
+      btn.style.cursor  = 'not-allowed';
     }
   }
 
@@ -538,6 +567,20 @@
 
     const data = await res.json();
 
+    // Déjà loggué aujourd'hui
+    if (res.status === 409) {
+      showToast(`${name} déjà loggué aujourd'hui ✅`, 'warning');
+      if (!logged[idx]) {
+        logged[idx] = true;
+        doneCount++;
+        document.getElementById('done-count').textContent = doneCount;
+        document.getElementById(`card-${idx}`).classList.add('done');
+        document.getElementById(`check-${idx}`).classList.add('done');
+        _lockExerciseUI(idx);
+      }
+      return;
+    }
+
     // Affiche le résultat
     const resultBox = document.getElementById(`result-${idx}`);
     resultBox.classList.add('show');
@@ -566,6 +609,7 @@
       document.getElementById('done-count').textContent = doneCount;
       document.getElementById(`card-${idx}`).classList.add('done');
       document.getElementById(`check-${idx}`).classList.add('done');
+      _lockExerciseUI(idx);
 
       // Auto-ouvre le suivant
       setTimeout(() => {

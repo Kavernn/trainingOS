@@ -260,15 +260,19 @@ def seance():
             if ex_type == "barbell" and current > bar_w:
                 plates_needed = calculate_plates(current, bar_w)
 
+            history      = data.get("history", [])
+            logged_today = bool(history and history[0]["date"] == today_date)
+
             exercises.append({
-                "name":    ex,
-                "scheme":  scheme,
-                "current": current,
-                "display": display,
-                "type":    ex_type,
-                "plates":  plates_needed,
-                "history": data.get("history", [])[:3],
-                "1rm":     data.get("history", [{}])[0].get("1rm", 0) if data.get("history") else 0
+                "name":         ex,
+                "scheme":       scheme,
+                "current":      current,
+                "display":      display,
+                "type":         ex_type,
+                "plates":       plates_needed,
+                "history":      history[:3],
+                "1rm":          history[0].get("1rm", 0) if history else 0,
+                "logged_today": logged_today,
             })
 
     return render_template("seance.html",
@@ -490,6 +494,16 @@ def api_log():
             return jsonify({"error": "Données manquantes"}), 400
 
         weights   = load_weights()
+
+        # Duplicate-prevention guard
+        existing_history = weights.get(exercise, {}).get("history", [])
+        if existing_history and existing_history[0]["date"] == _today_mtl():
+            return jsonify({
+                "error":      "already_logged",
+                "new_weight": weights[exercise].get("current_weight", 0),
+                "1rm":        existing_history[0].get("1rm", 0),
+            }), 409
+
         reps_list = parse_reps(reps_str)
         reps      = ",".join(map(str, reps_list))
         status    = progression_status(reps, exercise)
