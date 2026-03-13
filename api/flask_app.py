@@ -128,7 +128,7 @@ def seance():
     sessions   = load_sessions()
     today_date = datetime.now().strftime("%Y-%m-%d")
 
-    if today in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery']:
+    if today in ['Yoga / Tai Chi', 'Recovery']:
         return redirect(url_for('seance_speciale', session_type=today))
 
     already_logged   = today_date in sessions

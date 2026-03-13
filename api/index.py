@@ -138,13 +138,7 @@ def index():
     today_date = _today_mtl()
     hiit_log   = load_hiit_log_local()
 
-    if today_str in ['HIIT 1', 'HIIT 2']:
-        already_logged_today = any(
-            e.get("date") == today_date and e.get("session_type") == today_str
-            for e in hiit_log
-        )
-    else:
-        already_logged_today = today_date in sessions
+    already_logged_today = today_date in sessions
 
     return render_template("index.html",
         today        = today_str,
@@ -232,7 +226,7 @@ def seance():
     sessions = load_sessions()
     today_date = _today_mtl()
 
-    if today in ['HIIT 1', 'HIIT 2', 'Yoga', 'Recovery']:
+    if today in ['Yoga / Tai Chi', 'Recovery']:
         return redirect(url_for('seance_speciale', session_type=today))
 
     already_logged   = today_date in sessions
@@ -307,16 +301,9 @@ def seance_speciale(session_type):
     today_date = _today_mtl()
     hiit_log   = load_hiit_log_local()
 
-    if session_type in ['HIIT 1', 'HIIT 2']:
-        previous_session = next(
-            (e for e in hiit_log if e.get("date") == today_date and e.get("session_type") == session_type),
-            None
-        )
-        already_logged = previous_session is not None
-    else:
-        sessions         = load_sessions()
-        already_logged   = today_date in sessions
-        previous_session = sessions.get(today_date)
+    sessions         = load_sessions()
+    already_logged   = today_date in sessions
+    previous_session = sessions.get(today_date)
 
     return render_template("seance_speciale.html",
                            session_type=session_type,
@@ -1224,13 +1211,7 @@ def api_dashboard():
     suggestions  = get_suggested_weights_for_today(weights)
     nutrition_totals = get_today_totals()
 
-    if today_str in ['HIIT 1', 'HIIT 2']:
-        already_logged_today = any(
-            e.get("date") == today_date and e.get("session_type") == today_str
-            for e in hiit_log
-        )
-    else:
-        already_logged_today = today_date in sessions
+    already_logged_today = today_date in sessions
 
     goals_progress = {}
     for ex, goal in goals.items():
@@ -1278,13 +1259,7 @@ def api_seance_data():
     schedule  = get_week_schedule()
     inventory = load_inventory()
 
-    if today_str in ['HIIT 1', 'HIIT 2']:
-        already_logged = any(
-            e.get("date") == today_date and e.get("session_type") == today_str
-            for e in hiit_log
-        )
-    else:
-        already_logged = today_date in sessions
+    already_logged = today_date in sessions
 
     # Aplatit la structure bloc → {exercice: scheme} pour le client iOS
     flat_program = {
