@@ -482,6 +482,7 @@ struct WorkoutSeanceView: View {
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
         }
+        .scrollDismissesKeyboard(.interactively)
         .sheet(isPresented: $showFinish) {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
@@ -770,6 +771,7 @@ struct WorkoutSeanceView: View {
             .background(Color(hex: "11111c"))
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(logResult != nil ? Color.green.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1))
             .cornerRadius(14)
+            .keyboardDismissable()
             .onAppear {
                 // No pre-fill: fields start empty so user can dismiss without saving
                 if sets.isEmpty { sets = Array(repeating: SetInput(), count: setsCount) }
