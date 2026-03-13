@@ -77,12 +77,18 @@ struct SessionEntry: Codable {
     let loggedAt: String?
     let durationMin: Double?
     let energyPre: Int?
+    let sessionVolume: Double?
+    let totalReps: Int?
+    let totalSets: Int?
 
     enum CodingKeys: String, CodingKey {
         case exos, rpe, comment
-        case loggedAt    = "logged_at"
-        case durationMin = "duration_min"
-        case energyPre   = "energy_pre"
+        case loggedAt      = "logged_at"
+        case durationMin   = "duration_min"
+        case energyPre     = "energy_pre"
+        case sessionVolume = "session_volume"
+        case totalReps     = "total_reps"
+        case totalSets     = "total_sets"
     }
 }
 
@@ -162,20 +168,30 @@ struct WeightData: Codable {
 
 struct WeightHistoryEntry: Codable {
     let date: String?
-    let weight: Double?   // average weight across sets
+    let weight: Double?         // average weight across sets
     let reps: String?
     let note: String?
     let oneRM: Double?
-    let sets: [SetEntry]? // raw per-set data (weight + reps per set)
+    let sets: [SetEntry]?       // raw per-set data
+    let exerciseVolume: Double? // total volume for this exercise entry
 
     struct SetEntry: Codable {
         let weight: Double
         let reps: String
+        let totalWeight: Double?
+        let setVolume: Double?
+
+        enum CodingKeys: String, CodingKey {
+            case weight, reps
+            case totalWeight = "total_weight"
+            case setVolume   = "set_volume"
+        }
     }
 
     enum CodingKeys: String, CodingKey {
         case date, weight, reps, note, sets
-        case oneRM = "1rm"
+        case oneRM          = "1rm"
+        case exerciseVolume = "exercise_volume"
     }
 }
 
