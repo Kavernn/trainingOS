@@ -1215,7 +1215,7 @@ def api_dashboard():
         "sessions":            merged_sessions,
         "suggestions":         suggestions,
         "goals":               goals_progress,
-        "full_program":        full_program,
+        "full_program":        {s: get_strength_exercises(sd) for s, sd in full_program.items()},
         "nutrition_totals":    nutrition_totals,
         "profile":             profile,
     })
