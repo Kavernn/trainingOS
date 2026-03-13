@@ -1350,8 +1350,13 @@ def api_programme_data():
     full_program = load_program()
     schedule     = get_week_schedule()
     inventory    = load_inventory()
+    # Aplatit la structure bloc → {seance: {exercice: scheme}} pour le client iOS
+    flat_program = {
+        seance: get_strength_exercises(session_def)
+        for seance, session_def in full_program.items()
+    }
     return jsonify({
-        "full_program": full_program,
+        "full_program": flat_program,
         "schedule":     schedule,
         "inventory":    [ex for ex in inventory] if isinstance(inventory, list) else list(inventory.keys()),
     })

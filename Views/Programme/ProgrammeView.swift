@@ -496,7 +496,7 @@ struct WeekScheduleCard: View {
 
             HStack(spacing: 6) {
                 ForEach(0..<7, id: \.self) { i in
-                    let seance = schedule[String(i)] ?? "Repos"
+                    let seance = schedule[dayNames[i]] ?? "Repos"
                     VStack(spacing: 4) {
                         Text(dayNames[i])
                             .font(.system(size: 9, weight: .medium))
