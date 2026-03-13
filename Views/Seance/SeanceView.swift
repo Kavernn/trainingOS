@@ -585,19 +585,21 @@ struct WorkoutSeanceView: View {
     // MARK: - Programme mutations
     
     private func loadInventory() async {
+        // Seed immediately from already-loaded seanceData (no wait, no extra call)
+        let fromCache = data.fullProgram[data.localToday]?.mapValues { $0.value } ?? [:]
+        await MainActor.run { self.localProgram = fromCache }
+
+        // Fetch inventory list for the add-exercise sheet (best-effort)
         guard let url = URL(string: "https://training-os-rho.vercel.app/api/programme_data"),
               let (networkData, _) = try? await URLSession.shared.data(from: url),
               let json = try? JSONSerialization.jsonObject(with: networkData) as? [String: Any]
         else { return }
 
         let inv = (json["inventory"] as? [String]) ?? []
-
-        // api_programme_data retourne full_program déjà aplati {exercice: scheme}
-        let extractedProgram = (json["full_program"] as? [String: [String: String]])?[data.localToday] ?? [:]
-
+        let fromNetwork = (json["full_program"] as? [String: [String: String]])?[data.localToday]
         await MainActor.run {
             self.inventory = inv
-            self.localProgram = extractedProgram
+            if let fresh = fromNetwork { self.localProgram = fresh }
         }
     }
         
