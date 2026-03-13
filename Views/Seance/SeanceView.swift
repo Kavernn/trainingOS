@@ -1681,6 +1681,7 @@ struct AddHIITSheet: View {
     }
     
     @MainActor
+    @MainActor
     class SeanceViewModel: ObservableObject {
         @Published var seanceData: SeanceData?
         @Published var isLoading = false
@@ -1688,26 +1689,39 @@ struct AddHIITSheet: View {
         @Published var logResults: [String: ExerciseLogResult] = [:]
         @Published var showSuccess = false
         @Published var submitError: String?
-        
+
         func load() async {
+            // Show cached data immediately so the view is usable before network
+            if seanceData == nil,
+               let cached = CacheService.shared.load(for: "seance_data"),
+               let decoded = try? JSONDecoder().decode(SeanceData.self, from: cached) {
+                seanceData = decoded
+                restoreLogResults(from: decoded)
+            }
+
             isLoading = true; error = nil
             do {
-                seanceData = try await APIService.shared.fetchSeanceData()
-                // Restore logged state from today's weight history (persists across navigation)
-                var restored: [String: ExerciseLogResult] = [:]
-                if let data = seanceData {
-                    let program = data.fullProgram[data.today] ?? [:]
-                    for exerciseName in program.keys {
-                        if let first = data.weights[exerciseName]?.history?.first,
-                           first.date == data.todayDate,
-                           let w = first.weight, let r = first.reps {
-                            restored[exerciseName] = ExerciseLogResult(name: exerciseName, weight: w, reps: r)
-                        }
-                    }
-                }
-                logResults = restored
-            } catch { self.error = error.localizedDescription }
+                let fresh = try await APIService.shared.fetchSeanceData()
+                seanceData = fresh
+                restoreLogResults(from: fresh)
+            } catch {
+                // Only surface error if we have nothing to show
+                if seanceData == nil { self.error = error.localizedDescription }
+            }
             isLoading = false
+        }
+
+        private func restoreLogResults(from data: SeanceData) {
+            let program = data.fullProgram[data.today] ?? [:]
+            var restored: [String: ExerciseLogResult] = [:]
+            for exerciseName in program.keys {
+                if let first = data.weights[exerciseName]?.history?.first,
+                   first.date == data.todayDate,
+                   let w = first.weight, let r = first.reps {
+                    restored[exerciseName] = ExerciseLogResult(name: exerciseName, weight: w, reps: r)
+                }
+            }
+            logResults = restored
         }
         
         func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil) async {

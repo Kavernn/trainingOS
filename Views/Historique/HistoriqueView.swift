@@ -89,43 +89,55 @@ struct HistoriqueView: View {
     }
 
     private func loadData() async {
+        // Show cached data first
+        if let cached = CacheService.shared.load(for: "historique_data"),
+           let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
+            applyJSON(json)
+        }
+
         isLoading = true
-        let url = URL(string: "https://training-os-rho.vercel.app/api/historique_data")!
-        if let (data, _) = try? await URLSession.shared.data(from: url),
+        var req = URLRequest(url: URL(string: "https://training-os-rho.vercel.app/api/historique_data")!)
+        req.timeoutInterval = 15
+        if let (data, _) = try? await URLSession.shared.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            if let list = json["session_list"] as? [[String: Any]] {
-                muscuSessions = list.compactMap { d in
-                    guard let date = d["date"] as? String else { return nil }
-                    let exos = (d["exos"] as? [[String: Any]] ?? []).map {
-                        HistoriqueExo(
-                            exercise: $0["exercise"] as? String ?? "",
-                            weight: $0["weight"] as? Double ?? 0,
-                            reps: $0["reps"] as? String ?? ""
-                        )
-                    }
-                    return HistoriqueMuscu(
-                        date: date,
-                        rpe: d["rpe"] as? Double,
-                        comment: d["comment"] as? String ?? "",
-                        exos: exos
-                    )
-                }
-            }
-            if let list = json["hiit_list"] as? [[String: Any]] {
-                hiitSessions = list.compactMap { d in
-                    HIITEntry(
-                        date: d["date"] as? String,
-                        sessionType: d["session_type"] as? String,
-                        rounds: d["rounds"] as? Int,
-                        workTime: d["work_time"] as? Int,
-                        restTime: d["rest_time"] as? Int,
-                        rpe: d["rpe"] as? Double,
-                        notes: d["notes"] as? String
-                    )
-                }
-            }
+            CacheService.shared.save(data, for: "historique_data")
+            applyJSON(json)
         }
         isLoading = false
+    }
+
+    private func applyJSON(_ json: [String: Any]) {
+        if let list = json["session_list"] as? [[String: Any]] {
+            muscuSessions = list.compactMap { d in
+                guard let date = d["date"] as? String else { return nil }
+                let exos = (d["exos"] as? [[String: Any]] ?? []).map {
+                    HistoriqueExo(
+                        exercise: $0["exercise"] as? String ?? "",
+                        weight: $0["weight"] as? Double ?? 0,
+                        reps: $0["reps"] as? String ?? ""
+                    )
+                }
+                return HistoriqueMuscu(
+                    date: date,
+                    rpe: d["rpe"] as? Double,
+                    comment: d["comment"] as? String ?? "",
+                    exos: exos
+                )
+            }
+        }
+        if let list = json["hiit_list"] as? [[String: Any]] {
+            hiitSessions = list.compactMap { d in
+                HIITEntry(
+                    date: d["date"] as? String,
+                    sessionType: d["session_type"] as? String,
+                    rounds: d["rounds"] as? Int,
+                    workTime: d["work_time"] as? Int,
+                    restTime: d["rest_time"] as? Int,
+                    rpe: d["rpe"] as? Double,
+                    notes: d["notes"] as? String
+                )
+            }
+        }
     }
 
     private func deleteMuscu(_ date: String) async {
