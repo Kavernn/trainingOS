@@ -19,19 +19,25 @@ def log_session(
     duration_min=None,
     energy_pre=None,
     blocks: list | None = None,
+    session_volume=None,
+    total_reps=None,
+    total_sets=None,
 ):
     """Log a workout session for the given date.
 
     Args:
-        date:         ISO date string (YYYY-MM-DD).
-        rpe:          Rate of perceived exertion.
-        comment:      Free-text note.
-        exos:         Legacy flat list of exercise names (strength only).
-                      Ignored when *blocks* is provided.
-        duration_min: Total session duration in minutes.
-        energy_pre:   Pre-workout energy level.
-        blocks:       Ordered list of workout blocks (strength / hiit / cardio).
-                      Each block is a dict with at least {"type": ..., "order": ...}.
+        date:           ISO date string (YYYY-MM-DD).
+        rpe:            Rate of perceived exertion.
+        comment:        Free-text note.
+        exos:           Legacy flat list of exercise names (strength only).
+                        Ignored when *blocks* is provided.
+        duration_min:   Total session duration in minutes.
+        energy_pre:     Pre-workout energy level.
+        blocks:         Ordered list of workout blocks (strength / hiit / cardio).
+                        Each block is a dict with at least {"type": ..., "order": ...}.
+        session_volume: Total volume lifted this session (lbs × reps).
+        total_reps:     Total reps performed across all strength exercises.
+        total_sets:     Total sets performed across all strength exercises.
     """
     sessions = load_sessions()
 
@@ -54,6 +60,12 @@ def log_session(
         entry["duration_min"] = duration_min
     if energy_pre is not None:
         entry["energy_pre"] = energy_pre
+    if session_volume is not None:
+        entry["session_volume"] = session_volume
+    if total_reps is not None:
+        entry["total_reps"] = total_reps
+    if total_sets is not None:
+        entry["total_sets"] = total_sets
 
     sessions[date] = entry
     save_sessions(sessions)
@@ -67,6 +79,9 @@ def log_second_session(
     duration_min=None,
     energy_pre=None,
     blocks: list | None = None,
+    session_volume=None,
+    total_reps=None,
+    total_sets=None,
 ):
     """Append a second session to the same day without overwriting the first."""
     sessions = load_sessions()
@@ -90,6 +105,12 @@ def log_second_session(
         extra["duration_min"] = duration_min
     if energy_pre is not None:
         extra["energy_pre"] = energy_pre
+    if session_volume is not None:
+        extra["session_volume"] = session_volume
+    if total_reps is not None:
+        extra["total_reps"] = total_reps
+    if total_sets is not None:
+        extra["total_sets"] = total_sets
 
     entry.setdefault("extra_sessions", []).append(extra)
     save_sessions(sessions)

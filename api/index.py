@@ -68,6 +68,7 @@ from nutrition    import (load_settings as load_nutrition_settings,
                           get_recent_days)
 from db           import get_json, set_json
 from db           import _ON_VERCEL
+from volume       import calc_set_volume, calc_exercise_volume, calc_session_volume
 
 # ── App config ──────────────────────────────────────────────
 _API_DIR  = os.path.dirname(os.path.abspath(__file__))
@@ -504,6 +505,15 @@ def api_log():
                 "1rm":        existing_history[0].get("1rm", 0),
             }), 409
 
+        # Optional per-set data: [{weight: X, reps: "5"}, ...]
+        sets_data = data.get("sets", [])
+
+        # If sets provided, recompute average weight server-side
+        if sets_data:
+            set_weights = [float(s["weight"]) for s in sets_data if "weight" in s]
+            if set_weights:
+                weight = round(sum(set_weights) / len(set_weights), 1)
+
         reps_list = parse_reps(reps_str)
         reps      = ",".join(map(str, reps_list))
         status    = progression_status(reps, exercise)
@@ -511,13 +521,26 @@ def api_log():
         new_w     = next_weight(exercise, weight) if increase else weight
         onerm     = estimate_1rm(weight, reps)
 
+        # Annotate each set with total_weight and set_volume, compute exercise_volume
+        if sets_data:
+            for s in sets_data:
+                sw = float(s.get("weight", 0) or 0)
+                s["total_weight"] = sw
+                s["set_volume"] = calc_set_volume(sw, s.get("reps", 0))
+            exercise_volume = calc_exercise_volume(sets_data)
+        else:
+            exercise_volume = 0.0
+
         history_entry = {
-            "date":   _today_mtl(),
-            "weight": round(weight, 1),
-            "reps":   reps,
-            "note":   f"+{new_w - weight:.1f}" if increase else "stagné",
-            "1rm":    onerm
+            "date":            _today_mtl(),
+            "weight":          round(weight, 1),
+            "reps":            reps,
+            "note":            f"+{new_w - weight:.1f}" if increase else "stagné",
+            "1rm":             onerm,
+            "exercise_volume": exercise_volume,
         }
+        if sets_data:
+            history_entry["sets"] = sets_data
 
         if exercise not in weights:
             weights[exercise] = {"history": []}
@@ -660,10 +683,16 @@ def api_log_session():
         if session_exists(today) and not second_session:
             return jsonify({"error": "already_logged"}), 409
 
+        # Compute session volume stats from today's logged exercises
+        weights   = load_weights()
+        vol_stats = calc_session_volume(exos, weights, today)
+
         if second_session:
-            log_second_session(today, rpe, comment, exos, duration_min, energy_pre, blocks=blocks)
+            log_second_session(today, rpe, comment, exos, duration_min, energy_pre,
+                               blocks=blocks, **vol_stats)
         else:
-            log_session(today, rpe, comment, exos, duration_min, energy_pre, blocks=blocks)
+            log_session(today, rpe, comment, exos, duration_min, energy_pre,
+                        blocks=blocks, **vol_stats)
 
         return jsonify({"success": True})
     except Exception as e:
