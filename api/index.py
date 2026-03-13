@@ -1267,6 +1267,8 @@ def api_seance_data():
         for seance, session_def in full_program.items()
     }
 
+    inventory_types = {name: info.get("type", "machine") for name, info in inventory.items()}
+
     return jsonify({
         "today": today_str,
         "today_date": today_date,
@@ -1276,6 +1278,7 @@ def api_seance_data():
         "suggestions": suggestions,
         "weights": weights,
         "week": get_current_week(),
+        "inventory_types": inventory_types,
     })
 
 

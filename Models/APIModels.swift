@@ -143,6 +143,7 @@ struct SeanceData: Codable {
     let fullProgram: [String: [String: SafeString]]
     let weights: [String: WeightData]
     let week: Int
+    let inventoryTypes: [String: String]
 
     enum CodingKeys: String, CodingKey {
         case today
@@ -151,6 +152,19 @@ struct SeanceData: Codable {
         case schedule
         case fullProgram = "full_program"
         case weights, week
+        case inventoryTypes = "inventory_types"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        today           = try c.decode(String.self, forKey: .today)
+        todayDate       = try c.decode(String.self, forKey: .todayDate)
+        alreadyLogged   = try c.decode(Bool.self, forKey: .alreadyLogged)
+        schedule        = try c.decode([String: String].self, forKey: .schedule)
+        fullProgram     = try c.decode([String: [String: SafeString]].self, forKey: .fullProgram)
+        weights         = try c.decode([String: WeightData].self, forKey: .weights)
+        week            = try c.decode(Int.self, forKey: .week)
+        inventoryTypes  = (try? c.decode([String: String].self, forKey: .inventoryTypes)) ?? [:]
     }
 }
 

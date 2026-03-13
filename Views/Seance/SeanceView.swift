@@ -398,6 +398,8 @@ struct WorkoutSeanceView: View {
                     name: name,
                     scheme: scheme,
                     weightData: data.weights[name],
+                    equipmentType: data.inventoryTypes[name] ?? "machine",
+                    bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
                     logResult: $vm.logResults[name],
                     onLogged: nil
                 )
@@ -870,6 +872,8 @@ struct AddHIITSheet: View {
         let name: String
         let scheme: String
         let weightData: WeightData?
+        var equipmentType: String = "machine"
+        var bodyWeight: Double = 0
         @Binding var logResult: ExerciseLogResult?
         var onLogged: (() -> Void)? = nil
         @ObservedObject private var units = UnitSettings.shared
@@ -910,6 +914,25 @@ struct AddHIITSheet: View {
                 .filter { $0 > 0 }
             guard !vals.isEmpty else { return nil }
             return vals.reduce(0, +) / Double(vals.count)
+        }
+
+        // Total weight (lbs) based on equipment type
+        private func totalWeight(for input: Double) -> Double {
+            switch equipmentType {
+            case "bodyweight": return bodyWeight
+            case "barbell":    return input * 2 + 45
+            case "dumbbell":   return input * 2
+            default:           return input   // cable, machine
+            }
+        }
+
+        private var weightColumnLabel: String {
+            switch equipmentType {
+            case "barbell":    return "POIDS PAR CÔTÉ (\(units.label.uppercased()))"
+            case "dumbbell":   return "POIDS PAR HALTÈRE (\(units.label.uppercased()))"
+            case "bodyweight": return "LEST (\(units.label.uppercased()))"
+            default:           return "POIDS (\(units.label.uppercased()))"
+            }
         }
 
         // Reps joined from non-empty set rows
@@ -958,7 +981,7 @@ struct AddHIITSheet: View {
                         Text("SET")
                             .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                             .frame(width: 28, alignment: .leading)
-                        Text("POIDS (\(units.label.uppercased()))")
+                        Text(weightColumnLabel)
                             .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                         Spacer()
                         Text("REPS")
@@ -986,14 +1009,20 @@ struct AddHIITSheet: View {
                     }
                 }
 
-                // Average weight (shown once at least one weight is entered)
+                // Average weight + total (shown once at least one weight is entered)
                 if let avg = avgWeight {
+                    let total = totalWeight(for: avg)
                     HStack {
-                        Text("MOY.")
+                        Text(equipmentType == "bodyweight" ? "TOTAL" : "MOY. → TOTAL")
                             .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                         Spacer()
-                        Text(units.format(units.toStorage(avg)))
-                            .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
+                        if equipmentType == "bodyweight" {
+                            Text(units.format(total))
+                                .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
+                        } else {
+                            Text("\(units.format(units.toStorage(avg))) → \(units.format(total))")
+                                .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
+                        }
                     }
                     .padding(.top, 2)
                 }
