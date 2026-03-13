@@ -879,9 +879,18 @@ def api_programme():
             exercises.pop(data.get("exercise"), None)
 
         elif action == "scheme":
-            exercise = data.get("exercise")
+            exercise   = data.get("exercise")
+            new_scheme = data.get("scheme")
             if exercise in exercises:
-                exercises[exercise] = data.get("scheme")
+                exercises[exercise] = new_scheme
+                # Also update default_scheme in inventory (fuzzy name match)
+                inv     = load_inventory()
+                inv_key = exercise if exercise in inv else next(
+                    (k for k in inv if exercise.lower() in k.lower() or k.lower() in exercise.lower()), None
+                )
+                if inv_key and isinstance(inv.get(inv_key), dict):
+                    inv[inv_key]["default_scheme"] = new_scheme
+                    save_inventory(inv)
 
         elif action == "replace":
             old_ex = data.get("old_exercise")
@@ -905,9 +914,12 @@ def api_programme():
             sb = get_block(sdef.get("blocks", []), "strength")
             if sb and old_ex in sb.get("exercises", {}):
                 sb["exercises"][new_ex] = sb["exercises"].pop(old_ex)
-        inv = load_inventory()
-        if old_ex in inv:
-            inv[new_ex] = inv.pop(old_ex)
+        inv     = load_inventory()
+        inv_key = old_ex if old_ex in inv else next(
+            (k for k in inv if old_ex.lower() in k.lower() or k.lower() in old_ex.lower()), None
+        )
+        if inv_key:
+            inv[new_ex] = inv.pop(inv_key)
             save_inventory(inv)
 
     # ── Block-level actions ──────────────────────────────────────────────────
