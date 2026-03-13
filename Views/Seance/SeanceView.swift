@@ -1681,7 +1681,6 @@ struct AddHIITSheet: View {
     }
     
     @MainActor
-    @MainActor
     class SeanceViewModel: ObservableObject {
         @Published var seanceData: SeanceData?
         @Published var isLoading = false
