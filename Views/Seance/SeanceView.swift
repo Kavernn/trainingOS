@@ -1046,6 +1046,25 @@ struct AddHIITSheet: View {
             lastReps.split(separator: ",").map(String.init)
         }
 
+        @ViewBuilder private var avgTotalRow: some View {
+            if let avg = avgWeight {
+                let total = totalWeight(for: avg)
+                HStack {
+                    Text(equipmentType == "bodyweight" ? "TOTAL" : "MOY. → TOTAL")
+                        .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    Spacer()
+                    if equipmentType == "bodyweight" {
+                        Text(units.format(total))
+                            .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
+                    } else {
+                        Text("\(units.format(units.toStorage(avg))) → \(units.format(total))")
+                            .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
                 // Header
@@ -1110,21 +1129,8 @@ struct AddHIITSheet: View {
                 }
 
                 // Average weight + total (shown once at least one weight is entered)
-                if let avg = avgWeight {
-                    let total = totalWeight(for: avg)
-                    HStack {
-                        Text(equipmentType == "bodyweight" ? "TOTAL" : "MOY. → TOTAL")
-                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                        Spacer()
-                        if equipmentType == "bodyweight" {
-                            Text(units.format(total))
-                                .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
-                        } else {
-                            Text("\(units.format(units.toStorage(avg))) → \(units.format(total))")
-                                .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
-                        }
-                    }
-                    .padding(.top, 2)
+                if avgWeight != nil {
+                    avgTotalRow
                 }
 
                 // Log button
@@ -1210,7 +1216,7 @@ struct AddHIITSheet: View {
             logStatus = .success(avg)
             onLogged?()
             // Build per-set payload: only rows with both weight and reps filled
-            let setsPayload: [[String: Any]] = sets.compactMap { s in
+            let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
                 guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")),
                       sw > 0, !s.reps.isEmpty else { return nil }
                 return ["weight": units.toStorage(sw), "reps": s.reps]
