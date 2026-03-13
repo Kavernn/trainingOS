@@ -434,7 +434,7 @@ struct WorkoutSeanceView: View {
         .zIndex(isDragging ? 1 : 0)
         .animation(.spring(response: 0.28, dampingFraction: 0.82), value: shiftY(for: name))
         .animation(.spring(response: 0.2, dampingFraction: 0.9), value: isDragging)
-        .gesture(dragGesture(for: name))
+        .simultaneousGesture(dragGesture(for: name))
     }
 
     private func dragGesture(for name: String) -> some Gesture {
