@@ -669,10 +669,11 @@ struct WorkoutSeanceView: View {
                         }
                         Spacer()
                         Button(action: logExercise) {
-                            Image(systemName: "arrow.up.circle.fill")
+                            Image(systemName: logResult != nil ? "checkmark.circle.fill" : "arrow.up.circle.fill")
                                 .font(.system(size: 38))
-                                .foregroundColor(.orange)
+                                .foregroundColor(logResult != nil ? .green : .orange)
                         }
+                        .disabled(logResult != nil)
                         .padding(.top, 12)
                     }
                 }
@@ -735,6 +736,7 @@ struct WorkoutSeanceView: View {
         }
         
         private func logExercise() {
+            guard logResult == nil else { return }  // déjà loggé dans cette séance
             guard let displayW = Double(weightStr.replacingOccurrences(of: ",", with: ".")),
                   !repsStr.isEmpty else { return }
             let w = units.toStorage(displayW)
