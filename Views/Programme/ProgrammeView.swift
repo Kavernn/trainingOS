@@ -11,7 +11,7 @@ struct ProgrammeView: View {
     @State private var editTarget: ExerciseTarget? // exercice à éditer
 
     private let dayNames    = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-    private let seanceOrder = ["Upper A", "Upper B", "Lower", "HIIT 1", "HIIT 2", "Yoga", "Recovery"]
+    private let seanceOrder = ["Push A", "Pull A", "Legs", "Push B", "Pull B + Full Body", "Yoga / Tai Chi", "Recovery"]
 
     var orderedSeances: [String] {
         seanceOrder.filter { fullProgram[$0] != nil }
@@ -144,9 +144,10 @@ struct EditableSeanceProgramCard: View {
 
     var color: Color {
         switch seance {
-        case "Upper A", "Upper B", "Lower": return .orange
-        case "HIIT 1", "HIIT 2":            return .red
-        case "Yoga":                         return .purple
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
         default:                             return .gray
         }
@@ -500,21 +501,23 @@ struct WeekScheduleCard: View {
 
     private func seanceShort(_ s: String) -> String {
         switch s {
-        case "Upper A":  return "UP A"
-        case "Upper B":  return "UP B"
-        case "Lower":    return "LOW"
-        case "HIIT 1", "HIIT 2": return "HIIT"
-        case "Yoga":     return "YGA"
-        case "Recovery": return "REC"
-        default:         return "—"
+        case "Push A":             return "PSH A"
+        case "Pull A":             return "PLL A"
+        case "Legs":               return "LEGS"
+        case "Push B":             return "PSH B"
+        case "Pull B + Full Body": return "PLL B"
+        case "Yoga / Tai Chi":     return "YOGA"
+        case "Recovery":           return "REC"
+        default:                   return "—"
         }
     }
 
     private func seanceColor(_ s: String) -> Color {
         switch s {
-        case "Upper A", "Upper B", "Lower": return .orange
-        case "HIIT 1", "HIIT 2":            return .red
-        case "Yoga":                         return .purple
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
         default:                             return .gray
         }

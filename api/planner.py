@@ -11,32 +11,29 @@ from progression import should_increase, next_weight
 # ---------------------------------------------------------------------------
 
 DEFAULT_PROGRAM = {
-    "Upper A": {
+    "Push A": {
         "blocks": [
             make_strength_block({
-                "Bench Press":      "4x5-7",
-                "Barbell Row":      "4x6-8",
-                "Incline DB Press": "3x8-10",
-                "Lat Pulldown":     "3x8-10",
-                "Overhead Press":   "3x6-8",
-            }, order=0)
-        ]
-    },
-    "Upper B": {
-        "blocks": [
-            make_strength_block({
-                "Incline DB Press":   "4x8-10",
-                "T-Bar Row":         "4x8-10",
-                "DB Bench Press":    "3x10-12",
-                "Seated Row":        "3x10-12",
-                "Lateral Raises":    "4x12-15",
+                "Bench Press":       "4x5-7",
+                "Overhead Press":    "3x6-8",
+                "Incline DB Press":  "3x8-10",
+                "Lateral Raises":    "3x12-15",
                 "Triceps Extension": "3x10-12",
-                "Hammer Curl":       "3x10-12",
-                "Face Pull":         "3x15",
             }, order=0)
         ]
     },
-    "Lower": {
+    "Pull A": {
+        "blocks": [
+            make_strength_block({
+                "Barbell Row":  "4x6-8",
+                "Lat Pulldown": "3x8-10",
+                "Seated Row":   "3x10-12",
+                "Face Pull":    "3x15",
+                "Hammer Curl":  "3x10-12",
+            }, order=0)
+        ]
+    },
+    "Legs": {
         "blocks": [
             make_strength_block({
                 "Back Squat":        "4x5-7",
@@ -48,15 +45,37 @@ DEFAULT_PROGRAM = {
             }, order=0)
         ]
     },
+    "Push B": {
+        "blocks": [
+            make_strength_block({
+                "Incline DB Press":  "4x8-10",
+                "DB Bench Press":    "3x10-12",
+                "Overhead Press":    "3x8-10",
+                "Lateral Raises":    "4x12-15",
+                "Triceps Extension": "3x12-15",
+            }, order=0)
+        ]
+    },
+    "Pull B + Full Body": {
+        "blocks": [
+            make_strength_block({
+                "Deadlift":     "3x5",
+                "T-Bar Row":    "4x8-10",
+                "Lat Pulldown": "3x10-12",
+                "Face Pull":    "3x15",
+                "Hammer Curl":  "3x12-15",
+            }, order=0)
+        ]
+    },
 }
 
 SCHEDULE = {
-    0: "Upper A",
-    1: "HIIT 1",
-    2: "Upper B",
-    3: "HIIT 2",
-    4: "Lower",
-    5: "Yoga",
+    0: "Push A",
+    1: "Pull A",
+    2: "Legs",
+    3: "Push B",
+    4: "Pull B + Full Body",
+    5: "Yoga / Tai Chi",
     6: "Recovery",
 }
 
@@ -82,9 +101,20 @@ def _migrate_session(data) -> dict:
 # ---------------------------------------------------------------------------
 
 def load_program() -> dict:
-    """Load the program from KV, auto-migrating any legacy sessions."""
+    """Load the program from KV, auto-migrating legacy sessions and seeding missing ones."""
     raw = get_json("program", {})
-    return {name: _migrate_session(session) for name, session in raw.items()}
+    program = {name: _migrate_session(session) for name, session in raw.items()}
+
+    # Seed any new sessions that don't exist yet in KV
+    changed = False
+    for name, session_def in DEFAULT_PROGRAM.items():
+        if name not in program:
+            program[name] = session_def
+            changed = True
+    if changed:
+        save_program(program)
+
+    return program
 
 
 def save_program(program: dict):

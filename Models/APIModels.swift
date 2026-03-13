@@ -45,8 +45,9 @@ struct DashboardData: Codable {
         let weekday = Calendar.current.component(.weekday, from: Date())
         let idx = (weekday + 5) % 7
         let schedule: [Int: String] = [
-            0: "Upper A", 1: "HIIT 1", 2: "Upper B",
-            3: "HIIT 2",  4: "Lower",  5: "Yoga",  6: "Recovery"
+            0: "Push A",            1: "Pull A",
+            2: "Legs",              3: "Push B",
+            4: "Pull B + Full Body", 5: "Yoga / Tai Chi", 6: "Recovery"
         ]
         return schedule[idx] ?? today
     }
@@ -131,8 +132,9 @@ struct SeanceData: Codable {
         let weekday = Calendar.current.component(.weekday, from: Date())
         let idx = (weekday + 5) % 7
         let schedule: [Int: String] = [
-            0: "Upper A", 1: "HIIT 1", 2: "Upper B",
-            3: "HIIT 2",  4: "Lower",  5: "Yoga",  6: "Recovery"
+            0: "Push A",            1: "Pull A",
+            2: "Legs",              3: "Push B",
+            4: "Pull B + Full Body", 5: "Yoga / Tai Chi", 6: "Recovery"
         ]
         return schedule[idx] ?? today
     }

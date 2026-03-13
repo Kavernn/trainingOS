@@ -134,7 +134,7 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode(HIITResponse.self, from: data).hiitLog
     }
 
-    func logHIIT(sessionType: String, rounds: Int, workTime: Int, restTime: Int, rpe: Double, notes: String) async throws {
+    func logHIIT(sessionType: String, rounds: Int, workTime: Int, restTime: Int, rpe: Double, notes: String, secondSession: Bool = false) async throws {
         let url = URL(string: "\(baseURL)/api/log_hiit")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -145,7 +145,8 @@ class APIService: ObservableObject {
             "work_time": workTime,
             "rest_time": restTime,
             "rpe": rpe,
-            "notes": notes
+            "notes": notes,
+            "second_session": secondSession
         ]
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (_, _) = try await URLSession.shared.data(for: req)

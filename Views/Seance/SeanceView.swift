@@ -28,9 +28,7 @@ struct SeanceView: View {
     private func seanceContent(data: SeanceData) -> some View {
         if data.alreadyLogged {
             AlreadyLoggedSeanceView(data: data, vm: vm)
-        } else if data.localToday == "HIIT 1" || data.localToday == "HIIT 2" {
-            HIITSeanceView(sessionType: data.localToday, vm: vm)
-        } else if data.localToday == "Yoga" || data.localToday == "Recovery" {
+        } else if data.localToday == "Yoga / Tai Chi" || data.localToday == "Recovery" {
             SpecialSeanceView(sessionType: data.localToday, vm: vm)
         } else {
             WorkoutSeanceView(data: data, vm: vm)
@@ -50,11 +48,12 @@ struct AlreadyLoggedSeanceView: View {
 
     var sessionColor: Color {
         switch data.localToday {
-        case "Upper A", "Upper B", "Lower": return .orange
-        case "HIIT 1", "HIIT 2":           return .red
-        case "Yoga":                        return .purple
-        case "Recovery":                    return .green
-        default:                            return .gray
+        case "Push A", "Push B":           return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                       return .yellow
+        case "Yoga / Tai Chi":             return .purple
+        case "Recovery":                   return .green
+        default:                           return .gray
         }
     }
 
@@ -69,11 +68,12 @@ struct AlreadyLoggedSeanceView: View {
 
     var tomorrowColor: Color {
         switch tomorrowType {
-        case "Upper A", "Upper B", "Lower": return .orange
-        case "HIIT 1", "HIIT 2":           return .red
-        case "Yoga":                        return .purple
-        case "Recovery":                    return .green
-        default:                            return .gray
+        case "Push A", "Push B":           return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                       return .yellow
+        case "Yoga / Tai Chi":             return .purple
+        case "Recovery":                   return .green
+        default:                           return .gray
         }
     }
 
@@ -294,9 +294,7 @@ struct ExtraSessionSheet: View {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
                 Group {
-                    if data.localToday == "HIIT 1" || data.localToday == "HIIT 2" {
-                        HIITSeanceView(sessionType: data.localToday, vm: extraVM)
-                    } else if data.localToday == "Yoga" || data.localToday == "Recovery" {
+                    if data.localToday == "Yoga / Tai Chi" || data.localToday == "Recovery" {
                         SpecialSeanceView(sessionType: data.localToday, vm: extraVM)
                     } else {
                         WorkoutSeanceView(data: data, vm: extraVM)
@@ -329,6 +327,12 @@ struct WorkoutSeanceView: View {
     @State private var editTarget: ExerciseTarget?
     @State private var isEditMode = false
     @State private var showRestTimer = false
+
+    // Optional add-ons
+    @State private var showAddCardio = false
+    @State private var showAddHIIT   = false
+    @State private var cardioLogged  = false
+    @State private var hiitLogged    = false
     
     private var exercises: [(String, String)] {
         // On ajoute .value.value pour extraire le texte du SafeString
@@ -429,6 +433,49 @@ struct WorkoutSeanceView: View {
         .padding(.horizontal, 16)
     }
     
+    @ViewBuilder private var optionalAddonsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("OPTIONNEL")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack(spacing: 10) {
+                Button(action: { showAddCardio = true }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: cardioLogged ? "checkmark.circle.fill" : "figure.run")
+                            .font(.system(size: 14))
+                        Text(cardioLogged ? "Cardio ajouté" : "Ajouter Cardio")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background(cardioLogged ? Color.green.opacity(0.12) : Color(hex: "11111c"))
+                    .foregroundColor(cardioLogged ? .green : .blue)
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+                        cardioLogged ? Color.green.opacity(0.3) : Color.blue.opacity(0.2), lineWidth: 1))
+                }
+                .disabled(cardioLogged)
+
+                Button(action: { showAddHIIT = true }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: hiitLogged ? "checkmark.circle.fill" : "bolt.fill")
+                            .font(.system(size: 14))
+                        Text(hiitLogged ? "HIIT ajouté" : "Ajouter HIIT")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 11)
+                    .background(hiitLogged ? Color.green.opacity(0.12) : Color(hex: "11111c"))
+                    .foregroundColor(hiitLogged ? .green : .red)
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+                        hiitLogged ? Color.green.opacity(0.3) : Color.red.opacity(0.2), lineWidth: 1))
+                }
+                .disabled(hiitLogged)
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -468,9 +515,11 @@ struct WorkoutSeanceView: View {
                 .padding(.top, 8)
                 
                 exerciseSection
-                
+
                 rpeCommentSection
-                
+
+                optionalAddonsSection
+
                 Button(action: { showFinish = true }) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
@@ -517,6 +566,14 @@ struct WorkoutSeanceView: View {
             RestTimerSheet()
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showAddCardio) {
+            AddCardioSheet { cardioLogged = true }
+                .presentationDetents([.large])
+        }
+        .sheet(isPresented: $showAddHIIT) {
+            AddHIITSheet { hiitLogged = true }
+                .presentationDetents([.large])
         }
         .onAppear { Task { await loadInventory() } }
     }
@@ -579,7 +636,233 @@ struct WorkoutSeanceView: View {
         }
 }
 
-    
+// MARK: - Add Cardio Sheet
+struct AddCardioSheet: View {
+    var onDone: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var cardioType  = "Course"
+    @State private var durationMin = ""
+    @State private var distanceKm  = ""
+    @State private var rpe: Double = 7
+    @State private var notes       = ""
+    @State private var isLogging   = false
+
+    private let types = ["Course", "Vélo", "Natation", "Elliptique", "Rameur", "Marche", "Autre"]
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 14) {
+                        // Type
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("TYPE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(types, id: \.self) { t in
+                                        Button(t) { cardioType = t }
+                                            .padding(.horizontal, 12).padding(.vertical, 6)
+                                            .background(cardioType == t ? Color.blue.opacity(0.2) : Color(hex: "191926"))
+                                            .foregroundColor(cardioType == t ? .blue : .gray)
+                                            .cornerRadius(8)
+                                            .font(.system(size: 13, weight: .medium))
+                                    }
+                                }
+                            }
+                        }
+                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+
+                        // Durée + Distance
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("DURÉE (MIN)").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                TextField("30", text: $durationMin).keyboardType(.decimalPad)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                            }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("DISTANCE (KM)").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                TextField("—", text: $distanceKm).keyboardType(.decimalPad)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                            }
+                        }
+                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+
+                        // RPE
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Spacer()
+                                Text("\(rpe, specifier: "%.1f")").font(.system(size: 18, weight: .black)).foregroundColor(rpeColor(rpe))
+                            }
+                            Slider(value: $rpe, in: 1...10, step: 0.5).tint(rpeColor(rpe))
+                        }
+                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+
+                        // Notes
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            TextField("Notes...", text: $notes, axis: .vertical)
+                                .font(.system(size: 14)).foregroundColor(.white).tint(.blue)
+                                .lineLimit(3, reservesSpace: true)
+                                .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                        }
+                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+
+                        Button(action: submit) {
+                            HStack {
+                                if isLogging { ProgressView().tint(.white) }
+                                else { Image(systemName: "checkmark.circle.fill") }
+                                Text("Enregistrer Cardio").font(.system(size: 15, weight: .semibold))
+                            }
+                            .frame(maxWidth: .infinity).padding(.vertical, 14)
+                            .background(durationMin.isEmpty ? Color.gray.opacity(0.3) : Color.blue)
+                            .foregroundColor(.white).cornerRadius(14)
+                        }
+                        .disabled(isLogging || durationMin.isEmpty)
+                        .padding(.bottom, 24)
+                    }
+                    .padding(.horizontal, 16).padding(.top, 16)
+                }
+            }
+            .navigationTitle("Cardio").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+            }
+        }
+    }
+
+    private func rpeColor(_ v: Double) -> Color {
+        if v <= 4 { return .green }; if v <= 6 { return .yellow }; if v <= 8 { return .orange }; return .red
+    }
+
+    private func submit() {
+        isLogging = true
+        Task {
+            try? await APIService.shared.logCardio(
+                type: cardioType,
+                durationMin: Double(durationMin.replacingOccurrences(of: ",", with: ".")),
+                distanceKm: Double(distanceKm.replacingOccurrences(of: ",", with: ".")),
+                avgPace: nil, avgHr: nil, cadence: nil, calories: nil,
+                rpe: rpe, notes: notes
+            )
+            await MainActor.run { isLogging = false; onDone(); dismiss() }
+        }
+    }
+}
+
+// MARK: - Add HIIT Sheet
+struct AddHIITSheet: View {
+    var onDone: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var sessionType = "HIIT"
+    @State private var rounds      = "10"
+    @State private var workTime    = "20"
+    @State private var restTime    = "10"
+    @State private var rpe: Double = 8
+    @State private var notes       = ""
+    @State private var isLogging   = false
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 14) {
+                        // Session type
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("TYPE DE SESSION").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            TextField("HIIT", text: $sessionType)
+                                .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                                .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                        }
+                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+
+                        // Rounds / Work / Rest
+                        HStack(spacing: 10) {
+                            ForEach([("RONDES", $rounds), ("TRAVAIL (s)", $workTime), ("REPOS (s)", $restTime)], id: \.0) { label, binding in
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                    TextField("—", text: binding).keyboardType(.numberPad)
+                                        .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                        .multilineTextAlignment(.center)
+                                        .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                                }
+                            }
+                        }
+                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+
+                        // RPE
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Spacer()
+                                Text("\(rpe, specifier: "%.1f")").font(.system(size: 18, weight: .black)).foregroundColor(rpeColor(rpe))
+                            }
+                            Slider(value: $rpe, in: 1...10, step: 0.5).tint(rpeColor(rpe))
+                        }
+                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+
+                        // Notes
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            TextField("Notes...", text: $notes, axis: .vertical)
+                                .font(.system(size: 14)).foregroundColor(.white).tint(.red)
+                                .lineLimit(3, reservesSpace: true)
+                                .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                        }
+                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+
+                        Button(action: submit) {
+                            HStack {
+                                if isLogging { ProgressView().tint(.white) }
+                                else { Image(systemName: "bolt.fill") }
+                                Text("Enregistrer HIIT").font(.system(size: 15, weight: .semibold))
+                            }
+                            .frame(maxWidth: .infinity).padding(.vertical, 14)
+                            .background(Color.red).foregroundColor(.white).cornerRadius(14)
+                        }
+                        .disabled(isLogging)
+                        .padding(.bottom, 24)
+                    }
+                    .padding(.horizontal, 16).padding(.top, 16)
+                }
+            }
+            .navigationTitle("HIIT").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+            }
+        }
+    }
+
+    private func rpeColor(_ v: Double) -> Color {
+        if v <= 4 { return .green }; if v <= 6 { return .yellow }; if v <= 8 { return .orange }; return .red
+    }
+
+    private func submit() {
+        isLogging = true
+        Task {
+            try? await APIService.shared.logHIIT(
+                sessionType: sessionType.isEmpty ? "HIIT" : sessionType,
+                rounds:     Int(rounds)   ?? 10,
+                workTime:   Int(workTime) ?? 20,
+                restTime:   Int(restTime) ?? 10,
+                rpe:        rpe,
+                notes:      notes,
+                secondSession: true
+            )
+            await MainActor.run { isLogging = false; onDone(); dismiss() }
+        }
+    }
+}
+
+
     // MARK: - Exercise Card
     struct ExerciseCard: View {
         let name: String
@@ -1004,8 +1287,8 @@ struct WorkoutSeanceView: View {
         @State private var rpe: Double = 5
         @State private var comment = ""
         
-        var color: Color { sessionType == "Yoga" ? .purple : .green }
-        var icon: String  { sessionType == "Yoga" ? "figure.mind.and.body" : "heart.fill" }
+        var color: Color { sessionType == "Yoga / Tai Chi" ? .purple : .green }
+        var icon: String  { sessionType == "Yoga / Tai Chi" ? "figure.mind.and.body" : "heart.fill" }
         
         var body: some View {
             ScrollView {

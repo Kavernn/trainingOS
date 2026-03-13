@@ -128,11 +128,12 @@ struct DashboardView: View {
 
     var todayAccentColor: Color {
         switch api.dashboard?.localToday {
-        case "Upper A", "Upper B", "Lower": return .orange
-        case "HIIT 1", "HIIT 2": return .red
-        case "Yoga": return .purple
-        case "Recovery": return .green
-        default: return .blue
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
+        case "Recovery":                     return .green
+        default:                             return .blue
         }
     }
 }
@@ -291,21 +292,21 @@ struct TodayCardView: View {
 
     var todayColor: Color {
         switch dash.localToday {
-        case "Upper A", "Upper B", "Lower": return .orange
-        case "HIIT 1", "HIIT 2":           return .red
-        case "Yoga":                        return .purple
-        case "Recovery":                    return .green
-        default:                            return .gray
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
+        case "Recovery":                     return .green
+        default:                             return .gray
         }
     }
 
     var todayIcon: String {
         switch dash.localToday {
-        case "Upper A", "Upper B", "Lower": return "dumbbell.fill"
-        case "HIIT 1", "HIIT 2":           return "figure.run"
-        case "Yoga":                        return "figure.mind.and.body"
-        case "Recovery":                    return "heart.fill"
-        default:                            return "moon.fill"
+        case "Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs": return "dumbbell.fill"
+        case "Yoga / Tai Chi":               return "figure.mind.and.body"
+        case "Recovery":                     return "heart.fill"
+        default:                             return "moon.fill"
         }
     }
 
@@ -673,18 +674,23 @@ struct WeekGridView: View {
 
     private func seanceShort(_ s: String) -> String {
         switch s {
-        case "Upper A": return "UP A"; case "Upper B": return "UP B"
-        case "Lower": return "LOW"; case "HIIT 1", "HIIT 2": return "HIIT"
-        case "Yoga": return "YOGA"; case "Recovery": return "REC"
+        case "Push A":             return "PSH A"
+        case "Pull A":             return "PLL A"
+        case "Legs":               return "LEGS"
+        case "Push B":             return "PSH B"
+        case "Pull B + Full Body": return "PLL B"
+        case "Yoga / Tai Chi":     return "YOGA"
+        case "Recovery":           return "REC"
         default: return "—"
         }
     }
 
     private func seanceColor(_ s: String) -> Color {
         switch s {
-        case "Upper A", "Upper B", "Lower": return .orange
-        case "HIIT 1", "HIIT 2": return .red
-        case "Yoga": return .purple
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
         case "Recovery": return .green
         default: return .gray
         }
