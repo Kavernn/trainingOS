@@ -379,6 +379,8 @@ struct AddNutritionSheet: View {
                     }.listRowBackground(Color(hex: "11111c"))
                 }
                 .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+                .keyboardDismissable()
             }
             .navigationTitle("Ajouter aliment")
             .navigationBarTitleDisplayMode(.inline)

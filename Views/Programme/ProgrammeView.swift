@@ -160,21 +160,45 @@ struct EditableSeanceProgramCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
-            Button { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } } label: {
-                HStack {
-                    Text(seance)
-                        .font(.system(size: 15, weight: .bold))
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(color.opacity(0.15))
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Text(String(seance.prefix(1)))
+                            .font(.system(size: 13, weight: .black))
+                            .foregroundColor(color)
+                    )
+                Text(seance)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(color)
+                Spacer()
+                // Exercise count badge
+                Text("\(exercises.count)")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(color)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(color.opacity(0.12))
+                    .cornerRadius(8)
+                // Add button in header
+                Button(action: onAdd) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(color)
-                    Spacer()
-                    Text("\(exercises.count) exercices")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
+                        .padding(7)
+                        .background(color.opacity(0.15))
+                        .cornerRadius(8)
                 }
-                .padding(16)
+                .buttonStyle(.plain)
+                // Expand/collapse chevron
+                Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+                    .padding(.leading, 2)
             }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+            .contentShape(Rectangle())
+            .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }
 
             if expanded {
                 Divider().background(Color.white.opacity(0.07))
@@ -191,19 +215,6 @@ struct EditableSeanceProgramCard: View {
                         Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
                     }
                 }
-
-                // Add button
-                Button(action: onAdd) {
-                    HStack {
-                        Image(systemName: "plus.circle.fill")
-                            .foregroundColor(color)
-                        Text("Ajouter un exercice")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(color)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                }
             }
         }
         .background(Color(hex: "11111c"))
@@ -219,75 +230,43 @@ struct ExerciseRow: View {
     let onTap: () -> Void
     let onDelete: () -> Void
 
-    @State private var offset: CGFloat = 0
-    @State private var showDelete = false
+    @State private var confirmDelete = false
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            // Delete button revealed by swipe
-            Button(action: {
-                withAnimation { offset = 0; showDelete = false }
-                onDelete()
-            }) {
-                Image(systemName: "trash.fill")
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                Text(name)
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
-                    .frame(width: 64, height: 44)
-                    .background(Color.red)
-            }
-            .opacity(showDelete ? 1 : 0)
-
-            // Row content
-            Button(action: {
-                if showDelete {
-                    withAnimation { offset = 0; showDelete = false }
-                } else {
-                    onTap()
-                }
-            }) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(name)
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
-                        Text("Touche pour modifier le schéma")
-                            .font(.system(size: 10))
-                            .foregroundColor(.gray.opacity(0.6))
-                    }
-                    Spacer()
-                    Text(scheme)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                // Scheme badge
+                Text(scheme)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(color)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(color.opacity(0.15))
+                    .cornerRadius(6)
+                    .lineLimit(1)
+                // Delete button
+                Button {
+                    confirmDelete = true
+                } label: {
+                    Image(systemName: "trash")
                         .font(.system(size: 13))
-                        .foregroundColor(.gray)
-                    Image(systemName: "pencil")
-                        .font(.system(size: 11))
-                        .foregroundColor(color.opacity(0.6))
+                        .foregroundColor(.red.opacity(0.6))
+                        .padding(6)
+                        .background(Color.red.opacity(0.08))
+                        .cornerRadius(7)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Color(hex: "11111c"))
-                .offset(x: offset)
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
-            .gesture(
-                DragGesture()
-                    .onChanged { v in
-                        if v.translation.width < 0 {
-                            offset = max(v.translation.width, -64)
-                        }
-                    }
-                    .onEnded { v in
-                        withAnimation {
-                            if v.translation.width < -30 {
-                                offset = -64
-                                showDelete = true
-                            } else {
-                                offset = 0
-                                showDelete = false
-                            }
-                        }
-                    }
-            )
+            .padding(.horizontal, 16).padding(.vertical, 10)
         }
-        .clipped()
+        .buttonStyle(.plain)
+        .alert("Supprimer \(name) ?", isPresented: $confirmDelete) {
+            Button("Supprimer", role: .destructive) { onDelete() }
+            Button("Annuler", role: .cancel) {}
+        }
     }
 }
 
