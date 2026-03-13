@@ -41,6 +41,7 @@ struct AlreadyLoggedSeanceView: View {
     let data: SeanceData
     @ObservedObject var vm: SeanceViewModel
     @State private var showExtra = false
+    @State private var confirmReset = false
 
     var todaySession: SessionEntry? {
         APIService.shared.dashboard?.sessions[data.todayDate]
@@ -245,6 +246,24 @@ struct AlreadyLoggedSeanceView: View {
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(tomorrowColor.opacity(0.15), lineWidth: 1))
                 .padding(.horizontal, 16)
 
+                // ── Reset aujourd'hui ───────────────────────────────────
+                Button(action: { confirmReset = true }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 16))
+                        Text("Réinitialiser la séance")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.red.opacity(0.12))
+                    .foregroundColor(.red)
+                    .cornerRadius(14)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.red.opacity(0.3), lineWidth: 1))
+                }
+                .buttonStyle(SpringButtonStyle())
+                .padding(.horizontal, 16)
+
                 // ── Séance supplémentaire ────────────────────────────────
                 Button(action: { showExtra = true }) {
                     HStack(spacing: 10) {
@@ -273,6 +292,17 @@ struct AlreadyLoggedSeanceView: View {
         .sheet(isPresented: $showExtra) {
             ExtraSessionSheet(data: data)
         }
+        .confirmationDialog("Réinitialiser la séance d'aujourd'hui ?", isPresented: $confirmReset, titleVisibility: .visible) {
+            Button("Réinitialiser", role: .destructive) { Task { await resetToday() } }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Les données loggées aujourd'hui seront effacées.")
+        }
+    }
+
+    private func resetToday() async {
+        try? await APIService.shared.deleteSession(date: data.todayDate)
+        await vm.load()
     }
 
     private func rpeColor(_ v: Double) -> Color {
