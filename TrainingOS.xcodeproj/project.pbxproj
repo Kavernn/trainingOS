@@ -630,8 +630,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = VinceSeven;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Prendre une photo de profil";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "TrainingOS lit vos données santé (pas, sommeil, fréquence cardiaque, HRV) pour remplir automatiquement vos entrées de récupération.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "TrainingOS peut écrire votre poids dans l'app Santé.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "VinceSeven lit vos données santé (pas, sommeil, fréquence cardiaque, HRV) pour remplir automatiquement vos entrées de récupération.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "VinceSeven peut écrire votre poids dans l'app Santé.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choisir une photo de profil";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -668,8 +668,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = VinceSeven;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Prendre une photo de profil";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "TrainingOS lit vos données santé (pas, sommeil, fréquence cardiaque, HRV) pour remplir automatiquement vos entrées de récupération.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "TrainingOS peut écrire votre poids dans l'app Santé.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "VinceSeven lit vos données santé (pas, sommeil, fréquence cardiaque, HRV) pour remplir automatiquement vos entrées de récupération.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "VinceSeven peut écrire votre poids dans l'app Santé.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choisir une photo de profil";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
