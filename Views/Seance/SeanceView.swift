@@ -735,7 +735,7 @@ struct WorkoutSeanceView: View {
         }
         
         private func deleteExercise(_ name: String) async {
-            await postProgramme(["action": "remove", "jour": data.localToday, "exercise": name])
+            // Local-only: remove from this session view without touching the database
             await MainActor.run { localProgram.removeValue(forKey: name) }
         }
         
