@@ -1,7 +1,6 @@
 import SwiftUI
 import Combine
 import AVFoundation
-import UniformTypeIdentifiers
 
 struct SeanceView: View {
     @StateObject private var vm = SeanceViewModel()
@@ -325,7 +324,8 @@ struct WorkoutSeanceView: View {
     @State private var localProgram: [String: String] = [:]
     @State private var exerciseOrder: [String] = []
     @State private var draggingName: String?
-    @State private var dropTarget: String?
+    @State private var dragOffset: CGFloat = 0
+    @State private var cardHeights: [String: CGFloat] = [:]
     @State private var inventory: [String] = []
     @State private var addTarget: SeanceName?
     @State private var editTarget: ExerciseTarget?
@@ -400,48 +400,92 @@ struct WorkoutSeanceView: View {
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
             .padding(.horizontal, 16)
         } else {
-            ForEach(exercises, id: \.0) { name, scheme in
-                ExerciseCard(
-                    name: name,
-                    scheme: scheme,
-                    weightData: data.weights[name],
-                    equipmentType: data.inventoryTypes[name] ?? "machine",
-                    bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
-                    logResult: $vm.logResults[name],
-                    onLogged: nil
-                )
-                .padding(.horizontal, 16)
-                .opacity(draggingName == name ? 0.4 : 1.0)
-                .overlay(
-                    dropTarget == name && draggingName != name
-                        ? RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.orange, lineWidth: 2)
-                            .padding(.horizontal, 16)
-                        : nil
-                )
-                .onDrag {
-                    draggingName = name
-                    return NSItemProvider(object: name as NSString)
-                }
-                .onDrop(of: [UTType.plainText], isTargeted: Binding(
-                    get: { dropTarget == name },
-                    set: { dropTarget = $0 ? name : nil }
-                )) { _ in
-                    guard let dragging = draggingName, dragging != name,
-                          let from = exerciseOrder.firstIndex(of: dragging),
-                          let to   = exerciseOrder.firstIndex(of: name) else {
-                        draggingName = nil; return false
-                    }
-                    withAnimation(.spring(response: 0.3)) {
-                        exerciseOrder.move(fromOffsets: IndexSet(integer: from),
-                                           toOffset: to > from ? to + 1 : to)
-                    }
-                    draggingName = nil
-                    dropTarget   = nil
-                    return true
+            VStack(spacing: 12) {
+                ForEach(exercises, id: \.0) { name, scheme in
+                    let isDragging = draggingName == name
+                    ExerciseCard(
+                        name: name,
+                        scheme: scheme,
+                        weightData: data.weights[name],
+                        equipmentType: data.inventoryTypes[name] ?? "machine",
+                        bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
+                        logResult: $vm.logResults[name],
+                        onLogged: nil
+                    )
+                    .padding(.horizontal, 16)
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.preference(key: CardHeightKey.self,
+                                                   value: [name: geo.size.height])
+                        }
+                    )
+                    .scaleEffect(isDragging ? 1.03 : 1.0, anchor: .center)
+                    .shadow(color: isDragging ? .black.opacity(0.45) : .clear,
+                            radius: isDragging ? 18 : 0)
+                    .offset(y: isDragging ? dragOffset : shiftY(for: name))
+                    .zIndex(isDragging ? 1 : 0)
+                    .animation(.spring(response: 0.28, dampingFraction: 0.82),
+                               value: shiftY(for: name))
+                    .animation(.spring(response: 0.2, dampingFraction: 0.9),
+                               value: isDragging)
+                    .gesture(
+                        LongPressGesture(minimumDuration: 0.35)
+                            .sequenced(before: DragGesture(minimumDistance: 0))
+                            .onChanged { value in
+                                switch value {
+                                case .second(true, let drag?):
+                                    if draggingName == nil {
+                                        draggingName = name
+                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    }
+                                    dragOffset = drag.translation.height
+                                default:
+                                    break
+                                }
+                            }
+                            .onEnded { _ in
+                                if let dragging = draggingName {
+                                    let to = proposedDropIndex
+                                    if let from = exerciseOrder.firstIndex(of: dragging),
+                                       from != to {
+                                        withAnimation(.spring(response: 0.28)) {
+                                            exerciseOrder.move(
+                                                fromOffsets: IndexSet(integer: from),
+                                                toOffset: to > from ? to + 1 : to)
+                                        }
+                                    }
+                                }
+                                withAnimation(.spring(response: 0.28)) {
+                                    draggingName = nil
+                                    dragOffset   = 0
+                                }
+                            }
+                    )
                 }
             }
+            .onPreferenceChange(CardHeightKey.self) { cardHeights.merge($0) { $1 } }
         }
+    }
+
+    // MARK: - Drag helpers
+
+    private var proposedDropIndex: Int {
+        guard let name = draggingName,
+              let fromIdx = exerciseOrder.firstIndex(of: name) else { return 0 }
+        let slotH = (cardHeights[name] ?? 200) + 12
+        let steps = Int((dragOffset / slotH).rounded())
+        return max(0, min(exerciseOrder.count - 1, fromIdx + steps))
+    }
+
+    private func shiftY(for cardName: String) -> CGFloat {
+        guard let dragging = draggingName, dragging != cardName,
+              let from = exerciseOrder.firstIndex(of: dragging),
+              let idx  = exerciseOrder.firstIndex(of: cardName) else { return 0 }
+        let to = proposedDropIndex
+        let h  = (cardHeights[dragging] ?? 200) + 12
+        if from < to, idx > from, idx <= to { return -h }
+        if from > to, idx >= to,  idx < from { return  h }
+        return 0
     }
     
     @ViewBuilder private var rpeCommentSection: some View {
@@ -1669,3 +1713,11 @@ struct AddHIITSheet: View {
 
 
 
+
+// MARK: - Card Height Preference Key
+private struct CardHeightKey: PreferenceKey {
+    static var defaultValue: [String: CGFloat] = [:]
+    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
