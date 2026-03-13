@@ -518,7 +518,7 @@ struct WorkoutSeanceView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         }
-        .task { await loadInventory() }
+        .onAppear { Task { await loadInventory() } }
     }
     
     private func rpeColor(_ v: Double) -> Color {
