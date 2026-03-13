@@ -1,6 +1,38 @@
 import Foundation
 import SwiftUI
 
+struct SafeString: Codable {
+    let value: String
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        
+        // 1. Tente de décoder une String
+        if let str = try? container.decode(String.self) {
+            self.value = str
+        }
+        // 2. Tente de décoder un tableau de Strings (tes fameux blocks)
+        else if let arr = try? container.decode([String].self) {
+            self.value = arr.joined(separator: ", ")
+        }
+        // 3. Tente de décoder un Int ou Double (au cas où)
+        else if let num = try? container.decode(Double.self) {
+            self.value = String(num)
+        }
+        // 4. Si c'est null ou autre chose, on ne crash pas !
+        else {
+            self.value = ""
+        }
+    }
+    
+    // Pour faciliter l'encodage vers Supabase si besoin
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(value)
+    }
+}
+
+
 // MARK: - Dashboard
 struct DashboardData: Codable {
     let today: String
@@ -23,7 +55,7 @@ struct DashboardData: Codable {
     let schedule: [String: String]
     let sessions: [String: SessionEntry]
     let goals: [String: GoalProgress]
-    let fullProgram: [String: [String: String]]
+    let fullProgram: [String: [String: SafeString]]
     let nutritionTotals: NutritionTotals
     let profile: UserProfile
 
@@ -100,7 +132,7 @@ struct SeanceData: Codable {
     }
 
     let schedule: [String: String]
-    let fullProgram: [String: [String: String]]
+    let fullProgram: [String: [String: SafeString]]
     let weights: [String: WeightData]
     let week: Int
 

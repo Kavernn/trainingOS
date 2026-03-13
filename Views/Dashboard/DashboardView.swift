@@ -5,6 +5,7 @@ struct DashboardView: View {
     @State private var deload: DeloadReport?
     @State private var moodDue: MoodDueStatus?
     @State private var showMoodSheet = false
+    @State private var lastRefresh: Date = .distantPast
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -102,15 +103,19 @@ struct DashboardView: View {
             async let m = APIService.shared.checkMoodDue()
             deload  = try? await d
             moodDue = try? await m
+            lastRefresh = Date()
         }
         .onChange(of: scenePhase) {
-            if scenePhase == .active {
+            // Ne refetch que si la dernière mise à jour date de plus de 5 min
+            if scenePhase == .active,
+               Date().timeIntervalSince(lastRefresh) > 300 {
                 Task {
                     await api.fetchDashboard()
                     async let d = APIService.shared.fetchDeloadData()
                     async let m = APIService.shared.checkMoodDue()
                     deload  = try? await d
                     moodDue = try? await m
+                    lastRefresh = Date()
                 }
             }
         }
@@ -306,7 +311,8 @@ struct TodayCardView: View {
 
     var exercises: [(String, String)] {
         guard let program = dash.fullProgram[dash.localToday] else { return [] }
-        return program.map { ($0.key, $0.value) }.sorted { $0.0 < $1.0 }
+        // On convertit la valeur en String ici pour respecter la promesse [(String, String)]
+        return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
     }
 
     var body: some View {

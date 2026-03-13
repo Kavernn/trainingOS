@@ -13,9 +13,12 @@ class APIService: ObservableObject {
     private init() {}
 
     // MARK: - Cache helper
+    // Timeout réseau : 15 s (couvre les cold starts Vercel sans bloquer 60 s)
     private func fetchWithCache(url: URL, key: String) async throws -> Data {
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 15
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await URLSession.shared.data(for: req)
             CacheService.shared.save(data, for: key)
             return data
         } catch {
@@ -28,17 +31,24 @@ class APIService: ObservableObject {
 
     // MARK: - Dashboard
     func fetchDashboard() async {
+        // 1. Affiche le cache immédiatement → plus de spinner si données dispos
+        if let cached = CacheService.shared.load(for: "dashboard"),
+           let decoded = try? JSONDecoder().decode(DashboardData.self, from: cached),
+           dashboard == nil {
+            await MainActor.run { self.dashboard = decoded }
+        }
+
         await MainActor.run { isLoading = true; error = nil }
-        let url = URL(string: "\(baseURL)/api/dashboard")!
-        let key = "dashboard"
+        var req = URLRequest(url: URL(string: "\(baseURL)/api/dashboard")!)
+        req.timeoutInterval = 15
         do {
             let data: Data
             do {
-                let (d, _) = try await URLSession.shared.data(from: url)
-                CacheService.shared.save(d, for: key)
+                let (d, _) = try await URLSession.shared.data(for: req)
+                CacheService.shared.save(d, for: "dashboard")
                 data = d
             } catch {
-                guard let cached = CacheService.shared.load(for: key) else { throw error }
+                guard let cached = CacheService.shared.load(for: "dashboard") else { throw error }
                 data = cached
             }
             let decoded = try JSONDecoder().decode(DashboardData.self, from: data)
@@ -59,10 +69,13 @@ class APIService: ObservableObject {
                 msg = decodingError.localizedDescription
             }
             print("❌ Decoding error: \(msg)")
-            await MainActor.run { self.error = msg; self.isLoading = false }
+            await MainActor.run {
+                if self.dashboard == nil { self.error = msg }
+                self.isLoading = false
+            }
         } catch {
             await MainActor.run {
-                self.error = error.localizedDescription
+                if self.dashboard == nil { self.error = error.localizedDescription }
                 self.isLoading = false
             }
         }
@@ -97,6 +110,9 @@ class APIService: ObservableObject {
         if let e = energyPre   { body["energy_pre"] = e }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (_, _) = try await URLSession.shared.data(for: req)
+        CacheService.shared.clear(for: "dashboard")
+        CacheService.shared.clear(for: "seance_data")
+        CacheService.shared.clear(for: "stats_data")
     }
 
     func deleteSession(date: String) async throws {
@@ -131,6 +147,8 @@ class APIService: ObservableObject {
         ]
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (_, _) = try await URLSession.shared.data(for: req)
+        CacheService.shared.clear(for: "dashboard")
+        CacheService.shared.clear(for: "hiit_data")
     }
 
     func deleteHIIT(date: String, sessionType: String) async throws {

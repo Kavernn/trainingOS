@@ -3,7 +3,7 @@ import SwiftUI
 private let kBaseURL = "https://training-os-rho.vercel.app"
 
 struct ProgrammeView: View {
-    @State private var fullProgram: [String: [String: String]] = [:]
+    @State private var fullProgram: [String: [String: Any]] = [:]
     @State private var schedule: [String: String] = [:]
     @State private var inventory: [String] = []
     @State private var isLoading = true
@@ -33,8 +33,7 @@ struct ProgrammeView: View {
                                 EditableSeanceProgramCard(
                                     seance:   seance,
                                     exercises: Binding(
-                                        get: { fullProgram[seance] ?? [:] },
-                                        set: { fullProgram[seance] = $0 }
+                                        get: { (fullProgram[seance] as? [String: String]) ?? [:] },                                        set: { fullProgram[seance] = $0 }
                                     ),
                                     onAdd:    { addTarget = SeanceName(id: seance) },
                                     onEdit:   { ex, scheme in editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme) },
@@ -70,7 +69,7 @@ struct ProgrammeView: View {
         let url = URL(string: "\(kBaseURL)/api/programme_data")!
         if let (data, _) = try? await URLSession.shared.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            fullProgram = (json["full_program"] as? [String: [String: String]]) ?? [:]
+            fullProgram = (json["full_program"] as? [String: [String: Any]]) ?? [:]
             schedule    = (json["schedule"] as? [String: String]) ?? [:]
             inventory   = (json["inventory"] as? [String]) ?? []
         }
