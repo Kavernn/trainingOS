@@ -9,7 +9,8 @@ final class UnitSettings: ObservableObject {
     }
 
     private init() {
-        isKg = UserDefaults.standard.bool(forKey: "unit_is_kg")
+        isKg = false
+        UserDefaults.standard.set(false, forKey: "unit_is_kg")
     }
 
     var label: String { isKg ? "kg" : "lbs" }
