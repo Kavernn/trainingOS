@@ -412,7 +412,7 @@ struct WorkoutSeanceView: View {
             name: name,
             scheme: scheme,
             weightData: data.weights[name],
-            equipmentType: inventoryTypes[name] ?? "machine",
+            equipmentType: inventoryTypes[name] ?? data.inventoryTypes[name] ?? "machine",
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             logResult: $vm.logResults[name],
             onLogged: nil
@@ -663,6 +663,9 @@ struct WorkoutSeanceView: View {
                 .presentationDetents([.large])
         }
         .onAppear { Task { await loadInventory() } }
+        .onChange(of: data.inventoryTypes) { fresh in
+            if !fresh.isEmpty { inventoryTypes = fresh }
+        }
     }
     
     private func rpeColor(_ v: Double) -> Color {
