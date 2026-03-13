@@ -1083,7 +1083,11 @@ struct AddHIITSheet: View {
 
         @ViewBuilder private var avgTotalRow: some View {
             if let avg = avgWeight {
-                let total = totalWeight(for: avg)
+                // avg is in display units (what user typed); convert to lbs first
+                // so totalWeight arithmetic (barbell +45 lbs bar, etc.) stays consistent,
+                // then units.format() converts back to display correctly.
+                let avgLbs = units.toStorage(avg)
+                let total  = totalWeight(for: avgLbs)
                 HStack {
                     Text(equipmentType == "bodyweight" ? "TOTAL" : "MOY. → TOTAL")
                         .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
@@ -1092,7 +1096,7 @@ struct AddHIITSheet: View {
                         Text(units.format(total))
                             .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
                     } else {
-                        Text("\(units.format(units.toStorage(avg))) → \(units.format(total))")
+                        Text("\(units.format(avgLbs)) → \(units.format(total))")
                             .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
                     }
                 }
