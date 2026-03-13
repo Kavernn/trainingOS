@@ -162,13 +162,19 @@ struct WeightData: Codable {
 
 struct WeightHistoryEntry: Codable {
     let date: String?
-    let weight: Double?
+    let weight: Double?   // average weight across sets
     let reps: String?
     let note: String?
     let oneRM: Double?
+    let sets: [SetEntry]? // raw per-set data (weight + reps per set)
+
+    struct SetEntry: Codable {
+        let weight: Double
+        let reps: String
+    }
 
     enum CodingKeys: String, CodingKey {
-        case date, weight, reps, note
+        case date, weight, reps, note, sets
         case oneRM = "1rm"
     }
 }

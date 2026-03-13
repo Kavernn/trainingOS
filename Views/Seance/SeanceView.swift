@@ -588,21 +588,26 @@ struct WorkoutSeanceView: View {
         var onLogged: (() -> Void)? = nil
         @ObservedObject private var units = UnitSettings.shared
         
-        @State private var weightStr = ""
-        @State private var repSets: [String] = []
+        // Per-set input model
+        private struct SetInput: Identifiable {
+            let id = UUID()
+            var weight: String = ""
+            var reps: String = ""
+        }
+
+        @State private var sets: [SetInput] = []
         @State private var showHistory = false
         @State private var logStatus: LogStatus? = nil
-        // Source de vérité locale : set synchronement dans logExercise()
-        // avant tout appel async, évite les race conditions sur le binding dict
+        // Set synchronously before any async call to prevent race conditions
         @State private var isLogged = false
 
         enum LogStatus { case success(Double), stagné }
 
         private var alreadyLogged: Bool { isLogged || logResult != nil }
-        
+
         var currentWeight: Double { weightData?.currentWeight ?? 0 }
         var lastReps: String { weightData?.lastReps ?? "—" }
-        
+
         private var setsCount: Int {
             let s = scheme.lowercased()
             if let x = s.firstIndex(of: "x") {
@@ -611,11 +616,31 @@ struct WorkoutSeanceView: View {
             }
             return 3
         }
-        
-        private var repsStr: String {
-            repSets.filter { !$0.isEmpty }.joined(separator: ",")
+
+        // Average weight across all filled set rows (nil if none entered)
+        private var avgWeight: Double? {
+            let vals = sets
+                .compactMap { Double($0.weight.replacingOccurrences(of: ",", with: ".")) }
+                .filter { $0 > 0 }
+            guard !vals.isEmpty else { return nil }
+            return vals.reduce(0, +) / Double(vals.count)
         }
-        
+
+        // Reps joined from non-empty set rows
+        private var repsStr: String {
+            sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
+        }
+
+        // Log enabled when at least one set has both weight and reps filled
+        private var canLog: Bool {
+            sets.contains { !$0.weight.isEmpty && !$0.reps.isEmpty }
+        }
+
+        // Per-set reps array split from lastReps for placeholder text
+        private var lastRepsParts: [String] {
+            lastReps.split(separator: ",").map(String.init)
+        }
+
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
                 // Header
@@ -629,61 +654,77 @@ struct WorkoutSeanceView: View {
                         Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(.system(size: 20))
                     }
                 }
-                
-                // Poids actuel / dernières reps
-                HStack(spacing: 8) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("POIDS ACTUEL").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
-                        Text(currentWeight > 0 ? units.format(currentWeight) : "—")
-                            .font(.system(size: 16, weight: .black)).foregroundColor(.orange)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("DERNIÈRES REPS").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
-                        Text(lastReps).font(.system(size: 16, weight: .black)).foregroundColor(.white)
-                    }
-                }
-                
-                // Poids
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("POIDS (\(units.label.uppercased()))").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
-                    TextField("0.0", text: $weightStr)
-                        .keyboardType(.decimalPad)
-                        .font(.system(size: 16, weight: .semibold)).foregroundColor(.white)
-                        .padding(10).background(Color(hex: "191926")).cornerRadius(8)
-                }
-                
-                // Reps par set
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("REPS PAR SET").font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
-                    HStack(spacing: 8) {
-                        ForEach(repSets.indices, id: \.self) { i in
-                            VStack(spacing: 3) {
-                                Text("S\(i + 1)")
-                                    .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(.gray)
-                                TextField("0", text: $repSets[i])
-                                    .keyboardType(.numberPad)
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .multilineTextAlignment(.center)
-                                    .frame(width: 44, height: 40)
-                                    .background(Color(hex: "191926"))
-                                    .cornerRadius(8)
-                            }
-                        }
+
+                // Recommended weight hint
+                if currentWeight > 0 {
+                    HStack {
+                        Text("RECOMMANDÉ")
+                            .font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
                         Spacer()
-                        Button(action: logExercise) {
-                            Image(systemName: alreadyLogged ? "checkmark.circle.fill" : "arrow.up.circle.fill")
-                                .font(.system(size: 38))
-                                .foregroundColor(alreadyLogged ? .green : .orange)
-                        }
-                        .disabled(alreadyLogged)
-                        .padding(.top, 12)
+                        Text(units.format(currentWeight))
+                            .font(.system(size: 13, weight: .bold)).foregroundColor(.orange.opacity(0.7))
                     }
                 }
-                
-                // Statut
+
+                // Per-set rows: each set has its own weight + reps field
+                VStack(spacing: 6) {
+                    HStack {
+                        Text("SET")
+                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            .frame(width: 28, alignment: .leading)
+                        Text("POIDS (\(units.label.uppercased()))")
+                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Spacer()
+                        Text("REPS")
+                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            .frame(width: 56, alignment: .center)
+                    }
+                    ForEach(sets.indices, id: \.self) { i in
+                        HStack(spacing: 8) {
+                            Text("S\(i + 1)")
+                                .font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
+                                .frame(width: 28)
+                            TextField(currentWeight > 0 ? units.inputStr(currentWeight) : "0.0",
+                                      text: $sets[i].weight)
+                                .keyboardType(.decimalPad)
+                                .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                                .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                            TextField(lastRepsParts.indices.contains(i) ? lastRepsParts[i] : "0",
+                                      text: $sets[i].reps)
+                                .keyboardType(.numberPad)
+                                .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .frame(width: 56)
+                                .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                        }
+                    }
+                }
+
+                // Average weight (shown once at least one weight is entered)
+                if let avg = avgWeight {
+                    HStack {
+                        Text("MOY.")
+                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Spacer()
+                        Text(units.format(units.toStorage(avg)))
+                            .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
+                    }
+                    .padding(.top, 2)
+                }
+
+                // Log button
+                HStack {
+                    Spacer()
+                    Button(action: logExercise) {
+                        Image(systemName: alreadyLogged ? "checkmark.circle.fill" : "arrow.up.circle.fill")
+                            .font(.system(size: 38))
+                            .foregroundColor(alreadyLogged ? .green : (canLog ? .orange : .gray))
+                    }
+                    .disabled(alreadyLogged || !canLog)
+                    .padding(.top, 8)
+                }
+
+                // Status
                 if let status = logStatus {
                     HStack(spacing: 6) {
                         switch status {
@@ -697,8 +738,8 @@ struct WorkoutSeanceView: View {
                         }
                     }
                 }
-                
-                // Historique
+
+                // History
                 if let history = weightData?.history, !history.isEmpty {
                     Button(action: { showHistory.toggle() }) {
                         HStack {
@@ -730,31 +771,38 @@ struct WorkoutSeanceView: View {
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(logResult != nil ? Color.green.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1))
             .cornerRadius(14)
             .onAppear {
-                if currentWeight > 0 { weightStr = units.inputStr(currentWeight) }
-                if repSets.isEmpty { repSets = Array(repeating: "", count: setsCount) }
+                // No pre-fill: fields start empty so user can dismiss without saving
+                if sets.isEmpty { sets = Array(repeating: SetInput(), count: setsCount) }
             }
             .onChange(of: setsCount) {
-                if repSets.count != setsCount {
-                    repSets = Array(repeating: "", count: setsCount)
+                if sets.count != setsCount {
+                    sets = Array(repeating: SetInput(), count: setsCount)
                 }
             }
-            // Si le binding est remis à nil (reset session), on réinitialise l'état local
             .onChange(of: logResult == nil) { isNil in
                 if isNil { isLogged = false; logStatus = nil }
             }
         }
-        
+
         private func logExercise() {
-            guard !alreadyLogged else { return }
-            guard let displayW = Double(weightStr.replacingOccurrences(of: ",", with: ".")),
-                  !repsStr.isEmpty else { return }
-            // isLogged set en premier, synchronement — bloque tout re-tap immédiat
+            guard !alreadyLogged, canLog else { return }
+            guard let avg = avgWeight, !repsStr.isEmpty else { return }
+            // Set synchronously to block any re-tap before async completes
             isLogged = true
-            let w = units.toStorage(displayW)
+            let w = units.toStorage(avg)
             logResult = ExerciseLogResult(name: name, weight: w, reps: repsStr)
-            logStatus = .success(displayW)
+            logStatus = .success(avg)
             onLogged?()
-            Task { _ = try? await APIService.shared.logExercise(exercise: name, weight: w, reps: repsStr) }
+            // Build per-set payload: only rows with both weight and reps filled
+            let setsPayload: [[String: Any]] = sets.compactMap { s in
+                guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")),
+                      sw > 0, !s.reps.isEmpty else { return nil }
+                return ["weight": units.toStorage(sw), "reps": s.reps]
+            }
+            Task {
+                _ = try? await APIService.shared.logExercise(
+                    exercise: name, weight: w, reps: repsStr, sets: setsPayload)
+            }
         }
     }
     

@@ -504,6 +504,15 @@ def api_log():
                 "1rm":        existing_history[0].get("1rm", 0),
             }), 409
 
+        # Optional per-set data: [{weight: X, reps: "5"}, ...]
+        sets_data = data.get("sets", [])
+
+        # If sets provided, recompute average weight server-side
+        if sets_data:
+            set_weights = [float(s["weight"]) for s in sets_data if "weight" in s]
+            if set_weights:
+                weight = round(sum(set_weights) / len(set_weights), 1)
+
         reps_list = parse_reps(reps_str)
         reps      = ",".join(map(str, reps_list))
         status    = progression_status(reps, exercise)
@@ -518,6 +527,8 @@ def api_log():
             "note":   f"+{new_w - weight:.1f}" if increase else "stagné",
             "1rm":    onerm
         }
+        if sets_data:
+            history_entry["sets"] = sets_data
 
         if exercise not in weights:
             weights[exercise] = {"history": []}

@@ -88,12 +88,14 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode(SeanceData.self, from: data)
     }
 
-    func logExercise(exercise: String, weight: Double, reps: String) async throws -> [String: Any] {
+    func logExercise(exercise: String, weight: Double, reps: String,
+                     sets: [[String: Any]] = []) async throws -> [String: Any] {
         let url = URL(string: "\(baseURL)/api/log")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
+        var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
+        if !sets.isEmpty { body["sets"] = sets }
         req.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (data, _) = try await URLSession.shared.data(for: req)
         return (try JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
