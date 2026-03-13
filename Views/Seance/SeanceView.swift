@@ -1022,6 +1022,16 @@ struct AddHIITSheet: View {
             }
         }
 
+        // Reverse: stored total → per-side hint for the input field
+        private var inputHint: Double {
+            guard currentWeight > 0 else { return 0 }
+            switch equipmentType {
+            case "barbell":  return (currentWeight - 45) / 2
+            case "dumbbell": return currentWeight / 2
+            default:         return currentWeight
+            }
+        }
+
         private var weightColumnLabel: String {
             switch equipmentType {
             case "barbell":    return "POIDS PAR CÔTÉ (\(units.label.uppercased()))"
@@ -1047,6 +1057,7 @@ struct AddHIITSheet: View {
         }
 
         @ViewBuilder private func setRows() -> some View {
+            let hint = inputHint > 0 ? units.inputStr(inputHint) : "0.0"
             VStack(spacing: 6) {
                 HStack {
                     Text("SET")
@@ -1064,8 +1075,7 @@ struct AddHIITSheet: View {
                         Text("S\(i + 1)")
                             .font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
                             .frame(width: 28)
-                        TextField(currentWeight > 0 ? units.inputStr(currentWeight) : "0.0",
-                                  text: $sets[i].weight)
+                        TextField(hint, text: $sets[i].weight)
                             .keyboardType(.decimalPad)
                             .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                             .padding(8).background(Color(hex: "191926")).cornerRadius(8)
@@ -1219,20 +1229,21 @@ struct AddHIITSheet: View {
             guard let avg = avgWeight, !repsStr.isEmpty else { return }
             // Set synchronously to block any re-tap before async completes
             isLogged = true
-            let w = units.toStorage(avg)          // per-side lbs (used for next session recommendation)
-            let total = totalWeight(for: w)        // actual total load lifted
-            logResult = ExerciseLogResult(name: name, weight: w, reps: repsStr)
+            let w     = units.toStorage(avg)   // per-side in lbs
+            let total = totalWeight(for: w)    // total load in lbs (barbell ×2+45, dumbbell ×2, etc.)
+            logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr)
             logStatus = .success(total)
             onLogged?()
-            // Build per-set payload: only rows with both weight and reps filled
+            // Per-set payload: each set's weight is also stored as total load
             let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
                 guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")),
                       sw > 0, !s.reps.isEmpty else { return nil }
-                return ["weight": units.toStorage(sw), "reps": s.reps]
+                let setTotal = totalWeight(for: units.toStorage(sw))
+                return ["weight": setTotal, "reps": s.reps]
             }
             Task {
                 _ = try? await APIService.shared.logExercise(
-                    exercise: name, weight: w, reps: repsStr, sets: setsPayload)
+                    exercise: name, weight: total, reps: repsStr, sets: setsPayload)
             }
         }
     }
