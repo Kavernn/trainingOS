@@ -323,6 +323,7 @@ struct WorkoutSeanceView: View {
     // Programme edit
     @State private var localProgram: [String: String] = [:]
     @State private var exerciseOrder: [String] = []
+    @State private var inventoryTypes: [String: String] = [:]
     @State private var draggingName: String?
     @State private var dragOffset: CGFloat = 0
     @State private var cardHeights: [String: CGFloat] = [:]
@@ -411,7 +412,7 @@ struct WorkoutSeanceView: View {
             name: name,
             scheme: scheme,
             weightData: data.weights[name],
-            equipmentType: data.inventoryTypes[name] ?? "machine",
+            equipmentType: inventoryTypes[name] ?? "machine",
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             logResult: $vm.logResults[name],
             onLogged: nil
@@ -671,15 +672,16 @@ struct WorkoutSeanceView: View {
     // MARK: - Programme mutations
     
     private func loadInventory() async {
-        // Seed immediately from already-loaded seanceData (no wait, no extra call)
-        let fromCache   = data.fullProgram[data.localToday]?.mapValues { $0.value } ?? [:]
-        let orderCache  = data.exerciseOrder[data.localToday] ?? fromCache.keys.sorted()
+        // Seed immediately from already-loaded seanceData
+        let fromCache  = data.fullProgram[data.localToday]?.mapValues { $0.value } ?? [:]
+        let orderCache = data.exerciseOrder[data.localToday] ?? fromCache.keys.sorted()
         await MainActor.run {
-            self.localProgram  = fromCache
-            self.exerciseOrder = orderCache
+            self.localProgram   = fromCache
+            self.exerciseOrder  = orderCache
+            self.inventoryTypes = data.inventoryTypes  // seed from seanceData right away
         }
 
-        // Fetch inventory list for the add-exercise sheet (best-effort)
+        // Fetch fresh programme + inventory types from network
         guard let url = URL(string: "https://training-os-rho.vercel.app/api/programme_data"),
               let (networkData, _) = try? await URLSession.shared.data(from: url),
               let json = try? JSONSerialization.jsonObject(with: networkData) as? [String: Any]
@@ -688,8 +690,10 @@ struct WorkoutSeanceView: View {
         let inv         = (json["inventory"] as? [String]) ?? []
         let fromNetwork = (json["full_program"] as? [String: [String: String]])?[data.localToday]
         let orderNet    = (json["exercise_order"] as? [String: [String]])?[data.localToday]
+        let types       = (json["inventory_types"] as? [String: String]) ?? [:]
         await MainActor.run {
             self.inventory = inv
+            if !types.isEmpty { self.inventoryTypes = types }
             if let fresh = fromNetwork {
                 self.localProgram  = fresh
                 self.exerciseOrder = orderNet ?? fresh.keys.sorted()
