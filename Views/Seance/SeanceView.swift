@@ -412,7 +412,7 @@ struct WorkoutSeanceView: View {
             name: name,
             scheme: scheme,
             weightData: data.weights[name],
-            equipmentType: inventoryTypes[name] ?? data.inventoryTypes[name] ?? "machine",
+            equipmentType: equipmentType(for: name),
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             logResult: $vm.logResults[name],
             onLogged: nil
@@ -671,7 +671,19 @@ struct WorkoutSeanceView: View {
     private func rpeColor(_ v: Double) -> Color {
         if v <= 4 { return .green }; if v <= 6 { return .yellow }; if v <= 8 { return .orange }; return .red
     }
-    
+
+    // Lookup equipment type with fuzzy name matching.
+    // Handles e.g. program "Deadlift" matching inventory "Barbell Deadlift".
+    private func equipmentType(for name: String) -> String {
+        let types = inventoryTypes.isEmpty ? data.inventoryTypes : inventoryTypes
+        if let exact = types[name] { return exact }
+        let lower = name.lowercased()
+        for (key, value) in types where key.lowercased().contains(lower) {
+            return value
+        }
+        return "machine"
+    }
+
     // MARK: - Programme mutations
     
     private func loadInventory() async {
