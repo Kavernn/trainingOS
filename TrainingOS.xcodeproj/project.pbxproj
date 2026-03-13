@@ -47,6 +47,7 @@
 		DD4400092F5D98BA002AE473 /* SelfCareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000A2F5D98BA002AE473 /* SelfCareView.swift */; };
 		DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */; };
 		DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */; };
+		FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11000A2F5D98BA002AE470 /* SplashView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -92,6 +93,7 @@
 		DD44000A2F5D98BA002AE473 /* SelfCareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfCareView.swift; sourceTree = "<group>"; };
 		DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrisisResourcesView.swift; sourceTree = "<group>"; };
 		DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthDashboardView.swift; sourceTree = "<group>"; };
+		FF11000A2F5D98BA002AE470 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -345,6 +347,7 @@
 				BB2200052F5D98BA002AE470 /* HealthDashboard */,
 				CC3300032F5D98BA002AE472 /* PSS */,
 				DD44000F2F5D98BA002AE473 /* MentalHealth */,
+				FF11000A2F5D98BA002AE470 /* SplashView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -490,6 +493,7 @@
 				DD4400092F5D98BA002AE473 /* SelfCareView.swift in Sources */,
 				DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */,
 				DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */,
+				FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
