@@ -592,8 +592,13 @@ struct WorkoutSeanceView: View {
         @State private var repSets: [String] = []
         @State private var showHistory = false
         @State private var logStatus: LogStatus? = nil
-        
+        // Source de vérité locale : set synchronement dans logExercise()
+        // avant tout appel async, évite les race conditions sur le binding dict
+        @State private var isLogged = false
+
         enum LogStatus { case success(Double), stagné }
+
+        private var alreadyLogged: Bool { isLogged || logResult != nil }
         
         var currentWeight: Double { weightData?.currentWeight ?? 0 }
         var lastReps: String { weightData?.lastReps ?? "—" }
@@ -669,11 +674,11 @@ struct WorkoutSeanceView: View {
                         }
                         Spacer()
                         Button(action: logExercise) {
-                            Image(systemName: logResult != nil ? "checkmark.circle.fill" : "arrow.up.circle.fill")
+                            Image(systemName: alreadyLogged ? "checkmark.circle.fill" : "arrow.up.circle.fill")
                                 .font(.system(size: 38))
-                                .foregroundColor(logResult != nil ? .green : .orange)
+                                .foregroundColor(alreadyLogged ? .green : .orange)
                         }
-                        .disabled(logResult != nil)
+                        .disabled(alreadyLogged)
                         .padding(.top, 12)
                     }
                 }
@@ -733,12 +738,18 @@ struct WorkoutSeanceView: View {
                     repSets = Array(repeating: "", count: setsCount)
                 }
             }
+            // Si le binding est remis à nil (reset session), on réinitialise l'état local
+            .onChange(of: logResult == nil) { isNil in
+                if isNil { isLogged = false; logStatus = nil }
+            }
         }
         
         private func logExercise() {
-            guard logResult == nil else { return }  // déjà loggé dans cette séance
+            guard !alreadyLogged else { return }
             guard let displayW = Double(weightStr.replacingOccurrences(of: ",", with: ".")),
                   !repsStr.isEmpty else { return }
+            // isLogged set en premier, synchronement — bloque tout re-tap immédiat
+            isLogged = true
             let w = units.toStorage(displayW)
             logResult = ExerciseLogResult(name: name, weight: w, reps: repsStr)
             logStatus = .success(displayW)
