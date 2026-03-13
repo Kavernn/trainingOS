@@ -533,22 +533,9 @@ struct WorkoutSeanceView: View {
         else { return }
 
         let inv = (json["inventory"] as? [String]) ?? []
-        
-        var extractedProgram: [String: String] = [:]
 
-        // 1. Accéder au programme global
-        if let fullProgram = json["program"] as? [String: Any],
-           // 2. Accéder au jour actuel (ex: "Lower")
-           let dayData = fullProgram[data.localToday] as? [String: Any],
-           // 3. Accéder au tableau "blocks"
-           let blocks = dayData["blocks"] as? [[String: Any]],
-           // 4. Prendre le premier bloc
-           let firstBlock = blocks.first,
-           // 5. Extraire les exercices
-           let exercises = firstBlock["exercises"] as? [String: String] {
-            
-            extractedProgram = exercises
-        }
+        // api_programme_data retourne full_program déjà aplati {exercice: scheme}
+        let extractedProgram = (json["full_program"] as? [String: [String: String]])?[data.localToday] ?? [:]
 
         await MainActor.run {
             self.inventory = inv

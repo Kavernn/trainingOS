@@ -1243,12 +1243,18 @@ def api_seance_data():
     else:
         already_logged = today_date in sessions
 
+    # Aplatit la structure bloc → {exercice: scheme} pour le client iOS
+    flat_program = {
+        seance: get_strength_exercises(session_def)
+        for seance, session_def in full_program.items()
+    }
+
     return jsonify({
         "today": today_str,
         "today_date": today_date,
         "already_logged": already_logged,
         "schedule": schedule,
-        "full_program": full_program,
+        "full_program": flat_program,
         "suggestions": suggestions,
         "weights": weights,
         "week": get_current_week(),
