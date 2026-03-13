@@ -453,6 +453,8 @@ struct WorkoutSeanceView: View {
                                                 fromOffsets: IndexSet(integer: from),
                                                 toOffset: to > from ? to + 1 : to)
                                         }
+                                        let newOrder = exerciseOrder
+                                        Task { await saveOrder(newOrder) }
                                     }
                                 }
                                 withAnimation(.spring(response: 0.28)) {
@@ -668,12 +670,11 @@ struct WorkoutSeanceView: View {
     
     private func loadInventory() async {
         // Seed immediately from already-loaded seanceData (no wait, no extra call)
-        let fromCache = data.fullProgram[data.localToday]?.mapValues { $0.value } ?? [:]
+        let fromCache   = data.fullProgram[data.localToday]?.mapValues { $0.value } ?? [:]
+        let orderCache  = data.exerciseOrder[data.localToday] ?? fromCache.keys.sorted()
         await MainActor.run {
-            self.localProgram = fromCache
-            if self.exerciseOrder.isEmpty {
-                self.exerciseOrder = fromCache.keys.sorted()
-            }
+            self.localProgram  = fromCache
+            self.exerciseOrder = orderCache
         }
 
         // Fetch inventory list for the add-exercise sheet (best-effort)
@@ -682,15 +683,14 @@ struct WorkoutSeanceView: View {
               let json = try? JSONSerialization.jsonObject(with: networkData) as? [String: Any]
         else { return }
 
-        let inv = (json["inventory"] as? [String]) ?? []
+        let inv         = (json["inventory"] as? [String]) ?? []
         let fromNetwork = (json["full_program"] as? [String: [String: String]])?[data.localToday]
+        let orderNet    = (json["exercise_order"] as? [String: [String]])?[data.localToday]
         await MainActor.run {
             self.inventory = inv
             if let fresh = fromNetwork {
-                self.localProgram = fresh
-                if self.exerciseOrder.isEmpty {
-                    self.exerciseOrder = fresh.keys.sorted()
-                }
+                self.localProgram  = fresh
+                self.exerciseOrder = orderNet ?? fresh.keys.sorted()
             }
         }
     }
@@ -704,6 +704,10 @@ struct WorkoutSeanceView: View {
             _ = try? await URLSession.shared.data(for: req)
         }
         
+        private func saveOrder(_ order: [String]) async {
+            await postProgramme(["action": "reorder", "jour": data.localToday, "ordre": order])
+        }
+
         private func addExercise(_ name: String, scheme: String) async {
             await postProgramme(["action": "add", "jour": data.localToday, "exercise": name, "scheme": scheme, "block_type": "strength"])
             await MainActor.run { localProgram[name] = scheme }

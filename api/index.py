@@ -1268,6 +1268,8 @@ def api_seance_data():
     }
 
     inventory_types = {name: info.get("type", "machine") for name, info in inventory.items()}
+    # Ordered list of exercise names per session (preserves user-defined order)
+    exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
 
     return jsonify({
         "today": today_str,
@@ -1279,6 +1281,7 @@ def api_seance_data():
         "weights": weights,
         "week": get_current_week(),
         "inventory_types": inventory_types,
+        "exercise_order": exercise_order,
     })
 
 
