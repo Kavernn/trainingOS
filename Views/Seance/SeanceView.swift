@@ -1223,7 +1223,19 @@ struct WorkoutSeanceView: View {
             isLoading = true; error = nil
             do {
                 seanceData = try await APIService.shared.fetchSeanceData()
-                logResults = [:]
+                // Restore logged state from today's weight history (persists across navigation)
+                var restored: [String: ExerciseLogResult] = [:]
+                if let data = seanceData {
+                    let program = data.fullProgram[data.today] ?? [:]
+                    for exerciseName in program.keys {
+                        if let first = data.weights[exerciseName]?.history?.first,
+                           first.date == data.todayDate,
+                           let w = first.weight, let r = first.reps {
+                            restored[exerciseName] = ExerciseLogResult(name: exerciseName, weight: w, reps: r)
+                        }
+                    }
+                }
+                logResults = restored
             } catch { self.error = error.localizedDescription }
             isLoading = false
         }
