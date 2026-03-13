@@ -1219,9 +1219,10 @@ struct AddHIITSheet: View {
             guard let avg = avgWeight, !repsStr.isEmpty else { return }
             // Set synchronously to block any re-tap before async completes
             isLogged = true
-            let w = units.toStorage(avg)
+            let w = units.toStorage(avg)          // per-side lbs (used for next session recommendation)
+            let total = totalWeight(for: w)        // actual total load lifted
             logResult = ExerciseLogResult(name: name, weight: w, reps: repsStr)
-            logStatus = .success(avg)
+            logStatus = .success(total)
             onLogged?()
             // Build per-set payload: only rows with both weight and reps filled
             let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
