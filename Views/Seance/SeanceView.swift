@@ -421,13 +421,20 @@ struct WorkoutSeanceView: View {
             .background(GeometryReader { geo in
                 Color.clear.preference(key: CardHeightKey.self, value: [name: geo.size.height])
             })
+            .overlay(alignment: .topLeading) {
+                // Gesture is restricted to the drag handle area so ScrollView can scroll freely
+                Color.clear
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+                    .padding(.leading, 16)
+                    .gesture(dragGesture(for: name))
+            }
             .scaleEffect(isDragging ? 1.03 : 1.0, anchor: .center)
             .shadow(color: isDragging ? .black.opacity(0.45) : .clear, radius: isDragging ? 18 : 0)
             .offset(y: isDragging ? dragOffset : shift)
             .zIndex(isDragging ? 1 : 0)
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: shift)
             .animation(.spring(response: 0.2, dampingFraction: 0.9), value: isDragging)
-            .simultaneousGesture(dragGesture(for: name))
     }
 
     private func dragGesture(for name: String) -> some Gesture {
