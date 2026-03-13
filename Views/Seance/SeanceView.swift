@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import AVFoundation
+import UniformTypeIdentifiers
 
 struct SeanceView: View {
     @StateObject private var vm = SeanceViewModel()
@@ -322,6 +323,9 @@ struct WorkoutSeanceView: View {
     
     // Programme edit
     @State private var localProgram: [String: String] = [:]
+    @State private var exerciseOrder: [String] = []
+    @State private var draggingName: String?
+    @State private var dropTarget: String?
     @State private var inventory: [String] = []
     @State private var addTarget: SeanceName?
     @State private var editTarget: ExerciseTarget?
@@ -335,8 +339,11 @@ struct WorkoutSeanceView: View {
     @State private var hiitLogged    = false
     
     private var exercises: [(String, String)] {
-        // On ajoute .value.value pour extraire le texte du SafeString
-        localProgram.map { ($0.key, $0.value) }.sorted { $0.0 < $1.0 }
+        let ordered = exerciseOrder.filter { localProgram[$0] != nil }
+        let extra = localProgram.keys.filter { !exerciseOrder.contains($0) }.sorted()
+        return (ordered + extra).compactMap { name in
+            localProgram[name].map { (name, $0) }
+        }
     }
     @ViewBuilder private var exerciseSection: some View {
         if isEditMode {
@@ -404,6 +411,35 @@ struct WorkoutSeanceView: View {
                     onLogged: nil
                 )
                 .padding(.horizontal, 16)
+                .opacity(draggingName == name ? 0.4 : 1.0)
+                .overlay(
+                    dropTarget == name && draggingName != name
+                        ? RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.orange, lineWidth: 2)
+                            .padding(.horizontal, 16)
+                        : nil
+                )
+                .onDrag {
+                    draggingName = name
+                    return NSItemProvider(object: name as NSString)
+                }
+                .onDrop(of: [UTType.plainText], isTargeted: Binding(
+                    get: { dropTarget == name },
+                    set: { dropTarget = $0 ? name : nil }
+                )) { _ in
+                    guard let dragging = draggingName, dragging != name,
+                          let from = exerciseOrder.firstIndex(of: dragging),
+                          let to   = exerciseOrder.firstIndex(of: name) else {
+                        draggingName = nil; return false
+                    }
+                    withAnimation(.spring(response: 0.3)) {
+                        exerciseOrder.move(fromOffsets: IndexSet(integer: from),
+                                           toOffset: to > from ? to + 1 : to)
+                    }
+                    draggingName = nil
+                    dropTarget   = nil
+                    return true
+                }
             }
         }
     }
@@ -589,7 +625,12 @@ struct WorkoutSeanceView: View {
     private func loadInventory() async {
         // Seed immediately from already-loaded seanceData (no wait, no extra call)
         let fromCache = data.fullProgram[data.localToday]?.mapValues { $0.value } ?? [:]
-        await MainActor.run { self.localProgram = fromCache }
+        await MainActor.run {
+            self.localProgram = fromCache
+            if self.exerciseOrder.isEmpty {
+                self.exerciseOrder = fromCache.keys.sorted()
+            }
+        }
 
         // Fetch inventory list for the add-exercise sheet (best-effort)
         guard let url = URL(string: "https://training-os-rho.vercel.app/api/programme_data"),
@@ -601,7 +642,12 @@ struct WorkoutSeanceView: View {
         let fromNetwork = (json["full_program"] as? [String: [String: String]])?[data.localToday]
         await MainActor.run {
             self.inventory = inv
-            if let fresh = fromNetwork { self.localProgram = fresh }
+            if let fresh = fromNetwork {
+                self.localProgram = fresh
+                if self.exerciseOrder.isEmpty {
+                    self.exerciseOrder = fresh.keys.sorted()
+                }
+            }
         }
     }
         
@@ -954,6 +1000,10 @@ struct AddHIITSheet: View {
             VStack(alignment: .leading, spacing: 12) {
                 // Header
                 HStack {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 14))
+                        .foregroundColor(.white.opacity(0.2))
+                        .frame(width: 20)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(name).font(.system(size: 15, weight: .bold)).foregroundColor(.white)
                         Text(scheme).font(.system(size: 12)).foregroundColor(.gray)
