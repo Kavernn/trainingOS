@@ -402,13 +402,23 @@ def migrate_hiit_logs() -> None:
         if not row["date"]:
             continue
         for field, converter in [
-            ("rounds_planned", safe_int),
-            ("rounds_completed", safe_int),
-            ("rpe", safe_int),
-            ("week", safe_int),
-            ("speed_max", safe_float),
-            ("speed_cruise", safe_float),
+            ("rounds_planned",    safe_int),
+            ("rounds_completed",  safe_int),
+            ("rpe",               safe_int),
+            ("week",              safe_int),
+            ("speed_max",         safe_float),
+            ("speed_cruise",      safe_float),
         ]:
+            # Try both English and French field names from the KV store
+            if entry.get(field) is None:
+                fr_aliases = {
+                    "rounds_planned":   "rounds_planifies",
+                    "rounds_completed": "rounds_completes",
+                    "speed_max":        "vitesse_max",
+                    "speed_cruise":     "vitesse_croisiere",
+                }
+                if field in fr_aliases:
+                    entry = {**entry, field: entry.get(fr_aliases[field])}
             val = entry.get(field)
             if val is not None:
                 row[field] = converter(val)
@@ -816,17 +826,25 @@ def migrate_mood_pss_mental() -> None:
         except Exception as e:
             logger.error("  self_care_habits upsert error: %s", e)
 
-    # self_care_log
-    self_care_log_raw: list = fetch_kv("self_care_log") or []
+    # self_care_log — stored as {"2026-03-09": ["water", "walk", ...]} in KV
+    self_care_log_raw = fetch_kv("self_care_log") or {}
     sc_rows = []
-    for entry in self_care_log_raw:
-        if not isinstance(entry, dict):
-            continue
-        date_str = entry.get("date")
-        habit_id = safe_str(entry.get("habit_id") or entry.get("id"))
-        if not date_str or not habit_id:
-            continue
-        sc_rows.append({"date": date_str, "habit_id": habit_id})
+    if isinstance(self_care_log_raw, dict):
+        for date_str, habit_ids in self_care_log_raw.items():
+            if not isinstance(habit_ids, list):
+                continue
+            for habit_id in habit_ids:
+                if habit_id:
+                    sc_rows.append({"date": date_str, "habit_id": str(habit_id)})
+    else:
+        # Tolerate old list-of-dicts format
+        for entry in self_care_log_raw:
+            if not isinstance(entry, dict):
+                continue
+            date_str = entry.get("date")
+            habit_id = safe_str(entry.get("habit_id") or entry.get("id"))
+            if date_str and habit_id:
+                sc_rows.append({"date": date_str, "habit_id": habit_id})
     if sc_rows:
         try:
             client.table("self_care_logs").upsert(sc_rows, on_conflict="date,habit_id").execute()
@@ -924,19 +942,20 @@ def migrate_mood_pss_mental() -> None:
         except Exception as e:
             logger.error("  sleep_records insert error: %s", e)
 
-    # life_stress_scores
-    stress_raw: list = fetch_kv("life_stress_scores") or []
-    if isinstance(stress_raw, dict):
-        stress_raw = [stress_raw]
+    # life_stress_scores — stored as {date: {...}} dict in KV, not a list
+    stress_raw = fetch_kv("life_stress_scores") or {}
+    if isinstance(stress_raw, list):
+        # Tolerate accidental list format
+        stress_raw = {e["date"]: e for e in stress_raw if isinstance(e, dict) and "date" in e}
     stress_rows = []
     seen_stress_dates: set[str] = set()
-    for entry in stress_raw:
+    for date_str, entry in stress_raw.items():
         if not isinstance(entry, dict):
             continue
-        date_str = entry.get("date")
-        if not date_str or date_str in seen_stress_dates:
+        if date_str in seen_stress_dates:
             continue
         seen_stress_dates.add(date_str)
+        entry = {**entry, "date": date_str}
         row_st: dict = {"date": date_str}
         score = safe_float(entry.get("score"))
         if score is not None:
