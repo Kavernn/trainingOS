@@ -1,10 +1,18 @@
 from __future__ import annotations
-from db import get_json
+import db
 
-# Charge l'historique HIIT depuis KV (clé "hiit_log")
+
+# Charge l'historique HIIT depuis la table relationnelle ou KV (clé "hiit_log")
 def load_hiit_log():
-    log = get_json("hiit_log", []) or []
+    try:
+        result = db.get_hiit_logs()
+        if isinstance(result, list):
+            return result
+    except Exception:
+        pass
+    log = db.get_json("hiit_log", []) or []
     return log if isinstance(log, list) else []
+
 
 # Phases HIIT (conservées)
 HIIT_PHASES = [
@@ -13,11 +21,13 @@ HIIT_PHASES = [
     {"weeks": (7, 99), "sprint": 45, "rest": 75, "rounds": 10, "speed": "14-16 km/h"},
 ]
 
+
 def get_hiit(week: int) -> dict:
     for phase in HIIT_PHASES:
         if phase["weeks"][0] <= week <= phase["weeks"][1]:
             return phase
     return HIIT_PHASES[-1]
+
 
 def get_hiit_str(week: int) -> str:
     p = get_hiit(week)

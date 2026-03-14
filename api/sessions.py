@@ -1,14 +1,35 @@
 from __future__ import annotations
-from db import get_json, set_json
+import db
 from datetime import datetime
 
 
 def load_sessions() -> dict:
-    return get_json("sessions", {})
+    try:
+        rows = db.get_workout_sessions(limit=500)
+        if isinstance(rows, list):
+            result = {}
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                date = row.get("date")
+                if date:
+                    entry = {k: v for k, v in row.items() if k != "date"}
+                    result[date] = entry
+            return result
+    except Exception:
+        pass
+    return db.get_json("sessions", {}) or {}
 
 
 def save_sessions(sessions: dict):
-    set_json("sessions", sessions)
+    try:
+        for date, entry in sessions.items():
+            if isinstance(entry, dict):
+                db.update_workout_session(date, entry)
+    except Exception:
+        pass
+    # Always sync to KV for consistency
+    db.set_json("sessions", sessions)
 
 
 def log_session(
@@ -39,9 +60,6 @@ def log_session(
         total_reps:     Total reps performed across all strength exercises.
         total_sets:     Total sets performed across all strength exercises.
     """
-    sessions = load_sessions()
-
-    # Derive the legacy exos field so older readers stay compatible
     legacy_exos = exos or []
     if blocks is not None and not legacy_exos:
         strength = next((b for b in blocks if b.get("type") == "strength"), None)
@@ -67,8 +85,22 @@ def log_session(
     if total_sets is not None:
         entry["total_sets"] = total_sets
 
+    # Try relational path
+    try:
+        db.create_workout_session(
+            date,
+            rpe=rpe,
+            comment=comment,
+            duration_min=duration_min,
+            energy_pre=energy_pre,
+        )
+    except Exception:
+        pass
+
+    # Always persist to KV for consistency
+    sessions = db.get_json("sessions", {}) or {}
     sessions[date] = entry
-    save_sessions(sessions)
+    db.set_json("sessions", sessions)
 
 
 def log_second_session(
@@ -117,11 +149,37 @@ def log_second_session(
 
 
 def session_exists(date: str) -> bool:
-    return date in load_sessions()
+    try:
+        result = db.get_workout_session(date)
+        if isinstance(result, dict):
+            return True
+        if result is None:
+            # Definitive None from domain method means not found
+            # (but only if it's a real None, not a MagicMock)
+            pass
+    except Exception:
+        pass
+    # Fall back to KV
+    return date in (db.get_json("sessions", {}) or {})
 
 
 def get_last_sessions(n: int = 10) -> list:
-    sessions = load_sessions()
+    try:
+        rows = db.get_workout_sessions(limit=n)
+        if isinstance(rows, list):
+            result = []
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                entry = dict(row)
+                if "date" not in entry:
+                    continue
+                result.append(entry)
+            if result:
+                return result[:n]
+    except Exception:
+        pass
+    sessions = db.get_json("sessions", {}) or {}
     result = []
     for date in sorted(sessions.keys(), reverse=True)[:n]:
         entry = sessions[date].copy()

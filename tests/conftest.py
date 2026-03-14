@@ -123,12 +123,303 @@ def make_store():
         store[key] = lst
         return True
 
+    # ── Domain methods ────────────────────────────────────────────────────────
+
+    def get_exercises():
+        return copy.deepcopy(store.get("inventory", {}))
+
+    def get_exercise_by_name(name):
+        inv = store.get("inventory", {})
+        info = inv.get(name)
+        return {"name": name, **info} if info else None
+
+    def get_exercise_id(name):
+        return name  # use name as ID in tests
+
+    def upsert_exercise(data):
+        name = data.get("name")
+        if not name:
+            return None
+        inv = store.get("inventory", {})
+        inv[name] = {k: v for k, v in data.items() if k != "name"}
+        store["inventory"] = inv
+        return data
+
+    def rename_exercise_table(old_name, new_name):
+        inv = store.get("inventory", {})
+        if old_name in inv:
+            inv[new_name] = inv.pop(old_name)
+            store["inventory"] = inv
+            return True
+        return False
+
+    def delete_exercise_by_name(name):
+        inv = store.get("inventory", {})
+        if name in inv:
+            del inv[name]
+            store["inventory"] = inv
+            return True
+        return False
+
+    def get_workout_sessions(limit=100):
+        sessions = store.get("sessions", {})
+        result = []
+        for date in sorted(sessions.keys(), reverse=True)[:limit]:
+            entry = copy.deepcopy(sessions[date])
+            entry["date"] = date
+            result.append(entry)
+        return result
+
+    def get_workout_session(date):
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            entry = copy.deepcopy(sessions[date])
+            entry["date"] = date
+            return entry
+        return None
+
+    def create_workout_session(date, rpe=None, comment=None, duration_min=None, energy_pre=None, is_second=False):
+        sessions = store.get("sessions", {})
+        key = date if not is_second else f"{date}_2"
+        entry = {"rpe": rpe, "comment": comment or "", "exos": []}
+        if duration_min is not None:
+            entry["duration_min"] = duration_min
+        sessions[key] = entry
+        store["sessions"] = sessions
+        return {**entry, "date": date, "id": key}
+
+    def update_workout_session(date, patch):
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            sessions[date].update(patch)
+            store["sessions"] = sessions
+            return True
+        return False
+
+    def delete_workout_session(date):
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            del sessions[date]
+            store["sessions"] = sessions
+            return True
+        return False
+
+    def get_exercise_history(exercise_name, limit=50):
+        weights = store.get("weights", {})
+        history = weights.get(exercise_name, {}).get("history", [])
+        result = []
+        for entry in history[:limit]:
+            result.append({
+                "date":       entry.get("date"),
+                "weight":     entry.get("weight"),
+                "reps":       entry.get("reps"),
+                "session_id": entry.get("date"),
+            })
+        return result
+
+    def get_session_exercise_logs(session_date):
+        weights = store.get("weights", {})
+        result = []
+        for name, ex_data in weights.items():
+            history = ex_data.get("history", [])
+            for entry in history:
+                if entry.get("date") == session_date:
+                    result.append({"exercise_name": name, "weight": entry.get("weight"), "reps": entry.get("reps")})
+        return result
+
+    def upsert_exercise_log(session_date, exercise_name, weight, reps):
+        weights = store.get("weights", {})
+        if exercise_name not in weights:
+            weights[exercise_name] = {"current_weight": weight or 0, "last_reps": reps or "", "history": []}
+        history = weights[exercise_name].get("history", [])
+        for entry in history:
+            if entry.get("date") == session_date:
+                entry["weight"] = weight
+                entry["reps"] = reps
+                store["weights"] = weights
+                return True
+        history.insert(0, {"date": session_date, "weight": weight, "reps": reps})
+        weights[exercise_name]["history"] = history
+        if weight:
+            weights[exercise_name]["current_weight"] = weight
+        if reps:
+            weights[exercise_name]["last_reps"] = reps
+        store["weights"] = weights
+        return True
+
+    def delete_session_exercise_logs(session_date):
+        weights = store.get("weights", {})
+        for ex_data in weights.values():
+            ex_data["history"] = [e for e in ex_data.get("history", []) if e.get("date") != session_date]
+        store["weights"] = weights
+        return True
+
+    def get_body_weight_logs(limit=100):
+        return copy.deepcopy(store.get("body_weight", []))[:limit]
+
+    def upsert_body_weight(date, weight, note=""):
+        bw = store.get("body_weight", [])
+        for entry in bw:
+            if entry.get("date") == date:
+                entry["poids"] = weight
+                entry["note"] = note
+                store["body_weight"] = bw
+                return True
+        bw.insert(0, {"date": date, "poids": weight, "note": note})
+        store["body_weight"] = bw
+        return True
+
+    def delete_body_weight(date):
+        bw = store.get("body_weight", [])
+        store["body_weight"] = [e for e in bw if e.get("date") != date]
+        return True
+
+    def get_hiit_logs(limit=100):
+        return copy.deepcopy(store.get("hiit_log", []))[:limit]
+
+    def insert_hiit_log(data):
+        import uuid
+        logs = store.get("hiit_log", [])
+        entry = copy.deepcopy(data)
+        if "id" not in entry:
+            entry["id"] = str(uuid.uuid4())
+        logs.insert(0, entry)
+        store["hiit_log"] = logs
+        return entry
+
+    def update_hiit_log(hiit_id, patch):
+        logs = store.get("hiit_log", [])
+        for entry in logs:
+            if entry.get("id") == str(hiit_id) or logs.index(entry) == hiit_id:
+                entry.update(patch)
+                store["hiit_log"] = logs
+                return True
+        return False
+
+    def delete_hiit_log_by_id(hiit_id):
+        logs = store.get("hiit_log", [])
+        before = len(logs)
+        store["hiit_log"] = [e for e in logs if e.get("id") != str(hiit_id)]
+        return len(store["hiit_log"]) < before
+
+    def get_recovery_logs(limit=100):
+        return copy.deepcopy(store.get("recovery_log", []))[:limit]
+
+    def upsert_recovery_log(data):
+        logs = store.get("recovery_log", [])
+        date = data.get("date")
+        for i, entry in enumerate(logs):
+            if entry.get("date") == date:
+                logs[i] = copy.deepcopy(data)
+                store["recovery_log"] = logs
+                return True
+        logs.insert(0, copy.deepcopy(data))
+        store["recovery_log"] = logs
+        return True
+
+    def delete_recovery_log(date):
+        logs = store.get("recovery_log", [])
+        store["recovery_log"] = [e for e in logs if e.get("date") != date]
+        return True
+
+    def get_goals():
+        return copy.deepcopy(store.get("goals", {}))
+
+    def set_goal(exercise_name, target_weight, target_date=None):
+        goals = store.get("goals", {})
+        goals[exercise_name] = {"goal_weight": target_weight}
+        if target_date:
+            goals[exercise_name]["target_date"] = target_date
+        store["goals"] = goals
+        return True
+
+    def get_cardio_logs(limit=100):
+        return copy.deepcopy(store.get("cardio_log", []))[:limit]
+
+    def insert_cardio_log(data):
+        logs = store.get("cardio_log", [])
+        logs.insert(0, copy.deepcopy(data))
+        store["cardio_log"] = logs
+        return True
+
+    def delete_cardio_log(date, type_):
+        logs = store.get("cardio_log", [])
+        store["cardio_log"] = [e for e in logs if not (e.get("date") == date and e.get("type") == type_)]
+        return True
+
+    def get_profile():
+        return copy.deepcopy(store.get("user_profile", {}))
+
+    def update_profile(patch):
+        profile = store.get("user_profile", {})
+        profile.update(patch)
+        store["user_profile"] = profile
+        return True
+
+    def get_nutrition_settings():
+        return copy.deepcopy(store.get("nutrition_settings", {}))
+
+    def update_nutrition_settings(patch):
+        settings = store.get("nutrition_settings", {})
+        settings.update(patch)
+        store["nutrition_settings"] = settings
+        return True
+
+    def get_deload_state():
+        return copy.deepcopy(store.get("deload_state", {"active": False}))
+
+    def set_deload_state(active, started_at=None, reason=None):
+        state = {"active": active}
+        if started_at:
+            state["started_at"] = started_at
+        if reason:
+            state["reason"] = reason
+        store["deload_state"] = state
+        return True
+
     db_mock = MagicMock(
         get_json=get_json,
         set_json=set_json,
         update_json=update_json,
         append_json_list=append_json_list,
         _ON_VERCEL=False,
+        # Domain methods
+        get_exercises=get_exercises,
+        get_exercise_by_name=get_exercise_by_name,
+        get_exercise_id=get_exercise_id,
+        upsert_exercise=upsert_exercise,
+        rename_exercise_table=rename_exercise_table,
+        delete_exercise_by_name=delete_exercise_by_name,
+        get_workout_sessions=get_workout_sessions,
+        get_workout_session=get_workout_session,
+        create_workout_session=create_workout_session,
+        update_workout_session=update_workout_session,
+        delete_workout_session=delete_workout_session,
+        get_exercise_history=get_exercise_history,
+        get_session_exercise_logs=get_session_exercise_logs,
+        upsert_exercise_log=upsert_exercise_log,
+        delete_session_exercise_logs=delete_session_exercise_logs,
+        get_body_weight_logs=get_body_weight_logs,
+        upsert_body_weight=upsert_body_weight,
+        delete_body_weight=delete_body_weight,
+        get_hiit_logs=get_hiit_logs,
+        insert_hiit_log=insert_hiit_log,
+        update_hiit_log=update_hiit_log,
+        delete_hiit_log_by_id=delete_hiit_log_by_id,
+        get_recovery_logs=get_recovery_logs,
+        upsert_recovery_log=upsert_recovery_log,
+        delete_recovery_log=delete_recovery_log,
+        get_goals=get_goals,
+        set_goal=set_goal,
+        get_cardio_logs=get_cardio_logs,
+        insert_cardio_log=insert_cardio_log,
+        delete_cardio_log=delete_cardio_log,
+        get_profile=get_profile,
+        update_profile=update_profile,
+        get_nutrition_settings=get_nutrition_settings,
+        update_nutrition_settings=update_nutrition_settings,
+        get_deload_state=get_deload_state,
+        set_deload_state=set_deload_state,
     )
     return store, db_mock
 
@@ -140,7 +431,7 @@ _MODULES_TO_EVICT = (
     "progression", "deload", "goals", "body_weight", "user_profile",
     "hiit", "blocks", "nutrition", "volume", "health_data",
     "life_stress_engine", "mental_health_dashboard", "mood", "journal",
-    "breathwork", "self_care", "sleep", "pss", "cardio",
+    "breathwork", "self_care", "sleep", "pss", "cardio", "weights",
 )
 
 TODAY = "2026-03-14"

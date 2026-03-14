@@ -60,7 +60,8 @@ from blocks       import (make_strength_block, make_hiit_block, make_cardio_bloc
                            get_block, get_strength_exercises,
                            upsert_block, remove_block, reorder_blocks)
 from hiit         import get_hiit_str
-from log_workout  import load_weights, save_weights, log_single_exercise
+from weights      import load_weights, save_weights
+from log_workout  import log_single_exercise
 from inventory    import load_inventory, save_inventory, calculate_plates
 from sessions     import load_sessions, log_session, log_second_session, session_exists
 from user_profile import load_user_profile, save_user_profile

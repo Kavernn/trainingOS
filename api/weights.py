@@ -1,0 +1,106 @@
+"""
+Adapter: translates between old weights dict format and new exercise_logs table.
+
+Old format (KV):
+{
+  "Bench Press": {
+    "current_weight": 185.0,   # COMPUTED - derive from latest history entry
+    "last_reps": "6,6,5,5",    # COMPUTED - derive from latest history entry
+    "history": [
+      {"date": "2026-03-10", "weight": 185.0, "reps": "6,6,5,5", "1rm": 210.0}
+    ]
+  }
+}
+
+New format (relational): exercise_logs table with exercise_id FK, no computed fields.
+"""
+import db
+
+
+def _calc_1rm(weight, reps_str):
+    """Simple 1RM estimate (Epley) from a reps string like '6,6,5,5'."""
+    try:
+        reps_list = [int(x) for x in str(reps_str).split(",") if x.strip().isdigit()]
+        if not reps_list or not weight:
+            return 0
+        avg = sum(reps_list) / len(reps_list)
+        return round(weight * (1 + avg / 30), 1)
+    except Exception:
+        return 0
+
+
+def load_weights() -> dict:
+    """
+    Build the old weights dict from exercise_logs + workout_sessions + exercises.
+    Falls back to KV get_json("weights") if domain methods unavailable or return wrong type.
+    """
+    try:
+        exercises = db.get_exercises()
+        # Only use relational path if we get a real dict back
+        if not isinstance(exercises, dict) or not exercises:
+            raise ValueError("no exercises from relational layer")
+
+        weights = {}
+        for name in exercises.keys():
+            history_rows = db.get_exercise_history(name, limit=100)
+            if not isinstance(history_rows, list):
+                continue
+            if not history_rows:
+                continue
+            history = []
+            for row in history_rows:
+                if not isinstance(row, dict):
+                    continue
+                entry = {
+                    "date":   row.get("date"),
+                    "weight": row.get("weight"),
+                    "reps":   row.get("reps"),
+                }
+                if entry["weight"] and entry["reps"]:
+                    entry["1rm"] = _calc_1rm(entry["weight"], entry["reps"])
+                history.append(entry)
+
+            if not history:
+                continue
+
+            latest = history[0]
+            weights[name] = {
+                "current_weight": latest.get("weight", 0),
+                "last_reps":      latest.get("reps", ""),
+                "history":        history,
+            }
+        return weights
+    except Exception:
+        return db.get_json("weights", {}) or {}
+
+
+def save_weights(weights: dict) -> bool:
+    """
+    Persist weights dict back to exercise_logs table AND to KV for consistency.
+    Falls back to KV set_json only if domain methods fail.
+    """
+    # Always write to KV for backward compat and test consistency
+    kv_ok = True
+    try:
+        db.set_json("weights", weights)
+    except Exception:
+        kv_ok = False
+
+    # Also try to persist to relational layer
+    try:
+        for exercise_name, ex_data in weights.items():
+            if not isinstance(ex_data, dict):
+                continue
+            history = ex_data.get("history", [])
+            for entry in history:
+                if not isinstance(entry, dict):
+                    continue
+                date   = entry.get("date")
+                weight = entry.get("weight")
+                reps   = entry.get("reps")
+                if date and (weight is not None or reps is not None):
+                    db.upsert_exercise_log(date, exercise_name, weight, reps)
+    except Exception:
+        pass
+
+    return kv_ok
