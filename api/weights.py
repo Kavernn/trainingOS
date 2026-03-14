@@ -31,21 +31,17 @@ def _calc_1rm(weight, reps_str):
 
 def load_weights() -> dict:
     """
-    Build the old weights dict from exercise_logs + workout_sessions + exercises.
-    Falls back to KV get_json("weights") if domain methods unavailable or return wrong type.
+    Build the old weights dict from exercise_logs in a single bulk query.
+    Falls back to KV get_json("weights") if domain methods unavailable.
     """
     try:
-        exercises = db.get_exercises()
-        # Only use relational path if we get a real dict back
-        if not isinstance(exercises, dict) or not exercises:
-            raise ValueError("no exercises from relational layer")
+        all_history = db.get_all_exercise_history()
+        if not isinstance(all_history, dict) or not all_history:
+            raise ValueError("no history from relational layer")
 
         weights = {}
-        for name in exercises.keys():
-            history_rows = db.get_exercise_history(name, limit=100)
-            if not isinstance(history_rows, list):
-                continue
-            if not history_rows:
+        for name, history_rows in all_history.items():
+            if not isinstance(history_rows, list) or not history_rows:
                 continue
             history = []
             for row in history_rows:

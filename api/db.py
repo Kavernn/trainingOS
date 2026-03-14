@@ -610,27 +610,15 @@ def delete_workout_session(date: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
-    """Return [{date, weight, reps, session_id}] newest first. 1RM is NOT stored here.
-
-    To compute 1RM on the caller side use: weight * (1 + max_reps / 30)
-    """
-    # fallback to KV during migration
+    """Return [{date, weight, reps, session_id}] newest first."""
     if _client is None or MODE == "OFFLINE":
         weights = get_json("weights", {})
-        history = weights.get(exercise_name, {}).get("history", [])
-        return history[:limit]
+        return weights.get(exercise_name, {}).get("history", [])[:limit]
     try:
-        resp = _client.rpc(
-            "get_exercise_history",
-            {"p_name": exercise_name, "p_limit": limit},
-        ).execute()
-        if resp.data:
-            return resp.data
-
-        # Fallback: manual join if RPC not deployed yet
         ex_id = get_exercise_id(exercise_name)
         if not ex_id:
-            return []
+            weights = get_json("weights", {})
+            return weights.get(exercise_name, {}).get("history", [])[:limit]
         resp = (
             _client.table("exercise_logs")
             .select("weight, reps, session_id, workout_sessions(date)")
@@ -642,9 +630,9 @@ def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
         rows = resp.data or []
         return [
             {
-                "date": r["workout_sessions"]["date"],
-                "weight": r["weight"],
-                "reps": r["reps"],
+                "date":       r["workout_sessions"]["date"],
+                "weight":     r["weight"],
+                "reps":       r["reps"],
                 "session_id": r["session_id"],
             }
             for r in rows
@@ -652,10 +640,45 @@ def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
         ]
     except Exception as e:
         logger.error("get_exercise_history(%s) error: %s", exercise_name, e)
-        # fallback to KV during migration
         weights = get_json("weights", {})
-        history = weights.get(exercise_name, {}).get("history", [])
-        return history[:limit]
+        return weights.get(exercise_name, {}).get("history", [])[:limit]
+
+
+def get_all_exercise_history() -> dict:
+    """Return {exercise_name: [{date, weight, reps}]} for all exercises in one query.
+
+    Used by load_weights() to avoid N+1 per-exercise queries.
+    Falls back to KV get_json('weights') on error.
+    """
+    if _client is None or MODE == "OFFLINE":
+        weights = get_json("weights", {})
+        return {
+            name: data.get("history", [])
+            for name, data in weights.items()
+        }
+    try:
+        resp = (
+            _client.table("exercise_logs")
+            .select("weight, reps, exercises(name), workout_sessions(date)")
+            .execute()
+        )
+        rows = resp.data or []
+        result: dict = {}
+        for r in rows:
+            name = (r.get("exercises") or {}).get("name")
+            date = (r.get("workout_sessions") or {}).get("date")
+            if not name or not date:
+                continue
+            entry = {"date": date, "weight": r.get("weight"), "reps": r.get("reps")}
+            result.setdefault(name, []).append(entry)
+        # Sort each exercise history newest-first
+        for name in result:
+            result[name].sort(key=lambda x: x.get("date", ""), reverse=True)
+        return result
+    except Exception as e:
+        logger.error("get_all_exercise_history error: %s", e)
+        weights = get_json("weights", {})
+        return {name: data.get("history", []) for name, data in weights.items()}
 
 
 def get_session_exercise_logs(session_date: str) -> List[dict]:
