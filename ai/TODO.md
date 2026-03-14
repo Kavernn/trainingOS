@@ -8,15 +8,15 @@ Mettre à jour ce fichier et `STATE.md` après chaque tâche complétée.
 ## Haute priorité
 
 - [ ] Logger les appels Claude (remplacer les `print` DEBUG par un vrai logger)
-- [ ] Forcer `SECRET_KEY` en production (lever une erreur si valeur par défaut détectée sur Vercel)
-- [ ] Ajouter un rate limiting sur les appels à l'API Anthropic (éviter dépassement de coût)
+- [x] Forcer `SECRET_KEY` en production (lever une erreur si valeur par défaut détectée sur Vercel)
+- [x] Ajouter un rate limiting sur les appels à l'API Anthropic (éviter dépassement de coût)
 - [ ] Tests Flask pour les routes principales (index, seance, historique, nutrition)
 
 ---
 
 ## Priorité moyenne
 
-- [ ] Indicateur UI de sync offline (badge "non synchronisé" quand des entrées sont `dirty`)
+- [x] Indicateur UI de sync offline (endpoint /api/sync_status exposant le nombre de dirty)
 - [ ] Externaliser le CSS inline volumineux des templates vers `static/`
 - [ ] Améliorer la page `intelligence.html` : historique des échanges avec le coach IA
 - [ ] Déload automatique : notification UI quand un déload est détecté

@@ -1,7 +1,7 @@
 # api/index.py
 from __future__ import annotations
 import os, sys, json, socket, webbrowser
-from threading import Timer
+from threading import Timer, Lock
 from datetime import datetime, date
 from pathlib import Path
 
@@ -83,12 +83,39 @@ app = Flask(
     template_folder = TEMPLATES,
     static_folder   = STATIC,
 )
-app.secret_key = os.getenv("SECRET_KEY", "trainingos-secret-change-in-prod")
+_SECRET_KEY_DEFAULT = "trainingos-secret-change-in-prod"
+_secret_key = os.getenv("SECRET_KEY", _SECRET_KEY_DEFAULT)
+if os.getenv("VERCEL") and _secret_key == _SECRET_KEY_DEFAULT:
+    raise RuntimeError("SECRET_KEY must be set to a secure value in production (Vercel env vars)")
+app.secret_key = _secret_key
 
 UPLOAD_FOLDER      = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 RAPID_API_KEY = os.getenv("X_RAPIDAPI_KEY")
+
+# ── Rate limiting for Anthropic AI routes ─────────────────────────────────────
+# Token bucket: refills at 1 token/6 min → max 10 calls/hour
+_AI_RATE_LOCK      = Lock()
+_AI_TOKENS         = 10        # current bucket level
+_AI_MAX_TOKENS     = 10
+_AI_REFILL_SECONDS = 360       # 1 token per 6 minutes
+_AI_LAST_REFILL    = datetime.utcnow()
+
+def _ai_rate_check() -> bool:
+    """Return True if the request is allowed, False if rate limited."""
+    global _AI_TOKENS, _AI_LAST_REFILL
+    with _AI_RATE_LOCK:
+        now     = datetime.utcnow()
+        elapsed = (now - _AI_LAST_REFILL).total_seconds()
+        refill  = int(elapsed / _AI_REFILL_SECONDS)
+        if refill > 0:
+            _AI_TOKENS      = min(_AI_MAX_TOKENS, _AI_TOKENS + refill)
+            _AI_LAST_REFILL = now
+        if _AI_TOKENS <= 0:
+            return False
+        _AI_TOKENS -= 1
+        return True
 
 
 # ── Helpers ─────────────────────────────────────────────────
@@ -1084,6 +1111,8 @@ def api_delete_body_weight():
 @app.route("/api/ai/propose", methods=["POST"])
 def api_ai_propose():
     """Claude returns structured program modification proposals as JSON."""
+    if not _ai_rate_check():
+        return jsonify({"error": "Trop de requêtes — réessaie dans quelques minutes."}), 429
     import os, json as _json
     import anthropic as _anthropic
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -1127,6 +1156,8 @@ def api_ai_propose():
 
 @app.route("/api/ai/coach", methods=["POST"])
 def api_ai_coach():
+    if not _ai_rate_check():
+        return jsonify({"error": "Trop de requêtes — réessaie dans quelques minutes."}), 429
     import os
     import anthropic as _anthropic
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -1161,6 +1192,14 @@ def api_ai_coach():
         return jsonify({"error": "Clé ANTHROPIC_API_KEY invalide"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/sync_status")
+def api_sync_status():
+    """Returns count of dirty (unsynced) entries in the local SQLite cache."""
+    from db import _sqlite_all_dirty
+    dirty = _sqlite_all_dirty()
+    return jsonify({"dirty_count": len(dirty), "dirty_keys": list(dirty.keys())})
 
 
 @app.route("/api/weights")
