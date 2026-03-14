@@ -1295,6 +1295,12 @@ def api_deload():
     return jsonify(analyser_deload(load_weights()))
 
 
+@app.route("/api/acwr")
+def api_acwr():
+    from acwr import calc_acwr
+    return jsonify(calc_acwr())
+
+
 @app.route("/sw.js")
 def service_worker():
     # Version = SHA git sur Vercel, timestamp horaire en local

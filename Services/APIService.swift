@@ -347,6 +347,13 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode([LifeStressScore].self, from: data)
     }
 
+    // MARK: - ACWR
+    func fetchACWR() async throws -> ACWRData {
+        let url = URL(string: "\(baseURL)/api/acwr")!
+        let data = try await fetchWithCache(url: url, key: "acwr")
+        return try JSONDecoder().decode(ACWRData.self, from: data)
+    }
+
     // MARK: - Deload
     func fetchDeloadData() async throws -> DeloadReport {
         let url = URL(string: "\(baseURL)/api/deload")!

@@ -776,3 +776,34 @@ struct SleepStats: Codable {
         case avgQuality  = "avg_quality"
     }
 }
+
+// MARK: - ACWR
+struct ACWRData: Codable {
+    let ratio: Double
+    let acuteLoad: Double
+    let chronicLoad: Double
+    let zone: ACWRZone
+    let trend: [ACWRWeek]
+
+    enum CodingKeys: String, CodingKey {
+        case ratio, zone, trend
+        case acuteLoad   = "acute_load"
+        case chronicLoad = "chronic_load"
+    }
+}
+
+struct ACWRZone: Codable {
+    let code: String
+    let label: String
+    let color: String
+    let recommendation: String
+}
+
+struct ACWRWeek: Codable, Identifiable {
+    var id: String { week }
+    let week: String
+    let ratio: Double
+    let acute: Double
+    let chronic: Double
+}
+
