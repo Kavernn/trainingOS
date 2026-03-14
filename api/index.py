@@ -1,9 +1,17 @@
 # api/index.py
 from __future__ import annotations
-import os, sys, json, socket, webbrowser
+import os, sys, json, socket, webbrowser, logging
 from threading import Timer, Lock
 from datetime import datetime, date
 from pathlib import Path
+
+# ── Logging setup ────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+logger = logging.getLogger("trainingos")
 
 # Charge le .env pour le dev local (no-op sur Vercel)
 try:
@@ -828,7 +836,7 @@ def api_save_exercise():
                 if res_json and len(res_json) > 0:
                     gif_url = res_json[0].get("gifUrl")
         except Exception as e:
-            print(f"Erreur ExerciseDB : {e}")
+            logger.warning("Erreur ExerciseDB : %s", e)
 
     # Mise à jour du dictionnaire avec tes champs existants + le GIF
     inv[name] = {
@@ -1124,6 +1132,7 @@ def api_ai_propose():
         if not context:
             return jsonify({"error": "Contexte manquant"}), 400
 
+        logger.info("Claude propose — tokens_remaining=%d context_len=%d", _AI_TOKENS, len(context))
         client  = _anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-sonnet-4-6",
@@ -1169,6 +1178,7 @@ def api_ai_coach():
         if not prompt:
             return jsonify({"error": "Prompt vide"}), 400
 
+        logger.info("Claude coach — tokens_remaining=%d prompt_len=%d", _AI_TOKENS, len(prompt))
         client = _anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-sonnet-4-6",
@@ -1200,6 +1210,20 @@ def api_sync_status():
     from db import _sqlite_all_dirty
     dirty = _sqlite_all_dirty()
     return jsonify({"dirty_count": len(dirty), "dirty_keys": list(dirty.keys())})
+
+
+@app.route("/api/deload_status")
+def api_deload_status():
+    """Returns deload analysis: stagnation, RPE fatigue, recommendation."""
+    weights = load_weights()
+    rapport = analyser_deload(weights)
+    logger.info(
+        "Deload status — recommande=%s stagnants=%d rpe_moyen=%s",
+        rapport["recommande"],
+        len(rapport["stagnants"]),
+        rapport["fatigue_rpe"].get("rpe_moyen"),
+    )
+    return jsonify(rapport)
 
 
 @app.route("/api/weights")
@@ -2022,7 +2046,7 @@ if __name__ == "__main__":
     # PORT stocké dans l'env pour que le child du reloader utilise le même
     port = int(os.environ.setdefault("PORT", str(find_free_port())))
     url  = f"http://localhost:{port}"
-    print(f"🚀 TrainingOS → {url}")
+    logger.info("TrainingOS → %s", url)
     # N'ouvre le navigateur que dans le processus principal (pas le child du reloader)
     if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
         Timer(1.0, lambda: webbrowser.open(url)).start()
