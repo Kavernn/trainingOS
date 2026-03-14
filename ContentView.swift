@@ -4,6 +4,7 @@ import Combine
 struct ContentView: View {
     @StateObject private var api     = APIService.shared
     @StateObject private var network = NetworkMonitor.shared
+    @StateObject private var sync    = SyncManager.shared
     @State private var selectedTab   = 0
 
     var body: some View {
@@ -40,7 +41,7 @@ struct ContentView: View {
         }
         .tabBarMinimizeBehavior(.onScrollDown)
         .onAppear { configureTabBarAppearance() }
-        // Offline banner
+        // Offline banner (top)
         .overlay(alignment: .top) {
             if !network.isOnline {
                 HStack(spacing: 6) {
@@ -56,6 +57,29 @@ struct ContentView: View {
                 .allowsHitTesting(false)
             }
         }
+        // Offline queued toast (bottom)
+        .overlay(alignment: .bottom) {
+            if let msg = sync.offlineToast {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(msg)
+                        .font(.system(size: 13, weight: .medium))
+                        .multilineTextAlignment(.leading)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color(white: 0.15).opacity(0.95))
+                .clipShape(Capsule())
+                .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+                .padding(.bottom, 90)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: msg)
+                .allowsHitTesting(false)
+            }
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
     }
 
     private func configureTabBarAppearance() {

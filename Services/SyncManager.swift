@@ -14,6 +14,7 @@ final class SyncManager: ObservableObject {
 
     @Published private(set) var pendingCount: Int = 0
     @Published private(set) var isSyncing = false
+    @Published var offlineToast: String? = nil
 
     private var container: ModelContainer?
     private var cancellables = Set<AnyCancellable>()
@@ -47,6 +48,15 @@ final class SyncManager: ObservableObject {
         context.insert(mutation)
         try? context.save()
         pendingCount += 1
+        showOfflineToast()
+    }
+
+    private func showOfflineToast() {
+        offlineToast = "Enregistré — sera synchronisé quand le réseau sera disponible"
+        Task {
+            try? await Task.sleep(nanoseconds: 3_500_000_000)
+            offlineToast = nil
+        }
     }
 
     // MARK: - Flush
