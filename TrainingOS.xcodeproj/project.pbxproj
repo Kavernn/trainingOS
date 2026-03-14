@@ -24,6 +24,8 @@
 		AA00200B2F5D98BA002AE470 /* IntelligenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00100B2F5D98B8002AE470 /* IntelligenceView.swift */; };
 		AA1100032F5D98BA002AE470 /* NetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100012F5D98BA002AE470 /* NetworkMonitor.swift */; };
 		AA1100042F5D98BA002AE470 /* CacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100022F5D98BA002AE470 /* CacheService.swift */; };
+		EE5500022F5D98BA002AE470 /* PendingMutation.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500012F5D98BA002AE470 /* PendingMutation.swift */; };
+		EE5500042F5D98BA002AE470 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500032F5D98BA002AE470 /* SyncManager.swift */; };
 		AA1100052F5D98BA002AE470 /* UnitSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100062F5D98BA002AE470 /* UnitSettings.swift */; };
 		BB001001BB001001BB001001 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001002BB001002BB001002 /* DesignSystem.swift */; };
 		BB2200032F5D98BA002AE470 /* WearableService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200012F5D98BA002AE470 /* WearableService.swift */; };
@@ -67,6 +69,8 @@
 		AA00100B2F5D98B8002AE470 /* IntelligenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntelligenceView.swift; sourceTree = "<group>"; };
 		AA1100012F5D98BA002AE470 /* NetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitor.swift; sourceTree = "<group>"; };
 		AA1100022F5D98BA002AE470 /* CacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheService.swift; sourceTree = "<group>"; };
+		EE5500012F5D98BA002AE470 /* PendingMutation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingMutation.swift; sourceTree = "<group>"; };
+		EE5500032F5D98BA002AE470 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
 		AA1100062F5D98BA002AE470 /* UnitSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitSettings.swift; sourceTree = "<group>"; };
 		AAD71080385415CDA19C0F0A /* CardioView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CardioView.swift; sourceTree = "<group>"; };
 		BB001002BB001002BB001002 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
@@ -270,6 +274,8 @@
 				AA1100022F5D98BA002AE470 /* CacheService.swift */,
 				AA1100062F5D98BA002AE470 /* UnitSettings.swift */,
 				BB2200012F5D98BA002AE470 /* WearableService.swift */,
+				EE5500012F5D98BA002AE470 /* PendingMutation.swift */,
+				EE5500032F5D98BA002AE470 /* SyncManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -482,6 +488,8 @@
 				9E8ED6F12F56136AE817562F /* HealthKitService.swift in Sources */,
 				AA1100032F5D98BA002AE470 /* NetworkMonitor.swift in Sources */,
 				AA1100042F5D98BA002AE470 /* CacheService.swift in Sources */,
+				EE5500022F5D98BA002AE470 /* PendingMutation.swift in Sources */,
+				EE5500042F5D98BA002AE470 /* SyncManager.swift in Sources */,
 				AA1100052F5D98BA002AE470 /* UnitSettings.swift in Sources */,
 				BB2200032F5D98BA002AE470 /* WearableService.swift in Sources */,
 				BB2200042F5D98BA002AE470 /* HealthDashboardView.swift in Sources */,

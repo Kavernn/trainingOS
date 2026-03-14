@@ -11,19 +11,25 @@ struct TrainingOSApp: App {
         return try! ModelContainer(for: schema, configurations: config)
     }()
 
+    init() {
+        // ModelContainer must be created before init() returns,
+        // so we call setup after the lazy initializer runs.
+    }
+
     var body: some Scene {
         WindowGroup {
-            if showSplash {
-                SplashView { showSplash = false }
-                    .preferredColorScheme(.dark)
-            } else {
-                ContentView()
-                    .preferredColorScheme(.dark)
+            Group {
+                if showSplash {
+                    SplashView { showSplash = false }
+                } else {
+                    ContentView()
+                }
+            }
+            .preferredColorScheme(.dark)
+            .onAppear {
+                SyncManager.shared.setup(container: modelContainer)
             }
         }
         .modelContainer(modelContainer)
-        .task {
-            SyncManager.shared.setup(container: modelContainer)
-        }
     }
 }
