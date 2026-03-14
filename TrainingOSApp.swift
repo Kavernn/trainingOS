@@ -19,7 +19,7 @@ struct TrainingOSApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if showSplash {
+                if showSplash { 
                     SplashView { showSplash = false }
                 } else {
                     ContentView()
