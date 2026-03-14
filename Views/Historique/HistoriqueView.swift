@@ -143,12 +143,14 @@ struct HistoriqueView: View {
     private func deleteMuscu(_ date: String) async {
         try? await APIService.shared.deleteSession(date: date)
         muscuSessions.removeAll { $0.date == date }
+        CacheService.shared.clear(for: "historique_data")
     }
 
     private func deleteHIIT(_ session: HIITEntry) async {
         if let date = session.date, let type = session.sessionType {
             try? await APIService.shared.deleteHIIT(date: date, sessionType: type)
             hiitSessions.removeAll { $0.id == session.id }
+            CacheService.shared.clear(for: "historique_data")
         }
     }
 }
