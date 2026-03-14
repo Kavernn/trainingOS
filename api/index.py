@@ -76,7 +76,7 @@ from nutrition    import (load_settings as load_nutrition_settings,
                           get_recent_days)
 from db           import get_json, set_json
 from db           import _ON_VERCEL
-from volume       import calc_set_volume, calc_exercise_volume, calc_session_volume
+from volume       import calc_set_volume, calc_exercise_volume, calc_session_volume, _calc_session_volume_legacy
 
 # ── App config ──────────────────────────────────────────────
 _API_DIR  = os.path.dirname(os.path.abspath(__file__))
@@ -707,7 +707,7 @@ def api_log_session():
 
         # Compute session volume stats from today's logged exercises
         weights   = load_weights()
-        vol_stats = calc_session_volume(exos, weights, today)
+        vol_stats = _calc_session_volume_legacy(exos, weights, today)
 
         if second_session:
             log_second_session(today, rpe, comment, exos, duration_min, energy_pre,

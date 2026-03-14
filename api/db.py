@@ -1,6 +1,6 @@
 from __future__ import annotations
 import os, json, sqlite3, threading, logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from datetime import datetime, timezone
 
 logger = logging.getLogger("trainingos.db")
@@ -42,8 +42,10 @@ if MODE != "OFFLINE":
 _SQL_LOCK = threading.RLock()
 _CONN: Optional[sqlite3.Connection] = None
 
+
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 def _ensure_sqlite():
     global _CONN
@@ -63,6 +65,7 @@ def _ensure_sqlite():
         """)
         _CONN.commit()
 
+
 def _sqlite_get(key: str) -> Tuple[Optional[Any], Optional[str], int]:
     if _ON_VERCEL:
         return None, None, 0
@@ -78,6 +81,7 @@ def _sqlite_get(key: str) -> Tuple[Optional[Any], Optional[str], int]:
             val = None
         return val, row[1], int(row[2])
 
+
 def _sqlite_set(key: str, value: Any, dirty: int):
     if _ON_VERCEL:
         return
@@ -89,6 +93,7 @@ def _sqlite_set(key: str, value: Any, dirty: int):
             (key, json.dumps(value, ensure_ascii=False), _now_iso(), dirty),
         )
         _CONN.commit()
+
 
 def _sqlite_all_dirty() -> Dict[str, Dict[str, Any]]:
     if _ON_VERCEL:
@@ -104,6 +109,7 @@ def _sqlite_all_dirty() -> Dict[str, Dict[str, Any]]:
                 out[key] = {"value": None, "updated_at": ts}
         return out
 
+
 def _sqlite_upsert_clean(key: str, value: Any, updated_at_iso: Optional[str] = None):
     """Enregistre en local avec dirty=0 (miroir d'un succès distant)."""
     if _ON_VERCEL:
@@ -116,6 +122,7 @@ def _sqlite_upsert_clean(key: str, value: Any, updated_at_iso: Optional[str] = N
             (key, json.dumps(value, ensure_ascii=False), updated_at_iso or _now_iso()),
         )
         _CONN.commit()
+
 
 # ---------------------------------------------------------------------------
 # Supabase helpers
@@ -155,8 +162,10 @@ def _set_online(key: str, value: Any) -> Tuple[bool, Optional[str]]:
     except Exception as e:
         logger.error("Supabase error for key %s: %s — %s", key, type(e).__name__, e)
         return False, None
+
+
 # ---------------------------------------------------------------------------
-# API publique utilisée par tes modules
+# API publique utilisée par tes modules (KV — preserved as-is)
 # ---------------------------------------------------------------------------
 def get_json(key: str, default: Any = None) -> Any:
     """
@@ -182,6 +191,7 @@ def get_json(key: str, default: Any = None) -> Any:
         return val
 
     return default
+
 
 def set_json(key: str, value: Any) -> bool:
     """
@@ -212,6 +222,7 @@ def set_json(key: str, value: Any) -> bool:
     _sqlite_set(key, value, dirty=1)
     return False
 
+
 def update_json(key: str, patch: Dict[str, Any]) -> Any:
     base = get_json(key, {}) or {}
     if not isinstance(base, dict):
@@ -219,6 +230,7 @@ def update_json(key: str, patch: Dict[str, Any]) -> Any:
     base.update(patch)
     set_json(key, base)
     return base
+
 
 def append_json_list(key: str, entry: Any, max_items: Optional[int] = None) -> list:
     arr = get_json(key, []) or []
@@ -230,9 +242,11 @@ def append_json_list(key: str, entry: Any, max_items: Optional[int] = None) -> l
     set_json(key, arr)
     return arr
 
+
 def client():
     """Retourne le client Supabase si disponible (sinon None)"""
     return _client
+
 
 # ---------------------------------------------------------------------------
 # Synchronisation manuelle: à appeler quand tu repasses ONLINE
@@ -254,6 +268,7 @@ def _compare_ts(ts_local: Optional[str], ts_remote: Optional[str]) -> int:
         return 0
     except Exception:
         return 0
+
 
 def sync_now(verbose: bool = True) -> Dict[str, str]:
     """
@@ -300,3 +315,1019 @@ def sync_now(verbose: bool = True) -> Dict[str, str]:
         for k, a in actions.items():
             logger.info("[sync] %s: %s", k, a)
     return actions
+
+
+# ===========================================================================
+# RELATIONAL TABLE METHODS
+# Domain-specific methods that query the new normalized tables directly.
+# Each method falls back to the KV layer when _client is None or MODE==OFFLINE.
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# Exercises  (replaces inventory KV)
+# ---------------------------------------------------------------------------
+
+def get_exercises() -> Dict[str, dict]:
+    """Return {name: {id, type, category, ...}} — same shape as current inventory KV.
+
+    Backward compatible with load_inventory() callers during migration.
+    Falls back to KV inventory key if Supabase unavailable.
+    """
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        return get_json("inventory", {})
+    try:
+        resp = _client.table("exercises").select("*").order("name").execute()
+        rows = resp.data or []
+        return {row["name"]: row for row in rows}
+    except Exception as e:
+        logger.error("get_exercises error: %s", e)
+        return get_json("inventory", {})  # fallback to KV during migration
+
+
+def get_exercise_by_name(name: str) -> Optional[dict]:
+    """Return a single exercise row by name, or None."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        inv = get_json("inventory", {})
+        return inv.get(name)
+    try:
+        resp = _client.table("exercises").select("*").eq("name", name).single().execute()
+        return resp.data
+    except Exception as e:
+        logger.debug("get_exercise_by_name(%s) error: %s", name, e)
+        inv = get_json("inventory", {})  # fallback to KV during migration
+        return inv.get(name)
+
+
+def get_exercise_id(name: str) -> Optional[str]:
+    """Return the UUID of an exercise by name, or None if not found."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("exercises").select("id").eq("name", name).single().execute()
+        return resp.data["id"] if resp.data else None
+    except Exception as e:
+        logger.debug("get_exercise_id(%s) error: %s", name, e)
+        return None  # fallback to KV during migration
+
+
+def upsert_exercise(data: dict) -> dict:
+    """Insert or update an exercise by name. data must include 'name'. Returns saved record."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        inv = get_json("inventory", {})
+        name = data.get("name", "")
+        inv[name] = data
+        set_json("inventory", inv)
+        return data
+    try:
+        resp = _client.table("exercises").upsert(data, on_conflict="name").execute()
+        if resp.data:
+            return resp.data[0]
+        return data
+    except Exception as e:
+        logger.error("upsert_exercise error: %s", e)
+        # fallback to KV during migration
+        inv = get_json("inventory", {})
+        name = data.get("name", "")
+        inv[name] = data
+        set_json("inventory", inv)
+        return data
+
+
+def rename_exercise_table(old_name: str, new_name: str) -> bool:
+    """Rename an exercise in the exercises table. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        inv = get_json("inventory", {})
+        if old_name in inv:
+            inv[new_name] = inv.pop(old_name)
+            set_json("inventory", inv)
+            return True
+        return False
+    try:
+        resp = _client.table("exercises").update({"name": new_name}).eq("name", old_name).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("rename_exercise_table error: %s", e)
+        # fallback to KV during migration
+        inv = get_json("inventory", {})
+        if old_name in inv:
+            inv[new_name] = inv.pop(old_name)
+            set_json("inventory", inv)
+            return True
+        return False
+
+
+def delete_exercise_by_name(name: str) -> bool:
+    """Delete an exercise by name. Returns True if a row was deleted."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        inv = get_json("inventory", {})
+        if name in inv:
+            del inv[name]
+            set_json("inventory", inv)
+            return True
+        return False
+    try:
+        resp = _client.table("exercises").delete().eq("name", name).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("delete_exercise_by_name error: %s", e)
+        # fallback to KV during migration
+        inv = get_json("inventory", {})
+        if name in inv:
+            del inv[name]
+            set_json("inventory", inv)
+            return True
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Workout sessions
+# ---------------------------------------------------------------------------
+
+def get_workout_sessions(limit: int = 100) -> List[dict]:
+    """Return list of workout sessions ordered by date DESC."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        sessions = get_json("sessions", {})
+        result = []
+        for d in sorted(sessions.keys(), reverse=True)[:limit]:
+            entry = sessions[d].copy()
+            entry["date"] = d
+            result.append(entry)
+        return result
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("*")
+            .order("date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_workout_sessions error: %s", e)
+        # fallback to KV during migration
+        sessions = get_json("sessions", {})
+        result = []
+        for d in sorted(sessions.keys(), reverse=True)[:limit]:
+            entry = sessions[d].copy()
+            entry["date"] = d
+            result.append(entry)
+        return result
+
+
+def get_workout_session(date: str) -> Optional[dict]:
+    """Return a single workout session by date (is_second=False), or None."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        sessions = get_json("sessions", {})
+        entry = sessions.get(date)
+        if entry:
+            return {**entry, "date": date}
+        return None
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("*")
+            .eq("date", date)
+            .eq("is_second", False)
+            .single()
+            .execute()
+        )
+        return resp.data
+    except Exception as e:
+        logger.debug("get_workout_session(%s) error: %s", date, e)
+        # fallback to KV during migration
+        sessions = get_json("sessions", {})
+        entry = sessions.get(date)
+        if entry:
+            return {**entry, "date": date}
+        return None
+
+
+def create_workout_session(
+    date: str,
+    rpe=None,
+    comment=None,
+    duration_min=None,
+    energy_pre=None,
+    is_second: bool = False,
+) -> dict:
+    """Insert a new workout session row. Returns the created record."""
+    payload: dict = {"date": date, "is_second": is_second}
+    if rpe is not None:
+        payload["rpe"] = int(rpe)
+    if comment is not None:
+        payload["comment"] = comment
+    if duration_min is not None:
+        payload["duration_min"] = int(duration_min)
+    if energy_pre is not None:
+        payload["energy_pre"] = int(energy_pre)
+
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        sessions = get_json("sessions", {})
+        entry = {k: v for k, v in payload.items() if k != "date"}
+        entry["logged_at"] = _now_iso()
+        sessions[date] = entry
+        set_json("sessions", sessions)
+        return {**entry, "date": date}
+    try:
+        resp = _client.table("workout_sessions").insert(payload).execute()
+        return resp.data[0] if resp.data else payload
+    except Exception as e:
+        logger.error("create_workout_session error: %s", e)
+        # fallback to KV during migration
+        sessions = get_json("sessions", {})
+        entry = {k: v for k, v in payload.items() if k != "date"}
+        entry["logged_at"] = _now_iso()
+        sessions[date] = entry
+        set_json("sessions", sessions)
+        return {**entry, "date": date}
+
+
+def update_workout_session(date: str, patch: dict) -> bool:
+    """Update fields on a workout session by date. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        sessions = get_json("sessions", {})
+        if date in sessions:
+            sessions[date].update(patch)
+            set_json("sessions", sessions)
+            return True
+        return False
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .update(patch)
+            .eq("date", date)
+            .eq("is_second", False)
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("update_workout_session error: %s", e)
+        # fallback to KV during migration
+        sessions = get_json("sessions", {})
+        if date in sessions:
+            sessions[date].update(patch)
+            set_json("sessions", sessions)
+            return True
+        return False
+
+
+def delete_workout_session(date: str) -> bool:
+    """Delete a workout session and its exercise_logs (cascade). Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        sessions = get_json("sessions", {})
+        if date in sessions:
+            del sessions[date]
+            set_json("sessions", sessions)
+            return True
+        return False
+    try:
+        resp = _client.table("workout_sessions").delete().eq("date", date).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("delete_workout_session error: %s", e)
+        # fallback to KV during migration
+        sessions = get_json("sessions", {})
+        if date in sessions:
+            del sessions[date]
+            set_json("sessions", sessions)
+            return True
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Exercise logs
+# ---------------------------------------------------------------------------
+
+def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
+    """Return [{date, weight, reps, session_id}] newest first. 1RM is NOT stored here.
+
+    To compute 1RM on the caller side use: weight * (1 + max_reps / 30)
+    """
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        weights = get_json("weights", {})
+        history = weights.get(exercise_name, {}).get("history", [])
+        return history[:limit]
+    try:
+        resp = _client.rpc(
+            "get_exercise_history",
+            {"p_name": exercise_name, "p_limit": limit},
+        ).execute()
+        if resp.data:
+            return resp.data
+
+        # Fallback: manual join if RPC not deployed yet
+        ex_id = get_exercise_id(exercise_name)
+        if not ex_id:
+            return []
+        resp = (
+            _client.table("exercise_logs")
+            .select("weight, reps, session_id, workout_sessions(date)")
+            .eq("exercise_id", ex_id)
+            .order("workout_sessions(date)", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        rows = resp.data or []
+        return [
+            {
+                "date": r["workout_sessions"]["date"],
+                "weight": r["weight"],
+                "reps": r["reps"],
+                "session_id": r["session_id"],
+            }
+            for r in rows
+            if r.get("workout_sessions")
+        ]
+    except Exception as e:
+        logger.error("get_exercise_history(%s) error: %s", exercise_name, e)
+        # fallback to KV during migration
+        weights = get_json("weights", {})
+        history = weights.get(exercise_name, {}).get("history", [])
+        return history[:limit]
+
+
+def get_session_exercise_logs(session_date: str) -> List[dict]:
+    """Return [{exercise_name, weight, reps}] for a given session date."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        weights = get_json("weights", {})
+        result = []
+        for name, data in weights.items():
+            history = data.get("history", [])
+            if history and history[0].get("date") == session_date:
+                result.append({
+                    "exercise_name": name,
+                    "weight": history[0].get("weight"),
+                    "reps": history[0].get("reps"),
+                })
+        return result
+    try:
+        session = get_workout_session(session_date)
+        if not session:
+            return []
+        session_id = session["id"]
+        resp = (
+            _client.table("exercise_logs")
+            .select("weight, reps, exercises(name)")
+            .eq("session_id", session_id)
+            .execute()
+        )
+        rows = resp.data or []
+        return [
+            {
+                "exercise_name": r["exercises"]["name"],
+                "weight": r["weight"],
+                "reps": r["reps"],
+            }
+            for r in rows
+            if r.get("exercises")
+        ]
+    except Exception as e:
+        logger.error("get_session_exercise_logs(%s) error: %s", session_date, e)
+        # fallback to KV during migration
+        weights = get_json("weights", {})
+        result = []
+        for name, data in weights.items():
+            history = data.get("history", [])
+            if history and history[0].get("date") == session_date:
+                result.append({
+                    "exercise_name": name,
+                    "weight": history[0].get("weight"),
+                    "reps": history[0].get("reps"),
+                })
+        return result
+
+
+def upsert_exercise_log(
+    session_date: str, exercise_name: str, weight: float, reps: str
+) -> bool:
+    """Insert or update an exercise log entry. Resolves IDs internally. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        weights = get_json("weights", {})
+        entry = {"date": session_date, "weight": weight, "reps": reps}
+        ex_data = weights.setdefault(exercise_name, {"history": []})
+        history = ex_data.get("history", [])
+        # Replace today's entry if it exists
+        if history and history[0].get("date") == session_date:
+            history[0] = entry
+        else:
+            history.insert(0, entry)
+        ex_data["history"] = history
+        weights[exercise_name] = ex_data
+        set_json("weights", weights)
+        return True
+    try:
+        exercise_id = get_exercise_id(exercise_name)
+        if not exercise_id:
+            logger.warning("upsert_exercise_log: exercise '%s' not found", exercise_name)
+            return False
+        session = get_workout_session(session_date)
+        if not session:
+            logger.warning("upsert_exercise_log: no session for date %s", session_date)
+            return False
+        session_id = session["id"]
+        payload = {
+            "session_id": session_id,
+            "exercise_id": exercise_id,
+            "weight": weight,
+            "reps": reps,
+        }
+        resp = (
+            _client.table("exercise_logs")
+            .upsert(payload, on_conflict="session_id,exercise_id")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("upsert_exercise_log error: %s", e)
+        # fallback to KV during migration
+        weights = get_json("weights", {})
+        entry = {"date": session_date, "weight": weight, "reps": reps}
+        ex_data = weights.setdefault(exercise_name, {"history": []})
+        history = ex_data.get("history", [])
+        if history and history[0].get("date") == session_date:
+            history[0] = entry
+        else:
+            history.insert(0, entry)
+        ex_data["history"] = history
+        weights[exercise_name] = ex_data
+        set_json("weights", weights)
+        return True
+
+
+def delete_session_exercise_logs(session_date: str) -> bool:
+    """Delete all exercise_logs for a given session date. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        # Cannot cleanly remove individual day logs from KV without full reload
+        logger.warning("delete_session_exercise_logs: KV fallback does not support deletion by date")
+        return False
+    try:
+        session = get_workout_session(session_date)
+        if not session:
+            return False
+        session_id = session["id"]
+        resp = _client.table("exercise_logs").delete().eq("session_id", session_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_session_exercise_logs error: %s", e)
+        return False  # fallback to KV during migration not feasible here
+
+
+# ---------------------------------------------------------------------------
+# Body weight
+# ---------------------------------------------------------------------------
+
+def get_body_weight_logs(limit: int = 100) -> List[dict]:
+    """Return body weight log entries, newest first."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        data = get_json("body_weight", [])
+        return data[:limit]
+    try:
+        resp = (
+            _client.table("body_weight_logs")
+            .select("*")
+            .order("date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_body_weight_logs error: %s", e)
+        data = get_json("body_weight", [])  # fallback to KV during migration
+        return data[:limit]
+
+
+def upsert_body_weight(date: str, weight: float, note: str = "") -> bool:
+    """Insert or update a body weight log entry for the given date."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        data = get_json("body_weight", [])
+        entry = {"date": date, "poids": weight, "note": note}
+        existing = next((i for i, e in enumerate(data) if e.get("date") == date), None)
+        if existing is not None:
+            data[existing] = entry
+        else:
+            data.insert(0, entry)
+        set_json("body_weight", data)
+        return True
+    try:
+        payload = {"date": date, "weight": weight, "note": note}
+        resp = (
+            _client.table("body_weight_logs")
+            .upsert(payload, on_conflict="date")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("upsert_body_weight error: %s", e)
+        # fallback to KV during migration
+        data = get_json("body_weight", [])
+        entry = {"date": date, "poids": weight, "note": note}
+        existing = next((i for i, e in enumerate(data) if e.get("date") == date), None)
+        if existing is not None:
+            data[existing] = entry
+        else:
+            data.insert(0, entry)
+        set_json("body_weight", data)
+        return True
+
+
+def delete_body_weight(date: str) -> bool:
+    """Delete a body weight log entry by date."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        data = get_json("body_weight", [])
+        before = len(data)
+        data = [e for e in data if e.get("date") != date]
+        set_json("body_weight", data)
+        return len(data) < before
+    try:
+        resp = _client.table("body_weight_logs").delete().eq("date", date).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("delete_body_weight error: %s", e)
+        # fallback to KV during migration
+        data = get_json("body_weight", [])
+        before = len(data)
+        data = [e for e in data if e.get("date") != date]
+        set_json("body_weight", data)
+        return len(data) < before
+
+
+# ---------------------------------------------------------------------------
+# HIIT logs
+# ---------------------------------------------------------------------------
+
+def get_hiit_logs(limit: int = 100) -> List[dict]:
+    """Return HIIT log entries, newest first."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        data = get_json("hiit_log", [])
+        return data[:limit]
+    try:
+        resp = (
+            _client.table("hiit_logs")
+            .select("*")
+            .order("date", desc=True)
+            .order("logged_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_hiit_logs error: %s", e)
+        data = get_json("hiit_log", [])  # fallback to KV during migration
+        return data[:limit]
+
+
+def insert_hiit_log(data: dict) -> dict:
+    """Insert a new HIIT log entry. Returns the inserted record."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("hiit_log", [])
+        log.insert(0, data)
+        set_json("hiit_log", log)
+        return data
+    try:
+        resp = _client.table("hiit_logs").insert(data).execute()
+        return resp.data[0] if resp.data else data
+    except Exception as e:
+        logger.error("insert_hiit_log error: %s", e)
+        # fallback to KV during migration
+        log = get_json("hiit_log", [])
+        log.insert(0, data)
+        set_json("hiit_log", log)
+        return data
+
+
+def update_hiit_log(hiit_id: str, patch: dict) -> bool:
+    """Update a HIIT log entry by its UUID. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        logger.warning("update_hiit_log: UUID-based update not supported in KV fallback")
+        return False
+    try:
+        resp = _client.table("hiit_logs").update(patch).eq("id", hiit_id).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("update_hiit_log error: %s", e)
+        return False  # fallback to KV during migration not feasible by UUID
+
+
+def delete_hiit_log_by_id(hiit_id: str) -> bool:
+    """Delete a HIIT log entry by its UUID. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        logger.warning("delete_hiit_log_by_id: UUID-based deletion not supported in KV fallback")
+        return False
+    try:
+        resp = _client.table("hiit_logs").delete().eq("id", hiit_id).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("delete_hiit_log_by_id error: %s", e)
+        return False  # fallback to KV during migration not feasible by UUID
+
+
+# ---------------------------------------------------------------------------
+# Recovery logs
+# ---------------------------------------------------------------------------
+
+def get_recovery_logs(limit: int = 100) -> List[dict]:
+    """Return recovery log entries, newest first."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        data = get_json("recovery_log", [])
+        return data[:limit]
+    try:
+        resp = (
+            _client.table("recovery_logs")
+            .select("*")
+            .order("date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_recovery_logs error: %s", e)
+        data = get_json("recovery_log", [])  # fallback to KV during migration
+        return data[:limit]
+
+
+def upsert_recovery_log(data: dict) -> bool:
+    """Insert or update a recovery log by date. data must include 'date'."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("recovery_log", [])
+        date_val = data.get("date", "")
+        existing = next((i for i, e in enumerate(log) if e.get("date") == date_val), None)
+        if existing is not None:
+            log[existing].update(data)
+        else:
+            log.insert(0, data)
+        set_json("recovery_log", log)
+        return True
+    try:
+        resp = (
+            _client.table("recovery_logs")
+            .upsert(data, on_conflict="date")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("upsert_recovery_log error: %s", e)
+        # fallback to KV during migration
+        log = get_json("recovery_log", [])
+        date_val = data.get("date", "")
+        existing = next((i for i, e in enumerate(log) if e.get("date") == date_val), None)
+        if existing is not None:
+            log[existing].update(data)
+        else:
+            log.insert(0, data)
+        set_json("recovery_log", log)
+        return True
+
+
+def delete_recovery_log(date: str) -> bool:
+    """Delete a recovery log entry by date. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("recovery_log", [])
+        before = len(log)
+        log = [e for e in log if e.get("date") != date]
+        set_json("recovery_log", log)
+        return len(log) < before
+    try:
+        resp = _client.table("recovery_logs").delete().eq("date", date).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("delete_recovery_log error: %s", e)
+        # fallback to KV during migration
+        log = get_json("recovery_log", [])
+        before = len(log)
+        log = [e for e in log if e.get("date") != date]
+        set_json("recovery_log", log)
+        return len(log) < before
+
+
+# ---------------------------------------------------------------------------
+# Goals
+# ---------------------------------------------------------------------------
+
+def get_goals() -> Dict[str, dict]:
+    """Return {exercise_name: {target_weight, target_date, id}}.
+
+    'achieved' is NOT stored — derive it by comparing target_weight
+    against get_exercise_history(name, limit=1)[0]['weight'].
+    """
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        return get_json("goals", {})
+    try:
+        resp = (
+            _client.table("goals")
+            .select("id, target_weight, target_date, exercises(name)")
+            .execute()
+        )
+        rows = resp.data or []
+        return {
+            r["exercises"]["name"]: {
+                "id": r["id"],
+                "target_weight": r["target_weight"],
+                "target_date": r["target_date"],
+            }
+            for r in rows
+            if r.get("exercises")
+        }
+    except Exception as e:
+        logger.error("get_goals error: %s", e)
+        return get_json("goals", {})  # fallback to KV during migration
+
+
+def set_goal(
+    exercise_name: str,
+    target_weight: float,
+    target_date: Optional[str] = None,
+) -> bool:
+    """Create or update a goal for an exercise. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        goals = get_json("goals", {})
+        goals[exercise_name] = {
+            "goal_weight": target_weight,
+            "deadline": target_date,
+            "achieved": False,
+        }
+        set_json("goals", goals)
+        return True
+    try:
+        exercise_id = get_exercise_id(exercise_name)
+        if not exercise_id:
+            logger.warning("set_goal: exercise '%s' not found", exercise_name)
+            # fallback to KV during migration
+            goals = get_json("goals", {})
+            goals[exercise_name] = {
+                "goal_weight": target_weight,
+                "deadline": target_date,
+                "achieved": False,
+            }
+            set_json("goals", goals)
+            return True
+        payload: dict = {"exercise_id": exercise_id, "target_weight": target_weight}
+        if target_date:
+            payload["target_date"] = target_date
+        resp = (
+            _client.table("goals")
+            .upsert(payload, on_conflict="exercise_id")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("set_goal error: %s", e)
+        # fallback to KV during migration
+        goals = get_json("goals", {})
+        goals[exercise_name] = {
+            "goal_weight": target_weight,
+            "deadline": target_date,
+            "achieved": False,
+        }
+        set_json("goals", goals)
+        return True
+
+
+# ---------------------------------------------------------------------------
+# Cardio logs
+# ---------------------------------------------------------------------------
+
+def get_cardio_logs(limit: int = 100) -> List[dict]:
+    """Return cardio log entries, newest first."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        return get_json("cardio_log", [])[:limit]
+    try:
+        resp = (
+            _client.table("cardio_logs")
+            .select("*")
+            .order("date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_cardio_logs error: %s", e)
+        return get_json("cardio_log", [])[:limit]  # fallback to KV during migration
+
+
+def insert_cardio_log(data: dict) -> bool:
+    """Insert a new cardio log entry. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("cardio_log", [])
+        log.insert(0, data)
+        set_json("cardio_log", log)
+        return True
+    try:
+        resp = _client.table("cardio_logs").insert(data).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("insert_cardio_log error: %s", e)
+        # fallback to KV during migration
+        log = get_json("cardio_log", [])
+        log.insert(0, data)
+        set_json("cardio_log", log)
+        return True
+
+
+def delete_cardio_log(date: str, type_: str) -> bool:
+    """Delete a cardio log entry by date and type. Returns True on success."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("cardio_log", [])
+        before = len(log)
+        log = [e for e in log if not (e.get("date") == date and e.get("type") == type_)]
+        set_json("cardio_log", log)
+        return len(log) < before
+    try:
+        resp = (
+            _client.table("cardio_logs")
+            .delete()
+            .eq("date", date)
+            .eq("type", type_)
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("delete_cardio_log error: %s", e)
+        # fallback to KV during migration
+        log = get_json("cardio_log", [])
+        before = len(log)
+        log = [e for e in log if not (e.get("date") == date and e.get("type") == type_)]
+        set_json("cardio_log", log)
+        return len(log) < before
+
+
+# ---------------------------------------------------------------------------
+# User profile
+# ---------------------------------------------------------------------------
+
+def get_profile() -> dict:
+    """Return the single user_profile row as a dict."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        return get_json("user_profile", {})
+    try:
+        resp = (
+            _client.table("user_profile")
+            .select("*")
+            .eq("id", 1)
+            .single()
+            .execute()
+        )
+        return resp.data or {}
+    except Exception as e:
+        logger.error("get_profile error: %s", e)
+        return get_json("user_profile", {})  # fallback to KV during migration
+
+
+def update_profile(patch: dict) -> bool:
+    """Update the user profile. Creates the row if it does not yet exist."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        profile = get_json("user_profile", {})
+        profile.update(patch)
+        set_json("user_profile", profile)
+        return True
+    try:
+        payload = {**patch, "id": 1, "updated_at": _now_iso()}
+        resp = (
+            _client.table("user_profile")
+            .upsert(payload, on_conflict="id")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("update_profile error: %s", e)
+        # fallback to KV during migration
+        profile = get_json("user_profile", {})
+        profile.update(patch)
+        set_json("user_profile", profile)
+        return True
+
+
+# ---------------------------------------------------------------------------
+# Nutrition
+# ---------------------------------------------------------------------------
+
+def get_nutrition_settings() -> dict:
+    """Return nutrition settings (single row)."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        return get_json("nutrition_settings", {"calorie_limit": 2000, "protein_target": 150})
+    try:
+        resp = (
+            _client.table("nutrition_settings")
+            .select("*")
+            .eq("id", 1)
+            .single()
+            .execute()
+        )
+        return resp.data or {}
+    except Exception as e:
+        logger.error("get_nutrition_settings error: %s", e)
+        return get_json("nutrition_settings", {"calorie_limit": 2000, "protein_target": 150})  # fallback to KV during migration
+
+
+def update_nutrition_settings(patch: dict) -> bool:
+    """Update nutrition settings row."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        settings = get_json("nutrition_settings", {})
+        settings.update(patch)
+        set_json("nutrition_settings", settings)
+        return True
+    try:
+        payload = {**patch, "id": 1, "updated_at": _now_iso()}
+        resp = (
+            _client.table("nutrition_settings")
+            .upsert(payload, on_conflict="id")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("update_nutrition_settings error: %s", e)
+        # fallback to KV during migration
+        settings = get_json("nutrition_settings", {})
+        settings.update(patch)
+        set_json("nutrition_settings", settings)
+        return True
+
+
+# ---------------------------------------------------------------------------
+# Deload state
+# ---------------------------------------------------------------------------
+
+def get_deload_state() -> dict:
+    """Return the current deload state (single row)."""
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        return get_json("deload_state", {"active": False, "started_at": None, "reason": None})
+    try:
+        resp = (
+            _client.table("deload_state")
+            .select("*")
+            .eq("id", 1)
+            .single()
+            .execute()
+        )
+        return resp.data or {"active": False, "started_at": None, "reason": None}
+    except Exception as e:
+        logger.error("get_deload_state error: %s", e)
+        return get_json("deload_state", {"active": False})  # fallback to KV during migration
+
+
+def set_deload_state(
+    active: bool,
+    started_at: Optional[str] = None,
+    reason: Optional[str] = None,
+) -> bool:
+    """Set the deload state row. Creates it if not yet present."""
+    payload: dict = {"id": 1, "active": active}
+    if started_at is not None:
+        payload["started_at"] = started_at
+    if reason is not None:
+        payload["reason"] = reason
+
+    # fallback to KV during migration
+    if _client is None or MODE == "OFFLINE":
+        existing = get_json("deload_state", {})
+        existing.update(payload)
+        set_json("deload_state", existing)
+        return True
+    try:
+        resp = (
+            _client.table("deload_state")
+            .upsert(payload, on_conflict="id")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("set_deload_state error: %s", e)
+        # fallback to KV during migration
+        existing = get_json("deload_state", {})
+        existing.update(payload)
+        set_json("deload_state", existing)
+        return True
