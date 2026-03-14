@@ -13,7 +13,11 @@ def load_sessions() -> dict:
                     continue
                 date = row.get("date")
                 if date:
-                    entry = {k: v for k, v in row.items() if k != "date"}
+                    entry = {k: v for k, v in row.items() if k not in ("date", "id", "is_second", "user_id")}
+                    # Ensure numeric fields are float so Swift Double? decodes correctly
+                    for field in ("rpe", "duration_min", "session_volume"):
+                        if field in entry and entry[field] is not None:
+                            entry[field] = float(entry[field])
                     result[date] = entry
             return result
     except Exception:
