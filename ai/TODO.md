@@ -17,8 +17,8 @@ Mettre à jour ce fichier et `STATE.md` après chaque tâche complétée.
 ## Priorité moyenne
 
 - [x] Indicateur UI de sync offline (endpoint /api/sync_status exposant le nombre de dirty)
-- [ ] Externaliser le CSS inline volumineux des templates vers `static/`
-- [ ] Améliorer la page `intelligence.html` : historique des échanges avec le coach IA
+- [x] Externaliser le CSS inline volumineux des templates vers `static/` (base.html → main.css)
+- [x] Améliorer la page `intelligence.html` : historique des échanges avec le coach IA
 - [x] Déload automatique : endpoint `/api/deload_status` exposant stagnation + RPE + recommandation
 
 ---

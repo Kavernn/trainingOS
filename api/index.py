@@ -1178,7 +1178,8 @@ def api_ai_coach():
         if not prompt:
             return jsonify({"error": "Prompt vide"}), 400
 
-        logger.info("Claude coach — tokens_remaining=%d prompt_len=%d", _AI_TOKENS, len(prompt))
+        mode   = data.get("mode", "custom")
+        logger.info("Claude coach — tokens_remaining=%d prompt_len=%d mode=%s", _AI_TOKENS, len(prompt), mode)
         client = _anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-sonnet-4-6",
@@ -1197,11 +1198,31 @@ def api_ai_coach():
             ),
             messages=[{"role": "user", "content": prompt}]
         )
-        return jsonify({"response": message.content[0].text})
+        response_text = message.content[0].text
+
+        # Persist exchange in coach_history (keep last 50)
+        history = get_json("coach_history", [])
+        history.insert(0, {
+            "timestamp": _now_mtl().strftime("%Y-%m-%d %H:%M"),
+            "date":      _today_mtl(),
+            "mode":      mode,
+            "response":  response_text,
+        })
+        set_json("coach_history", history[:50])
+
+        return jsonify({"response": response_text})
     except _anthropic.AuthenticationError:
         return jsonify({"error": "Clé ANTHROPIC_API_KEY invalide"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/ai/coach/history")
+def api_ai_coach_history():
+    """Returns the last N coach exchanges."""
+    limit = min(int(request.args.get("limit", 20)), 50)
+    history = get_json("coach_history", [])
+    return jsonify({"history": history[:limit]})
 
 
 @app.route("/api/sync_status")

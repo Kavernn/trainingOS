@@ -76,6 +76,33 @@
   .btn-ai:hover{background:var(--blue)33;transform:translateY(-1px);}
   .btn-ai:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
 
+  .history-entry {
+    background: rgba(17,17,28,0.5);
+    border:1px solid var(--border); border-radius:var(--radius);
+    margin-bottom:8px; overflow:hidden;
+  }
+  .history-header {
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 14px; cursor:pointer; user-select:none;
+    transition: background 0.15s;
+  }
+  .history-header:hover { background: rgba(255,255,255,0.03); }
+  .history-meta { display:flex;align-items:center;gap:8px; }
+  .history-mode {
+    font-size:0.6rem;text-transform:uppercase;letter-spacing:2px;
+    font-weight:800;padding:2px 7px;border-radius:4px;
+    background:var(--blue)22;color:var(--blue);border:1px solid var(--blue)33;
+  }
+  .history-ts { font-size:0.72rem;color:var(--muted); }
+  .history-chevron { font-size:0.7rem; color:var(--muted); transition:transform 0.2s; }
+  .history-entry.open .history-chevron { transform: rotate(180deg); }
+  .history-body {
+    display:none; padding:12px 14px 14px;
+    font-size:0.84rem;line-height:1.7;color:var(--text);white-space:pre-wrap;
+    border-top:1px solid var(--border);
+  }
+  .history-entry.open .history-body { display:block; }
+
   .muscle-map{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;}
   .muscle-chip{
     padding:6px 8px;border-radius:8px;font-size:0.72rem;font-weight:600;
@@ -143,6 +170,12 @@
     <button class="btn-ai" onclick="runAI('programme')" style="border-color:var(--purple)55;color:var(--purple);background:var(--purple)11;">🏋️ Modifier programme</button>
     <button class="btn-ai" onclick="runAI('hiit')" style="border-color:var(--orange)55;color:var(--orange);background:var(--orange)11;">⚡ Optimiser HIIT</button>
   </div>
+</div>
+
+<!-- HISTORIQUE ÉCHANGES IA -->
+<div class="section-title" style="margin-top:6px;">🗂️ Historique — échanges avec le coach</div>
+<div id="coach-history-list">
+  <p class="text-muted" style="font-size:0.85rem;">Chargement...</p>
 </div>
 
 {% endblock %}
@@ -456,11 +489,12 @@ async function runAI(mode) {
     const res = await fetch('/api/ai/coach', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({prompt: prompts[mode]})
+      body: JSON.stringify({prompt: prompts[mode], mode})
     });
     const data = await res.json();
     el.className = 'ai-response fu';
     el.textContent = data.response || data.error || 'Erreur inconnue';
+    if (data.response) loadHistory(); // refresh history panel
   } catch(e) {
     el.className = 'ai-response error';
     el.textContent = 'Erreur de connexion. Vérifie que ANTHROPIC_API_KEY est configurée.';
@@ -468,7 +502,54 @@ async function runAI(mode) {
   document.querySelectorAll('.btn-ai').forEach(b => b.disabled = false);
 }
 
+// ── HISTORIQUE COACH ────────────────────────────────────────
+
+const MODE_LABELS = {
+  analyse:    '📊 Analyser',
+  fatigue:    '😴 Fatigue',
+  suggestion: '🎯 Prochaine séance',
+  progression:'📈 Progression',
+  programme:  '🏋️ Programme',
+  hiit:       '⚡ HIIT',
+  custom:     '💬 Personnalisé',
+};
+
+async function loadHistory() {
+  const container = document.getElementById('coach-history-list');
+  try {
+    const res  = await fetch('/api/ai/coach/history?limit=20');
+    const data = await res.json();
+    const entries = data.history || [];
+    if (!entries.length) {
+      container.innerHTML = '<p class="text-muted" style="font-size:0.85rem;">Aucun échange enregistré — lance une analyse pour commencer.</p>';
+      return;
+    }
+    container.innerHTML = entries.map((e, i) => `
+      <div class="history-entry" id="he-${i}">
+        <div class="history-header" onclick="toggleHistory('he-${i}')">
+          <div class="history-meta">
+            <span class="history-mode">${MODE_LABELS[e.mode] || e.mode}</span>
+            <span class="history-ts">${e.timestamp}</span>
+          </div>
+          <span class="history-chevron">▼</span>
+        </div>
+        <div class="history-body">${escapeHtml(e.response)}</div>
+      </div>`).join('');
+  } catch(err) {
+    container.innerHTML = '<p class="text-muted" style="font-size:0.85rem;">Impossible de charger l\'historique.</p>';
+  }
+}
+
+function toggleHistory(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 renderInsights();
 renderMuscleMap();
+loadHistory();
 </script>
 {% endblock %}
