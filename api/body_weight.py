@@ -6,7 +6,15 @@ def load_body_weight() -> list:
     try:
         result = db.get_body_weight_logs()
         if isinstance(result, list):
-            return result
+            # Rename 'weight' → 'poids' to match iOS CodingKey and get_tendance()
+            normalized = []
+            for row in result:
+                if isinstance(row, dict):
+                    entry = dict(row)
+                    if "weight" in entry and "poids" not in entry:
+                        entry["poids"] = entry.pop("weight")
+                    normalized.append(entry)
+            return normalized
     except Exception:
         pass
     return db.get_json("body_weight", []) or []
