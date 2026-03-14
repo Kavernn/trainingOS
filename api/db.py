@@ -1,7 +1,9 @@
 from __future__ import annotations
-import os, json, sqlite3, threading
+import os, json, sqlite3, threading, logging
 from typing import Any, Dict, Optional, Tuple
 from datetime import datetime, timezone
+
+logger = logging.getLogger("trainingos.db")
 
 # Modes:
 #   ONLINE  : lecture/écriture Supabase; miroir local SQLite (dirty=0)
@@ -128,35 +130,30 @@ def _get_online(key: str) -> Tuple[Optional[Any], Optional[str]]:
             return None, None
         return data.get("value"), data.get("updated_at")
     except Exception as e:
-        print(f"DEBUG GET ERROR: {e}") # Apparaîtra dans les logs Vercel
+        logger.debug("GET error for key %s: %s", key, e)
         return None, None
 
 
 def _set_online(key: str, value: Any) -> Tuple[bool, Optional[str]]:
     if not _client:
-        print("DEBUG: Client Supabase non initialisé")
+        logger.warning("Supabase client not initialized")
         return False, None
     try:
-        # On tente l'upsert
         payload = {"key": key, "value": value}
-        print(f"DEBUG: Tentative upsert pour la clé: {key}")
+        logger.debug("Upsert attempt for key: %s", key)
 
-        # Utilisation de .execute() pour obtenir la réponse
         resp = _client.table(_TABLE).upsert(payload).execute()
 
-        # Vérification si des données ont été retournées
         if hasattr(resp, 'data') and len(resp.data) > 0:
             updated_at = resp.data[0].get("updated_at")
-            print(f"DEBUG: Succès Supabase pour {key}")
+            logger.debug("Supabase upsert success for key: %s", key)
             return True, updated_at
 
-        # Si succès mais pas de data en retour (dépend de la version du SDK)
-        print(f"DEBUG: Upsert envoyé pour {key} (vérifier manuellement)")
+        logger.debug("Upsert sent for key: %s (no data returned)", key)
         return True, _now_iso()
 
     except Exception as e:
-        # C'est ici que l'erreur cruciale va apparaître dans tes logs Vercel
-        print(f"DEBUG ERROR Supabase détaillée: {type(e).__name__} - {str(e)}")
+        logger.error("Supabase error for key %s: %s — %s", key, type(e).__name__, e)
         return False, None
 # ---------------------------------------------------------------------------
 # API publique utilisée par tes modules
@@ -268,14 +265,14 @@ def sync_now(verbose: bool = True) -> Dict[str, str]:
     """
     actions: Dict[str, str] = {}
     if _ON_VERCEL:
-        if verbose: print("[sync] Ignoré: environnement Vercel (ONLINE uniquement).")
+        if verbose: logger.info("[sync] Ignoré: environnement Vercel (ONLINE uniquement).")
         return actions
     if not _client:
-        if verbose: print("[sync] Pas de client Supabase disponible.")
+        if verbose: logger.info("[sync] Pas de client Supabase disponible.")
         return actions
 
     dirty_map = _sqlite_all_dirty()
-    if verbose: print(f"[sync] Dirty keys: {list(dirty_map.keys())}")
+    if verbose: logger.info("[sync] Dirty keys: %s", list(dirty_map.keys()))
 
     for key, local in dirty_map.items():
         local_val = local["value"]
@@ -301,5 +298,5 @@ def sync_now(verbose: bool = True) -> Dict[str, str]:
 
     if verbose:
         for k, a in actions.items():
-            print(f"[sync] {k}: {a}")
+            logger.info("[sync] %s: %s", k, a)
     return actions

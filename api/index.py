@@ -858,13 +858,14 @@ def api_save_exercise():
     if not success:
         return jsonify({"success": False, "error": "Erreur de sauvegarde Supabase"}), 500
 
-    # Si renommage, mettre à jour le programme partout
+    # Si renommage, mettre à jour le programme partout (format blocs)
     if original_name and original_name != name:
         program = load_program()
         changed = False
-        for jour, exos in program.items():
-            if original_name in exos:
-                exos[name] = exos.pop(original_name)
+        for sdef in program.values():
+            sb = get_block(sdef.get("blocks", []), "strength")
+            if sb and original_name in sb.get("exercises", {}):
+                sb["exercises"][name] = sb["exercises"].pop(original_name)
                 changed = True
         if changed:
             save_program(program)
@@ -882,6 +883,18 @@ def api_delete_exercise():
 
     del inv[name]
     save_inventory(inv)
+
+    # Remove dangling references from program (do not touch weights history)
+    program = load_program()
+    changed = False
+    for sdef in program.values():
+        sb = get_block(sdef.get("blocks", []), "strength")
+        if sb and name in sb.get("exercises", {}):
+            del sb["exercises"][name]
+            changed = True
+    if changed:
+        save_program(program)
+
     return jsonify({"success": True})
 
 
@@ -909,6 +922,11 @@ def api_programme():
             if exercise in exercises:
                 return jsonify({"error": "Déjà dans le programme"}), 400
             exercises[exercise] = scheme
+            # Seed a minimal inventory entry so equipment-type lookups work
+            inv = load_inventory()
+            if exercise not in inv:
+                inv[exercise] = {"default_scheme": scheme, "type": "machine", "increment": 5}
+                save_inventory(inv)
 
         elif action == "remove":
             exercises.pop(data.get("exercise"), None)
@@ -930,8 +948,16 @@ def api_programme():
         elif action == "replace":
             old_ex = data.get("old_exercise")
             new_ex = data.get("new_exercise")
+            scheme = data.get("scheme", "3x8-12")
             exercises.pop(old_ex, None)
-            exercises[new_ex] = data.get("scheme", "3x8-12")
+            exercises[new_ex] = scheme
+            # Ensure new exercise exists in inventory; inherit metadata from old if available
+            inv = load_inventory()
+            if new_ex not in inv:
+                inv[new_ex] = {**inv.get(old_ex, {}), "default_scheme": scheme}
+                inv[new_ex].setdefault("type", "machine")
+                inv[new_ex].setdefault("increment", 5)
+                save_inventory(inv)
 
         elif action == "reorder":
             ordre     = data.get("ordre", [])
