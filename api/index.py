@@ -2,6 +2,7 @@
 from __future__ import annotations
 import os, sys, json, socket, webbrowser, logging
 from threading import Timer, Lock
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, date
 from pathlib import Path
 
@@ -1322,17 +1323,25 @@ def service_worker():
 
 @app.route("/api/dashboard")
 def api_dashboard():
-    weights      = load_weights()
-    sessions     = load_sessions()
-    profile      = load_user_profile()
-    goals        = load_goals()
-    full_program = load_program()
-    hiit_log     = load_hiit_log_local()
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        f_weights  = ex.submit(load_weights)
+        f_sessions = ex.submit(load_sessions)
+        f_profile  = ex.submit(load_user_profile)
+        f_goals    = ex.submit(load_goals)
+        f_program  = ex.submit(load_program)
+        f_hiit     = ex.submit(load_hiit_log_local)
+        f_nutrition = ex.submit(get_today_totals)
+    weights       = f_weights.result()
+    sessions      = f_sessions.result()
+    profile       = f_profile.result()
+    goals         = f_goals.result()
+    full_program  = f_program.result()
+    hiit_log      = f_hiit.result()
+    nutrition_totals = f_nutrition.result()
     today_str    = get_today()
     today_date   = get_today_date()
     schedule     = get_week_schedule()
     suggestions  = get_suggested_weights_for_today(weights)
-    nutrition_totals = get_today_totals()
 
     already_logged_today = today_date in sessions
 
@@ -1372,15 +1381,21 @@ def api_dashboard():
 
 @app.route("/api/seance_data")
 def api_seance_data():
-    weights   = load_weights()
-    sessions  = load_sessions()
-    full_program = load_program()
-    today_str = get_today()
-    suggestions = get_suggested_weights_for_today(weights)
-    hiit_log  = load_hiit_log_local()
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        f_weights  = ex.submit(load_weights)
+        f_sessions = ex.submit(load_sessions)
+        f_program  = ex.submit(load_program)
+        f_hiit     = ex.submit(load_hiit_log_local)
+        f_inventory = ex.submit(load_inventory)
+    weights      = f_weights.result()
+    sessions     = f_sessions.result()
+    full_program = f_program.result()
+    hiit_log     = f_hiit.result()
+    inventory    = f_inventory.result()
+    today_str  = get_today()
     today_date = get_today_date()
-    schedule  = get_week_schedule()
-    inventory = load_inventory()
+    schedule   = get_week_schedule()
+    suggestions = get_suggested_weights_for_today(weights)
 
     already_logged = today_date in sessions
 
@@ -1410,13 +1425,21 @@ def api_seance_data():
 
 @app.route("/api/stats_data")
 def api_stats_data():
-    weights      = load_weights()
-    sessions     = load_sessions()
-    hiit_log     = load_hiit_log_local()
-    body_weight  = load_body_weight()
-    recovery_log = load_recovery_log()
-    nutr_settings = load_nutrition_settings()
-    nutr_entries  = get_recent_days(7)
+    with ThreadPoolExecutor(max_workers=7) as ex:
+        f_weights      = ex.submit(load_weights)
+        f_sessions     = ex.submit(load_sessions)
+        f_hiit         = ex.submit(load_hiit_log_local)
+        f_body_weight  = ex.submit(load_body_weight)
+        f_recovery     = ex.submit(load_recovery_log)
+        f_nutr_settings = ex.submit(load_nutrition_settings)
+        f_nutr_entries  = ex.submit(get_recent_days, 7)
+    weights       = f_weights.result()
+    sessions      = f_sessions.result()
+    hiit_log      = f_hiit.result()
+    body_weight   = f_body_weight.result()
+    recovery_log  = f_recovery.result()
+    nutr_settings = f_nutr_settings.result()
+    nutr_entries  = f_nutr_entries.result()
     return jsonify({
         "weights":          weights,
         "sessions":         sessions,
