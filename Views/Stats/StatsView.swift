@@ -53,6 +53,7 @@ struct StatsView: View {
     @State private var recoveryLog:      [RecoveryEntry]         = []
     @State private var nutritionTarget:  NutritionSettings?      = nil
     @State private var nutritionDays:    [NutritionDay]          = []
+    @State private var acwr:             ACWRData?               = nil
     @State private var isLoading    = true
     @State private var selectedExercise: String? = nil
     @State private var searchText   = ""
@@ -288,6 +289,12 @@ struct StatsView: View {
                                     .padding(.horizontal, 16)
                             }
 
+                            // ACWR — Acute:Chronic Workload Ratio
+                            if let acwrData = acwr {
+                                ACWRCardView(data: acwrData)
+                                    .padding(.horizontal, 16)
+                            }
+
                             // Nutrition compliance
                             if nutritionDays.count >= 3, let target = nutritionTarget {
                                 NutritionComplianceChart(days: nutritionDays, target: target)
@@ -347,14 +354,167 @@ struct StatsView: View {
 
     private func loadData() async {
         isLoading = true
-        if let r = try? await APIService.shared.fetchStatsData() {
+        async let statsTask = APIService.shared.fetchStatsData()
+        async let acwrTask  = APIService.shared.fetchACWR()
+        if let r = try? await statsTask {
             weights = r.weights; sessions = r.sessions
             hiitLog = r.hiitLog; bodyWeight = r.bodyWeight
             recoveryLog = r.recoveryLog
             nutritionTarget = r.nutritionTarget
             nutritionDays = r.nutritionDays
         }
+        acwr = try? await acwrTask
         isLoading = false
+    }
+}
+
+// MARK: - ACWR Card
+struct ACWRCardView: View {
+    let data: ACWRData
+
+    private var zoneColor: Color {
+        switch data.zone.code {
+        case "optimal": return .green
+        case "risk":    return .orange
+        case "danger":  return .red
+        case "under":   return .blue
+        default:        return .gray
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("ACWR — CHARGE AIGUË/CHRONIQUE")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            HStack(alignment: .top, spacing: 16) {
+                // Big ratio
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(data.ratio > 0 ? String(format: "%.2f", data.ratio) : "—")
+                        .font(.system(size: 40, weight: .black))
+                        .foregroundColor(zoneColor)
+                    Text(data.zone.label)
+                        .font(.system(size: 11, weight: .bold))
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(zoneColor.opacity(0.2))
+                        .foregroundColor(zoneColor)
+                        .clipShape(Capsule())
+                }
+
+                Spacer()
+
+                // Loads
+                VStack(alignment: .trailing, spacing: 6) {
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("Aiguë (7j)").font(.system(size: 10)).foregroundColor(.gray)
+                        Text("\(data.acuteLoad, specifier: "%.0f")")
+                            .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                    }
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("Chronique (28j)").font(.system(size: 10)).foregroundColor(.gray)
+                        Text("\(data.chronicLoad, specifier: "%.0f")")
+                            .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                    }
+                }
+            }
+
+            // Recommendation
+            if !data.zone.recommendation.isEmpty {
+                Text(data.zone.recommendation)
+                    .font(.system(size: 12)).foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            // 8-week trend sparkline
+            if data.trend.count > 1 {
+                ACWRSparkline(trend: data.trend)
+            }
+        }
+        .padding(16).glassCard(color: zoneColor, intensity: 0.05).cornerRadius(14)
+    }
+}
+
+private struct ACWRSparkline: View {
+    let trend: [ACWRWeek]
+
+    private let thresholds: [(Double, Color)] = [
+        (1.5, .red), (1.3, .orange), (0.8, .blue)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("TENDANCE 8 SEMAINES")
+                .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let ratios = trend.map(\.ratio)
+                let maxVal = max((ratios.max() ?? 1.6), 1.6)
+                let step = w / CGFloat(trend.count - 1)
+
+                ZStack(alignment: .topLeading) {
+                    // Optimal zone band (0.8–1.3)
+                    let bandTop  = h * (1 - CGFloat(1.3 / maxVal))
+                    let bandBot  = h * (1 - CGFloat(0.8 / maxVal))
+                    Rectangle()
+                        .fill(Color.green.opacity(0.07))
+                        .frame(width: w, height: max(0, bandBot - bandTop))
+                        .offset(x: 0, y: bandTop)
+
+                    // Threshold lines
+                    ForEach(thresholds, id: \.0) { level, color in
+                        let y = h * (1 - CGFloat(level / maxVal))
+                        Path { p in p.move(to: CGPoint(x: 0, y: y)); p.addLine(to: CGPoint(x: w, y: y)) }
+                            .stroke(color.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    }
+
+                    // Ratio line
+                    if trend.count > 1 {
+                        Path { path in
+                            for (i, week) in trend.enumerated() {
+                                let x = CGFloat(i) * step
+                                let y = week.ratio > 0
+                                    ? h * (1 - CGFloat(week.ratio / maxVal))
+                                    : h
+                                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                                else if week.ratio > 0 { path.addLine(to: CGPoint(x: x, y: y)) }
+                                else { path.move(to: CGPoint(x: x, y: y)) }
+                            }
+                        }
+                        .stroke(Color.white.opacity(0.8), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+
+                        // Dots coloured by zone
+                        ForEach(Array(trend.enumerated()), id: \.0) { i, week in
+                            if week.ratio > 0 {
+                                let x = CGFloat(i) * step
+                                let y = h * (1 - CGFloat(week.ratio / maxVal))
+                                let dot = dotColor(week.ratio)
+                                Circle().fill(dot).frame(width: 5, height: 5).position(x: x, y: y)
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(height: 70)
+
+            // X-axis labels (first, mid, last)
+            HStack {
+                Text(trend.first?.week ?? "").font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+                Spacer()
+                Text(trend[trend.count / 2].week).font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+                Spacer()
+                Text(trend.last?.week ?? "").font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+            }
+        }
+    }
+
+    private func dotColor(_ ratio: Double) -> Color {
+        if ratio == 0   { return .gray }
+        if ratio < 0.8  { return .blue }
+        if ratio <= 1.3 { return .green }
+        if ratio <= 1.5 { return .orange }
+        return .red
     }
 }
 
