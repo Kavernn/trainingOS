@@ -11,7 +11,7 @@ Mettre à jour ce fichier et `STATE.md` après chaque tâche complétée.
 - [x] Forcer `SECRET_KEY` en production (lever une erreur si valeur par défaut détectée sur Vercel)
 - [x] Ajouter un rate limiting sur les appels à l'API Anthropic (éviter dépassement de coût)
 - [x] Tests Flask pour les routes principales (seance_data, historique_data, log, deload_status)
-- [ ] Gestion erreur offline côté UI iOS — les méthodes qui retournent un objet décodé (submitMood, logSleep, submitJournalEntry, etc.) throw `domain: "Offline"` mais aucune vue ne capture ce cas → afficher un toast "Enregistré, sera synchronisé quand le réseau sera disponible" au lieu d'une erreur rouge
+- [x] Gestion erreur offline côté UI iOS — toast capsule en bas via SyncManager.offlineToast, auto-dismiss 3.5s, app-wide via ContentView
 
 ---
 
