@@ -1318,6 +1318,16 @@ def api_morning_brief():
     return jsonify(get_morning_brief())
 
 
+@app.route("/api/insights/correlations")
+def api_insights_correlations():
+    try:
+        days = int(request.args.get("days", 60))
+    except ValueError:
+        days = 60
+    from correlations import get_correlations
+    return jsonify(get_correlations(days))
+
+
 @app.route("/sw.js")
 def service_worker():
     # Version = SHA git sur Vercel, timestamp horaire en local

@@ -854,3 +854,41 @@ struct MorningBriefFlags: Codable {
     }
 }
 
+// MARK: - Cross-Correlation Insights
+struct CorrelationInsight: Codable, Identifiable {
+    var id: String { insightId }
+    let insightId:      String
+    let label:          String
+    let insightDesc:    String
+    let correlation:    Double
+    let strength:       String
+    let xVar:           String
+    let yVar:           String
+    let nPoints:        Int
+    let icon:           String
+    let color:          String
+
+    enum CodingKeys: String, CodingKey {
+        case label, correlation, strength, icon, color
+        case insightId   = "id"
+        case insightDesc = "description"
+        case xVar        = "x_var"
+        case yVar        = "y_var"
+        case nPoints     = "n_points"
+    }
+}
+
+struct CorrelationsData: Codable {
+    let periodDays: Int
+    let dataPoints: Int
+    let computedAt: String
+    let insights:   [CorrelationInsight]
+
+    enum CodingKeys: String, CodingKey {
+        case insights
+        case periodDays = "period_days"
+        case dataPoints = "data_points"
+        case computedAt = "computed_at"
+    }
+}
+

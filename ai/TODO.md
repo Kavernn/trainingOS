@@ -30,8 +30,8 @@ Mettre à jour ce fichier et `STATE.md` après chaque tâche complétée.
 ## Priorité moyenne — Innovation
 
 - [x] ACWR (Acute:Chronic Workload Ratio) — calcul 7j/28j de volume à partir de `v_session_volume`. Exposer `/api/acwr` avec ratio + zone (sous-charge / optimal / surcharge / danger). Visualiser dans StatsView. Prédit le risque de blessure avant qu'il se manifeste — absent de toutes les apps grand public
-- [ ] Coaching proactif basé sur LSS + planning — au lieu de répondre passivement, le coach analyse chaque matin : LSS < 40 + séance lourde planifiée → propose automatiquement de décaler ou alléger. Endpoint `/api/coach/morning_brief` qui retourne une recommandation structurée
-- [ ] Corrélations croisées personnalisées — croiser sommeil + HRV + 1RM + volume + mood sur les données réelles de l'utilisateur. Ex : "Quand tu dors < 7h, ton 1RM chute en moyenne de X% le lendemain". Endpoint `/api/insights/correlations` + vue dédiée dans Intelligence
+- [x] Coaching proactif basé sur LSS + planning — au lieu de répondre passivement, le coach analyse chaque matin : LSS < 40 + séance lourde planifiée → propose automatiquement de décaler ou alléger. Endpoint `/api/coach/morning_brief` qui retourne une recommandation structurée
+- [x] Corrélations croisées personnalisées — croiser sommeil + HRV + 1RM + volume + mood sur les données réelles de l'utilisateur. Ex : "Quand tu dors < 7h, ton 1RM chute en moyenne de X% le lendemain". Endpoint `/api/insights/correlations` + vue dédiée dans Intelligence
 - [ ] Détection PR en temps réel + notification — détecter un nouveau Personal Record au moment du log (`logExercise`) et déclencher une notification push locale iOS immédiatement pendant la séance
 
 ---

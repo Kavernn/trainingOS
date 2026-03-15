@@ -623,4 +623,11 @@ class APIService: ObservableObject {
         let data = try await fetchWithCache(url: url, key: "morning_brief")
         return try JSONDecoder().decode(MorningBriefData.self, from: data)
     }
+
+    // MARK: - Cross-Correlation Insights
+    func fetchCorrelations(days: Int = 60) async throws -> CorrelationsData {
+        let url = URL(string: "\(baseURL)/api/insights/correlations?days=\(days)")!
+        let data = try await fetchWithCache(url: url, key: "correlations")
+        return try JSONDecoder().decode(CorrelationsData.self, from: data)
+    }
 }
