@@ -2,14 +2,26 @@ import db
 
 
 def load_inventory() -> dict:
-    """Returns {name: {type, default_scheme, increment, bar_weight, ...}}"""
+    """Returns {name: {type, default_scheme, increment, bar_weight, ...}}
+
+    Merges the relational exercises table (ExerciseDB) with the KV 'inventory'
+    key (custom/user exercises). KV takes precedence so renamed or user-added
+    exercises are always visible even if the relational upsert failed.
+    """
+    result = {}
     try:
-        result = db.get_exercises()
-        if isinstance(result, dict) and result:
-            return result
+        rel = db.get_exercises()
+        if isinstance(rel, dict):
+            result.update(rel)
     except Exception:
         pass
-    return db.get_json("inventory", {}) or {}
+    try:
+        kv = db.get_json("inventory", {}) or {}
+        if isinstance(kv, dict):
+            result.update(kv)   # KV overrides — has the freshest custom data
+    except Exception:
+        pass
+    return result
 
 
 def save_inventory(inv: dict) -> bool:
