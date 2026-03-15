@@ -670,7 +670,7 @@ struct WorkoutSeanceView: View {
             Text(vm.submitError ?? "")
         }
         .sheet(item: $addTarget) { (sn: SeanceName) in
-            AddExerciseSheet(seance: sn.id, inventory: inventory) { ex, scheme in
+            AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: [:]) { ex, scheme in
                 Task { await addExercise(ex, scheme: scheme) }
             }
         }
@@ -1770,10 +1770,12 @@ struct AddHIITSheet: View {
         @Published var showSuccess = false
         @Published var submitError: String?
 
+        var cacheService: CacheService = .shared
+
         func load() async {
             // Show cached data immediately so the view is usable before network
             if seanceData == nil,
-               let cached = CacheService.shared.load(for: "seance_data"),
+               let cached = cacheService.load(for: "seance_data"),
                let decoded = try? JSONDecoder().decode(SeanceData.self, from: cached) {
                 seanceData = decoded
                 restoreLogResults(from: decoded)
