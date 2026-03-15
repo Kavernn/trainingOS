@@ -19,7 +19,7 @@ struct MoreView: View {
                         MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")        { StatsView() }
                         MoreRow(icon: "target",                color: .orange, title: "Objectifs")    { ObjectifsView() }
                         MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")         { HIITHistoriqueView() }
-                        MoreRow(icon: "list.bullet.clipboard", color: .teal,   title: "Programme")    { ProgrammeView() }
+                        MoreRow(icon: "calendar",              color: .teal,   title: "Historique")   { HistoriqueView() }
                         MoreRow(icon: "star.fill",             color: .yellow, title: "XP & Niveau")  { XPView() }
                     }
                     .listRowBackground(glassRowBG(.blue))

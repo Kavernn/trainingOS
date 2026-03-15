@@ -21,10 +21,10 @@ struct ContentView: View {
                     Label("Séance", systemImage: "dumbbell.fill")
                 }
 
-            HistoriqueView()
+            ProgrammeView()
                 .tag(2)
                 .tabItem {
-                    Label("Historique", systemImage: "calendar")
+                    Label("Programme", systemImage: "list.bullet.clipboard")
                 }
 
             TimerView()
