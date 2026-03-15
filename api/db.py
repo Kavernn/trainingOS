@@ -337,7 +337,7 @@ def get_exercises() -> Dict[str, dict]:
     if _client is None or MODE == "OFFLINE":
         return get_json("inventory", {})
     try:
-        resp = _client.table("exercises").select("*").order("name").execute()
+        resp = _client.table("exercises").select("*").order("name").limit(10000).execute()
         rows = resp.data or []
         return {row["name"]: row for row in rows}
     except Exception as e:
