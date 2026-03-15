@@ -450,10 +450,10 @@ class TestProgrammeDataInventorySync(BaseRouteTest):
         self.assertIn("Barbell Row", self.store["inventory"])
         self.assertIn("Overhead Press", self.store["inventory"])
 
-    def test_programme_data_no_save_when_nothing_missing(self):
+    def test_programme_data_no_write_when_nothing_missing(self):
         """Aucune écriture en base si tous les exercices sont déjà dans l'inventaire."""
         import unittest.mock as mock
-        with mock.patch("inventory.save_inventory") as m:
+        with mock.patch("inventory.add_exercise") as m:
             self.get("/api/programme_data")
             m.assert_not_called()
 

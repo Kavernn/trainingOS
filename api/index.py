@@ -63,7 +63,7 @@ from blocks       import (make_strength_block, make_hiit_block, make_cardio_bloc
 from hiit         import get_hiit_str
 from weights      import load_weights, save_weights
 from log_workout  import log_single_exercise
-from inventory    import load_inventory, save_inventory, calculate_plates
+from inventory    import load_inventory, save_inventory, add_exercise, calculate_plates
 from sessions     import load_sessions, log_session, log_second_session, session_exists
 from user_profile import load_user_profile, save_user_profile
 from progression  import estimate_1rm, should_increase, next_weight, parse_reps, progression_status, suggest_next_weight
@@ -1554,14 +1554,13 @@ def api_programme_data():
         for seance, session_def in full_program.items()
     }
     # Sync: ajoute dans l'inventaire tout exercice du programme qui en est absent
-    added = False
+    # Utilise add_exercise (upsert ciblé) plutôt que save_inventory (upsert full)
     for exos in flat_program.values():
         for ex_name, scheme in exos.items():
             if ex_name not in inventory:
-                inventory[ex_name] = {"type": "machine", "increment": 5, "default_scheme": scheme}
-                added = True
-    if added:
-        save_inventory(inventory)
+                entry = {"type": "machine", "increment": 5, "default_scheme": scheme}
+                add_exercise(ex_name, entry)
+                inventory[ex_name] = entry
     inventory_types   = {name: info.get("type", "machine")         for name, info in inventory.items()} \
         if isinstance(inventory, dict) else {}
     inventory_schemes = {name: info.get("default_scheme", "3x8-12") for name, info in inventory.items()} \
