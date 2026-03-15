@@ -5,6 +5,9 @@ struct MoodTrackerView: View {
     @State private var emotions: [MoodEmotion] = []
     @State private var showLogSheet = false
     @State private var isLoading = true
+    @State private var isLoadingMore = false
+    @State private var hasMore = false
+    @State private var nextOffset: Int? = nil
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -30,6 +33,21 @@ struct MoodTrackerView: View {
                     List {
                         ForEach(entries) { entry in
                             MoodEntryRow(entry: entry, emotions: emotions)
+                        }
+                        if hasMore {
+                            Button { Task { await loadMore() } } label: {
+                                HStack {
+                                    Spacer()
+                                    if isLoadingMore {
+                                        ProgressView().scaleEffect(0.8)
+                                    } else {
+                                        Text("Charger plus…")
+                                            .font(.subheadline).foregroundColor(.yellow)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .listStyle(.insetGrouped)
@@ -58,13 +76,28 @@ struct MoodTrackerView: View {
 
     private func loadData() async {
         async let e  = try? APIService.shared.fetchMoodEmotions()
-        async let h  = try? APIService.shared.fetchMoodHistory(days: 30)
-        let (em, hi) = await (e, h)
+        async let pg = try? APIService.shared.fetchMoodHistory()
+        let (em, page) = await (e, pg)
         await MainActor.run {
-            emotions   = em ?? []
-            entries    = hi ?? []
-            isLoading  = false
+            emotions = em ?? []
+            if let page {
+                entries    = page.items
+                hasMore    = page.hasMore
+                nextOffset = page.nextOffset
+            }
+            isLoading = false
         }
+    }
+
+    private func loadMore() async {
+        guard let offset = nextOffset, !isLoadingMore else { return }
+        isLoadingMore = true
+        if let pg = try? await APIService.shared.fetchMoodHistory(offset: offset) {
+            entries.append(contentsOf: pg.items)
+            hasMore    = pg.hasMore
+            nextOffset = pg.nextOffset
+        }
+        isLoadingMore = false
     }
 }
 

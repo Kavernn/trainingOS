@@ -128,8 +128,17 @@ def save_sleep_entry(
     return entry
 
 
-def get_history(limit: int = 30) -> list:
-    return _load()[:limit]
+def get_history(limit: int = 20, offset: int = 0) -> dict:
+    all_records = _load()
+    page = all_records[offset: offset + limit]
+    return {
+        "items":       page,
+        "offset":      offset,
+        "limit":       limit,
+        "total":       len(all_records),
+        "has_more":    offset + limit < len(all_records),
+        "next_offset": offset + limit if offset + limit < len(all_records) else None,
+    }
 
 
 def get_today() -> dict | None:

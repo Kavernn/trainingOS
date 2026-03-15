@@ -91,12 +91,20 @@ def save_mood_entry(
     return entry
 
 
-def get_history(days: int = 30) -> list:
+def get_history(days: int = 30, limit: int = 20, offset: int = 0) -> dict:
     records = _load()
     if days:
         cutoff = (date_cls.today() - timedelta(days=days)).isoformat()
         records = [r for r in records if r.get("date", "") >= cutoff]
-    return records
+    page = records[offset: offset + limit]
+    return {
+        "items":       page,
+        "offset":      offset,
+        "limit":       limit,
+        "total":       len(records),
+        "has_more":    offset + limit < len(records),
+        "next_offset": offset + limit if offset + limit < len(records) else None,
+    }
 
 
 def get_today_entry() -> dict | None:

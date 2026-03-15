@@ -458,10 +458,11 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode(MoodEntry.self, from: data)
     }
 
-    func fetchMoodHistory(days: Int = 30) async throws -> [MoodEntry] {
-        let url = URL(string: "\(baseURL)/api/mood/history?days=\(days)")!
-        let data = try await fetchWithCache(url: url, key: "mood_history")
-        return try JSONDecoder().decode([MoodEntry].self, from: data)
+    func fetchMoodHistory(days: Int = 90, limit: Int = 20, offset: Int = 0) async throws -> PagedResponse<MoodEntry> {
+        let cacheKey = offset == 0 ? "mood_history" : "mood_history_\(offset)"
+        let url = URL(string: "\(baseURL)/api/mood/history?days=\(days)&limit=\(limit)&offset=\(offset)")!
+        let data = try await fetchWithCache(url: url, key: cacheKey)
+        return try JSONDecoder().decode(PagedResponse<MoodEntry>.self, from: data)
     }
 
     func checkMoodDue() async throws -> MoodDueStatus {
@@ -489,10 +490,11 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode(JournalEntry.self, from: data)
     }
 
-    func fetchJournalEntries(limit: Int = 30) async throws -> [JournalEntry] {
-        let url = URL(string: "\(baseURL)/api/journal/entries?limit=\(limit)")!
-        let data = try await fetchWithCache(url: url, key: "journal_entries")
-        return try JSONDecoder().decode([JournalEntry].self, from: data)
+    func fetchJournalEntries(limit: Int = 20, offset: Int = 0) async throws -> PagedResponse<JournalEntry> {
+        let cacheKey = offset == 0 ? "journal_entries" : "journal_entries_\(offset)"
+        let url = URL(string: "\(baseURL)/api/journal/entries?limit=\(limit)&offset=\(offset)")!
+        let data = try await fetchWithCache(url: url, key: cacheKey)
+        return try JSONDecoder().decode(PagedResponse<JournalEntry>.self, from: data)
     }
 
     // MARK: - Santé Mentale — Breathwork
@@ -575,10 +577,11 @@ class APIService: ObservableObject {
 
     // MARK: - Sommeil
 
-    func fetchSleepHistory(limit: Int = 30) async throws -> [SleepEntry] {
-        let url = URL(string: "\(baseURL)/api/sleep/history?limit=\(limit)")!
-        let data = try await fetchWithCache(url: url, key: "sleep_history")
-        return try JSONDecoder().decode([SleepEntry].self, from: data)
+    func fetchSleepHistory(limit: Int = 20, offset: Int = 0) async throws -> PagedResponse<SleepEntry> {
+        let cacheKey = offset == 0 ? "sleep_history" : "sleep_history_\(offset)"
+        let url = URL(string: "\(baseURL)/api/sleep/history?limit=\(limit)&offset=\(offset)")!
+        let data = try await fetchWithCache(url: url, key: cacheKey)
+        return try JSONDecoder().decode(PagedResponse<SleepEntry>.self, from: data)
     }
 
     func fetchSleepToday() async throws -> SleepEntry? {

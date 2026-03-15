@@ -3,7 +3,7 @@ from db import get_json, set_json
 from datetime import datetime
 from typing import Dict, List
 from blocks import make_strength_block, get_strength_exercises, sorted_blocks
-from progression import should_increase, next_weight
+from progression import suggest_next_weight
 
 
 # ---------------------------------------------------------------------------
@@ -189,7 +189,19 @@ def get_suggested_weights_for_today(weights: dict) -> List[dict]:
         current    = data.get("current_weight", data.get("weight", 0.0))
         last_reps  = data.get("last_reps", "")
         input_type = data.get("input_type", "total")
-        suggested  = next_weight(exercise, current) if should_increase(last_reps, exercise) else current
+
+        # Use last logged RPE from history for autoregulation
+        last_history = data.get("history", [])
+        last_rpe: float | None = None
+        if last_history and isinstance(last_history[0], dict):
+            rpe_val = last_history[0].get("rpe")
+            if rpe_val is not None:
+                try:
+                    last_rpe = float(rpe_val)
+                except (TypeError, ValueError):
+                    pass
+
+        suggested, _ = suggest_next_weight(exercise, current, last_reps, last_rpe)
         if input_type == "barbell":
             side    = (suggested - 45) / 2 if suggested >= 45 else 0
             display = f"{side:.1f} par cote (total {suggested:.1f} lbs)"

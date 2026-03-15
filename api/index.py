@@ -66,7 +66,7 @@ from log_workout  import log_single_exercise
 from inventory    import load_inventory, save_inventory, calculate_plates
 from sessions     import load_sessions, log_session, log_second_session, session_exists
 from user_profile import load_user_profile, save_user_profile
-from progression  import estimate_1rm, should_increase, next_weight, parse_reps, progression_status
+from progression  import estimate_1rm, should_increase, next_weight, parse_reps, progression_status, suggest_next_weight
 from deload       import analyser_deload, load_deload_state
 from goals        import load_goals, check_goals_achieved, get_progress_bar, set_goal
 from body_weight  import load_body_weight, log_body_weight, get_tendance
@@ -514,6 +514,8 @@ def api_log():
         exercise = data.get("exercise")
         weight   = float(data.get("weight", 0))
         reps_str = data.get("reps", "")
+        rpe_raw  = data.get("rpe")
+        rpe      = float(rpe_raw) if rpe_raw is not None else None
 
         if not exercise or not reps_str:
             return jsonify({"error": "Données manquantes"}), 400
@@ -541,8 +543,14 @@ def api_log():
         reps_list = parse_reps(reps_str)
         reps      = ",".join(map(str, reps_list))
         status    = progression_status(reps, exercise)
-        increase  = should_increase(reps, exercise)
-        new_w     = next_weight(exercise, weight) if increase else weight
+        # RPE-based autoregulation: use last history RPE if not provided in request
+        if rpe is None:
+            last_entry = weights.get(exercise, {}).get("history", [{}])[0] if weights.get(exercise, {}).get("history") else {}
+            rpe = last_entry.get("rpe")
+            if rpe is not None:
+                rpe = float(rpe)
+        new_w, action = suggest_next_weight(exercise, weight, reps, rpe)
+        increase  = action == "increase"
         onerm     = estimate_1rm(weight, reps)
 
         # Annotate each set with total_weight and set_volume, compute exercise_volume
@@ -555,14 +563,17 @@ def api_log():
         else:
             exercise_volume = 0.0
 
+        action_notes = {"increase": f"+{new_w - weight:.1f}", "maintain": "stagné", "decrease": f"{new_w - weight:.1f}"}
         history_entry = {
             "date":            _today_mtl(),
             "weight":          round(weight, 1),
             "reps":            reps,
-            "note":            f"+{new_w - weight:.1f}" if increase else "stagné",
+            "note":            action_notes.get(action, "stagné"),
             "1rm":             onerm,
             "exercise_volume": exercise_volume,
         }
+        if rpe is not None:
+            history_entry["rpe"] = rpe
         if sets_data:
             history_entry["sets"] = sets_data
 
@@ -1851,10 +1862,11 @@ def api_sleep_log():
 @app.route("/api/sleep/history")
 def api_sleep_history():
     try:
-        limit = int(request.args.get("limit", 30))
+        limit  = int(request.args.get("limit", 20))
+        offset = int(request.args.get("offset", 0))
     except ValueError:
-        limit = 30
-    return jsonify(sleep_get_history(limit))
+        limit, offset = 20, 0
+    return jsonify(sleep_get_history(limit, offset))
 
 @app.route("/api/sleep/today")
 def api_sleep_today():
@@ -1925,10 +1937,12 @@ def api_mood_log():
 @app.route("/api/mood/history")
 def api_mood_history():
     try:
-        days = int(request.args.get("days", 30))
+        days   = int(request.args.get("days", 90))
+        limit  = int(request.args.get("limit", 20))
+        offset = int(request.args.get("offset", 0))
     except ValueError:
-        days = 30
-    return jsonify(mood_get_history(days))
+        days, limit, offset = 90, 20, 0
+    return jsonify(mood_get_history(days, limit, offset))
 
 
 @app.route("/api/mood/today")
@@ -1973,10 +1987,11 @@ def api_journal_save():
 @app.route("/api/journal/entries")
 def api_journal_entries():
     try:
-        limit = int(request.args.get("limit", 30))
+        limit  = int(request.args.get("limit", 20))
+        offset = int(request.args.get("offset", 0))
     except ValueError:
-        limit = 30
-    return jsonify(get_entries(limit))
+        limit, offset = 20, 0
+    return jsonify(get_entries(limit, offset))
 
 
 @app.route("/api/journal/search")

@@ -1,6 +1,21 @@
 import Foundation
 import SwiftUI
 
+// MARK: - Pagination
+struct PagedResponse<T: Codable>: Codable {
+    let items: [T]
+    let offset: Int
+    let limit: Int
+    let total: Int
+    let hasMore: Bool
+    let nextOffset: Int?
+    enum CodingKeys: String, CodingKey {
+        case items, offset, limit, total
+        case hasMore    = "has_more"
+        case nextOffset = "next_offset"
+    }
+}
+
 struct SafeString: Codable {
     let value: String
 

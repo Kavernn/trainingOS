@@ -87,8 +87,17 @@ def save_entry(prompt: str, content: str) -> dict:
     return entry
 
 
-def get_entries(limit: int = 30) -> list:
-    return _load()[:limit]
+def get_entries(limit: int = 20, offset: int = 0) -> dict:
+    all_entries = _load()
+    page = all_entries[offset: offset + limit]
+    return {
+        "items":      page,
+        "offset":     offset,
+        "limit":      limit,
+        "total":      len(all_entries),
+        "has_more":   offset + limit < len(all_entries),
+        "next_offset": offset + limit if offset + limit < len(all_entries) else None,
+    }
 
 
 def search_entries(query: str) -> list:

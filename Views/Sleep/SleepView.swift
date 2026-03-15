@@ -6,6 +6,9 @@ struct SleepView: View {
     @State private var stats: SleepStats?
     @State private var todayEntry: SleepEntry?
     @State private var isLoading = true
+    @State private var isLoadingMore = false
+    @State private var hasMore = false
+    @State private var nextOffset: Int? = nil
     @State private var showLogSheet = false
     @State private var entryToDelete: SleepEntry?
 
@@ -102,6 +105,22 @@ struct SleepView: View {
                                             }
                                         }
                                 }
+                                if hasMore {
+                                    Button { Task { await loadMore() } } label: {
+                                        HStack {
+                                            Spacer()
+                                            if isLoadingMore {
+                                                ProgressView().scaleEffect(0.8)
+                                            } else {
+                                                Text("Charger plus…")
+                                                    .font(.subheadline).foregroundColor(accentColor)
+                                            }
+                                            Spacer()
+                                        }
+                                        .padding(.vertical, 8)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                             .padding(.horizontal, 16)
                         }
@@ -147,16 +166,31 @@ struct SleepView: View {
     }
 
     private func loadData() async {
-        async let h  = try? APIService.shared.fetchSleepHistory()
+        async let pg = try? APIService.shared.fetchSleepHistory()
         async let s  = try? APIService.shared.fetchSleepStats()
         async let t  = try? APIService.shared.fetchSleepToday()
-        let (hi, st, to) = await (h, s, t)
+        let (page, st, to) = await (pg, s, t)
         await MainActor.run {
-            history    = hi ?? []
+            if let page {
+                history    = page.items
+                hasMore    = page.hasMore
+                nextOffset = page.nextOffset
+            }
             stats      = st
             todayEntry = to
             isLoading  = false
         }
+    }
+
+    private func loadMore() async {
+        guard let offset = nextOffset, !isLoadingMore else { return }
+        isLoadingMore = true
+        if let pg = try? await APIService.shared.fetchSleepHistory(offset: offset) {
+            history.append(contentsOf: pg.items)
+            hasMore    = pg.hasMore
+            nextOffset = pg.nextOffset
+        }
+        isLoadingMore = false
     }
 
     private func deleteEntry(_ entry: SleepEntry) async {

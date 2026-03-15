@@ -5,6 +5,9 @@ struct JournalView: View {
     @State private var todayPrompt: String = ""
     @State private var showEntrySheet = false
     @State private var isLoading = true
+    @State private var isLoadingMore = false
+    @State private var hasMore = false
+    @State private var nextOffset: Int? = nil
     @State private var searchText = ""
 
     private var filtered: [JournalEntry] {
@@ -46,6 +49,24 @@ struct JournalView: View {
                         ForEach(filtered) { entry in
                             JournalEntryRow(entry: entry)
                         }
+                        if hasMore && searchText.isEmpty {
+                            Button {
+                                Task { await loadMore() }
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    if isLoadingMore {
+                                        ProgressView().scaleEffect(0.8)
+                                    } else {
+                                        Text("Charger plus…")
+                                            .font(.subheadline)
+                                            .foregroundColor(.indigo)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 } else if !isLoading {
                     Section {
@@ -82,14 +103,29 @@ struct JournalView: View {
     }
 
     private func loadData() async {
-        async let prompt  = try? APIService.shared.fetchJournalPrompt()
-        async let entries = try? APIService.shared.fetchJournalEntries()
-        let (p, e) = await (prompt, entries)
+        async let prompt = try? APIService.shared.fetchJournalPrompt()
+        async let page   = try? APIService.shared.fetchJournalEntries()
+        let (p, pg) = await (prompt, page)
         await MainActor.run {
             todayPrompt = p ?? ""
-            self.entries = e ?? []
+            if let pg {
+                entries    = pg.items
+                hasMore    = pg.hasMore
+                nextOffset = pg.nextOffset
+            }
             isLoading = false
         }
+    }
+
+    private func loadMore() async {
+        guard let offset = nextOffset, !isLoadingMore else { return }
+        isLoadingMore = true
+        if let pg = try? await APIService.shared.fetchJournalEntries(offset: offset) {
+            entries.append(contentsOf: pg.items)
+            hasMore    = pg.hasMore
+            nextOffset = pg.nextOffset
+        }
+        isLoadingMore = false
     }
 }
 
