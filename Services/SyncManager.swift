@@ -12,6 +12,9 @@ final class SyncManager: ObservableObject {
     private let baseURL = "https://training-os-rho.vercel.app"
     private let maxRetries = 5
 
+    var urlSession: URLSession = .shared
+    var isOnlineProvider: () -> Bool = { NetworkMonitor.shared.isOnline }
+
     @Published private(set) var pendingCount: Int = 0
     @Published private(set) var isSyncing = false
     @Published var offlineToast: String? = nil
@@ -19,7 +22,7 @@ final class SyncManager: ObservableObject {
     private var container: ModelContainer?
     private var cancellables = Set<AnyCancellable>()
 
-    private init() {}
+    init() {}
 
     // MARK: - Setup
 
@@ -64,7 +67,7 @@ final class SyncManager: ObservableObject {
     /// Send all pending mutations in FIFO order. Safe to call multiple times.
     func flushQueue() async {
         guard let container, !isSyncing else { return }
-        guard NetworkMonitor.shared.isOnline else { return }
+        guard isOnlineProvider() else { return }
 
         isSyncing = true
         defer { isSyncing = false }
@@ -114,7 +117,7 @@ final class SyncManager: ObservableObject {
         req.timeoutInterval = 15
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         do {
-            let (_, response) = try await URLSession.shared.data(for: req)
+            let (_, response) = try await urlSession.data(for: req)
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             // 2xx = success; 409 (already_logged) = treat as success (idempotent)
             return (200...299).contains(code) || code == 409

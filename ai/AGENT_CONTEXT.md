@@ -161,7 +161,6 @@ API publique : `get_json(key)`, `set_json(key, value)`, `update_json(key, patch)
 # Règles UI
 
 * Toutes les pages héritent de `templates/base.html`
-* CSS inline dans les templates (pas de fichiers CSS séparés sauf `static/`)
 * Safe area iOS gérée dans `base.html` — ne pas dupliquer
 * Responsive mobile-first
 

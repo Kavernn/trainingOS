@@ -3,14 +3,16 @@ import Foundation
 final class CacheService {
     static let shared = CacheService()
 
-    private let directory: URL = {
-        let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let dir = docs.appendingPathComponent("APICache", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir
-    }()
+    private let directory: URL
 
-    private init() {}
+    init(directory: URL? = nil) {
+        let dir = directory ?? {
+            let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            return docs.appendingPathComponent("APICache", isDirectory: true)
+        }()
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        self.directory = dir
+    }
 
     private func fileURL(for key: String) -> URL {
         let safe = key.replacingOccurrences(of: "/", with: "_")
