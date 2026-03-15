@@ -47,6 +47,24 @@ def save_inventory(inv: dict) -> bool:
     return success
 
 
+def rename_inventory_exercise(old_name: str, new_name: str, info: dict = None):
+    """Rename an exercise in both the relational table and the KV store."""
+    # Relational: targeted rename (no full upsert)
+    try:
+        db.rename_exercise_table(old_name, new_name)
+    except Exception:
+        pass
+    # KV: load, rename key, save
+    inv = db.get_json("inventory", {}) or {}
+    if old_name in inv:
+        inv[new_name] = info if info is not None else inv.pop(old_name)
+        if old_name in inv:
+            del inv[old_name]
+    elif new_name not in inv:
+        inv[new_name] = info or {"type": "machine", "increment": 5, "default_scheme": "3x8-12"}
+    db.set_json("inventory", inv)
+
+
 def add_exercise(name: str, info: dict):
     try:
         db.upsert_exercise({**info, "name": name})

@@ -63,7 +63,7 @@ from blocks       import (make_strength_block, make_hiit_block, make_cardio_bloc
 from hiit         import get_hiit_str
 from weights      import load_weights, save_weights
 from log_workout  import log_single_exercise
-from inventory    import load_inventory, save_inventory, add_exercise, calculate_plates
+from inventory    import load_inventory, save_inventory, add_exercise, rename_inventory_exercise, calculate_plates
 from sessions     import load_sessions, log_session, log_second_session, session_exists
 from user_profile import load_user_profile, save_user_profile
 from progression  import estimate_1rm, should_increase, next_weight, parse_reps, progression_status, suggest_next_weight
@@ -994,9 +994,8 @@ def api_programme():
             if sb and old_ex in sb.get("exercises", {}):
                 sb["exercises"][new_ex] = sb["exercises"].pop(old_ex)
         inv = load_inventory()
-        if old_ex in inv:
-            inv[new_ex] = inv.pop(old_ex)
-        elif new_ex not in inv:
+        info = inv.get(old_ex)
+        if info is None:
             # Exercise wasn't in inventory — seed minimal entry using programme scheme
             scheme = "3x8-12"
             for sdef in program.values():
@@ -1004,8 +1003,8 @@ def api_programme():
                 if sb and new_ex in sb.get("exercises", {}):
                     scheme = sb["exercises"][new_ex]
                     break
-            inv[new_ex] = {"type": "machine", "increment": 5, "default_scheme": scheme}
-        save_inventory(inv)  # Always persist (was conditional before — bug fix)
+            info = {"type": "machine", "increment": 5, "default_scheme": scheme}
+        rename_inventory_exercise(old_ex, new_ex, info)
 
     # ── Block-level actions ──────────────────────────────────────────────────
     elif action == "add_block":
