@@ -944,8 +944,7 @@ def api_programme():
             exercises[exercise] = scheme
             # Seed a minimal inventory entry so equipment-type lookups work
             if exercise not in inv:
-                inv[exercise] = {"default_scheme": scheme, "type": "machine", "increment": 5}
-                save_inventory(inv)
+                add_exercise(exercise, {"default_scheme": scheme, "type": "machine", "increment": 5})
 
         elif action == "remove":
             exercises.pop(data.get("exercise"), None)
@@ -958,8 +957,9 @@ def api_programme():
                 # Also update default_scheme in inventory (exact match only)
                 inv = load_inventory()
                 if exercise in inv and isinstance(inv[exercise], dict):
-                    inv[exercise]["default_scheme"] = new_scheme
-                    save_inventory(inv)
+                    entry = dict(inv[exercise])
+                    entry["default_scheme"] = new_scheme
+                    add_exercise(exercise, entry)
 
         elif action == "replace":
             old_ex = data.get("old_exercise")
@@ -970,12 +970,14 @@ def api_programme():
             # Sync inventory: create entry if absent, always update scheme
             inv = load_inventory()
             if new_ex not in inv:
-                inv[new_ex] = {**inv.get(old_ex, {}), "default_scheme": scheme}
-                inv[new_ex].setdefault("type", "machine")
-                inv[new_ex].setdefault("increment", 5)
+                entry = {**inv.get(old_ex, {}), "default_scheme": scheme}
+                entry.setdefault("type", "machine")
+                entry.setdefault("increment", 5)
+                add_exercise(new_ex, entry)
             else:
-                inv[new_ex]["default_scheme"] = scheme
-            save_inventory(inv)
+                entry = dict(inv[new_ex])
+                entry["default_scheme"] = scheme
+                add_exercise(new_ex, entry)
 
         elif action == "reorder":
             ordre     = data.get("ordre", [])
