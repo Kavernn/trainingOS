@@ -947,7 +947,21 @@ def api_programme():
                 add_exercise(exercise, {"default_scheme": scheme, "type": "machine", "increment": 5})
 
         elif action == "remove":
-            exercises.pop(data.get("exercise"), None)
+            ex_to_remove = data.get("exercise", "")
+            exercises.pop(ex_to_remove, None)
+            # Supprimer de l'inventaire si l'exercice n'est plus dans aucune autre séance
+            if ex_to_remove:
+                still_used = any(
+                    ex_to_remove in (get_block(sdef.get("blocks", []), "strength") or {}).get("exercises", {})
+                    for sname, sdef in program.items()
+                    if sname != jour
+                )
+                if not still_used:
+                    try:
+                        import db as _db
+                        _db.delete_exercise_by_name(ex_to_remove)
+                    except Exception:
+                        pass
 
         elif action == "scheme":
             exercise   = data.get("exercise")

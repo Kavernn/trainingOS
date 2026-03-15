@@ -47,7 +47,7 @@ if exercise in inv:
 | Action | Programme | Inventaire |
 |--------|-----------|------------|
 | `add` | insert | créer si absent (ne pas écraser) |
-| `remove` | supprimer | **NE PAS toucher** |
+| `remove` | supprimer | supprimer de l'inventaire **si plus dans aucune autre séance** |
 | `scheme` | update | update `default_scheme` (clé exacte) |
 | `replace` | swap | créer/update entrée new_ex |
 | `rename` | rename partout | renommer clé exacte (`pop` + réinsert) |
@@ -63,6 +63,14 @@ Le `bridge.mjs` de VinceSeven doit tourner avec `npm run dev` (vite + miniverse 
 ## Performance — KV reads Supabase (Vercel 15s timeout)
 
 Pour les endpoints analytiques (`/api/insights/correlations`), charger toutes les données en **4 KV reads** groupés, pas en N×4. Évite le timeout Vercel.
+
+---
+
+## Workflow — Ne jamais déclarer un bug "réglé" sans test réel
+
+Les tests unitaires (pytest) passent ≠ le bug est corrigé en production.
+
+**Règle :** Après un fix de comportement observable côté app (exercice manquant dans inventaire, etc.), toujours demander à l'utilisateur de **retester sur l'app** avant de conclure. Ne jamais écrire "reteste, ça devrait marcher" comme conclusion finale — attendre la confirmation.
 
 ---
 

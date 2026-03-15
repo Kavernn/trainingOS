@@ -74,14 +74,25 @@ class TestProgrammeRemove(BaseRouteTest):
         })
         self.assertNotIn("Bench Press", _strength_exos(self.store, "Upper A"))
 
-    def test_remove_preserves_inventory(self):
-        """Spec: removing from program must NOT delete from inventory."""
+    def test_remove_deletes_from_inventory_when_not_in_other_session(self):
+        """Removing an exercise that is not in any other session must delete it from inventory."""
+        # Use a custom exercise not present in DEFAULT_PROGRAM
+        self.store["program"]["Upper A"]["blocks"][0]["exercises"]["Z-Custom-Only"] = "3x10"
+        self.store["inventory"]["Z-Custom-Only"] = {"type": "machine", "default_scheme": "3x10"}
+        self.post("/api/programme", {
+            "action": "remove", "jour": "Upper A", "exercise": "Z-Custom-Only",
+        })
+        self.assertNotIn("Z-Custom-Only", self.store["inventory"])
+
+    def test_remove_keeps_inventory_if_in_other_session(self):
+        """Bench Press stays in inventory because DEFAULT_PROGRAM has it in Push A too."""
         self.post("/api/programme", {
             "action": "remove", "jour": "Upper A", "exercise": "Bench Press",
         })
         self.assertIn("Bench Press", self.store["inventory"])
 
     def test_remove_preserves_weights_history(self):
+        """Weights history must never be deleted when removing from programme."""
         self.post("/api/programme", {
             "action": "remove", "jour": "Upper A", "exercise": "Bench Press",
         })
