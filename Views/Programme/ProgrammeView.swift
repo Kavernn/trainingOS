@@ -66,19 +66,30 @@ struct ProgrammeView: View {
 
     // MARK: – Load
 
+    private func applyJSON(_ json: [String: Any]) {
+        if let raw = json["full_program"] as? [String: [String: Any]] {
+            fullProgram = raw.mapValues { $0.compactMapValues { $0 as? String } }
+        }
+        schedule         = (json["schedule"] as? [String: String]) ?? [:]
+        inventory        = (json["inventory"] as? [String]) ?? []
+        inventorySchemes = (json["inventory_schemes"] as? [String: String]) ?? [:]
+    }
+
     private func loadData() async {
-        isLoading = true
         let url = URL(string: "\(kBaseURL)/api/programme_data")!
+        // Affichage immédiat depuis cache
+        if let cached = CacheService.shared.load(for: "programme_data"),
+           let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
+            await MainActor.run { applyJSON(json); isLoading = false }
+        }
+        // Refresh réseau en arrière-plan
         if let (data, _) = try? await URLSession.shared.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            if let raw = json["full_program"] as? [String: [String: Any]] {
-                fullProgram = raw.mapValues { $0.compactMapValues { $0 as? String } }
-            }
-            schedule         = (json["schedule"] as? [String: String]) ?? [:]
-            inventory        = (json["inventory"] as? [String]) ?? []
-            inventorySchemes = (json["inventory_schemes"] as? [String: String]) ?? [:]
+            CacheService.shared.save(data, for: "programme_data")
+            await MainActor.run { applyJSON(json); isLoading = false }
+        } else {
+            await MainActor.run { isLoading = false }
         }
-        isLoading = false
     }
 
     // MARK: – Mutations
@@ -90,6 +101,7 @@ struct ProgrammeView: View {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         _ = try? await URLSession.shared.data(for: req)
+        CacheService.shared.clear(for: "programme_data")
     }
 
     private func addExercise(seance: String, exercise: String, scheme: String) async {
