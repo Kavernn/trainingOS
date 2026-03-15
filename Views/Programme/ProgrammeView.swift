@@ -6,6 +6,7 @@ struct ProgrammeView: View {
     @State private var fullProgram: [String: [String: Any]] = [:]
     @State private var schedule: [String: String] = [:]
     @State private var inventory: [String] = []
+    @State private var inventorySchemes: [String: String] = [:]
     @State private var isLoading = true
     @State private var addTarget: SeanceName?      // seance courante pour l'ajout
     @State private var editTarget: ExerciseTarget? // exercice à éditer
@@ -49,7 +50,7 @@ struct ProgrammeView: View {
             .navigationTitle("Programme")
             .navigationBarTitleDisplayMode(.large)
             .sheet(item: $addTarget) { sn in
-                AddExerciseSheet(seance: sn.id, inventory: inventory) { ex, scheme in
+                AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes) { ex, scheme in
                     Task { await addExercise(seance: sn.id, exercise: ex, scheme: scheme) }
                 }
             }
@@ -69,9 +70,10 @@ struct ProgrammeView: View {
         let url = URL(string: "\(kBaseURL)/api/programme_data")!
         if let (data, _) = try? await URLSession.shared.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            fullProgram = (json["full_program"] as? [String: [String: Any]]) ?? [:]
-            schedule    = (json["schedule"] as? [String: String]) ?? [:]
-            inventory   = (json["inventory"] as? [String]) ?? []
+            fullProgram      = (json["full_program"] as? [String: [String: Any]]) ?? [:]
+            schedule         = (json["schedule"] as? [String: String]) ?? [:]
+            inventory        = (json["inventory"] as? [String]) ?? []
+            inventorySchemes = (json["inventory_schemes"] as? [String: String]) ?? [:]
         }
         isLoading = false
     }
@@ -103,10 +105,11 @@ struct ProgrammeView: View {
             await postProgramme(["action": "rename", "jour": seance, "old_exercise": oldName, "new_exercise": newName])
             await postProgramme(["action": "scheme", "jour": seance, "exercise": newName, "scheme": scheme])
             await MainActor.run {
-                // Mettre à jour toutes les séances localement
+                // Swift Dicts are value types — must read, mutate, then write back
                 for key in fullProgram.keys {
-                    if fullProgram[key]?[oldName] != nil {
-                        fullProgram[key]?[newName] = fullProgram[key]?.removeValue(forKey: oldName)
+                    if let oldScheme = fullProgram[key]?[oldName] {
+                        fullProgram[key]?[newName] = oldScheme
+                        fullProgram[key]?.removeValue(forKey: oldName)
                     }
                 }
                 fullProgram[seance]?[newName] = scheme
@@ -275,6 +278,7 @@ struct ExerciseRow: View {
 struct AddExerciseSheet: View {
     let seance: String
     let inventory: [String]
+    let inventorySchemes: [String: String]
     let onAdd: (String, String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -329,6 +333,10 @@ struct AddExerciseSheet: View {
                         List(filtered, id: \.self) { ex in
                             Button {
                                 name = ex
+                                // Hérite le default_scheme de l'inventaire
+                                if let defaultScheme = inventorySchemes[ex] {
+                                    scheme = defaultScheme
+                                }
                             } label: {
                                 HStack {
                                     Text(ex)

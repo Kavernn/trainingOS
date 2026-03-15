@@ -1539,13 +1539,16 @@ def api_programme_data():
         seance: get_strength_exercises(session_def)
         for seance, session_def in full_program.items()
     }
-    inventory_types = {name: info.get("type", "machine") for name, info in inventory.items()} \
+    inventory_types   = {name: info.get("type", "machine")         for name, info in inventory.items()} \
+        if isinstance(inventory, dict) else {}
+    inventory_schemes = {name: info.get("default_scheme", "3x8-12") for name, info in inventory.items()} \
         if isinstance(inventory, dict) else {}
     return jsonify({
-        "full_program":     flat_program,
-        "schedule":         schedule,
-        "inventory":        [ex for ex in inventory] if isinstance(inventory, list) else list(inventory.keys()),
-        "inventory_types":  inventory_types,
+        "full_program":      flat_program,
+        "schedule":          schedule,
+        "inventory":         [ex for ex in inventory] if isinstance(inventory, list) else list(inventory.keys()),
+        "inventory_types":   inventory_types,
+        "inventory_schemes": inventory_schemes,
     })
 
 

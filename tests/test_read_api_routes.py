@@ -103,7 +103,7 @@ class TestProgrammeData(BaseRouteTest):
 
     def test_required_keys(self):
         data = self.json(self.get("/api/programme_data"))
-        for key in ("full_program", "schedule", "inventory_types"):
+        for key in ("full_program", "schedule", "inventory_types", "inventory_schemes"):
             self.assertIn(key, data, f"Missing key: {key}")
 
     def test_full_program_is_flat(self):
@@ -115,6 +115,16 @@ class TestProgrammeData(BaseRouteTest):
         data = self.json(self.get("/api/programme_data"))
         self.assertIn("Bench Press", data["inventory_types"])
         self.assertEqual("barbell", data["inventory_types"]["Bench Press"])
+
+    def test_inventory_schemes_populated(self):
+        data = self.json(self.get("/api/programme_data"))
+        self.assertIn("Bench Press", data["inventory_schemes"])
+        self.assertEqual("4x5-7", data["inventory_schemes"]["Bench Press"])
+
+    def test_inventory_schemes_all_strings(self):
+        data = self.json(self.get("/api/programme_data"))
+        for name, scheme in data["inventory_schemes"].items():
+            self.assertIsInstance(scheme, str, f"scheme for {name} is not a string")
 
 
 # ── /api/inventaire_data ──────────────────────────────────────────────────────
