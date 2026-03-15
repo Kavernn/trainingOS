@@ -4,6 +4,7 @@ struct DashboardView: View {
     @StateObject private var api = APIService.shared
     @State private var deload: DeloadReport?
     @State private var moodDue: MoodDueStatus?
+    @State private var brief: MorningBriefData?
     @State private var showMoodSheet = false
     @State private var lastRefresh: Date = .distantPast
     @Environment(\.scenePhase) private var scenePhase
@@ -28,6 +29,11 @@ struct DashboardView: View {
                             if let report = deload, report.recommande {
                                 DeloadBannerView(report: report)
                                     .appearAnimation(delay: 0.03)
+                            }
+
+                            if let b = brief, b.recommendation != "go" {
+                                MorningBriefCardView(data: b)
+                                    .appearAnimation(delay: 0.04)
                             }
 
                             if moodDue?.isDue == true {
@@ -72,8 +78,9 @@ struct DashboardView: View {
                     }
                     .refreshable {
                         await api.fetchDashboard()
-                        deload   = try? await APIService.shared.fetchDeloadData()
-                        moodDue  = try? await APIService.shared.checkMoodDue()
+                        deload  = try? await APIService.shared.fetchDeloadData()
+                        moodDue = try? await APIService.shared.checkMoodDue()
+                        brief   = try? await APIService.shared.fetchMorningBrief()
                     }
                 } else if let err = api.error {
                     VStack(spacing: 16) {
@@ -101,8 +108,10 @@ struct DashboardView: View {
             await api.fetchDashboard()
             async let d = APIService.shared.fetchDeloadData()
             async let m = APIService.shared.checkMoodDue()
+            async let b = APIService.shared.fetchMorningBrief()
             deload  = try? await d
             moodDue = try? await m
+            brief   = try? await b
             lastRefresh = Date()
         }
         .onChange(of: scenePhase) {
@@ -113,8 +122,10 @@ struct DashboardView: View {
                     await api.fetchDashboard()
                     async let d = APIService.shared.fetchDeloadData()
                     async let m = APIService.shared.checkMoodDue()
+                    async let b = APIService.shared.fetchMorningBrief()
                     deload  = try? await d
                     moodDue = try? await m
+                    brief   = try? await b
                     lastRefresh = Date()
                 }
             }
@@ -738,5 +749,77 @@ struct NutriBadge: View {
         .background(color.opacity(0.08))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.15), lineWidth: 0.5))
         .cornerRadius(10)
+    }
+}
+
+// MARK: - Morning Brief Card
+struct MorningBriefCardView: View {
+    let data: MorningBriefData
+
+    private var accentColor: Color {
+        switch data.recommendation {
+        case "defer":      return .red
+        case "reduce":     return .orange
+        case "go_caution": return .yellow
+        default:           return .green
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: iconName)
+                    .foregroundColor(accentColor)
+                Text("Coach du matin")
+                    .font(.system(size: 11, weight: .bold)).tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                lssChip
+            }
+            Text(data.message)
+                .font(.system(size: 14))
+                .foregroundColor(.white)
+
+            if !data.adjustments.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(data.adjustments, id: \.self) { adj in
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(accentColor)
+                            Text(adj)
+                                .font(.system(size: 12))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(accentColor.opacity(0.08))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(accentColor.opacity(0.3), lineWidth: 1))
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
+    }
+
+    private var lssChip: some View {
+        Group {
+            if let lss = data.lss {
+                Text("LSS \(Int(lss))")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(accentColor)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(accentColor.opacity(0.15))
+                    .cornerRadius(8)
+            }
+        }
+    }
+
+    private var iconName: String {
+        switch data.recommendation {
+        case "defer":  return "exclamationmark.triangle.fill"
+        case "reduce": return "arrow.down.circle.fill"
+        default:       return "exclamationmark.circle.fill"
+        }
     }
 }

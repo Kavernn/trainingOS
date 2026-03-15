@@ -822,3 +822,35 @@ struct ACWRWeek: Codable, Identifiable {
     let chronic: Double
 }
 
+// MARK: - Morning Brief
+struct MorningBriefData: Codable {
+    let date: String
+    let sessionToday: String
+    let sessionIntensity: String
+    let lss: Double?
+    let recommendation: String  // "go" | "go_caution" | "reduce" | "defer"
+    let message: String
+    let adjustments: [String]
+    let flags: MorningBriefFlags
+    let dataCoverage: Double
+
+    enum CodingKeys: String, CodingKey {
+        case date, lss, recommendation, message, adjustments, flags
+        case sessionToday     = "session_today"
+        case sessionIntensity = "session_intensity"
+        case dataCoverage     = "data_coverage"
+    }
+}
+
+struct MorningBriefFlags: Codable {
+    let hrvDrop: Bool
+    let sleepDeprivation: Bool
+    let trainingOverload: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case hrvDrop          = "hrv_drop"
+        case sleepDeprivation = "sleep_deprivation"
+        case trainingOverload = "training_overload"
+    }
+}
+

@@ -616,4 +616,11 @@ class APIService: ObservableObject {
         CacheService.shared.clear(for: "sleep_today")
         CacheService.shared.clear(for: "sleep_stats")
     }
+
+    // MARK: - Morning Brief
+    func fetchMorningBrief() async throws -> MorningBriefData {
+        let url = URL(string: "\(baseURL)/api/coach/morning_brief")!
+        let data = try await fetchWithCache(url: url, key: "morning_brief")
+        return try JSONDecoder().decode(MorningBriefData.self, from: data)
+    }
 }

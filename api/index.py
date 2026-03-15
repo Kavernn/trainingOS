@@ -1312,6 +1312,12 @@ def api_acwr():
     return jsonify(calc_acwr())
 
 
+@app.route("/api/coach/morning_brief")
+def api_morning_brief():
+    from morning_brief import get_morning_brief
+    return jsonify(get_morning_brief())
+
+
 @app.route("/sw.js")
 def service_worker():
     # Version = SHA git sur Vercel, timestamp horaire en local
