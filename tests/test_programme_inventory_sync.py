@@ -259,6 +259,114 @@ class TestProgrammeBlocks(BaseRouteTest):
         self.assertEqual(400, r.status_code)
 
 
+# ── Bug-fix regressions ───────────────────────────────────────────────────────
+
+class TestAddInheritInventoryScheme(BaseRouteTest):
+    """Bug fix: add without explicit scheme must use inventory default_scheme."""
+
+    def test_add_no_scheme_uses_inventory_default(self):
+        # Cable Fly is in inventory with default_scheme "3x12-15"
+        self.post("/api/programme", {
+            "action": "add", "jour": "Upper A",
+            "exercise": "Cable Fly",
+            # no "scheme" key — should inherit from inventory
+        })
+        self.assertEqual("3x12-15", _strength_exos(self.store, "Upper A")["Cable Fly"])
+
+    def test_add_explicit_scheme_overrides_inventory(self):
+        self.post("/api/programme", {
+            "action": "add", "jour": "Upper A",
+            "exercise": "Cable Fly", "scheme": "4x10",
+        })
+        self.assertEqual("4x10", _strength_exos(self.store, "Upper A")["Cable Fly"])
+
+    def test_add_no_scheme_unknown_exercise_defaults_to_3x8_12(self):
+        self.post("/api/programme", {
+            "action": "add", "jour": "Upper A",
+            "exercise": "Brand New Move",
+        })
+        self.assertEqual("3x8-12", _strength_exos(self.store, "Upper A")["Brand New Move"])
+
+
+class TestSchemeNoFuzzyMatch(BaseRouteTest):
+    """Bug fix: scheme action must use exact inventory key, not fuzzy substring match."""
+
+    def setUp(self):
+        super().setUp()
+        # Add an exercise whose name contains another's name
+        self.store["inventory"]["Incline Bench Press"] = {
+            "type": "barbell", "default_scheme": "3x8-10", "increment": 5,
+        }
+        self.store["program"]["Upper A"]["blocks"][0]["exercises"]["Incline Bench Press"] = "3x8-10"
+
+    def test_scheme_updates_exact_inventory_key(self):
+        self.post("/api/programme", {
+            "action": "scheme", "jour": "Upper A",
+            "exercise": "Bench Press", "scheme": "5x3",
+        })
+        self.assertEqual("5x3", self.store["inventory"]["Bench Press"]["default_scheme"])
+
+    def test_scheme_does_not_corrupt_similar_name(self):
+        """Fuzzy match bug: updating 'Bench Press' must NOT touch 'Incline Bench Press'."""
+        self.post("/api/programme", {
+            "action": "scheme", "jour": "Upper A",
+            "exercise": "Bench Press", "scheme": "5x3",
+        })
+        self.assertEqual("3x8-10", self.store["inventory"]["Incline Bench Press"]["default_scheme"])
+
+
+class TestReplaceUpdatesExistingInventoryScheme(BaseRouteTest):
+    """Bug fix: replace must update default_scheme in inventory even when new_ex already exists."""
+
+    def test_replace_existing_inventory_scheme_updated(self):
+        # Cable Fly already in inventory as "3x12-15"
+        self.post("/api/programme", {
+            "action": "replace", "jour": "Upper A",
+            "old_exercise": "Bench Press",
+            "new_exercise": "Cable Fly",
+            "scheme": "4x10",
+        })
+        self.assertEqual("4x10", self.store["inventory"]["Cable Fly"]["default_scheme"])
+
+    def test_replace_existing_inventory_type_preserved(self):
+        self.post("/api/programme", {
+            "action": "replace", "jour": "Upper A",
+            "old_exercise": "Bench Press",
+            "new_exercise": "Cable Fly",
+            "scheme": "4x10",
+        })
+        self.assertEqual("cable", self.store["inventory"]["Cable Fly"]["type"])
+
+
+class TestRenameNoFuzzyMatch(BaseRouteTest):
+    """Bug fix: rename must use exact inventory key, not fuzzy substring match."""
+
+    def setUp(self):
+        super().setUp()
+        # Add a second exercise whose name contains the renamed one
+        self.store["inventory"]["Barbell Row Variant"] = {
+            "type": "barbell", "default_scheme": "4x6-8", "increment": 5,
+        }
+
+    def test_rename_exact_key_updated(self):
+        self.post("/api/programme", {
+            "action": "rename", "jour": "Upper A",
+            "old_exercise": "Barbell Row",
+            "new_exercise": "Pendlay Row",
+        })
+        self.assertIn("Pendlay Row", self.store["inventory"])
+        self.assertNotIn("Barbell Row", self.store["inventory"])
+
+    def test_rename_does_not_touch_similar_name(self):
+        """Fuzzy match bug: renaming 'Barbell Row' must NOT remove 'Barbell Row Variant'."""
+        self.post("/api/programme", {
+            "action": "rename", "jour": "Upper A",
+            "old_exercise": "Barbell Row",
+            "new_exercise": "Pendlay Row",
+        })
+        self.assertIn("Barbell Row Variant", self.store["inventory"])
+
+
 if __name__ == "__main__":
     import unittest
     unittest.main(verbosity=2)

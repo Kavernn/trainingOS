@@ -931,12 +931,13 @@ def api_programme():
 
         if action == "add":
             exercise = data.get("exercise")
-            scheme   = data.get("scheme", "3x8-12")
             if exercise in exercises:
                 return jsonify({"error": "Déjà dans le programme"}), 400
+            # Load inventory first so we can inherit default_scheme if not provided
+            inv    = load_inventory()
+            scheme = data.get("scheme") or inv.get(exercise, {}).get("default_scheme", "3x8-12")
             exercises[exercise] = scheme
             # Seed a minimal inventory entry so equipment-type lookups work
-            inv = load_inventory()
             if exercise not in inv:
                 inv[exercise] = {"default_scheme": scheme, "type": "machine", "increment": 5}
                 save_inventory(inv)
@@ -949,13 +950,10 @@ def api_programme():
             new_scheme = data.get("scheme")
             if exercise in exercises:
                 exercises[exercise] = new_scheme
-                # Also update default_scheme in inventory (fuzzy name match)
-                inv     = load_inventory()
-                inv_key = exercise if exercise in inv else next(
-                    (k for k in inv if exercise.lower() in k.lower() or k.lower() in exercise.lower()), None
-                )
-                if inv_key and isinstance(inv.get(inv_key), dict):
-                    inv[inv_key]["default_scheme"] = new_scheme
+                # Also update default_scheme in inventory (exact match only)
+                inv = load_inventory()
+                if exercise in inv and isinstance(inv[exercise], dict):
+                    inv[exercise]["default_scheme"] = new_scheme
                     save_inventory(inv)
 
         elif action == "replace":
@@ -964,13 +962,15 @@ def api_programme():
             scheme = data.get("scheme", "3x8-12")
             exercises.pop(old_ex, None)
             exercises[new_ex] = scheme
-            # Ensure new exercise exists in inventory; inherit metadata from old if available
+            # Sync inventory: create entry if absent, always update scheme
             inv = load_inventory()
             if new_ex not in inv:
                 inv[new_ex] = {**inv.get(old_ex, {}), "default_scheme": scheme}
                 inv[new_ex].setdefault("type", "machine")
                 inv[new_ex].setdefault("increment", 5)
-                save_inventory(inv)
+            else:
+                inv[new_ex]["default_scheme"] = scheme
+            save_inventory(inv)
 
         elif action == "reorder":
             ordre     = data.get("ordre", [])
@@ -981,19 +981,16 @@ def api_programme():
         program[jour] = session_def
 
     elif action == "rename":
-        # Rename across ALL sessions + inventory
+        # Rename across ALL sessions + inventory (exact match only)
         old_ex = data.get("old_exercise")
         new_ex = data.get("new_exercise")
         for sdef in program.values():
             sb = get_block(sdef.get("blocks", []), "strength")
             if sb and old_ex in sb.get("exercises", {}):
                 sb["exercises"][new_ex] = sb["exercises"].pop(old_ex)
-        inv     = load_inventory()
-        inv_key = old_ex if old_ex in inv else next(
-            (k for k in inv if old_ex.lower() in k.lower() or k.lower() in old_ex.lower()), None
-        )
-        if inv_key:
-            inv[new_ex] = inv.pop(inv_key)
+        inv = load_inventory()
+        if old_ex in inv:
+            inv[new_ex] = inv.pop(old_ex)
             save_inventory(inv)
 
     # ── Block-level actions ──────────────────────────────────────────────────
