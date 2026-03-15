@@ -23,7 +23,7 @@ Mettre à jour ce fichier et `STATE.md` après chaque tâche complétée.
 - [x] Déload automatique : endpoint `/api/deload_status` exposant stagnation + RPE + recommandation
 - [x] Progression dynamique autorégulatée par RPE — remplacer la progression linéaire fixe de `progression.py` par une logique RPE-based : RPE ≤ 6 → augmente, RPE 7-8 → maintien, RPE ≥ 8.5 → réduit. Étendre au-delà des 7 exercices hardcodés pour couvrir tout l'inventaire dynamique
 - [x] Pagination historique — `fetchJournalEntries`, `fetchMoodHistory`, `fetchSleepHistory` chargent tout en mémoire. Ajouter cursor-based pagination sur les endpoints et côté iOS
-- [ ] Tests Swift — couvrir SeanceViewModel (restauration logResults), CacheService (TTL, fallback), SyncManager (flush, retry, purge) — nécessite création d'un target XCTest dans Xcode GUI
+- [ ] Tests Swift — couvrir SeanceViewModel (restauration logResults), CacheService (TTL, fallback), SyncManager (flush, retry, purge) — **setup requis** : ouvrir Xcode → File → New → Target → Unit Testing Bundle, puis ajouter les fichiers de test
 
 ---
 
