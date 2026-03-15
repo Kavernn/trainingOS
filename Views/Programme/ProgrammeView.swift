@@ -3,7 +3,7 @@ import SwiftUI
 private let kBaseURL = "https://training-os-rho.vercel.app"
 
 struct ProgrammeView: View {
-    @State private var fullProgram: [String: [String: Any]] = [:]
+    @State private var fullProgram: [String: [String: String]] = [:]
     @State private var schedule: [String: String] = [:]
     @State private var inventory: [String] = []
     @State private var inventorySchemes: [String: String] = [:]
@@ -34,7 +34,8 @@ struct ProgrammeView: View {
                                 EditableSeanceProgramCard(
                                     seance:   seance,
                                     exercises: Binding(
-                                        get: { (fullProgram[seance] as? [String: String]) ?? [:] },                                        set: { fullProgram[seance] = $0 }
+                                        get: { fullProgram[seance] ?? [:] },
+                                        set: { fullProgram[seance] = $0 }
                                     ),
                                     onAdd:    { addTarget = SeanceName(id: seance) },
                                     onEdit:   { ex, scheme in editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme) },
@@ -70,7 +71,9 @@ struct ProgrammeView: View {
         let url = URL(string: "\(kBaseURL)/api/programme_data")!
         if let (data, _) = try? await URLSession.shared.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            fullProgram      = (json["full_program"] as? [String: [String: Any]]) ?? [:]
+            if let raw = json["full_program"] as? [String: [String: Any]] {
+                fullProgram = raw.mapValues { $0.compactMapValues { $0 as? String } }
+            }
             schedule         = (json["schedule"] as? [String: String]) ?? [:]
             inventory        = (json["inventory"] as? [String]) ?? []
             inventorySchemes = (json["inventory_schemes"] as? [String: String]) ?? [:]
@@ -91,7 +94,7 @@ struct ProgrammeView: View {
 
     private func addExercise(seance: String, exercise: String, scheme: String) async {
         await postProgramme(["action": "add", "jour": seance, "exercise": exercise, "scheme": scheme])
-        await MainActor.run { fullProgram[seance, default: [:]][exercise] = scheme }
+        await MainActor.run { fullProgram[seance, default: [String: String]()][exercise] = scheme }
     }
 
     private func deleteExercise(seance: String, exercise: String) async {
