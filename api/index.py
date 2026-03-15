@@ -994,17 +994,23 @@ def api_programme():
             if sb and old_ex in sb.get("exercises", {}):
                 sb["exercises"][new_ex] = sb["exercises"].pop(old_ex)
         inv = load_inventory()
-        info = inv.get(old_ex)
-        if info is None:
-            # Exercise wasn't in inventory — seed minimal entry using programme scheme
-            scheme = "3x8-12"
-            for sdef in program.values():
-                sb = get_block(sdef.get("blocks", []), "strength")
-                if sb and new_ex in sb.get("exercises", {}):
-                    scheme = sb["exercises"][new_ex]
-                    break
-            info = {"type": "machine", "increment": 5, "default_scheme": scheme}
-        rename_inventory_exercise(old_ex, new_ex, info)
+        if new_ex in inv:
+            # new_ex already in inventory — just delete old_ex if present
+            if old_ex in inv:
+                from db import delete_exercise_by_name
+                delete_exercise_by_name(old_ex)
+        else:
+            info = inv.get(old_ex)
+            if info is None:
+                # Exercise wasn't in inventory — seed minimal entry using programme scheme
+                scheme = "3x8-12"
+                for sdef in program.values():
+                    sb = get_block(sdef.get("blocks", []), "strength")
+                    if sb and new_ex in sb.get("exercises", {}):
+                        scheme = sb["exercises"][new_ex]
+                        break
+                info = {"type": "machine", "increment": 5, "default_scheme": scheme}
+            rename_inventory_exercise(old_ex, new_ex, info)
 
     # ── Block-level actions ──────────────────────────────────────────────────
     elif action == "add_block":

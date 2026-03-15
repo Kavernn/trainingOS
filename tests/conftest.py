@@ -148,7 +148,10 @@ def make_store():
     def rename_exercise_table(old_name, new_name):
         inv = store.get("inventory", {})
         if old_name in inv:
-            inv[new_name] = inv.pop(old_name)
+            if new_name not in inv:
+                inv[new_name] = inv.pop(old_name)
+            else:
+                del inv[old_name]   # new_name already exists — just remove old
             store["inventory"] = inv
             return True
         return False

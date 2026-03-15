@@ -145,11 +145,37 @@ class BaseRouteTest(unittest.TestCase):
         (self.store,
          get_json, set_json, update_json, append_json_list) = make_db_store()
 
+        store = self.store   # capture local ref for closures
+
+        def get_exercises():
+            return copy.deepcopy(store.get("inventory", {}))
+
+        def upsert_exercise(data):
+            name = data.get("name", "")
+            inv = store.get("inventory", {})
+            inv[name] = {k: v for k, v in data.items() if k != "name"}
+            store["inventory"] = inv
+            return data
+
+        def rename_exercise_table(old_name, new_name):
+            inv = store.get("inventory", {})
+            if old_name in inv:
+                if new_name not in inv:
+                    inv[new_name] = inv.pop(old_name)
+                else:
+                    del inv[old_name]
+                store["inventory"] = inv
+                return True
+            return False
+
         db_mock = MagicMock(
             get_json=get_json,
             set_json=set_json,
             update_json=update_json,
             append_json_list=append_json_list,
+            get_exercises=get_exercises,
+            upsert_exercise=upsert_exercise,
+            rename_exercise_table=rename_exercise_table,
             _ON_VERCEL=False,
         )
 

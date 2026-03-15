@@ -4,24 +4,16 @@ import db
 def load_inventory() -> dict:
     """Returns {name: {type, default_scheme, increment, bar_weight, ...}}
 
-    Merges the relational exercises table (ExerciseDB) with the KV 'inventory'
-    key (custom/user exercises). KV takes precedence so renamed or user-added
-    exercises are always visible even if the relational upsert failed.
+    Source unique : table Supabase `exercises`.
+    Le KV "inventory" n'est plus utilisé — il était une béquille de migration.
     """
-    result = {}
     try:
-        rel = db.get_exercises()
-        if isinstance(rel, dict):
-            result.update(rel)
+        result = db.get_exercises()
+        if isinstance(result, dict):
+            return result
     except Exception:
         pass
-    try:
-        kv = db.get_json("inventory", {}) or {}
-        if isinstance(kv, dict):
-            result.update(kv)   # KV overrides — has the freshest custom data
-    except Exception:
-        pass
-    return result
+    return {}
 
 
 def save_inventory(inv: dict) -> bool:
@@ -60,32 +52,19 @@ def save_inventory(inv: dict) -> bool:
 
 
 def rename_inventory_exercise(old_name: str, new_name: str, info: dict = None):
-    """Rename an exercise in both the relational table and the KV store."""
-    # Relational: targeted rename (no full upsert)
-    try:
-        db.rename_exercise_table(old_name, new_name)
-    except Exception:
-        pass
-    # KV: load, rename key, save
-    inv = db.get_json("inventory", {}) or {}
-    if old_name in inv:
-        inv[new_name] = info if info is not None else inv.pop(old_name)
-        if old_name in inv:
-            del inv[old_name]
-    elif new_name not in inv:
-        inv[new_name] = info or {"type": "machine", "increment": 5, "default_scheme": "3x8-12"}
-    db.set_json("inventory", inv)
+    """Rename an exercise in the Supabase exercises table.
+    If old_name doesn't exist yet (never upserted), insert new_name directly.
+    """
+    renamed = db.rename_exercise_table(old_name, new_name)
+    if not renamed:
+        # old_name not in Supabase — upsert new_name directly
+        entry = info or {"type": "machine", "increment": 5, "default_scheme": "3x8-12"}
+        db.upsert_exercise({**entry, "name": new_name})
 
 
 def add_exercise(name: str, info: dict):
-    try:
-        db.upsert_exercise({**info, "name": name})
-    except Exception:
-        pass
-    # Also update KV
-    inv = db.get_json("inventory", {}) or {}
-    inv[name] = info
-    db.set_json("inventory", inv)
+    """Insert or update an exercise in the Supabase exercises table."""
+    db.upsert_exercise({**info, "name": name})
 
 
 def calculate_plates(total: float, bar: float = 45.0) -> list:
