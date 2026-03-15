@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 @main
 struct TrainingOSApp: App {
@@ -28,6 +29,7 @@ struct TrainingOSApp: App {
             .preferredColorScheme(.dark)
             .onAppear {
                 SyncManager.shared.setup(container: modelContainer)
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
             }
         }
         .modelContainer(modelContainer)

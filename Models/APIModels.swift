@@ -48,6 +48,21 @@ struct SafeString: Codable {
 }
 
 
+// MARK: - Log Exercise Response
+struct LogExerciseResponse: Codable {
+    let success: Bool?
+    let newWeight: Double?
+    let oneRM: Double?
+    let isPR: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case success
+        case newWeight = "new_weight"
+        case oneRM     = "1rm"
+        case isPR      = "is_pr"
+    }
+}
+
 // MARK: - Dashboard
 struct DashboardData: Codable {
     let today: String

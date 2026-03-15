@@ -114,11 +114,12 @@ class APIService: ObservableObject {
     }
 
     func logExercise(exercise: String, weight: Double, reps: String,
-                     sets: [[String: Any]] = []) async throws -> [String: Any] {
+                     sets: [[String: Any]] = []) async throws -> LogExerciseResponse {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
         if !sets.isEmpty { body["sets"] = sets }
         let data = try await offlinePost(endpoint: "/api/log", payload: body)
-        return (try? JSONSerialization.jsonObject(with: data) as? [String: Any]) ?? [:]
+        return (try? JSONDecoder().decode(LogExerciseResponse.self, from: data))
+            ?? LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
     }
 
     func logSession(exos: [String], rpe: Double, comment: String,

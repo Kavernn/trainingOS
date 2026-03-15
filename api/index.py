@@ -553,6 +553,10 @@ def api_log():
         increase  = action == "increase"
         onerm     = estimate_1rm(weight, reps)
 
+        # PR detection: compare new 1RM against historical 1RMs (snapshot before insert)
+        prev_1rms = [e.get("1rm", 0) for e in existing_history]
+        is_pr = bool(onerm > 0 and (not prev_1rms or onerm > max(prev_1rms)))
+
         # Annotate each set with total_weight and set_volume, compute exercise_volume
         if sets_data:
             for s in sets_data:
@@ -595,6 +599,7 @@ def api_log():
             "increase":   increase,
             "new_weight": new_w,
             "1rm":        onerm,
+            "is_pr":      is_pr,
             "achieved":   achieved
         })
     except Exception as e:
@@ -991,7 +996,16 @@ def api_programme():
         inv = load_inventory()
         if old_ex in inv:
             inv[new_ex] = inv.pop(old_ex)
-            save_inventory(inv)
+        elif new_ex not in inv:
+            # Exercise wasn't in inventory — seed minimal entry using programme scheme
+            scheme = "3x8-12"
+            for sdef in program.values():
+                sb = get_block(sdef.get("blocks", []), "strength")
+                if sb and new_ex in sb.get("exercises", {}):
+                    scheme = sb["exercises"][new_ex]
+                    break
+            inv[new_ex] = {"type": "machine", "increment": 5, "default_scheme": scheme}
+        save_inventory(inv)  # Always persist (was conditional before — bug fix)
 
     # ── Block-level actions ──────────────────────────────────────────────────
     elif action == "add_block":
@@ -1539,6 +1553,15 @@ def api_programme_data():
         seance: get_strength_exercises(session_def)
         for seance, session_def in full_program.items()
     }
+    # Sync: ajoute dans l'inventaire tout exercice du programme qui en est absent
+    added = False
+    for exos in flat_program.values():
+        for ex_name, scheme in exos.items():
+            if ex_name not in inventory:
+                inventory[ex_name] = {"type": "machine", "increment": 5, "default_scheme": scheme}
+                added = True
+    if added:
+        save_inventory(inventory)
     inventory_types   = {name: info.get("type", "machine")         for name, info in inventory.items()} \
         if isinstance(inventory, dict) else {}
     inventory_schemes = {name: info.get("default_scheme", "3x8-12") for name, info in inventory.items()} \

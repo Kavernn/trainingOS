@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import AVFoundation
+import UserNotifications
 
 struct SeanceView: View {
     @StateObject private var vm = SeanceViewModel()
@@ -1303,8 +1304,23 @@ struct AddHIITSheet: View {
                 return ["weight": setTotal, "reps": s.reps]
             }
             Task {
-                _ = try? await APIService.shared.logExercise(
-                    exercise: name, weight: total, reps: repsStr, sets: setsPayload)
+                if let response = try? await APIService.shared.logExercise(
+                    exercise: name, weight: total, reps: repsStr, sets: setsPayload),
+                   response.isPR == true {
+                    let content = UNMutableNotificationContent()
+                    content.title = "🏆 Nouveau PR !"
+                    content.body  = "\(name) — 1RM estimé : \(String(format: "%.1f", response.oneRM ?? 0)) lbs"
+                    content.sound = .default
+                    let request = UNNotificationRequest(
+                        identifier: "pr-\(name)-\(Date().timeIntervalSince1970)",
+                        content: content,
+                        trigger: nil
+                    )
+                    try? await UNUserNotificationCenter.current().add(request)
+                    await MainActor.run {
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    }
+                }
             }
         }
     }

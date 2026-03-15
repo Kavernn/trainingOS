@@ -367,6 +367,97 @@ class TestRenameNoFuzzyMatch(BaseRouteTest):
         self.assertIn("Barbell Row Variant", self.store["inventory"])
 
 
+# ── Bug fix: rename when old_ex absent de l'inventaire ────────────────────────
+
+class TestRenameNotInInventory(BaseRouteTest):
+    """Bug fix: rename must add new_ex to inventory even when old_ex was absent."""
+
+    def setUp(self):
+        super().setUp()
+        # Retire Bench Press de l'inventaire pour simuler l'état bugué
+        del self.store["inventory"]["Bench Press"]
+
+    def test_rename_adds_new_ex_to_inventory(self):
+        """Régression principale : nouveau nom doit apparaître dans l'inventaire."""
+        self.post("/api/programme", {
+            "action": "rename", "jour": "Upper A",
+            "old_exercise": "Bench Press",
+            "new_exercise": "BB Bench Press",
+        })
+        self.assertIn("BB Bench Press", self.store["inventory"])
+
+    def test_rename_old_ex_absent_new_ex_uses_programme_scheme(self):
+        """Le scheme de l'entrée créée doit correspondre au scheme du programme."""
+        self.post("/api/programme", {
+            "action": "rename", "jour": "Upper A",
+            "old_exercise": "Bench Press",
+            "new_exercise": "BB Bench Press",
+        })
+        self.assertEqual("4x5-7", self.store["inventory"]["BB Bench Press"]["default_scheme"])
+
+    def test_rename_old_ex_absent_old_name_not_in_inventory(self):
+        """L'ancien nom ne doit pas être réintroduit dans l'inventaire."""
+        self.post("/api/programme", {
+            "action": "rename", "jour": "Upper A",
+            "old_exercise": "Bench Press",
+            "new_exercise": "BB Bench Press",
+        })
+        self.assertNotIn("Bench Press", self.store["inventory"])
+
+    def test_rename_does_not_overwrite_existing_new_ex_entry(self):
+        """Si new_ex est déjà dans l'inventaire (avec ses données), on ne l'écrase pas."""
+        self.store["inventory"]["BB Bench Press"] = {
+            "type": "barbell", "default_scheme": "5x5", "increment": 5,
+        }
+        self.post("/api/programme", {
+            "action": "rename", "jour": "Upper A",
+            "old_exercise": "Bench Press",
+            "new_exercise": "BB Bench Press",
+        })
+        # Type et scheme pré-existants doivent être préservés
+        self.assertEqual("barbell", self.store["inventory"]["BB Bench Press"]["type"])
+        self.assertEqual("5x5", self.store["inventory"]["BB Bench Press"]["default_scheme"])
+
+
+# ── Sync programme → inventaire via /api/programme_data ──────────────────────
+
+class TestProgrammeDataInventorySync(BaseRouteTest):
+    """programme_data doit ajouter dans l'inventaire les exercices du programme absents."""
+
+    def test_programme_data_seeds_missing_inventory_entry(self):
+        """Exercice du programme absent de l'inventaire → ajouté automatiquement."""
+        del self.store["inventory"]["Barbell Row"]
+        self.get("/api/programme_data")
+        self.assertIn("Barbell Row", self.store["inventory"])
+
+    def test_programme_data_seeds_correct_scheme(self):
+        """Le scheme hérité est celui du programme, pas un défaut arbitraire."""
+        del self.store["inventory"]["Barbell Row"]
+        self.get("/api/programme_data")
+        self.assertEqual("4x6-8", self.store["inventory"]["Barbell Row"]["default_scheme"])
+
+    def test_programme_data_does_not_overwrite_existing_entry(self):
+        """Exercice déjà dans l'inventaire → ses données ne sont pas écrasées."""
+        original_type = self.store["inventory"]["Bench Press"]["type"]
+        self.get("/api/programme_data")
+        self.assertEqual(original_type, self.store["inventory"]["Bench Press"]["type"])
+
+    def test_programme_data_seeds_all_missing_exercises(self):
+        """Tous les exercices manquants sont ajoutés en une seule passe."""
+        del self.store["inventory"]["Barbell Row"]
+        del self.store["inventory"]["Overhead Press"]
+        self.get("/api/programme_data")
+        self.assertIn("Barbell Row", self.store["inventory"])
+        self.assertIn("Overhead Press", self.store["inventory"])
+
+    def test_programme_data_no_save_when_nothing_missing(self):
+        """Aucune écriture en base si tous les exercices sont déjà dans l'inventaire."""
+        import unittest.mock as mock
+        with mock.patch("inventory.save_inventory") as m:
+            self.get("/api/programme_data")
+            m.assert_not_called()
+
+
 if __name__ == "__main__":
     import unittest
     unittest.main(verbosity=2)
