@@ -808,6 +808,28 @@ def upsert_exercise_log(
         return True
 
 
+def delete_exercise_log_entry(session_date: str, exercise_name: str) -> bool:
+    """Delete a single exercise_log entry by date + exercise name."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        session = get_workout_session(session_date)
+        if not session:
+            return False
+        exercise_id = get_exercise_id(exercise_name)
+        if not exercise_id:
+            return False
+        _client.table("exercise_logs") \
+            .delete() \
+            .eq("session_id", session["id"]) \
+            .eq("exercise_id", exercise_id) \
+            .execute()
+        return True
+    except Exception as e:
+        logger.error("delete_exercise_log_entry error: %s", e)
+        return False
+
+
 def delete_session_exercise_logs(session_date: str) -> bool:
     """Delete all exercise_logs for a given session date. Returns True on success."""
     # fallback to KV during migration

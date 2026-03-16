@@ -900,21 +900,19 @@ def api_delete_exercise_log():
     if not exercise or not date:
         return jsonify({"error": "exercise et date requis"}), 400
 
+    # Delete from relational layer first
+    import db as _db
+    _db.delete_exercise_log_entry(date, exercise)
+
+    # Delete from KV
     weights = load_weights()
-    if exercise not in weights:
-        return jsonify({"error": "Exercice introuvable"}), 404
+    if exercise in weights:
+        history = weights[exercise].get("history", [])
+        weights[exercise]["history"] = [e for e in history if e.get("date") != date]
+        if weights[exercise]["history"]:
+            weights[exercise]["current_weight"] = weights[exercise]["history"][0].get("weight", 0)
+        save_weights(weights)
 
-    history = weights[exercise].get("history", [])
-    original_len = len(history)
-    weights[exercise]["history"] = [e for e in history if e.get("date") != date]
-
-    if len(weights[exercise]["history"]) == original_len:
-        return jsonify({"error": "Aucune entrée pour cette date"}), 404
-
-    # Update current_weight from new latest entry if available
-    if weights[exercise]["history"]:
-        weights[exercise]["current_weight"] = weights[exercise]["history"][0].get("weight", 0)
-    save_weights(weights)
     return jsonify({"success": True})
 
 
