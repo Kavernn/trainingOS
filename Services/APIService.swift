@@ -130,10 +130,12 @@ class APIService: ObservableObject {
     }
 
     func logExercise(exercise: String, weight: Double, reps: String,
-                     rpe: Double? = nil, sets: [[String: Any]] = []) async throws -> LogExerciseResponse {
+                     rpe: Double? = nil, sets: [[String: Any]] = [],
+                     force: Bool = false) async throws -> LogExerciseResponse {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
         if let rpe { body["rpe"] = rpe }
         if !sets.isEmpty { body["sets"] = sets }
+        if force { body["force"] = true }
         let data = try await offlinePost(endpoint: "/api/log", payload: body)
         // Invalider immédiatement — évite l'affichage "pas loggé" après re-ouverture
         // Note: 409 (already_logged) n'est jamais re-queué par SyncManager (traité comme succès)

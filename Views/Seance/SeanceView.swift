@@ -1391,6 +1391,7 @@ struct AddHIITSheet: View {
             guard !alreadyLogged || isEditing, canLog else { return }
             guard let avg = avgWeight, !repsStr.isEmpty else { return }
             // Allow re-log in edit mode
+            let wasEditing = isEditing
             if isEditing { isLogged = false }
             // Set synchronously to block any re-tap before async completes
             isLogged = true
@@ -1409,7 +1410,8 @@ struct AddHIITSheet: View {
             }
             Task {
                 if let response = try? await APIService.shared.logExercise(
-                    exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE, sets: setsPayload),
+                    exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE,
+                    sets: setsPayload, force: wasEditing),
                    response.isPR == true {
                     let content = UNMutableNotificationContent()
                     content.title = "🏆 Nouveau PR !"

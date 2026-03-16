@@ -517,19 +517,25 @@ def api_log():
         rpe_raw  = data.get("rpe")
         rpe      = float(rpe_raw) if rpe_raw is not None else None
 
+        force    = bool(data.get("force", False))
+
         if not exercise or not reps_str:
             return jsonify({"error": "Données manquantes"}), 400
 
         weights   = load_weights()
 
-        # Duplicate-prevention guard
+        # Duplicate-prevention guard (skipped when force=true for edit mode)
         existing_history = weights.get(exercise, {}).get("history", [])
-        if existing_history and existing_history[0]["date"] == _today_mtl():
+        if not force and existing_history and existing_history[0]["date"] == _today_mtl():
             return jsonify({
                 "error":      "already_logged",
                 "new_weight": weights[exercise].get("current_weight", 0),
                 "1rm":        existing_history[0].get("1rm", 0),
             }), 409
+
+        # Remove existing entry for today if force overwrite
+        if force and existing_history and existing_history[0]["date"] == _today_mtl():
+            weights[exercise]["history"].pop(0)
 
         # Optional per-set data: [{weight: X, reps: "5"}, ...]
         sets_data = data.get("sets", [])
@@ -882,6 +888,33 @@ def api_delete_exercise():
     if changed:
         save_program(program)
 
+    return jsonify({"success": True})
+
+
+@app.route("/api/delete_exercise_log", methods=["POST"])
+def api_delete_exercise_log():
+    """Remove a specific exercise history entry by name + date."""
+    data     = request.json or {}
+    exercise = data.get("exercise", "").strip()
+    date     = data.get("date", "").strip()
+    if not exercise or not date:
+        return jsonify({"error": "exercise et date requis"}), 400
+
+    weights = load_weights()
+    if exercise not in weights:
+        return jsonify({"error": "Exercice introuvable"}), 404
+
+    history = weights[exercise].get("history", [])
+    original_len = len(history)
+    weights[exercise]["history"] = [e for e in history if e.get("date") != date]
+
+    if len(weights[exercise]["history"]) == original_len:
+        return jsonify({"error": "Aucune entrée pour cette date"}), 404
+
+    # Update current_weight from new latest entry if available
+    if weights[exercise]["history"]:
+        weights[exercise]["current_weight"] = weights[exercise]["history"][0].get("weight", 0)
+    save_weights(weights)
     return jsonify({"success": True})
 
 
