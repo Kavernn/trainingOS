@@ -86,7 +86,29 @@ def save_weights(weights: dict) -> bool:
     """
     Persist weights dict back to exercise_logs table AND to KV for consistency.
     Falls back to KV set_json only if domain methods fail.
+
+    Before writing to KV, merge supplemental fields (rpe, note, sets, exercise_volume)
+    from existing KV entries so they are not lost when weights was loaded from the
+    relational layer (which only stores weight/reps).
     """
+    # Merge supplemental fields from existing KV to avoid stripping rpe/note/sets
+    try:
+        existing_kv = db.get_json("weights", {}) or {}
+        for name, ex_data in weights.items():
+            kv_ex = existing_kv.get(name) or {}
+            kv_hist = kv_ex.get("history", [])
+            for entry in (ex_data.get("history") or []):
+                date = entry.get("date")
+                if not date:
+                    continue
+                kv_entry = next((e for e in kv_hist if e.get("date") == date), None)
+                if kv_entry:
+                    for field in ("rpe", "note", "exercise_volume", "sets"):
+                        if field not in entry and kv_entry.get(field) is not None:
+                            entry[field] = kv_entry[field]
+    except Exception:
+        pass
+
     # Always write to KV for backward compat and test consistency
     kv_ok = True
     try:
