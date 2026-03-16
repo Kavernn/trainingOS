@@ -821,63 +821,30 @@ def api_hiit_edit():
 
 @app.route("/api/save_exercise", methods=["POST"])
 def api_save_exercise():
-    data = request.json
-    original_name = data.get("original_name", "")
-    name = data.get("name", "").strip()
+    data          = request.json
+    original_name = data.get("original_name", "").strip()
+    name          = data.get("name", "").strip()
 
     if not name:
         return jsonify({"error": "Nom manquant"}), 400
 
     inv = load_inventory()
 
-    # Gestion du renommage
-    if original_name and original_name != name and original_name in inv:
-        del inv[original_name]
-
-    # --- RECHERCHE AUTOMATIQUE DU GIF ---
-    # On récupère le GIF actuel s'il existe pour ne pas le perdre
-    existing_gif = inv.get(name, {}).get("gif_url")
-    gif_url = data.get("gif_url") or existing_gif
-
-    # Si on n'a toujours pas de GIF et qu'on a une clé API, on cherche
-    if not gif_url and RAPID_API_KEY:
-        try:
-            api_url = f"https://exercisedb.p.rapidapi.com/exercises/name/{name.lower()}"
-            headers = {
-                "X-RapidAPI-Key": RAPID_API_KEY,
-                "X-RapidAPI-Host": "exercisedb.p.rapidapi.com"
-            }
-            # On limite à 1 résultat pour économiser le quota
-            response = requests.get(api_url, headers=headers, params={"limit": "1"}, timeout=5)
-            if response.status_code == 200:
-                res_json = response.json()
-                if res_json and len(res_json) > 0:
-                    gif_url = res_json[0].get("gifUrl")
-        except Exception as e:
-            logger.warning("Erreur ExerciseDB : %s", e)
-
-    # Mise à jour du dictionnaire avec tes champs existants + le GIF
-    inv[name] = {
-        "type": data.get("type", "machine"),
-        "increment": float(data.get("increment", 5)),
-        "bar_weight": float(data.get("bar_weight", 0)),
+    entry = {
+        "type":           data.get("type", "machine"),
+        "increment":      float(data.get("increment", 5)),
+        "bar_weight":     float(data.get("bar_weight", 0)),
         "default_scheme": data.get("default_scheme", "3x8-12"),
-        "muscles": data.get("muscles", []),
-        "tips": data.get("tips", ""),
-        "category": data.get("category", ""),
-        "pattern": data.get("pattern", ""),
-        "level": data.get("level", ""),
-        "gif_url": gif_url  # Ajout du lien vers la démo
+        "muscles":        data.get("muscles", []),
+        "category":       data.get("category", ""),
+        "level":          data.get("level", ""),
+        "gif_url":        inv.get(original_name or name, {}).get("gif_url") or inv.get(name, {}).get("gif_url") or "",
     }
 
-    # Sauvegarde via db.py (Supabase)
-    success = save_inventory(inv)
-
-    if not success:
-        return jsonify({"success": False, "error": "Erreur de sauvegarde Supabase"}), 500
-
-    # Si renommage, mettre à jour le programme partout (format blocs)
     if original_name and original_name != name:
+        # Rename: targeted rename in exercises table + update programme
+        rename_inventory_exercise(original_name, name, entry)
+        add_exercise(name, entry)
         program = load_program()
         changed = False
         for sdef in program.values():
@@ -887,20 +854,22 @@ def api_save_exercise():
                 changed = True
         if changed:
             save_program(program)
+    else:
+        add_exercise(name, entry)
 
-    return jsonify({"success": True, "gif_url": gif_url})
+    return jsonify({"success": True})
 
 
 @app.route("/api/delete_exercise", methods=["POST"])
 def api_delete_exercise():
-    name = request.json.get("name")
-    inv  = load_inventory()
+    name = request.json.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Nom manquant"}), 400
 
-    if name not in inv:
+    import db as _db
+    deleted = _db.delete_exercise_by_name(name)
+    if not deleted:
         return jsonify({"error": "Exercice introuvable"}), 404
-
-    del inv[name]
-    save_inventory(inv)
 
     # Remove dangling references from program (do not touch weights history)
     program = load_program()
