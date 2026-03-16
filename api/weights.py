@@ -15,16 +15,17 @@ Old format (KV):
 New format (relational): exercise_logs table with exercise_id FK, no computed fields.
 """
 import db
-from datetime import datetime, timezone
-import pytz
+from datetime import datetime, timezone, timedelta
 
 def _today_local() -> str:
-    """Return today's date in America/Toronto timezone (same as backend)."""
+    """Return today's date in America/Toronto timezone (UTC-5/UTC-4)."""
+    # Toronto = UTC-5 (EST) ou UTC-4 (EDT) — approximation suffisante
     try:
-        tz = pytz.timezone("America/Toronto")
-        return datetime.now(tz).strftime("%Y-%m-%d")
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo("America/Toronto")).strftime("%Y-%m-%d")
     except Exception:
-        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        # fallback: UTC-5
+        return (datetime.now(timezone.utc) - timedelta(hours=5)).strftime("%Y-%m-%d")
 
 
 def _calc_1rm(weight, reps_str):
