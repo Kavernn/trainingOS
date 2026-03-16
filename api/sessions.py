@@ -6,7 +6,7 @@ from datetime import datetime
 def load_sessions() -> dict:
     try:
         rows = db.get_workout_sessions(limit=500)
-        if isinstance(rows, list):
+        if isinstance(rows, list) and rows:
             result = {}
             for row in rows:
                 if not isinstance(row, dict):
@@ -22,6 +22,7 @@ def load_sessions() -> dict:
             return result
     except Exception:
         pass
+    # Fallback KV — couvre aussi le cas où le relational retourne [] à cause de RLS
     return db.get_json("sessions", {}) or {}
 
 
