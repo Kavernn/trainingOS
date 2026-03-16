@@ -6,9 +6,9 @@
 
 ## 🔴 CRITIQUE — Bugs visibles / corruption de données
 
-- [ ] **409 guard + SyncManager requeue** : quand `/api/log` retourne 409 ("already_logged"), le `SyncManager` requeue quand même le payload → risque de double-log. iOS doit parser 409 et bloquer le retry.
-- [ ] **Cache stale après log séance** : après avoir loggé un exercice, `SeanceView` peut toujours afficher "pas loggé" si le cache n'est pas invalidé immédiatement. `DashboardView` a le même problème avec `alreadyLoggedToday`. Invalider le cache `seance_data` + `dashboard` immédiatement après chaque log.
-- [ ] **Désync timezone client/serveur** : le backend calcule `today_date` en heure de Montréal, le client recompute la date en heure locale iPhone. Si l'utilisateur voyage (ex: PST), les logs peuvent atterrir sur le mauvais jour.
+- [x] **409 guard + SyncManager requeue** : `SyncManager` traite déjà 409 comme succès (`|| code == 409`) → pas de requeue. `offlinePost()` ne queue que sur erreur réseau (URLError), jamais sur 4xx. Confirmé correct.
+- [x] **Cache stale après log séance** : `APIService.logExercise()` invalide maintenant `seance_data` + `dashboard` immédiatement après chaque log.
+- [x] **Désync timezone client/serveur** : supprimé `localToday` (recalcul depuis timezone iPhone) dans `DashboardData` et `SeanceData`. Toutes les vues utilisent `today` (fourni par le serveur en heure MTL).
 
 ---
 

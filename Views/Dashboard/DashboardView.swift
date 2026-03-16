@@ -141,7 +141,7 @@ struct DashboardView: View {
     }
 
     var todayAccentColor: Color {
-        switch api.dashboard?.localToday {
+        switch api.dashboard?.today {
         case "Push A", "Push B":             return .orange
         case "Pull A", "Pull B + Full Body": return .cyan
         case "Legs":                         return .yellow
@@ -305,7 +305,7 @@ struct TodayCardView: View {
     }
 
     var todayColor: Color {
-        switch dash.localToday {
+        switch dash.today {
         case "Push A", "Push B":             return .orange
         case "Pull A", "Pull B + Full Body": return .cyan
         case "Legs":                         return .yellow
@@ -316,7 +316,7 @@ struct TodayCardView: View {
     }
 
     var todayIcon: String {
-        switch dash.localToday {
+        switch dash.today {
         case "Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs": return "dumbbell.fill"
         case "Yoga / Tai Chi":               return "figure.mind.and.body"
         case "Recovery":                     return "heart.fill"
@@ -325,7 +325,7 @@ struct TodayCardView: View {
     }
 
     var exercises: [(String, String)] {
-        guard let program = dash.fullProgram[dash.localToday] else { return [] }
+        guard let program = dash.fullProgram[dash.today] else { return [] }
         // On convertit la valeur en String ici pour respecter la promesse [(String, String)]
         return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
     }
@@ -343,7 +343,7 @@ struct TodayCardView: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text("AUJOURD'HUI")
                         .font(.system(size: 9, weight: .bold)).tracking(2).foregroundColor(.gray)
-                    Text(dash.localToday)
+                    Text(dash.today)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(isLoggedToday ? .green : todayColor)
                 }
@@ -386,7 +386,7 @@ struct TodayCardView: View {
                     }
                 }
 
-                if dash.localToday != "Repos" {
+                if dash.today != "Repos" {
                     NavigationLink(destination: SeanceView()) {
                         HStack(spacing: 8) {
                             Image(systemName: "play.fill")

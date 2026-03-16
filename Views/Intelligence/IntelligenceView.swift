@@ -197,7 +197,7 @@ struct IntelligenceView: View {
         let sessionCount = dash.sessions.count
         let avgRPE = dash.sessions.values.compactMap(\.rpe).reduce(0.0, +) / Double(max(dash.sessions.count, 1))
         let goals = dash.goals.map { "\($0.key): \($0.value.current)/\($0.value.goal)lbs" }.joined(separator: ", ")
-        return "Séances totales: \(sessionCount). RPE moyen: \(String(format: "%.1f", avgRPE)). Aujourd'hui: \(dash.localToday). Semaine: \(dash.week). Objectifs: \(goals)."
+        return "Séances totales: \(sessionCount). RPE moyen: \(String(format: "%.1f", avgRPE)). Aujourd'hui: \(dash.today). Semaine: \(dash.week). Objectifs: \(goals)."
     }
 
     private func sendMessage() {

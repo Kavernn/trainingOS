@@ -118,6 +118,10 @@ class APIService: ObservableObject {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
         if !sets.isEmpty { body["sets"] = sets }
         let data = try await offlinePost(endpoint: "/api/log", payload: body)
+        // Invalider immédiatement — évite l'affichage "pas loggé" après re-ouverture
+        // Note: 409 (already_logged) n'est jamais re-queué par SyncManager (traité comme succès)
+        CacheService.shared.clear(for: "seance_data")
+        CacheService.shared.clear(for: "dashboard")
         return (try? JSONDecoder().decode(LogExerciseResponse.self, from: data))
             ?? LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
     }

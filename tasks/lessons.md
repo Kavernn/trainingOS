@@ -74,6 +74,27 @@ Les tests unitaires (pytest) passent ≠ le bug est corrigé en production.
 
 ---
 
+## iOS — Timezone : utiliser `today` serveur, jamais recalculer côté device
+
+`localToday` recalculait le jour de séance depuis le calendar local de l'iPhone. En PST à 23h = MTL lendemain → séance incorrecte + programme CRUD envoyé au mauvais `jour`.
+
+**Règle :** Toujours utiliser `data.today` (fourni par le serveur en heure MTL). Supprimer tout recalcul de date côté iOS sauf pour la UI pure (ex: afficher "Aujourd'hui").
+
+---
+
+## iOS — Invalider le cache après chaque mutation
+
+Toute mutation backend (`logExercise`, `logSession`, etc.) doit invalider les caches concernés **immédiatement** (y compris sur le path offline). Sinon, après force-quit + relance, l'app affiche l'état pré-mutation.
+
+**Pattern :**
+```swift
+let data = try await offlinePost(endpoint: "/api/log", payload: body)
+CacheService.shared.clear(for: "seance_data")
+CacheService.shared.clear(for: "dashboard")
+```
+
+---
+
 ## Tests — Régression sur les bugs de sync
 
 Après chaque correction de bug CRUD programme/inventaire, ajouter un test de régression dans `tests/test_programme_inventory_sync.py`. Les bugs fuzzy-match et value-type Swift reviennent facilement.

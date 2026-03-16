@@ -69,19 +69,6 @@ struct DashboardData: Codable {
     let week: Int
     let todayDate: String
 
-    /// Séance calculée à partir du jour LOCAL de l'iPhone (fiable même si le serveur a un bug timezone).
-    var localToday: String {
-        // Calendar weekday: 1=dim, 2=lun, ..., 7=sam → on converti en 0=lun..6=dim
-        let weekday = Calendar.current.component(.weekday, from: Date())
-        let idx = (weekday + 5) % 7
-        let schedule: [Int: String] = [
-            0: "Push A",            1: "Pull A",
-            2: "Legs",              3: "Push B",
-            4: "Pull B + Full Body", 5: "Yoga / Tai Chi", 6: "Recovery"
-        ]
-        return schedule[idx] ?? today
-    }
-
     let alreadyLoggedToday: Bool
     let schedule: [String: String]
     let sessions: [String: SessionEntry]
@@ -157,17 +144,6 @@ struct SeanceData: Codable {
     let today: String
     let todayDate: String
     let alreadyLogged: Bool
-
-    var localToday: String {
-        let weekday = Calendar.current.component(.weekday, from: Date())
-        let idx = (weekday + 5) % 7
-        let schedule: [Int: String] = [
-            0: "Push A",            1: "Pull A",
-            2: "Legs",              3: "Push B",
-            4: "Pull B + Full Body", 5: "Yoga / Tai Chi", 6: "Recovery"
-        ]
-        return schedule[idx] ?? today
-    }
 
     let schedule: [String: String]
     let fullProgram: [String: [String: SafeString]]

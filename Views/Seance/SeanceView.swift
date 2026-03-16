@@ -29,8 +29,8 @@ struct SeanceView: View {
     private func seanceContent(data: SeanceData) -> some View {
         if data.alreadyLogged {
             AlreadyLoggedSeanceView(data: data, vm: vm)
-        } else if data.localToday == "Yoga / Tai Chi" || data.localToday == "Recovery" {
-            SpecialSeanceView(sessionType: data.localToday, vm: vm)
+        } else if data.today == "Yoga / Tai Chi" || data.today == "Recovery" {
+            SpecialSeanceView(sessionType: data.today, vm: vm)
         } else {
             WorkoutSeanceView(data: data, vm: vm)
         }
@@ -49,7 +49,7 @@ struct AlreadyLoggedSeanceView: View {
     }
 
     var sessionColor: Color {
-        switch data.localToday {
+        switch data.today {
         case "Push A", "Push B":           return .orange
         case "Pull A", "Pull B + Full Body": return .cyan
         case "Legs":                       return .yellow
@@ -99,7 +99,7 @@ struct AlreadyLoggedSeanceView: View {
                     Text("Séance complétée")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.white)
-                    Text(data.localToday)
+                    Text(data.today)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(sessionColor)
                         .padding(.horizontal, 14).padding(.vertical, 5)
@@ -325,8 +325,8 @@ struct ExtraSessionSheet: View {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
                 Group {
-                    if data.localToday == "Yoga / Tai Chi" || data.localToday == "Recovery" {
-                        SpecialSeanceView(sessionType: data.localToday, vm: extraVM)
+                    if data.today == "Yoga / Tai Chi" || data.today == "Recovery" {
+                        SpecialSeanceView(sessionType: data.today, vm: extraVM)
                     } else {
                         WorkoutSeanceView(data: data, vm: extraVM)
                     }
@@ -384,7 +384,7 @@ struct WorkoutSeanceView: View {
                 ForEach(exercises, id: \.0) { name, scheme in
                     editModeRow(name: name, scheme: scheme)
                 }
-                Button { addTarget = SeanceName(id: data.localToday) } label: {
+                Button { addTarget = SeanceName(id: data.today) } label: {
                     HStack {
                         Image(systemName: "plus.circle.fill").foregroundColor(.orange)
                         Text("Ajouter un exercice")
@@ -417,7 +417,7 @@ struct WorkoutSeanceView: View {
                     .font(.system(size: 22)).foregroundColor(.red)
             }
             Button {
-                editTarget = ExerciseTarget(seance: data.localToday, exercise: name, scheme: scheme)
+                editTarget = ExerciseTarget(seance: data.today, exercise: name, scheme: scheme)
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -600,7 +600,7 @@ struct WorkoutSeanceView: View {
                 // Header
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(data.localToday.uppercased())
+                        Text(data.today.uppercased())
                             .font(.system(size: 13, weight: .black))
                             .tracking(3)
                             .foregroundColor(.orange)
@@ -719,8 +719,8 @@ struct WorkoutSeanceView: View {
     
     private func loadInventory() async {
         // Seed immediately from already-loaded seanceData
-        let fromCache  = data.fullProgram[data.localToday]?.mapValues { $0.value } ?? [:]
-        let orderCache = data.exerciseOrder[data.localToday] ?? fromCache.keys.sorted()
+        let fromCache  = data.fullProgram[data.today]?.mapValues { $0.value } ?? [:]
+        let orderCache = data.exerciseOrder[data.today] ?? fromCache.keys.sorted()
         await MainActor.run {
             self.localProgram   = fromCache
             self.exerciseOrder  = orderCache
@@ -734,8 +734,8 @@ struct WorkoutSeanceView: View {
         else { return }
 
         let inv         = (json["inventory"] as? [String]) ?? []
-        let fromNetwork = (json["full_program"] as? [String: [String: String]])?[data.localToday]
-        let orderNet    = (json["exercise_order"] as? [String: [String]])?[data.localToday]
+        let fromNetwork = (json["full_program"] as? [String: [String: String]])?[data.today]
+        let orderNet    = (json["exercise_order"] as? [String: [String]])?[data.today]
         let types       = (json["inventory_types"] as? [String: String]) ?? [:]
         await MainActor.run {
             self.inventory = inv
@@ -757,11 +757,11 @@ struct WorkoutSeanceView: View {
         }
         
         private func saveOrder(_ order: [String]) async {
-            await postProgramme(["action": "reorder", "jour": data.localToday, "ordre": order])
+            await postProgramme(["action": "reorder", "jour": data.today, "ordre": order])
         }
 
         private func addExercise(_ name: String, scheme: String) async {
-            await postProgramme(["action": "add", "jour": data.localToday, "exercise": name, "scheme": scheme, "block_type": "strength"])
+            await postProgramme(["action": "add", "jour": data.today, "exercise": name, "scheme": scheme, "block_type": "strength"])
             await MainActor.run { localProgram[name] = scheme }
         }
         
@@ -773,14 +773,14 @@ struct WorkoutSeanceView: View {
         private func editExercise(oldName: String, newName: String, scheme: String) async {
             if oldName != newName {
                 // rename synce tous les jours du programme + inventaire
-                await postProgramme(["action": "rename", "jour": data.localToday, "old_exercise": oldName, "new_exercise": newName])
-                await postProgramme(["action": "scheme", "jour": data.localToday, "exercise": newName, "scheme": scheme])
+                await postProgramme(["action": "rename", "jour": data.today, "old_exercise": oldName, "new_exercise": newName])
+                await postProgramme(["action": "scheme", "jour": data.today, "exercise": newName, "scheme": scheme])
                 await MainActor.run {
                     localProgram.removeValue(forKey: oldName)
                     localProgram[newName] = scheme
                 }
             } else {
-                await postProgramme(["action": "scheme", "jour": data.localToday, "exercise": oldName, "scheme": scheme])
+                await postProgramme(["action": "scheme", "jour": data.today, "exercise": oldName, "scheme": scheme])
                 await MainActor.run { localProgram[oldName] = scheme }
             }
         }
