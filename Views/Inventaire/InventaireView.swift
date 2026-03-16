@@ -9,6 +9,7 @@ struct InventoryItem: Identifiable {
     var name: String
     var type: String
     var category: String
+    var pattern: String
     var level: String
     var barWeight: Double
     var increment: Double
@@ -18,6 +19,7 @@ struct InventoryItem: Identifiable {
         self.name          = name
         self.type          = d["type"]          as? String ?? "machine"
         self.category      = d["category"]      as? String ?? ""
+        self.pattern       = d["pattern"]       as? String ?? ""
         self.level         = d["level"]         as? String ?? ""
         self.barWeight     = d["bar_weight"]    as? Double ?? 0
         self.increment     = d["increment"]     as? Double ?? 5
@@ -204,10 +206,12 @@ struct InventaireView: View {
             "name":           item.name,
             "type":           item.type,
             "category":       item.category,
+            "pattern":        item.pattern,
             "level":          item.level,
             "bar_weight":     item.barWeight,
             "increment":      item.increment,
             "default_scheme": item.defaultScheme,
+            "muscles":        item.muscles,
         ]
         if let orig = originalName, orig != item.name {
             body["original_name"] = orig
@@ -332,19 +336,37 @@ struct InventaireRow: View {
 
 // MARK: - Form Sheet (Add & Edit)
 
+private let kMuscleGroups = [
+    "chest", "shoulders", "rear delts", "triceps", "biceps",
+    "lats", "traps", "rhomboids", "lower back",
+    "abs", "obliques",
+    "glutes", "hamstrings", "quads", "calves",
+    "forearms", "rotators", "abductors"
+]
+
+private let kPatternOptions: [(String, String)] = [
+    ("horizontal_push", "H. Push"), ("vertical_push", "V. Push"),
+    ("horizontal_pull", "H. Pull"), ("vertical_pull", "V. Pull"),
+    ("squat", "Squat"), ("hinge", "Hinge"),
+    ("core", "Core"), ("isolation", "Isolation"), ("mobility", "Mobilité")
+]
+
 struct InventoryFormSheet: View {
     let existing: InventoryItem?
     let onSave: (InventoryItem) -> Void
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var name         = ""
-    @State private var type         = "machine"
-    @State private var category     = ""
-    @State private var level        = ""
+    @State private var name          = ""
+    @State private var type          = "machine"
+    @State private var category      = ""
+    @State private var pattern       = ""
+    @State private var level         = ""
     @State private var defaultScheme = "3x8-12"
-    @State private var increment    = "5"
-    @State private var barWeight    = "0"
+    @State private var increment     = "5"
+    @State private var barWeight     = "0"
+    @State private var muscles: Set<String> = []
+    @State private var customMuscle  = ""
 
     let types      = ["barbell", "dumbbell", "cable", "machine", "bodyweight"]
     let categories = ["", "push", "pull", "legs", "core", "mobility"]
@@ -359,30 +381,55 @@ struct InventoryFormSheet: View {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
                 Form {
+                    // ── Nom ──────────────────────────────────────
                     Section("Nom") {
                         TextField("Nom de l'exercice", text: $name)
                             .foregroundColor(.white)
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
-                    Section("Type") {
-                        Picker("Type", selection: $type) {
-                            ForEach(types, id: \.self) { Text($0.capitalized).tag($0) }
-                        }
-                        .pickerStyle(.segmented)
+                    // ── Type ─────────────────────────────────────
+                    Section {
+                        typeGrid
+                    } header: {
+                        sectionHeader("Type d'équipement")
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
-                    Section("Catégorie") {
-                        Picker("Catégorie", selection: $category) {
-                            ForEach(categories, id: \.self) {
-                                Text($0.isEmpty ? "—" : $0.capitalized).tag($0)
+                    // ── Catégorie ─────────────────────────────────
+                    Section {
+                        catGrid
+                    } header: {
+                        sectionHeader("Catégorie")
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+
+                    // ── Pattern mouvement ─────────────────────────
+                    Section {
+                        patternGrid
+                    } header: {
+                        sectionHeader("Pattern de mouvement")
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+
+                    // ── Muscles ───────────────────────────────────
+                    Section {
+                        muscleChips
+                        customMuscleRow
+                    } header: {
+                        HStack {
+                            sectionHeader("Muscles ciblés")
+                            Spacer()
+                            if !muscles.isEmpty {
+                                Text("\(muscles.count) sélectionné\(muscles.count > 1 ? "s" : "")")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.orange)
                             }
                         }
-                        .pickerStyle(.segmented)
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
+                    // ── Schéma ────────────────────────────────────
                     Section("Schéma par défaut") {
                         TextField("ex: 4x6-8", text: $defaultScheme)
                             .foregroundColor(.white)
@@ -403,6 +450,7 @@ struct InventoryFormSheet: View {
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
+                    // ── Paramètres numériques ─────────────────────
                     Section("Paramètres") {
                         HStack {
                             Text("Incrément (lbs)").foregroundColor(.gray)
@@ -427,13 +475,11 @@ struct InventoryFormSheet: View {
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
-                    Section("Niveau") {
-                        Picker("Niveau", selection: $level) {
-                            ForEach(levels, id: \.self) {
-                                Text($0.isEmpty ? "—" : $0.capitalized).tag($0)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                    // ── Niveau ────────────────────────────────────
+                    Section {
+                        levelGrid
+                    } header: {
+                        sectionHeader("Niveau")
                     }
                     .listRowBackground(Color(hex: "11111c"))
                 }
@@ -453,10 +499,12 @@ struct InventoryFormSheet: View {
                         var item = InventoryItem(name: trimmed, [:])
                         item.type          = type
                         item.category      = category
+                        item.pattern       = pattern
                         item.level         = level
                         item.defaultScheme = defaultScheme
                         item.increment     = Double(increment) ?? 5
                         item.barWeight     = Double(barWeight) ?? 0
+                        item.muscles       = muscles.sorted()
                         onSave(item)
                         dismiss()
                     }
@@ -470,11 +518,170 @@ struct InventoryFormSheet: View {
                 name          = e.name
                 type          = e.type
                 category      = e.category
+                pattern       = e.pattern
                 level         = e.level
                 defaultScheme = e.defaultScheme
                 increment     = String(e.increment)
                 barWeight     = String(e.barWeight)
+                muscles       = Set(e.muscles)
             }
+        }
+    }
+
+    // MARK: – Section grids
+
+    private func sectionHeader(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundColor(.gray)
+            .textCase(nil)
+    }
+
+    private var typeGrid: some View {
+        let icons: [String: String] = [
+            "barbell": "Barre", "dumbbell": "Haltère", "cable": "Câble",
+            "machine": "Machine", "bodyweight": "Corps"
+        ]
+        let colors: [String: Color] = [
+            "barbell": .orange, "dumbbell": .blue, "cable": .teal,
+            "machine": .purple, "bodyweight": .green
+        ]
+        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), spacing: 8)], spacing: 8) {
+            ForEach(types, id: \.self) { t in
+                let sel = type == t
+                Button { type = t } label: {
+                    VStack(spacing: 4) {
+                        Text(icons[t] ?? t.capitalized)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(sel ? .black : (colors[t] ?? .gray))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(sel ? (colors[t] ?? .gray) : (colors[t] ?? .gray).opacity(0.12))
+                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : (colors[t] ?? .gray).opacity(0.3), lineWidth: 1))
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var catGrid: some View {
+        let labels = ["push": "Push", "pull": "Pull", "legs": "Jambes",
+                      "core": "Core", "mobility": "Mobilité"]
+        let colors: [String: Color] = ["push": .red, "pull": .blue, "legs": .green,
+                                        "core": .orange, "mobility": .purple]
+        let opts = ["push", "pull", "legs", "core", "mobility"]
+        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
+            ForEach(opts, id: \.self) { c in
+                let sel = category == c
+                Button { category = (category == c ? "" : c) } label: {
+                    Text(labels[c] ?? c.capitalized)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(sel ? .black : (colors[c] ?? .gray))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(sel ? (colors[c] ?? .gray) : (colors[c] ?? .gray).opacity(0.12))
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : (colors[c] ?? .gray).opacity(0.3), lineWidth: 1))
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var patternGrid: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
+            ForEach(kPatternOptions, id: \.0) { key, label in
+                let sel = pattern == key
+                Button { pattern = (pattern == key ? "" : key) } label: {
+                    Text(label)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(sel ? .black : .white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(sel ? Color.orange : Color(hex: "191926"))
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var muscleChips: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
+            ForEach(kMuscleGroups, id: \.self) { m in
+                let sel = muscles.contains(m)
+                Button {
+                    if sel { muscles.remove(m) } else { muscles.insert(m) }
+                } label: {
+                    Text(muscleLabel(m))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(sel ? .black : .white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(sel ? Color.orange : Color(hex: "191926"))
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var customMuscleRow: some View {
+        HStack(spacing: 8) {
+            TextField("Autre muscle...", text: $customMuscle)
+                .foregroundColor(.white)
+                .font(.system(size: 13))
+            Button {
+                let m = customMuscle.trimmingCharacters(in: .whitespaces).lowercased()
+                guard !m.isEmpty else { return }
+                muscles.insert(m)
+                customMuscle = ""
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .foregroundColor(customMuscle.trimmingCharacters(in: .whitespaces).isEmpty ? .gray : .orange)
+                    .font(.system(size: 20))
+            }
+            .disabled(customMuscle.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+    }
+
+    private var levelGrid: some View {
+        let labels = ["beginner": "Débutant", "intermediate": "Intermédiaire", "advanced": "Avancé"]
+        let opts = ["beginner", "intermediate", "advanced"]
+        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            ForEach(opts, id: \.self) { l in
+                let sel = level == l
+                Button { level = (level == l ? "" : l) } label: {
+                    Text(labels[l] ?? l.capitalized)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(sel ? .black : .white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(sel ? Color.orange : Color(hex: "191926"))
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func muscleLabel(_ m: String) -> String {
+        switch m {
+        case "chest": return "Pectoraux"; case "shoulders": return "Épaules"
+        case "rear delts": return "Post. Épaule"; case "triceps": return "Triceps"
+        case "biceps": return "Biceps"; case "lats": return "Dorsaux"
+        case "traps": return "Trapèzes"; case "rhomboids": return "Rhomboïdes"
+        case "lower back": return "Lombaires"; case "abs": return "Abdos"
+        case "obliques": return "Obliques"; case "glutes": return "Fessiers"
+        case "hamstrings": return "Ischio"; case "quads": return "Quadriceps"
+        case "calves": return "Mollets"; case "forearms": return "Avant-bras"
+        case "rotators": return "Rotateurs"; case "abductors": return "Abducteurs"
+        default: return m.capitalized
         }
     }
 }
