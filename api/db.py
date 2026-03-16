@@ -328,16 +328,10 @@ def sync_now(verbose: bool = True) -> Dict[str, str]:
 # ---------------------------------------------------------------------------
 
 def get_exercises() -> Dict[str, dict]:
-    """Return {name: {id, type, category, ...}} — same shape as current inventory KV.
-
-    Backward compatible with load_inventory() callers during migration.
-    Falls back to KV inventory key if Supabase unavailable.
-    """
-    # fallback to KV during migration
+    """Return {name: {id, type, category, ...}} from the exercises table (source unique)."""
     if _client is None or MODE == "OFFLINE":
-        return get_json("inventory", {})
+        return {}
     try:
-        # Supabase max_rows=1000 overrides client-side .limit() — paginate instead
         rows: list = []
         page_size = 1000
         start = 0
@@ -351,22 +345,19 @@ def get_exercises() -> Dict[str, dict]:
         return {row["name"]: row for row in rows}
     except Exception as e:
         logger.error("get_exercises error: %s", e)
-        return get_json("inventory", {})  # fallback to KV during migration
+        return {}
 
 
 def get_exercise_by_name(name: str) -> Optional[dict]:
     """Return a single exercise row by name, or None."""
-    # fallback to KV during migration
     if _client is None or MODE == "OFFLINE":
-        inv = get_json("inventory", {})
-        return inv.get(name)
+        return None
     try:
         resp = _client.table("exercises").select("*").eq("name", name).single().execute()
         return resp.data
     except Exception as e:
         logger.debug("get_exercise_by_name(%s) error: %s", name, e)
-        inv = get_json("inventory", {})  # fallback to KV during migration
-        return inv.get(name)
+        return None
 
 
 def get_exercise_id(name: str) -> Optional[str]:
@@ -384,17 +375,10 @@ def get_exercise_id(name: str) -> Optional[str]:
 
 def upsert_exercise(data: dict) -> dict:
     """Insert or update an exercise by name. data must include 'name'. Returns saved record."""
-    # fallback to KV during migration
     if _client is None or MODE == "OFFLINE":
-        inv = get_json("inventory", {})
-        name = data.get("name", "")
-        inv[name] = data
-        set_json("inventory", inv)
         return data
     name = data.get("name", "")
     try:
-        # on_conflict="name" requires a unique index on `name` which may not exist.
-        # Use INSERT first; if the row already exists, fall back to UPDATE by name.
         try:
             resp = _client.table("exercises").insert(data).execute()
             if resp.data:
@@ -408,57 +392,30 @@ def upsert_exercise(data: dict) -> dict:
         return data
     except Exception as e:
         logger.error("upsert_exercise error: %s", e)
-        inv = get_json("inventory", {})
-        inv[name] = data
-        set_json("inventory", inv)
         return data
 
 
 def rename_exercise_table(old_name: str, new_name: str) -> bool:
     """Rename an exercise in the exercises table. Returns True on success."""
-    # fallback to KV during migration
     if _client is None or MODE == "OFFLINE":
-        inv = get_json("inventory", {})
-        if old_name in inv:
-            inv[new_name] = inv.pop(old_name)
-            set_json("inventory", inv)
-            return True
         return False
     try:
         resp = _client.table("exercises").update({"name": new_name}).eq("name", old_name).execute()
         return bool(resp.data)
     except Exception as e:
         logger.error("rename_exercise_table error: %s", e)
-        # fallback to KV during migration
-        inv = get_json("inventory", {})
-        if old_name in inv:
-            inv[new_name] = inv.pop(old_name)
-            set_json("inventory", inv)
-            return True
         return False
 
 
 def delete_exercise_by_name(name: str) -> bool:
     """Delete an exercise by name. Returns True if a row was deleted."""
-    # fallback to KV during migration
     if _client is None or MODE == "OFFLINE":
-        inv = get_json("inventory", {})
-        if name in inv:
-            del inv[name]
-            set_json("inventory", inv)
-            return True
         return False
     try:
         resp = _client.table("exercises").delete().eq("name", name).execute()
         return bool(resp.data)
     except Exception as e:
         logger.error("delete_exercise_by_name error: %s", e)
-        # fallback to KV during migration
-        inv = get_json("inventory", {})
-        if name in inv:
-            del inv[name]
-            set_json("inventory", inv)
-            return True
         return False
 
 

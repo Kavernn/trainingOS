@@ -17,19 +17,13 @@ def load_inventory() -> dict:
 
 
 def save_inventory(inv: dict) -> bool:
-    """Persist the full inventory dict.
-
-    Upserts all exercises in inv to the exercises table and also persists to
-    KV so that delete operations (which remove a key from inv before calling
-    this) are reflected in the in-memory store used by tests.
-    """
+    """Persist the full inventory dict to the exercises table (source unique)."""
     success = True
     try:
-        # Upsert each entry to the relational table
         for name, info in inv.items():
             if isinstance(info, dict):
                 db.upsert_exercise({**info, "name": name})
-        # Also detect and delete exercises that are no longer in inv
+        # Delete exercises removed from inv
         try:
             current = db.get_exercises()
             if isinstance(current, dict):
@@ -40,14 +34,6 @@ def save_inventory(inv: dict) -> bool:
             pass
     except Exception:
         success = False
-
-    # Always sync to KV so that the in-memory test store stays consistent
-    # and offline/KV-fallback mode also works.
-    try:
-        db.set_json("inventory", inv)
-    except Exception:
-        success = False
-
     return success
 
 
