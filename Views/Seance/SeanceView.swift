@@ -1091,6 +1091,16 @@ struct AddHIITSheet: View {
             }
         }
 
+        private var equipmentLabel: String {
+            switch equipmentType {
+            case "barbell":    return "Barre"
+            case "dumbbell":   return "Haltères"
+            case "bodyweight": return "Poids corps"
+            case "cable":      return "Câble"
+            default:           return "Machine"
+            }
+        }
+
         private var weightColumnLabel: String {
             switch equipmentType {
             case "barbell":    return "POIDS PAR CÔTÉ (\(units.label.uppercased()))"
@@ -1204,13 +1214,24 @@ struct AddHIITSheet: View {
                         Text(scheme).font(.system(size: 12)).foregroundColor(.gray)
                     }
                     Spacer()
-                    if logResult != nil {
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(.system(size: 20))
-                            Button(action: { isEditing = true }) {
-                                Image(systemName: "pencil.circle")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.white.opacity(0.35))
+                    if let r = logResult {
+                        HStack(spacing: 10) {
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(units.format(r.weight))
+                                    .font(.system(size: 15, weight: .black))
+                                    .foregroundColor(.white)
+                                Text(equipmentLabel)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .tracking(0.5)
+                                    .foregroundColor(.green.opacity(0.7))
+                            }
+                            VStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(.system(size: 18))
+                                Button(action: { isEditing = true }) {
+                                    Image(systemName: "pencil.circle")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(.white.opacity(0.3))
+                                }
                             }
                         }
                     }
