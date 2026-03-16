@@ -382,16 +382,23 @@ def upsert_exercise(data: dict) -> dict:
         inv[name] = data
         set_json("inventory", inv)
         return data
+    name = data.get("name", "")
     try:
-        resp = _client.table("exercises").upsert(data, on_conflict="name").execute()
+        # on_conflict="name" requires a unique index on `name` which may not exist.
+        # Use INSERT first; if the row already exists, fall back to UPDATE by name.
+        try:
+            resp = _client.table("exercises").insert(data).execute()
+            if resp.data:
+                return resp.data[0]
+        except Exception:
+            pass
+        resp = _client.table("exercises").update(data).eq("name", name).execute()
         if resp.data:
             return resp.data[0]
         return data
     except Exception as e:
         logger.error("upsert_exercise error: %s", e)
-        # fallback to KV during migration
         inv = get_json("inventory", {})
-        name = data.get("name", "")
         inv[name] = data
         set_json("inventory", inv)
         return data
