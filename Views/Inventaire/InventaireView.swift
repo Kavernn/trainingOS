@@ -561,6 +561,7 @@ struct InventoryFormSheet: View {
                     .cornerRadius(10)
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : (colors[t] ?? .gray).opacity(0.3), lineWidth: 1))
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 4)
@@ -585,6 +586,7 @@ struct InventoryFormSheet: View {
                         .cornerRadius(10)
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : (colors[c] ?? .gray).opacity(0.3), lineWidth: 1))
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 4)
@@ -604,6 +606,7 @@ struct InventoryFormSheet: View {
                         .cornerRadius(10)
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 4)
@@ -625,6 +628,7 @@ struct InventoryFormSheet: View {
                         .cornerRadius(10)
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 4)
@@ -665,6 +669,7 @@ struct InventoryFormSheet: View {
                         .cornerRadius(10)
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
                 }
+                .buttonStyle(.plain)
             }
         }
         .padding(.vertical, 4)
