@@ -1043,6 +1043,7 @@ struct AddHIITSheet: View {
         @State private var exerciseRPE: Double = 7
         // Set synchronously before any async call to prevent race conditions
         @State private var isLogged = false
+        @State private var isEditing = false
 
         enum LogStatus { case success(Double), stagné }
 
@@ -1204,67 +1205,117 @@ struct AddHIITSheet: View {
                     }
                     Spacer()
                     if logResult != nil {
-                        Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(.system(size: 20))
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill").foregroundColor(.green).font(.system(size: 20))
+                            Button(action: { isEditing = true }) {
+                                Image(systemName: "pencil.circle")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.white.opacity(0.35))
+                            }
+                        }
                     }
                 }
 
-                // Recommended weight hint
-                if currentWeight > 0 {
+                if alreadyLogged && !isEditing {
+                    // ── Résumé loggé ──
+                    if let r = logResult {
+                        HStack(spacing: 12) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "scalemass.fill").font(.system(size: 11)).foregroundColor(.gray)
+                                Text(units.format(r.weight)).font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                            }
+                            Text("·").foregroundColor(.gray)
+                            HStack(spacing: 4) {
+                                Image(systemName: "repeat").font(.system(size: 11)).foregroundColor(.gray)
+                                Text(r.reps).font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                            }
+                            if let rpe = r.rpe {
+                                Text("·").foregroundColor(.gray)
+                                Text("RPE \(String(format: "%.1f", rpe))")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(rpeColor(rpe))
+                            }
+                            Spacer()
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.green.opacity(0.08))
+                        .cornerRadius(8)
+                    }
+                } else {
+                    // ── Inputs ──
+
+                    // Recommended weight hint
+                    if currentWeight > 0 {
+                        HStack {
+                            Text("RECOMMANDÉ")
+                                .font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
+                            Spacer()
+                            Text(units.format(currentWeight))
+                                .font(.system(size: 13, weight: .bold)).foregroundColor(.orange.opacity(0.7))
+                        }
+                    }
+
+                    // Per-set rows
+                    setRows()
+
+                    // Average weight + total
+                    if avgWeight != nil {
+                        avgTotalRow
+                    }
+
+                    // RPE slider
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("RPE")
+                                .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            Spacer()
+                            Text(String(format: "%.1f", exerciseRPE))
+                                .font(.system(size: 15, weight: .black))
+                                .foregroundColor(rpeColor(exerciseRPE))
+                        }
+                        Slider(value: $exerciseRPE, in: 6...10, step: 0.5)
+                            .tint(rpeColor(exerciseRPE))
+                    }
+                    .padding(.top, 4)
+
+                    // Log / Mettre à jour button
                     HStack {
-                        Text("RECOMMANDÉ")
-                            .font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
+                        if isEditing {
+                            Button(action: { isEditing = false }) {
+                                Text("Annuler")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.gray)
+                            }
+                        }
                         Spacer()
-                        Text(units.format(currentWeight))
-                            .font(.system(size: 13, weight: .bold)).foregroundColor(.orange.opacity(0.7))
+                        Button(action: logExercise) {
+                            HStack(spacing: 6) {
+                                Image(systemName: isEditing ? "arrow.triangle.2.circlepath.circle.fill" : "arrow.up.circle.fill")
+                                    .font(.system(size: 38))
+                                if isEditing {
+                                    Text("Mettre à jour")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                            }
+                            .foregroundColor(canLog ? .orange : .gray)
+                        }
+                        .disabled(!canLog)
+                        .padding(.top, 8)
                     }
-                }
 
-                // Per-set rows: each set has its own weight + reps field
-                setRows()
-
-                // Average weight + total (shown once at least one weight is entered)
-                if avgWeight != nil {
-                    avgTotalRow
-                }
-
-                // RPE slider — toujours visible
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("RPE")
-                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                        Spacer()
-                        Text(String(format: "%.1f", exerciseRPE))
-                            .font(.system(size: 15, weight: .black))
-                            .foregroundColor(rpeColor(exerciseRPE))
-                    }
-                    Slider(value: $exerciseRPE, in: 6...10, step: 0.5)
-                        .tint(rpeColor(exerciseRPE))
-                }
-                .padding(.top, 4)
-
-                // Log button
-                HStack {
-                    Spacer()
-                    Button(action: logExercise) {
-                        Image(systemName: alreadyLogged ? "checkmark.circle.fill" : "arrow.up.circle.fill")
-                            .font(.system(size: 38))
-                            .foregroundColor(alreadyLogged ? .green : (canLog ? .orange : .gray))
-                    }
-                    .disabled(alreadyLogged || !canLog)
-                    .padding(.top, 8)
-                }
-
-                // Status
-                if let status = logStatus {
-                    HStack(spacing: 6) {
-                        switch status {
-                        case .success(let newW):
-                            Image(systemName: "arrow.up.circle.fill").foregroundColor(.green)
-                            Text("Loggé! \(units.format(newW))")
-                                .font(.system(size: 13, weight: .semibold)).foregroundColor(.green)
-                        case .stagné:
-                            Image(systemName: "equal.circle.fill").foregroundColor(.yellow)
-                            Text("Stagné — même poids").font(.system(size: 13, weight: .semibold)).foregroundColor(.yellow)
+                    // Status
+                    if let status = logStatus {
+                        HStack(spacing: 6) {
+                            switch status {
+                            case .success(let newW):
+                                Image(systemName: "arrow.up.circle.fill").foregroundColor(.green)
+                                Text("Loggé! \(units.format(newW))")
+                                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.green)
+                            case .stagné:
+                                Image(systemName: "equal.circle.fill").foregroundColor(.yellow)
+                                Text("Stagné — même poids").font(.system(size: 13, weight: .semibold)).foregroundColor(.yellow)
+                            }
                         }
                     }
                 }
@@ -1311,15 +1362,18 @@ struct AddHIITSheet: View {
                 }
             }
             .onChange(of: logResult == nil) { isNil in
-                if isNil { isLogged = false; logStatus = nil }
+                if isNil { isLogged = false; logStatus = nil; isEditing = false }
             }
         }
 
         private func logExercise() {
-            guard !alreadyLogged, canLog else { return }
+            guard !alreadyLogged || isEditing, canLog else { return }
             guard let avg = avgWeight, !repsStr.isEmpty else { return }
+            // Allow re-log in edit mode
+            if isEditing { isLogged = false }
             // Set synchronously to block any re-tap before async completes
             isLogged = true
+            isEditing = false
             let w     = units.toStorage(avg)   // per-side in lbs
             let total = totalWeight(for: w)    // total load in lbs (barbell ×2+45, dumbbell ×2, etc.)
             logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE)
