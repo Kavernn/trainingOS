@@ -688,18 +688,21 @@ def api_session_delete():
         if not date:
             return jsonify({"error": "date manquante"}), 400
 
-        # Remove from sessions
+        # Delete from relational layer (cascades to exercise_logs)
+        import db as _db
+        _db.delete_workout_session(date)
+
+        # Also clean KV sessions
         sessions = load_sessions()
         sessions.pop(date, None)
         from sessions import save_sessions
         save_sessions(sessions)
 
-        # Remove matching history entries from weights
+        # Clean KV weights history for this date
         weights = load_weights()
         for ex in weights:
             history = weights[ex].get("history", [])
             weights[ex]["history"] = [e for e in history if e.get("date") != date]
-            # Recalculate current values from remaining history
             remaining = weights[ex]["history"]
             if remaining:
                 most_recent = max(remaining, key=lambda e: e.get("date", ""))
