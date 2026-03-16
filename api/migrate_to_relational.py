@@ -150,7 +150,7 @@ def migrate_exercises() -> None:
         if not isinstance(info, dict):
             info = {}
         row: dict = {"name": name}
-        for field in ("type", "category", "pattern", "level", "tips", "gif_url",
+        for field in ("type", "category", "pattern", "level", "tips",
                       "default_scheme"):
             val = info.get(field) or info.get(field.replace("_", ""))
             if val is not None:

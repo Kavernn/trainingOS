@@ -847,7 +847,7 @@ def api_save_exercise():
         "muscles":        data.get("muscles", []),
         "category":       data.get("category", ""),
         "level":          data.get("level", ""),
-        "gif_url":        inv.get(original_name or name, {}).get("gif_url") or inv.get(name, {}).get("gif_url") or "",
+
     }
 
     if original_name and original_name != name:

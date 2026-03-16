@@ -14,8 +14,6 @@ struct InventoryItem: Identifiable {
     var increment: Double
     var defaultScheme: String
     var muscles: [String]
-    var gifURL: String
-
     init(name: String, _ d: [String: Any]) {
         self.name          = name
         self.type          = d["type"]          as? String ?? "machine"
@@ -25,7 +23,6 @@ struct InventoryItem: Identifiable {
         self.increment     = d["increment"]     as? Double ?? 5
         self.defaultScheme = d["default_scheme"] as? String ?? "3x8-12"
         self.muscles       = d["muscles"]       as? [String] ?? []
-        self.gifURL        = d["gif_url"]       as? String ?? ""
     }
 }
 
@@ -460,7 +457,6 @@ struct InventoryFormSheet: View {
                         item.defaultScheme = defaultScheme
                         item.increment     = Double(increment) ?? 5
                         item.barWeight     = Double(barWeight) ?? 0
-                        item.gifURL        = existing?.gifURL ?? ""
                         onSave(item)
                         dismiss()
                     }

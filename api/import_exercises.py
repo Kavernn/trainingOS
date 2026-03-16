@@ -139,7 +139,6 @@ def parse_exercise(item: dict, existing: dict) -> tuple[str, dict]:
         "default_scheme": existing.get(name, {}).get("default_scheme", "3x8-12"),
         "muscles":        muscles,
         "tips":           tips,
-        "gif_url":        None,
     }
     return name, entry
 
