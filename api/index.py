@@ -563,9 +563,9 @@ def api_log():
                 sw = float(s.get("weight", 0) or 0)
                 s["total_weight"] = sw
                 s["set_volume"] = calc_set_volume(sw, s.get("reps", 0))
-            exercise_volume = calc_exercise_volume(sets_data)
+            exercise_volume = round(sum(s.get("set_volume", 0.0) for s in sets_data), 2)
         else:
-            exercise_volume = 0.0
+            exercise_volume = calc_exercise_volume(weight, reps)
 
         action_notes = {"increase": f"+{new_w - weight:.1f}", "maintain": "stagné", "decrease": f"{new_w - weight:.1f}"}
         history_entry = {
