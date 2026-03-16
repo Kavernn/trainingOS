@@ -26,6 +26,9 @@ struct DashboardView: View {
                             GreetingHeaderView(dash: dash)
                                 .appearAnimation(delay: 0)
 
+                            ChecklistCardView()
+                                .appearAnimation(delay: 0.02)
+
                             if let report = deload, report.recommande {
                                 DeloadBannerView(report: report)
                                     .appearAnimation(delay: 0.03)
