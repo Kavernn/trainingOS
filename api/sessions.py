@@ -107,6 +107,18 @@ def log_session(
     sessions[date] = entry
     db.set_json("sessions", sessions)
 
+    # Flush today's KV exercise logs to relational now that workout_session exists
+    # (upsert_exercise_log échoue pendant la séance car pas de workout_session encore)
+    try:
+        kv_weights = db.get_json("weights", {}) or {}
+        for ex_name, ex_data in kv_weights.items():
+            hist = ex_data.get("history", [])
+            if hist and hist[0].get("date") == date:
+                h = hist[0]
+                db.upsert_exercise_log(date, ex_name, h.get("weight"), h.get("reps"))
+    except Exception:
+        pass
+
 
 def log_second_session(
     date: str,

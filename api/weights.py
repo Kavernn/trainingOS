@@ -15,6 +15,16 @@ Old format (KV):
 New format (relational): exercise_logs table with exercise_id FK, no computed fields.
 """
 import db
+from datetime import datetime, timezone
+import pytz
+
+def _today_local() -> str:
+    """Return today's date in America/Toronto timezone (same as backend)."""
+    try:
+        tz = pytz.timezone("America/Toronto")
+        return datetime.now(tz).strftime("%Y-%m-%d")
+    except Exception:
+        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
 def _calc_1rm(weight, reps_str):
@@ -77,6 +87,29 @@ def load_weights() -> dict:
                 "last_reps":      latest.get("reps", ""),
                 "history":        history,
             }
+
+        # Merge today's KV entries for exercises logged but not yet in relational
+        # (upsert_exercise_log échoue si workout_session n'existe pas encore)
+        today = _today_local()
+        kv_today = db.get_json("weights", {}) or {}
+        for name, kv_ex in kv_today.items():
+            kv_hist = kv_ex.get("history", [])
+            if not kv_hist or kv_hist[0].get("date") != today:
+                continue
+            kv_entry = kv_hist[0]
+            if name not in weights:
+                # Exercice absent du relational — créer depuis KV
+                weights[name] = {
+                    "current_weight": kv_entry.get("weight", 0),
+                    "last_reps":      kv_entry.get("reps", ""),
+                    "history":        [kv_entry],
+                }
+            elif weights[name]["history"][0].get("date") != today:
+                # Relational n'a pas l'entrée d'aujourd'hui — la préfixer
+                weights[name]["history"].insert(0, kv_entry)
+                weights[name]["current_weight"] = kv_entry.get("weight", weights[name]["current_weight"])
+                weights[name]["last_reps"]      = kv_entry.get("reps", weights[name]["last_reps"])
+
         return weights
     except Exception:
         return db.get_json("weights", {}) or {}
