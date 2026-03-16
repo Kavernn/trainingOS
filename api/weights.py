@@ -33,16 +33,22 @@ def load_weights() -> dict:
     """
     Build the old weights dict from exercise_logs in a single bulk query.
     Falls back to KV get_json("weights") if domain methods unavailable.
+    Supplemental fields (rpe, note, sets, exercise_volume) are merged from KV
+    since the relational exercise_logs table only stores weight/reps.
     """
     try:
         all_history = db.get_all_exercise_history()
         if not isinstance(all_history, dict) or not all_history:
             raise ValueError("no history from relational layer")
 
+        # Load KV for supplemental fields not stored in relational layer
+        kv_weights = db.get_json("weights", {}) or {}
+
         weights = {}
         for name, history_rows in all_history.items():
             if not isinstance(history_rows, list) or not history_rows:
                 continue
+            kv_hist = (kv_weights.get(name) or {}).get("history", [])
             history = []
             for row in history_rows:
                 if not isinstance(row, dict):
@@ -54,6 +60,12 @@ def load_weights() -> dict:
                 }
                 if entry["weight"] and entry["reps"]:
                     entry["1rm"] = _calc_1rm(entry["weight"], entry["reps"])
+                # Merge supplemental fields from KV (rpe, note, sets, exercise_volume)
+                kv_entry = next((e for e in kv_hist if e.get("date") == entry["date"]), None)
+                if kv_entry:
+                    for field in ("rpe", "note", "exercise_volume", "sets"):
+                        if kv_entry.get(field) is not None:
+                            entry[field] = kv_entry[field]
                 history.append(entry)
 
             if not history:
