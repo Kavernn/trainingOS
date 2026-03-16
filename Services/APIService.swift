@@ -58,6 +58,7 @@ class APIService: ObservableObject {
     private func fetchWithCache(url: URL, key: String) async throws -> Data {
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
+        req.cachePolicy = .reloadIgnoringLocalCacheData
         do {
             let (data, _) = try await URLSession.shared.data(for: req)
             CacheService.shared.save(data, for: key)

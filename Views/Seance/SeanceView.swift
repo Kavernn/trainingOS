@@ -713,12 +713,7 @@ struct WorkoutSeanceView: View {
     // Handles e.g. program "Deadlift" matching inventory "Barbell Deadlift".
     private func equipmentType(for name: String) -> String {
         let types = inventoryTypes.isEmpty ? data.inventoryTypes : inventoryTypes
-        if let exact = types[name] { return exact }
-        let lower = name.lowercased()
-        for (key, value) in types where key.lowercased().contains(lower) {
-            return value
-        }
-        return "machine"
+        return types[name] ?? "machine"
     }
 
     // MARK: - Programme mutations
