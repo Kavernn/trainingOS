@@ -2,6 +2,7 @@
 {% block title %}VinceSeven{% endblock %}
 
 {% block extra_css %}
+<link rel="stylesheet" href="/static/css/checklist.css">
 <style>
   /* ── HERO DATE BANNER ── */
   .hero-banner {
@@ -720,6 +721,13 @@
   <!-- ── LEFT COLUMN ── -->
   <div class="idx-left">
 
+    <!-- ⓪ CHECKLIST AVANT DE PARTIR -->
+    <div id="checklist-card" class="fade-up delay-1">
+      <div class="checklist-title">CHECK AVANT DE PARTIR</div>
+      <div id="cl-list"></div>
+      <div id="cl-complete-msg">✅ Perfect. Good to go amigo</div>
+    </div>
+
     <!-- ④ PLANNING SEMAINE -->
     <div class="card mb-14 fade-up delay-2">
       <div class="card-title">Planning semaine</div>
@@ -1011,6 +1019,7 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="/static/js/checklist.js"></script>
 <script>
 const sessions   = JSON.parse(document.getElementById('sessions-data').textContent);
 const goals      = JSON.parse(document.getElementById('goals-data').textContent);
