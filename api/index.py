@@ -860,6 +860,25 @@ def api_save_exercise():
     return jsonify({"success": True})
 
 
+@app.route("/api/debug_insert_exercise", methods=["POST"])
+def api_debug_insert_exercise():
+    """Temporary debug endpoint — returns raw Supabase error on insert."""
+    import db as _db
+    name = request.json.get("name", "Triceps Dip")
+    data = {"name": name, "type": "bodyweight", "category": "push",
+            "default_scheme": "3x8-12", "increment": 5.0, "bar_weight": 0.0,
+            "level": "advanced", "muscles": [], "gif_url": ""}
+    try:
+        resp = _db._client.table("exercises").insert(data).execute()
+        return jsonify({"insert_resp": resp.data, "error": None})
+    except Exception as e:
+        try:
+            resp2 = _db._client.table("exercises").update(data).eq("name", name).execute()
+            return jsonify({"insert_error": str(e), "update_resp": resp2.data})
+        except Exception as e2:
+            return jsonify({"insert_error": str(e), "update_error": str(e2)})
+
+
 @app.route("/api/delete_exercise", methods=["POST"])
 def api_delete_exercise():
     name = request.json.get("name", "").strip()

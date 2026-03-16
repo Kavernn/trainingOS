@@ -390,11 +390,12 @@ def upsert_exercise(data: dict) -> dict:
             resp = _client.table("exercises").insert(data).execute()
             if resp.data:
                 return resp.data[0]
-        except Exception:
-            pass
+        except Exception as insert_err:
+            logger.error("upsert_exercise INSERT error for %s: %s", name, insert_err)
         resp = _client.table("exercises").update(data).eq("name", name).execute()
         if resp.data:
             return resp.data[0]
+        logger.error("upsert_exercise UPDATE found no row for %s", name)
         return data
     except Exception as e:
         logger.error("upsert_exercise error: %s", e)
