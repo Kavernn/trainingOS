@@ -54,6 +54,7 @@ struct StatsView: View {
     @State private var nutritionTarget:  NutritionSettings?      = nil
     @State private var nutritionDays:    [NutritionDay]          = []
     @State private var acwr:             ACWRData?               = nil
+    @State private var muscleStats:      [String: MuscleStatEntry] = [:]
     @State private var isLoading    = true
     @State private var selectedExercise: String? = nil
     @State private var searchText   = ""
@@ -243,6 +244,12 @@ struct StatsView: View {
                                     .padding(.horizontal, 16)
                             }
 
+                            // Muscle breakdown
+                            if !muscleStats.isEmpty {
+                                MuscleBreakdownView(stats: muscleStats)
+                                    .padding(.horizontal, 16)
+                            }
+
                             // RPE chart
                             if rpeHistory.count >= 3 {
                                 RPEChartView(data: rpeHistory)
@@ -362,6 +369,7 @@ struct StatsView: View {
             recoveryLog = r.recoveryLog
             nutritionTarget = r.nutritionTarget
             nutritionDays = r.nutritionDays
+            muscleStats = r.muscleStats
         }
         acwr = try? await acwrTask
         isLoading = false
@@ -1303,5 +1311,93 @@ struct ExerciseProgressChart: View {
             .frame(height: 60)
         }
         .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+    }
+}
+
+// MARK: - Muscle Breakdown
+struct MuscleBreakdownView: View {
+    let stats: [String: MuscleStatEntry]
+    @ObservedObject private var units = UnitSettings.shared
+
+    private var sorted: [(String, MuscleStatEntry)] {
+        stats.sorted { $0.value.volume > $1.value.volume }
+    }
+
+    private var maxVolume: Double {
+        sorted.first?.1.volume ?? 1
+    }
+
+    private func formatVol(_ lbs: Double) -> String {
+        let v = units.display(lbs)
+        if v >= 1_000 { return String(format: "%.0fK \(units.label)", v / 1_000) }
+        return String(format: "%.0f \(units.label)", v)
+    }
+
+    private func daysSince(_ dateStr: String) -> Int? {
+        guard let d = DateFormatter.isoDate.date(from: dateStr) else { return nil }
+        return Calendar.current.dateComponents([.day], from: d, to: Date()).day
+    }
+
+    private func freshnessColor(_ days: Int?) -> Color {
+        guard let d = days else { return .gray }
+        if d <= 2 { return .orange }
+        if d <= 5 { return .green }
+        return .gray
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionLabel(title: "MUSCLES TRAVAILLÉS", icon: "figure.strengthtraining.traditional")
+
+            VStack(spacing: 8) {
+                ForEach(sorted, id: \.0) { muscle, entry in
+                    HStack(spacing: 10) {
+                        Text(muscle.capitalized)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 110, alignment: .leading)
+
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.white.opacity(0.06))
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(freshnessColor(daysSince(entry.lastDate)).opacity(0.7))
+                                    .frame(width: geo.size.width * CGFloat(entry.volume / maxVolume))
+                            }
+                        }
+                        .frame(height: 8)
+
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text(formatVol(entry.volume))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.8))
+                            if let days = daysSince(entry.lastDate) {
+                                Text(days == 0 ? "auj." : "\(days)j")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(freshnessColor(days))
+                            }
+                        }
+                        .frame(width: 38, alignment: .trailing)
+                    }
+                }
+            }
+
+            HStack(spacing: 16) {
+                legendDot(.orange, "≤ 2j")
+                legendDot(.green,  "3–5j")
+                legendDot(.gray,   "+5j")
+            }
+        }
+        .padding(16)
+        .glassCard()
+        .cornerRadius(16)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label).font(.system(size: 10)).foregroundColor(.gray)
+        }
     }
 }

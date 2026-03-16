@@ -1443,6 +1443,39 @@ def api_seance_data():
     })
 
 
+def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:
+    """Compute per-muscle volume and session count from full history.
+
+    Returns {muscle: {volume, sessions, last_date}}.
+    """
+    muscle_data: dict = {}
+    for date, session in sessions.items():
+        exos = session.get("exos") or []
+        seen_muscles: set = set()
+        for ex_name in exos:
+            muscles = (inventory.get(ex_name) or {}).get("muscles") or []
+            if not muscles:
+                continue
+            history = (weights.get(ex_name) or {}).get("history") or []
+            entry   = next((e for e in history if e.get("date") == date), None)
+            if entry:
+                w         = float(entry.get("weight") or 0)
+                reps_list = parse_reps(entry.get("reps") or "")
+                vol       = round(w * sum(reps_list), 2) if w > 0 and reps_list else 0.0
+            else:
+                vol = 0.0
+            for muscle in muscles:
+                if muscle not in muscle_data:
+                    muscle_data[muscle] = {"volume": 0.0, "sessions": 0, "last_date": ""}
+                muscle_data[muscle]["volume"] = round(muscle_data[muscle]["volume"] + vol, 2)
+                if muscle not in seen_muscles:
+                    muscle_data[muscle]["sessions"] += 1
+                    seen_muscles.add(muscle)
+                if date > muscle_data[muscle]["last_date"]:
+                    muscle_data[muscle]["last_date"] = date
+    return muscle_data
+
+
 @app.route("/api/stats_data")
 def api_stats_data():
     weights      = load_weights()
@@ -1452,6 +1485,8 @@ def api_stats_data():
     recovery_log = load_recovery_log()
     nutr_settings = load_nutrition_settings()
     nutr_entries  = get_recent_days(7)
+    inventory    = load_inventory()
+    muscle_stats = _calc_muscle_stats(sessions, weights, inventory)
     return jsonify({
         "weights":          weights,
         "sessions":         sessions,
@@ -1461,6 +1496,7 @@ def api_stats_data():
         "nutrition_target": nutr_settings,
         "nutrition_days":   nutr_entries,
         "week":             get_current_week(),
+        "muscle_stats":     muscle_stats,
     })
 
 

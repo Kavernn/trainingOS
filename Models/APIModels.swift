@@ -239,6 +239,18 @@ struct HIITEntry: Codable, Identifiable {
     }
 }
 
+// MARK: - Muscle Stats
+struct MuscleStatEntry: Codable {
+    let volume: Double
+    let sessions: Int
+    let lastDate: String
+
+    enum CodingKeys: String, CodingKey {
+        case volume, sessions
+        case lastDate = "last_date"
+    }
+}
+
 // MARK: - Body Weight
 struct BodyWeightEntry: Codable, Identifiable {
     var id: String { date }

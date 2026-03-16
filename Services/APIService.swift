@@ -250,7 +250,8 @@ class APIService: ObservableObject {
         bodyWeight: [BodyWeightEntry],
         recoveryLog: [RecoveryEntry],
         nutritionTarget: NutritionSettings?,
-        nutritionDays: [NutritionDay]
+        nutritionDays: [NutritionDay],
+        muscleStats: [String: MuscleStatEntry]
     ) {
         let url = URL(string: "\(baseURL)/api/stats_data")!
         let data = try await fetchWithCache(url: url, key: "stats_data")
@@ -262,6 +263,7 @@ class APIService: ObservableObject {
             let recoveryLog: [RecoveryEntry]
             let nutritionTarget: NutritionSettings?
             let nutritionDays: [NutritionDay]
+            let muscleStats: [String: MuscleStatEntry]
             enum CodingKeys: String, CodingKey {
                 case weights, sessions
                 case hiitLog         = "hiit_log"
@@ -269,10 +271,11 @@ class APIService: ObservableObject {
                 case recoveryLog     = "recovery_log"
                 case nutritionTarget = "nutrition_target"
                 case nutritionDays   = "nutrition_days"
+                case muscleStats     = "muscle_stats"
             }
         }
         let r = try JSONDecoder().decode(StatsResponse.self, from: data)
-        return (r.weights, r.sessions, r.hiitLog, r.bodyWeight, r.recoveryLog, r.nutritionTarget, r.nutritionDays)
+        return (r.weights, r.sessions, r.hiitLog, r.bodyWeight, r.recoveryLog, r.nutritionTarget, r.nutritionDays, r.muscleStats)
     }
 
     // MARK: - Health Dashboard
