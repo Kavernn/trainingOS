@@ -114,8 +114,9 @@ class APIService: ObservableObject {
     }
 
     func logExercise(exercise: String, weight: Double, reps: String,
-                     sets: [[String: Any]] = []) async throws -> LogExerciseResponse {
+                     rpe: Double? = nil, sets: [[String: Any]] = []) async throws -> LogExerciseResponse {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
+        if let rpe { body["rpe"] = rpe }
         if !sets.isEmpty { body["sets"] = sets }
         let data = try await offlinePost(endpoint: "/api/log", payload: body)
         // Invalider immédiatement — évite l'affichage "pas loggé" après re-ouverture

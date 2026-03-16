@@ -370,6 +370,13 @@ struct WorkoutSeanceView: View {
     @State private var cardioLogged  = false
     @State private var hiitLogged    = false
     
+    /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
+    private var computedSessionRPE: Double {
+        let vals = vm.logResults.values.compactMap(\.rpe)
+        guard !vals.isEmpty else { return 7.0 }
+        return (vals.reduce(0, +) / Double(vals.count) * 2).rounded() / 2  // arrondi au 0.5
+    }
+
     private var exercises: [(String, String)] {
         let ordered = exerciseOrder.filter { localProgram[$0] != nil }
         let extra   = localProgram.keys.filter { !exerciseOrder.contains($0) }.sorted()
@@ -634,8 +641,6 @@ struct WorkoutSeanceView: View {
                 
                 exerciseSection
 
-                rpeCommentSection
-
                 optionalAddonsSection
 
                 Button(action: { showFinish = true }) {
@@ -661,6 +666,7 @@ struct WorkoutSeanceView: View {
                 }
             )
             .presentationDetents([.medium, .large])
+            .onAppear { rpe = computedSessionRPE }
         }
         .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
             Button("OK") { Task { await vm.load() } }
@@ -1034,6 +1040,7 @@ struct AddHIITSheet: View {
         @State private var sets: [SetInput] = []
         @State private var showHistory = false
         @State private var logStatus: LogStatus? = nil
+        @State private var exerciseRPE: Double = 7
         // Set synchronously before any async call to prevent race conditions
         @State private var isLogged = false
 
@@ -1090,6 +1097,13 @@ struct AddHIITSheet: View {
             case "bodyweight": return "LEST (\(units.label.uppercased()))"
             default:           return "POIDS (\(units.label.uppercased()))"
             }
+        }
+
+        private func rpeColor(_ v: Double) -> Color {
+            if v >= 9 { return .red }
+            if v >= 8 { return .orange }
+            if v >= 7 { return .yellow }
+            return .green
         }
 
         // Reps joined from non-empty set rows
@@ -1213,6 +1227,21 @@ struct AddHIITSheet: View {
                     avgTotalRow
                 }
 
+                // RPE slider — toujours visible
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("RPE")
+                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Spacer()
+                        Text(String(format: "%.1f", exerciseRPE))
+                            .font(.system(size: 15, weight: .black))
+                            .foregroundColor(rpeColor(exerciseRPE))
+                    }
+                    Slider(value: $exerciseRPE, in: 6...10, step: 0.5)
+                        .tint(rpeColor(exerciseRPE))
+                }
+                .padding(.top, 4)
+
                 // Log button
                 HStack {
                     Spacer()
@@ -1293,7 +1322,7 @@ struct AddHIITSheet: View {
             isLogged = true
             let w     = units.toStorage(avg)   // per-side in lbs
             let total = totalWeight(for: w)    // total load in lbs (barbell ×2+45, dumbbell ×2, etc.)
-            logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr)
+            logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE)
             logStatus = .success(total)
             onLogged?()
             // Per-set payload: each set's weight is also stored as total load
@@ -1305,7 +1334,7 @@ struct AddHIITSheet: View {
             }
             Task {
                 if let response = try? await APIService.shared.logExercise(
-                    exercise: name, weight: total, reps: repsStr, sets: setsPayload),
+                    exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE, sets: setsPayload),
                    response.isPR == true {
                     let content = UNMutableNotificationContent()
                     content.title = "🏆 Nouveau PR !"
@@ -1387,10 +1416,14 @@ struct AddHIITSheet: View {
                             }
                             .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             
-                            // RPE
+                            // RPE — pré-rempli depuis la moyenne des RPE par exercice
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
-                                    Text("RPE GLOBAL").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("RPE SÉANCE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Text("Moy. RPE exercices")
+                                            .font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
+                                    }
                                     Spacer()
                                     Text("\(rpe, specifier: "%.1f")").font(.system(size: 24, weight: .black)).foregroundColor(.orange)
                                 }
@@ -1775,6 +1808,7 @@ struct AddHIITSheet: View {
         let name: String
         let weight: Double
         let reps: String
+        var rpe: Double? = nil
     }
     
     @MainActor
