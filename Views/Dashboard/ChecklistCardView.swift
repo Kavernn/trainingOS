@@ -10,6 +10,7 @@ private struct ChecklistItem {
 }
 
 private let kItems: [ChecklistItem] = [
+    ChecklistItem(id: "medocs",    label: "Médocs (Vyvance/Mg)"),
     ChecklistItem(id: "telephone",    label: "Téléphone"),
     ChecklistItem(id: "portefeuille", label: "Portefeuille"),
     ChecklistItem(id: "cles",         label: "Clés"),
@@ -34,21 +35,24 @@ private let kAllIDs: [String] = kItems.flatMap { item in
 // MARK: - Persistence (unchanged + minimized key)
 
 private enum ChecklistStore {
-    static let statesKey      = "cl_states_v1"
-    static let dateKey        = "cl_date_v1"
-    static let hiddenDateKey  = "cl_hidden_date_v1"
-    static let gymExpandKey   = "cl_gym_expanded_v1"
-    static let minimizedKey   = "cl_minimized_v1"
+    static let statesKey      = "cl_states_v2"
+    static let dateKey        = "cl_date_v2"
+    static let hiddenDateKey  = "cl_hidden_date_v2"
+    static let gymExpandKey   = "cl_gym_expanded_v2"
+    static let minimizedKey   = "cl_minimized_v2"
 
     static var todayStr: String {
-        ISO8601DateFormatter().string(from: Date()).prefix(10).description
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: Date())
     }
 
     static func load() -> [String: Bool] {
         let stored = UserDefaults.standard.string(forKey: dateKey) ?? ""
         if stored != todayStr {
-            // New day: reset states and restore minimized default
+            // New day: reset all state including hidden flag
             UserDefaults.standard.removeObject(forKey: statesKey)
+            UserDefaults.standard.removeObject(forKey: hiddenDateKey)
             UserDefaults.standard.set(true, forKey: minimizedKey)
             UserDefaults.standard.set(todayStr, forKey: dateKey)
         }
