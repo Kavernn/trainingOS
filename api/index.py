@@ -1444,33 +1444,39 @@ def api_seance_data():
 
 
 def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:
-    """Compute per-muscle volume and session count from full history.
+    """Compute per-muscle volume from weights history × inventory muscles.
+
+    sessions.exos is unreliable (often empty in relational layer), so we
+    derive exercise dates directly from weights history entries.
 
     Returns {muscle: {volume, sessions, last_date}}.
     """
     muscle_data: dict = {}
-    for date, session in sessions.items():
-        exos = session.get("exos") or []
-        seen_muscles: set = set()
-        for ex_name in exos:
-            muscles = (inventory.get(ex_name) or {}).get("muscles") or []
-            if not muscles:
+    # Track which muscles were hit per date to avoid double-counting sessions
+    date_muscles_seen: dict = {}
+
+    for ex_name, ex_data in weights.items():
+        muscles = (inventory.get(ex_name) or {}).get("muscles") or []
+        if not muscles:
+            continue
+        history = ex_data.get("history") or []
+        for entry in history:
+            date      = entry.get("date", "")
+            if not date:
                 continue
-            history = (weights.get(ex_name) or {}).get("history") or []
-            entry   = next((e for e in history if e.get("date") == date), None)
-            if entry:
-                w         = float(entry.get("weight") or 0)
-                reps_list = parse_reps(entry.get("reps") or "")
-                vol       = round(w * sum(reps_list), 2) if w > 0 and reps_list else 0.0
-            else:
-                vol = 0.0
+            w         = float(entry.get("weight") or 0)
+            reps_list = parse_reps(entry.get("reps") or "")
+            vol       = round(w * sum(reps_list), 2) if w > 0 and reps_list else 0.0
+
             for muscle in muscles:
                 if muscle not in muscle_data:
                     muscle_data[muscle] = {"volume": 0.0, "sessions": 0, "last_date": ""}
                 muscle_data[muscle]["volume"] = round(muscle_data[muscle]["volume"] + vol, 2)
-                if muscle not in seen_muscles:
+                # Count one session per (muscle, date) pair
+                key = (muscle, date)
+                if key not in date_muscles_seen:
+                    date_muscles_seen[key] = True
                     muscle_data[muscle]["sessions"] += 1
-                    seen_muscles.add(muscle)
                 if date > muscle_data[muscle]["last_date"]:
                     muscle_data[muscle]["last_date"] = date
     return muscle_data
