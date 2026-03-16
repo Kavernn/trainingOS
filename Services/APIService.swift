@@ -1,6 +1,15 @@
 import Foundation
 import Combine
 
+// MARK: - API Errors
+enum APIError: LocalizedError {
+    case serverError(Int, String)
+    var errorDescription: String? {
+        if case .serverError(_, let msg) = self { return msg }
+        return nil
+    }
+}
+
 // MARK: - Offline-safe POST helper
 // Every mutation goes through this. If the network call fails (offline),
 // the payload is saved as a PendingMutation and replayed by SyncManager
@@ -14,8 +23,15 @@ private func offlinePost(endpoint: String, payload: [String: Any]) async throws 
     req.httpBody = try JSONSerialization.data(withJSONObject: payload)
     req.timeoutInterval = 15
     do {
-        let (data, _) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await URLSession.shared.data(for: req)
+        if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+            // Extract error message from response if available
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw APIError.serverError(http.statusCode, msg ?? "HTTP \(http.statusCode)")
+        }
         return data
+    } catch let err as APIError {
+        throw err
     } catch {
         // Network unavailable → queue for later
         await MainActor.run {
