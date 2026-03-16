@@ -337,8 +337,17 @@ def get_exercises() -> Dict[str, dict]:
     if _client is None or MODE == "OFFLINE":
         return get_json("inventory", {})
     try:
-        resp = _client.table("exercises").select("*").order("name").limit(10000).execute()
-        rows = resp.data or []
+        # Supabase max_rows=1000 overrides client-side .limit() — paginate instead
+        rows: list = []
+        page_size = 1000
+        start = 0
+        while True:
+            resp = _client.table("exercises").select("*").order("name").range(start, start + page_size - 1).execute()
+            batch = resp.data or []
+            rows.extend(batch)
+            if len(batch) < page_size:
+                break
+            start += page_size
         return {row["name"]: row for row in rows}
     except Exception as e:
         logger.error("get_exercises error: %s", e)
