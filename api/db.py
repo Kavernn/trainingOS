@@ -327,10 +327,15 @@ def sync_now(verbose: bool = True) -> Dict[str, str]:
 # Exercises  (replaces inventory KV)
 # ---------------------------------------------------------------------------
 
-def get_exercises() -> Dict[str, dict]:
-    """Return {name: {id, type, category, ...}} from the exercises table (source unique)."""
+def get_exercises() -> Dict[str, dict] | None:
+    """Return {name: {id, type, category, ...}} from the exercises table (source unique).
+
+    Returns {} if the table is genuinely empty.
+    Returns None on connection/query error — callers must treat None as "unknown state,
+    do NOT overwrite existing data with defaults".
+    """
     if _client is None or MODE == "OFFLINE":
-        return {}
+        return None
     try:
         rows: list = []
         page_size = 1000
@@ -345,7 +350,7 @@ def get_exercises() -> Dict[str, dict]:
         return {row["name"]: row for row in rows}
     except Exception as e:
         logger.error("get_exercises error: %s", e)
-        return {}
+        return None  # Signal unavailability — do NOT overwrite with defaults
 
 
 def get_exercise_by_name(name: str) -> Optional[dict]:

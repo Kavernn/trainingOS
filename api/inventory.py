@@ -1,19 +1,18 @@
 import db
 
 
-def load_inventory() -> dict:
+def load_inventory() -> dict | None:
     """Returns {name: {type, default_scheme, increment, bar_weight, ...}}
 
     Source unique : table Supabase `exercises`.
-    Le KV "inventory" n'est plus utilisé — il était une béquille de migration.
+    Returns None on connection error — callers must NOT overwrite data based on a None result.
+    Returns {} if the table is genuinely empty.
     """
     try:
         result = db.get_exercises()
-        if isinstance(result, dict):
-            return result
+        return result  # None on error, {} on empty, dict on success
     except Exception:
-        pass
-    return {}
+        return None
 
 
 def save_inventory(inv: dict) -> bool:

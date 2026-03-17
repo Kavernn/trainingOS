@@ -205,7 +205,7 @@ def get_suggested_weights_for_today(weights: dict) -> List[dict]:
     if today_session not in program:
         return []
 
-    inventory = load_inventory()
+    inventory = load_inventory() or {}
     exercises = get_strength_exercises(program[today_session])
     result: List[dict] = []
     for exercise in exercises:

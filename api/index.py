@@ -837,7 +837,7 @@ def api_save_exercise():
     if not name:
         return jsonify({"error": "Nom manquant"}), 400
 
-    inv = load_inventory()
+    inv = load_inventory() or {}
 
     entry = {
         "type":           data.get("type", "machine"),
@@ -1447,7 +1447,8 @@ def api_seance_data():
         for seance, session_def in full_program.items()
     }
 
-    inventory_types = {name: info.get("type", "machine") for name, info in inventory.items()}
+    inv = inventory if isinstance(inventory, dict) else {}
+    inventory_types = {name: info.get("type", "machine") for name, info in inv.items()}
     # Ordered list of exercise names per session (preserves user-defined order)
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
 
@@ -1513,7 +1514,7 @@ def api_stats_data():
     recovery_log = load_recovery_log()
     nutr_settings = load_nutrition_settings()
     nutr_entries  = get_recent_days(7)
-    inventory    = load_inventory()
+    inventory    = load_inventory() or {}
     muscle_stats = _calc_muscle_stats(sessions, weights, inventory)
     return jsonify({
         "weights":          weights,
@@ -1607,22 +1608,24 @@ def api_programme_data():
         seance: get_strength_exercises(session_def)
         for seance, session_def in full_program.items()
     }
-    # Sync: ajoute dans l'inventaire tout exercice du programme qui en est absent
-    # Utilise add_exercise (upsert ciblé) plutôt que save_inventory (upsert full)
-    for exos in flat_program.values():
-        for ex_name, scheme in exos.items():
-            if ex_name not in inventory:
-                entry = {"type": "machine", "increment": 5, "default_scheme": scheme}
-                add_exercise(ex_name, entry)
-                inventory[ex_name] = entry
-    inventory_types   = {name: info.get("type", "machine")         for name, info in inventory.items()} \
-        if isinstance(inventory, dict) else {}
-    inventory_schemes = {name: info.get("default_scheme", "3x8-12") for name, info in inventory.items()} \
-        if isinstance(inventory, dict) else {}
+    # Sync: ajoute dans l'inventaire tout exercice du programme qui en est absent.
+    # IMPORTANT: ne sync que si inventory est un dict valide (pas None = erreur Supabase).
+    # Si inventory est None, on skipe entièrement le sync pour ne pas écraser les données
+    # custom avec des defaults {"type": "machine", "increment": 5}.
+    inv = inventory if isinstance(inventory, dict) else {}
+    if inventory is not None:
+        for exos in flat_program.values():
+            for ex_name, scheme in exos.items():
+                if ex_name not in inv:
+                    entry = {"type": "machine", "increment": 5, "default_scheme": scheme}
+                    add_exercise(ex_name, entry)
+                    inv[ex_name] = entry
+    inventory_types   = {name: info.get("type", "machine")         for name, info in inv.items()}
+    inventory_schemes = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
     return jsonify({
         "full_program":      flat_program,
         "schedule":          schedule,
-        "inventory":         [ex for ex in inventory] if isinstance(inventory, list) else list(inventory.keys()),
+        "inventory":         list(inv.keys()),
         "inventory_types":   inventory_types,
         "inventory_schemes": inventory_schemes,
     })
@@ -1631,7 +1634,7 @@ def api_programme_data():
 @app.route("/api/inventaire_data")
 def api_inventaire_data():
     inventory = load_inventory()
-    return jsonify({"inventory": inventory})
+    return jsonify({"inventory": inventory if inventory is not None else {}})
 
 
 @app.route("/api/historique_data")
