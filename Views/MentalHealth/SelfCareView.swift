@@ -205,6 +205,7 @@ private struct AddHabitSheet: View {
             }
             .navigationTitle("Nouvelle habitude")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }

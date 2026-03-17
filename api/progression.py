@@ -43,7 +43,14 @@ _RPE_INCREASE  = 6.0
 _RPE_DECREASE  = 8.5
 
 
-def _get_increment(exercise: str) -> float:
+def _get_increment(exercise: str, inventory: dict | None = None) -> float:
+    # 1. Inventory (source of truth) — uses exercises.increment from Supabase
+    if inventory:
+        entry = inventory.get(exercise, {})
+        inc = entry.get("increment")
+        if inc is not None:
+            return float(inc)
+    # 2. Hardcoded fallback by name
     if exercise in INCREMENT_RULES:
         return INCREMENT_RULES[exercise]
     return INCREMENT_RULES["type:default"]
@@ -70,6 +77,7 @@ def suggest_next_weight(
     current_weight: float,
     last_reps: str,
     rpe: float | None = None,
+    inventory: dict | None = None,
 ) -> tuple[float, str]:
     """
     Returns (suggested_weight, action) where action ∈ {increase, maintain, decrease}.
@@ -83,7 +91,7 @@ def suggest_next_weight(
       all reps ≥ min target → increase
       otherwise              → maintain
     """
-    inc = _get_increment(exercise)
+    inc = _get_increment(exercise, inventory)
 
     if rpe is not None:
         if rpe <= _RPE_INCREASE:

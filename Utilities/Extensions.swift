@@ -9,22 +9,24 @@ extension View {
                                         to: nil, from: nil, for: nil)
     }
 
-    /// Ajoute un bouton "Fermer ↓" dans la toolbar du clavier + dismiss au tap sur le fond.
-    func keyboardDismissable() -> some View {
-        self
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button {
-                        UIApplication.shared.sendAction(
-                            #selector(UIResponder.resignFirstResponder),
-                            to: nil, from: nil, for: nil)
-                    } label: {
-                        Label("Fermer", systemImage: "keyboard.chevron.compact.down")
-                            .font(.system(size: 15, weight: .medium))
-                    }
+    /// Ajoute un bouton "Ok" dans la toolbar du clavier.
+    /// - Tap Ok avec saisie  → ferme le clavier (conserve la valeur dans le champ)
+    /// - Tap Ok sans saisie  → appelle `onEmpty` si fourni (ex: dismiss()), puis ferme le clavier
+    func keyboardOkButton(isEmpty: Bool = false, onEmpty: (() -> Void)? = nil) -> some View {
+        self.toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button {
+                    if isEmpty, let onEmpty { onEmpty() }
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil, from: nil, for: nil)
+                } label: {
+                    Text("Ok")
+                        .font(.system(size: 15, weight: .semibold))
                 }
             }
+        }
     }
 }
 

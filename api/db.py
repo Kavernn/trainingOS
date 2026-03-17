@@ -1350,3 +1350,215 @@ def set_deload_state(
         existing.update(payload)
         set_json("deload_state", existing)
         return True
+
+
+# ---------------------------------------------------------------------------
+# Program relational tables
+# (program_sessions, program_blocks, program_block_exercises, weekly_schedule)
+# ---------------------------------------------------------------------------
+
+def get_full_program() -> dict:
+    """Return {session_name: {"blocks": [{"type", "order", "exercises": {name: scheme}}]}}.
+
+    Compatible with the block format used by planner.py / blocks.py.
+    Returns {} if relational layer is unavailable or tables are empty.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return {}
+    try:
+        # Load all sessions
+        sessions_resp = _client.table("program_sessions").select("id, name, order_index").order("order_index").execute()
+        sessions = sessions_resp.data or []
+        if not sessions:
+            return {}
+
+        program: dict = {}
+        for session in sessions:
+            sid = session["id"]
+            sname = session["name"]
+
+            # Load blocks for this session
+            blocks_resp = (
+                _client.table("program_blocks")
+                .select("id, type, order_index, hiit_config")
+                .eq("session_id", sid)
+                .order("order_index")
+                .execute()
+            )
+            blocks_data = blocks_resp.data or []
+
+            built_blocks = []
+            for block in blocks_data:
+                bid = block["id"]
+                btype = block.get("type", "strength")
+                border = block.get("order_index", 0)
+
+                if btype == "strength":
+                    # Load exercises for this block
+                    ex_resp = (
+                        _client.table("program_block_exercises")
+                        .select("scheme, order_index, exercises(name)")
+                        .eq("block_id", bid)
+                        .order("order_index")
+                        .execute()
+                    )
+                    ex_rows = ex_resp.data or []
+                    exercises: dict = {}
+                    for row in ex_rows:
+                        ex_name = (row.get("exercises") or {}).get("name")
+                        if ex_name:
+                            exercises[ex_name] = row.get("scheme", "3x8-12")
+                    built_blocks.append({"type": "strength", "order": border, "exercises": exercises})
+                else:
+                    cfg = block.get("hiit_config") or {}
+                    built_blocks.append({"type": btype, "order": border, "hiit_config": cfg})
+
+            program[sname] = {"blocks": built_blocks}
+
+        return program
+    except Exception as e:
+        logger.error("get_full_program error: %s", e)
+        return {}
+
+
+def save_full_program(program: dict) -> bool:
+    """Persist {session_name: {"blocks": [...]}} to relational tables.
+
+    For each session: upsert program_sessions, upsert program_blocks,
+    delete + reinsert program_block_exercises.
+    Returns True on full success, False on any error.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        for order_idx, (session_name, session_def) in enumerate(program.items()):
+            # Upsert session
+            sess_resp = (
+                _client.table("program_sessions")
+                .upsert({"name": session_name, "order_index": order_idx}, on_conflict="name")
+                .execute()
+            )
+            # Fetch session id
+            sess_row = (
+                _client.table("program_sessions")
+                .select("id")
+                .eq("name", session_name)
+                .single()
+                .execute()
+            )
+            if not sess_row.data:
+                logger.error("save_full_program: session %s not found after upsert", session_name)
+                continue
+            session_id = sess_row.data["id"]
+
+            blocks = session_def.get("blocks", [])
+            for block in sorted(blocks, key=lambda b: b.get("order", 0)):
+                btype = block.get("type", "strength")
+                border = block.get("order", 0)
+                hiit_cfg = block.get("hiit_config", {})
+
+                # Upsert block (match by session_id + type + order_index)
+                existing_block = (
+                    _client.table("program_blocks")
+                    .select("id")
+                    .eq("session_id", session_id)
+                    .eq("type", btype)
+                    .eq("order_index", border)
+                    .execute()
+                )
+                if existing_block.data:
+                    block_id = existing_block.data[0]["id"]
+                    _client.table("program_blocks").update({"hiit_config": hiit_cfg}).eq("id", block_id).execute()
+                else:
+                    block_resp = (
+                        _client.table("program_blocks")
+                        .insert({"session_id": session_id, "type": btype, "order_index": border, "hiit_config": hiit_cfg})
+                        .execute()
+                    )
+                    block_id = block_resp.data[0]["id"] if block_resp.data else None
+
+                if not block_id or btype != "strength":
+                    continue
+
+                exercises = block.get("exercises", {})
+
+                # Clear existing exercises for this block then reinsert
+                _client.table("program_block_exercises").delete().eq("block_id", block_id).execute()
+
+                for ex_order, (ex_name, scheme) in enumerate(exercises.items()):
+                    ex_id_resp = (
+                        _client.table("exercises")
+                        .select("id")
+                        .eq("name", ex_name)
+                        .execute()
+                    )
+                    if not ex_id_resp.data:
+                        logger.warning("save_full_program: exercise '%s' not in inventory, skipping", ex_name)
+                        continue
+                    ex_id = ex_id_resp.data[0]["id"]
+                    _client.table("program_block_exercises").insert({
+                        "block_id": block_id,
+                        "exercise_id": ex_id,
+                        "scheme": scheme,
+                        "order_index": ex_order,
+                    }).execute()
+
+        return True
+    except Exception as e:
+        logger.error("save_full_program error: %s", e)
+        return False
+
+
+def get_relational_week_schedule() -> dict:
+    """Return {"Lun": "Push A", "Mar": "Pull A", ...} from weekly_schedule JOIN program_sessions.
+
+    Days with no session assigned are omitted.
+    Returns {} if relational layer is unavailable.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return {}
+    try:
+        resp = (
+            _client.table("weekly_schedule")
+            .select("day_name, program_sessions(name)")
+            .execute()
+        )
+        result: dict = {}
+        for row in (resp.data or []):
+            session = row.get("program_sessions")
+            if session and session.get("name"):
+                result[row["day_name"]] = session["name"]
+        return result
+    except Exception as e:
+        logger.error("get_relational_week_schedule error: %s", e)
+        return {}
+
+
+def set_relational_week_schedule(schedule: dict) -> bool:
+    """Upsert weekly_schedule. schedule = {"Lun": "Push A", "Mar": None, ...}.
+
+    None / missing session_name clears the day (session_id = NULL).
+    Returns True on success.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        for day_name, session_name in schedule.items():
+            session_id = None
+            if session_name:
+                sess_resp = (
+                    _client.table("program_sessions")
+                    .select("id")
+                    .eq("name", session_name)
+                    .execute()
+                )
+                if sess_resp.data:
+                    session_id = sess_resp.data[0]["id"]
+            _client.table("weekly_schedule").upsert(
+                {"day_name": day_name, "session_id": session_id},
+                on_conflict="day_name",
+            ).execute()
+        return True
+    except Exception as e:
+        logger.error("set_relational_week_schedule error: %s", e)
+        return False

@@ -363,6 +363,7 @@ struct PSSQuestionnaireSheet: View {
             }
             .navigationTitle(currentPage == 0 ? (isShort ? "PSS-4 rapide" : "PSS-10 complet") : "Résultats")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Fermer") { dismiss() }

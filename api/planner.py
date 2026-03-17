@@ -101,11 +101,14 @@ def _migrate_session(data) -> dict:
 # ---------------------------------------------------------------------------
 
 def load_program() -> dict:
-    """Load the program from KV, auto-migrating legacy sessions and seeding missing ones."""
-    raw = get_json("program", {})
-    program = {name: _migrate_session(session) for name, session in raw.items()}
+    """Load the program from relational tables (source of truth).
 
-    # Seed any new sessions that don't exist yet in KV
+    Seeds any missing sessions from DEFAULT_PROGRAM and persists them if needed.
+    """
+    import db as _db
+    program = _db.get_full_program()
+
+    # Seed missing sessions
     changed = False
     for name, session_def in DEFAULT_PROGRAM.items():
         if name not in program:
@@ -118,7 +121,9 @@ def load_program() -> dict:
 
 
 def save_program(program: dict):
-    set_json("program", program)
+    """Persist program to relational tables (source of truth)."""
+    import db as _db
+    _db.save_full_program(program)
 
 
 # ---------------------------------------------------------------------------
@@ -168,6 +173,11 @@ def get_today_date() -> str:
 
 
 def get_week_schedule() -> Dict[str, str]:
+    import db as _db
+    schedule = _db.get_relational_week_schedule()
+    if schedule:
+        return schedule
+    # Fallback to hardcoded schedule
     days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
     return {days[i]: SCHEDULE[i] for i in range(7)}
 
@@ -177,18 +187,29 @@ def get_week_schedule() -> Dict[str, str]:
 # ---------------------------------------------------------------------------
 
 def get_suggested_weights_for_today(weights: dict) -> List[dict]:
+    from inventory import load_inventory
     today_session = get_today()
     program = load_program()
     if today_session not in program:
         return []
 
+    inventory = load_inventory()
     exercises = get_strength_exercises(program[today_session])
     result: List[dict] = []
     for exercise in exercises:
-        data       = weights.get(exercise, {})
-        current    = data.get("current_weight", data.get("weight", 0.0))
-        last_reps  = data.get("last_reps", "")
-        input_type = data.get("input_type", "total")
+        data      = weights.get(exercise, {})
+        current   = data.get("current_weight", data.get("weight", 0.0))
+        last_reps = data.get("last_reps", "")
+
+        # Derive input_type from inventory (source of truth) with KV fallback
+        inv_entry  = inventory.get(exercise, {})
+        inv_type   = inv_entry.get("type", "")
+        if inv_type == "barbell":
+            input_type = "barbell"
+        elif inv_type == "dumbbell":
+            input_type = "dumbbell"
+        else:
+            input_type = data.get("input_type", "total")
 
         # Use last logged RPE from history for autoregulation
         last_history = data.get("history", [])
@@ -201,9 +222,10 @@ def get_suggested_weights_for_today(weights: dict) -> List[dict]:
                 except (TypeError, ValueError):
                     pass
 
-        suggested, _ = suggest_next_weight(exercise, current, last_reps, last_rpe)
+        suggested, _ = suggest_next_weight(exercise, current, last_reps, last_rpe, inventory=inventory)
         if input_type == "barbell":
-            side    = (suggested - 45) / 2 if suggested >= 45 else 0
+            bar    = inv_entry.get("bar_weight") or 45.0
+            side   = (suggested - bar) / 2 if suggested >= bar else 0
             display = f"{side:.1f} par cote (total {suggested:.1f} lbs)"
         elif input_type == "dumbbell":
             display = f"{suggested/2:.1f} par haltere"
