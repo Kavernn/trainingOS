@@ -95,6 +95,52 @@ CacheService.shared.clear(for: "dashboard")
 
 ---
 
+## Backend — DELETE ALL + reinsert = opération dangereuse sans guard
+
+`save_full_program` fait DELETE ALL + reinsert sur `program_block_exercises`. Si `exercises = {}` est passé (block vide, reorder incomplet, ou race condition), **tous les exercices du programme sont silencieusement supprimés**.
+
+**Règle :** Avant tout DELETE ALL suivi de reinsert, vérifier que la liste à réinsérer est ≥ à ce qui existe déjà en DB quand une réduction à 0 n'est pas intentionnelle.
+
+```python
+# Guard dans save_full_program
+if not exercises:
+    existing_count = _client.table("program_block_exercises")
+        .select("id", count="exact").eq("block_id", block_id).execute().count or 0
+    if existing_count > 0:
+        logger.warning("refusing to save 0 exercises over %d existing", existing_count)
+        continue
+```
+
+---
+
+## Backend — Reorder action doit toujours appender les exercices manquants
+
+Si iOS envoie un ordre partiel (`ordre = ["ex1", "ex2"]`) mais la DB en a 5, l'ancien code sauvegardait seulement 2 → 3 exercices définitivement perdus.
+
+**Règle :** L'action `reorder` doit toujours appender les exercices absents de `ordre` :
+```python
+reordered = {ex: exercises[ex] for ex in ordre if ex in exercises}
+for ex, scheme in exercises.items():
+    if ex not in reordered:
+        reordered[ex] = scheme  # jamais supprimer
+exercises = reordered
+```
+**Côté iOS :** guard `order.count >= localProgram.count` avant d'envoyer le reorder.
+
+---
+
+## iOS — isLoading=true détruit les @State de WorkoutSeanceView
+
+`isLoading = true` dans `SeanceViewModel.load()` fait disparaître `WorkoutSeanceView` de la hiérarchie → tous ses `@State` (dont `exerciseOrder`) sont réinitialisés à `[]` → ordre repart alphabétique.
+
+**Règle :** Ne passer `isLoading = true` que si `seanceData == nil`. Si des données en cache existent déjà, rafraîchir silencieusement en arrière-plan sans spinner (évite la destruction de la vue et le reset des @State).
+
+```swift
+if seanceData == nil { isLoading = true }
+```
+
+---
+
 ## Tests — Régression sur les bugs de sync
 
 Après chaque correction de bug CRUD programme/inventaire, ajouter un test de régression dans `tests/test_programme_inventory_sync.py`. Les bugs fuzzy-match et value-type Swift reviennent facilement.
