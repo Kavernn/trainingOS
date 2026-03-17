@@ -50,6 +50,7 @@ struct ProgrammeView: View {
             }
             .navigationTitle("Programme")
             .navigationBarTitleDisplayMode(.large)
+            .keyboardOkButton()
             .sheet(item: $addTarget) { sn in
                 AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes) { ex, scheme in
                     Task { await addExercise(seance: sn.id, exercise: ex, scheme: scheme) }
@@ -374,6 +375,7 @@ struct AddExerciseSheet: View {
             }
             .navigationTitle("Ajouter à \(seance)")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }.foregroundColor(.gray)
@@ -464,6 +466,7 @@ struct EditSchemeSheet: View {
             }
             .navigationTitle("Modifier l'exercice")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }.foregroundColor(.gray)

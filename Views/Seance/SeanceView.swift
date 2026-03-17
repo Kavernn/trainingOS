@@ -21,6 +21,7 @@ struct SeanceView: View {
             }
             .navigationTitle("Séance")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
         }
         .task { await vm.load() }
     }

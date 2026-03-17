@@ -345,6 +345,7 @@ struct BodyWeightSheet: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)

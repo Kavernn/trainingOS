@@ -163,6 +163,7 @@ struct AddGoalSheet: View {
             }
             .navigationTitle("Nouvel objectif")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)

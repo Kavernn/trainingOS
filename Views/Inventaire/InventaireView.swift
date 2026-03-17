@@ -488,6 +488,7 @@ struct InventoryFormSheet: View {
             }
             .navigationTitle(isEditing ? "Modifier" : "Nouvel exercice")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }.foregroundColor(.gray)

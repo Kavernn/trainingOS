@@ -955,6 +955,7 @@ struct ExerciseDetailView: View {
                 }
             }
             .navigationTitle(name).navigationBarTitleDisplayMode(.large)
+            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fermer") { dismiss() }.foregroundColor(.orange)

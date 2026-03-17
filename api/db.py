@@ -1493,9 +1493,20 @@ def save_full_program(program: dict) -> bool:
                         .execute()
                     )
                     if not ex_id_resp.data:
-                        logger.warning("save_full_program: exercise '%s' not in inventory, skipping", ex_name)
-                        continue
-                    ex_id = ex_id_resp.data[0]["id"]
+                        # Auto-create exercise in inventory with defaults so nothing is lost
+                        ins = _client.table("exercises").insert({
+                            "name": ex_name,
+                            "type": "machine",
+                            "category": "strength",
+                            "increment": 5.0,
+                            "default_scheme": scheme,
+                        }).execute()
+                        if not ins.data:
+                            logger.warning("save_full_program: could not create exercise '%s', skipping", ex_name)
+                            continue
+                        ex_id = ins.data[0]["id"]
+                    else:
+                        ex_id = ex_id_resp.data[0]["id"]
                     _client.table("program_block_exercises").insert({
                         "block_id": block_id,
                         "exercise_id": ex_id,

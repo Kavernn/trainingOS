@@ -442,6 +442,7 @@ struct EditProfileSheet: View {
             }
             .navigationTitle("Modifier profil")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }
