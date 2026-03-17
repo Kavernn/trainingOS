@@ -854,15 +854,18 @@ def api_save_exercise():
         # Rename: targeted rename in exercises table + update programme
         rename_inventory_exercise(original_name, name, entry)
         add_exercise(name, entry)
-        program = load_program()
-        changed = False
-        for sdef in program.values():
-            sb = get_block(sdef.get("blocks", []), "strength")
-            if sb and original_name in sb.get("exercises", {}):
-                sb["exercises"][name] = sb["exercises"].pop(original_name)
-                changed = True
-        if changed:
-            save_program(program)
+        import db as _db
+        program = _db.get_full_program()
+        if program is not None:
+            modified = {}
+            for sname, sdef in program.items():
+                sb = get_block(sdef.get("blocks", []), "strength")
+                if sb and original_name in sb.get("exercises", {}):
+                    sb["exercises"][name] = sb["exercises"].pop(original_name)
+                    modified[sname] = sdef
+            if modified:
+                save_program(modified)
+        # If Supabase unavailable, skip programme rename — inventory already renamed above
     else:
         add_exercise(name, entry)
 
@@ -932,7 +935,9 @@ def api_programme():
 
     # ── Rename: must read all sessions to rename across all ──────────────────
     if action == "rename":
-        program = load_program()
+        program = _db.get_full_program()
+        if program is None:
+            return jsonify({"error": "Supabase indisponible"}), 503
         old_ex = data.get("old_exercise")
         new_ex = data.get("new_exercise")
         modified = {}

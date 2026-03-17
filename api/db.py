@@ -1527,8 +1527,8 @@ def save_full_program(program: dict) -> bool:
                         .eq("block_id", block_id)
                         .execute()
                     )
-                    existing_count = existing_count_resp.count or 0
-                    if existing_count > 0:
+                    existing_count = existing_count_resp.count  # None on query error
+                    if existing_count is None or existing_count > 0:
                         logger.warning(
                             "save_full_program: refusing to save 0 exercises over %d existing for block %s — skipping",
                             existing_count, block_id,
