@@ -1706,13 +1706,17 @@ struct AddHIITSheet: View {
     
     // MARK: - Rest Timer Sheet
     struct RestTimerSheet: View {
-        @Environment(\.dismiss) private var dismiss
+        @Environment(\.dismiss)    private var dismiss
+        @Environment(\.scenePhase) private var scenePhase
         @State private var totalSeconds = 120
-        @State private var remaining = 120
-        @State private var isRunning = false
-        @State private var timerTask: Task<Void, Never>?
-        @State private var beepPlayer: AVAudioPlayer?
-        
+        @State private var remaining    = 120
+        @State private var isRunning    = false
+        @State private var timerTask:   Task<Void, Never>?
+        @State private var beepPlayer:  AVAudioPlayer?
+
+        private static let endDateKey = "restTimerEndDate"
+        private static let totalKey   = "restTimerTotal"
+
         private var progress: Double {
             totalSeconds > 0 ? Double(remaining) / Double(totalSeconds) : 0
         }
@@ -1721,7 +1725,7 @@ struct AddHIITSheet: View {
             if progress > 0.25 { return .yellow }
             return .red
         }
-        
+
         var body: some View {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
@@ -1731,7 +1735,7 @@ struct AddHIITSheet: View {
                         .tracking(4)
                         .foregroundColor(.gray)
                         .padding(.top, 8)
-                    
+
                     // Ring
                     ZStack {
                         Circle()
@@ -1749,23 +1753,24 @@ struct AddHIITSheet: View {
                             .monospacedDigit()
                             .contentTransition(.numericText())
                     }
-                    
+
                     // Adjust buttons
                     HStack(spacing: 16) {
                         adjustButton(label: "−10s") {
                             let newVal = max(10, remaining - 10)
                             remaining = newVal
-                            if !isRunning { totalSeconds = newVal }
+                            if isRunning { rescheduleNotification(seconds: newVal) }
+                            else { totalSeconds = newVal }
                         }
                         adjustButton(label: "+10s") {
                             remaining += 10
-                            if !isRunning { totalSeconds = remaining }
+                            if isRunning { rescheduleNotification(seconds: remaining) }
+                            else { totalSeconds = remaining }
                         }
                     }
-                    
+
                     // Play/Pause + Reset
                     HStack(spacing: 20) {
-                        // Reset
                         Button {
                             stopTimer()
                             remaining = totalSeconds
@@ -1777,8 +1782,7 @@ struct AddHIITSheet: View {
                                 .background(Color.white.opacity(0.08))
                                 .clipShape(Circle())
                         }
-                        
-                        // Play / Pause
+
                         Button {
                             if isRunning { stopTimer() } else { startTimer() }
                         } label: {
@@ -1789,12 +1793,9 @@ struct AddHIITSheet: View {
                                 .background(timerColor)
                                 .clipShape(Circle())
                         }
-                        
-                        // Fermer
-                        Button {
-                            stopTimer()
-                            dismiss()
-                        } label: {
+
+                        // Fermer sans arrêter le timer
+                        Button { dismiss() } label: {
                             Image(systemName: "xmark")
                                 .font(.system(size: 18, weight: .semibold))
                                 .foregroundColor(.white.opacity(0.7))
@@ -1806,21 +1807,92 @@ struct AddHIITSheet: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .onDisappear { stopTimer() }
+            .onAppear { restoreIfNeeded() }
+            .onChange(of: scenePhase) { phase in
+                if phase == .active { syncFromEndDate() }
+            }
+            // Ne pas arrêter le timer à la fermeture du sheet
         }
-        
+
+        // MARK: – Timer control
+
         private func startTimer() {
             guard remaining > 0 else { return }
             isRunning = true
+            let endDate = Date().addingTimeInterval(TimeInterval(remaining))
+            UserDefaults.standard.set(endDate,      forKey: Self.endDateKey)
+            UserDefaults.standard.set(totalSeconds, forKey: Self.totalKey)
+            scheduleNotification(seconds: remaining)
             timerTask = Task { await runLoop() }
         }
-        
+
         private func stopTimer() {
             isRunning = false
             timerTask?.cancel()
             timerTask = nil
+            UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+            UserDefaults.standard.removeObject(forKey: Self.totalKey)
+            cancelNotification()
         }
-        
+
+        /// Recalcule le remaining depuis la endDate persistée (retour premier plan).
+        private func syncFromEndDate() {
+            guard isRunning,
+                  let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date else { return }
+            let left = Int(end.timeIntervalSinceNow.rounded())
+            if left <= 0 {
+                remaining  = 0
+                isRunning  = false
+                timerTask?.cancel()
+                timerTask  = nil
+                UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+                playBeep(hz: 1200)
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            } else {
+                remaining = left
+            }
+        }
+
+        /// Restaure un timer en cours si l'app a été quittée avec le timer actif.
+        private func restoreIfNeeded() {
+            guard let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date else { return }
+            let left = Int(end.timeIntervalSinceNow.rounded())
+            guard left > 0 else {
+                UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+                return
+            }
+            totalSeconds = UserDefaults.standard.integer(forKey: Self.totalKey)
+            if totalSeconds == 0 { totalSeconds = left }
+            remaining = left
+            isRunning = true
+            timerTask = Task { await runLoop() }
+        }
+
+        // MARK: – Notifications
+
+        private func scheduleNotification(seconds: Int) {
+            cancelNotification()
+            let content = UNMutableNotificationContent()
+            content.title = "Repos terminé ✅"
+            content.body  = "C'est reparti !"
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
+            let request = UNNotificationRequest(identifier: "restTimer", content: content, trigger: trigger)
+            UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
+        }
+
+        private func rescheduleNotification(seconds: Int) {
+            let endDate = Date().addingTimeInterval(TimeInterval(seconds))
+            UserDefaults.standard.set(endDate, forKey: Self.endDateKey)
+            scheduleNotification(seconds: seconds)
+        }
+
+        private func cancelNotification() {
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["restTimer"])
+        }
+
+        // MARK: – Helpers
+
         private func adjustButton(label: String, action: @escaping () -> Void) -> some View {
             Button(action: action) {
                 Text(label)
@@ -1831,11 +1903,11 @@ struct AddHIITSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             }
         }
-        
+
         private func formatTime(_ s: Int) -> String {
             "\(s / 60):\(String(format: "%02d", s % 60))"
         }
-        
+
         @MainActor
         private func runLoop() async {
             while !Task.isCancelled {
@@ -1848,13 +1920,14 @@ struct AddHIITSheet: View {
                         UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                     } else if remaining == 0 {
                         isRunning = false
+                        UserDefaults.standard.removeObject(forKey: Self.endDateKey)
                         playBeep(hz: 1200)
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                     }
                 }
             }
         }
-        
+
         private func playBeep(hz: Double) {
             beepPlayer = makeBeep(hz: hz, duration: hz > 1000 ? 0.35 : 0.12)
             beepPlayer?.play()
