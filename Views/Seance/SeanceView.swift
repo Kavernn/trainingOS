@@ -744,7 +744,7 @@ struct WorkoutSeanceView: View {
             if !types.isEmpty { self.inventoryTypes = types }
             if let fresh = fromNetwork {
                 self.localProgram  = fresh
-                self.exerciseOrder = orderNet ?? fresh.keys.sorted()
+                self.exerciseOrder = orderNet ?? self.exerciseOrder
             }
         }
     }
@@ -759,6 +759,7 @@ struct WorkoutSeanceView: View {
         }
         
         private func saveOrder(_ order: [String]) async {
+            guard order.count >= localProgram.count else { return }
             await postProgramme(["action": "reorder", "jour": data.today, "ordre": order])
         }
 
@@ -1903,7 +1904,8 @@ struct AddHIITSheet: View {
                 restoreLogResults(from: decoded)
             }
 
-            isLoading = true; error = nil
+            if seanceData == nil { isLoading = true }
+            error = nil
             do {
                 let fresh = try await APIService.shared.fetchSeanceData()
                 seanceData = fresh

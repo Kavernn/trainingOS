@@ -1635,12 +1635,14 @@ def api_programme_data():
                     inv[ex_name] = entry
     inventory_types   = {name: info.get("type", "machine")         for name, info in inv.items()}
     inventory_schemes = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
+    exercise_order    = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     return jsonify({
         "full_program":      flat_program,
         "schedule":          schedule,
         "inventory":         list(inv.keys()),
         "inventory_types":   inventory_types,
         "inventory_schemes": inventory_schemes,
+        "exercise_order":    exercise_order,
     })
 
 
