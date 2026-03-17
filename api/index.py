@@ -921,46 +921,80 @@ def api_delete_exercise_log():
 
 @app.route("/api/programme", methods=["POST"])
 def api_programme():
+    import db as _db
     data    = request.json
     action  = data.get("action")
     jour    = data.get("jour")
-    program = load_program()
 
-    if jour not in program:
+    # ── Rename: must read all sessions to rename across all ──────────────────
+    if action == "rename":
+        program = load_program()
+        old_ex = data.get("old_exercise")
+        new_ex = data.get("new_exercise")
+        modified = {}
+        for sname, sdef in program.items():
+            sb = get_block(sdef.get("blocks", []), "strength")
+            if sb and old_ex in sb.get("exercises", {}):
+                sb["exercises"][new_ex] = sb["exercises"].pop(old_ex)
+                modified[sname] = sdef
+        if modified:
+            save_program(modified)
+        inv = load_inventory() or {}
+        if new_ex in inv:
+            if old_ex in inv:
+                from db import delete_exercise_by_name
+                delete_exercise_by_name(old_ex)
+        else:
+            info = inv.get(old_ex)
+            if info is None:
+                scheme = "3x8-12"
+                for sdef in program.values():
+                    sb = get_block(sdef.get("blocks", []), "strength")
+                    if sb and new_ex in sb.get("exercises", {}):
+                        scheme = sb["exercises"][new_ex]
+                        break
+                info = {"type": "machine", "increment": 5, "default_scheme": scheme}
+            rename_inventory_exercise(old_ex, new_ex, info)
+        return jsonify({"success": True})
+
+    # ── All other actions: read + modify + save ONLY the target session ──────
+    if jour is None:
+        return jsonify({"error": "jour manquant"}), 400
+
+    # Read only the target session from Supabase
+    session_data = _db.get_full_program()
+    if session_data is None:
+        return jsonify({"error": "Impossible de lire le programme (Supabase indisponible)"}), 503
+    if jour not in session_data:
         return jsonify({"error": "Jour invalide"}), 400
 
-    session_def = program[jour]
+    session_def = session_data[jour]
     blks        = session_def.get("blocks", [])
 
-    # ── Exercise-level actions (operate on the strength block) ──────────────
+    # ── Exercise-level actions ────────────────────────────────────────────────
     if action in ("add", "remove", "scheme", "replace", "reorder"):
-        strength = get_block(blks, "strength") or make_strength_block({}, order=0)
+        strength  = get_block(blks, "strength") or make_strength_block({}, order=0)
         exercises = strength.get("exercises", {})
 
         if action == "add":
             exercise = data.get("exercise")
             if exercise in exercises:
                 return jsonify({"error": "Déjà dans le programme"}), 400
-            # Load inventory first so we can inherit default_scheme if not provided
-            inv    = load_inventory()
+            inv    = load_inventory() or {}
             scheme = data.get("scheme") or inv.get(exercise, {}).get("default_scheme", "3x8-12")
             exercises[exercise] = scheme
-            # Seed a minimal inventory entry so equipment-type lookups work
             if exercise not in inv:
                 add_exercise(exercise, {"default_scheme": scheme, "type": "machine", "increment": 5})
 
         elif action == "remove":
-            ex_to_remove = data.get("exercise", "")
-            exercises.pop(ex_to_remove, None)
-            # Ne pas supprimer de l'inventaire — le catalogue est indépendant du programme
+            exercises.pop(data.get("exercise", ""), None)
 
         elif action == "scheme":
             exercise   = data.get("exercise")
             new_scheme = data.get("scheme")
             if exercise in exercises:
                 exercises[exercise] = new_scheme
-                # Also update default_scheme in inventory (exact match only)
-                inv = load_inventory()
+                inv = load_inventory() or {}
                 if exercise in inv and isinstance(inv[exercise], dict):
                     entry = dict(inv[exercise])
                     entry["default_scheme"] = new_scheme
@@ -972,8 +1006,7 @@ def api_programme():
             scheme = data.get("scheme", "3x8-12")
             exercises.pop(old_ex, None)
             exercises[new_ex] = scheme
-            # Sync inventory: create entry if absent, always update scheme
-            inv = load_inventory()
+            inv = load_inventory() or {}
             if new_ex not in inv:
                 entry = {**inv.get(old_ex, {}), "default_scheme": scheme}
                 entry.setdefault("type", "machine")
@@ -990,38 +1023,10 @@ def api_programme():
 
         strength["exercises"] = exercises
         session_def["blocks"] = upsert_block(blks, strength)
-        program[jour] = session_def
 
-    elif action == "rename":
-        # Rename across ALL sessions + inventory (exact match only)
-        old_ex = data.get("old_exercise")
-        new_ex = data.get("new_exercise")
-        for sdef in program.values():
-            sb = get_block(sdef.get("blocks", []), "strength")
-            if sb and old_ex in sb.get("exercises", {}):
-                sb["exercises"][new_ex] = sb["exercises"].pop(old_ex)
-        inv = load_inventory()
-        if new_ex in inv:
-            # new_ex already in inventory — just delete old_ex if present
-            if old_ex in inv:
-                from db import delete_exercise_by_name
-                delete_exercise_by_name(old_ex)
-        else:
-            info = inv.get(old_ex)
-            if info is None:
-                # Exercise wasn't in inventory — seed minimal entry using programme scheme
-                scheme = "3x8-12"
-                for sdef in program.values():
-                    sb = get_block(sdef.get("blocks", []), "strength")
-                    if sb and new_ex in sb.get("exercises", {}):
-                        scheme = sb["exercises"][new_ex]
-                        break
-                info = {"type": "machine", "increment": 5, "default_scheme": scheme}
-            rename_inventory_exercise(old_ex, new_ex, info)
-
-    # ── Block-level actions ──────────────────────────────────────────────────
+    # ── Block-level actions ───────────────────────────────────────────────────
     elif action == "add_block":
-        block_type    = data.get("block_type")
+        block_type = data.get("block_type")
         if block_type == "strength":
             new_block = make_strength_block(data.get("exercises", {}), order=len(blks))
         elif block_type == "hiit":
@@ -1031,17 +1036,15 @@ def api_programme():
         else:
             return jsonify({"error": "block_type invalide"}), 400
         session_def["blocks"] = upsert_block(blks, new_block)
-        program[jour] = session_def
 
     elif action == "remove_block":
         session_def["blocks"] = remove_block(blks, data.get("block_type", ""))
-        program[jour] = session_def
 
     elif action == "reorder_blocks":
         session_def["blocks"] = reorder_blocks(blks, data.get("order", []))
-        program[jour] = session_def
 
-    save_program(program)
+    # Save only the modified session — never touch other sessions
+    save_program({jour: session_def})
     return jsonify({"success": True})
 
 

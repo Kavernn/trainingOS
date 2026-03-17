@@ -106,28 +106,17 @@ def _migrate_session(data) -> dict:
 def load_program() -> dict:
     """Load the program from relational tables (source of truth).
 
-    Seeds any missing sessions from DEFAULT_PROGRAM only when the relational
-    tables are genuinely empty (get_full_program returns {}).
-    If get_full_program returns None (connection error / unavailable), we return
-    DEFAULT_PROGRAM as a read-only fallback WITHOUT saving — this prevents
-    a transient Supabase failure from overwriting the user's custom program.
+    Returns the program as-is from Supabase.
+    On connection error (None), returns DEFAULT_PROGRAM as a read-only fallback
+    WITHOUT saving — never overwrites user data due to a transient error.
+    Does NOT auto-seed or auto-save — the seeding was one-time migration logic.
     """
     import db as _db
     program = _db.get_full_program()
 
     if program is None:
-        # Connection error — return defaults in memory only, do NOT persist
-        logger.warning("load_program: get_full_program returned None (unavailable), using DEFAULT_PROGRAM as read-only fallback")
+        logger.warning("load_program: Supabase unavailable, returning DEFAULT_PROGRAM as read-only fallback")
         return dict(DEFAULT_PROGRAM)
-
-    # program is {} (genuinely empty) or partially populated — seed missing sessions
-    changed = False
-    for name, session_def in DEFAULT_PROGRAM.items():
-        if name not in program:
-            program[name] = session_def
-            changed = True
-    if changed:
-        save_program(program)
 
     return program
 
