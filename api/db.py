@@ -1357,20 +1357,22 @@ def set_deload_state(
 # (program_sessions, program_blocks, program_block_exercises, weekly_schedule)
 # ---------------------------------------------------------------------------
 
-def get_full_program() -> dict:
+def get_full_program() -> dict | None:
     """Return {session_name: {"blocks": [{"type", "order", "exercises": {name: scheme}}]}}.
 
     Compatible with the block format used by planner.py / blocks.py.
-    Returns {} if relational layer is unavailable or tables are empty.
+    Returns {} if relational tables are genuinely empty (no sessions).
+    Returns None if the relational layer is unavailable or a network/query error occurs —
+    callers must treat None as "unknown state, do NOT overwrite existing data".
     """
     if _client is None or MODE == "OFFLINE":
-        return {}
+        return None
     try:
         # Load all sessions
         sessions_resp = _client.table("program_sessions").select("id, name, order_index").order("order_index").execute()
         sessions = sessions_resp.data or []
         if not sessions:
-            return {}
+            return {}  # Genuinely empty — safe to seed defaults
 
         program: dict = {}
         for session in sessions:
@@ -1418,7 +1420,7 @@ def get_full_program() -> dict:
         return program
     except Exception as e:
         logger.error("get_full_program error: %s", e)
-        return {}
+        return None  # Signal unavailability — do NOT seed defaults
 
 
 def save_full_program(program: dict) -> bool:

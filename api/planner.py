@@ -1,9 +1,12 @@
 from __future__ import annotations
+import logging
 from db import get_json, set_json
 from datetime import datetime
 from typing import Dict, List
 from blocks import make_strength_block, get_strength_exercises, sorted_blocks
 from progression import suggest_next_weight
+
+logger = logging.getLogger("trainingos.planner")
 
 
 # ---------------------------------------------------------------------------
@@ -103,12 +106,21 @@ def _migrate_session(data) -> dict:
 def load_program() -> dict:
     """Load the program from relational tables (source of truth).
 
-    Seeds any missing sessions from DEFAULT_PROGRAM and persists them if needed.
+    Seeds any missing sessions from DEFAULT_PROGRAM only when the relational
+    tables are genuinely empty (get_full_program returns {}).
+    If get_full_program returns None (connection error / unavailable), we return
+    DEFAULT_PROGRAM as a read-only fallback WITHOUT saving — this prevents
+    a transient Supabase failure from overwriting the user's custom program.
     """
     import db as _db
     program = _db.get_full_program()
 
-    # Seed missing sessions
+    if program is None:
+        # Connection error — return defaults in memory only, do NOT persist
+        logger.warning("load_program: get_full_program returned None (unavailable), using DEFAULT_PROGRAM as read-only fallback")
+        return dict(DEFAULT_PROGRAM)
+
+    # program is {} (genuinely empty) or partially populated — seed missing sessions
     changed = False
     for name, session_def in DEFAULT_PROGRAM.items():
         if name not in program:
