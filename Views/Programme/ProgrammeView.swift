@@ -111,7 +111,9 @@ struct ProgrammeView: View {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         _ = try? await URLSession.shared.data(for: req)
+        // Invalide les deux caches pour que la séance recharge dans le bon ordre
         CacheService.shared.clear(for: "programme_data")
+        CacheService.shared.clear(for: "seance_data")
     }
 
     private func addExercise(seance: String, exercise: String, scheme: String) async {
