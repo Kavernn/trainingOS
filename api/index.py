@@ -876,20 +876,24 @@ def api_delete_exercise():
         return jsonify({"error": "Nom manquant"}), 400
 
     import db as _db
-    deleted = _db.delete_exercise_by_name(name)
-    if not deleted:
-        return jsonify({"error": "Exercice introuvable"}), 404
 
-    # Remove dangling references from program (do not touch weights history)
+    # Remove from all program sessions (save only the modified ones)
     program = load_program()
-    changed = False
-    for sdef in program.values():
+    for sname, sdef in program.items():
         sb = get_block(sdef.get("blocks", []), "strength")
         if sb and name in sb.get("exercises", {}):
             del sb["exercises"][name]
-            changed = True
-    if changed:
-        save_program(program)
+            save_program({sname: sdef})
+
+    # Only delete from exercises table if no workout history exists.
+    # exercise_logs has ON DELETE CASCADE — deleting exercises would destroy all history.
+    if _db.exercise_has_logs(name):
+        # Exercise has history — preserve the row, just removed from program above.
+        return jsonify({"success": True, "archived": True})
+
+    deleted = _db.delete_exercise_by_name(name)
+    if not deleted:
+        return jsonify({"error": "Exercice introuvable"}), 404
 
     return jsonify({"success": True})
 

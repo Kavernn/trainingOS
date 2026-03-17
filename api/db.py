@@ -412,8 +412,37 @@ def rename_exercise_table(old_name: str, new_name: str) -> bool:
         return False
 
 
+def exercise_has_logs(name: str) -> bool:
+    """Return True if the exercise has any exercise_logs (workout history).
+
+    Used to prevent cascade-deleting historical data when removing an exercise.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        ex_resp = _client.table("exercises").select("id").eq("name", name).single().execute()
+        if not ex_resp.data:
+            return False
+        ex_id = ex_resp.data["id"]
+        logs_resp = (
+            _client.table("exercise_logs")
+            .select("id", count="exact")
+            .eq("exercise_id", ex_id)
+            .limit(1)
+            .execute()
+        )
+        return bool(logs_resp.data)
+    except Exception as e:
+        logger.debug("exercise_has_logs(%s) error: %s", name, e)
+        return True  # Fail safe — assume it has logs to avoid accidental deletion
+
+
 def delete_exercise_by_name(name: str) -> bool:
-    """Delete an exercise by name. Returns True if a row was deleted."""
+    """Delete an exercise by name. Returns True if a row was deleted.
+
+    IMPORTANT: Only call this when exercise_has_logs() is False.
+    Deleting from exercises CASCADE-deletes all exercise_logs for that exercise.
+    """
     if _client is None or MODE == "OFFLINE":
         return False
     try:
