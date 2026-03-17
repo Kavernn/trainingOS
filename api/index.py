@@ -1022,8 +1022,14 @@ def api_programme():
                 add_exercise(new_ex, entry)
 
         elif action == "reorder":
-            ordre     = data.get("ordre", [])
-            exercises = {ex: exercises[ex] for ex in ordre if ex in exercises}
+            ordre = data.get("ordre", [])
+            # Only exercises that exist in both ordre AND current exercises dict
+            reordered = {ex: exercises[ex] for ex in ordre if ex in exercises}
+            # Append any exercises NOT in ordre — never drop, only reorder
+            for ex, scheme in exercises.items():
+                if ex not in reordered:
+                    reordered[ex] = scheme
+            exercises = reordered
 
         strength["exercises"] = exercises
         session_def["blocks"] = upsert_block(blks, strength)

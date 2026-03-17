@@ -133,6 +133,10 @@ struct ProgrammeView: View {
     }
 
     private func reorderExercises(seance: String, order: [String]) async {
+        // Guard: don't send if order is a subset of the actual exercises
+        // (incomplete orderedNames would silently drop missing exercises)
+        let actual = fullProgram[seance]?.count ?? 0
+        guard order.count >= actual else { return }
         await postProgramme(["action": "reorder", "jour": seance, "ordre": order])
     }
 
