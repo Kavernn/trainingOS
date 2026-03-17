@@ -438,7 +438,6 @@ struct EditProfileSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
-                .keyboardOkButton()
                 .tint(.orange)
             }
             .navigationTitle("Modifier profil")

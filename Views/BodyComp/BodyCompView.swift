@@ -350,7 +350,6 @@ struct BodyWeightSheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
             }
-            .keyboardOkButton()
         }
         .presentationDetents([.medium])
         .onAppear {

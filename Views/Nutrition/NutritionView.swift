@@ -380,7 +380,6 @@ struct AddNutritionSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
-                .keyboardOkButton()
             }
             .navigationTitle("Ajouter aliment")
             .navigationBarTitleDisplayMode(.inline)

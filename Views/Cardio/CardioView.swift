@@ -379,7 +379,6 @@ struct LogCardioSheet: View {
                     .padding(20)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .keyboardOkButton()
             }
             .navigationTitle("Nouvelle séance cardio")
             .navigationBarTitleDisplayMode(.inline)

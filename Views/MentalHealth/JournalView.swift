@@ -187,7 +187,6 @@ struct JournalEntrySheet: View {
             }
             .navigationTitle("Nouvelle entrée")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }

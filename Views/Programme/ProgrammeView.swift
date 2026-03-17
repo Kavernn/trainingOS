@@ -374,7 +374,6 @@ struct AddExerciseSheet: View {
             }
             .navigationTitle("Ajouter à \(seance)")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }.foregroundColor(.gray)
@@ -465,7 +464,6 @@ struct EditSchemeSheet: View {
             }
             .navigationTitle("Modifier l'exercice")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }.foregroundColor(.gray)

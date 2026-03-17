@@ -512,7 +512,6 @@ struct InventoryFormSheet: View {
                     .disabled(!canSave)
                 }
             }
-            .keyboardOkButton()
         }
         .onAppear {
             if let e = existing {

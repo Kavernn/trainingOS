@@ -354,7 +354,6 @@ struct LogRecoverySheet: View {
                     .padding(20)
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .keyboardOkButton()
             }
             .navigationTitle("Récupération du jour")
             .navigationBarTitleDisplayMode(.inline)

@@ -497,7 +497,6 @@ struct SleepLogSheet: View {
                     }
                 }
             }
-            .keyboardOkButton()
         }
         .onAppear {
             if let e = existing {
