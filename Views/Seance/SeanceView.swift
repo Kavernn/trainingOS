@@ -1203,7 +1203,7 @@ struct AddHIITSheet: View {
                 HStack {
                     Image(systemName: "line.3.horizontal")
                         .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.2))
+                        .foregroundColor(.white.opacity(0.4))
                         .frame(width: 20)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(name).font(.system(size: 15, weight: .bold)).foregroundColor(.white)

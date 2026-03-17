@@ -4,6 +4,7 @@ private let kBaseURL = "https://training-os-rho.vercel.app"
 
 struct ProgrammeView: View {
     @State private var fullProgram: [String: [String: String]] = [:]
+    @State private var exerciseOrder: [String: [String]] = [:]
     @State private var schedule: [String: String] = [:]
     @State private var inventory: [String] = []
     @State private var inventorySchemes: [String: String] = [:]
@@ -37,9 +38,14 @@ struct ProgrammeView: View {
                                         get: { fullProgram[seance] ?? [:] },
                                         set: { fullProgram[seance] = $0 }
                                     ),
+                                    orderedNames: Binding(
+                                        get: { exerciseOrder[seance] ?? (fullProgram[seance]?.keys.sorted() ?? []) },
+                                        set: { exerciseOrder[seance] = $0 }
+                                    ),
                                     onAdd:    { addTarget = SeanceName(id: seance) },
                                     onEdit:   { ex, scheme in editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme) },
-                                    onDelete: { ex in Task { await deleteExercise(seance: seance, exercise: ex) } }
+                                    onDelete: { ex in Task { await deleteExercise(seance: seance, exercise: ex) } },
+                                    onReorder: { order in Task { await reorderExercises(seance: seance, order: order) } }
                                 )
                                 .padding(.horizontal, 16)
                             }
@@ -74,6 +80,9 @@ struct ProgrammeView: View {
         schedule         = (json["schedule"] as? [String: String]) ?? [:]
         inventory        = (json["inventory"] as? [String]) ?? []
         inventorySchemes = (json["inventory_schemes"] as? [String: String]) ?? [:]
+        if let order = json["exercise_order"] as? [String: [String]] {
+            exerciseOrder = order
+        }
     }
 
     private func loadData() async {
@@ -107,12 +116,22 @@ struct ProgrammeView: View {
 
     private func addExercise(seance: String, exercise: String, scheme: String) async {
         await postProgramme(["action": "add", "jour": seance, "exercise": exercise, "scheme": scheme])
-        await MainActor.run { fullProgram[seance, default: [String: String]()][exercise] = scheme }
+        await MainActor.run {
+            fullProgram[seance, default: [:]][exercise] = scheme
+            exerciseOrder[seance, default: []].append(exercise)
+        }
     }
 
     private func deleteExercise(seance: String, exercise: String) async {
         await postProgramme(["action": "remove", "jour": seance, "exercise": exercise])
-        await MainActor.run { fullProgram[seance]?.removeValue(forKey: exercise) }
+        await MainActor.run {
+            fullProgram[seance]?.removeValue(forKey: exercise)
+            exerciseOrder[seance]?.removeAll { $0 == exercise }
+        }
+    }
+
+    private func reorderExercises(seance: String, order: [String]) async {
+        await postProgramme(["action": "reorder", "jour": seance, "ordre": order])
     }
 
     private func editExercise(seance: String, oldName: String, newName: String, scheme: String) async {
@@ -152,14 +171,26 @@ struct ExerciseTarget: Identifiable {
 
 // MARK: - Editable Seance Card
 
+private struct ProgramRowHeightKey: PreferenceKey {
+    static var defaultValue: [String: CGFloat] = [:]
+    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
 struct EditableSeanceProgramCard: View {
     let seance: String
     @Binding var exercises: [String: String]
-    let onAdd:    () -> Void
-    let onEdit:   (String, String) -> Void
-    let onDelete: (String) -> Void
+    @Binding var orderedNames: [String]
+    let onAdd:     () -> Void
+    let onEdit:    (String, String) -> Void
+    let onDelete:  (String) -> Void
+    let onReorder: ([String]) -> Void
 
-    @State private var expanded = true
+    @State private var expanded    = true
+    @State private var dragging:   String? = nil
+    @State private var dragY:      CGFloat = 0
+    @State private var rowHeights: [String: CGFloat] = [:]
 
     var color: Color {
         switch seance {
@@ -172,8 +203,57 @@ struct EditableSeanceProgramCard: View {
         }
     }
 
-    var sortedExercises: [(String, String)] {
-        exercises.sorted { $0.key < $1.key }
+    /// Exercises in user-defined order; unordered extras appended alphabetically.
+    var orderedPairs: [(String, String)] {
+        let named = orderedNames.compactMap { n -> (String, String)? in
+            guard let s = exercises[n] else { return nil }
+            return (n, s)
+        }
+        let extra = exercises.keys.filter { !orderedNames.contains($0) }.sorted()
+        return named + extra.map { ($0, exercises[$0]!) }
+    }
+
+    private var proposedDrop: Int {
+        guard let name = dragging,
+              let from = orderedNames.firstIndex(of: name) else { return 0 }
+        let h = (rowHeights[name] ?? 46)
+        let steps = Int((dragY / h).rounded())
+        return max(0, min(orderedNames.count - 1, from + steps))
+    }
+
+    private func shiftFor(_ cardName: String) -> CGFloat {
+        guard let dr = dragging, dr != cardName,
+              let from = orderedNames.firstIndex(of: dr),
+              let idx  = orderedNames.firstIndex(of: cardName) else { return 0 }
+        let to = proposedDrop
+        let h  = rowHeights[dr] ?? 46
+        if from < to, idx > from, idx <= to { return -h }
+        if from > to, idx >= to,  idx < from { return  h }
+        return 0
+    }
+
+    private func dragGesture(for name: String) -> some Gesture {
+        DragGesture(minimumDistance: 6)
+            .onChanged { val in
+                if dragging == nil {
+                    dragging = name
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                dragY = val.translation.height
+            }
+            .onEnded { _ in
+                if let dr = dragging {
+                    let to = proposedDrop
+                    if let from = orderedNames.firstIndex(of: dr), from != to {
+                        withAnimation(.spring(response: 0.25)) {
+                            orderedNames.move(fromOffsets: IndexSet(integer: from),
+                                              toOffset: to > from ? to + 1 : to)
+                        }
+                        onReorder(orderedNames)
+                    }
+                }
+                withAnimation(.spring(response: 0.25)) { dragging = nil; dragY = 0 }
+            }
     }
 
     var body: some View {
@@ -192,14 +272,12 @@ struct EditableSeanceProgramCard: View {
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(color)
                 Spacer()
-                // Exercise count badge
                 Text("\(exercises.count)")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(color)
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(color.opacity(0.12))
                     .cornerRadius(8)
-                // Add button in header
                 Button(action: onAdd) {
                     Image(systemName: "plus")
                         .font(.system(size: 13, weight: .bold))
@@ -209,7 +287,6 @@ struct EditableSeanceProgramCard: View {
                         .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
-                // Expand/collapse chevron
                 Image(systemName: expanded ? "chevron.up" : "chevron.down")
                     .font(.system(size: 11))
                     .foregroundColor(.gray)
@@ -222,18 +299,46 @@ struct EditableSeanceProgramCard: View {
             if expanded {
                 Divider().background(Color.white.opacity(0.07))
 
-                ForEach(sortedExercises, id: \.0) { name, scheme in
-                    ExerciseRow(
-                        name:   name,
-                        scheme: scheme,
-                        color:  color,
-                        onTap:  { onEdit(name, scheme) },
-                        onDelete: { onDelete(name) }
+                ForEach(orderedPairs, id: \.0) { name, scheme in
+                    let isDragging = dragging == name
+                    HStack(spacing: 0) {
+                        // ≡ Drag handle
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray.opacity(0.5))
+                            .frame(width: 40)
+                            .contentShape(Rectangle())
+                            .gesture(dragGesture(for: name))
+
+                        // Exercise row (tap → edit, trash → delete)
+                        ExerciseRow(
+                            name:     name,
+                            scheme:   scheme,
+                            color:    color,
+                            onTap:    { onEdit(name, scheme) },
+                            onDelete: { onDelete(name) }
+                        )
+                    }
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.preference(
+                                key: ProgramRowHeightKey.self,
+                                value: [name: geo.size.height]
+                            )
+                        }
                     )
-                    if name != sortedExercises.last?.0 {
-                        Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
+                    .scaleEffect(isDragging ? 1.02 : 1.0, anchor: .center)
+                    .background(isDragging ? color.opacity(0.06) : Color.clear)
+                    .offset(y: isDragging ? dragY : shiftFor(name))
+                    .zIndex(isDragging ? 1 : 0)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.85), value: shiftFor(name))
+                    .animation(.spring(response: 0.2,  dampingFraction: 0.9),  value: isDragging)
+
+                    if name != orderedPairs.last?.0 {
+                        Divider().background(Color.white.opacity(0.04)).padding(.leading, 40)
                     }
                 }
+                .onPreferenceChange(ProgramRowHeightKey.self) { rowHeights.merge($0) { $1 } }
             }
         }
         .background(Color(hex: "11111c"))
