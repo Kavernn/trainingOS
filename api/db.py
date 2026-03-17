@@ -1518,6 +1518,23 @@ def save_full_program(program: dict) -> bool:
 
                 exercises = block.get("exercises", {})
 
+                # Safety guard: never wipe a block that has exercises when saving 0
+                # (would silently delete all exercises from program_block_exercises)
+                if not exercises:
+                    existing_count_resp = (
+                        _client.table("program_block_exercises")
+                        .select("id", count="exact")
+                        .eq("block_id", block_id)
+                        .execute()
+                    )
+                    existing_count = existing_count_resp.count or 0
+                    if existing_count > 0:
+                        logger.warning(
+                            "save_full_program: refusing to save 0 exercises over %d existing for block %s — skipping",
+                            existing_count, block_id,
+                        )
+                        continue
+
                 # Clear existing exercises for this block then reinsert
                 _client.table("program_block_exercises").delete().eq("block_id", block_id).execute()
 
