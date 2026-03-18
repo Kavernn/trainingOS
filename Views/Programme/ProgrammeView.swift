@@ -6,6 +6,7 @@ struct ProgrammeView: View {
     @State private var fullProgram: [String: [String: String]] = [:]
     @State private var exerciseOrder: [String: [String]] = [:]
     @State private var schedule: [String: String] = [:]
+    @State private var eveningSchedule: [String: String] = [:]
     @State private var inventory: [String] = []
     @State private var inventorySchemes: [String: String] = [:]
     @State private var isLoading = true
@@ -30,6 +31,14 @@ struct ProgrammeView: View {
                         VStack(spacing: 16) {
                             WeekScheduleCard(schedule: schedule, dayNames: dayNames)
                                 .padding(.horizontal, 16)
+
+                            EveningScheduleCard(
+                                eveningSchedule: $eveningSchedule,
+                                dayNames: dayNames,
+                                sessions: orderedSeances,
+                                onSave: { Task { await saveEveningSchedule() } }
+                            )
+                            .padding(.horizontal, 16)
 
                             ForEach(orderedSeances, id: \.self) { seance in
                                 EditableSeanceProgramCard(
@@ -92,14 +101,30 @@ struct ProgrammeView: View {
            let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
             await MainActor.run { applyJSON(json); isLoading = false }
         }
-        // Refresh réseau en arrière-plan
-        if let (data, _) = try? await URLSession.shared.data(from: url),
+        // Fetch programme + evening schedule en parallèle
+        async let progFetch = URLSession.shared.data(from: url)
+        async let eveningFetch = URLSession.shared.data(from: URL(string: "\(kBaseURL)/api/evening_schedule")!)
+        if let (data, _) = try? await progFetch,
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             CacheService.shared.save(data, for: "programme_data")
             await MainActor.run { applyJSON(json); isLoading = false }
         } else {
             await MainActor.run { isLoading = false }
         }
+        if let (eData, _) = try? await eveningFetch,
+           let eJson = try? JSONSerialization.jsonObject(with: eData) as? [String: String] {
+            await MainActor.run { eveningSchedule = eJson }
+        }
+    }
+
+    private func saveEveningSchedule() async {
+        guard let url = URL(string: "\(kBaseURL)/api/evening_schedule") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: eveningSchedule)
+        _ = try? await URLSession.shared.data(for: req)
+        CacheService.shared.clear(for: "seance_soir_data")
     }
 
     // MARK: – Mutations
@@ -657,6 +682,95 @@ struct WeekScheduleCard: View {
         case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
         default:                             return .gray
+        }
+    }
+}
+
+// MARK: - Evening Schedule Card
+
+struct EveningScheduleCard: View {
+    @Binding var eveningSchedule: [String: String]
+    let dayNames: [String]
+    let sessions: [String]
+    let onSave: () -> Void
+
+    private let none = "—"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("SÉANCE DU SOIR")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(2)
+                        .foregroundColor(.indigo)
+                    Text("Optionnel — apparaît sur le dashboard le soir")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Image(systemName: "moon.fill").foregroundColor(.indigo).font(.system(size: 14))
+            }
+
+            HStack(spacing: 6) {
+                ForEach(dayNames, id: \.self) { day in
+                    let current = eveningSchedule[day] ?? none
+                    Menu {
+                        Button(none) {
+                            eveningSchedule.removeValue(forKey: day)
+                            onSave()
+                        }
+                        ForEach(sessions, id: \.self) { s in
+                            Button(s) {
+                                eveningSchedule[day] = s
+                                onSave()
+                            }
+                        }
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text(day)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.gray)
+                            Text(shortLabel(current))
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(current == none ? Color.gray.opacity(0.4) : sessionColor(current))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background((current == none ? Color.gray : sessionColor(current)).opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+
+    private func shortLabel(_ s: String) -> String {
+        switch s {
+        case "Push A":             return "PSH A"
+        case "Pull A":             return "PLL A"
+        case "Legs":               return "LEGS"
+        case "Push B":             return "PSH B"
+        case "Pull B + Full Body": return "PLL B"
+        case "Yoga / Tai Chi":     return "YOGA"
+        case "Recovery":           return "REC"
+        default:                   return "—"
+        }
+    }
+
+    private func sessionColor(_ s: String) -> Color {
+        switch s {
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
+        case "Recovery":                     return .green
+        default:                             return .indigo
         }
     }
 }
