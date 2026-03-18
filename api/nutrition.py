@@ -1,30 +1,33 @@
-from db import get_json, set_json
-from datetime import datetime
+import db
 import uuid
+from datetime import datetime
 
 
-def load_nutrition_log() -> dict:
-    return get_json("nutrition_log", {})
-
+# ── Settings ─────────────────────────────────────────────────────────────────
 
 def load_settings() -> dict:
-    return get_json("nutrition_settings", {
-        "limite_calories": 2200,
-        "objectif_proteines": 160
-    })
+    raw = db.get_nutrition_settings()
+    if not isinstance(raw, dict):
+        raw = {}
+    # Normalize column names — table may use either FR or EN naming
+    return {
+        "limite_calories":    raw.get("limite_calories")    or raw.get("calorie_limit")    or 2200,
+        "objectif_proteines": raw.get("objectif_proteines") or raw.get("protein_target")   or 160,
+    }
 
 
 def save_settings(limite_calories: int, objectif_proteines: int):
-    set_json("nutrition_settings", {
-        "limite_calories": limite_calories,
-        "objectif_proteines": objectif_proteines
+    db.update_nutrition_settings({
+        "limite_calories":    limite_calories,
+        "objectif_proteines": objectif_proteines,
     })
 
 
+# ── Entries ───────────────────────────────────────────────────────────────────
+
 def get_today_entries() -> list:
     today = datetime.now().strftime("%Y-%m-%d")
-    log = load_nutrition_log()
-    return log.get(today, {}).get("entries", [])
+    return db.get_nutrition_entries(today)
 
 
 def get_today_totals() -> dict:
@@ -32,50 +35,30 @@ def get_today_totals() -> dict:
     return {
         "calories":  round(sum(e.get("calories", 0) for e in entries)),
         "proteines": round(sum(e.get("proteines", 0) for e in entries), 1),
-        "glucides":  round(sum(e.get("glucides", 0) for e in entries), 1),
-        "lipides":   round(sum(e.get("lipides", 0) for e in entries), 1),
+        "glucides":  round(sum(e.get("glucides",  0) for e in entries), 1),
+        "lipides":   round(sum(e.get("lipides",   0) for e in entries), 1),
     }
 
 
 def add_entry(nom: str, calories: float, proteines: float = 0,
               glucides: float = 0, lipides: float = 0) -> dict:
     today = datetime.now().strftime("%Y-%m-%d")
-    log = load_nutrition_log()
-    if today not in log:
-        log[today] = {"entries": []}
     entry = {
         "id":        str(uuid.uuid4())[:8],
+        "date":      today,
         "nom":       nom,
         "calories":  round(calories),
         "proteines": round(proteines, 1),
-        "glucides":  round(glucides, 1),
-        "lipides":   round(lipides, 1),
-        "heure":     datetime.now().strftime("%H:%M")
+        "glucides":  round(glucides,  1),
+        "lipides":   round(lipides,   1),
+        "heure":     datetime.now().strftime("%H:%M"),
     }
-    log[today]["entries"].append(entry)
-    set_json("nutrition_log", log)
-    return entry
+    return db.insert_nutrition_entry(entry)
 
 
 def delete_entry(entry_id: str) -> bool:
-    today = datetime.now().strftime("%Y-%m-%d")
-    log = load_nutrition_log()
-    if today not in log:
-        return False
-    before = len(log[today]["entries"])
-    log[today]["entries"] = [e for e in log[today]["entries"] if e["id"] != entry_id]
-    if len(log[today]["entries"]) < before:
-        set_json("nutrition_log", log)
-        return True
-    return False
+    return db.delete_nutrition_entry(entry_id)
 
 
 def get_recent_days(n: int = 7) -> list:
-    log = load_nutrition_log()
-    days = sorted(log.keys(), reverse=True)[:n]
-    result = []
-    for day in days:
-        entries = log[day].get("entries", [])
-        total_cal = round(sum(e.get("calories", 0) for e in entries))
-        result.append({"date": day, "calories": total_cal, "nb": len(entries)})
-    return result
+    return db.get_nutrition_entries_recent(n)

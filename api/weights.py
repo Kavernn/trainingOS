@@ -19,12 +19,10 @@ from datetime import datetime, timezone, timedelta
 
 def _today_local() -> str:
     """Return today's date in America/Toronto timezone (UTC-5/UTC-4)."""
-    # Toronto = UTC-5 (EST) ou UTC-4 (EDT) — approximation suffisante
     try:
         from zoneinfo import ZoneInfo
         return datetime.now(ZoneInfo("America/Toronto")).strftime("%Y-%m-%d")
     except Exception:
-        # fallback: UTC-5
         return (datetime.now(timezone.utc) - timedelta(hours=5)).strftime("%Y-%m-%d")
 
 
@@ -43,23 +41,17 @@ def _calc_1rm(weight, reps_str):
 def load_weights() -> dict:
     """
     Build the old weights dict from exercise_logs in a single bulk query.
-    Falls back to KV get_json("weights") if domain methods unavailable.
-    Supplemental fields (rpe, note, sets, exercise_volume) are merged from KV
-    since the relational exercise_logs table only stores weight/reps.
+    Returns {} if no history found (new user or empty DB).
     """
     try:
         all_history = db.get_all_exercise_history()
-        if not isinstance(all_history, dict) or not all_history:
-            raise ValueError("no history from relational layer")
-
-        # Load KV for supplemental fields not stored in relational layer
-        kv_weights = db.get_json("weights", {}) or {}
+        if not isinstance(all_history, dict):
+            return {}
 
         weights = {}
         for name, history_rows in all_history.items():
             if not isinstance(history_rows, list) or not history_rows:
                 continue
-            kv_hist = (kv_weights.get(name) or {}).get("history", [])
             history = []
             for row in history_rows:
                 if not isinstance(row, dict):
@@ -71,12 +63,6 @@ def load_weights() -> dict:
                 }
                 if entry["weight"] and entry["reps"]:
                     entry["1rm"] = _calc_1rm(entry["weight"], entry["reps"])
-                # Merge supplemental fields from KV (rpe, note, sets, exercise_volume)
-                kv_entry = next((e for e in kv_hist if e.get("date") == entry["date"]), None)
-                if kv_entry:
-                    for field in ("rpe", "note", "exercise_volume", "sets"):
-                        if kv_entry.get(field) is not None:
-                            entry[field] = kv_entry[field]
                 history.append(entry)
 
             if not history:
@@ -89,82 +75,29 @@ def load_weights() -> dict:
                 "history":        history,
             }
 
-        # Merge today's KV entries for exercises logged but not yet in relational
-        # (upsert_exercise_log échoue si workout_session n'existe pas encore)
-        today = _today_local()
-        kv_today = db.get_json("weights", {}) or {}
-        for name, kv_ex in kv_today.items():
-            kv_hist = kv_ex.get("history", [])
-            if not kv_hist or kv_hist[0].get("date") != today:
-                continue
-            kv_entry = kv_hist[0]
-            if name not in weights:
-                # Exercice absent du relational — créer depuis KV
-                weights[name] = {
-                    "current_weight": kv_entry.get("weight", 0),
-                    "last_reps":      kv_entry.get("reps", ""),
-                    "history":        [kv_entry],
-                }
-            elif weights[name]["history"][0].get("date") != today:
-                # Relational n'a pas l'entrée d'aujourd'hui — la préfixer
-                weights[name]["history"].insert(0, kv_entry)
-                weights[name]["current_weight"] = kv_entry.get("weight", weights[name]["current_weight"])
-                weights[name]["last_reps"]      = kv_entry.get("reps", weights[name]["last_reps"])
-
         return weights
     except Exception:
-        return db.get_json("weights", {}) or {}
+        return {}
 
 
 def save_weights(weights: dict) -> bool:
     """
-    Persist weights dict back to exercise_logs table AND to KV for consistency.
-    Falls back to KV set_json only if domain methods fail.
-
-    Before writing to KV, merge supplemental fields (rpe, note, sets, exercise_volume)
-    from existing KV entries so they are not lost when weights was loaded from the
-    relational layer (which only stores weight/reps).
+    Persist the most recent history entry per exercise to exercise_logs.
+    Only writes history[0] — the entry that was just added or modified.
     """
-    # Merge supplemental fields from existing KV to avoid stripping rpe/note/sets
-    try:
-        existing_kv = db.get_json("weights", {}) or {}
-        for name, ex_data in weights.items():
-            kv_ex = existing_kv.get(name) or {}
-            kv_hist = kv_ex.get("history", [])
-            for entry in (ex_data.get("history") or []):
-                date = entry.get("date")
-                if not date:
-                    continue
-                kv_entry = next((e for e in kv_hist if e.get("date") == date), None)
-                if kv_entry:
-                    for field in ("rpe", "note", "exercise_volume", "sets"):
-                        if field not in entry and kv_entry.get(field) is not None:
-                            entry[field] = kv_entry[field]
-    except Exception:
-        pass
-
-    # Always write to KV for backward compat and test consistency
-    kv_ok = True
-    try:
-        db.set_json("weights", weights)
-    except Exception:
-        kv_ok = False
-
-    # Also try to persist to relational layer
     try:
         for exercise_name, ex_data in weights.items():
             if not isinstance(ex_data, dict):
                 continue
             history = ex_data.get("history", [])
-            for entry in history:
-                if not isinstance(entry, dict):
-                    continue
-                date   = entry.get("date")
-                weight = entry.get("weight")
-                reps   = entry.get("reps")
-                if date and (weight is not None or reps is not None):
-                    db.upsert_exercise_log(date, exercise_name, weight, reps)
+            if not history or not isinstance(history[0], dict):
+                continue
+            entry  = history[0]
+            date   = entry.get("date")
+            weight = entry.get("weight")
+            reps   = entry.get("reps")
+            if date and (weight is not None or reps is not None):
+                db.upsert_exercise_log(date, exercise_name, weight, reps)
+        return True
     except Exception:
-        pass
-
-    return kv_ok
+        return False

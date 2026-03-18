@@ -164,6 +164,42 @@ def make_store():
             return True
         return False
 
+    def exercise_has_logs(name):
+        weights = store.get("weights", {})
+        return bool(weights.get(name, {}).get("history", []))
+
+    def remove_exercise_from_program_blocks(name):
+        program = store.get("program", {})
+        for sdef in program.values():
+            for block in sdef.get("blocks", []):
+                if block.get("type") == "strength":
+                    block.get("exercises", {}).pop(name, None)
+        store["program"] = program
+
+    def get_deleted_exercises():
+        return set(store.get("deleted_exercises", []))
+
+    def mark_exercise_deleted(name):
+        deleted = list(get_deleted_exercises())
+        if name not in deleted:
+            deleted.append(name)
+        store["deleted_exercises"] = deleted
+
+    def unmark_exercise_deleted(name):
+        deleted = list(get_deleted_exercises())
+        if name in deleted:
+            deleted.remove(name)
+        store["deleted_exercises"] = deleted
+
+    def get_full_program():
+        return copy.deepcopy(store.get("program", {}))
+
+    def save_full_program(program):
+        current = store.get("program", {})
+        current.update(copy.deepcopy(program))
+        store["program"] = current
+        return True
+
     def get_workout_sessions(limit=100):
         sessions = store.get("sessions", {})
         result = []
@@ -206,6 +242,27 @@ def make_store():
             store["sessions"] = sessions
             return True
         return False
+
+    def get_all_exercise_history():
+        weights = store.get("weights", {})
+        result = {}
+        for name, ex_data in weights.items():
+            history = ex_data.get("history", [])
+            if history:
+                result[name] = [{"date": e.get("date"), "weight": e.get("weight"), "reps": e.get("reps")} for e in history]
+        return result
+
+    def get_or_create_workout_session(date):
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            entry = copy.deepcopy(sessions[date])
+            entry["date"] = date
+            entry.setdefault("id", date)
+            return entry
+        entry = {"rpe": None, "comment": "", "exos": [], "id": date}
+        sessions[date] = entry
+        store["sessions"] = sessions
+        return {**entry, "date": date}
 
     def get_exercise_history(exercise_name, limit=50):
         weights = store.get("weights", {})
@@ -254,23 +311,70 @@ def make_store():
         weights = store.get("weights", {})
         for ex_data in weights.values():
             ex_data["history"] = [e for e in ex_data.get("history", []) if e.get("date") != session_date]
+            # Recalculate denormalized fields to reflect the new most-recent entry
+            remaining = ex_data["history"]
+            if remaining:
+                most_recent = max(remaining, key=lambda e: e.get("date", ""))
+                ex_data["current_weight"] = most_recent.get("weight", ex_data.get("current_weight", 0))
+                ex_data["last_reps"] = most_recent.get("reps", ex_data.get("last_reps", ""))
         store["weights"] = weights
         return True
 
     def get_body_weight_logs(limit=100):
         return copy.deepcopy(store.get("body_weight", []))[:limit]
 
-    def upsert_body_weight(date, weight, note=""):
+    def upsert_body_weight(date, weight, note="", body_fat=None, waist_cm=None,
+                           arms_cm=None, chest_cm=None, thighs_cm=None, hips_cm=None):
         bw = store.get("body_weight", [])
+        entry_data = {"date": date, "poids": weight, "note": note}
+        for field, val in [("body_fat", body_fat), ("waist_cm", waist_cm),
+                           ("arms_cm", arms_cm), ("chest_cm", chest_cm),
+                           ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
+            if val is not None:
+                entry_data[field] = val
         for entry in bw:
             if entry.get("date") == date:
-                entry["poids"] = weight
-                entry["note"] = note
+                entry.update(entry_data)
                 store["body_weight"] = bw
                 return True
-        bw.insert(0, {"date": date, "poids": weight, "note": note})
+        bw.insert(0, entry_data)
         store["body_weight"] = bw
         return True
+
+    def get_nutrition_entries(date):
+        log = store.get("nutrition_log", {})
+        return copy.deepcopy((log.get(date) or {}).get("entries", []))
+
+    def get_nutrition_entries_recent(n=7):
+        log = store.get("nutrition_log", {})
+        days = sorted(log.keys(), reverse=True)[:n]
+        return [
+            {
+                "date":     d,
+                "calories": round(sum(e.get("calories", 0) for e in (log.get(d) or {}).get("entries", []))),
+                "nb":       len((log.get(d) or {}).get("entries", [])),
+            }
+            for d in days
+        ]
+
+    def insert_nutrition_entry(data):
+        log = store.get("nutrition_log", {})
+        d = data.get("date", "")
+        if d not in log:
+            log[d] = {"entries": []}
+        log[d]["entries"].append(copy.deepcopy(data))
+        store["nutrition_log"] = log
+        return copy.deepcopy(data)
+
+    def delete_nutrition_entry(entry_id):
+        log = store.get("nutrition_log", {})
+        for day_data in log.values():
+            before = len(day_data.get("entries", []))
+            day_data["entries"] = [e for e in day_data.get("entries", []) if e.get("id") != entry_id]
+            if len(day_data["entries"]) < before:
+                store["nutrition_log"] = log
+                return True
+        return False
 
     def delete_body_weight(date):
         bw = store.get("body_weight", [])
@@ -278,7 +382,13 @@ def make_store():
         return True
 
     def get_hiit_logs(limit=100):
-        return copy.deepcopy(store.get("hiit_log", []))[:limit]
+        import uuid as _uuid
+        logs = store.get("hiit_log", [])
+        # Assign stable IDs to entries that don't have one yet
+        for entry in logs:
+            if "id" not in entry:
+                entry["id"] = str(_uuid.uuid4())
+        return copy.deepcopy(logs[:limit])
 
     def insert_hiit_log(data):
         import uuid
@@ -393,11 +503,20 @@ def make_store():
         upsert_exercise=upsert_exercise,
         rename_exercise_table=rename_exercise_table,
         delete_exercise_by_name=delete_exercise_by_name,
+        exercise_has_logs=exercise_has_logs,
+        remove_exercise_from_program_blocks=remove_exercise_from_program_blocks,
+        get_deleted_exercises=get_deleted_exercises,
+        mark_exercise_deleted=mark_exercise_deleted,
+        unmark_exercise_deleted=unmark_exercise_deleted,
+        get_full_program=get_full_program,
+        save_full_program=save_full_program,
         get_workout_sessions=get_workout_sessions,
         get_workout_session=get_workout_session,
+        get_or_create_workout_session=get_or_create_workout_session,
         create_workout_session=create_workout_session,
         update_workout_session=update_workout_session,
         delete_workout_session=delete_workout_session,
+        get_all_exercise_history=get_all_exercise_history,
         get_exercise_history=get_exercise_history,
         get_session_exercise_logs=get_session_exercise_logs,
         upsert_exercise_log=upsert_exercise_log,
@@ -405,6 +524,10 @@ def make_store():
         get_body_weight_logs=get_body_weight_logs,
         upsert_body_weight=upsert_body_weight,
         delete_body_weight=delete_body_weight,
+        get_nutrition_entries=get_nutrition_entries,
+        get_nutrition_entries_recent=get_nutrition_entries_recent,
+        insert_nutrition_entry=insert_nutrition_entry,
+        delete_nutrition_entry=delete_nutrition_entry,
         get_hiit_logs=get_hiit_logs,
         insert_hiit_log=insert_hiit_log,
         update_hiit_log=update_hiit_log,

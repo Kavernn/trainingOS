@@ -2,16 +2,9 @@ from __future__ import annotations
 import db
 
 
-# Charge l'historique HIIT depuis la table relationnelle ou KV (clé "hiit_log")
-def load_hiit_log():
-    try:
-        result = db.get_hiit_logs()
-        if isinstance(result, list):
-            return result
-    except Exception:
-        pass
-    log = db.get_json("hiit_log", []) or []
-    return log if isinstance(log, list) else []
+def load_hiit_log() -> list:
+    result = db.get_hiit_logs()
+    return result if isinstance(result, list) else []
 
 
 # Phases HIIT (conservées)

@@ -131,7 +131,85 @@ def make_db_store():
         store[key] = lst
         return True
 
-    return store, get_json, set_json, update_json, append_json_list
+    # ── Relational layer mocks ──────────────────────────────────────────────
+
+    def get_all_exercise_history():
+        weights = store.get("weights", {})
+        result = {}
+        for name, ex_data in weights.items():
+            history = ex_data.get("history", [])
+            if history:
+                result[name] = [{"date": e.get("date"), "weight": e.get("weight"), "reps": e.get("reps")} for e in history]
+        return result
+
+    def get_workout_sessions(limit=100):
+        sessions = store.get("sessions", {})
+        result = []
+        for date in sorted(sessions.keys(), reverse=True)[:limit]:
+            entry = copy.deepcopy(sessions[date])
+            entry["date"] = date
+            result.append(entry)
+        return result
+
+    def get_workout_session(date):
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            entry = copy.deepcopy(sessions[date])
+            entry["date"] = date
+            entry.setdefault("id", date)
+            return entry
+        return None
+
+    def get_or_create_workout_session(date):
+        existing = get_workout_session(date)
+        if existing:
+            return existing
+        entry = {"rpe": None, "comment": "", "exos": [], "id": date}
+        sessions = store.get("sessions", {})
+        sessions[date] = entry
+        store["sessions"] = sessions
+        return {**entry, "date": date}
+
+    def create_workout_session(date, rpe=None, comment=None, duration_min=None, energy_pre=None, is_second=False):
+        sessions = store.get("sessions", {})
+        key = date if not is_second else f"{date}_2"
+        entry = {"rpe": rpe, "comment": comment or "", "exos": [], "id": key}
+        sessions[key] = entry
+        store["sessions"] = sessions
+        return {**entry, "date": date}
+
+    def update_workout_session(date, patch_dict):
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            sessions[date].update(patch_dict)
+            store["sessions"] = sessions
+            return True
+        return False
+
+    def upsert_exercise_log(session_date, exercise_name, weight, reps):
+        weights = store.get("weights", {})
+        if exercise_name not in weights:
+            weights[exercise_name] = {"current_weight": weight or 0, "last_reps": reps or "", "history": []}
+        history = weights[exercise_name].get("history", [])
+        for entry in history:
+            if entry.get("date") == session_date:
+                entry["weight"] = weight
+                entry["reps"] = reps
+                store["weights"] = weights
+                return True
+        history.insert(0, {"date": session_date, "weight": weight, "reps": reps})
+        weights[exercise_name]["history"] = history
+        if weight:
+            weights[exercise_name]["current_weight"] = weight
+        if reps:
+            weights[exercise_name]["last_reps"] = reps
+        store["weights"] = weights
+        return True
+
+    return store, get_json, set_json, update_json, append_json_list, \
+        get_all_exercise_history, get_workout_sessions, get_workout_session, \
+        get_or_create_workout_session, create_workout_session, update_workout_session, \
+        upsert_exercise_log
 
 
 # ── Base test class ──────────────────────────────────────────────────────────
@@ -143,7 +221,10 @@ class BaseRouteTest(unittest.TestCase):
 
     def setUp(self):
         (self.store,
-         get_json, set_json, update_json, append_json_list) = make_db_store()
+         get_json, set_json, update_json, append_json_list,
+         get_all_exercise_history, get_workout_sessions, get_workout_session,
+         get_or_create_workout_session, create_workout_session,
+         update_workout_session, upsert_exercise_log) = make_db_store()
 
         store = self.store   # capture local ref for closures
 
@@ -177,6 +258,13 @@ class BaseRouteTest(unittest.TestCase):
             upsert_exercise=upsert_exercise,
             rename_exercise_table=rename_exercise_table,
             _ON_VERCEL=False,
+            get_all_exercise_history=get_all_exercise_history,
+            get_workout_sessions=get_workout_sessions,
+            get_workout_session=get_workout_session,
+            get_or_create_workout_session=get_or_create_workout_session,
+            create_workout_session=create_workout_session,
+            update_workout_session=update_workout_session,
+            upsert_exercise_log=upsert_exercise_log,
         )
 
         self.db_patch = patch.dict("sys.modules", {"db": db_mock})
@@ -184,7 +272,7 @@ class BaseRouteTest(unittest.TestCase):
 
         # Clear cached modules so patches take effect
         for mod in list(sys.modules.keys()):
-            if mod in ("index",) or mod.startswith((
+            if mod in ("index", "weights") or mod.startswith((
                 "planner", "log_workout", "sessions", "inventory",
                 "progression", "deload", "goals", "body_weight",
                 "user_profile", "hiit", "blocks", "nutrition",

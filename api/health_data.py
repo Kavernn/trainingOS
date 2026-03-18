@@ -19,24 +19,16 @@ from __future__ import annotations
 from datetime import date as date_cls, timedelta
 from typing import Optional
 
-from db          import get_json
+import db
 from body_weight import load_body_weight
 from sessions    import load_sessions
 
 
-# ── Loaders des clés KV existantes ──────────────────────────────────────────
-
 def _load_recovery_log() -> list:
-    """Réutilise la clé 'recovery_log' déjà gérée par index.py."""
-    return get_json("recovery_log") or []
+    return db.get_recovery_logs() or []
 
 def _load_cardio_log() -> list:
-    """Réutilise la clé 'cardio_log' déjà gérée par index.py."""
-    return get_json("cardio_log") or []
-
-def _load_nutrition_log() -> dict:
-    """Réutilise la clé 'nutrition_log' déjà gérée par nutrition.py."""
-    return get_json("nutrition_log") or {}
+    return db.get_cardio_logs() or []
 
 
 # ── Score de récupération (0 – 10) ──────────────────────────────────────────
@@ -73,9 +65,8 @@ def compute_recovery_score(entry: dict) -> Optional[float]:
 # ── Totaux nutritionnels pour une date ───────────────────────────────────────
 
 def _nutrition_totals(target_date: str) -> dict:
-    """Calcule les macros totales du jour depuis nutrition_log."""
-    log     = _load_nutrition_log()
-    entries = (log.get(target_date) or {}).get("entries", [])
+    """Calcule les macros totales du jour depuis nutrition_entries."""
+    entries = db.get_nutrition_entries(target_date)
     if not entries:
         return {}
     return {

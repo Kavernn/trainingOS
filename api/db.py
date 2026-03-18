@@ -453,6 +453,44 @@ def delete_exercise_by_name(name: str) -> bool:
         return False
 
 
+def remove_exercise_from_program_blocks(name: str) -> None:
+    """Remove an exercise from all program blocks via direct DB delete.
+
+    Bypasses the save_full_program empty-block safety guard so that deleting
+    the last exercise in a block works correctly.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return
+    try:
+        ex_resp = _client.table("exercises").select("id").eq("name", name).execute()
+        if not ex_resp.data:
+            return
+        ex_id = ex_resp.data[0]["id"]
+        _client.table("program_block_exercises").delete().eq("exercise_id", ex_id).execute()
+    except Exception as e:
+        logger.error("remove_exercise_from_program_blocks error: %s", e)
+
+
+def get_deleted_exercises() -> set:
+    """Return the set of exercise names soft-deleted from inventory."""
+    return set(get_json("deleted_exercises", []))
+
+
+def mark_exercise_deleted(name: str) -> None:
+    """Add an exercise to the soft-deleted set (used when logs prevent hard delete)."""
+    deleted = get_deleted_exercises()
+    deleted.add(name)
+    set_json("deleted_exercises", list(deleted))
+
+
+def unmark_exercise_deleted(name: str) -> None:
+    """Remove an exercise from the soft-deleted set (e.g. when recreated or renamed)."""
+    deleted = get_deleted_exercises()
+    if name in deleted:
+        deleted.discard(name)
+        set_json("deleted_exercises", list(deleted))
+
+
 # ---------------------------------------------------------------------------
 # Workout sessions
 # ---------------------------------------------------------------------------
@@ -516,6 +554,14 @@ def get_workout_session(date: str) -> Optional[dict]:
         if entry:
             return {**entry, "date": date}
         return None
+
+
+def get_or_create_workout_session(date: str) -> dict:
+    """Return the workout session for *date*, creating a minimal stub if none exists."""
+    existing = get_workout_session(date)
+    if existing:
+        return existing
+    return create_workout_session(date)
 
 
 def create_workout_session(
@@ -865,21 +911,42 @@ def get_body_weight_logs(limit: int = 100) -> List[dict]:
         return data[:limit]
 
 
-def upsert_body_weight(date: str, weight: float, note: str = "") -> bool:
+def upsert_body_weight(
+    date: str,
+    weight: float,
+    note: str = "",
+    body_fat: Optional[float] = None,
+    waist_cm: Optional[float] = None,
+    arms_cm: Optional[float] = None,
+    chest_cm: Optional[float] = None,
+    thighs_cm: Optional[float] = None,
+    hips_cm: Optional[float] = None,
+) -> bool:
     """Insert or update a body weight log entry for the given date."""
+    kv_entry: dict = {"date": date, "poids": weight, "note": note}
+    for field, val in [("body_fat", body_fat), ("waist_cm", waist_cm),
+                       ("arms_cm", arms_cm), ("chest_cm", chest_cm),
+                       ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
+        if val is not None:
+            kv_entry[field] = val
+
     # fallback to KV during migration
     if _client is None or MODE == "OFFLINE":
         data = get_json("body_weight", [])
-        entry = {"date": date, "poids": weight, "note": note}
         existing = next((i for i, e in enumerate(data) if e.get("date") == date), None)
         if existing is not None:
-            data[existing] = entry
+            data[existing] = kv_entry
         else:
-            data.insert(0, entry)
+            data.insert(0, kv_entry)
         set_json("body_weight", data)
         return True
     try:
-        payload = {"date": date, "weight": weight, "note": note}
+        payload: dict = {"date": date, "weight": weight, "note": note}
+        for field, val in [("body_fat", body_fat), ("waist_cm", waist_cm),
+                           ("arms_cm", arms_cm), ("chest_cm", chest_cm),
+                           ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
+            if val is not None:
+                payload[field] = val
         resp = (
             _client.table("body_weight_logs")
             .upsert(payload, on_conflict="date")
@@ -890,7 +957,7 @@ def upsert_body_weight(date: str, weight: float, note: str = "") -> bool:
         logger.error("upsert_body_weight error: %s", e)
         # fallback to KV during migration
         data = get_json("body_weight", [])
-        entry = {"date": date, "poids": weight, "note": note}
+        entry = kv_entry
         existing = next((i for i, e in enumerate(data) if e.get("date") == date), None)
         if existing is not None:
             data[existing] = entry
@@ -1327,6 +1394,128 @@ def update_nutrition_settings(patch: dict) -> bool:
         settings.update(patch)
         set_json("nutrition_settings", settings)
         return True
+
+
+# ---------------------------------------------------------------------------
+# Nutrition entries
+# ---------------------------------------------------------------------------
+
+def get_nutrition_entries(date: str) -> List[dict]:
+    """Return nutrition entries for a specific date, ordered by insertion time."""
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("nutrition_log", {})
+        return (log.get(date) or {}).get("entries", [])
+    try:
+        resp = (
+            _client.table("nutrition_entries")
+            .select("*")
+            .eq("date", date)
+            .order("heure")
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_nutrition_entries error: %s", e)
+        log = get_json("nutrition_log", {})
+        return (log.get(date) or {}).get("entries", [])
+
+
+def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
+    """Return one summary row per day for the last n distinct days.
+
+    Returns [{"date": ..., "calories": ..., "nb": ...}, ...] newest first.
+    """
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("nutrition_log", {})
+        days = sorted(log.keys(), reverse=True)[:n]
+        result = []
+        for day in days:
+            entries = (log.get(day) or {}).get("entries", [])
+            result.append({
+                "date":     day,
+                "calories": round(sum(e.get("calories", 0) for e in entries)),
+                "nb":       len(entries),
+            })
+        return result
+    try:
+        from datetime import date as _date, timedelta
+        cutoff = (_date.today() - timedelta(days=n * 2)).isoformat()
+        resp = (
+            _client.table("nutrition_entries")
+            .select("date, calories")
+            .gte("date", cutoff)
+            .order("date", desc=True)
+            .execute()
+        )
+        rows = resp.data or []
+        # Group by date, keep only n distinct days
+        seen: dict = {}
+        for row in rows:
+            d = row["date"]
+            if d not in seen:
+                seen[d] = {"date": d, "calories": 0, "nb": 0}
+            seen[d]["calories"] += row.get("calories", 0)
+            seen[d]["nb"] += 1
+        sorted_days = sorted(seen.values(), key=lambda x: x["date"], reverse=True)[:n]
+        for day in sorted_days:
+            day["calories"] = round(day["calories"])
+        return sorted_days
+    except Exception as e:
+        logger.error("get_nutrition_entries_recent error: %s", e)
+        log = get_json("nutrition_log", {})
+        days = sorted(log.keys(), reverse=True)[:n]
+        return [
+            {
+                "date":     d,
+                "calories": round(sum(e.get("calories", 0) for e in (log.get(d) or {}).get("entries", []))),
+                "nb":       len((log.get(d) or {}).get("entries", [])),
+            }
+            for d in days
+        ]
+
+
+def insert_nutrition_entry(data: dict) -> dict:
+    """Insert a nutrition entry. Returns the saved entry (with id)."""
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("nutrition_log", {})
+        date = data.get("date", "")
+        if date not in log:
+            log[date] = {"entries": []}
+        log[date]["entries"].append(data)
+        set_json("nutrition_log", log)
+        return data
+    try:
+        resp = _client.table("nutrition_entries").insert(data).execute()
+        return resp.data[0] if resp.data else data
+    except Exception as e:
+        logger.error("insert_nutrition_entry error: %s", e)
+        log = get_json("nutrition_log", {})
+        date = data.get("date", "")
+        if date not in log:
+            log[date] = {"entries": []}
+        log[date]["entries"].append(data)
+        set_json("nutrition_log", log)
+        return data
+
+
+def delete_nutrition_entry(entry_id: str) -> bool:
+    """Delete a nutrition entry by id. Returns True on success."""
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("nutrition_log", {})
+        for date, day_data in log.items():
+            entries = day_data.get("entries", [])
+            before = len(entries)
+            day_data["entries"] = [e for e in entries if e.get("id") != entry_id]
+            if len(day_data["entries"]) < before:
+                set_json("nutrition_log", log)
+                return True
+        return False
+    try:
+        resp = _client.table("nutrition_entries").delete().eq("id", entry_id).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("delete_nutrition_entry error: %s", e)
+        return False
 
 
 # ---------------------------------------------------------------------------

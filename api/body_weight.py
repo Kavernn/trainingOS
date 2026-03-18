@@ -3,54 +3,34 @@ from datetime import datetime
 
 
 def load_body_weight() -> list:
-    try:
-        result = db.get_body_weight_logs()
-        if isinstance(result, list):
-            # Rename 'weight' → 'poids' to match iOS CodingKey and get_tendance()
-            normalized = []
-            for row in result:
-                if isinstance(row, dict):
-                    entry = dict(row)
-                    if "weight" in entry and "poids" not in entry:
-                        entry["poids"] = entry.pop("weight")
-                    normalized.append(entry)
-            return normalized
-    except Exception:
-        pass
-    return db.get_json("body_weight", []) or []
+    result = db.get_body_weight_logs()
+    if not isinstance(result, list):
+        return []
+    # Normalize 'weight' → 'poids' to match iOS CodingKey and get_tendance()
+    normalized = []
+    for row in result:
+        if isinstance(row, dict):
+            entry = dict(row)
+            if "weight" in entry and "poids" not in entry:
+                entry["poids"] = entry.pop("weight")
+            normalized.append(entry)
+    return normalized
 
 
 def log_body_weight(poids: float, note: str = "", body_fat: float = None, waist_cm: float = None,
                     arms_cm: float = None, chest_cm: float = None,
                     thighs_cm: float = None, hips_cm: float = None):
     today = datetime.now().strftime("%Y-%m-%d")
-
-    # Try domain method
-    try:
-        db.upsert_body_weight(today, poids, note=note or "")
-    except Exception:
-        pass
-
-    # Always update KV for consistency
-    data = db.get_json("body_weight", []) or []
-    entry = {
-        "date":  today,
-        "poids": poids,
-        "note":  note
-    }
-    for key, val in [("body_fat", body_fat), ("waist_cm", waist_cm),
-                     ("arms_cm", arms_cm), ("chest_cm", chest_cm),
-                     ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
-        if val is not None:
-            entry[key] = val
-    # Update existing entry if same date, otherwise insert
-    for existing in data:
-        if isinstance(existing, dict) and existing.get("date") == today:
-            existing.update(entry)
-            db.set_json("body_weight", data)
-            return
-    data.insert(0, entry)
-    db.set_json("body_weight", data)
+    db.upsert_body_weight(
+        today, poids,
+        note=note or "",
+        body_fat=body_fat,
+        waist_cm=waist_cm,
+        arms_cm=arms_cm,
+        chest_cm=chest_cm,
+        thighs_cm=thighs_cm,
+        hips_cm=hips_cm,
+    )
 
 
 def get_tendance(body_weight: list) -> str:

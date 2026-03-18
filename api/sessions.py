@@ -6,7 +6,7 @@ from datetime import datetime
 def load_sessions() -> dict:
     try:
         rows = db.get_workout_sessions(limit=500)
-        if isinstance(rows, list) and rows:
+        if isinstance(rows, list):
             result = {}
             for row in rows:
                 if not isinstance(row, dict):
@@ -14,7 +14,6 @@ def load_sessions() -> dict:
                 date = row.get("date")
                 if date:
                     entry = {k: v for k, v in row.items() if k not in ("date", "id", "is_second", "user_id")}
-                    # Ensure numeric fields are float so Swift Double? decodes correctly
                     for field in ("rpe", "duration_min", "session_volume"):
                         if field in entry and entry[field] is not None:
                             entry[field] = float(entry[field])
@@ -22,8 +21,7 @@ def load_sessions() -> dict:
             return result
     except Exception:
         pass
-    # Fallback KV — couvre aussi le cas où le relational retourne [] à cause de RLS
-    return db.get_json("sessions", {}) or {}
+    return {}
 
 
 def save_sessions(sessions: dict):
@@ -33,8 +31,6 @@ def save_sessions(sessions: dict):
                 db.update_workout_session(date, entry)
     except Exception:
         pass
-    # Always sync to KV for consistency
-    db.set_json("sessions", sessions)
 
 
 def log_session(
@@ -65,57 +61,34 @@ def log_session(
         total_reps:     Total reps performed across all strength exercises.
         total_sets:     Total sets performed across all strength exercises.
     """
-    legacy_exos = exos or []
-    if blocks is not None and not legacy_exos:
-        strength = next((b for b in blocks if b.get("type") == "strength"), None)
-        if strength:
-            legacy_exos = strength.get("exos", [])
-
-    entry: dict = {
-        "rpe":       rpe,
-        "comment":   comment,
-        "exos":      legacy_exos,
-        "logged_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-    }
-    if blocks is not None:
-        entry["blocks"] = blocks
+    patch: dict = {}
+    if rpe is not None:
+        patch["rpe"] = rpe
+    if comment is not None:
+        patch["comment"] = comment
     if duration_min is not None:
-        entry["duration_min"] = duration_min
+        patch["duration_min"] = duration_min
     if energy_pre is not None:
-        entry["energy_pre"] = energy_pre
+        patch["energy_pre"] = energy_pre
     if session_volume is not None:
-        entry["session_volume"] = session_volume
+        patch["session_volume"] = session_volume
     if total_reps is not None:
-        entry["total_reps"] = total_reps
+        patch["total_reps"] = total_reps
     if total_sets is not None:
-        entry["total_sets"] = total_sets
+        patch["total_sets"] = total_sets
 
-    # Try relational path
     try:
-        db.create_workout_session(
-            date,
-            rpe=rpe,
-            comment=comment,
-            duration_min=duration_min,
-            energy_pre=energy_pre,
-        )
-    except Exception:
-        pass
-
-    # Always persist to KV for consistency
-    sessions = db.get_json("sessions", {}) or {}
-    sessions[date] = entry
-    db.set_json("sessions", sessions)
-
-    # Flush today's KV exercise logs to relational now that workout_session exists
-    # (upsert_exercise_log échoue pendant la séance car pas de workout_session encore)
-    try:
-        kv_weights = db.get_json("weights", {}) or {}
-        for ex_name, ex_data in kv_weights.items():
-            hist = ex_data.get("history", [])
-            if hist and hist[0].get("date") == date:
-                h = hist[0]
-                db.upsert_exercise_log(date, ex_name, h.get("weight"), h.get("reps"))
+        existing = db.get_workout_session(date)
+        if existing:
+            db.update_workout_session(date, patch)
+        else:
+            db.create_workout_session(
+                date,
+                rpe=rpe,
+                comment=comment,
+                duration_min=duration_min,
+                energy_pre=energy_pre,
+            )
     except Exception:
         pass
 
@@ -167,42 +140,19 @@ def log_second_session(
 
 def session_exists(date: str) -> bool:
     try:
-        result = db.get_workout_session(date)
-        if isinstance(result, dict):
-            return True
-        if result is None:
-            # Definitive None from domain method means not found
-            # (but only if it's a real None, not a MagicMock)
-            pass
+        return db.get_workout_session(date) is not None
     except Exception:
-        pass
-    # Fall back to KV
-    return date in (db.get_json("sessions", {}) or {})
+        return False
 
 
 def get_last_sessions(n: int = 10) -> list:
     try:
         rows = db.get_workout_sessions(limit=n)
         if isinstance(rows, list):
-            result = []
-            for row in rows:
-                if not isinstance(row, dict):
-                    continue
-                entry = dict(row)
-                if "date" not in entry:
-                    continue
-                result.append(entry)
-            if result:
-                return result[:n]
+            return [r for r in rows if isinstance(r, dict) and "date" in r][:n]
     except Exception:
         pass
-    sessions = db.get_json("sessions", {}) or {}
-    result = []
-    for date in sorted(sessions.keys(), reverse=True)[:n]:
-        entry = sessions[date].copy()
-        entry["date"] = date
-        result.append(entry)
-    return result
+    return []
 
 
 def get_session_blocks(date: str) -> list:

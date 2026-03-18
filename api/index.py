@@ -141,11 +141,8 @@ def allowed_file(filename):
 
 
 def load_hiit_log_local() -> list:
-    return get_json("hiit_log", [])
-
-
-def save_hiit_log_local(hiit_log: list):
-    set_json("hiit_log", hiit_log)
+    import db as _db
+    return _db.get_hiit_logs() or []
 
 
 # ── Pages HTML ───────────────────────────────────────────────
@@ -596,6 +593,9 @@ def api_log():
         weights[exercise]["last_reps"]      = reps
         weights[exercise]["last_logged"]    = datetime.now().strftime("%Y-%m-%d %H:%M")
 
+        # Ensure session stub exists so upsert_exercise_log can write the FK
+        import db as _db
+        _db.get_or_create_workout_session(_today_mtl())
         save_weights(weights)
         achieved = check_goals_achieved(weights)
 
@@ -635,6 +635,7 @@ def api_session_edit():
         # Update weights store for each exercise edit
         exercise_edits = data.get("exercises", [])
         if exercise_edits:
+            import db as _db
             weights = load_weights()
             for edit in exercise_edits:
                 ex    = edit.get("exercise")
@@ -672,7 +673,11 @@ def api_session_edit():
                     most_recent = max(history, key=lambda e: e.get("date", ""))
                     weights[ex]["current_weight"] = most_recent["weight"]
                     weights[ex]["last_reps"]      = most_recent["reps"]
-            save_weights(weights)
+                # Persist the edited entry directly (may be a past date, not history[0])
+                for entry in history:
+                    if entry.get("date") == date:
+                        _db.upsert_exercise_log(date, ex, entry.get("weight"), entry.get("reps"))
+                        break
 
         return jsonify({"success": True})
     except Exception as e:
@@ -688,27 +693,23 @@ def api_session_delete():
         if not date:
             return jsonify({"error": "date manquante"}), 400
 
-        # Delete from relational layer (cascades to exercise_logs)
+        # Delete from relational layer (cascades to exercise_logs via FK)
         import db as _db
+        _db.delete_session_exercise_logs(date)
         _db.delete_workout_session(date)
 
-        # Also clean KV sessions
-        sessions = load_sessions()
-        sessions.pop(date, None)
-        from sessions import save_sessions
-        save_sessions(sessions)
-
-        # Clean KV weights history for this date
+        # After relational delete, reload weights (history already excludes the deleted date)
+        # and sync current_weight/last_reps to reflect the new most-recent entry
         weights = load_weights()
-        for ex in weights:
-            history = weights[ex].get("history", [])
-            weights[ex]["history"] = [e for e in history if e.get("date") != date]
-            remaining = weights[ex]["history"]
-            if remaining:
-                most_recent = max(remaining, key=lambda e: e.get("date", ""))
-                weights[ex]["current_weight"] = most_recent["weight"]
-                weights[ex]["last_reps"]      = most_recent["reps"]
-        save_weights(weights)
+        for ex, ex_data in weights.items():
+            history = ex_data.get("history", [])
+            if not history:
+                continue
+            most_recent = history[0]
+            _db.upsert_exercise_log(
+                most_recent["date"], ex,
+                most_recent.get("weight"), most_recent.get("reps"),
+            )
 
         return jsonify({"success": True})
     except Exception as e:
@@ -750,12 +751,13 @@ def api_log_session():
 
 @app.route("/api/log_hiit", methods=["POST"])
 def api_log_hiit():
+    import db as _db
     data           = request.json
     week           = get_current_week()
     today          = data.get("date") or _today_mtl()
     session_type   = data.get("session_type", "HIIT")
     second_session = data.get("second_session", False)
-    hiit_log       = load_hiit_log_local()
+    hiit_log       = _db.get_hiit_logs() or []
 
     already_today = any(
         e.get("date") == today and e.get("session_type") == session_type
@@ -777,31 +779,31 @@ def api_log_hiit():
         "comment":            data.get("comment", "")
     }
 
-    hiit_log.insert(0, entry)
-    save_hiit_log_local(hiit_log)
+    _db.insert_hiit_log(entry)
     return jsonify({"success": True})
 
 
 @app.route("/api/delete_hiit", methods=["POST"])
 def api_delete_hiit():
+    import db as _db
     data     = request.json
-    hiit_log = load_hiit_log_local()
+    hiit_log = _db.get_hiit_logs() or []
 
     # Support deletion by index OR by date+session_type
-    index = data.get("index")
-    if index is not None and 0 <= index < len(hiit_log):
-        hiit_log.pop(index)
-        save_hiit_log_local(hiit_log)
+    idx = data.get("index")
+    if idx is not None and 0 <= idx < len(hiit_log):
+        entry_id = hiit_log[idx].get("id")
+        if entry_id:
+            _db.delete_hiit_log_by_id(entry_id)
         return jsonify({"success": True})
 
     date         = data.get("date")
     session_type = data.get("session_type")
     if date and session_type:
-        before = len(hiit_log)
-        hiit_log = [e for e in hiit_log if not (e.get("date") == date and e.get("session_type") == session_type)]
-        if len(hiit_log) < before:
-            save_hiit_log_local(hiit_log)
-            return jsonify({"success": True})
+        for entry in hiit_log:
+            if entry.get("date") == date and entry.get("session_type") == session_type:
+                _db.delete_hiit_log_by_id(entry.get("id"))
+                return jsonify({"success": True})
 
     return jsonify({"error": "Entrée introuvable"}), 400
 
@@ -809,20 +811,19 @@ def api_delete_hiit():
 @app.route("/api/hiit/edit", methods=["POST"])
 def api_hiit_edit():
     try:
+        import db as _db
         data     = request.get_json()
-        index    = data.get("index")
-        hiit_log = load_hiit_log_local()
+        idx      = data.get("index")
+        hiit_log = _db.get_hiit_logs() or []
 
-        if index is None or not (0 <= index < len(hiit_log)):
+        if idx is None or not (0 <= idx < len(hiit_log)):
             return jsonify({"error": "Index introuvable"}), 400
 
-        entry = hiit_log[index]
-        for field in ("rpe", "feeling", "comment", "rounds_completes",
-                      "vitesse_max", "vitesse_croisiere", "duration"):
-            if field in data:
-                entry[field] = data[field]
-
-        save_hiit_log_local(hiit_log)
+        entry = hiit_log[idx]
+        patch = {f: data[f] for f in ("rpe", "feeling", "comment", "rounds_completes",
+                                       "vitesse_max", "vitesse_croisiere", "duration")
+                 if f in data}
+        _db.update_hiit_log(entry.get("id"), patch)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -855,6 +856,8 @@ def api_save_exercise():
         rename_inventory_exercise(original_name, name, entry)
         add_exercise(name, entry)
         import db as _db
+        _db.unmark_exercise_deleted(original_name)
+        _db.unmark_exercise_deleted(name)
         program = _db.get_full_program()
         if program is not None:
             modified = {}
@@ -868,6 +871,8 @@ def api_save_exercise():
         # If Supabase unavailable, skip programme rename — inventory already renamed above
     else:
         add_exercise(name, entry)
+        import db as _db
+        _db.unmark_exercise_deleted(name)
 
     return jsonify({"success": True})
 
@@ -880,18 +885,15 @@ def api_delete_exercise():
 
     import db as _db
 
-    # Remove from all program sessions (save only the modified ones)
-    program = load_program()
-    for sname, sdef in program.items():
-        sb = get_block(sdef.get("blocks", []), "strength")
-        if sb and name in sb.get("exercises", {}):
-            del sb["exercises"][name]
-            save_program({sname: sdef})
+    # Remove from all program blocks via direct DB delete (bypasses save_full_program
+    # empty-block guard so deleting the last exercise in a block works correctly).
+    _db.remove_exercise_from_program_blocks(name)
 
     # Only delete from exercises table if no workout history exists.
     # exercise_logs has ON DELETE CASCADE — deleting exercises would destroy all history.
     if _db.exercise_has_logs(name):
-        # Exercise has history — preserve the row, just removed from program above.
+        # Exercise has history — preserve the row but hide it from inventory.
+        _db.mark_exercise_deleted(name)
         return jsonify({"success": True, "archived": True})
 
     deleted = _db.delete_exercise_by_name(name)
@@ -1145,35 +1147,24 @@ def api_body_weight():
 @app.route("/api/body_weight/update", methods=["POST"])
 def api_update_body_weight():
     try:
+        import db as _db
         data      = request.get_json()
-        date      = data.get("date", "")
-        old_poids = float(data.get("old_poids", 0))
+        target_date = data.get("date", "")
         new_poids = float(data.get("poids", 0))
-        body_fat  = data.get("body_fat")
-        if body_fat is not None:
-            body_fat = float(body_fat)
-        note = data.get("note", "")
-        entries  = load_body_weight()
-        updated  = False
-        for e in entries:
-            if e.get("date") == date and float(e.get("poids", 0)) == old_poids:
-                e["poids"] = new_poids
-                e["note"]  = note
-                if body_fat is not None:
-                    e["body_fat"] = body_fat
-                elif "body_fat" in e:
-                    del e["body_fat"]
-                for field in ["waist_cm", "arms_cm", "chest_cm", "thighs_cm", "hips_cm"]:
-                    val = data.get(field)
-                    if val is not None:
-                        e[field] = float(val)
-                    elif field in e:
-                        del e[field]
-                updated = True
-                break
-        if not updated:
+        body_fat  = float(data.get("body_fat")) if data.get("body_fat") is not None else None
+        note      = data.get("note", "")
+        waist_cm  = float(data.get("waist_cm"))  if data.get("waist_cm")  is not None else None
+        arms_cm   = float(data.get("arms_cm"))   if data.get("arms_cm")   is not None else None
+        chest_cm  = float(data.get("chest_cm"))  if data.get("chest_cm")  is not None else None
+        thighs_cm = float(data.get("thighs_cm")) if data.get("thighs_cm") is not None else None
+        hips_cm   = float(data.get("hips_cm"))   if data.get("hips_cm")   is not None else None
+        ok = _db.upsert_body_weight(
+            target_date, new_poids, note=note,
+            body_fat=body_fat, waist_cm=waist_cm, arms_cm=arms_cm,
+            chest_cm=chest_cm, thighs_cm=thighs_cm, hips_cm=hips_cm,
+        )
+        if not ok:
             return jsonify({"success": False, "error": "Entrée introuvable"}), 404
-        set_json("body_weight", entries)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1182,15 +1173,11 @@ def api_update_body_weight():
 @app.route("/api/body_weight/delete", methods=["POST"])
 def api_delete_body_weight():
     try:
+        import db as _db
         data  = request.get_json()
-        date  = data.get("date", "")
-        poids = float(data.get("poids", 0))
-        entries = load_body_weight()
-        # Supprime la première entrée qui correspond à la date ET au poids
-        new_entries = [e for e in entries if not (e.get("date") == date and float(e.get("poids", 0)) == poids)]
-        if len(new_entries) == len(entries):
+        ok = _db.delete_body_weight(data.get("date", ""))
+        if not ok:
             return jsonify({"success": False, "error": "Entrée introuvable"}), 404
-        set_json("body_weight", new_entries)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1529,7 +1516,8 @@ def api_stats_data():
     sessions     = load_sessions()
     hiit_log     = load_hiit_log_local()
     body_weight  = load_body_weight()
-    recovery_log = load_recovery_log()
+    import db as _db
+    recovery_log = _db.get_recovery_logs() or []
     nutr_settings = load_nutrition_settings()
     nutr_entries  = get_recent_days(7)
     inventory    = load_inventory() or {}
@@ -1653,8 +1641,13 @@ def api_programme_data():
 
 @app.route("/api/inventaire_data")
 def api_inventaire_data():
+    import db as _db
     inventory = load_inventory()
-    return jsonify({"inventory": inventory if inventory is not None else {}})
+    if inventory is None:
+        return jsonify({"inventory": {}})
+    deleted = _db.get_deleted_exercises()
+    filtered = {k: v for k, v in inventory.items() if k not in deleted}
+    return jsonify({"inventory": filtered})
 
 
 @app.route("/api/historique_data")
@@ -1707,21 +1700,16 @@ def api_bodycomp_data():
 
 # ── Cardio ───────────────────────────────────────────────────
 
-def load_cardio_log():
-    return get_json("cardio_log") or []
-
-def save_cardio_log(data):
-    set_json("cardio_log", data)
-
 @app.route("/api/cardio_data")
 def api_cardio_data():
-    log = load_cardio_log()
+    import db as _db
+    log = _db.get_cardio_logs() or []
     return jsonify({"cardio_log": sorted(log, key=lambda x: x.get("date", ""), reverse=True)})
 
 @app.route("/api/log_cardio", methods=["POST"])
 def api_log_cardio():
+    import db as _db
     data = request.get_json()
-    log  = load_cardio_log()
     entry = {
         "date":         data.get("date", date.today().isoformat()),
         "type":         data.get("type", "course"),
@@ -1734,38 +1722,29 @@ def api_log_cardio():
         "rpe":          data.get("rpe"),
         "notes":        data.get("notes", ""),
     }
-    log.insert(0, entry)
-    save_cardio_log(log)
+    _db.insert_cardio_log(entry)
     return jsonify({"ok": True})
 
 @app.route("/api/delete_cardio", methods=["POST"])
 def api_delete_cardio():
+    import db as _db
     data = request.get_json()
-    d    = data.get("date")
-    t    = data.get("type")
-    log  = load_cardio_log()
-    log  = [e for e in log if not (e.get("date") == d and e.get("type") == t)]
-    save_cardio_log(log)
+    _db.delete_cardio_log(data.get("date", ""), data.get("type", ""))
     return jsonify({"ok": True})
 
 
 # ── Récupération ──────────────────────────────────────────────
 
-def load_recovery_log():
-    return get_json("recovery_log") or []
-
-def save_recovery_log(data):
-    set_json("recovery_log", data)
-
 @app.route("/api/recovery_data")
 def api_recovery_data():
-    log = load_recovery_log()
+    import db as _db
+    log = _db.get_recovery_logs() or []
     return jsonify({"recovery_log": sorted(log, key=lambda x: x.get("date", ""), reverse=True)})
 
 @app.route("/api/log_recovery", methods=["POST"])
 def api_log_recovery():
-    data = request.get_json()
-    log  = load_recovery_log()
+    import db as _db
+    data  = request.get_json()
     entry = {
         "date":          data.get("date", date.today().isoformat()),
         "sleep_hours":   data.get("sleep_hours"),
@@ -1776,21 +1755,14 @@ def api_log_recovery():
         "soreness":      data.get("soreness"),
         "notes":         data.get("notes", ""),
     }
-    idx = next((i for i, e in enumerate(log) if e.get("date") == entry["date"]), None)
-    if idx is not None:
-        log[idx] = entry
-    else:
-        log.insert(0, entry)
-    save_recovery_log(log)
+    _db.upsert_recovery_log(entry)
     return jsonify({"ok": True})
 
 @app.route("/api/delete_recovery", methods=["POST"])
 def api_delete_recovery():
+    import db as _db
     data = request.get_json()
-    d    = data.get("date")
-    log  = load_recovery_log()
-    log  = [e for e in log if e.get("date") != d]
-    save_recovery_log(log)
+    _db.delete_recovery_log(data.get("date", ""))
     return jsonify({"ok": True})
 
 
