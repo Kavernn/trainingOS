@@ -438,10 +438,9 @@ def exercise_has_logs(name: str) -> bool:
 
 
 def delete_exercise_by_name(name: str) -> bool:
-    """Delete an exercise by name. Returns True if a row was deleted.
+    """Hard-delete an exercise by name. Returns True if a row was deleted.
 
-    IMPORTANT: Only call this when exercise_has_logs() is False.
-    Deleting from exercises CASCADE-deletes all exercise_logs for that exercise.
+    CASCADE removes all associated exercise_logs and program_block_exercises rows.
     """
     if _client is None or MODE == "OFFLINE":
         return False

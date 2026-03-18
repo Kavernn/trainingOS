@@ -885,17 +885,11 @@ def api_delete_exercise():
 
     import db as _db
 
-    # Remove from all program blocks via direct DB delete (bypasses save_full_program
+    # Remove from all program blocks first (bypasses save_full_program
     # empty-block guard so deleting the last exercise in a block works correctly).
     _db.remove_exercise_from_program_blocks(name)
 
-    # Only delete from exercises table if no workout history exists.
-    # exercise_logs has ON DELETE CASCADE — deleting exercises would destroy all history.
-    if _db.exercise_has_logs(name):
-        # Exercise has history — preserve the row but hide it from inventory.
-        _db.mark_exercise_deleted(name)
-        return jsonify({"success": True, "archived": True})
-
+    # Hard delete — CASCADE removes exercise_logs and program_block_exercises rows too.
     deleted = _db.delete_exercise_by_name(name)
     if not deleted:
         return jsonify({"error": "Exercice introuvable"}), 404
