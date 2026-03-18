@@ -56,7 +56,7 @@ def _today_mtl() -> str:
 from flask import Flask, render_template, jsonify, request, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 
-from planner      import get_today, get_today_date, get_week_schedule, get_suggested_weights_for_today, load_program, save_program
+from planner      import get_today, get_today_date, get_week_schedule, get_suggested_weights_for_today, load_program, save_program, get_today_evening, get_evening_schedule
 from blocks       import (make_strength_block, make_hiit_block, make_cardio_block,
                            get_block, get_strength_exercises,
                            upsert_block, remove_block, reorder_blocks)
@@ -514,16 +514,17 @@ def api_log():
         rpe_raw  = data.get("rpe")
         rpe      = float(rpe_raw) if rpe_raw is not None else None
 
-        force    = bool(data.get("force", False))
+        force     = bool(data.get("force", False))
+        is_second = bool(data.get("is_second", False))
 
         if not exercise or not reps_str:
             return jsonify({"error": "Données manquantes"}), 400
 
         weights   = load_weights()
 
-        # Duplicate-prevention guard (skipped when force=true for edit mode)
+        # Duplicate-prevention guard (skipped for force overwrite or evening session)
         existing_history = weights.get(exercise, {}).get("history", [])
-        if not force and existing_history and existing_history[0]["date"] == _today_mtl():
+        if not force and not is_second and existing_history and existing_history[0]["date"] == _today_mtl():
             return jsonify({
                 "error":      "already_logged",
                 "new_weight": weights[exercise].get("current_weight", 0),
@@ -595,7 +596,10 @@ def api_log():
 
         # Ensure session stub exists so upsert_exercise_log can write the FK
         import db as _db
-        _db.get_or_create_workout_session(_today_mtl())
+        if is_second:
+            _db.get_or_create_workout_session_second(_today_mtl())
+        else:
+            _db.get_or_create_workout_session(_today_mtl())
         save_weights(weights)
         achieved = check_goals_achieved(weights)
 
@@ -856,8 +860,6 @@ def api_save_exercise():
         rename_inventory_exercise(original_name, name, entry)
         add_exercise(name, entry)
         import db as _db
-        _db.unmark_exercise_deleted(original_name)
-        _db.unmark_exercise_deleted(name)
         program = _db.get_full_program()
         if program is not None:
             modified = {}
@@ -871,8 +873,6 @@ def api_save_exercise():
         # If Supabase unavailable, skip programme rename — inventory already renamed above
     else:
         add_exercise(name, entry)
-        import db as _db
-        _db.unmark_exercise_deleted(name)
 
     return jsonify({"success": True})
 
@@ -885,11 +885,7 @@ def api_delete_exercise():
 
     import db as _db
 
-    # Remove from all program blocks first (bypasses save_full_program
-    # empty-block guard so deleting the last exercise in a block works correctly).
-    _db.remove_exercise_from_program_blocks(name)
-
-    # Hard delete — CASCADE removes exercise_logs and program_block_exercises rows too.
+    # Hard delete — CASCADE removes exercise_logs and program_block_exercises rows.
     deleted = _db.delete_exercise_by_name(name)
     if not deleted:
         return jsonify({"error": "Exercice introuvable"}), 404
@@ -1465,6 +1461,54 @@ def api_seance_data():
     })
 
 
+@app.route("/api/seance_soir_data")
+def api_seance_soir_data():
+    import db as _db
+    today_soir = get_today_evening()
+    if not today_soir:
+        return jsonify({"has_evening_session": False})
+
+    weights      = load_weights()
+    full_program = load_program()
+    inventory    = load_inventory()
+    today_date   = get_today_date()
+    schedule     = get_evening_schedule()
+    already_logged = _db.get_workout_session_second(today_date) is not None
+
+    flat_program = {
+        seance: get_strength_exercises(session_def)
+        for seance, session_def in full_program.items()
+    }
+    inv = inventory if isinstance(inventory, dict) else {}
+    inventory_types = {name: info.get("type", "machine") for name, info in inv.items()}
+    exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
+    suggestions     = get_suggested_weights_for_today(weights)
+
+    return jsonify({
+        "has_evening_session": True,
+        "today_soir": today_soir,
+        "today_date": today_date,
+        "already_logged": already_logged,
+        "schedule": schedule,
+        "full_program": flat_program,
+        "suggestions": suggestions,
+        "weights": weights,
+        "week": get_current_week(),
+        "inventory_types": inventory_types,
+        "exercise_order": exercise_order,
+    })
+
+
+@app.route("/api/evening_schedule", methods=["GET", "POST"])
+def api_evening_schedule():
+    import db as _db
+    if request.method == "POST":
+        schedule = request.get_json() or {}
+        success = _db.set_evening_week_schedule(schedule)
+        return jsonify({"success": success})
+    return jsonify(_db.get_evening_week_schedule())
+
+
 def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:
     """Compute per-muscle volume from weights history × inventory muscles.
 
@@ -1639,9 +1683,7 @@ def api_inventaire_data():
     inventory = load_inventory()
     if inventory is None:
         return jsonify({"inventory": {}})
-    deleted = _db.get_deleted_exercises()
-    filtered = {k: v for k, v in inventory.items() if k not in deleted}
-    return jsonify({"inventory": filtered})
+    return jsonify({"inventory": inventory})
 
 
 @app.route("/api/historique_data")

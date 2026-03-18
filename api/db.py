@@ -412,30 +412,6 @@ def rename_exercise_table(old_name: str, new_name: str) -> bool:
         return False
 
 
-def exercise_has_logs(name: str) -> bool:
-    """Return True if the exercise has any exercise_logs (workout history).
-
-    Used to prevent cascade-deleting historical data when removing an exercise.
-    """
-    if _client is None or MODE == "OFFLINE":
-        return False
-    try:
-        ex_resp = _client.table("exercises").select("id").eq("name", name).single().execute()
-        if not ex_resp.data:
-            return False
-        ex_id = ex_resp.data["id"]
-        logs_resp = (
-            _client.table("exercise_logs")
-            .select("id", count="exact")
-            .eq("exercise_id", ex_id)
-            .limit(1)
-            .execute()
-        )
-        return bool(logs_resp.data)
-    except Exception as e:
-        logger.debug("exercise_has_logs(%s) error: %s", name, e)
-        return True  # Fail safe — assume it has logs to avoid accidental deletion
-
 
 def delete_exercise_by_name(name: str) -> bool:
     """Hard-delete an exercise by name. Returns True if a row was deleted.
@@ -451,43 +427,6 @@ def delete_exercise_by_name(name: str) -> bool:
         logger.error("delete_exercise_by_name error: %s", e)
         return False
 
-
-def remove_exercise_from_program_blocks(name: str) -> None:
-    """Remove an exercise from all program blocks via direct DB delete.
-
-    Bypasses the save_full_program empty-block safety guard so that deleting
-    the last exercise in a block works correctly.
-    """
-    if _client is None or MODE == "OFFLINE":
-        return
-    try:
-        ex_resp = _client.table("exercises").select("id").eq("name", name).execute()
-        if not ex_resp.data:
-            return
-        ex_id = ex_resp.data[0]["id"]
-        _client.table("program_block_exercises").delete().eq("exercise_id", ex_id).execute()
-    except Exception as e:
-        logger.error("remove_exercise_from_program_blocks error: %s", e)
-
-
-def get_deleted_exercises() -> set:
-    """Return the set of exercise names soft-deleted from inventory."""
-    return set(get_json("deleted_exercises", []))
-
-
-def mark_exercise_deleted(name: str) -> None:
-    """Add an exercise to the soft-deleted set (used when logs prevent hard delete)."""
-    deleted = get_deleted_exercises()
-    deleted.add(name)
-    set_json("deleted_exercises", list(deleted))
-
-
-def unmark_exercise_deleted(name: str) -> None:
-    """Remove an exercise from the soft-deleted set (e.g. when recreated or renamed)."""
-    deleted = get_deleted_exercises()
-    if name in deleted:
-        deleted.discard(name)
-        set_json("deleted_exercises", list(deleted))
 
 
 # ---------------------------------------------------------------------------
@@ -561,6 +500,33 @@ def get_or_create_workout_session(date: str) -> dict:
     if existing:
         return existing
     return create_workout_session(date)
+
+
+def get_workout_session_second(date: str) -> Optional[dict]:
+    """Return the second (is_second=True) workout session for a date, or None."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("*")
+            .eq("date", date)
+            .eq("is_second", True)
+            .single()
+            .execute()
+        )
+        return resp.data
+    except Exception as e:
+        logger.debug("get_workout_session_second(%s) error: %s", date, e)
+        return None
+
+
+def get_or_create_workout_session_second(date: str) -> dict:
+    """Return the second session for *date*, creating a stub if none exists."""
+    existing = get_workout_session_second(date)
+    if existing:
+        return existing
+    return create_workout_session(date, is_second=True)
 
 
 def create_workout_session(
@@ -1773,6 +1739,7 @@ def get_relational_week_schedule() -> dict:
         resp = (
             _client.table("weekly_schedule")
             .select("day_name, program_sessions(name)")
+            .eq("slot", "morning")
             .execute()
         )
         result: dict = {}
@@ -1807,10 +1774,58 @@ def set_relational_week_schedule(schedule: dict) -> bool:
                 if sess_resp.data:
                     session_id = sess_resp.data[0]["id"]
             _client.table("weekly_schedule").upsert(
-                {"day_name": day_name, "session_id": session_id},
-                on_conflict="day_name",
+                {"day_name": day_name, "session_id": session_id, "slot": "morning"},
+                on_conflict="day_name,slot",
             ).execute()
         return True
     except Exception as e:
         logger.error("set_relational_week_schedule error: %s", e)
+        return False
+
+
+def get_evening_week_schedule() -> dict:
+    """Return {"Lun": "Core", ...} for slot='evening' from weekly_schedule."""
+    if _client is None or MODE == "OFFLINE":
+        return {}
+    try:
+        resp = (
+            _client.table("weekly_schedule")
+            .select("day_name, program_sessions(name)")
+            .eq("slot", "evening")
+            .execute()
+        )
+        result: dict = {}
+        for row in (resp.data or []):
+            session = row.get("program_sessions")
+            if session and session.get("name"):
+                result[row["day_name"]] = session["name"]
+        return result
+    except Exception as e:
+        logger.error("get_evening_week_schedule error: %s", e)
+        return {}
+
+
+def set_evening_week_schedule(schedule: dict) -> bool:
+    """Upsert weekly_schedule for slot='evening'. None clears the day."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        for day_name, session_name in schedule.items():
+            session_id = None
+            if session_name:
+                sess_resp = (
+                    _client.table("program_sessions")
+                    .select("id")
+                    .eq("name", session_name)
+                    .execute()
+                )
+                if sess_resp.data:
+                    session_id = sess_resp.data[0]["id"]
+            _client.table("weekly_schedule").upsert(
+                {"day_name": day_name, "session_id": session_id, "slot": "evening"},
+                on_conflict="day_name,slot",
+            ).execute()
+        return True
+    except Exception as e:
+        logger.error("set_evening_week_schedule error: %s", e)
         return False

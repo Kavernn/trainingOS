@@ -132,29 +132,36 @@ class APIService: ObservableObject {
 
     func logExercise(exercise: String, weight: Double, reps: String,
                      rpe: Double? = nil, sets: [[String: Any]] = [],
-                     force: Bool = false) async throws -> LogExerciseResponse {
+                     force: Bool = false, isSecond: Bool = false) async throws -> LogExerciseResponse {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
         if let rpe { body["rpe"] = rpe }
         if !sets.isEmpty { body["sets"] = sets }
-        if force { body["force"] = true }
+        if force    { body["force"] = true }
+        if isSecond { body["is_second"] = true }
         let data = try await offlinePost(endpoint: "/api/log", payload: body)
-        // Invalider immédiatement — évite l'affichage "pas loggé" après re-ouverture
-        // Note: 409 (already_logged) n'est jamais re-queué par SyncManager (traité comme succès)
-        CacheService.shared.clear(for: "seance_data")
+        CacheService.shared.clear(for: isSecond ? "seance_soir_data" : "seance_data")
         CacheService.shared.clear(for: "dashboard")
         return (try? JSONDecoder().decode(LogExerciseResponse.self, from: data))
             ?? LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
     }
 
     func logSession(exos: [String], rpe: Double, comment: String,
-                    durationMin: Double? = nil, energyPre: Int? = nil) async throws {
+                    durationMin: Double? = nil, energyPre: Int? = nil,
+                    secondSession: Bool = false) async throws {
         var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment]
-        if let d = durationMin { body["duration_min"] = d }
-        if let e = energyPre   { body["energy_pre"] = e }
+        if let d = durationMin  { body["duration_min"] = d }
+        if let e = energyPre    { body["energy_pre"] = e }
+        if secondSession        { body["second_session"] = true }
         _ = try await offlinePost(endpoint: "/api/log_session", payload: body)
         CacheService.shared.clear(for: "dashboard")
-        CacheService.shared.clear(for: "seance_data")
+        CacheService.shared.clear(for: secondSession ? "seance_soir_data" : "seance_data")
         CacheService.shared.clear(for: "stats_data")
+    }
+
+    func fetchSeanceSoirData() async throws -> SeanceSoirData {
+        let url = URL(string: "\(baseURL)/api/seance_soir_data")!
+        let data = try await fetchWithCache(url: url, key: "seance_soir_data")
+        return try JSONDecoder().decode(SeanceSoirData.self, from: data)
     }
 
     func deleteSession(date: String) async throws {

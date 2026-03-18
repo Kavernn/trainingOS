@@ -5,6 +5,7 @@ struct DashboardView: View {
     @State private var deload: DeloadReport?
     @State private var moodDue: MoodDueStatus?
     @State private var brief: MorningBriefData?
+    @State private var soirData: SeanceSoirData?
     @State private var showMoodSheet = false
     @State private var lastRefresh: Date = .distantPast
     @Environment(\.scenePhase) private var scenePhase
@@ -63,6 +64,11 @@ struct DashboardView: View {
                             TodayCardView(dash: dash)
                                 .appearAnimation(delay: 0.05)
 
+                            if let soir = soirData, soir.hasEveningSession {
+                                SoirCardView(data: soir)
+                                    .appearAnimation(delay: 0.07)
+                            }
+
                             StatsRowView(dash: dash)
                                 .appearAnimation(delay: 0.1)
 
@@ -81,9 +87,14 @@ struct DashboardView: View {
                     }
                     .refreshable {
                         await api.fetchDashboard()
-                        deload  = try? await APIService.shared.fetchDeloadData()
-                        moodDue = try? await APIService.shared.checkMoodDue()
-                        brief   = try? await APIService.shared.fetchMorningBrief()
+                        async let d  = APIService.shared.fetchDeloadData()
+                        async let m  = APIService.shared.checkMoodDue()
+                        async let b  = APIService.shared.fetchMorningBrief()
+                        async let s  = APIService.shared.fetchSeanceSoirData()
+                        deload   = try? await d
+                        moodDue  = try? await m
+                        brief    = try? await b
+                        soirData = try? await s
                     }
                 } else if let err = api.error {
                     VStack(spacing: 16) {
@@ -112,9 +123,11 @@ struct DashboardView: View {
             async let d = APIService.shared.fetchDeloadData()
             async let m = APIService.shared.checkMoodDue()
             async let b = APIService.shared.fetchMorningBrief()
-            deload  = try? await d
-            moodDue = try? await m
-            brief   = try? await b
+            async let s = APIService.shared.fetchSeanceSoirData()
+            deload   = try? await d
+            moodDue  = try? await m
+            brief    = try? await b
+            soirData = try? await s
             lastRefresh = Date()
         }
         .onChange(of: scenePhase) {
@@ -126,9 +139,11 @@ struct DashboardView: View {
                     async let d = APIService.shared.fetchDeloadData()
                     async let m = APIService.shared.checkMoodDue()
                     async let b = APIService.shared.fetchMorningBrief()
-                    deload  = try? await d
-                    moodDue = try? await m
-                    brief   = try? await b
+                    async let s = APIService.shared.fetchSeanceSoirData()
+                    deload   = try? await d
+                    moodDue  = try? await m
+                    brief    = try? await b
+                    soirData = try? await s
                     lastRefresh = Date()
                 }
             }
@@ -824,5 +839,117 @@ struct MorningBriefCardView: View {
         case "reduce": return "arrow.down.circle.fill"
         default:       return "exclamationmark.circle.fill"
         }
+    }
+}
+
+// MARK: - SoirCardView
+
+struct SoirCardView: View {
+    let data: SeanceSoirData
+
+    private var sessionName: String { data.todaySoir ?? "Séance du soir" }
+
+    private var sessionColor: Color {
+        switch sessionName {
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
+        case "Recovery":                     return .green
+        default:                             return .indigo
+        }
+    }
+
+    private var sessionIcon: String {
+        switch sessionName {
+        case "Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs": return "dumbbell.fill"
+        case "Yoga / Tai Chi": return "figure.mind.and.body"
+        case "Recovery":       return "heart.fill"
+        default:               return "moon.stars.fill"
+        }
+    }
+
+    private var exercises: [(String, String)] {
+        guard let program = data.fullProgram[sessionName] else { return [] }
+        return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Top bar
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle().fill(sessionColor.opacity(0.15)).frame(width: 36, height: 36)
+                    Image(systemName: data.alreadyLogged ? "checkmark" : sessionIcon)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(data.alreadyLogged ? .green : sessionColor)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("CE SOIR")
+                        .font(.system(size: 9, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Text(sessionName)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(data.alreadyLogged ? .green : sessionColor)
+                }
+                Spacer()
+                if data.alreadyLogged {
+                    HStack(spacing: 5) {
+                        PulsingDot(color: .green)
+                        Text("Complété")
+                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.green)
+                    }
+                }
+            }
+            .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 12)
+
+            Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 16)
+
+            if !exercises.isEmpty && !data.alreadyLogged {
+                VStack(spacing: 0) {
+                    ForEach(exercises.prefix(5), id: \.0) { ex, sets in
+                        HStack {
+                            Circle().fill(sessionColor.opacity(0.25)).frame(width: 5, height: 5)
+                            Text(ex)
+                                .font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+                            Spacer()
+                            Text(sets)
+                                .font(.system(size: 12)).foregroundColor(.gray)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 7)
+                    }
+                    if exercises.count > 5 {
+                        Text("+ \(exercises.count - 5) exercices")
+                            .font(.system(size: 11)).foregroundColor(.gray)
+                            .padding(.horizontal, 16).padding(.bottom, 8)
+                    }
+                }
+            }
+
+            if !data.alreadyLogged {
+                NavigationLink(destination: SeanceSoirView()) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "moon.fill")
+                        Text("Commencer la séance du soir")
+                            .font(.system(size: 15, weight: .bold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [sessionColor, sessionColor.opacity(0.75)],
+                            startPoint: .leading, endPoint: .trailing
+                        )
+                    )
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .shadow(color: sessionColor.opacity(0.4), radius: 10, y: 4)
+                }
+                .buttonStyle(SpringButtonStyle())
+                .padding([.horizontal, .bottom], 16)
+                .padding(.top, 12)
+            }
+        }
+        .glassCardAccent(data.alreadyLogged ? .green : sessionColor)
+        .cornerRadius(16)
     }
 }

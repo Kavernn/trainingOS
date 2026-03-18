@@ -183,6 +183,19 @@ def get_week_schedule() -> Dict[str, str]:
     return {days[i]: SCHEDULE[i] for i in range(7)}
 
 
+def get_evening_schedule() -> Dict[str, str]:
+    """Return the evening schedule dict {"Lun": "Core", ...} (empty if none configured)."""
+    import db as _db
+    return _db.get_evening_week_schedule() or {}
+
+
+def get_today_evening() -> str | None:
+    """Return the evening session type for today, or None if no session configured."""
+    schedule = get_evening_schedule()
+    days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+    return schedule.get(days[_montreal_now().weekday()])
+
+
 # ---------------------------------------------------------------------------
 # Weight suggestions
 # ---------------------------------------------------------------------------

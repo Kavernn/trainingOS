@@ -57,6 +57,20 @@
 
 ---
 
+## 🌙 EN COURS — Séance du Soir
+
+- [ ] **Étape 1** — Migration Supabase : colonne `slot` sur `weekly_schedule`, UNIQUE(day_name, slot)
+- [ ] **Étape 2** — db.py : `get/set_evening_week_schedule`, `get_or_create_workout_session_second`, filtre `slot='morning'`
+- [ ] **Étape 3** — planner.py : `get_evening_schedule`, `get_today_evening`
+- [ ] **Étape 4** — index.py : `/api/seance_soir_data`, `/api/evening_schedule`, `is_second` sur `/api/log`
+- [ ] **Étape 5** — APIModels.swift : `SeanceSoirData`, memberwise init sur `SeanceData`
+- [ ] **Étape 6** — APIService.swift : `fetchSeanceSoirData`, `logExerciseEvening`
+- [ ] **Étape 7** — SeanceSoirView.swift (nouveau) : `SeanceSoirViewModel` + `SeanceSoirView`
+- [ ] **Étape 8** — DashboardView.swift : `SoirCardView` sous `TodayCardView`
+- [ ] **Étape 9** — ProgrammeView.swift : section config schedule du soir
+
+---
+
 ## ✅ Déjà résolu récemment
 
 - [x] Exercices ajoutés au programme → inventaire (timeout `save_inventory` fixé → `add_exercise` ciblé)

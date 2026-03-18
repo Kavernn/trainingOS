@@ -158,38 +158,18 @@ def make_store():
 
     def delete_exercise_by_name(name):
         inv = store.get("inventory", {})
-        if name in inv:
-            del inv[name]
-            store["inventory"] = inv
-            return True
-        return False
-
-    def exercise_has_logs(name):
-        weights = store.get("weights", {})
-        return bool(weights.get(name, {}).get("history", []))
-
-    def remove_exercise_from_program_blocks(name):
+        if name not in inv:
+            return False
+        del inv[name]
+        store["inventory"] = inv
+        # Simulate CASCADE: remove exercise from all program strength blocks
         program = store.get("program", {})
         for sdef in program.values():
             for block in sdef.get("blocks", []):
                 if block.get("type") == "strength":
                     block.get("exercises", {}).pop(name, None)
         store["program"] = program
-
-    def get_deleted_exercises():
-        return set(store.get("deleted_exercises", []))
-
-    def mark_exercise_deleted(name):
-        deleted = list(get_deleted_exercises())
-        if name not in deleted:
-            deleted.append(name)
-        store["deleted_exercises"] = deleted
-
-    def unmark_exercise_deleted(name):
-        deleted = list(get_deleted_exercises())
-        if name in deleted:
-            deleted.remove(name)
-        store["deleted_exercises"] = deleted
+        return True
 
     def get_full_program():
         return copy.deepcopy(store.get("program", {}))
@@ -503,11 +483,6 @@ def make_store():
         upsert_exercise=upsert_exercise,
         rename_exercise_table=rename_exercise_table,
         delete_exercise_by_name=delete_exercise_by_name,
-        exercise_has_logs=exercise_has_logs,
-        remove_exercise_from_program_blocks=remove_exercise_from_program_blocks,
-        get_deleted_exercises=get_deleted_exercises,
-        mark_exercise_deleted=mark_exercise_deleted,
-        unmark_exercise_deleted=unmark_exercise_deleted,
         get_full_program=get_full_program,
         save_full_program=save_full_program,
         get_workout_sessions=get_workout_sessions,

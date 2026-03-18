@@ -175,6 +175,67 @@ struct SeanceData: Codable {
         inventoryTypes  = (try? c.decode([String: String].self, forKey: .inventoryTypes)) ?? [:]
         exerciseOrder   = (try? c.decode([String: [String]].self, forKey: .exerciseOrder)) ?? [:]
     }
+
+    init(today: String, todayDate: String, alreadyLogged: Bool,
+         schedule: [String: String], fullProgram: [String: [String: SafeString]],
+         weights: [String: WeightData], week: Int,
+         inventoryTypes: [String: String], exerciseOrder: [String: [String]]) {
+        self.today          = today
+        self.todayDate      = todayDate
+        self.alreadyLogged  = alreadyLogged
+        self.schedule       = schedule
+        self.fullProgram    = fullProgram
+        self.weights        = weights
+        self.week           = week
+        self.inventoryTypes = inventoryTypes
+        self.exerciseOrder  = exerciseOrder
+    }
+}
+
+struct SeanceSoirData: Codable {
+    let hasEveningSession: Bool
+    let todaySoir: String?
+    let todayDate: String
+    let alreadyLogged: Bool
+    let schedule: [String: String]
+    let fullProgram: [String: [String: SafeString]]
+    let weights: [String: WeightData]
+    let week: Int
+    let inventoryTypes: [String: String]
+    let exerciseOrder: [String: [String]]
+
+    enum CodingKeys: String, CodingKey {
+        case hasEveningSession = "has_evening_session"
+        case todaySoir         = "today_soir"
+        case todayDate         = "today_date"
+        case alreadyLogged     = "already_logged"
+        case schedule
+        case fullProgram       = "full_program"
+        case weights, week
+        case inventoryTypes    = "inventory_types"
+        case exerciseOrder     = "exercise_order"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        hasEveningSession = (try? c.decode(Bool.self,               forKey: .hasEveningSession)) ?? false
+        todaySoir         =  try? c.decode(String.self,             forKey: .todaySoir)
+        todayDate         = (try? c.decode(String.self,             forKey: .todayDate))         ?? ""
+        alreadyLogged     = (try? c.decode(Bool.self,               forKey: .alreadyLogged))     ?? false
+        schedule          = (try? c.decode([String: String].self,   forKey: .schedule))          ?? [:]
+        fullProgram       = (try? c.decode([String: [String: SafeString]].self, forKey: .fullProgram)) ?? [:]
+        weights           = (try? c.decode([String: WeightData].self, forKey: .weights))         ?? [:]
+        week              = (try? c.decode(Int.self,                forKey: .week))              ?? 0
+        inventoryTypes    = (try? c.decode([String: String].self,   forKey: .inventoryTypes))    ?? [:]
+        exerciseOrder     = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))     ?? [:]
+    }
+
+    func asSeanceData() -> SeanceData? {
+        guard let soir = todaySoir else { return nil }
+        return SeanceData(today: soir, todayDate: todayDate, alreadyLogged: alreadyLogged,
+                         schedule: schedule, fullProgram: fullProgram, weights: weights,
+                         week: week, inventoryTypes: inventoryTypes, exerciseOrder: exerciseOrder)
+    }
 }
 
 struct WeightData: Codable {

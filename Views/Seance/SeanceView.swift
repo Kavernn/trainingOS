@@ -348,6 +348,7 @@ struct ExtraSessionSheet: View {
 struct WorkoutSeanceView: View {
     let data: SeanceData
     @ObservedObject var vm: SeanceViewModel
+    var isSecondSession: Bool = false
     @State private var rpe: Double = 7
     @State private var comment = ""
     @State private var showFinish = false
@@ -453,6 +454,7 @@ struct WorkoutSeanceView: View {
             weightData: data.weights[name],
             equipmentType: equipmentType(for: name),
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
+            isSecondSession: isSecondSession,
             logResult: $vm.logResults[name],
             onLogged: nil
         )
@@ -1023,6 +1025,7 @@ struct AddHIITSheet: View {
         let weightData: WeightData?
         var equipmentType: String = "machine"
         var bodyWeight: Double = 0
+        var isSecondSession: Bool = false
         @Binding var logResult: ExerciseLogResult?
         var onLogged: (() -> Void)? = nil
         @ObservedObject private var units = UnitSettings.shared
@@ -1407,7 +1410,7 @@ struct AddHIITSheet: View {
             Task {
                 if let response = try? await APIService.shared.logExercise(
                     exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE,
-                    sets: setsPayload, force: wasEditing),
+                    sets: setsPayload, force: wasEditing, isSecond: isSecondSession),
                    response.isPR == true {
                     let content = UNMutableNotificationContent()
                     content.title = "🏆 Nouveau PR !"
@@ -1990,7 +1993,7 @@ struct AddHIITSheet: View {
             isLoading = false
         }
 
-        private func restoreLogResults(from data: SeanceData) {
+        func restoreLogResults(from data: SeanceData) {
             let program = data.fullProgram[data.today] ?? [:]
             var restored: [String: ExerciseLogResult] = [:]
             for exerciseName in program.keys {
