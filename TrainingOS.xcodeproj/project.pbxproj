@@ -31,6 +31,7 @@
 		CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3300012F5D98BA002AE472 /* PSSView.swift */; };
 		D665E4472F5D98BA002AE470 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4332F5D98B8002AE470 /* ContentView.swift */; };
 		D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4422F5D98B8002AE470 /* SeanceView.swift */; };
+		AA11001B2F5D98BA002AE470 /* SeanceSoirView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */; };
 		D665E4492F5D98BA002AE470 /* HistoriqueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43E2F5D98B8002AE470 /* HistoriqueView.swift */; };
 		D665E44A2F5D98BA002AE470 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4342F5D98B8002AE470 /* APIModels.swift */; };
 		D665E44B2F5D98BA002AE470 /* TimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4442F5D98B8002AE470 /* TimerView.swift */; };
@@ -99,6 +100,7 @@
 		D665E43E2F5D98B8002AE470 /* HistoriqueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoriqueView.swift; sourceTree = "<group>"; };
 		D665E4402F5D98B8002AE470 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		D665E4422F5D98B8002AE470 /* SeanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceView.swift; sourceTree = "<group>"; };
+		AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceSoirView.swift; sourceTree = "<group>"; };
 		D665E4442F5D98B8002AE470 /* TimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerView.swift; sourceTree = "<group>"; };
 		D69FB9052F666F3F0091BDD2 /* TrainingOSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DD4400022F5D98BA002AE473 /* MentalHealthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MentalHealthView.swift; sourceTree = "<group>"; };
@@ -345,6 +347,7 @@
 			isa = PBXGroup;
 			children = (
 				D665E4422F5D98B8002AE470 /* SeanceView.swift */,
+				AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */,
 			);
 			path = Seance;
 			sourceTree = "<group>";
@@ -526,6 +529,7 @@
 			files = (
 				D665E4472F5D98BA002AE470 /* ContentView.swift in Sources */,
 				D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */,
+				AA11001B2F5D98BA002AE470 /* SeanceSoirView.swift in Sources */,
 				D665E4492F5D98BA002AE470 /* HistoriqueView.swift in Sources */,
 				D665E44A2F5D98BA002AE470 /* APIModels.swift in Sources */,
 				D665E44B2F5D98BA002AE470 /* TimerView.swift in Sources */,
