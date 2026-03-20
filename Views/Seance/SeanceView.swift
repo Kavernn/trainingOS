@@ -800,7 +800,10 @@ struct AddCardioSheet: View {
     @State private var distanceKm  = ""
     @State private var rpe: Double = 7
     @State private var notes       = ""
-    @State private var isLogging   = false
+    @State private var isLogging      = false
+    @State private var confirmDiscard = false
+
+    private var hasUnsavedData: Bool { !durationMin.isEmpty || !notes.isEmpty || rpe != 7 }
 
     private let types = ["Course", "Vélo", "Natation", "Elliptique", "Rameur", "Marche", "Autre"]
 
@@ -862,6 +865,8 @@ struct AddCardioSheet: View {
                             TextField("Notes...", text: $notes, axis: .vertical)
                                 .font(.system(size: 14)).foregroundColor(.white).tint(.blue)
                                 .lineLimit(3, reservesSpace: true)
+                                .submitLabel(.done)
+                                .onSubmit { hideKeyboard() }
                                 .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                         }
                         .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
@@ -881,13 +886,22 @@ struct AddCardioSheet: View {
                     }
                     .padding(.horizontal, 16).padding(.top, 16)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Cardio").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") {
+                        if hasUnsavedData { confirmDiscard = true } else { dismiss() }
+                    }
+                    .foregroundColor(.orange)
                 }
             }
+            .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                Button("Abandonner", role: .destructive) { dismiss() }
+                Button("Continuer", role: .cancel) {}
+            }
+            .keyboardOkButton()
         }
     }
 
@@ -968,6 +982,8 @@ struct AddHIITSheet: View {
                             TextField("Notes...", text: $notes, axis: .vertical)
                                 .font(.system(size: 14)).foregroundColor(.white).tint(.red)
                                 .lineLimit(3, reservesSpace: true)
+                                .submitLabel(.done)
+                                .onSubmit { hideKeyboard() }
                                 .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                         }
                         .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
@@ -986,6 +1002,7 @@ struct AddHIITSheet: View {
                     }
                     .padding(.horizontal, 16).padding(.top, 16)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("HIIT").navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -993,6 +1010,7 @@ struct AddHIITSheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
             }
+            .keyboardOkButton()
         }
     }
 
@@ -1439,9 +1457,12 @@ struct AddHIITSheet: View {
         var onSubmit: (Double?, Int?) -> Void   // (durationMin, energyPre)
         @Environment(\.dismiss) private var dismiss
         
-        @State private var durationStr = ""
+        @State private var durationStr    = ""
         @State private var energyPre: Int = 3   // 1–5
-        
+        @State private var confirmDiscard = false
+
+        private var hasUnsavedData: Bool { !durationStr.isEmpty || !comment.isEmpty || energyPre != 3 }
+
         var loggedCount: Int { logResults.count }
         
         var body: some View {
@@ -1460,7 +1481,6 @@ struct AddHIITSheet: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("DURÉE (min)").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
                                 TextField("ex: 60", text: $durationStr)
-                                    .keyboardType(.numberPad)
                                     .keyboardType(.numberPad)
                                     .foregroundColor(.white).tint(.orange)
                                     .padding(12).background(Color(hex: "191926")).cornerRadius(10)
@@ -1513,6 +1533,8 @@ struct AddHIITSheet: View {
                                 TextField("Commentaire optionnel...", text: $comment, axis: .vertical)
                                     .foregroundColor(.white).tint(.orange)
                                     .lineLimit(3, reservesSpace: true)
+                                    .submitLabel(.done)
+                                    .onSubmit { hideKeyboard() }
                                     .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                             }
                             .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
@@ -1529,16 +1551,25 @@ struct AddHIITSheet: View {
                             .padding(.horizontal, 20).padding(.bottom, 24)
                         }
                     }
+                    .scrollDismissesKeyboard(.interactively)
                 }
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                        Button("Annuler") {
+                            if hasUnsavedData { confirmDiscard = true } else { dismiss() }
+                        }
+                        .foregroundColor(.orange)
                     }
                 }
+                .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
+                    Button("Abandonner", role: .destructive) { dismiss() }
+                    Button("Continuer", role: .cancel) {}
+                }
+                .keyboardOkButton()
             }
         }
-        
+
         private func energyLabel(_ v: Int) -> String {
             switch v {
             case 1: return "Épuisé 😴"
@@ -1656,6 +1687,8 @@ struct AddHIITSheet: View {
                         TextField("Comment c'était ?", text: $comment, axis: .vertical)
                             .foregroundColor(.white).tint(.orange)
                             .lineLimit(3, reservesSpace: true)
+                            .submitLabel(.done)
+                            .onSubmit { hideKeyboard() }
                             .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                     }
                     .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
@@ -1668,6 +1701,7 @@ struct AddHIITSheet: View {
                     .padding(.horizontal, 16).padding(.bottom, 24)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
                 Button("OK") { Task { await vm.load() } }
             }
