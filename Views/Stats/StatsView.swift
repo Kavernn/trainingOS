@@ -109,8 +109,9 @@ struct StatsView: View {
         }())!
         let mondayStr = DateFormatter.isoDate.string(from: monday)
         return weights.values.flatMap { $0.history ?? [] }.compactMap { e -> Double? in
-            guard let date = e.date, date >= mondayStr,
-                  let w = e.weight, let r = e.reps else { return nil }
+            guard let date = e.date, date >= mondayStr else { return nil }
+            if let vol = e.exerciseVolume, vol > 0 { return vol }
+            guard let w = e.weight, let r = e.reps else { return nil }
             return w * totalReps(r)
         }.reduce(0, +)
     }
@@ -121,6 +122,7 @@ struct StatsView: View {
     var personalRecords: [(String, Double)] {
         weights.compactMap { name, data -> (String, Double)? in
             let best = data.history?.compactMap { e -> Double? in
+                if let stored = e.oneRM, stored > 0 { return stored }
                 guard let w = e.weight, let r = e.reps else { return nil }
                 let avg = avgReps(r); guard avg > 0 else { return nil }
                 return w * (1 + avg / 30.0)
@@ -154,8 +156,15 @@ struct StatsView: View {
         var vols: [String: Double] = [:]
         for (_, data) in weights {
             for e in data.history ?? [] {
-                guard let date = e.date, let w = e.weight, let r = e.reps else { continue }
-                vols[isoWeekKey(date), default: 0] += w * totalReps(r)
+                guard let date = e.date else { continue }
+                let vol: Double
+                if let ev = e.exerciseVolume, ev > 0 {
+                    vol = ev
+                } else {
+                    guard let w = e.weight, let r = e.reps else { continue }
+                    vol = w * totalReps(r)
+                }
+                vols[isoWeekKey(date), default: 0] += vol
             }
         }
         return last8Weeks.map { ($0, vols[$0] ?? 0) }
@@ -165,6 +174,7 @@ struct StatsView: View {
     var top5Volume: [(String, Double)] {
         weights.compactMap { name, data -> (String, Double)? in
             let vol = data.history?.compactMap { e -> Double? in
+                if let ev = e.exerciseVolume, ev > 0 { return ev }
                 guard let w = e.weight, let r = e.reps else { return nil }
                 return w * totalReps(r)
             }.reduce(0, +) ?? 0
@@ -359,17 +369,58 @@ struct StatsView: View {
         return String(format: "%.0f", v)
     }
 
+    // Local decodable mirror of the stats response (StatsResponse in APIService is private)
+    private struct StatsAPIResponse: Codable {
+        let weights:         [String: WeightData]
+        let sessions:        [String: SessionEntry]
+        let hiitLog:         [HIITEntry]
+        let bodyWeight:      [BodyWeightEntry]
+        let recoveryLog:     [RecoveryEntry]
+        let nutritionTarget: NutritionSettings?
+        let nutritionDays:   [NutritionDay]
+        let muscleStats:     [String: MuscleStatEntry]
+        enum CodingKeys: String, CodingKey {
+            case weights, sessions
+            case hiitLog         = "hiit_log"
+            case bodyWeight      = "body_weight"
+            case recoveryLog     = "recovery_log"
+            case nutritionTarget = "nutrition_target"
+            case nutritionDays   = "nutrition_days"
+            case muscleStats     = "muscle_stats"
+        }
+    }
+
+    private func applyStats(_ r: StatsAPIResponse) {
+        weights         = r.weights
+        sessions        = r.sessions
+        hiitLog         = r.hiitLog
+        bodyWeight      = r.bodyWeight
+        recoveryLog     = r.recoveryLog
+        nutritionTarget = r.nutritionTarget
+        nutritionDays   = r.nutritionDays
+        muscleStats     = r.muscleStats
+    }
+
     private func loadData() async {
-        isLoading = true
+        // Show cached data immediately so the view is usable before network
+        if let cached = CacheService.shared.load(for: "stats_data"),
+           let decoded = try? JSONDecoder().decode(StatsAPIResponse.self, from: cached) {
+            applyStats(decoded)
+            isLoading = false
+        }
+
         async let statsTask = APIService.shared.fetchStatsData()
         async let acwrTask  = APIService.shared.fetchACWR()
+
         if let r = try? await statsTask {
-            weights = r.weights; sessions = r.sessions
-            hiitLog = r.hiitLog; bodyWeight = r.bodyWeight
-            recoveryLog = r.recoveryLog
+            weights         = r.weights
+            sessions        = r.sessions
+            hiitLog         = r.hiitLog
+            bodyWeight      = r.bodyWeight
+            recoveryLog     = r.recoveryLog
             nutritionTarget = r.nutritionTarget
-            nutritionDays = r.nutritionDays
-            muscleStats = r.muscleStats
+            nutritionDays   = r.nutritionDays
+            muscleStats     = r.muscleStats
         }
         acwr = try? await acwrTask
         isLoading = false

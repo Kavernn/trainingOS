@@ -1417,8 +1417,12 @@ def api_dashboard():
         }
 
     # Merge HIIT sessions into sessions dict so the heatmap shows them too.
-    # If a date already has a muscu session, keep it; otherwise insert a minimal entry.
-    merged_sessions = dict(sessions)
+    # Only include completed strength sessions (stubs must not appear as orange squares).
+    merged_sessions = {
+        date: entry
+        for date, entry in sessions.items()
+        if entry.get("completed", False)
+    }
     for entry in hiit_log:
         d = entry.get("date")
         if d and d not in merged_sessions:
@@ -1571,10 +1575,15 @@ def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:
 @app.route("/api/stats_data")
 def api_stats_data():
     weights      = load_weights()
-    sessions     = load_sessions()
+    import db as _db
+    all_sessions = _db.get_workout_sessions(limit=500)
+    sessions = {
+        s["date"]: s
+        for s in all_sessions
+        if isinstance(s, dict) and s.get("completed", False)
+    }
     hiit_log     = load_hiit_log_local()
     body_weight  = load_body_weight()
-    import db as _db
     recovery_log = _db.get_recovery_logs() or []
     nutr_settings = load_nutrition_settings()
     nutr_entries  = get_recent_days(7)
