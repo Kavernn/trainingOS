@@ -518,8 +518,9 @@ def api_log():
         rpe_raw  = data.get("rpe")
         rpe      = float(rpe_raw) if rpe_raw is not None else None
 
-        force     = bool(data.get("force", False))
-        is_second = bool(data.get("is_second", False))
+        force          = bool(data.get("force", False))
+        is_second      = bool(data.get("is_second", False))
+        equipment_type = data.get("equipment_type", "")
 
         if not exercise or not reps_str:
             return jsonify({"error": "Données manquantes"}), 400
@@ -565,15 +566,29 @@ def api_log():
         prev_1rms = [e.get("1rm", 0) for e in existing_history]
         is_pr = bool(onerm > 0 and (not prev_1rms or onerm > max(prev_1rms)))
 
+        # Resolve volume weight for bodyweight exercises
+        if equipment_type == "bodyweight" and weight == 0:
+            import db as _db
+            bw_logs = _db.get_body_weight_logs(limit=1)
+            if bw_logs and bw_logs[0].get("weight"):
+                volume_weight = float(bw_logs[0]["weight"])
+            else:
+                profile = load_user_profile()
+                volume_weight = float(profile.get("weight") or 0)
+        else:
+            volume_weight = weight
+
         # Annotate each set with total_weight and set_volume, compute exercise_volume
         if sets_data:
             for s in sets_data:
                 sw = float(s.get("weight", 0) or 0)
+                # For bodyweight sets with no lest, use volume_weight for set volume
+                sv_weight = volume_weight if (equipment_type == "bodyweight" and sw == 0) else sw
                 s["total_weight"] = sw
-                s["set_volume"] = calc_set_volume(sw, s.get("reps", 0))
+                s["set_volume"] = calc_set_volume(sv_weight, s.get("reps", 0))
             exercise_volume = round(sum(s.get("set_volume", 0.0) for s in sets_data), 2)
         else:
-            exercise_volume = calc_exercise_volume(weight, reps)
+            exercise_volume = calc_exercise_volume(volume_weight, reps)
 
         action_notes = {"increase": f"+{new_w - weight:.1f}", "maintain": "stagné", "decrease": f"{new_w - weight:.1f}"}
         history_entry = {
@@ -593,9 +608,11 @@ def api_log():
             weights[exercise] = {"history": []}
 
         weights[exercise].setdefault("history", []).insert(0, history_entry)
-        weights[exercise]["history"]        = weights[exercise]["history"][:20]
-        weights[exercise]["current_weight"] = round(new_w, 1)
-        weights[exercise]["last_reps"]      = reps
+        weights[exercise]["history"] = weights[exercise]["history"][:20]
+        # Don't overwrite current_weight with 0 for bodyweight-only — keep last lest value
+        if not (equipment_type == "bodyweight" and weight == 0):
+            weights[exercise]["current_weight"] = round(new_w, 1)
+        weights[exercise]["last_reps"] = reps
         weights[exercise]["last_logged"]    = datetime.now().strftime("%Y-%m-%d %H:%M")
 
         # Ensure session stub exists so upsert_exercise_log can write the FK
@@ -1587,8 +1604,9 @@ def api_stats_data():
     recovery_log = _db.get_recovery_logs() or []
     nutr_settings = load_nutrition_settings()
     nutr_entries  = get_recent_days(7)
-    inventory    = load_inventory() or {}
-    muscle_stats = _calc_muscle_stats(sessions, weights, inventory)
+    inventory       = load_inventory() or {}
+    muscle_stats    = _calc_muscle_stats(sessions, weights, inventory)
+    inventory_types = {name: info.get("type", "machine") for name, info in inventory.items()}
     return jsonify({
         "weights":          weights,
         "sessions":         sessions,
@@ -1599,6 +1617,7 @@ def api_stats_data():
         "nutrition_days":   nutr_entries,
         "week":             get_current_week(),
         "muscle_stats":     muscle_stats,
+        "inventory_types":  inventory_types,
     })
 
 

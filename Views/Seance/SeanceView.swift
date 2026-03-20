@@ -1091,7 +1091,7 @@ struct AddHIITSheet: View {
         // Total weight (lbs) based on equipment type
         private func totalWeight(for input: Double) -> Double {
             switch equipmentType {
-            case "bodyweight": return bodyWeight
+            case "bodyweight": return input   // 0 for no lest, lest amount in lbs for vested
             case "barbell":    return input * 2 + 45
             case "dumbbell":   return input * 2
             default:           return input   // cable, machine
@@ -1140,9 +1140,13 @@ struct AddHIITSheet: View {
             sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
         }
 
-        // Log enabled when at least one set has both weight and reps filled
+        // Log enabled when at least one set has both weight and reps filled.
+        // For bodyweight, reps alone suffice (weight field = optional lest).
         private var canLog: Bool {
-            sets.contains { !$0.weight.isEmpty && !$0.reps.isEmpty }
+            if equipmentType == "bodyweight" {
+                return sets.contains { !$0.reps.isEmpty }
+            }
+            return sets.contains { !$0.weight.isEmpty && !$0.reps.isEmpty }
         }
 
         // Per-set reps array split from lastReps for placeholder text
@@ -1406,29 +1410,39 @@ struct AddHIITSheet: View {
 
         private func logExercise() {
             guard !alreadyLogged || isEditing, canLog else { return }
-            guard let avg = avgWeight, !repsStr.isEmpty else { return }
+            guard !repsStr.isEmpty else { return }
             // Allow re-log in edit mode
             let wasEditing = isEditing
             if isEditing { isLogged = false }
             // Set synchronously to block any re-tap before async completes
             isLogged = true
             isEditing = false
-            let w     = units.toStorage(avg)   // per-side in lbs
-            let total = totalWeight(for: w)    // total load in lbs (barbell ×2+45, dumbbell ×2, etc.)
+            // For bodyweight with no lest, avgWeight is nil → use 0 (backend resolves body weight for volume)
+            let avg   = avgWeight ?? (equipmentType == "bodyweight" ? 0.0 : nil)
+            guard let avg = avg else { return }
+            let w     = units.toStorage(avg)   // per-side in lbs (0 for bodyweight-only)
+            let total = totalWeight(for: w)    // total load: 0 for BW-only, lest for vested, barbell ×2+45…
             logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE)
             logStatus = .success(total)
             onLogged?()
-            // Per-set payload: each set's weight is also stored as total load
+            // Per-set payload
             let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
+                guard !s.reps.isEmpty else { return nil }
+                if equipmentType == "bodyweight" {
+                    // Send lest weight (0 if no lest) so backend knows it's bodyweight-only
+                    let lest = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
+                    return ["weight": units.toStorage(lest), "reps": s.reps]
+                }
                 guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")),
-                      sw > 0, !s.reps.isEmpty else { return nil }
+                      sw > 0 else { return nil }
                 let setTotal = totalWeight(for: units.toStorage(sw))
                 return ["weight": setTotal, "reps": s.reps]
             }
             Task {
                 if let response = try? await APIService.shared.logExercise(
                     exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE,
-                    sets: setsPayload, force: wasEditing, isSecond: isSecondSession),
+                    sets: setsPayload, force: wasEditing, isSecond: isSecondSession,
+                    equipmentType: equipmentType),
                    response.isPR == true {
                     let content = UNMutableNotificationContent()
                     content.title = "🏆 Nouveau PR !"

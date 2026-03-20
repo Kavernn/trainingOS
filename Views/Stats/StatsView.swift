@@ -55,6 +55,7 @@ struct StatsView: View {
     @State private var nutritionDays:    [NutritionDay]          = []
     @State private var acwr:             ACWRData?               = nil
     @State private var muscleStats:      [String: MuscleStatEntry] = [:]
+    @State private var inventoryTypes:   [String: String]          = [:]
     @State private var isLoading    = true
     @State private var selectedExercise: String? = nil
     @State private var searchText   = ""
@@ -121,9 +122,11 @@ struct StatsView: View {
     // ── Personal Records ─────────────────────────────────────────────
     var personalRecords: [(String, Double)] {
         weights.compactMap { name, data -> (String, Double)? in
+            // Bodyweight exercises have no meaningful 1RM (load varies with body weight)
+            if inventoryTypes[name] == "bodyweight" { return nil }
             let best = data.history?.compactMap { e -> Double? in
                 if let stored = e.oneRM, stored > 0 { return stored }
-                guard let w = e.weight, let r = e.reps else { return nil }
+                guard let w = e.weight, w > 0, let r = e.reps else { return nil }
                 let avg = avgReps(r); guard avg > 0 else { return nil }
                 return w * (1 + avg / 30.0)
             }.max()
@@ -379,6 +382,7 @@ struct StatsView: View {
         let nutritionTarget: NutritionSettings?
         let nutritionDays:   [NutritionDay]
         let muscleStats:     [String: MuscleStatEntry]
+        let inventoryTypes:  [String: String]?
         enum CodingKeys: String, CodingKey {
             case weights, sessions
             case hiitLog         = "hiit_log"
@@ -387,6 +391,7 @@ struct StatsView: View {
             case nutritionTarget = "nutrition_target"
             case nutritionDays   = "nutrition_days"
             case muscleStats     = "muscle_stats"
+            case inventoryTypes  = "inventory_types"
         }
     }
 
@@ -399,6 +404,7 @@ struct StatsView: View {
         nutritionTarget = r.nutritionTarget
         nutritionDays   = r.nutritionDays
         muscleStats     = r.muscleStats
+        inventoryTypes  = r.inventoryTypes ?? [:]
     }
 
     private func loadData() async {
@@ -421,6 +427,7 @@ struct StatsView: View {
             nutritionTarget = r.nutritionTarget
             nutritionDays   = r.nutritionDays
             muscleStats     = r.muscleStats
+            inventoryTypes  = r.inventoryTypes
         }
         acwr = try? await acwrTask
         isLoading = false
