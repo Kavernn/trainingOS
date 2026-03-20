@@ -4,6 +4,7 @@ struct RecoveryView: View {
     @State private var log: [RecoveryEntry] = []
     @State private var isLoading = true
     @State private var showSheet = false
+    @StateObject private var watchSync = WatchSyncService.shared
 
     private var todayStr: String {
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
@@ -37,6 +38,16 @@ struct RecoveryView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
+
+                            // Watch sync status
+                            WatchSyncBannerView(sync: watchSync) {
+                                Task {
+                                    await watchSync.sync()
+                                    await loadData()
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .appearAnimation(delay: 0)
 
                             // KPI grid
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -98,7 +109,10 @@ struct RecoveryView: View {
                 }
             }
         }
-        .task { await loadData() }
+        .task {
+            await watchSync.syncIfNeeded()
+            await loadData()
+        }
     }
 
     private func loadData() async {
@@ -117,8 +131,18 @@ struct RecoveryRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(entry.date ?? "")
-                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                HStack(spacing: 6) {
+                    Text(entry.date ?? "")
+                        .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                    if entry.isFromWatch {
+                        Label("Watch", systemImage: "applewatch")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.cyan)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(Color.cyan.opacity(0.15))
+                            .cornerRadius(6)
+                    }
+                }
                 HStack(spacing: 10) {
                     if let h = entry.sleepHours {
                         Label(String(format: "%.1fh", h), systemImage: "moon.fill")
@@ -427,5 +451,57 @@ struct RecoveryField: View {
                 .cornerRadius(8)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Watch Sync Banner
+struct WatchSyncBannerView: View {
+    @ObservedObject var sync: WatchSyncService
+    let onSync: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "applewatch")
+                .font(.system(size: 14))
+                .foregroundColor(.cyan)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Apple Watch")
+                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                if sync.isSyncing {
+                    Text("Synchronisation...")
+                        .font(.system(size: 10)).foregroundColor(.cyan)
+                } else if let last = sync.lastSyncDate {
+                    Text("Dernière sync : \(last, style: .relative)")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                } else if let err = sync.lastError {
+                    Text(err)
+                        .font(.system(size: 10)).foregroundColor(.red)
+                } else {
+                    Text("Jamais synchronisé")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                }
+            }
+
+            Spacer()
+
+            Button(action: onSync) {
+                Group {
+                    if sync.isSyncing {
+                        ProgressView().tint(.cyan).scaleEffect(0.7)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 13))
+                            .foregroundColor(.cyan)
+                    }
+                }
+                .frame(width: 30, height: 30)
+            }
+            .buttonStyle(.plain)
+            .disabled(sync.isSyncing)
+        }
+        .padding(12)
+        .background(Color.cyan.opacity(0.08))
+        .cornerRadius(12)
     }
 }

@@ -369,14 +369,41 @@ struct RecoveryEntry: Codable, Identifiable {
     let hrv: Double?
     let steps: Int?
     let soreness: Double?
+    let activeEnergy: Double?
+    let source: String?         // "manual" | "healthkit"
     let notes: String?
 
+    var isFromWatch: Bool { source == "healthkit" }
+
     enum CodingKeys: String, CodingKey {
-        case date, hrv, steps, soreness, notes
+        case date, hrv, steps, soreness, notes, source
         case sleepHours   = "sleep_hours"
         case sleepQuality = "sleep_quality"
         case restingHr    = "resting_hr"
+        case activeEnergy = "active_energy"
     }
+}
+
+// MARK: - Wearable Snapshot (Apple Watch → Supabase)
+struct WearableWorkout {
+    let type: String
+    let durationMin: Double
+    let distanceKm: Double?
+    let calories: Double?
+    let avgHr: Double?
+    let avgPace: String?
+}
+
+struct WearableSnapshot {
+    let date: String
+    let steps: Int?
+    let sleepHours: Double?
+    let restingHr: Double?
+    let hrv: Double?
+    let activeEnergy: Double?
+    let bodyWeightLbs: Double?
+    let bodyFatPct: Double?
+    let workouts: [WearableWorkout]
 }
 
 // MARK: - Objectifs

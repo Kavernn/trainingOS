@@ -135,6 +135,7 @@ struct DashboardView: View {
             if scenePhase == .active,
                Date().timeIntervalSince(lastRefresh) > 300 {
                 Task {
+                    await WatchSyncService.shared.syncIfNeeded()
                     await api.fetchDashboard()
                     async let d = APIService.shared.fetchDeloadData()
                     async let m = APIService.shared.checkMoodDue()

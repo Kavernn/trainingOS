@@ -79,6 +79,7 @@ from nutrition    import (load_settings as load_nutrition_settings,
 from db           import get_json, set_json
 from db           import _ON_VERCEL
 from volume       import calc_set_volume, calc_exercise_volume, calc_session_volume, _calc_session_volume_legacy
+import wearable
 
 # ── App config ──────────────────────────────────────────────
 _API_DIR  = os.path.dirname(os.path.abspath(__file__))
@@ -98,6 +99,9 @@ _secret_key = os.getenv("SECRET_KEY", _SECRET_KEY_DEFAULT)
 if os.getenv("VERCEL") and _secret_key == _SECRET_KEY_DEFAULT:
     raise RuntimeError("SECRET_KEY must be set to a secure value in production (Vercel env vars)")
 app.secret_key = _secret_key
+
+# ── Wearable / Apple Watch routes ───────────────────────────
+wearable.register_routes(app)
 
 UPLOAD_FOLDER      = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
