@@ -570,6 +570,29 @@ def create_workout_session(
         return {**entry, "date": date}
 
 
+def complete_workout_session(date: str) -> bool:
+    """Mark a workout session as completed (user tapped Terminer)."""
+    if _client is None or MODE == "OFFLINE":
+        sessions = get_json("sessions", {})
+        if date in sessions:
+            sessions[date]["completed"] = True
+            set_json("sessions", sessions)
+            return True
+        return False
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .update({"completed": True})
+            .eq("date", date)
+            .eq("is_second", False)
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("complete_workout_session error: %s", e)
+        return False
+
+
 def update_workout_session(date: str, patch: dict) -> bool:
     """Update fields on a workout session by date. Returns True on success."""
     # fallback to KV during migration

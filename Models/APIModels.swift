@@ -70,6 +70,7 @@ struct DashboardData: Codable {
     let todayDate: String
 
     let alreadyLoggedToday: Bool
+    let hasPartialLogs: Bool
     let schedule: [String: String]
     let sessions: [String: SessionEntry]
     let goals: [String: GoalProgress]
@@ -81,10 +82,26 @@ struct DashboardData: Codable {
         case today, week
         case todayDate = "today_date"
         case alreadyLoggedToday = "already_logged_today"
+        case hasPartialLogs = "has_partial_logs"
         case schedule, sessions, goals
         case fullProgram = "full_program"
         case nutritionTotals = "nutrition_totals"
         case profile
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        today               = try c.decode(String.self, forKey: .today)
+        week                = try c.decode(Int.self, forKey: .week)
+        todayDate           = try c.decode(String.self, forKey: .todayDate)
+        alreadyLoggedToday  = try c.decode(Bool.self, forKey: .alreadyLoggedToday)
+        hasPartialLogs      = (try? c.decode(Bool.self, forKey: .hasPartialLogs)) ?? false
+        schedule            = try c.decode([String: String].self, forKey: .schedule)
+        sessions            = try c.decode([String: SessionEntry].self, forKey: .sessions)
+        goals               = try c.decode([String: GoalProgress].self, forKey: .goals)
+        fullProgram         = try c.decode([String: [String: SafeString]].self, forKey: .fullProgram)
+        nutritionTotals     = try c.decode(NutritionTotals.self, forKey: .nutritionTotals)
+        profile             = try c.decode(UserProfile.self, forKey: .profile)
     }
 }
 

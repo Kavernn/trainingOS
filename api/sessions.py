@@ -140,7 +140,8 @@ def log_second_session(
 
 def session_exists(date: str) -> bool:
     try:
-        return db.get_workout_session(date) is not None
+        session = db.get_workout_session(date)
+        return session is not None and session.get("completed", False)
     except Exception:
         return False
 

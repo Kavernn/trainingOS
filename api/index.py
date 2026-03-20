@@ -738,8 +738,11 @@ def api_log_session():
         duration_min   = data.get("duration_min")
         energy_pre     = data.get("energy_pre")
 
-        if session_exists(today) and not second_session:
-            return jsonify({"error": "already_logged"}), 409
+        import db as _db
+        if not second_session:
+            existing = _db.get_workout_session(today)
+            if existing and existing.get("completed"):
+                return jsonify({"error": "already_logged"}), 409
 
         # Compute session volume stats from today's logged exercises
         weights   = load_weights()
@@ -751,6 +754,7 @@ def api_log_session():
         else:
             log_session(today, rpe, comment, exos, duration_min, energy_pre,
                         blocks=blocks, **vol_stats)
+            _db.complete_workout_session(today)
 
         return jsonify({"success": True})
     except Exception as e:
@@ -1390,7 +1394,18 @@ def api_dashboard():
     schedule     = get_week_schedule()
     suggestions  = get_suggested_weights_for_today(weights)
 
-    already_logged_today = today_date in sessions
+    import db as _db
+    _today_session = _db.get_workout_session(today_date)
+    already_logged_today = bool(_today_session and _today_session.get("completed", False))
+
+    has_partial_logs = False
+    if not already_logged_today:
+        try:
+            logged_names = {e["exercise_name"] for e in _db.get_session_exercise_logs(today_date)}
+            program_names = set(get_strength_exercises(full_program.get(today_str, {})).keys())
+            has_partial_logs = bool(logged_names & program_names)
+        except Exception:
+            has_partial_logs = False
 
     goals_progress = {}
     for ex, goal in goals.items():
@@ -1414,6 +1429,7 @@ def api_dashboard():
         "week":                get_current_week(),
         "today_date":          today_date,
         "already_logged_today": already_logged_today,
+        "has_partial_logs":     has_partial_logs,
         "schedule":            schedule,
         "sessions":            merged_sessions,
         "suggestions":         suggestions,

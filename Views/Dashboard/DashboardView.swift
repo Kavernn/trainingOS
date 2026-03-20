@@ -406,7 +406,7 @@ struct TodayCardView: View {
                     NavigationLink(destination: SeanceView()) {
                         HStack(spacing: 8) {
                             Image(systemName: "play.fill")
-                            Text("Commencer la séance")
+                            Text(dash.hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
                                 .font(.system(size: 15, weight: .bold))
                         }
                         .frame(maxWidth: .infinity)
