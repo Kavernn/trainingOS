@@ -6,7 +6,7 @@ struct CardioView: View {
     @State private var isLoading = true
     @State private var showSheet = false
     @State private var isImportingHK = false
-    @StateObject private var hk = HealthKitService.shared
+    @ObservedObject private var hk = HealthKitService.shared
 
     // KPIs
     var totalSessions: Int { log.count }
@@ -117,7 +117,7 @@ struct CardioView: View {
             let authorized = await hk.requestAuthorization()
             guard authorized else { isImportingHK = false; return }
 
-            let workouts = await hk.fetchRecentRunningWorkouts(days: 30)
+            let workouts = await hk.fetchAllWorkouts(days: 30)
             let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
             let existing = Set(log.compactMap { e -> String? in
                 guard let d = e.date, let t = e.type else { return nil }
