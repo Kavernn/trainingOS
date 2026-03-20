@@ -30,6 +30,16 @@ class HealthKitService: ObservableObject {
     private init() {}
 
     // MARK: - Authorization
+
+    /// Returns true if the user has already responded to the HealthKit permission dialog
+    /// (either granted or denied). Does NOT prompt.
+    func hasBeenAuthorized() -> Bool {
+        guard HKHealthStore.isHealthDataAvailable() else { return false }
+        guard let type = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return false }
+        return store.authorizationStatus(for: type) != .notDetermined
+    }
+
+    /// Presents the HealthKit permission dialog. Call only from explicit user action.
     func requestAuthorization() async -> Bool {
         guard HKHealthStore.isHealthDataAvailable() else { return false }
         do {

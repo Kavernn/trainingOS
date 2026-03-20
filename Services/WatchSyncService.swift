@@ -42,18 +42,26 @@ class WatchSyncService: ObservableObject {
         await sync()
     }
 
-    /// Force-syncs regardless of the last sync timestamp.
-    func sync() async {
-        guard !isSyncing else { return }
-        isSyncing  = true
-        lastError  = nil
-        defer { isSyncing = false }
-
+    /// Requests HealthKit authorization (shows system dialog) then syncs.
+    /// Call this only from an explicit user action (e.g. a "Connect HealthKit" button).
+    func requestAuthorizationAndSync() async {
         let authorized = await hk.requestAuthorization()
         guard authorized else {
             lastError = "HealthKit non autorisé"
             return
         }
+        await sync()
+    }
+
+    /// Force-syncs regardless of the last sync timestamp.
+    /// Does NOT prompt for HealthKit authorization — call requestAuthorizationAndSync() for that.
+    func sync() async {
+        guard !isSyncing else { return }
+        // Skip silently if the user hasn't responded to the HealthKit permission dialog yet.
+        guard hk.hasBeenAuthorized() else { return }
+        isSyncing  = true
+        lastError  = nil
+        defer { isSyncing = false }
 
         let snapshot = await hk.fetchTodayHealthSnapshot()
 
