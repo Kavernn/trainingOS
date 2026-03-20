@@ -465,6 +465,33 @@ class APIService: ObservableObject {
         _ = try await offlinePost(endpoint: "/api/delete_recovery", payload: ["date": date])
     }
 
+    // MARK: - Wearable Sync (Apple Watch → Supabase)
+    func syncWearableData(_ snapshot: WearableSnapshot) async throws {
+        var body: [String: Any] = ["date": snapshot.date]
+        if let v = snapshot.steps        { body["steps"]         = v }
+        if let v = snapshot.sleepHours   { body["sleep_hours"]   = v }
+        if let v = snapshot.restingHr    { body["resting_hr"]    = v }
+        if let v = snapshot.hrv          { body["hrv"]           = v }
+        if let v = snapshot.activeEnergy { body["active_energy"] = v }
+
+        let workouts: [[String: Any]] = snapshot.workouts.map { w in
+            var entry: [String: Any] = [
+                "type":         w.type,
+                "duration_min": w.durationMin
+            ]
+            if let v = w.distanceKm { entry["distance_km"] = v }
+            if let v = w.calories   { entry["calories"]    = v }
+            if let v = w.avgHr      { entry["avg_hr"]      = v }
+            if let v = w.avgPace    { entry["avg_pace"]    = v }
+            return entry
+        }
+        body["workouts"] = workouts
+
+        _ = try await offlinePost(endpoint: "/api/wearable/sync", payload: body)
+        CacheService.shared.clear(for: "recovery_data")
+        CacheService.shared.clear(for: "cardio_data")
+    }
+
     // MARK: - Weights (for stats)
     func fetchWeights() async throws -> [String: WeightData] {
         let url = URL(string: "\(baseURL)/api/weights")!

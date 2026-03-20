@@ -1087,6 +1087,30 @@ def upsert_recovery_log(data: dict) -> bool:
         return True
 
 
+def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
+    """Merge HealthKit/Apple Watch data into recovery_logs for target_date.
+
+    Only fills in fields that are not already set (manual entries take priority).
+    Never overwrites: sleep_quality, soreness, notes.
+    """
+    WEARABLE_KEYS = ("steps", "sleep_hours", "resting_hr", "hrv", "active_energy")
+
+    existing_list = get_recovery_logs(limit=365)
+    existing      = next((e for e in existing_list if e.get("date") == target_date), {})
+
+    merged          = dict(existing)
+    merged["date"]  = target_date
+    # Keep source=manual if the entry was manually created, otherwise mark healthkit
+    if not existing:
+        merged["source"] = "healthkit"
+
+    for key in WEARABLE_KEYS:
+        if key in wearable and merged.get(key) is None:
+            merged[key] = wearable[key]
+
+    return upsert_recovery_log(merged)
+
+
 def delete_recovery_log(date: str) -> bool:
     """Delete a recovery log entry by date. Returns True on success."""
     # fallback to KV during migration

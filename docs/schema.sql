@@ -178,9 +178,15 @@ CREATE INDEX IF NOT EXISTS idx_body_weight_logs_date ON body_weight_logs (date D
 CREATE TABLE IF NOT EXISTS cardio_logs (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     date            DATE        NOT NULL,
-    type            TEXT        NOT NULL,   -- run | bike | row | walk | swim | etc.
+    type            TEXT        NOT NULL,   -- course | vélo | natation | marche | autre
     duration_min    INT,
     distance_km     NUMERIC,
+    avg_hr          NUMERIC,
+    avg_pace        TEXT,
+    calories        NUMERIC,
+    cadence         NUMERIC,
+    notes           TEXT,
+    source          TEXT        NOT NULL DEFAULT 'manual',  -- manual | healthkit
     rpe             SMALLINT    CHECK (rpe BETWEEN 1 AND 10),
     logged_at       TIMESTAMPTZ DEFAULT NOW()
 );
@@ -200,6 +206,8 @@ CREATE TABLE IF NOT EXISTS recovery_logs (
     resting_hr      SMALLINT,
     hrv             NUMERIC,
     steps           INT,
+    active_energy   NUMERIC,    -- kcal actives (Apple Watch)
+    source          TEXT        NOT NULL DEFAULT 'manual',  -- manual | healthkit
     notes           TEXT
 );
 
@@ -533,3 +541,22 @@ FROM workout_sessions ws
 LEFT JOIN exercise_logs el ON el.session_id = ws.id
 GROUP BY DATE_TRUNC('week', ws.date), EXTRACT(WEEK FROM ws.date), EXTRACT(YEAR FROM ws.date)
 ORDER BY week_start DESC;
+
+
+-- =============================================================================
+-- MIGRATION 001 — Apple Watch / HealthKit columns (2026-03-20)
+-- Run this in Supabase SQL Editor on existing databases.
+-- Safe to run multiple times (IF NOT EXISTS / IF NOT EXISTS guards).
+-- =============================================================================
+
+-- cardio_logs: add wearable columns
+ALTER TABLE cardio_logs ADD COLUMN IF NOT EXISTS avg_hr      NUMERIC;
+ALTER TABLE cardio_logs ADD COLUMN IF NOT EXISTS avg_pace    TEXT;
+ALTER TABLE cardio_logs ADD COLUMN IF NOT EXISTS calories    NUMERIC;
+ALTER TABLE cardio_logs ADD COLUMN IF NOT EXISTS cadence     NUMERIC;
+ALTER TABLE cardio_logs ADD COLUMN IF NOT EXISTS notes       TEXT;
+ALTER TABLE cardio_logs ADD COLUMN IF NOT EXISTS source      TEXT NOT NULL DEFAULT 'manual';
+
+-- recovery_logs: add wearable columns
+ALTER TABLE recovery_logs ADD COLUMN IF NOT EXISTS active_energy  NUMERIC;
+ALTER TABLE recovery_logs ADD COLUMN IF NOT EXISTS source         TEXT NOT NULL DEFAULT 'manual';
