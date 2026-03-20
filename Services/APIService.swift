@@ -468,11 +468,13 @@ class APIService: ObservableObject {
     // MARK: - Wearable Sync (Apple Watch → Supabase)
     func syncWearableData(_ snapshot: WearableSnapshot) async throws {
         var body: [String: Any] = ["date": snapshot.date]
-        if let v = snapshot.steps        { body["steps"]         = v }
-        if let v = snapshot.sleepHours   { body["sleep_hours"]   = v }
-        if let v = snapshot.restingHr    { body["resting_hr"]    = v }
-        if let v = snapshot.hrv          { body["hrv"]           = v }
-        if let v = snapshot.activeEnergy { body["active_energy"] = v }
+        if let v = snapshot.steps         { body["steps"]           = v }
+        if let v = snapshot.sleepHours    { body["sleep_hours"]    = v }
+        if let v = snapshot.restingHr     { body["resting_hr"]     = v }
+        if let v = snapshot.hrv           { body["hrv"]            = v }
+        if let v = snapshot.activeEnergy  { body["active_energy"]  = v }
+        if let v = snapshot.bodyWeightLbs { body["body_weight_lbs"] = v }
+        if let v = snapshot.bodyFatPct    { body["body_fat_pct"]   = v }
 
         let workouts: [[String: Any]] = snapshot.workouts.map { w in
             var entry: [String: Any] = [

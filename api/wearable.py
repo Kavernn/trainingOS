@@ -50,6 +50,14 @@ def register_routes(app):
             if ok:
                 synced.extend(wearable_recovery.keys())
 
+        # ── Body composition (push to body_weight log) ────────────────────────
+        bw_lbs  = data.get("body_weight_lbs")
+        bf_pct  = data.get("body_fat_pct")
+        if bw_lbs is not None:
+            bw_kg = round(bw_lbs / 2.20462, 2)
+            db.log_body_weight_wearable(target_date, poids=bw_kg, body_fat=bf_pct)
+            synced.append("body_weight")
+
         # ── Workouts / Cardio ─────────────────────────────────────────────────
         workouts   = data.get("workouts", [])
         added      = 0

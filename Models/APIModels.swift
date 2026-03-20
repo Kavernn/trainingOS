@@ -401,6 +401,8 @@ struct WearableSnapshot {
     let restingHr: Double?
     let hrv: Double?
     let activeEnergy: Double?
+    let bodyWeightLbs: Double?
+    let bodyFatPct: Double?
     let workouts: [WearableWorkout]
 }
 

@@ -932,6 +932,16 @@ def upsert_body_weight(
         return True
 
 
+def log_body_weight_wearable(date: str, poids: float, body_fat: Optional[float] = None) -> bool:
+    """Push Apple Watch body composition into body_weight_logs.
+    Only inserts if no entry already exists for that date (manual wins).
+    """
+    existing = get_body_weight_logs(limit=365)
+    if any(e.get("date") == date for e in existing):
+        return False  # manual entry present, don't overwrite
+    return upsert_body_weight(date, weight=poids, body_fat=body_fat)
+
+
 def delete_body_weight(date: str) -> bool:
     """Delete a body weight log entry by date."""
     # fallback to KV during migration

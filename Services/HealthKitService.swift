@@ -12,14 +12,17 @@ class HealthKitService: ObservableObject {
     private let readTypes: Set<HKObjectType> = {
         var types = Set<HKObjectType>()
         let ids: [HKQuantityTypeIdentifier] = [
-            .stepCount, .restingHeartRate, .heartRateVariabilitySDNN,
-            .bodyMass, .bodyFatPercentage, .distanceWalkingRunning,
-            .activeEnergyBurned, .heartRate
+            .stepCount,
+            .restingHeartRate,
+            .heartRateVariabilitySDNN,
+            .bodyMass,
+            .bodyFatPercentage,
+            .activeEnergyBurned,
         ]
         for id in ids {
             if let t = HKQuantityType.quantityType(forIdentifier: id) { types.insert(t) }
         }
-        if let sleep = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) { types.insert(sleep) }
+        if let sleep   = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) { types.insert(sleep) }
         if let workout = HKObjectType.workoutType() as HKObjectType? { types.insert(workout) }
         return types
     }()
@@ -98,21 +101,6 @@ class HealthKitService: ObservableObject {
         return v * 100.0
     }
 
-    // MARK: - Recent Running Workouts
-    func fetchRecentRunningWorkouts(days: Int = 30) async -> [HKWorkout] {
-        let start = Calendar.current.date(byAdding: .day, value: -days, to: Date())!
-        let pred  = HKQuery.predicateForSamples(withStart: start, end: Date())
-        let workoutPred = HKQuery.predicateForWorkouts(with: .running)
-        let combined = NSCompoundPredicate(andPredicateWithSubpredicates: [pred, workoutPred])
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
-        return await withCheckedContinuation { cont in
-            let q = HKSampleQuery(sampleType: .workoutType(), predicate: combined, limit: 20, sortDescriptors: [sort]) { _, samples, _ in
-                cont.resume(returning: (samples as? [HKWorkout]) ?? [])
-            }
-            store.execute(q)
-        }
-    }
-
     // MARK: - Generic latest quantity helper
     private func fetchLatestQuantity(_ id: HKQuantityTypeIdentifier, unit: HKUnit) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return nil }
@@ -164,8 +152,10 @@ class HealthKitService: ObservableObject {
         async let hrv           = fetchLatestHRV()
         async let activeEnergy  = fetchTodayActiveEnergy()
         async let rawWorkouts   = fetchAllWorkouts(days: 1)
+        async let bodyWeightLbs = fetchLatestBodyWeight()
+        async let bodyFatPct    = fetchLatestBodyFat()
 
-        let (s, sl, hr, h, ae, wkts) = await (steps, sleep, rhr, hrv, activeEnergy, rawWorkouts)
+        let (s, sl, hr, h, ae, wkts, bw, bf) = await (steps, sleep, rhr, hrv, activeEnergy, rawWorkouts, bodyWeightLbs, bodyFatPct)
 
         let workouts = wkts.map { w -> WearableWorkout in
             let type: String
@@ -195,6 +185,8 @@ class HealthKitService: ObservableObject {
             restingHr: hr,
             hrv: h,
             activeEnergy: ae,
+            bodyWeightLbs: bw,
+            bodyFatPct: bf,
             workouts: workouts
         )
     }

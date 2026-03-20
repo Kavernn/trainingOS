@@ -20,7 +20,7 @@ struct TrainingOSApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if showSplash { 
+                if showSplash {
                     SplashView { showSplash = false }
                 } else {
                     ContentView()
@@ -30,6 +30,7 @@ struct TrainingOSApp: App {
             .onAppear {
                 SyncManager.shared.setup(container: modelContainer)
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+                Task { await WatchSyncService.shared.enableBackgroundDelivery() }
             }
         }
         .modelContainer(modelContainer)
