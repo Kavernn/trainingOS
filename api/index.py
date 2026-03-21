@@ -1616,7 +1616,7 @@ def api_stats_data():
     sessions = {
         s["date"]: s
         for s in all_sessions
-        if isinstance(s, dict) and s.get("completed", False)
+        if isinstance(s, dict) and (s.get("completed") or s.get("rpe") is not None)
     }
     hiit_log     = load_hiit_log_local()
     body_weight  = load_body_weight()
