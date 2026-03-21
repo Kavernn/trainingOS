@@ -61,7 +61,7 @@ def log_session(
         total_reps:     Total reps performed across all strength exercises.
         total_sets:     Total sets performed across all strength exercises.
     """
-    patch: dict = {}
+    patch: dict = {"completed": True}
     if rpe is not None:
         patch["rpe"] = rpe
     if comment is not None:
