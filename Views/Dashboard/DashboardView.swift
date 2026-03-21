@@ -3,6 +3,7 @@ import SwiftUI
 
 struct DashboardView: View {
     @ObservedObject private var api = APIService.shared
+    @State private var insights: [InsightEntry] = []
     @State private var deload: DeloadReport?
     @State private var moodDue: MoodDueStatus?
     @State private var brief: MorningBriefData?
@@ -61,8 +62,13 @@ struct DashboardView: View {
                                 .appearAnimation(delay: 0.04)
                             }
 
+                            if !insights.isEmpty {
+                                DashboardInsightsCard(insights: insights)
+                                    .appearAnimation(delay: 0.05)
+                            }
+
                             TodayCardView(dash: dash)
-                                .appearAnimation(delay: 0.05)
+                                .appearAnimation(delay: 0.06)
 
                             if let soir = soirData, soir.hasEveningSession {
                                 SoirCardView(data: soir)
@@ -124,10 +130,12 @@ struct DashboardView: View {
             async let m = APIService.shared.checkMoodDue()
             async let b = APIService.shared.fetchMorningBrief()
             async let s = APIService.shared.fetchSeanceSoirData()
+            async let i = APIService.shared.fetchInsights()
             deload   = try? await d
             moodDue  = try? await m
             brief    = try? await b
             soirData = try? await s
+            insights = (try? await i) ?? []
             lastRefresh = Date()
         }
         .onChange(of: scenePhase) {
@@ -999,5 +1007,60 @@ struct SoirCardView: View {
         }
         .glassCardAccent(data.alreadyLogged ? .green : sessionColor)
         .cornerRadius(16)
+    }
+}
+
+// MARK: - Insights Card
+
+struct DashboardInsightsCard: View {
+    let insights: [InsightEntry]
+
+    private func color(for level: String) -> Color {
+        switch level {
+        case "warning": return .orange
+        case "success": return .green
+        default:        return .blue
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SectionLabel(title: "INTELLIGENCE", icon: "brain.head.profile")
+                .padding(.horizontal, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 10)
+
+            ForEach(Array(insights.enumerated()), id: \.element.id) { idx, insight in
+                if idx > 0 {
+                    Divider()
+                        .background(Color.white.opacity(0.06))
+                        .padding(.horizontal, 16)
+                }
+                HStack(alignment: .top, spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(color(for: insight.level).opacity(0.15))
+                            .frame(width: 34, height: 34)
+                        Image(systemName: insight.icon)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(color(for: insight.level))
+                    }
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(insight.title)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                        Text(insight.message)
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+            }
+
+            Spacer(minLength: 4)
+        }
+        .glassCard(color: .purple, intensity: 0.05)
     }
 }

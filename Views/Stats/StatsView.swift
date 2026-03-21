@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 // MARK: - Helpers
 private func totalReps(_ reps: String) -> Double {
@@ -974,10 +975,8 @@ struct ExerciseDetailView: View {
                         .padding()
 
                         if let history = data?.history, history.count >= 2 {
-                            let vals = history.compactMap(\.weight)
-                            if vals.count >= 2 {
-                                ExerciseProgressChart(values: vals).padding(.horizontal, 16)
-                            }
+                            StrengthCurveChart(history: history)
+                                .padding(.horizontal, 16)
                         }
 
                         if let history = data?.history, !history.isEmpty {
@@ -1335,33 +1334,118 @@ struct RPEDistributionView: View {
     }
 }
 
-// MARK: - Exercise Progress Chart
-struct ExerciseProgressChart: View {
-    let values: [Double]
-    var minVal: Double { values.min() ?? 0 }
-    var maxVal: Double { max(values.max() ?? 0, minVal + 1) }
+// MARK: - Strength Curve Chart (1RM over time)
+struct StrengthCurveChart: View {
+    let history: [WeightHistoryEntry]
+    @ObservedObject private var units = UnitSettings.shared
+    @State private var metric: ChartMetric = .oneRM
+
+    enum ChartMetric: String, CaseIterable {
+        case oneRM = "1RM estimé"
+        case weight = "Poids"
+    }
+
+    private struct DataPoint: Identifiable {
+        let id: String
+        let date: Date
+        let value: Double
+        let isPR: Bool
+    }
+
+    private var points: [DataPoint] {
+        let entries = history.compactMap { e -> (Date, Double)? in
+            guard let dateStr = e.date,
+                  let date = DateFormatter.isoDate.date(from: dateStr) else { return nil }
+            let value: Double
+            switch metric {
+            case .oneRM:
+                if let stored = e.oneRM, stored > 0 { value = stored }
+                else if let w = e.weight, w > 0, let r = e.reps {
+                    let avg = avgReps(r)
+                    guard avg > 0 else { return nil }
+                    value = w * (1 + avg / 30.0)
+                } else { return nil }
+            case .weight:
+                guard let w = e.weight, w > 0 else { return nil }
+                value = w
+            }
+            return (date, units.display(value))
+        }.sorted { $0.0 < $1.0 }
+
+        guard !entries.isEmpty else { return [] }
+        let prValue = entries.map(\.1).max() ?? 0
+        return entries.map { date, val in
+            DataPoint(id: date.description, date: date, value: val, isPR: val >= prValue)
+        }
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("PROGRESSION")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-            GeometryReader { geo in
-                let count = values.count
-                guard count >= 2 else { return AnyView(EmptyView()) }
-                let step = geo.size.width / CGFloat(count - 1)
-                return AnyView(
-                    Path { path in
-                        for (i, val) in values.enumerated() {
-                            let x = CGFloat(i) * step
-                            let y = geo.size.height * (1 - (val - minVal) / (maxVal - minVal))
-                            if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
-                            else { path.addLine(to: CGPoint(x: x, y: y)) }
-                        }
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("COURBE DE FORCE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Picker("", selection: $metric) {
+                    ForEach(ChartMetric.allCases, id: \.self) { m in
+                        Text(m.rawValue).tag(m)
                     }
-                    .stroke(Color.orange, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-                )
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 200)
             }
-            .frame(height: 60)
+
+            if points.count < 2 {
+                Text("Pas assez de données")
+                    .font(.system(size: 13)).foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, minHeight: 140, alignment: .center)
+            } else {
+                Chart {
+                    ForEach(points) { p in
+                        LineMark(
+                            x: .value("Date", p.date),
+                            y: .value(metric.rawValue, p.value)
+                        )
+                        .foregroundStyle(Color.orange)
+                        .interpolationMethod(.monotone)
+
+                        PointMark(
+                            x: .value("Date", p.date),
+                            y: .value(metric.rawValue, p.value)
+                        )
+                        .foregroundStyle(p.isPR ? Color.orange : Color.orange.opacity(0.4))
+                        .symbolSize(p.isPR ? 80 : 30)
+                    }
+
+                    if let pr = points.last(where: \.isPR) {
+                        RuleMark(y: .value("PR", pr.value))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .foregroundStyle(Color.orange.opacity(0.3))
+                            .annotation(position: .top, alignment: .trailing) {
+                                Text("PR \(units.format(pr.value))")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.orange)
+                            }
+                    }
+                }
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .month)) { _ in
+                        AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                        AxisValueLabel(format: .dateTime.month(.abbreviated), centered: true)
+                            .foregroundStyle(Color.gray)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks { val in
+                        AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                        AxisValueLabel()
+                            .foregroundStyle(Color.gray)
+                    }
+                }
+                .chartPlotStyle { plot in
+                    plot.background(Color.clear)
+                }
+                .frame(height: 180)
+            }
         }
         .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
     }

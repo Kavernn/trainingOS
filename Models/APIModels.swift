@@ -557,6 +557,16 @@ struct DailyHealthSummary: Codable, Identifiable {
     }
 }
 
+// MARK: - Insights
+struct InsightEntry: Codable, Identifiable {
+    var id: String { type + title }
+    let type: String    // "fatigue" | "stagnation" | "pr_near" | "consistency" | "milestone"
+    let level: String   // "warning" | "info" | "success"
+    let icon: String
+    let title: String
+    let message: String
+}
+
 // MARK: - Deload
 struct DeloadReport: Codable {
     let deloadActif: Bool

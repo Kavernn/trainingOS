@@ -1408,6 +1408,94 @@ def api_morning_brief():
     return jsonify(get_morning_brief())
 
 
+@app.route("/api/insights")
+def api_insights():
+    from datetime import datetime, timedelta
+    import db as _db
+
+    weights  = load_weights()
+    sessions_raw = _db.get_workout_sessions(limit=365)
+    sessions = {}
+    for s in sessions_raw:
+        d = s.get("date")
+        if not d: continue
+        if s.get("completed") or s.get("rpe") is not None:
+            sessions[str(d)] = s
+
+    now      = datetime.now()
+    insights = []
+
+    def dstr(d): return d.strftime("%Y-%m-%d")
+
+    # 1. FATIGUE RPE — avg 7j vs 30j
+    s7  = [s["rpe"] for d, s in sessions.items() if d >= dstr(now - timedelta(days=7))  and s.get("rpe")]
+    s30 = [s["rpe"] for d, s in sessions.items() if d >= dstr(now - timedelta(days=30)) and s.get("rpe")]
+    if len(s7) >= 2 and len(s30) >= 5:
+        avg7  = sum(s7)  / len(s7)
+        avg30 = sum(s30) / len(s30)
+        if avg7 > avg30 + 0.8:
+            insights.append({
+                "type": "fatigue", "level": "warning",
+                "icon": "flame.fill", "title": "Fatigue en hausse",
+                "message": f"RPE moyen {avg7:.1f}/10 cette semaine vs {avg30:.1f}/10 sur 30 jours. Envisage de réduire l'intensité."
+            })
+
+    # 2. STAGNATION — même poids 4+ séances consécutives
+    for ex, data in weights.items():
+        hist = [e for e in (data.get("history") or []) if e.get("weight") and e.get("date")]
+        if len(hist) < 4: continue
+        ws = [e["weight"] for e in hist[:4]]
+        if max(ws) == min(ws) and ws[0] > 0:
+            insights.append({
+                "type": "stagnation", "level": "info",
+                "icon": "chart.line.flattrend.xyaxis", "title": f"Plateau — {ex}",
+                "message": f"Même poids depuis 4 séances. Essaie un schéma différent ou une surcharge progressive."
+            })
+            break
+
+    # 3. PR PROCHE — current dans les 5% du PR historique
+    if not any(i["type"] == "stagnation" for i in insights):
+        for ex, data in weights.items():
+            hist = [e for e in (data.get("history") or []) if e.get("weight")]
+            if len(hist) < 3: continue
+            pr      = max(e["weight"] for e in hist)
+            current = data.get("current_weight") or hist[0].get("weight", 0)
+            if 0 < current < pr and current >= pr * 0.95:
+                gap = round(pr - current, 1)
+                insights.append({
+                    "type": "pr_near", "level": "success",
+                    "icon": "trophy.fill", "title": f"PR en vue — {ex}",
+                    "message": f"Tu es à {gap} lbs de ton record ({pr:.0f} lbs). Pousse fort !"
+                })
+                break
+
+    # 4. RÉGULARITÉ — 5+ séances sur 7 jours (si pas de fatigue)
+    sessions_7d = sum(1 for d in sessions if d >= dstr(now - timedelta(days=7)))
+    if sessions_7d >= 5 and not any(i["type"] == "fatigue" for i in insights):
+        insights.append({
+            "type": "consistency", "level": "success",
+            "icon": "checkmark.seal.fill", "title": "Excellente régularité",
+            "message": f"{sessions_7d} séances sur les 7 derniers jours. Continue !"
+        })
+
+    # 5. MILESTONE STREAK — à 1 séance du prochain palier
+    streak = 0
+    for i in range(365):
+        d = dstr(now - timedelta(days=i))
+        if d in sessions: streak += 1
+        elif i > 0: break
+    for m in [7, 14, 21, 30, 50, 75, 100]:
+        if streak == m - 1:
+            insights.append({
+                "type": "milestone", "level": "success",
+                "icon": "star.fill", "title": f"Demain : streak de {m} jours !",
+                "message": f"Plus qu'une séance pour atteindre {m} jours consécutifs."
+            })
+            break
+
+    return jsonify({"insights": insights[:3]})
+
+
 @app.route("/api/insights/correlations")
 def api_insights_correlations():
     try:

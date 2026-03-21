@@ -416,6 +416,13 @@ class APIService: ObservableObject {
     }
 
     // MARK: - Deload
+    func fetchInsights() async throws -> [InsightEntry] {
+        let url = URL(string: "\(baseURL)/api/insights")!
+        let data = try await fetchWithCache(url: url, key: "insights")
+        struct R: Codable { let insights: [InsightEntry] }
+        return try JSONDecoder().decode(R.self, from: data).insights
+    }
+
     func fetchDeloadData() async throws -> DeloadReport {
         let url = URL(string: "\(baseURL)/api/deload")!
         let data = try await fetchWithCache(url: url, key: "deload")
