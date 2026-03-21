@@ -357,6 +357,7 @@ struct WorkoutSeanceView: View {
     @State private var localProgram: [String: String] = [:]
     @State private var exerciseOrder: [String] = []
     @State private var inventoryTypes: [String: String] = [:]
+    @State private var inventoryTracking: [String: String] = [:]
     @State private var draggingName: String?
     @State private var dragOffset: CGFloat = 0
     @State private var cardHeights: [String: CGFloat] = [:]
@@ -453,6 +454,7 @@ struct WorkoutSeanceView: View {
             scheme: scheme,
             weightData: data.weights[name],
             equipmentType: equipmentType(for: name),
+            trackingType: trackingType(for: name),
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             isSecondSession: isSecondSession,
             logResult: $vm.logResults[name],
@@ -706,6 +708,9 @@ struct WorkoutSeanceView: View {
         .onChange(of: data.inventoryTypes) { fresh in
             if !fresh.isEmpty { inventoryTypes = fresh }
         }
+        .onChange(of: data.inventoryTracking) { fresh in
+            if !fresh.isEmpty { inventoryTracking = fresh }
+        }
     }
     
     private func rpeColor(_ v: Double) -> Color {
@@ -719,6 +724,11 @@ struct WorkoutSeanceView: View {
         return types[name] ?? "machine"
     }
 
+    private func trackingType(for name: String) -> String {
+        let tracking = inventoryTracking.isEmpty ? data.inventoryTracking : inventoryTracking
+        return tracking[name] ?? "reps"
+    }
+
     // MARK: - Programme mutations
     
     private func loadInventory() async {
@@ -728,7 +738,8 @@ struct WorkoutSeanceView: View {
         await MainActor.run {
             self.localProgram   = fromCache
             self.exerciseOrder  = orderCache
-            self.inventoryTypes = data.inventoryTypes  // seed from seanceData right away
+            self.inventoryTypes    = data.inventoryTypes     // seed from seanceData right away
+            self.inventoryTracking = data.inventoryTracking
         }
 
         // Fetch fresh programme + inventory types from network
@@ -740,10 +751,12 @@ struct WorkoutSeanceView: View {
         let inv         = (json["inventory"] as? [String]) ?? []
         let fromNetwork = (json["full_program"] as? [String: [String: String]])?[data.today]
         let orderNet    = (json["exercise_order"] as? [String: [String]])?[data.today]
-        let types       = (json["inventory_types"] as? [String: String]) ?? [:]
+        let types    = (json["inventory_types"] as? [String: String]) ?? [:]
+        let tracking = (json["inventory_tracking"] as? [String: String]) ?? [:]
         await MainActor.run {
             self.inventory = inv
-            if !types.isEmpty { self.inventoryTypes = types }
+            if !types.isEmpty    { self.inventoryTypes    = types }
+            if !tracking.isEmpty { self.inventoryTracking = tracking }
             if let fresh = fromNetwork {
                 self.localProgram  = fresh
                 self.exerciseOrder = orderNet ?? self.exerciseOrder
@@ -1042,18 +1055,22 @@ struct AddHIITSheet: View {
         let scheme: String
         let weightData: WeightData?
         var equipmentType: String = "machine"
+        var trackingType: String = "reps"     // "reps" | "time"
         var bodyWeight: Double = 0
         var isSecondSession: Bool = false
         var isBonusSession: Bool = false
         @Binding var logResult: ExerciseLogResult?
         var onLogged: (() -> Void)? = nil
         @ObservedObject private var units = UnitSettings.shared
-        
+
+        private var isTimeBased: Bool { trackingType == "time" }
+
         // Per-set input model
         private struct SetInput: Identifiable {
             let id = UUID()
             var weight: String = ""
             var reps: String = ""
+            var duration: Int = 30   // seconds, used when isTimeBased
         }
 
         @State private var sets: [SetInput] = []
@@ -1136,18 +1153,27 @@ struct AddHIITSheet: View {
             return .green
         }
 
-        // Reps joined from non-empty set rows
+        // Reps joined from non-empty set rows (or duration in seconds for time-based)
         private var repsStr: String {
-            sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
+            if isTimeBased { return sets.map { String($0.duration) }.joined(separator: ",") }
+            return sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
         }
 
         // Log enabled when at least one set has both weight and reps filled.
         // For bodyweight, reps alone suffice (weight field = optional lest).
         private var canLog: Bool {
+            if isTimeBased     { return sets.contains { $0.duration > 0 } }
             if equipmentType == "bodyweight" {
                 return sets.contains { !$0.reps.isEmpty }
             }
             return sets.contains { !$0.weight.isEmpty && !$0.reps.isEmpty }
+        }
+
+        // Format seconds → "45s" or "1m30s"
+        private func formatDuration(_ secs: Int) -> String {
+            guard secs >= 60 else { return "\(secs)s" }
+            let m = secs / 60; let s = secs % 60
+            return s > 0 ? "\(m)m\(s)s" : "\(m)m"
         }
 
         // Per-set reps array split from lastReps for placeholder text
@@ -1196,6 +1222,59 @@ struct AddHIITSheet: View {
                     }
                     .padding(.top, 2)
                 }
+            }
+        }
+
+        @ViewBuilder private func timeSetRows() -> some View {
+            VStack(spacing: 10) {
+                // Quick-set all chips
+                HStack(spacing: 6) {
+                    ForEach([15, 30, 45, 60, 90, 120], id: \.self) { secs in
+                        Button { for i in sets.indices { sets[i].duration = secs } } label: {
+                            Text(formatDuration(secs))
+                                .font(.system(size: 12, weight: .semibold))
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(Color.cyan.opacity(0.15))
+                                .foregroundColor(.cyan)
+                                .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Spacer()
+                }
+
+                // Header
+                HStack {
+                    Text("SET").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray).frame(width: 28, alignment: .leading)
+                    Text("DURÉE").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    Spacer()
+                }
+
+                // Per-set stepper rows
+                ForEach(sets.indices, id: \.self) { i in
+                    HStack(spacing: 10) {
+                        Text("S\(i + 1)").font(.system(size: 11, weight: .bold)).foregroundColor(.gray).frame(width: 28)
+                        Button { if sets[i].duration > 5 { sets[i].duration -= 5 } } label: {
+                            Image(systemName: "minus.circle.fill").font(.system(size: 24)).foregroundColor(.gray)
+                        }.buttonStyle(.plain)
+                        Text(formatDuration(sets[i].duration))
+                            .font(.system(size: 18, weight: .bold)).foregroundColor(.white)
+                            .frame(minWidth: 64, alignment: .center)
+                            .padding(.vertical, 6).padding(.horizontal, 12)
+                            .background(Color(hex: "191926")).cornerRadius(8)
+                        Button { sets[i].duration += 5 } label: {
+                            Image(systemName: "plus.circle.fill").font(.system(size: 24)).foregroundColor(.cyan)
+                        }.buttonStyle(.plain)
+                        Spacer()
+                    }
+                }
+
+                // Summary
+                HStack {
+                    Text("→ \(sets.map { formatDuration($0.duration) }.joined(separator: ", "))")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                    Spacer()
+                }.padding(.top, 2)
             }
         }
 
@@ -1273,6 +1352,13 @@ struct AddHIITSheet: View {
                     // ── Résumé loggé ──
                     if let r = logResult {
                         HStack(spacing: 12) {
+                            if isTimeBased {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "timer").font(.system(size: 11)).foregroundColor(.gray)
+                                    Text(r.reps.split(separator: ",").compactMap { Int($0) }.map { formatDuration($0) }.joined(separator: ", "))
+                                        .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                                }
+                            } else {
                             HStack(spacing: 4) {
                                 Image(systemName: "scalemass.fill").font(.system(size: 11)).foregroundColor(.gray)
                                 Text(units.format(r.weight)).font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
@@ -1281,6 +1367,7 @@ struct AddHIITSheet: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "repeat").font(.system(size: 11)).foregroundColor(.gray)
                                 Text(r.reps).font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                            }
                             }
                             if let rpe = r.rpe {
                                 Text("·").foregroundColor(.gray)
@@ -1310,10 +1397,10 @@ struct AddHIITSheet: View {
                     }
 
                     // Per-set rows
-                    setRows()
+                    if isTimeBased { timeSetRows() } else { setRows() }
 
-                    // Average weight + total
-                    if avgWeight != nil {
+                    // Average weight + total (reps mode only)
+                    if !isTimeBased, avgWeight != nil {
                         avgTotalRow
                     }
 
@@ -1421,12 +1508,27 @@ struct AddHIITSheet: View {
         private func logExercise() {
             guard !alreadyLogged || isEditing, canLog else { return }
             guard !repsStr.isEmpty else { return }
-            // Allow re-log in edit mode
             let wasEditing = isEditing
             if isEditing { isLogged = false }
-            // Set synchronously to block any re-tap before async completes
             isLogged = true
             isEditing = false
+
+            // ── Time-based branch ──
+            if isTimeBased {
+                logResult = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE)
+                logStatus = .success(0)
+                onLogged?()
+                let setsPayload: [[String: Any]] = sets.map { ["weight": 0, "reps": String($0.duration)] }
+                Task {
+                    try? await APIService.shared.logExercise(
+                        exercise: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
+                        sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
+                        equipmentType: "bodyweight")
+                }
+                return
+            }
+
+            // ── Reps-based branch ──
             // For bodyweight with no lest, avgWeight is nil → use 0 (backend resolves body weight for volume)
             let avg   = avgWeight ?? (equipmentType == "bodyweight" ? 0.0 : nil)
             guard let avg = avg else { return }

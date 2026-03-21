@@ -567,6 +567,12 @@ ALTER TABLE cardio_logs ADD COLUMN IF NOT EXISTS source      TEXT NOT NULL DEFAU
 ALTER TABLE recovery_logs ADD COLUMN IF NOT EXISTS active_energy  NUMERIC;
 ALTER TABLE recovery_logs ADD COLUMN IF NOT EXISTS source         TEXT NOT NULL DEFAULT 'manual';
 
+-- exercises: tracking_type for time-based exercises (e.g. Plank)
+-- Values: 'reps' (default) | 'time' (duration in seconds, no weight)
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS tracking_type TEXT NOT NULL DEFAULT 'reps';
+-- To mark an exercise as time-based:
+-- UPDATE exercises SET tracking_type = 'time' WHERE name IN ('Plank', 'Dead Hang', 'Wall Sit');
+
 -- =============================================================================
 -- MIGRATION 002 — RLS + anon policies (2026-03-21)
 -- Le backend utilise SUPABASE_ANON_KEY. RLS doit être activé sur toutes les

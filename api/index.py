@@ -1530,7 +1530,8 @@ def api_seance_data():
     }
 
     inv = inventory if isinstance(inventory, dict) else {}
-    inventory_types = {name: info.get("type", "machine") for name, info in inv.items()}
+    inventory_types    = {name: info.get("type", "machine") for name, info in inv.items()}
+    inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     # Ordered list of exercise names per session (preserves user-defined order)
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
 
@@ -1544,6 +1545,7 @@ def api_seance_data():
         "weights": weights,
         "week": get_current_week(),
         "inventory_types": inventory_types,
+        "inventory_tracking": inventory_tracking,
         "exercise_order": exercise_order,
     })
 
@@ -1567,7 +1569,8 @@ def api_seance_soir_data():
         for seance, session_def in full_program.items()
     }
     inv = inventory if isinstance(inventory, dict) else {}
-    inventory_types = {name: info.get("type", "machine") for name, info in inv.items()}
+    inventory_types    = {name: info.get("type", "machine") for name, info in inv.items()}
+    inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     suggestions     = get_suggested_weights_for_today(weights, full_program)
 
@@ -1582,6 +1585,7 @@ def api_seance_soir_data():
         "weights": weights,
         "week": get_current_week(),
         "inventory_types": inventory_types,
+        "inventory_tracking": inventory_tracking,
         "exercise_order": exercise_order,
     })
 
@@ -1758,16 +1762,18 @@ def api_programme_data():
                     entry = {"type": "machine", "increment": 5, "default_scheme": scheme}
                     add_exercise(ex_name, entry)
                     inv[ex_name] = entry
-    inventory_types   = {name: info.get("type", "machine")         for name, info in inv.items()}
-    inventory_schemes = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
-    exercise_order    = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
+    inventory_types    = {name: info.get("type", "machine")          for name, info in inv.items()}
+    inventory_tracking = {name: info.get("tracking_type", "reps")   for name, info in inv.items()}
+    inventory_schemes  = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
+    exercise_order     = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     return jsonify({
-        "full_program":      flat_program,
-        "schedule":          schedule,
-        "inventory":         list(inv.keys()),
-        "inventory_types":   inventory_types,
-        "inventory_schemes": inventory_schemes,
-        "exercise_order":    exercise_order,
+        "full_program":       flat_program,
+        "schedule":           schedule,
+        "inventory":          list(inv.keys()),
+        "inventory_types":    inventory_types,
+        "inventory_tracking": inventory_tracking,
+        "inventory_schemes":  inventory_schemes,
+        "exercise_order":     exercise_order,
     })
 
 

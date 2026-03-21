@@ -20,6 +20,7 @@ struct BonusSeanceView: View {
     @State private var localExercises: [String: String] = [:]
     @State private var exerciseOrder: [String] = []
     @State private var inventoryTypes: [String: String] = [:]
+    @State private var inventoryTracking: [String: String] = [:]
     @State private var inventory: [String] = []
     @State private var showAddExercise = false
     @State private var showFinish = false
@@ -82,6 +83,7 @@ struct BonusSeanceView: View {
                                     scheme: localExercises[name] ?? "3x8-12",
                                     weightData: vm.seanceData?.weights[name],
                                     equipmentType: inventoryTypes[name] ?? "machine",
+                                    trackingType: inventoryTracking[name] ?? "reps",
                                     bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
                                     isSecondSession: false,
                                     isBonusSession: true,
@@ -189,12 +191,14 @@ struct BonusSeanceView: View {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { isLoading = false; return }
 
-        let inv   = (json["inventory"] as? [String]) ?? []
-        let types = (json["inventory_types"] as? [String: String]) ?? [:]
+        let inv      = (json["inventory"] as? [String]) ?? []
+        let types    = (json["inventory_types"] as? [String: String]) ?? [:]
+        let tracking = (json["inventory_tracking"] as? [String: String]) ?? [:]
         await MainActor.run {
-            inventory      = inv
-            inventoryTypes = types
-            isLoading      = false
+            inventory         = inv
+            inventoryTypes    = types
+            inventoryTracking = tracking
+            isLoading         = false
         }
     }
 }
