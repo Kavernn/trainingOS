@@ -1452,11 +1452,12 @@ def api_dashboard():
         }
 
     # Merge HIIT sessions into sessions dict so the heatmap shows them too.
-    # Only include completed strength sessions (stubs must not appear as orange squares).
+    # Include if completed=True (new sessions) OR rpe is not None (historical sessions
+    # logged before the completed field existed). Stubs have completed=False AND rpe=None.
     merged_sessions = {
         date: entry
         for date, entry in sessions.items()
-        if entry.get("completed", False)
+        if entry.get("completed") or entry.get("rpe") is not None
     }
     for entry in hiit_log:
         d = entry.get("date")
