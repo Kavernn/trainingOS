@@ -77,10 +77,11 @@ class APIService: ObservableObject {
         if let cached = CacheService.shared.load(for: "dashboard"),
            let decoded = try? JSONDecoder().decode(DashboardData.self, from: cached),
            dashboard == nil {
-            await MainActor.run { self.dashboard = decoded }
+            self.dashboard = decoded
         }
 
-        await MainActor.run { isLoading = true; error = nil }
+        isLoading = true
+        error = nil
         var req = URLRequest(url: URL(string: "\(baseURL)/api/dashboard")!)
         req.timeoutInterval = 15
         do {
@@ -94,10 +95,8 @@ class APIService: ObservableObject {
                 data = cached
             }
             let decoded = try JSONDecoder().decode(DashboardData.self, from: data)
-            await MainActor.run {
-                self.dashboard = decoded
-                self.isLoading = false
-            }
+            self.dashboard = decoded
+            self.isLoading = false
         } catch let decodingError as DecodingError {
             let msg: String
             switch decodingError {
@@ -111,15 +110,11 @@ class APIService: ObservableObject {
                 msg = decodingError.localizedDescription
             }
             print("❌ Decoding error: \(msg)")
-            await MainActor.run {
-                if self.dashboard == nil { self.error = msg }
-                self.isLoading = false
-            }
+            if self.dashboard == nil { self.error = msg }
+            self.isLoading = false
         } catch {
-            await MainActor.run {
-                if self.dashboard == nil { self.error = error.localizedDescription }
-                self.isLoading = false
-            }
+            if self.dashboard == nil { self.error = error.localizedDescription }
+            self.isLoading = false
         }
     }
 
