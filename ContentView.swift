@@ -39,7 +39,6 @@ struct ContentView: View {
                     Label("Plus", systemImage: "ellipsis.circle.fill")
                 }
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
         .onAppear { configureTabBarAppearance() }
         // Offline banner (top)
         .overlay(alignment: .top) {
