@@ -403,7 +403,29 @@ struct TodayCardView: View {
                     }
                 }
 
-                if dash.today != "Repos" {
+                if dash.today == "Repos" {
+                    NavigationLink(destination: BonusSeanceView()) {
+                        HStack(spacing: 8) {
+                            Image(systemName: dash.hasPartialLogs ? "play.fill" : "plus.circle.fill")
+                            Text(dash.hasPartialLogs ? "Continuer la séance" : "Faire une séance")
+                                .font(.system(size: 15, weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.gray, Color.gray.opacity(0.75)],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .shadow(color: Color.gray.opacity(0.3), radius: 10, y: 4)
+                    }
+                    .buttonStyle(SpringButtonStyle())
+                    .padding([.horizontal, .bottom], 16)
+                    .padding(.top, 12)
+                } else {
                     NavigationLink(destination: SeanceView()) {
                         HStack(spacing: 8) {
                             Image(systemName: "play.fill")
