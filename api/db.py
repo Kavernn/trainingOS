@@ -1328,7 +1328,6 @@ def delete_cardio_log(date: str, type_: str) -> bool:
 
 def get_profile() -> dict:
     """Return the single user_profile row as a dict."""
-    # fallback to KV during migration
     if _client is None or MODE == "OFFLINE":
         return get_json("user_profile", {})
     try:
@@ -1336,13 +1335,13 @@ def get_profile() -> dict:
             _client.table("user_profile")
             .select("*")
             .eq("id", 1)
-            .single()
+            .maybe_single()
             .execute()
         )
-        return resp.data or {}
+        return resp.data or get_json("user_profile", {})
     except Exception as e:
-        logger.error("get_profile error: %s", e)
-        return get_json("user_profile", {})  # fallback to KV during migration
+        logger.warning("get_profile error: %s", e)
+        return get_json("user_profile", {})
 
 
 def update_profile(patch: dict) -> bool:
@@ -1376,21 +1375,21 @@ def update_profile(patch: dict) -> bool:
 
 def get_nutrition_settings() -> dict:
     """Return nutrition settings (single row)."""
-    # fallback to KV during migration
+    _default = {"calorie_limit": 2000, "protein_target": 150}
     if _client is None or MODE == "OFFLINE":
-        return get_json("nutrition_settings", {"calorie_limit": 2000, "protein_target": 150})
+        return get_json("nutrition_settings", _default)
     try:
         resp = (
             _client.table("nutrition_settings")
             .select("*")
             .eq("id", 1)
-            .single()
+            .maybe_single()
             .execute()
         )
-        return resp.data or {}
+        return resp.data or get_json("nutrition_settings", _default)
     except Exception as e:
-        logger.error("get_nutrition_settings error: %s", e)
-        return get_json("nutrition_settings", {"calorie_limit": 2000, "protein_target": 150})  # fallback to KV during migration
+        logger.warning("get_nutrition_settings error: %s", e)
+        return get_json("nutrition_settings", _default)
 
 
 def update_nutrition_settings(patch: dict) -> bool:
@@ -1664,8 +1663,31 @@ def get_full_program() -> dict | None:
 
         return program
     except Exception as e:
-        logger.error("get_full_program error: %s", e)
-        return None  # Signal unavailability — do NOT seed defaults
+        logger.warning("get_full_program error: %s — retrying once", e)
+        # Retry once on transient connection errors (e.g. "Server disconnected")
+        try:
+            sessions_resp = _client.table("program_sessions").select("id, name, order_index").order("order_index").execute()
+            sessions = sessions_resp.data or []
+            if not sessions:
+                return {}
+            program2: dict = {}
+            for session in sessions:
+                sid, sname = session["id"], session["name"]
+                blocks_resp = _client.table("program_blocks").select("id, type, order_index, hiit_config").eq("session_id", sid).order("order_index").execute()
+                built_blocks = []
+                for block in (blocks_resp.data or []):
+                    bid, btype, border = block["id"], block.get("type", "strength"), block.get("order_index", 0)
+                    if btype == "strength":
+                        ex_resp = _client.table("program_block_exercises").select("scheme, order_index, exercises(name)").eq("block_id", bid).order("order_index").execute()
+                        exercises = {(r.get("exercises") or {}).get("name"): r.get("scheme", "3x8-12") for r in (ex_resp.data or []) if (r.get("exercises") or {}).get("name")}
+                        built_blocks.append({"type": "strength", "order": border, "exercises": exercises})
+                    else:
+                        built_blocks.append({"type": btype, "order": border, "hiit_config": block.get("hiit_config") or {}})
+                program2[sname] = {"blocks": built_blocks}
+            return program2
+        except Exception as e2:
+            logger.error("get_full_program retry failed: %s", e2)
+            return None
 
 
 def save_full_program(program: dict) -> bool:
