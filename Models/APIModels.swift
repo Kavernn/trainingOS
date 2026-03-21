@@ -71,6 +71,7 @@ struct DashboardData: Codable {
 
     let alreadyLoggedToday: Bool
     let hasPartialLogs: Bool
+    let completed: Bool
     let schedule: [String: String]
     let sessions: [String: SessionEntry]
     let goals: [String: GoalProgress]
@@ -83,6 +84,7 @@ struct DashboardData: Codable {
         case todayDate = "today_date"
         case alreadyLoggedToday = "already_logged_today"
         case hasPartialLogs = "has_partial_logs"
+        case completed
         case schedule, sessions, goals
         case fullProgram = "full_program"
         case nutritionTotals = "nutrition_totals"
@@ -94,8 +96,9 @@ struct DashboardData: Codable {
         today               = try c.decode(String.self, forKey: .today)
         week                = try c.decode(Int.self, forKey: .week)
         todayDate           = try c.decode(String.self, forKey: .todayDate)
-        alreadyLoggedToday  = try c.decode(Bool.self, forKey: .alreadyLoggedToday)
+        alreadyLoggedToday  = (try? c.decode(Bool.self, forKey: .alreadyLoggedToday)) ?? false
         hasPartialLogs      = (try? c.decode(Bool.self, forKey: .hasPartialLogs)) ?? false
+        completed           = (try? c.decode(Bool.self, forKey: .completed)) ?? false
         schedule            = try c.decode([String: String].self, forKey: .schedule)
         sessions            = try c.decode([String: SessionEntry].self, forKey: .sessions)
         goals               = try c.decode([String: GoalProgress].self, forKey: .goals)
