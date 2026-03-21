@@ -6,104 +6,72 @@ struct BodyCompView: View {
     @State private var profile: UserProfile? = nil
     @State private var tendance = ""
     @State private var isLoading = true
-    @State private var sheetEntry: BodyWeightEntry? = nil   // nil = add, non-nil = edit
+    @State private var sheetEntry: BodyWeightEntry? = nil
     @State private var showSheet = false
 
     var latest: BodyWeightEntry? { bodyWeight.first }
 
+    var entriesWithBF: [BodyWeightEntry] { bodyWeight.filter { $0.bodyFat != nil } }
+
+    var latestWHR: Double? {
+        guard let w = latest?.waistCm, let h = latest?.hipsCm, h > 0 else { return nil }
+        return w / h
+    }
+
+    var hasMeasurements: Bool {
+        guard let l = latest else { return false }
+        return l.armsCm != nil || l.chestCm != nil || l.thighsCm != nil || l.hipsCm != nil || l.waistCm != nil
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 AmbientBackground(color: .green)
-
                 if isLoading {
                     ProgressView().tint(.orange).scaleEffect(1.3)
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
-                            // Current weight card
-                            VStack(spacing: 14) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("POIDS ACTUEL")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .tracking(2).foregroundColor(.gray)
-                                        if let w = latest?.weight {
-                                            Text(units.format(w))
-                                                .font(.system(size: 44, weight: .black))
-                                                .foregroundColor(.orange)
-                                                .glow(.orange)
-                                                .contentTransition(.numericText())
-                                        } else {
-                                            Text("— \(units.label)")
-                                                .font(.system(size: 44, weight: .black))
-                                                .foregroundColor(.gray)
-                                        }
-                                        if let bf = latest?.bodyFat {
-                                            Text("\(bf, specifier: "%.1f")% gras")
-                                                .font(.system(size: 13)).foregroundColor(.blue)
-                                        }
-                                        if let wc = latest?.waistCm {
-                                            Text("Tour: \(wc, specifier: "%.0f") cm")
-                                                .font(.system(size: 13)).foregroundColor(.purple)
-                                        }
-                                    }
-                                    Spacer()
-                                    VStack(alignment: .trailing, spacing: 6) {
-                                        Text(tendance)
-                                            .font(.system(size: 15, weight: .bold))
-                                            .foregroundColor(tendanceColor)
-                                        if bodyWeight.count > 1 {
-                                            let diff = (latest?.weight ?? 0) - (bodyWeight[1].weight)
-                                            HStack(spacing: 4) {
-                                                Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down")
-                                                    .font(.system(size: 11, weight: .bold))
-                                                Text("\(diff >= 0 ? "+" : "")\(units.format(diff))")
-                                                    .font(.system(size: 12, weight: .semibold))
-                                            }
-                                            .foregroundColor(diff >= 0 ? .orange.opacity(0.8) : .green.opacity(0.8))
-                                        }
-                                    }
-                                }
-                            }
-                            .padding(16)
-                            .glassCardAccent(.green)
-                            .cornerRadius(16)
-                            .padding(.horizontal, 16)
-                            .appearAnimation(delay: 0.05)
 
-                            // Chart
-                            if !bodyWeight.isEmpty {
+                            // 1 — Poids actuel + chips maigre/gras
+                            currentWeightCard
+
+                            // 2 — Courbe composition (masse maigre vs masse grasse)
+                            if entriesWithBF.count >= 2 {
+                                CompositionChartCard(
+                                    entries: Array(entriesWithBF.prefix(30).reversed()),
+                                    units: units
+                                )
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.1)
+                            }
+
+                            // 3 — Ratio taille/hanches
+                            if let whr = latestWHR {
+                                WHRCard(
+                                    ratio: whr,
+                                    isMale: profile?.sex?.uppercased().hasPrefix("M") ?? true
+                                )
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.15)
+                            }
+
+                            // 4 — Mensurations (barres + delta)
+                            if hasMeasurements {
+                                MeasurementsCard(entries: Array(bodyWeight.prefix(30)))
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.2)
+                            }
+
+                            // 5 — Courbe poids brut
+                            if bodyWeight.count >= 2 {
                                 WeightChartView(entries: Array(bodyWeight.prefix(20).reversed()))
                                     .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.25)
                             }
 
-                            // History list
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("HISTORIQUE")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .tracking(2)
-                                    .foregroundColor(.gray)
-                                    .padding(.horizontal, 16)
-
-                                ForEach(bodyWeight.prefix(30)) { entry in
-                                    BodyWeightRow(
-                                        entry: entry,
-                                        onEdit: {
-                                            sheetEntry = entry
-                                            showSheet = true
-                                        },
-                                        onDelete: {
-                                            Task {
-                                                try? await APIService.shared.deleteBodyWeight(date: entry.date, weight: entry.weight)
-                                                await loadData()
-                                            }
-                                        }
-                                    )
-                                    .padding(.horizontal, 16)
-                                }
-                            }
+                            // 6 — Historique
+                            historySection
                         }
                         .padding(.vertical, 16)
                         .padding(.bottom, 80)
@@ -117,16 +85,86 @@ struct BodyCompView: View {
                 BodyWeightSheet(editEntry: sheetEntry, onSaved: { await loadData() })
             }
             .overlay(alignment: .bottomTrailing) {
-                FAB(icon: "plus") {
-                    sheetEntry = nil
-                    showSheet = true
-                }
-                .padding(.trailing, 20)
-                .padding(.bottom, fabBottomPadding + 16)
-                .appearAnimation(delay: 0.3)
+                FAB(icon: "plus") { sheetEntry = nil; showSheet = true }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, fabBottomPadding + 16)
+                    .appearAnimation(delay: 0.3)
             }
         }
         .task { await loadData() }
+    }
+
+    // MARK: - Current weight card
+    private var currentWeightCard: some View {
+        VStack(spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("POIDS ACTUEL")
+                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    if let w = latest?.weight {
+                        Text(units.format(w))
+                            .font(.system(size: 44, weight: .black))
+                            .foregroundColor(.orange).glow(.orange)
+                            .contentTransition(.numericText())
+                    } else {
+                        Text("— \(units.label)")
+                            .font(.system(size: 44, weight: .black)).foregroundColor(.gray)
+                    }
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text(tendance)
+                        .font(.system(size: 15, weight: .bold)).foregroundColor(tendanceColor)
+                    if bodyWeight.count > 1 {
+                        let diff = (latest?.weight ?? 0) - bodyWeight[1].weight
+                        HStack(spacing: 4) {
+                            Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("\(diff >= 0 ? "+" : "")\(units.format(diff))")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(diff >= 0 ? .orange.opacity(0.8) : .green.opacity(0.8))
+                    }
+                }
+            }
+
+            // Masse maigre / masse grasse si body fat dispo
+            if let bf = latest?.bodyFat, let w = latest?.weight {
+                let lean = w * (1 - bf / 100)
+                let fat  = w * bf / 100
+                HStack(spacing: 8) {
+                    CompChip(label: "MASSE MAIGRE", value: units.format(lean), color: .green)
+                    CompChip(label: "MASSE GRASSE", value: "\(units.format(fat)) · \(String(format: "%.1f", bf))%", color: .blue)
+                }
+            }
+        }
+        .padding(16)
+        .glassCardAccent(.green)
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
+        .appearAnimation(delay: 0.05)
+    }
+
+    private var historySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("HISTORIQUE")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .padding(.horizontal, 16)
+            ForEach(bodyWeight.prefix(30)) { entry in
+                BodyWeightRow(
+                    entry: entry,
+                    onEdit: { sheetEntry = entry; showSheet = true },
+                    onDelete: {
+                        Task {
+                            try? await APIService.shared.deleteBodyWeight(date: entry.date, weight: entry.weight)
+                            await loadData()
+                        }
+                    }
+                )
+                .padding(.horizontal, 16)
+            }
+        }
+        .appearAnimation(delay: 0.3)
     }
 
     var tendanceColor: Color {
@@ -142,6 +180,284 @@ struct BodyCompView: View {
             profile = p; bodyWeight = bw; tendance = t
         }
         isLoading = false
+    }
+}
+
+// MARK: - Comp Chip
+struct CompChip: View {
+    let label: String
+    let value: String
+    let color: Color
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 9, weight: .black)).tracking(1)
+                .foregroundColor(color.opacity(0.7))
+            Text(value)
+                .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(color.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.2), lineWidth: 1))
+    }
+}
+
+// MARK: - Composition Chart (masse maigre vs masse grasse)
+struct CompositionChartCard: View {
+    let entries: [BodyWeightEntry]   // chronologique, oldest first, all have bodyFat
+    let units: UnitSettings
+
+    private var leanSeries: [Double] { entries.compactMap { e in e.bodyFat.map { e.weight * (1 - $0 / 100) } } }
+    private var fatSeries:  [Double] { entries.compactMap { e in e.bodyFat.map { e.weight * $0 / 100 } } }
+    private var allValues:  [Double] { leanSeries + fatSeries }
+    private var minVal: Double { (allValues.min() ?? 0) * 0.97 }
+    private var maxVal: Double { (allValues.max() ?? 1) * 1.01 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("COMPOSITION")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                HStack(spacing: 12) {
+                    LegendDot(color: .green, label: "Masse maigre")
+                    LegendDot(color: .blue,  label: "Masse grasse")
+                }
+            }
+
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let range = max(maxVal - minVal, 1.0)
+                let n = entries.count
+
+                func xPos(_ i: Int) -> CGFloat { n < 2 ? w / 2 : CGFloat(i) / CGFloat(n - 1) * w }
+                func yPos(_ val: Double) -> CGFloat { h - CGFloat((val - minVal) / range) * h }
+
+                ZStack {
+                    // Grid
+                    ForEach(0..<4, id: \.self) { i in
+                        Path { p in
+                            let y = h * CGFloat(i) / 3
+                            p.move(to: CGPoint(x: 0, y: y))
+                            p.addLine(to: CGPoint(x: w, y: y))
+                        }
+                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                    }
+
+                    // Lean line + fill
+                    if leanSeries.count > 1 {
+                        Path { p in
+                            for (i, v) in leanSeries.enumerated() {
+                                let pt = CGPoint(x: xPos(i), y: yPos(v))
+                                if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
+                            }
+                        }
+                        .stroke(Color.green, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+
+                        ForEach(leanSeries.indices, id: \.self) { i in
+                            Circle().fill(Color.green).frame(width: 5, height: 5)
+                                .position(x: xPos(i), y: yPos(leanSeries[i]))
+                        }
+                    }
+
+                    // Fat line
+                    if fatSeries.count > 1 {
+                        Path { p in
+                            for (i, v) in fatSeries.enumerated() {
+                                let pt = CGPoint(x: xPos(i), y: yPos(v))
+                                if i == 0 { p.move(to: pt) } else { p.addLine(to: pt) }
+                            }
+                        }
+                        .stroke(Color.blue, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+
+                        ForEach(fatSeries.indices, id: \.self) { i in
+                            Circle().fill(Color.blue).frame(width: 5, height: 5)
+                                .position(x: xPos(i), y: yPos(fatSeries[i]))
+                        }
+                    }
+                }
+            }
+            .frame(height: 150)
+
+            // Valeurs actuelles
+            if let last = entries.last, let bf = last.bodyFat {
+                HStack {
+                    Spacer()
+                    Text("Maigre \(units.format(last.weight * (1 - bf/100)))")
+                        .font(.system(size: 12, weight: .semibold)).foregroundColor(.green)
+                    Text("·").foregroundColor(.gray)
+                    Text("Gras \(units.format(last.weight * bf/100))")
+                        .font(.system(size: 12, weight: .semibold)).foregroundColor(.blue)
+                    Spacer()
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+struct LegendDot: View {
+    let color: Color; let label: String
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label).font(.system(size: 10)).foregroundColor(.gray)
+        }
+    }
+}
+
+// MARK: - WHR Card
+struct WHRCard: View {
+    let ratio: Double
+    let isMale: Bool
+
+    private var thresholds: (good: Double, ok: Double) { isMale ? (0.90, 0.95) : (0.85, 0.90) }
+    private var statusColor: Color {
+        ratio < thresholds.good ? .green : ratio < thresholds.ok ? .orange : .red
+    }
+    private var statusLabel: String {
+        ratio < thresholds.good ? "Excellent" : ratio < thresholds.ok ? "Correct" : "À surveiller"
+    }
+    private let gaugeMin = 0.65, gaugeMax = 1.05
+    private var gaugeFill: Double { (min(ratio, gaugeMax) - gaugeMin) / (gaugeMax - gaugeMin) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("RATIO TAILLE / HANCHES")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text(statusLabel)
+                    .font(.system(size: 12, weight: .bold)).foregroundColor(statusColor)
+                    .padding(.horizontal, 10).padding(.vertical, 4)
+                    .background(statusColor.opacity(0.12)).clipShape(Capsule())
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(String(format: "%.2f", ratio))
+                    .font(.system(size: 40, weight: .black)).foregroundColor(statusColor)
+                Text("WHR").font(.system(size: 13, weight: .semibold)).foregroundColor(.gray)
+            }
+
+            // Jauge colorée
+            GeometryReader { geo in
+                let w = geo.size.width
+                let goodX = w * CGFloat((thresholds.good - gaugeMin) / (gaugeMax - gaugeMin))
+                let okX   = w * CGFloat((thresholds.ok   - gaugeMin) / (gaugeMax - gaugeMin))
+
+                ZStack(alignment: .leading) {
+                    HStack(spacing: 0) {
+                        Rectangle().fill(Color.green.opacity(0.25)).frame(width: goodX)
+                        Rectangle().fill(Color.orange.opacity(0.25)).frame(width: okX - goodX)
+                        Rectangle().fill(Color.red.opacity(0.25))
+                    }
+                    .clipShape(Capsule()).frame(height: 8)
+
+                    Circle().fill(statusColor)
+                        .frame(width: 18, height: 18)
+                        .shadow(color: statusColor.opacity(0.5), radius: 6)
+                        .offset(x: w * CGFloat(gaugeFill) - 9)
+                }
+            }
+            .frame(height: 18)
+
+            Text("Référence \(isMale ? "H" : "F") : < \(String(format: "%.2f", thresholds.good)) optimal · < \(String(format: "%.2f", thresholds.ok)) acceptable")
+                .font(.system(size: 11)).foregroundColor(.gray)
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Measurements Card
+struct MeasurementsCard: View {
+    let entries: [BodyWeightEntry]
+
+    private struct MeasureItem: Identifiable {
+        var id: String { label }
+        let label: String
+        let icon: String
+        let color: Color
+        let current: Double
+        let reference: Double?
+        var delta: Double? { reference.map { current - $0 } }
+    }
+
+    private var items: [MeasureItem] {
+        guard let l = entries.first else { return [] }
+        let ref = entries.count > 1 ? entries.last : nil
+        let defs: [(String, String, Color, Double?, Double?)] = [
+            ("Taille",    "arrow.left.and.right",                   .purple, l.waistCm,  ref?.waistCm),
+            ("Bras",      "figure.strengthtraining.traditional",     .orange, l.armsCm,   ref?.armsCm),
+            ("Poitrine",  "heart.fill",                             .red,    l.chestCm,  ref?.chestCm),
+            ("Cuisses",   "figure.walk",                            .blue,   l.thighsCm, ref?.thighsCm),
+            ("Hanches",   "oval.portrait",                          .pink,   l.hipsCm,   ref?.hipsCm),
+        ]
+        return defs.compactMap { label, icon, color, cur, refVal in
+            guard let c = cur else { return nil }
+            return MeasureItem(label: label, icon: icon, color: color, current: c, reference: refVal)
+        }
+    }
+
+    private var maxValue: Double { items.map(\.current).max() ?? 100 }
+
+    private var periodLabel: String {
+        guard entries.count > 1,
+              let first = entries.last?.date, let last = entries.first?.date else { return "" }
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        guard let d1 = df.date(from: first), let d2 = df.date(from: last) else { return "" }
+        let days = Int(d2.timeIntervalSince(d1) / 86400)
+        return days > 0 ? "Δ \(days) j" : ""
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("MENSURATIONS cm")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if !periodLabel.isEmpty {
+                    Text(periodLabel).font(.system(size: 11)).foregroundColor(.gray)
+                }
+            }
+
+            ForEach(items) { item in
+                VStack(spacing: 7) {
+                    HStack {
+                        Image(systemName: item.icon)
+                            .font(.system(size: 11)).foregroundColor(item.color).frame(width: 20)
+                        Text(item.label)
+                            .font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+                        Spacer()
+                        if let d = item.delta, abs(d) >= 0.5 {
+                            Text("\(d >= 0 ? "+" : "")\(d, specifier: "%.0f")")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(d <= 0 ? .green : .orange)
+                        }
+                        Text("\(item.current, specifier: "%.0f")")
+                            .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color(hex: "191926")).frame(height: 5)
+                            Capsule()
+                                .fill(item.color.opacity(0.75))
+                                .frame(width: geo.size.width * CGFloat(item.current / maxValue), height: 5)
+                        }
+                    }
+                    .frame(height: 5)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
     }
 }
 
