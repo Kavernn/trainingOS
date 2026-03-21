@@ -246,17 +246,19 @@ struct GreetingHeaderView: View {
     }
 
     var streak: Int {
+        let today = Calendar.current.startOfDay(for: Date())
+        let formatter = DateFormatter.isoDate
         var count = 0
-        var date = Date()
-        let cal = Calendar.current
-        while true {
-            let key = DateFormatter.isoDate.string(from: date)
-            if dash.sessions[key] != nil { count += 1 }
-            else if count == 0 { } // Skip today if not logged
-            else { break }
-            guard let prev = cal.date(byAdding: .day, value: -1, to: date) else { break }
-            date = prev
-            if count > 60 { break }
+        for i in 0..<365 {
+            let checkDate = today.addingTimeInterval(-Double(i) * 86400)
+            let key = formatter.string(from: checkDate)
+            if dash.sessions[key] != nil {
+                count += 1
+            } else if i == 0 {
+                continue // aujourd'hui pas encore loggé, on vérifie hier
+            } else {
+                break
+            }
         }
         return count
     }
