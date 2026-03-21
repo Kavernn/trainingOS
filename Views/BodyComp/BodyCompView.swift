@@ -232,9 +232,8 @@ struct CompositionChartCard: View {
                 let h = geo.size.height
                 let range = max(maxVal - minVal, 1.0)
                 let n = entries.count
-
-                func xPos(_ i: Int) -> CGFloat { n < 2 ? w / 2 : CGFloat(i) / CGFloat(n - 1) * w }
-                func yPos(_ val: Double) -> CGFloat { h - CGFloat((val - minVal) / range) * h }
+                let xPos: (Int) -> CGFloat = { i in n < 2 ? w / 2 : CGFloat(i) / CGFloat(n - 1) * w }
+                let yPos: (Double) -> CGFloat = { val in h - CGFloat((val - minVal) / range) * h }
 
                 ZStack {
                     // Grid
