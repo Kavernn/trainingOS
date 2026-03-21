@@ -2,6 +2,7 @@ import SwiftUI
 import AVFoundation
 
 struct TimerView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var workSecs = 40
     @State private var restSecs = 20
     @State private var prepareSecs = 5
@@ -13,7 +14,16 @@ struct TimerView: View {
     @State private var timerTask: Task<Void, Never>? = nil
     @State private var beepPlayer: AVAudioPlayer?
 
-    enum TimerPhase { case idle, prepare, work, rest, done }
+    enum TimerPhase: String { case idle, prepare, work, rest, done }
+
+    // UserDefaults keys for background persistence
+    private static let bgPhaseEndKey = "timerBgPhaseEnd"
+    private static let bgPhaseKey    = "timerBgPhase"
+    private static let bgRoundKey    = "timerBgRound"
+    private static let bgWorkKey     = "timerBgWork"
+    private static let bgRestKey     = "timerBgRest"
+    private static let bgPrepareKey  = "timerBgPrepare"
+    private static let bgTotalKey    = "timerBgTotal"
 
     var phaseColor: Color {
         switch phase {
@@ -195,7 +205,10 @@ struct TimerView: View {
             }
         }
         .background(AmbientBackground(color: phaseColor))
-        .onDisappear { stopTimer() }
+        .onDisappear { persistState() }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active { syncFromBackground() }
+        }
     }
 
     // MARK: - Helpers
@@ -214,6 +227,7 @@ struct TimerView: View {
             }
             running = true
             timerTask = Task { await runLoop() }
+            persistState()
         }
     }
 
@@ -221,6 +235,112 @@ struct TimerView: View {
         running = false
         timerTask?.cancel()
         timerTask = nil
+        clearPersistedState()
+    }
+
+    // MARK: - Background persistence
+
+    private func persistState() {
+        guard running else { clearPersistedState(); return }
+        let ud = UserDefaults.standard
+        ud.set(Date().addingTimeInterval(TimeInterval(remaining)), forKey: Self.bgPhaseEndKey)
+        ud.set(phase.rawValue, forKey: Self.bgPhaseKey)
+        ud.set(currentRound,   forKey: Self.bgRoundKey)
+        ud.set(workSecs,       forKey: Self.bgWorkKey)
+        ud.set(restSecs,       forKey: Self.bgRestKey)
+        ud.set(prepareSecs,    forKey: Self.bgPrepareKey)
+        ud.set(totalRounds,    forKey: Self.bgTotalKey)
+    }
+
+    private func clearPersistedState() {
+        let ud = UserDefaults.standard
+        for key in [Self.bgPhaseEndKey, Self.bgPhaseKey, Self.bgRoundKey,
+                    Self.bgWorkKey, Self.bgRestKey, Self.bgPrepareKey, Self.bgTotalKey] {
+            ud.removeObject(forKey: key)
+        }
+    }
+
+    private func syncFromBackground() {
+        let ud = UserDefaults.standard
+        guard let phaseEnd = ud.object(forKey: Self.bgPhaseEndKey) as? Date,
+              let phaseRaw = ud.string(forKey: Self.bgPhaseKey),
+              let bgPhase  = TimerPhase(rawValue: phaseRaw) else { return }
+
+        let storedWork    = ud.integer(forKey: Self.bgWorkKey)
+        let storedRest    = ud.integer(forKey: Self.bgRestKey)
+        let storedPrepare = ud.integer(forKey: Self.bgPrepareKey)
+        let storedTotal   = ud.integer(forKey: Self.bgTotalKey)
+        var bgRound       = ud.integer(forKey: Self.bgRoundKey)
+
+        workSecs    = storedWork    > 0 ? storedWork    : workSecs
+        restSecs    = storedRest    > 0 ? storedRest    : restSecs
+        prepareSecs = storedPrepare > 0 ? storedPrepare : prepareSecs
+        totalRounds = storedTotal   > 0 ? storedTotal   : totalRounds
+
+        var elapsed = -phaseEnd.timeIntervalSinceNow  // positive = past end
+        var curPhase = bgPhase
+
+        if elapsed <= 0 {
+            // Still in current phase
+            phase = curPhase
+            currentRound = bgRound
+            remaining = max(0, Int(phaseEnd.timeIntervalSinceNow.rounded()))
+            if !running {
+                running = true
+                timerTask = Task { await runLoop() }
+            }
+            return
+        }
+
+        // Advance through phases mathematically
+        func phaseDuration(_ p: TimerPhase) -> Int {
+            switch p {
+            case .prepare: return storedPrepare > 0 ? storedPrepare : prepareSecs
+            case .work:    return storedWork    > 0 ? storedWork    : workSecs
+            case .rest:    return storedRest    > 0 ? storedRest    : restSecs
+            default:       return 0
+            }
+        }
+
+        func nextPhase(_ p: TimerPhase) -> (TimerPhase, Bool) {
+            // Returns next phase and whether round incremented
+            switch p {
+            case .prepare: return (.work, false)
+            case .work:
+                if bgRound >= totalRounds { return (.done, false) }
+                return (.rest, false)
+            case .rest:
+                bgRound += 1
+                return (.work, true)
+            default: return (.done, false)
+            }
+        }
+
+        while elapsed > 0 && curPhase != .done {
+            let dur = phaseDuration(curPhase)
+            if elapsed >= Double(dur) {
+                elapsed -= Double(dur)
+                (curPhase, _) = nextPhase(curPhase)
+            } else {
+                break
+            }
+        }
+
+        if curPhase == .done {
+            phase = .done
+            running = false
+            clearPersistedState()
+        } else {
+            let dur = phaseDuration(curPhase)
+            phase = curPhase
+            currentRound = bgRound
+            remaining = max(0, dur - Int(elapsed.rounded()))
+            if !running {
+                running = true
+                timerTask = Task { await runLoop() }
+            }
+            persistState()
+        }
     }
 
     @MainActor

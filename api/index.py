@@ -741,6 +741,24 @@ def api_session_delete():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/update_session", methods=["POST"])
+def api_update_session():
+    """Patch RPE and/or comment on an existing workout session."""
+    try:
+        data = request.get_json() or {}
+        date = data.get("date")
+        if not date:
+            return jsonify({"error": "date required"}), 400
+        patch = {}
+        if "rpe" in data:     patch["rpe"] = data["rpe"]
+        if "comment" in data: patch["comment"] = data["comment"]
+        import db as _db
+        ok = _db.update_workout_session(date, patch)
+        return jsonify({"success": ok})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/log_session", methods=["POST"])
 def api_log_session():
     try:

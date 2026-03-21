@@ -23,6 +23,7 @@ struct HistoriqueView: View {
     @State private var isLoading = true
     @State private var selectedTab = 0
     @State private var expandedDates: Set<String> = []
+    @State private var editTarget: HistoriqueMuscu? = nil
 
     var body: some View {
         NavigationStack {
@@ -52,7 +53,8 @@ struct HistoriqueView: View {
                                                 session: session,
                                                 isExpanded: expandedDates.contains(session.date),
                                                 onToggle: { toggle(session.date) },
-                                                onDelete: { Task { await deleteMuscu(session.date) } }
+                                                onDelete: { Task { await deleteMuscu(session.date) } },
+                                                onEdit: { editTarget = session }
                                             )
                                             .padding(.horizontal, 16)
                                         }
@@ -81,6 +83,11 @@ struct HistoriqueView: View {
             .navigationBarTitleDisplayMode(.large)
         }
         .task { await loadData() }
+        .sheet(item: $editTarget) { session in
+            EditSessionSheet(session: session) { date, rpe, comment in
+                Task { await saveEdit(date: date, rpe: rpe, comment: comment) }
+            }
+        }
     }
 
     private func toggle(_ date: String) {
@@ -146,6 +153,19 @@ struct HistoriqueView: View {
         CacheService.shared.clear(for: "historique_data")
     }
 
+    private func saveEdit(date: String, rpe: Double?, comment: String) async {
+        try? await APIService.shared.updateSession(date: date, rpe: rpe, comment: comment)
+        if let idx = muscuSessions.firstIndex(where: { $0.date == date }) {
+            muscuSessions[idx] = HistoriqueMuscu(
+                date: date,
+                rpe: rpe,
+                comment: comment,
+                exos: muscuSessions[idx].exos
+            )
+        }
+        editTarget = nil
+    }
+
     private func deleteHIIT(_ session: HIITEntry) async {
         if let date = session.date, let type = session.sessionType {
             try? await APIService.shared.deleteHIIT(date: date, sessionType: type)
@@ -161,6 +181,7 @@ struct MuscuSessionCard: View {
     let isExpanded: Bool
     let onToggle: () -> Void
     let onDelete: () -> Void
+    let onEdit: () -> Void
     @State private var confirmDelete = false
 
     var rpeColor: Color {
@@ -248,6 +269,11 @@ struct MuscuSessionCard: View {
                     }
 
                     HStack {
+                        Button { onEdit() } label: {
+                            Label("Modifier", systemImage: "pencil")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.blue)
+                        }
                         Spacer()
                         Button(role: .destructive) { confirmDelete = true } label: {
                             Label("Supprimer", systemImage: "trash")
@@ -398,5 +424,103 @@ struct EmptyHistoriqueView: View {
             Text(label).foregroundColor(.gray)
         }
         .padding(.top, 40)
+    }
+}
+
+// MARK: - Edit Session Sheet
+struct EditSessionSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let session: HistoriqueMuscu
+    let onSave: (String, Double?, String) -> Void
+
+    @State private var rpe: Double
+    @State private var hasRPE: Bool
+    @State private var comment: String
+    @State private var isSaving = false
+
+    init(session: HistoriqueMuscu, onSave: @escaping (String, Double?, String) -> Void) {
+        self.session = session
+        self.onSave = onSave
+        _rpe = State(initialValue: session.rpe ?? 7.0)
+        _hasRPE = State(initialValue: session.rpe != nil)
+        _comment = State(initialValue: session.comment)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                VStack(spacing: 24) {
+                    // RPE
+                    VStack(spacing: 12) {
+                        HStack {
+                            Text("RPE")
+                                .font(.system(size: 13, weight: .bold))
+                                .tracking(1)
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Toggle("", isOn: $hasRPE)
+                                .labelsHidden()
+                                .tint(.orange)
+                        }
+                        if hasRPE {
+                            VStack(spacing: 6) {
+                                Slider(value: $rpe, in: 1...10, step: 0.5)
+                                    .tint(.orange)
+                                Text(String(format: "%.1f / 10", rpe))
+                                    .font(.system(size: 28, weight: .black))
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .background(Color(hex: "11111c"))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                    // Comment
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("COMMENTAIRE")
+                            .font(.system(size: 13, weight: .bold))
+                            .tracking(1)
+                            .foregroundColor(.gray)
+                        TextField("Note, ressenti…", text: $comment, axis: .vertical)
+                            .lineLimit(3...6)
+                            .font(.system(size: 14))
+                            .foregroundColor(.white)
+                            .padding(12)
+                            .background(Color(hex: "11111c"))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    Spacer()
+
+                    Button {
+                        isSaving = true
+                        onSave(session.date, hasRPE ? rpe : nil, comment)
+                    } label: {
+                        HStack {
+                            if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
+                            Text("Enregistrer")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Color.orange)
+                        .foregroundColor(.black)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .disabled(isSaving)
+                }
+                .padding(20)
+            }
+            .navigationTitle("Modifier la séance")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { dismiss() }
+                        .foregroundColor(.orange)
+                }
+            }
+        }
     }
 }

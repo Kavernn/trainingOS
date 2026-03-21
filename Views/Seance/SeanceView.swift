@@ -1186,6 +1186,15 @@ struct AddHIITSheet: View {
                             .padding(8).background(Color(hex: "191926")).cornerRadius(8)
                     }
                 }
+                if !repsStr.isEmpty {
+                    HStack {
+                        Text("→ \(repsStr)")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                        Spacer()
+                    }
+                    .padding(.top, 2)
+                }
             }
         }
 
@@ -1765,8 +1774,10 @@ struct AddHIITSheet: View {
         @State private var timerTask:   Task<Void, Never>?
         @State private var beepPlayer:  AVAudioPlayer?
 
-        private static let endDateKey = "restTimerEndDate"
-        private static let totalKey   = "restTimerTotal"
+        private static let endDateKey  = "restTimerEndDate"
+        private static let totalKey    = "restTimerTotal"
+        private static let presetKey   = "restTimerPreset"
+        private let presets            = [60, 90, 120, 180]
 
         private var progress: Double {
             totalSeconds > 0 ? Double(remaining) / Double(totalSeconds) : 0
@@ -1786,6 +1797,26 @@ struct AddHIITSheet: View {
                         .tracking(4)
                         .foregroundColor(.gray)
                         .padding(.top, 8)
+
+                    // Preset chips
+                    HStack(spacing: 8) {
+                        ForEach(presets, id: \.self) { p in
+                            Button {
+                                totalSeconds = p
+                                remaining = p
+                                UserDefaults.standard.set(p, forKey: Self.presetKey)
+                            } label: {
+                                Text(p < 60 ? "\(p)s" : (p % 60 == 0 ? "\(p / 60) min" : "\(p)s"))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(totalSeconds == p ? .black : timerColor)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 7)
+                                    .background(totalSeconds == p ? timerColor : timerColor.opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                    }
+                    .opacity(isRunning ? 0 : 1)
 
                     // Ring
                     ZStack {
@@ -1906,17 +1937,26 @@ struct AddHIITSheet: View {
 
         /// Restaure un timer en cours si l'app a été quittée avec le timer actif.
         private func restoreIfNeeded() {
-            guard let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date else { return }
-            let left = Int(end.timeIntervalSinceNow.rounded())
-            guard left > 0 else {
-                UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-                return
+            if let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date {
+                let left = Int(end.timeIntervalSinceNow.rounded())
+                guard left > 0 else {
+                    UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+                    loadPreset()
+                    return
+                }
+                totalSeconds = UserDefaults.standard.integer(forKey: Self.totalKey)
+                if totalSeconds == 0 { totalSeconds = left }
+                remaining = left
+                isRunning = true
+                timerTask = Task { await runLoop() }
+            } else {
+                loadPreset()
             }
-            totalSeconds = UserDefaults.standard.integer(forKey: Self.totalKey)
-            if totalSeconds == 0 { totalSeconds = left }
-            remaining = left
-            isRunning = true
-            timerTask = Task { await runLoop() }
+        }
+
+        private func loadPreset() {
+            let saved = UserDefaults.standard.integer(forKey: Self.presetKey)
+            if saved > 0 { totalSeconds = saved; remaining = saved }
         }
 
         // MARK: – Notifications
