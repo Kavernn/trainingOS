@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import date as date_cls, timedelta
 
-from mood       import get_history as mood_history, get_weekly_avg, get_mood_trend, EMOTIONS
+from mood       import _list_history as mood_history, get_weekly_avg, get_mood_trend, EMOTIONS
 from journal    import get_entry_count
 from breathwork import get_stats as bw_stats, get_session_dates
 from self_care  import get_completion_rate, get_streaks

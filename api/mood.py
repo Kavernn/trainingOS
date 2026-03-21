@@ -91,11 +91,17 @@ def save_mood_entry(
     return entry
 
 
-def get_history(days: int = 30, limit: int = 20, offset: int = 0) -> dict:
+def _list_history(days: int = 30) -> list:
+    """Retourne la liste brute des entrées — usage interne uniquement."""
     records = _load()
     if days:
         cutoff = (date_cls.today() - timedelta(days=days)).isoformat()
         records = [r for r in records if r.get("date", "") >= cutoff]
+    return records
+
+
+def get_history(days: int = 30, limit: int = 20, offset: int = 0) -> dict:
+    records = _list_history(days)
     page = records[offset: offset + limit]
     return {
         "items":       page,
@@ -127,7 +133,7 @@ def check_due() -> dict:
 
 def generate_insights(days: int = 30) -> list[str]:
     """Génère des textes motivants basés sur l'historique d'humeur."""
-    records = get_history(days)
+    records = _list_history(days)
     if len(records) < 3:
         return ["Continue à loguer ton humeur — les insights arrivent après quelques jours !"]
 
@@ -167,14 +173,14 @@ def generate_insights(days: int = 30) -> list[str]:
 # ── Moyenne hebdo pour le dashboard ──────────────────────────────────────────
 
 def get_weekly_avg(days: int = 7) -> Optional[float]:
-    records = get_history(days)
+    records = _list_history(days)
     scores = [r["score"] for r in records]
     return round(sum(scores) / len(scores), 1) if scores else None
 
 
 def get_mood_trend(days: int = 7) -> str:
     """Retourne 'up', 'down' ou 'stable'."""
-    records = get_history(days * 2)
+    records = _list_history(days * 2)
     if len(records) < 4:
         return "stable"
     half = len(records) // 2
