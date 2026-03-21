@@ -566,3 +566,13 @@ ALTER TABLE cardio_logs ADD COLUMN IF NOT EXISTS source      TEXT NOT NULL DEFAU
 -- recovery_logs: add wearable columns
 ALTER TABLE recovery_logs ADD COLUMN IF NOT EXISTS active_energy  NUMERIC;
 ALTER TABLE recovery_logs ADD COLUMN IF NOT EXISTS source         TEXT NOT NULL DEFAULT 'manual';
+
+-- RLS: enable on tables that were missing it
+ALTER TABLE public.body_weight_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recovery_logs    ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "service_role_all" ON public.body_weight_logs
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "service_role_all" ON public.recovery_logs
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
