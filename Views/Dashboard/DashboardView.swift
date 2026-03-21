@@ -593,8 +593,9 @@ struct HeatmapView: View {
     let sessions: [String: SessionEntry]
 
     private var last30Days: [(String, Bool)] {
-        (0..<30).reversed().map { offset in
-            let date = Calendar.current.date(byAdding: .day, value: -offset, to: Date())!
+        let base = Date().timeIntervalSince1970
+        return (0..<30).reversed().map { offset in
+            let date = Date(timeIntervalSince1970: base - Double(offset) * 86400.0)
             let key = DateFormatter.isoDate.string(from: date)
             return (key, sessions[key] != nil)
         }
@@ -671,8 +672,9 @@ struct WeekGridView: View {
     private func dateForDay(_ index: Int) -> String {
         let weekday = Calendar.current.component(.weekday, from: Date()) // Sun=1, Mon=2..Sat=7
         let daysSinceMonday = (weekday + 5) % 7
-        let monday = Calendar.current.date(byAdding: .day, value: -daysSinceMonday, to: Date())!
-        let day = Calendar.current.date(byAdding: .day, value: index, to: monday)!
+        let base = Date().timeIntervalSince1970
+        let monday = Date(timeIntervalSince1970: base - Double(daysSinceMonday) * 86400.0)
+        let day = Date(timeIntervalSince1970: monday.timeIntervalSince1970 + Double(index) * 86400.0)
         return DateFormatter.isoDate.string(from: day)
     }
 

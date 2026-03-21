@@ -70,7 +70,7 @@ struct StatsView: View {
     }
 
     var avgRPE30: Double {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date())!
+        let cutoff = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400.0)
         let cutStr = DateFormatter.isoDate.string(from: cutoff)
         let rpes = sessions.compactMap { date, e -> Double? in
             date >= cutStr ? e.rpe : nil
@@ -79,15 +79,14 @@ struct StatsView: View {
     }
 
     var currentStreak: Int {
-        var count = 0; var date = Date()
-        while true {
-            let key = DateFormatter.isoDate.string(from: date)
+        let fmt = DateFormatter.isoDate
+        let base = Date().timeIntervalSince1970
+        var count = 0
+        for i in 0..<365 {
+            let key = fmt.string(from: Date(timeIntervalSince1970: base - Double(i) * 86400.0))
             if sessions[key] != nil { count += 1 }
-            else if count == 0 { }
+            else if i == 0 { /* today not yet logged — keep looking */ }
             else { break }
-            guard let prev = Calendar.current.date(byAdding: .day, value: -1, to: date) else { break }
-            date = prev
-            if count > 365 { break }
         }
         return count
     }
@@ -97,17 +96,16 @@ struct StatsView: View {
         guard !sorted.isEmpty else { return 0 }
         var best = 1; var cur = 1
         for i in 1..<sorted.count {
-            let diff = Calendar.current.dateComponents([.day], from: sorted[i-1], to: sorted[i]).day ?? 0
+            let diff = Int(round((sorted[i].timeIntervalSince1970 - sorted[i-1].timeIntervalSince1970) / 86400.0))
             if diff == 1 { cur += 1; best = max(best, cur) } else { cur = 1 }
         }
         return best
     }
 
     var weeklyVolume: Double {
-        let monday = Calendar.current.date(from: {
-            var c = Calendar.current.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())
-            c.weekday = 2; return c
-        }())!
+        let weekday = Calendar.current.component(.weekday, from: Date()) // Sun=1, Mon=2..Sat=7
+        let daysSinceMonday = (weekday + 5) % 7
+        let monday = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - Double(daysSinceMonday) * 86400.0)
         let mondayStr = DateFormatter.isoDate.string(from: monday)
         return weights.values.flatMap { $0.history ?? [] }.compactMap { e -> Double? in
             guard let date = e.date, date >= mondayStr else { return nil }
@@ -144,7 +142,7 @@ struct StatsView: View {
             let y = Calendar.current.component(.yearForWeekOfYear, from: date)
             let w = Calendar.current.component(.weekOfYear, from: date)
             result.append(String(format: "%04d-W%02d", y, w))
-            date = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: date)!
+            date = Date(timeIntervalSince1970: date.timeIntervalSince1970 - 7 * 86400.0)
         }
         return result.reversed()
     }
@@ -591,8 +589,9 @@ struct SessionHeatmapView: View {
     private let days = 90
 
     private var cells: [(String, Bool)] {
-        (0..<days).reversed().map { offset in
-            let date = Calendar.current.date(byAdding: .day, value: -offset, to: Date())!
+        let base = Date().timeIntervalSince1970
+        return (0..<days).reversed().map { offset in
+            let date = Date(timeIntervalSince1970: base - Double(offset) * 86400.0)
             let key = DateFormatter.isoDate.string(from: date)
             return (key, sessions[key] != nil)
         }
