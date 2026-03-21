@@ -406,26 +406,21 @@ struct StatsView: View {
     }
 
     private func loadData() async {
-        // Show cached data immediately so the view is usable before network
+        // 1. Show cached data immediately (no spinner if cache exists)
         if let cached = CacheService.shared.load(for: "stats_data"),
            let decoded = try? JSONDecoder().decode(StatsAPIResponse.self, from: cached) {
             applyStats(decoded)
             isLoading = false
         }
 
-        async let statsTask = APIService.shared.fetchStatsData()
-        async let acwrTask  = APIService.shared.fetchACWR()
-
-        if let r = try? await statsTask {
-            weights         = r.weights
-            sessions        = r.sessions
-            hiitLog         = r.hiitLog
-            bodyWeight      = r.bodyWeight
-            recoveryLog     = r.recoveryLog
-            nutritionTarget = r.nutritionTarget
-            nutritionDays   = r.nutritionDays
-            muscleStats     = r.muscleStats
-            inventoryTypes  = r.inventoryTypes
+        // 2. Fetch fresh data — parallel with ACWR
+        var req = URLRequest(url: URL(string: "https://training-os-rho.vercel.app/api/stats_data")!)
+        req.timeoutInterval = 15
+        async let acwrTask = APIService.shared.fetchACWR()
+        if let (data, _) = try? await URLSession.shared.data(for: req),
+           let decoded = try? JSONDecoder().decode(StatsAPIResponse.self, from: data) {
+            CacheService.shared.save(data, for: "stats_data")
+            applyStats(decoded)
         }
         acwr = try? await acwrTask
         isLoading = false
