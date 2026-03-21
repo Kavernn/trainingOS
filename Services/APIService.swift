@@ -236,6 +236,7 @@ class APIService: ObservableObject {
         if let v = thighsCm { body["thighs_cm"] = v }
         if let v = hipsCm   { body["hips_cm"]   = v }
         _ = try await offlinePost(endpoint: "/api/body_weight", payload: body)
+        CacheService.shared.clear(for: "profil_data")
     }
 
     func updateBodyWeight(date: String, oldWeight: Double, newWeight: Double, bodyFat: Double?, waistCm: Double?,
@@ -249,10 +250,12 @@ class APIService: ObservableObject {
         if let v = thighsCm { body["thighs_cm"] = v }
         if let v = hipsCm   { body["hips_cm"]   = v }
         _ = try await offlinePost(endpoint: "/api/body_weight/update", payload: body)
+        CacheService.shared.clear(for: "profil_data")
     }
 
     func deleteBodyWeight(date: String, weight: Double) async throws {
         _ = try await offlinePost(endpoint: "/api/body_weight/delete", payload: ["date": date, "poids": weight])
+        CacheService.shared.clear(for: "profil_data")
     }
 
     func updateProfile(name: String?, weight: Double?, height: Double?, age: Int?, goal: String?, level: String?, sex: String?) async throws {

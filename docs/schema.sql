@@ -166,7 +166,13 @@ CREATE TABLE IF NOT EXISTS body_weight_logs (
     id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
     date        DATE    NOT NULL UNIQUE,
     weight      NUMERIC NOT NULL,
-    note        TEXT    DEFAULT ''
+    note        TEXT    DEFAULT '',
+    body_fat    NUMERIC,
+    waist_cm    NUMERIC,
+    arms_cm     NUMERIC,
+    chest_cm    NUMERIC,
+    thighs_cm   NUMERIC,
+    hips_cm     NUMERIC
 );
 
 CREATE INDEX IF NOT EXISTS idx_body_weight_logs_date ON body_weight_logs (date DESC);
