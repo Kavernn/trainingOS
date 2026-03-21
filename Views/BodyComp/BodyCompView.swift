@@ -224,6 +224,7 @@ struct BodyWeightSheet: View {
     @State private var hipsStr = ""
     @State private var isSaving = false
     @State private var isLoadingHK = false
+    @FocusState private var weightFocused: Bool
 
     var isEdit: Bool { editEntry != nil }
 
@@ -231,119 +232,106 @@ struct BodyWeightSheet: View {
         NavigationStack {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
-                VStack(spacing: 20) {
-                    Text(isEdit ? "Modifier l'entrée" : "Ajouter poids")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.top, 20)
 
-                    if let e = editEntry {
-                        Text(e.date)
-                            .font(.system(size: 13))
-                            .foregroundColor(.gray)
-                    }
+                ScrollView {
+                    VStack(spacing: 16) {
 
-                    // HealthKit auto-fill (add mode only)
-                    if editEntry == nil {
-                        Button(action: fillFromHealthKit) {
-                            HStack(spacing: 8) {
-                                if isLoadingHK {
-                                    ProgressView().tint(.white).scaleEffect(0.8)
-                                } else {
-                                    Image(systemName: "heart.text.square.fill")
-                                        .font(.system(size: 15))
+                        // HealthKit auto-fill (add mode only)
+                        if editEntry == nil {
+                            Button(action: fillFromHealthKit) {
+                                HStack(spacing: 8) {
+                                    if isLoadingHK {
+                                        ProgressView().tint(.white).scaleEffect(0.8)
+                                    } else {
+                                        Image(systemName: "heart.text.square.fill")
+                                            .font(.system(size: 15))
+                                    }
+                                    Text(isLoadingHK ? "Lecture Health..." : "Remplir depuis Apple Santé")
+                                        .font(.system(size: 14, weight: .semibold))
                                 }
-                                Text(isLoadingHK ? "Lecture Health..." : "Remplir depuis Apple Santé")
-                                    .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.red.opacity(0.85))
+                                .cornerRadius(12)
                             }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(Color.red.opacity(0.85))
-                            .cornerRadius(12)
+                            .disabled(isLoadingHK)
+                            .buttonStyle(SpringButtonStyle())
                         }
-                        .disabled(isLoadingHK)
-                        .buttonStyle(SpringButtonStyle())
-                        .padding(.horizontal, 20)
-                    }
 
-                    VStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("POIDS (\(units.label.uppercased()))")
+                        // Poids + % gras — champs principaux
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("POIDS (\(units.label.uppercased()))")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .tracking(2)
+                                    .foregroundColor(.gray)
+                                TextField("0.0", text: $weightStr)
+                                    .keyboardType(.decimalPad)
+                                    .focused($weightFocused)
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 22, weight: .bold))
+                                    .padding(12)
+                                    .background(Color(hex: "191926"))
+                                    .cornerRadius(10)
+                            }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("% GRAS")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .tracking(2)
+                                    .foregroundColor(.gray)
+                                TextField("—", text: $bodyFatStr)
+                                    .keyboardType(.decimalPad)
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 22, weight: .bold))
+                                    .padding(12)
+                                    .background(Color(hex: "191926"))
+                                    .cornerRadius(10)
+                            }
+                        }
+
+                        // Mensurations — section collapsible visuellement
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("MENSURATIONS cm — optionnel")
                                 .font(.system(size: 10, weight: .bold))
                                 .tracking(2)
                                 .foregroundColor(.gray)
-                            TextField("0.0", text: $weightStr)
-                                .keyboardType(.decimalPad)
-                                .foregroundColor(.white)
-                                .padding(12)
-                                .background(Color(hex: "191926"))
-                                .cornerRadius(10)
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                MesureField(label: "TAILLE", placeholder: "82", text: $waistStr)
+                                MesureField(label: "BRAS", placeholder: "34", text: $armsStr)
+                                MesureField(label: "POITRINE", placeholder: "100", text: $chestStr)
+                                MesureField(label: "CUISSES", placeholder: "56", text: $thighsStr)
+                                MesureField(label: "HANCHES", placeholder: "95", text: $hipsStr)
+                            }
                         }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("% GRAS (optionnel)")
-                                .font(.system(size: 10, weight: .bold))
-                                .tracking(2)
-                                .foregroundColor(.gray)
-                            TextField("ex: 18.5", text: $bodyFatStr)
-                                .keyboardType(.decimalPad)
-                                .foregroundColor(.white)
-                                .padding(12)
-                                .background(Color(hex: "191926"))
-                                .cornerRadius(10)
-                        }
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("TOUR DE TAILLE cm (optionnel)")
-                                .font(.system(size: 10, weight: .bold))
-                                .tracking(2)
-                                .foregroundColor(.gray)
-                            TextField("ex: 82", text: $waistStr)
-                                .keyboardType(.decimalPad)
-                                .foregroundColor(.white)
-                                .padding(12)
-                                .background(Color(hex: "191926"))
-                                .cornerRadius(10)
-                        }
+                        .padding(.top, 4)
                     }
                     .padding(.horizontal, 20)
-
-                    // Mensurations optionnelles
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("MENSURATIONS cm (optionnel)")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(2)
-                            .foregroundColor(.gray)
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                            MesureField(label: "BRAS", placeholder: "34", text: $armsStr)
-                            MesureField(label: "POITRINE", placeholder: "100", text: $chestStr)
-                            MesureField(label: "CUISSES", placeholder: "56", text: $thighsStr)
-                            MesureField(label: "HANCHES", placeholder: "95", text: $hipsStr)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-
-                    Button(action: save) {
-                        if isSaving {
-                            ProgressView().tint(.white)
-                        } else {
-                            Text(isEdit ? "Enregistrer les modifications" : "Enregistrer")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(weightStr.isEmpty ? Color.gray.opacity(0.3) : Color.orange)
-                    .cornerRadius(14)
-                    .disabled(weightStr.isEmpty || isSaving)
-                    .padding(.horizontal, 20)
-                    .buttonStyle(SpringButtonStyle())
-
-                    Spacer()
+                    .padding(.top, 12)
+                    .padding(.bottom, 100) // espace sous le bouton épinglé
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
+            .safeAreaInset(edge: .bottom) {
+                Button(action: save) {
+                    HStack(spacing: 8) {
+                        if isSaving { ProgressView().tint(.white).scaleEffect(0.85) }
+                        Text(isEdit ? "Enregistrer les modifications" : "Enregistrer")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(weightStr.isEmpty ? Color.gray.opacity(0.3) : Color.orange)
+                .cornerRadius(14)
+                .disabled(weightStr.isEmpty || isSaving)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+                .buttonStyle(SpringButtonStyle())
+                .background(Color(hex: "080810").opacity(0.95))
+            }
+            .navigationTitle(isEdit ? "Modifier" : "Ajouter poids")
             .navigationBarTitleDisplayMode(.inline)
             .keyboardOkButton()
             .toolbar {
@@ -352,7 +340,8 @@ struct BodyWeightSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         .onAppear {
             if let e = editEntry {
                 weightStr  = units.inputStr(e.weight)
@@ -362,6 +351,10 @@ struct BodyWeightSheet: View {
                 chestStr   = e.chestCm.map  { String(format: "%.0f", $0) } ?? ""
                 thighsStr  = e.thighsCm.map { String(format: "%.0f", $0) } ?? ""
                 hipsStr    = e.hipsCm.map   { String(format: "%.0f", $0) } ?? ""
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    weightFocused = true
+                }
             }
         }
     }
