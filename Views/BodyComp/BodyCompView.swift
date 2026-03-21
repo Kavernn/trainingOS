@@ -74,7 +74,7 @@ struct BodyCompView: View {
                             historySection
                         }
                         .padding(.vertical, 16)
-                        .padding(.bottom, 80)
+                        .padding(.bottom, contentBottomPadding)
                     }
                     .scrollDismissesKeyboard(.interactively)
                 }
@@ -624,7 +624,7 @@ struct BodyWeightSheet: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
-                    .padding(.bottom, 100) // espace sous le bouton épinglé
+                    .padding(.bottom, contentBottomPadding) // espace sous le bouton épinglé
                 }
                 .scrollDismissesKeyboard(.interactively)
             }

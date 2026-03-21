@@ -1,5 +1,7 @@
 import Foundation
 import Combine
+
+#if os(iOS)
 import HealthKit
 
 @MainActor
@@ -31,15 +33,12 @@ class HealthKitService: ObservableObject {
 
     // MARK: - Authorization
 
-    /// Returns true if the user has already responded to the HealthKit permission dialog
-    /// (either granted or denied). Does NOT prompt.
     func hasBeenAuthorized() -> Bool {
         guard HKHealthStore.isHealthDataAvailable() else { return false }
         guard let type = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return false }
         return store.authorizationStatus(for: type) != .notDetermined
     }
 
-    /// Presents the HealthKit permission dialog. Call only from explicit user action.
     func requestAuthorization() async -> Bool {
         guard HKHealthStore.isHealthDataAvailable() else { return false }
         do {
@@ -100,7 +99,6 @@ class HealthKitService: ObservableObject {
 
     // MARK: - Body Weight
     func fetchLatestBodyWeight() async -> Double? {
-        // Returns in lbs
         guard let kg = await fetchLatestQuantity(.bodyMass, unit: .gramUnit(with: .kilo)) else { return nil }
         return kg * 2.20462
     }
@@ -150,7 +148,7 @@ class HealthKitService: ObservableObject {
         }
     }
 
-    // MARK: - Today Health Snapshot (aggregates all Watch metrics)
+    // MARK: - Today Health Snapshot
     func fetchTodayHealthSnapshot() async -> WearableSnapshot {
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
@@ -178,30 +176,16 @@ class HealthKitService: ObservableObject {
             }
             let dist = w.totalDistance.map { $0.doubleValue(for: .meter()) / 1000.0 }
             let cal  = w.totalEnergyBurned?.doubleValue(for: .kilocalorie())
-            return WearableWorkout(
-                type: type,
-                durationMin: w.duration / 60.0,
-                distanceKm: dist,
-                calories: cal,
-                avgHr: nil,   // HK doesn't expose avg HR directly without statistics query
-                avgPace: nil
-            )
+            return WearableWorkout(type: type, durationMin: w.duration / 60.0,
+                                   distanceKm: dist, calories: cal, avgHr: nil, avgPace: nil)
         }
 
-        return WearableSnapshot(
-            date: today,
-            steps: s,
-            sleepHours: sl,
-            restingHr: hr,
-            hrv: h,
-            activeEnergy: ae,
-            bodyWeightLbs: bw,
-            bodyFatPct: bf,
-            workouts: workouts
-        )
+        return WearableSnapshot(date: today, steps: s, sleepHours: sl, restingHr: hr,
+                                hrv: h, activeEnergy: ae, bodyWeightLbs: bw,
+                                bodyFatPct: bf, workouts: workouts)
     }
 
-    // MARK: - Background Delivery (fires callback when Watch syncs new data)
+    // MARK: - Background Delivery
     func enableBackgroundDelivery(onChange: @escaping () -> Void) async {
         let ids: [HKQuantityTypeIdentifier] = [
             .stepCount, .restingHeartRate, .heartRateVariabilitySDNN, .activeEnergyBurned
@@ -218,7 +202,7 @@ class HealthKitService: ObservableObject {
         }
     }
 
-    // MARK: - Workout → CardioEntry (legacy helper kept for CardioView)
+    // MARK: - Workout → CardioEntry
     func workoutToCardioEntry(_ w: HKWorkout) -> (type: String, durationMin: Double, distanceKm: Double?, calories: Double?, avgHr: Double?) {
         let type: String
         switch w.workoutActivityType {
@@ -228,9 +212,38 @@ class HealthKitService: ObservableObject {
         case .walking:   type = "marche"
         default:         type = "autre"
         }
-        let dur = w.duration / 60.0
+        let dur  = w.duration / 60.0
         let dist = w.totalDistance.map { $0.doubleValue(for: .meter()) / 1000.0 }
         let cal  = w.totalEnergyBurned?.doubleValue(for: .kilocalorie())
         return (type, dur, dist, cal, nil)
     }
 }
+
+#else
+
+// MARK: - macOS stub (HealthKit non disponible)
+@MainActor
+class HealthKitService: ObservableObject {
+    static let shared = HealthKitService()
+    @Published var isAuthorized = false
+    private init() {}
+
+    func hasBeenAuthorized() -> Bool { false }
+    func requestAuthorization() async -> Bool { false }
+    func fetchTodaySteps() async -> Int? { nil }
+    func fetchLastNightSleep() async -> Double? { nil }
+    func fetchLatestRestingHR() async -> Double? { nil }
+    func fetchLatestHRV() async -> Double? { nil }
+    func fetchLatestBodyWeight() async -> Double? { nil }
+    func fetchLatestBodyFat() async -> Double? { nil }
+    func fetchTodayActiveEnergy() async -> Double? { nil }
+    func fetchAllWorkouts(days: Int = 1) async -> [Any] { [] }
+    func fetchTodayHealthSnapshot() async -> WearableSnapshot {
+        WearableSnapshot(date: "", steps: nil, sleepHours: nil, restingHr: nil,
+                         hrv: nil, activeEnergy: nil, bodyWeightLbs: nil,
+                         bodyFatPct: nil, workouts: [])
+    }
+    func enableBackgroundDelivery(onChange: @escaping () -> Void) async {}
+}
+
+#endif

@@ -257,12 +257,27 @@ struct AmbientBackground: View {
 }
 
 // MARK: - Tab Bar Clearance
-/// Bottom padding to clear the custom tab bar (tab content ~60pt + safe area inset)ui
+/// Bottom padding to clear the custom tab bar (tab content ~60pt + safe area inset)
 var fabBottomPadding: CGFloat {
+#if targetEnvironment(macCatalyst)
+    return 0
+#elseif os(iOS)
     let safeBottom = UIApplication.shared.connectedScenes
         .compactMap { $0 as? UIWindowScene }
         .first?.windows.first?.safeAreaInsets.bottom ?? 0
     return safeBottom + 60
+#else
+    return 60
+#endif
+}
+
+/// Bottom content padding for scroll views — 0 on Mac (no tab bar), 80 on iOS
+var contentBottomPadding: CGFloat {
+#if targetEnvironment(macCatalyst)
+    return 0
+#else
+    return 80
+#endif
 }
 
 // MARK: - Stat Pill

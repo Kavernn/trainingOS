@@ -5,14 +5,15 @@ import AVFoundation
 
 extension View {
     func hideKeyboard() {
+#if os(iOS)
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
                                         to: nil, from: nil, for: nil)
+#endif
     }
 
-    /// Ajoute un bouton "Ok" dans la toolbar du clavier.
-    /// - Tap Ok avec saisie  → ferme le clavier (conserve la valeur dans le champ)
-    /// - Tap Ok sans saisie  → appelle `onEmpty` si fourni (ex: dismiss()), puis ferme le clavier
+    /// Ajoute un bouton "Ok" dans la toolbar du clavier (iOS uniquement).
     func keyboardOkButton(isEmpty: Bool = false, onEmpty: (() -> Void)? = nil) -> some View {
+#if os(iOS)
         self.toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -27,6 +28,9 @@ extension View {
                 }
             }
         }
+#else
+        self
+#endif
     }
 }
 
@@ -86,8 +90,10 @@ func makeBeep(hz: Double, duration: Double) -> AVAudioPlayer? {
         w16(Int16(env * 28000 * sin(2 * .pi * hz * t)))
     }
 
+#if os(iOS)
     try? AVAudioSession.sharedInstance().setCategory(.playback, options: .mixWithOthers)
     try? AVAudioSession.sharedInstance().setActive(true)
+#endif
     let player = try? AVAudioPlayer(data: wav, fileTypeHint: "wav")
     player?.prepareToPlay()
     return player

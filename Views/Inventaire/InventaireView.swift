@@ -15,6 +15,8 @@ struct InventoryItem: Identifiable {
     var increment: Double
     var defaultScheme: String
     var muscles: [String]
+    var trackingType: String
+    var restSeconds: Int?
     init(name: String, _ d: [String: Any]) {
         self.name          = name
         self.type          = d["type"]          as? String ?? "machine"
@@ -25,6 +27,8 @@ struct InventoryItem: Identifiable {
         self.increment     = d["increment"]     as? Double ?? 5
         self.defaultScheme = d["default_scheme"] as? String ?? "3x8-12"
         self.muscles       = d["muscles"]       as? [String] ?? []
+        self.trackingType  = d["tracking_type"] as? String ?? "reps"
+        self.restSeconds   = d["rest_seconds"]  as? Int
     }
 }
 
@@ -212,6 +216,8 @@ struct InventaireView: View {
             "increment":      item.increment,
             "default_scheme": item.defaultScheme,
             "muscles":        item.muscles,
+            "tracking_type":  item.trackingType,
+            "rest_seconds":   item.restSeconds as Any,
         ]
         if let orig = originalName, orig != item.name {
             body["original_name"] = orig
@@ -307,9 +313,19 @@ struct InventaireRow: View {
                     .foregroundColor(typeColor)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.name)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
+                HStack(spacing: 6) {
+                    Text(item.name)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                    if item.trackingType == "time" {
+                        Text("TEMPS")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(.cyan)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(Color.cyan.opacity(0.15))
+                            .cornerRadius(4)
+                    }
+                }
                 HStack(spacing: 6) {
                     Text(item.type.capitalized)
                         .font(.system(size: 11)).foregroundColor(.gray)
@@ -367,11 +383,21 @@ struct InventoryFormSheet: View {
     @State private var barWeight     = "0"
     @State private var muscles: Set<String> = []
     @State private var customMuscle  = ""
+    @State private var trackingType  = "reps"
+    @State private var timeSets      = 3
+    @State private var timeDuration  = 30  // seconds
+    @State private var restSecs: Int? = nil   // nil = pas de repos configuré
 
     let types      = ["barbell", "dumbbell", "cable", "machine", "bodyweight"]
     let categories = ["", "push", "pull", "legs", "core", "mobility"]
     let levels     = ["", "beginner", "intermediate", "advanced"]
     let schemes    = ["3x5", "4x5-7", "3x8-10", "4x8-10", "3x10-12", "4x12-15", "3x15"]
+    let durationOptions = [15, 20, 30, 45, 60, 90, 120]
+
+    private func formatDur(_ s: Int) -> String {
+        s >= 60 ? "\(s / 60)min\(s % 60 > 0 ? "\(s % 60)s" : "")" : "\(s)s"
+    }
+    private var generatedScheme: String { "\(timeSets)x\(formatDur(timeDuration))" }
 
     private var isEditing: Bool { existing != nil }
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -393,6 +419,18 @@ struct InventoryFormSheet: View {
                         typeGrid
                     } header: {
                         sectionHeader("Type d'équipement")
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+
+                    // ── Tracking ──────────────────────────────────
+                    Section {
+                        Picker("Tracking", selection: $trackingType) {
+                            Text("Reps / Poids").tag("reps")
+                            Text("Temps").tag("time")
+                        }
+                        .pickerStyle(.segmented)
+                    } header: {
+                        sectionHeader("Type de tracking")
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
@@ -430,56 +468,142 @@ struct InventoryFormSheet: View {
                     .listRowBackground(Color(hex: "11111c"))
 
                     // ── Schéma ────────────────────────────────────
-                    Section("Schéma par défaut") {
-                        TextField("ex: 4x6-8", text: $defaultScheme)
-                            .foregroundColor(.white)
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(schemes, id: \.self) { s in
-                                    Button { defaultScheme = s } label: {
-                                        Text(s)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .padding(.horizontal, 10).padding(.vertical, 5)
-                                            .background(defaultScheme == s ? Color.orange : Color(hex: "191926"))
-                                            .foregroundColor(defaultScheme == s ? .black : .white)
-                                            .cornerRadius(16)
+                    if trackingType == "time" {
+                        Section {
+                            // Sets
+                            HStack {
+                                Text("Séries").foregroundColor(.gray)
+                                Spacer()
+                                Stepper("\(timeSets)", value: $timeSets, in: 1...10)
+                                    .foregroundColor(.white)
+                                    .labelsHidden()
+                                Text("\(timeSets)").foregroundColor(.white).frame(width: 20)
+                            }
+                            // Duration chips
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Durée par série")
+                                    .font(.system(size: 12)).foregroundColor(.gray)
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(durationOptions, id: \.self) { d in
+                                            Button { timeDuration = d } label: {
+                                                Text(formatDur(d))
+                                                    .font(.system(size: 12, weight: .medium))
+                                                    .padding(.horizontal, 10).padding(.vertical, 5)
+                                                    .background(timeDuration == d ? Color.cyan : Color(hex: "191926"))
+                                                    .foregroundColor(timeDuration == d ? .black : .white)
+                                                    .cornerRadius(16)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            // Preview
+                            HStack {
+                                Text("Schéma généré").foregroundColor(.gray).font(.system(size: 13))
+                                Spacer()
+                                Text(generatedScheme)
+                                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.cyan)
+                            }
+                        } header: {
+                            sectionHeader("Configuration temps")
+                        }
+                        .listRowBackground(Color(hex: "11111c"))
+                    } else {
+                        Section("Schéma par défaut") {
+                            TextField("ex: 4x6-8", text: $defaultScheme)
+                                .foregroundColor(.white)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(schemes, id: \.self) { s in
+                                        Button { defaultScheme = s } label: {
+                                            Text(s)
+                                                .font(.system(size: 12, weight: .medium))
+                                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                                .background(defaultScheme == s ? Color.orange : Color(hex: "191926"))
+                                                .foregroundColor(defaultScheme == s ? .black : .white)
+                                                .cornerRadius(16)
+                                        }
                                     }
                                 }
                             }
                         }
+                        .listRowBackground(Color(hex: "11111c"))
                     }
-                    .listRowBackground(Color(hex: "11111c"))
 
-                    // ── Paramètres numériques ─────────────────────
-                    Section("Paramètres") {
-                        HStack {
-                            Text("Incrément (lbs)").foregroundColor(.gray)
-                            Spacer()
-                            TextField("5", text: $increment)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .foregroundColor(.white)
-                                .frame(width: 60)
-                        }
-                        if type == "barbell" {
+                    // ── Paramètres numériques (reps seulement) ────
+                    if trackingType == "reps" {
+                        Section("Paramètres") {
                             HStack {
-                                Text("Poids barre (lbs)").foregroundColor(.gray)
+                                Text("Incrément (lbs)").foregroundColor(.gray)
                                 Spacer()
-                                TextField("45", text: $barWeight)
+                                TextField("5", text: $increment)
                                     .keyboardType(.decimalPad)
                                     .multilineTextAlignment(.trailing)
                                     .foregroundColor(.white)
                                     .frame(width: 60)
                             }
+                            if type == "barbell" {
+                                HStack {
+                                    Text("Poids barre (lbs)").foregroundColor(.gray)
+                                    Spacer()
+                                    TextField("45", text: $barWeight)
+                                        .keyboardType(.decimalPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .foregroundColor(.white)
+                                        .frame(width: 60)
+                                }
+                            }
                         }
+                        .listRowBackground(Color(hex: "11111c"))
                     }
-                    .listRowBackground(Color(hex: "11111c"))
 
                     // ── Niveau ────────────────────────────────────
                     Section {
                         levelGrid
                     } header: {
                         sectionHeader("Niveau")
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+
+                    // ── Repos ─────────────────────────────────────
+                    Section {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                Button {
+                                    restSecs = nil
+                                } label: {
+                                    Text("—")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(restSecs == nil ? .black : .gray)
+                                        .padding(.horizontal, 14).padding(.vertical, 7)
+                                        .background(restSecs == nil ? Color.orange : Color(hex: "191926"))
+                                        .clipShape(Capsule())
+                                }
+                                ForEach([30, 45, 60, 90, 120, 180], id: \.self) { s in
+                                    Button {
+                                        restSecs = s
+                                    } label: {
+                                        Text(s < 60 ? "\(s)s" : "\(s / 60)min")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(restSecs == s ? .black : .white)
+                                            .padding(.horizontal, 14).padding(.vertical, 7)
+                                            .background(restSecs == s ? Color.orange : Color(hex: "191926"))
+                                            .clipShape(Capsule())
+                                    }
+                                }
+                            }
+                        }
+                        if let r = restSecs {
+                            HStack {
+                                Text("Repos configuré").foregroundColor(.gray).font(.system(size: 13))
+                                Spacer()
+                                Text(r < 60 ? "\(r)s" : "\(r / 60) min")
+                                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.orange)
+                            }
+                        }
+                    } header: {
+                        sectionHeader("Temps de repos par défaut")
                     }
                     .listRowBackground(Color(hex: "11111c"))
                 }
@@ -502,10 +626,12 @@ struct InventoryFormSheet: View {
                         item.category      = category
                         item.pattern       = pattern
                         item.level         = level
-                        item.defaultScheme = defaultScheme
+                        item.defaultScheme = (trackingType == "time") ? generatedScheme : defaultScheme
                         item.increment     = Double(increment) ?? 5
                         item.barWeight     = Double(barWeight) ?? 0
                         item.muscles       = muscles.sorted()
+                        item.trackingType  = trackingType
+                        item.restSeconds   = restSecs
                         onSave(item)
                         dismiss()
                     }
@@ -525,6 +651,21 @@ struct InventoryFormSheet: View {
                 increment     = String(e.increment)
                 barWeight     = String(e.barWeight)
                 muscles       = Set(e.muscles)
+                trackingType  = e.trackingType
+                restSecs      = e.restSeconds
+                // Parse existing time scheme (e.g. "3x45s" → sets=3, duration=45)
+                if e.trackingType == "time" {
+                    let parts = e.defaultScheme.lowercased().split(separator: "x")
+                    if parts.count == 2, let s = Int(parts[0]) {
+                        timeSets = s
+                        let durStr = String(parts[1])
+                        if durStr.hasSuffix("min"), let m = Int(durStr.dropLast(3)) {
+                            timeDuration = m * 60
+                        } else if let sec = Int(durStr.filter { $0.isNumber }) {
+                            timeDuration = sec
+                        }
+                    }
+                }
             }
         }
     }

@@ -268,7 +268,7 @@ struct EditableSeanceProgramCard: View {
             .onChanged { val in
                 if dragging == nil {
                     dragging = name
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    triggerImpact(style: .light)
                 }
                 dragY = val.translation.height
             }

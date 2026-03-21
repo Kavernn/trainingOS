@@ -923,6 +923,8 @@ def api_save_exercise():
         "category":       data.get("category", ""),
         "level":          data.get("level", ""),
         "pattern":        data.get("pattern", ""),
+        "tracking_type":  data.get("tracking_type", "reps"),
+        "rest_seconds":   data.get("rest_seconds"),
     }
 
     if original_name and original_name != name:
@@ -1532,6 +1534,7 @@ def api_seance_data():
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type", "machine") for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
+    inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
     # Ordered list of exercise names per session (preserves user-defined order)
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
 
@@ -1546,6 +1549,7 @@ def api_seance_data():
         "week": get_current_week(),
         "inventory_types": inventory_types,
         "inventory_tracking": inventory_tracking,
+        "inventory_rest": inventory_rest,
         "exercise_order": exercise_order,
     })
 
@@ -1571,6 +1575,7 @@ def api_seance_soir_data():
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type", "machine") for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
+    inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     suggestions     = get_suggested_weights_for_today(weights, full_program)
 
@@ -1586,6 +1591,7 @@ def api_seance_soir_data():
         "week": get_current_week(),
         "inventory_types": inventory_types,
         "inventory_tracking": inventory_tracking,
+        "inventory_rest": inventory_rest,
         "exercise_order": exercise_order,
     })
 
@@ -1764,6 +1770,7 @@ def api_programme_data():
                     inv[ex_name] = entry
     inventory_types    = {name: info.get("type", "machine")          for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps")   for name, info in inv.items()}
+    inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
     inventory_schemes  = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
     exercise_order     = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     return jsonify({
@@ -1772,6 +1779,7 @@ def api_programme_data():
         "inventory":          list(inv.keys()),
         "inventory_types":    inventory_types,
         "inventory_tracking": inventory_tracking,
+        "inventory_rest":     inventory_rest,
         "inventory_schemes":  inventory_schemes,
         "exercise_order":     exercise_order,
     })
@@ -1801,8 +1809,9 @@ def api_historique_data():
         stype = s.get("session_type") or ("evening" if s.get("is_second") else "morning")
         if not d:
             continue
-        # Only include completed or RPE-bearing sessions (filter stubs)
-        if not s.get("completed") and s.get("rpe") is None:
+        # Filter stubs: skip if not completed, no RPE, and no exercises logged
+        has_exos = bool(ex_by_session.get(sid))
+        if not s.get("completed") and s.get("rpe") is None and not has_exos:
             continue
         session_list.append({
             "date":         d,

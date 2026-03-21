@@ -56,7 +56,7 @@ struct PSSView: View {
                             Spacer(minLength: 32)
                         }
                         .padding(.vertical, 16)
-                        .padding(.bottom, 80)
+                        .padding(.bottom, contentBottomPadding)
                     }
                     .scrollDismissesKeyboard(.interactively)
                     .refreshable { await loadData() }

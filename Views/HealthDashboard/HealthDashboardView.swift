@@ -119,7 +119,7 @@ struct HealthDashboardView: View {
                             Spacer(minLength: 40)
                         }
                         .padding(.vertical, 16)
-                        .padding(.bottom, 80)
+                        .padding(.bottom, contentBottomPadding)
                     }
                     .refreshable { await loadData() }
                 }

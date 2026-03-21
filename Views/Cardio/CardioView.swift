@@ -1,5 +1,7 @@
 import SwiftUI
+#if os(iOS)
 import HealthKit
+#endif
 
 struct CardioView: View {
     @State private var log: [CardioEntry] = []
@@ -69,7 +71,7 @@ struct CardioView: View {
                             Spacer(minLength: 32)
                         }
                         .padding(.vertical, 16)
-                        .padding(.bottom, 80)
+                        .padding(.bottom, contentBottomPadding)
                     }
                 }
             }

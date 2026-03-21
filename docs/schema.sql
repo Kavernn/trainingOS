@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
     energy_pre      INT         CHECK (energy_pre BETWEEN 1 AND 10),
     is_second       BOOLEAN     DEFAULT FALSE,
     logged_at       TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (date, is_second)
+    UNIQUE (date, session_type)
 );
 
 CREATE INDEX IF NOT EXISTS idx_workout_sessions_date ON workout_sessions (date DESC);

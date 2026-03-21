@@ -358,6 +358,7 @@ struct WorkoutSeanceView: View {
     @State private var exerciseOrder: [String] = []
     @State private var inventoryTypes: [String: String] = [:]
     @State private var inventoryTracking: [String: String] = [:]
+    @State private var inventoryRest: [String: Int] = [:]
     @State private var draggingName: String?
     @State private var dragOffset: CGFloat = 0
     @State private var cardHeights: [String: CGFloat] = [:]
@@ -457,6 +458,8 @@ struct WorkoutSeanceView: View {
             trackingType: trackingType(for: name),
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             isSecondSession: isSecondSession,
+            isBonusSession: false,
+            restSeconds: restSeconds(for: name),
             logResult: $vm.logResults[name],
             onLogged: nil
         )
@@ -489,7 +492,7 @@ struct WorkoutSeanceView: View {
                 case .second(true, let drag?):
                     if draggingName == nil {
                         draggingName = name
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        triggerImpact(style: .medium)
                     }
                     dragOffset = drag.translation.height
                 default:
@@ -711,6 +714,9 @@ struct WorkoutSeanceView: View {
         .onChange(of: data.inventoryTracking) { fresh in
             if !fresh.isEmpty { inventoryTracking = fresh }
         }
+        .onChange(of: data.inventoryRest) { fresh in
+            inventoryRest = fresh
+        }
     }
     
     private func rpeColor(_ v: Double) -> Color {
@@ -729,6 +735,11 @@ struct WorkoutSeanceView: View {
         return tracking[name] ?? "reps"
     }
 
+    private func restSeconds(for name: String) -> Int? {
+        let rest = inventoryRest.isEmpty ? data.inventoryRest : inventoryRest
+        return rest[name]
+    }
+
     // MARK: - Programme mutations
     
     private func loadInventory() async {
@@ -738,8 +749,9 @@ struct WorkoutSeanceView: View {
         await MainActor.run {
             self.localProgram   = fromCache
             self.exerciseOrder  = orderCache
-            self.inventoryTypes    = data.inventoryTypes     // seed from seanceData right away
+            self.inventoryTypes    = data.inventoryTypes
             self.inventoryTracking = data.inventoryTracking
+            self.inventoryRest     = data.inventoryRest
         }
 
         // Fetch fresh programme + inventory types from network
@@ -753,10 +765,12 @@ struct WorkoutSeanceView: View {
         let orderNet    = (json["exercise_order"] as? [String: [String]])?[data.today]
         let types    = (json["inventory_types"] as? [String: String]) ?? [:]
         let tracking = (json["inventory_tracking"] as? [String: String]) ?? [:]
+        let rest     = (json["inventory_rest"] as? [String: Int]) ?? [:]
         await MainActor.run {
             self.inventory = inv
             if !types.isEmpty    { self.inventoryTypes    = types }
             if !tracking.isEmpty { self.inventoryTracking = tracking }
+            self.inventoryRest = rest
             if let fresh = fromNetwork {
                 self.localProgram  = fresh
                 self.exerciseOrder = orderNet ?? self.exerciseOrder
@@ -1059,6 +1073,7 @@ struct AddHIITSheet: View {
         var bodyWeight: Double = 0
         var isSecondSession: Bool = false
         var isBonusSession: Bool = false
+        var restSeconds: Int? = nil
         @Binding var logResult: ExerciseLogResult?
         var onLogged: (() -> Void)? = nil
         @ObservedObject private var units = UnitSettings.shared
@@ -1075,6 +1090,7 @@ struct AddHIITSheet: View {
 
         @State private var sets: [SetInput] = []
         @State private var showHistory = false
+        @State private var showRestTimer = false
         @State private var logStatus: LogStatus? = nil
         @State private var exerciseRPE: Double = 7
         // Set synchronously before any async call to prevent race conditions
@@ -1325,6 +1341,23 @@ struct AddHIITSheet: View {
                         Text(scheme).font(.system(size: 12)).foregroundColor(.gray)
                     }
                     Spacer()
+                    // Bouton repos — toujours visible, ouvre le timer avec preset si configuré
+                    Button { showRestTimer = true } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "timer")
+                                .font(.system(size: 14, weight: .semibold))
+                            if let r = restSeconds {
+                                Text(r < 60 ? "\(r)s" : "\(r / 60):\(String(format: "%02d", r % 60))")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .monospacedDigit()
+                            }
+                        }
+                        .foregroundColor(.cyan)
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background(Color.cyan.opacity(0.12))
+                        .cornerRadius(8)
+                    }
+                    .padding(.trailing, 4)
                     if let r = logResult {
                         HStack(spacing: 10) {
                             VStack(alignment: .trailing, spacing: 2) {
@@ -1503,6 +1536,11 @@ struct AddHIITSheet: View {
             .onChange(of: logResult == nil) { isNil in
                 if isNil { isLogged = false; logStatus = nil; isEditing = false }
             }
+            .sheet(isPresented: $showRestTimer) {
+                RestTimerSheet(autoStartSeconds: restSeconds)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+            }
         }
 
         private func logExercise() {
@@ -1567,7 +1605,7 @@ struct AddHIITSheet: View {
                     )
                     try? await UNUserNotificationCenter.current().add(request)
                     await MainActor.run {
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        triggerNotificationFeedback(.success)
                     }
                 }
             }
@@ -1871,6 +1909,8 @@ struct AddHIITSheet: View {
     
     // MARK: - Rest Timer Sheet
     struct RestTimerSheet: View {
+        var autoStartSeconds: Int? = nil
+
         @Environment(\.dismiss)    private var dismiss
         @Environment(\.scenePhase) private var scenePhase
         @State private var totalSeconds = 120
@@ -2034,7 +2074,7 @@ struct AddHIITSheet: View {
                 timerTask  = nil
                 UserDefaults.standard.removeObject(forKey: Self.endDateKey)
                 playBeep(hz: 1200)
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                triggerNotificationFeedback(.success)
             } else {
                 remaining = left
             }
@@ -2046,7 +2086,7 @@ struct AddHIITSheet: View {
                 let left = Int(end.timeIntervalSinceNow.rounded())
                 guard left > 0 else {
                     UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-                    loadPreset()
+                    applyAutoStartOrPreset()
                     return
                 }
                 totalSeconds = UserDefaults.standard.integer(forKey: Self.totalKey)
@@ -2054,6 +2094,17 @@ struct AddHIITSheet: View {
                 remaining = left
                 isRunning = true
                 timerTask = Task { await runLoop() }
+            } else {
+                applyAutoStartOrPreset()
+            }
+        }
+
+        private func applyAutoStartOrPreset() {
+            if let auto = autoStartSeconds, auto > 0 {
+                totalSeconds = auto
+                remaining    = auto
+                UserDefaults.standard.set(auto, forKey: Self.presetKey)
+                startTimer()
             } else {
                 loadPreset()
             }
@@ -2113,12 +2164,12 @@ struct AddHIITSheet: View {
                     remaining -= 1
                     if remaining <= 3 && remaining > 0 {
                         playBeep(hz: 880)
-                        UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                        triggerImpact(style: .rigid)
                     } else if remaining == 0 {
                         isRunning = false
                         UserDefaults.standard.removeObject(forKey: Self.endDateKey)
                         playBeep(hz: 1200)
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        triggerNotificationFeedback(.success)
                     }
                 }
             }

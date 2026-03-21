@@ -354,7 +354,7 @@ struct TimerView: View {
         if remaining <= 3 && remaining > 0 {
             beepPlayer = makeBeep(hz: 880, duration: 0.12)
             beepPlayer?.play()
-            UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            triggerImpact(style: .rigid)
         }
         if remaining <= 0 { advance() }
     }

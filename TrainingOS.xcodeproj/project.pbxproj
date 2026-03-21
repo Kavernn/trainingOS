@@ -26,10 +26,11 @@
 		AA1100042F5D98BA002AE470 /* CacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100022F5D98BA002AE470 /* CacheService.swift */; };
 		AA1100052F5D98BA002AE470 /* UnitSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100062F5D98BA002AE470 /* UnitSettings.swift */; };
 		AA11001B2F5D98BA002AE470 /* SeanceSoirView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */; };
-		BB3300012F5D98BA002AE471 /* BonusSeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */; };
 		BB001001BB001001BB001001 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001002BB001002BB001002 /* DesignSystem.swift */; };
+		PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH000001PH000001PH000001 /* PlatformHelpers.swift */; };
 		BB2200032F5D98BA002AE470 /* WearableService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200012F5D98BA002AE470 /* WearableService.swift */; };
 		BB2200042F5D98BA002AE470 /* HealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */; };
+		BB3300012F5D98BA002AE471 /* BonusSeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */; };
 		CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3300012F5D98BA002AE472 /* PSSView.swift */; };
 		CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */; };
 		D665E4472F5D98BA002AE470 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4332F5D98B8002AE470 /* ContentView.swift */; };
@@ -85,11 +86,12 @@
 		AA1100022F5D98BA002AE470 /* CacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheService.swift; sourceTree = "<group>"; };
 		AA1100062F5D98BA002AE470 /* UnitSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitSettings.swift; sourceTree = "<group>"; };
 		AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceSoirView.swift; sourceTree = "<group>"; };
-		BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonusSeanceView.swift; sourceTree = "<group>"; };
 		AAD71080385415CDA19C0F0A /* CardioView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CardioView.swift; sourceTree = "<group>"; };
 		BB001002BB001002BB001002 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		PH000001PH000001PH000001 /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
 		BB2200012F5D98BA002AE470 /* WearableService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WearableService.swift; sourceTree = "<group>"; };
 		BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDashboardView.swift; sourceTree = "<group>"; };
+		BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonusSeanceView.swift; sourceTree = "<group>"; };
 		C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		CC3300012F5D98BA002AE472 /* PSSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PSSView.swift; sourceTree = "<group>"; };
 		CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardView.swift; sourceTree = "<group>"; };
@@ -319,6 +321,7 @@
 			children = (
 				D665E43A2F5D98B8002AE470 /* Extensions.swift */,
 				BB001002BB001002BB001002 /* DesignSystem.swift */,
+				PH000001PH000001PH000001 /* PlatformHelpers.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -545,6 +548,7 @@
 				D665E44E2F5D98BA002AE470 /* ProfileView.swift in Sources */,
 				D665E44F2F5D98BA002AE470 /* Extensions.swift in Sources */,
 				BB001001BB001001BB001001 /* DesignSystem.swift in Sources */,
+				PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */,
 				D665E4502F5D98BA002AE470 /* DashboardView.swift in Sources */,
 				CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */,
 				AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */,
@@ -750,6 +754,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.kavernntrainingos.app.TrainingOS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -787,6 +793,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.kavernntrainingos.app.TrainingOS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
