@@ -604,28 +604,22 @@ ALTER TABLE public.coach_history          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_profile           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deload_state           ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.exercises              FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.program_sessions       FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.program_blocks         FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.program_block_exercises FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.weekly_schedule        FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.workout_sessions       FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.exercise_logs          FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.hiit_logs              FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.body_weight_logs       FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.cardio_logs            FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.recovery_logs          FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.goals                  FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.nutrition_settings     FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.nutrition_logs         FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.mood_logs              FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.pss_records            FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.self_care_habits       FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.self_care_logs         FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.life_stress_scores     FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.journal_entries        FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.breathwork_sessions    FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.sleep_records          FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.coach_history          FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.user_profile           FOR ALL TO anon USING (true) WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "anon_all" ON public.deload_state           FOR ALL TO anon USING (true) WITH CHECK (true);
+DO $$
+DECLARE t TEXT;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'exercises','program_sessions','program_blocks','program_block_exercises',
+    'weekly_schedule','workout_sessions','exercise_logs','hiit_logs',
+    'body_weight_logs','cardio_logs','recovery_logs','goals',
+    'nutrition_settings','nutrition_logs','mood_logs','pss_records',
+    'self_care_habits','self_care_logs','life_stress_scores','journal_entries',
+    'breathwork_sessions','sleep_records','coach_history','user_profile','deload_state'
+  ] LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = t AND policyname = 'anon_all'
+    ) THEN
+      EXECUTE format('CREATE POLICY anon_all ON public.%I FOR ALL TO anon USING (true) WITH CHECK (true)', t);
+    END IF;
+  END LOOP;
+END $$;
