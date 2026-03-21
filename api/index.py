@@ -1736,26 +1736,30 @@ def api_inventaire_data():
 
 @app.route("/api/historique_data")
 def api_historique_data():
-    weights  = load_weights()
-    sessions = load_sessions()
-    hiit_log = load_hiit_log_local()
+    import db as _db
 
+    sessions = _db.get_workout_sessions(limit=500)
+    all_history = _db.get_all_exercise_history()
+    hiit_log = _db.get_hiit_logs(limit=100)
+
+    # Build {date: [exo, ...]} from all exercise history
     ex_by_date = {}
-    for ex, data in weights.items():
-        for entry in data.get("history", []):
+    for ex_name, history in all_history.items():
+        for entry in history:
             d = entry.get("date")
             if not d:
                 continue
             ex_by_date.setdefault(d, []).append({
-                "exercise": ex,
+                "exercise": ex_name,
                 "weight":   entry.get("weight", 0),
                 "reps":     entry.get("reps", ""),
             })
 
-    all_dates = set(sessions.keys()) | set(ex_by_date.keys())
     session_list = []
-    for d in sorted(all_dates, reverse=True):
-        s = sessions.get(d, {})
+    for s in sessions:
+        d = s.get("date")
+        if not d:
+            continue
         session_list.append({
             "date":    d,
             "rpe":     s.get("rpe"),
@@ -1763,10 +1767,17 @@ def api_historique_data():
             "exos":    ex_by_date.get(d, []),
         })
 
-    hiit_list = sorted(hiit_log, key=lambda x: x.get("date", ""), reverse=True)
+    # Remove duplicate dates (morning + evening sessions on same day)
+    seen = set()
+    deduped = []
+    for s in session_list:
+        if s["date"] not in seen:
+            seen.add(s["date"])
+            deduped.append(s)
+
     return jsonify({
-        "session_list": session_list[:60],
-        "hiit_list":    hiit_list[:30],
+        "session_list": deduped[:60],
+        "hiit_list":    hiit_log[:30],
     })
 
 
