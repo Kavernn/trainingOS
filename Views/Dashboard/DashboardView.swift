@@ -2,7 +2,7 @@
 import SwiftUI
 
 struct DashboardView: View {
-    @StateObject private var api = APIService.shared
+    @ObservedObject private var api = APIService.shared
     @State private var deload: DeloadReport?
     @State private var moodDue: MoodDueStatus?
     @State private var brief: MorningBriefData?

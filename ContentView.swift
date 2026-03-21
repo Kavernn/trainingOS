@@ -2,9 +2,8 @@ import SwiftUI
 import Combine
 
 struct ContentView: View {
-    @StateObject private var api     = APIService.shared
-    @StateObject private var network = NetworkMonitor.shared
-    @StateObject private var sync    = SyncManager.shared
+    @ObservedObject private var network = NetworkMonitor.shared
+    @ObservedObject private var sync    = SyncManager.shared
     @State private var selectedTab   = 0
 
     var body: some View {
