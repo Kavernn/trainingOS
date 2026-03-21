@@ -138,6 +138,52 @@ def log_second_session(
     save_sessions(sessions)
 
 
+def log_bonus_session(
+    date: str,
+    rpe,
+    comment: str,
+    exos: list | None = None,
+    duration_min=None,
+    energy_pre=None,
+    blocks: list | None = None,
+    session_volume=None,
+    total_reps=None,
+    total_sets=None,
+):
+    """Log a bonus session (session_type='bonus') for the given date."""
+    patch: dict = {"completed": True}
+    if rpe is not None:
+        patch["rpe"] = rpe
+    if comment is not None:
+        patch["comment"] = comment
+    if duration_min is not None:
+        patch["duration_min"] = duration_min
+    if energy_pre is not None:
+        patch["energy_pre"] = energy_pre
+    if session_volume is not None:
+        patch["session_volume"] = session_volume
+    if total_reps is not None:
+        patch["total_reps"] = total_reps
+    if total_sets is not None:
+        patch["total_sets"] = total_sets
+
+    try:
+        existing = db.get_workout_session_bonus(date)
+        if existing:
+            db.update_workout_session_bonus(date, patch)
+        else:
+            db.create_workout_session(
+                date,
+                rpe=rpe,
+                comment=comment,
+                duration_min=duration_min,
+                energy_pre=energy_pre,
+                session_type="bonus",
+            )
+    except Exception:
+        pass
+
+
 def session_exists(date: str) -> bool:
     try:
         session = db.get_workout_session(date)

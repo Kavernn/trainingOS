@@ -64,7 +64,7 @@ from hiit         import get_hiit_str
 from weights      import load_weights, save_weights
 from log_workout  import log_single_exercise
 from inventory    import load_inventory, save_inventory, add_exercise, rename_inventory_exercise, calculate_plates
-from sessions     import load_sessions, log_session, log_second_session, session_exists
+from sessions     import load_sessions, log_session, log_second_session, log_bonus_session, session_exists
 from user_profile import load_user_profile, save_user_profile
 from progression  import estimate_1rm, should_increase, next_weight, parse_reps, progression_status, suggest_next_weight
 from deload       import analyser_deload, load_deload_state
@@ -520,6 +520,7 @@ def api_log():
 
         force          = bool(data.get("force", False))
         is_second      = bool(data.get("is_second", False))
+        is_bonus       = bool(data.get("is_bonus", False))
         equipment_type = data.get("equipment_type", "")
 
         if not exercise or not reps_str:
@@ -527,9 +528,9 @@ def api_log():
 
         weights   = load_weights()
 
-        # Duplicate-prevention guard (skipped for force overwrite or evening session)
+        # Duplicate-prevention guard (skipped for force overwrite, evening, or bonus session)
         existing_history = weights.get(exercise, {}).get("history", [])
-        if not force and not is_second and existing_history and existing_history[0]["date"] == _today_mtl():
+        if not force and not is_second and not is_bonus and existing_history and existing_history[0]["date"] == _today_mtl():
             return jsonify({
                 "error":      "already_logged",
                 "new_weight": weights[exercise].get("current_weight", 0),
@@ -615,13 +616,22 @@ def api_log():
         weights[exercise]["last_reps"] = reps
         weights[exercise]["last_logged"]    = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-        # Ensure session stub exists so upsert_exercise_log can write the FK
+        # Ensure session stub exists so exercise_log can write the FK
         import db as _db
-        if is_second:
-            _db.get_or_create_workout_session_second(_today_mtl())
+        today = _today_mtl()
+        if is_bonus:
+            bonus_stub = _db.get_or_create_workout_session_bonus(today)
+            # Write this exercise directly to the bonus session (not via save_weights
+            # which would link it to the morning session)
+            bonus_sid = (bonus_stub or {}).get("id")
+            if bonus_sid:
+                _db.upsert_exercise_log_direct(bonus_sid, exercise, round(weight, 1), reps)
+        elif is_second:
+            _db.get_or_create_workout_session_second(today)
+            save_weights(weights)
         else:
-            _db.get_or_create_workout_session(_today_mtl())
-        save_weights(weights)
+            _db.get_or_create_workout_session(today)
+            save_weights(weights)
         achieved = check_goals_achieved(weights)
 
         return jsonify({
@@ -718,10 +728,18 @@ def api_session_delete():
         if not date:
             return jsonify({"error": "date manquante"}), 400
 
-        # Delete from relational layer (cascades to exercise_logs via FK)
+        session_type = data.get("session_type", "morning")
+
+        # Delete from relational layer
         import db as _db
-        _db.delete_session_exercise_logs(date)
-        _db.delete_workout_session(date)
+        if session_type == "bonus":
+            bonus_session = _db.get_workout_session_bonus(date)
+            if bonus_session:
+                _db.delete_exercise_logs_for_session(bonus_session["id"])
+            _db.delete_workout_session_by_type(date, "bonus")
+        else:
+            _db.delete_session_exercise_logs(date)
+            _db.delete_workout_session_by_type(date, "morning")
 
         # After relational delete, reload weights (history already excludes the deleted date)
         # and sync current_weight/last_reps to reflect the new most-recent entry
@@ -749,11 +767,15 @@ def api_update_session():
         date = data.get("date")
         if not date:
             return jsonify({"error": "date required"}), 400
+        session_type = data.get("session_type", "morning")
         patch = {}
         if "rpe" in data:     patch["rpe"] = data["rpe"]
         if "comment" in data: patch["comment"] = data["comment"]
         import db as _db
-        ok = _db.update_workout_session(date, patch)
+        if session_type == "bonus":
+            ok = _db.update_workout_session_bonus(date, patch)
+        else:
+            ok = _db.update_workout_session(date, patch)
         return jsonify({"success": ok})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -770,11 +792,12 @@ def api_log_session():
         exos           = data.get("exos", [])
         blocks         = data.get("blocks")
         second_session = data.get("second_session", False)
+        bonus_session  = data.get("bonus_session", False)
         duration_min   = data.get("duration_min")
         energy_pre     = data.get("energy_pre")
 
         import db as _db
-        if not second_session:
+        if not second_session and not bonus_session:
             existing = _db.get_workout_session(today)
             if existing and existing.get("completed"):
                 return jsonify({"error": "already_logged"}), 409
@@ -783,7 +806,11 @@ def api_log_session():
         weights   = load_weights()
         vol_stats = _calc_session_volume_legacy(exos, weights, today)
 
-        if second_session:
+        if bonus_session:
+            log_bonus_session(today, rpe, comment, exos, duration_min, energy_pre,
+                              blocks=blocks, **vol_stats)
+            _db.complete_workout_session_bonus(today)
+        elif second_session:
             log_second_session(today, rpe, comment, exos, duration_min, energy_pre,
                                blocks=blocks, **vol_stats)
         else:
@@ -1758,44 +1785,29 @@ def api_historique_data():
     import db as _db
 
     sessions = _db.get_workout_sessions(limit=500)
-    all_history = _db.get_all_exercise_history()
+    ex_by_session = _db.get_exercise_history_grouped_by_session()
     hiit_log = _db.get_hiit_logs(limit=100)
-
-    # Build {date: [exo, ...]} from all exercise history
-    ex_by_date = {}
-    for ex_name, history in all_history.items():
-        for entry in history:
-            d = entry.get("date")
-            if not d:
-                continue
-            ex_by_date.setdefault(d, []).append({
-                "exercise": ex_name,
-                "weight":   entry.get("weight", 0),
-                "reps":     entry.get("reps", ""),
-            })
 
     session_list = []
     for s in sessions:
-        d = s.get("date")
+        d   = s.get("date")
+        sid = s.get("id")
+        stype = s.get("session_type") or ("evening" if s.get("is_second") else "morning")
         if not d:
             continue
+        # Only include completed or RPE-bearing sessions (filter stubs)
+        if not s.get("completed") and s.get("rpe") is None:
+            continue
         session_list.append({
-            "date":    d,
-            "rpe":     s.get("rpe"),
-            "comment": s.get("comment", ""),
-            "exos":    ex_by_date.get(d, []),
+            "date":         d,
+            "session_type": stype,
+            "rpe":          s.get("rpe"),
+            "comment":      s.get("comment", ""),
+            "exos":         ex_by_session.get(sid, []),
         })
 
-    # Remove duplicate dates (morning + evening sessions on same day)
-    seen = set()
-    deduped = []
-    for s in session_list:
-        if s["date"] not in seen:
-            seen.add(s["date"])
-            deduped.append(s)
-
     return jsonify({
-        "session_list": deduped[:60],
+        "session_list": session_list[:90],
         "hiit_list":    hiit_log[:30],
     })
 

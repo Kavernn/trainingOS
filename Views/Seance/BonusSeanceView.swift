@@ -1,7 +1,22 @@
 import SwiftUI
 
+// MARK: - ViewModel
+class BonusSeanceViewModel: SeanceViewModel {
+    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil) async {
+        let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
+        do {
+            try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
+                                                   durationMin: durationMin, energyPre: energyPre,
+                                                   bonusSession: true)
+            showSuccess = true
+            await APIService.shared.fetchDashboard()
+        } catch { submitError = error.localizedDescription }
+    }
+}
+
+// MARK: - View
 struct BonusSeanceView: View {
-    @StateObject private var vm = SeanceViewModel()
+    @StateObject private var vm = BonusSeanceViewModel()
     @State private var localExercises: [String: String] = [:]
     @State private var exerciseOrder: [String] = []
     @State private var inventoryTypes: [String: String] = [:]
@@ -69,6 +84,7 @@ struct BonusSeanceView: View {
                                     equipmentType: inventoryTypes[name] ?? "machine",
                                     bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
                                     isSecondSession: false,
+                                    isBonusSession: true,
                                     logResult: $vm.logResults[name]
                                 )
                                 .padding(.horizontal, 16)

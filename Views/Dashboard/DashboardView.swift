@@ -385,6 +385,23 @@ struct TodayCardView: View {
             if isLoggedToday, let session = todaySession {
                 // ── Récap séance loggée ───────────────────────────────────
                 TodaySessionRecap(session: session, color: todayColor)
+                NavigationLink(destination: BonusSeanceView()) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle")
+                        Text("Faire une séance bonus")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color.gray.opacity(0.12))
+                    .foregroundColor(.gray)
+                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.2), lineWidth: 1))
+                }
+                .buttonStyle(SpringButtonStyle())
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
             } else {
                 // ── Programme prévu (pas encore loggé) ───────────────────
                 if !exercises.isEmpty {

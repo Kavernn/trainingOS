@@ -526,7 +526,34 @@ def get_or_create_workout_session_second(date: str) -> dict:
     existing = get_workout_session_second(date)
     if existing:
         return existing
-    return create_workout_session(date, is_second=True)
+    return create_workout_session(date, is_second=True, session_type="evening")
+
+
+def get_workout_session_bonus(date: str) -> Optional[dict]:
+    """Return the bonus (session_type='bonus') workout session for a date, or None."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("*")
+            .eq("date", date)
+            .eq("session_type", "bonus")
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.debug("get_workout_session_bonus(%s) error: %s", date, e)
+        return None
+
+
+def get_or_create_workout_session_bonus(date: str) -> dict:
+    """Return the bonus session for *date*, creating a stub if none exists."""
+    existing = get_workout_session_bonus(date)
+    if existing:
+        return existing
+    return create_workout_session(date, session_type="bonus")
 
 
 def create_workout_session(
@@ -536,9 +563,10 @@ def create_workout_session(
     duration_min=None,
     energy_pre=None,
     is_second: bool = False,
+    session_type: str = "morning",
 ) -> dict:
     """Insert a new workout session row. Returns the created record."""
-    payload: dict = {"date": date, "is_second": is_second}
+    payload: dict = {"date": date, "is_second": is_second, "session_type": session_type}
     if rpe is not None:
         payload["rpe"] = int(rpe)
     if comment is not None:
@@ -591,6 +619,135 @@ def complete_workout_session(date: str) -> bool:
     except Exception as e:
         logger.error("complete_workout_session error: %s", e)
         return False
+
+
+def complete_workout_session_bonus(date: str) -> bool:
+    """Mark a bonus session as completed."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .update({"completed": True})
+            .eq("date", date)
+            .eq("session_type", "bonus")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("complete_workout_session_bonus error: %s", e)
+        return False
+
+
+def update_workout_session_bonus(date: str, patch: dict) -> bool:
+    """Update fields on a bonus session. Returns True on success."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .update(patch)
+            .eq("date", date)
+            .eq("session_type", "bonus")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("update_workout_session_bonus error: %s", e)
+        return False
+
+
+def delete_workout_session_by_type(date: str, session_type: str = "morning") -> bool:
+    """Delete a single session row by date + session_type."""
+    if _client is None or MODE == "OFFLINE":
+        if session_type == "morning":
+            sessions = get_json("sessions", {})
+            if date in sessions:
+                del sessions[date]
+                set_json("sessions", sessions)
+                return True
+        return False
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .delete()
+            .eq("date", date)
+            .eq("session_type", session_type)
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("delete_workout_session_by_type error: %s", e)
+        return False
+
+
+def delete_exercise_logs_for_session(session_id: str) -> bool:
+    """Delete all exercise_logs for a given session_id."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("exercise_logs").delete().eq("session_id", session_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_exercise_logs_for_session error: %s", e)
+        return False
+
+
+def upsert_exercise_log_direct(session_id: str, exercise_name: str, weight: float, reps: str) -> bool:
+    """Insert/update an exercise_log row using session_id directly (bypasses date lookup)."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        exercise_id = get_exercise_id(exercise_name)
+        if not exercise_id:
+            logger.warning("upsert_exercise_log_direct: exercise '%s' not found", exercise_name)
+            return False
+        payload = {
+            "session_id": session_id,
+            "exercise_id": exercise_id,
+            "weight": weight,
+            "reps": reps,
+        }
+        resp = (
+            _client.table("exercise_logs")
+            .upsert(payload, on_conflict="session_id,exercise_id")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("upsert_exercise_log_direct error: %s", e)
+        return False
+
+
+def get_exercise_history_grouped_by_session() -> dict:
+    """Return exercise history keyed by workout_sessions.id (UUID string).
+
+    Returns: {session_id: [{"exercise": name, "weight": w, "reps": r}, ...]}
+    """
+    if _client is None or MODE == "OFFLINE":
+        return {}
+    try:
+        resp = (
+            _client.table("exercise_logs")
+            .select("weight, reps, session_id, exercises(name)")
+            .execute()
+        )
+        rows = resp.data or []
+        result: dict = {}
+        for r in rows:
+            sid = r.get("session_id")
+            name = (r.get("exercises") or {}).get("name")
+            if not sid or not name:
+                continue
+            result.setdefault(sid, []).append({
+                "exercise": name,
+                "weight":   r.get("weight", 0),
+                "reps":     r.get("reps", ""),
+            })
+        return result
+    except Exception as e:
+        logger.error("get_exercise_history_grouped_by_session error: %s", e)
+        return {}
 
 
 def update_workout_session(date: str, patch: dict) -> bool:

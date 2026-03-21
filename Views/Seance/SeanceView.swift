@@ -1044,6 +1044,7 @@ struct AddHIITSheet: View {
         var equipmentType: String = "machine"
         var bodyWeight: Double = 0
         var isSecondSession: Bool = false
+        var isBonusSession: Bool = false
         @Binding var logResult: ExerciseLogResult?
         var onLogged: (() -> Void)? = nil
         @ObservedObject private var units = UnitSettings.shared
@@ -1450,7 +1451,7 @@ struct AddHIITSheet: View {
             Task {
                 if let response = try? await APIService.shared.logExercise(
                     exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE,
-                    sets: setsPayload, force: wasEditing, isSecond: isSecondSession,
+                    sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
                     equipmentType: equipmentType),
                    response.isPR == true {
                     let content = UNMutableNotificationContent()

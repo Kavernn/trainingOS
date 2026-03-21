@@ -2,8 +2,9 @@ import SwiftUI
 
 // MARK: - Models
 struct HistoriqueMuscu: Identifiable {
-    var id: String { date }
+    var id: String { "\(date)-\(sessionType)" }
     let date: String
+    let sessionType: String   // "morning" | "evening" | "bonus"
     let rpe: Double?
     let comment: String
     let exos: [HistoriqueExo]
@@ -22,7 +23,7 @@ struct HistoriqueView: View {
     @State private var hiitSessions: [HIITEntry] = []
     @State private var isLoading = true
     @State private var selectedTab = 0
-    @State private var expandedDates: Set<String> = []
+    @State private var expandedIDs: Set<String> = []
     @State private var editTarget: HistoriqueMuscu? = nil
 
     var body: some View {
@@ -51,9 +52,9 @@ struct HistoriqueView: View {
                                         ForEach(muscuSessions) { session in
                                             MuscuSessionCard(
                                                 session: session,
-                                                isExpanded: expandedDates.contains(session.date),
-                                                onToggle: { toggle(session.date) },
-                                                onDelete: { Task { await deleteMuscu(session.date) } },
+                                                isExpanded: expandedIDs.contains(session.id),
+                                                onToggle: { toggle(session.id) },
+                                                onDelete: { Task { await deleteMuscu(session) } },
                                                 onEdit: { editTarget = session }
                                             )
                                             .padding(.horizontal, 16)
@@ -85,14 +86,14 @@ struct HistoriqueView: View {
         .task { await loadData() }
         .sheet(item: $editTarget) { session in
             EditSessionSheet(session: session) { date, rpe, comment in
-                Task { await saveEdit(date: date, rpe: rpe, comment: comment) }
+                Task { await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType) }
             }
         }
     }
 
-    private func toggle(_ date: String) {
-        if expandedDates.contains(date) { expandedDates.remove(date) }
-        else { expandedDates.insert(date) }
+    private func toggle(_ id: String) {
+        if expandedIDs.contains(id) { expandedIDs.remove(id) }
+        else { expandedIDs.insert(id) }
     }
 
     private func loadData() async {
@@ -126,6 +127,7 @@ struct HistoriqueView: View {
                 }
                 return HistoriqueMuscu(
                     date: date,
+                    sessionType: d["session_type"] as? String ?? "morning",
                     rpe: d["rpe"] as? Double,
                     comment: d["comment"] as? String ?? "",
                     exos: exos
@@ -147,17 +149,17 @@ struct HistoriqueView: View {
         }
     }
 
-    private func deleteMuscu(_ date: String) async {
-        try? await APIService.shared.deleteSession(date: date)
-        muscuSessions.removeAll { $0.date == date }
-        CacheService.shared.clear(for: "historique_data")
+    private func deleteMuscu(_ session: HistoriqueMuscu) async {
+        try? await APIService.shared.deleteSession(date: session.date, sessionType: session.sessionType)
+        muscuSessions.removeAll { $0.id == session.id }
     }
 
-    private func saveEdit(date: String, rpe: Double?, comment: String) async {
-        try? await APIService.shared.updateSession(date: date, rpe: rpe, comment: comment)
-        if let idx = muscuSessions.firstIndex(where: { $0.date == date }) {
+    private func saveEdit(date: String, rpe: Double?, comment: String, sessionType: String = "morning") async {
+        try? await APIService.shared.updateSession(date: date, rpe: rpe, comment: comment, sessionType: sessionType)
+        if let idx = muscuSessions.firstIndex(where: { $0.date == date && $0.sessionType == sessionType }) {
             muscuSessions[idx] = HistoriqueMuscu(
                 date: date,
+                sessionType: sessionType,
                 rpe: rpe,
                 comment: comment,
                 exos: muscuSessions[idx].exos
@@ -203,9 +205,21 @@ struct MuscuSessionCard: View {
             Button(action: onToggle) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(formattedDate)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                        HStack(spacing: 6) {
+                            Text(formattedDate)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                            if session.sessionType == "bonus" {
+                                Text("BONUS")
+                                    .font(.system(size: 9, weight: .black))
+                                    .tracking(1)
+                                    .foregroundColor(.purple)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.purple.opacity(0.15))
+                                    .clipShape(Capsule())
+                            }
+                        }
                         if !session.exos.isEmpty {
                             Text("\(session.exos.count) exercice\(session.exos.count > 1 ? "s" : "")")
                                 .font(.system(size: 12))

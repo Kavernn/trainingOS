@@ -132,16 +132,19 @@ class APIService: ObservableObject {
 
     func logExercise(exercise: String, weight: Double, reps: String,
                      rpe: Double? = nil, sets: [[String: Any]] = [],
-                     force: Bool = false, isSecond: Bool = false,
+                     force: Bool = false, isSecond: Bool = false, isBonus: Bool = false,
                      equipmentType: String = "") async throws -> LogExerciseResponse {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
         if let rpe { body["rpe"] = rpe }
         if !sets.isEmpty { body["sets"] = sets }
         if force    { body["force"] = true }
         if isSecond { body["is_second"] = true }
+        if isBonus  { body["is_bonus"] = true }
         if !equipmentType.isEmpty { body["equipment_type"] = equipmentType }
         let data = try await offlinePost(endpoint: "/api/log", payload: body)
-        CacheService.shared.clear(for: isSecond ? "seance_soir_data" : "seance_data")
+        if !isBonus {
+            CacheService.shared.clear(for: isSecond ? "seance_soir_data" : "seance_data")
+        }
         CacheService.shared.clear(for: "dashboard")
         return (try? JSONDecoder().decode(LogExerciseResponse.self, from: data))
             ?? LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
@@ -149,14 +152,18 @@ class APIService: ObservableObject {
 
     func logSession(exos: [String], rpe: Double, comment: String,
                     durationMin: Double? = nil, energyPre: Int? = nil,
-                    secondSession: Bool = false) async throws {
+                    secondSession: Bool = false, bonusSession: Bool = false) async throws {
         var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment]
         if let d = durationMin  { body["duration_min"] = d }
         if let e = energyPre    { body["energy_pre"] = e }
         if secondSession        { body["second_session"] = true }
+        if bonusSession         { body["bonus_session"] = true }
         _ = try await offlinePost(endpoint: "/api/log_session", payload: body)
         CacheService.shared.clear(for: "dashboard")
-        CacheService.shared.clear(for: secondSession ? "seance_soir_data" : "seance_data")
+        CacheService.shared.clear(for: "historique_data")
+        if !bonusSession {
+            CacheService.shared.clear(for: secondSession ? "seance_soir_data" : "seance_data")
+        }
         CacheService.shared.clear(for: "stats_data")
     }
 
@@ -166,12 +173,15 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode(SeanceSoirData.self, from: data)
     }
 
-    func deleteSession(date: String) async throws {
-        _ = try await offlinePost(endpoint: "/api/session/delete", payload: ["date": date])
+    func deleteSession(date: String, sessionType: String = "morning") async throws {
+        _ = try await offlinePost(endpoint: "/api/session/delete",
+                                  payload: ["date": date, "session_type": sessionType])
+        CacheService.shared.clear(for: "historique_data")
+        CacheService.shared.clear(for: "dashboard")
     }
 
-    func updateSession(date: String, rpe: Double?, comment: String) async throws {
-        var body: [String: Any] = ["date": date, "comment": comment]
+    func updateSession(date: String, rpe: Double?, comment: String, sessionType: String = "morning") async throws {
+        var body: [String: Any] = ["date": date, "comment": comment, "session_type": sessionType]
         if let rpe { body["rpe"] = rpe }
         _ = try await offlinePost(endpoint: "/api/update_session", payload: body)
         CacheService.shared.clear(for: "historique_data")
