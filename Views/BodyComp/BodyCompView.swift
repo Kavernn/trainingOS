@@ -539,6 +539,7 @@ struct BodyWeightSheet: View {
     @State private var hipsStr = ""
     @State private var isSaving = false
     @State private var isLoadingHK = false
+    @State private var saveError: String? = nil
     @FocusState private var weightFocused: Bool
 
     var isEdit: Bool { editEntry != nil }
@@ -654,6 +655,11 @@ struct BodyWeightSheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
             }
+            .alert("Erreur", isPresented: .constant(saveError != nil)) {
+                Button("OK") { saveError = nil }
+            } message: {
+                Text(saveError ?? "")
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -692,27 +698,35 @@ struct BodyWeightSheet: View {
     }
 
     private func save() {
-        guard let w = parse(weightStr).map({ units.toStorage($0) }) else { return }
+        guard let w = parse(weightStr).map({ units.toStorage($0) }) else {
+            saveError = "Valeur de poids invalide: '\(weightStr)'"
+            return
+        }
         isSaving = true
         Task {
-            if let e = editEntry {
-                try? await APIService.shared.updateBodyWeight(
-                    date: e.date, oldWeight: e.weight, newWeight: w,
-                    bodyFat: parse(bodyFatStr), waistCm: parse(waistStr),
-                    armsCm: parse(armsStr), chestCm: parse(chestStr),
-                    thighsCm: parse(thighsStr), hipsCm: parse(hipsStr)
-                )
-            } else {
-                try? await APIService.shared.addBodyWeight(
-                    date: DateFormatter.isoDate.string(from: Date()), weight: w,
-                    bodyFat: parse(bodyFatStr), waistCm: parse(waistStr),
-                    armsCm: parse(armsStr), chestCm: parse(chestStr),
-                    thighsCm: parse(thighsStr), hipsCm: parse(hipsStr)
-                )
+            do {
+                if let e = editEntry {
+                    try await APIService.shared.updateBodyWeight(
+                        date: e.date, oldWeight: e.weight, newWeight: w,
+                        bodyFat: parse(bodyFatStr), waistCm: parse(waistStr),
+                        armsCm: parse(armsStr), chestCm: parse(chestStr),
+                        thighsCm: parse(thighsStr), hipsCm: parse(hipsStr)
+                    )
+                } else {
+                    try await APIService.shared.addBodyWeight(
+                        date: DateFormatter.isoDate.string(from: Date()), weight: w,
+                        bodyFat: parse(bodyFatStr), waistCm: parse(waistStr),
+                        armsCm: parse(armsStr), chestCm: parse(chestStr),
+                        thighsCm: parse(thighsStr), hipsCm: parse(hipsStr)
+                    )
+                }
+                await onSaved()
+                isSaving = false
+                dismiss()
+            } catch {
+                isSaving = false
+                saveError = error.localizedDescription
             }
-            await onSaved()
-            isSaving = false
-            dismiss()
         }
     }
 }
