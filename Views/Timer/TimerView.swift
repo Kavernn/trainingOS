@@ -142,20 +142,13 @@ struct TimerView: View {
                     }
                 }
 
-                // Round dots
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(1...max(1, totalRounds), id: \.self) { i in
-                            Circle()
-                                .fill(i < currentRound ? Color.orange :
-                                      i == currentRound && phase != .idle ? phaseColor :
-                                      Color(hex: "191926"))
-                                .frame(width: 12, height: 12)
-                                .animation(.easeInOut(duration: 0.2), value: currentRound)
-                        }
-                    }
-                    .padding(.horizontal, 4)
-                }
+                // Round dots — centred, size adapts to count
+                RoundDotsView(
+                    totalRounds: totalRounds,
+                    currentRound: currentRound,
+                    phase: phase,
+                    phaseColor: phaseColor
+                )
 
                 Divider().background(Color.white.opacity(0.07))
 
@@ -407,6 +400,70 @@ struct TimerView: View {
             timerTask = Task { await runLoop() }
         default:
             break
+        }
+    }
+}
+
+// MARK: - Round Dots
+struct RoundDotsView: View {
+    let totalRounds: Int
+    let currentRound: Int
+    let phase: TimerView.TimerPhase
+    let phaseColor: Color
+
+    private var dotSize: CGFloat {
+        switch totalRounds {
+        case ...8:  return 14
+        case ...14: return 11
+        case ...22: return 9
+        case ...32: return 7
+        default:    return 6
+        }
+    }
+
+    private var dotSpacing: CGFloat {
+        switch totalRounds {
+        case ...8:  return 10
+        case ...14: return 7
+        case ...22: return 5
+        default:    return 4
+        }
+    }
+
+    private func dotColor(_ i: Int) -> Color {
+        if i < currentRound { return .orange }
+        if i == currentRound && phase != .idle { return phaseColor }
+        return Color(hex: "191926")
+    }
+
+    var body: some View {
+        Group {
+            if totalRounds <= 32 {
+                // Tous les dots tiennent — centré
+                HStack(spacing: dotSpacing) {
+                    ForEach(1...max(1, totalRounds), id: \.self) { i in
+                        Circle()
+                            .fill(dotColor(i))
+                            .frame(width: dotSize, height: dotSize)
+                            .animation(.easeInOut(duration: 0.25), value: currentRound)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.horizontal, 20)
+            } else {
+                // Trop de rounds — scroll horizontal avec dots centrés au départ
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(1...max(1, totalRounds), id: \.self) { i in
+                            Circle()
+                                .fill(dotColor(i))
+                                .frame(width: 6, height: 6)
+                                .animation(.easeInOut(duration: 0.25), value: currentRound)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
         }
     }
 }
