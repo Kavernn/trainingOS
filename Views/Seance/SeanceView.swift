@@ -1672,6 +1672,7 @@ struct AddHIITSheet: View {
                     workTime: workTime, restTime: restTime, rpe: rpe, notes: notes
                 )
                 await vm.load()
+                await APIService.shared.fetchDashboard()
                 vm.showSuccess = true
             }
         }
@@ -1734,6 +1735,7 @@ struct AddHIITSheet: View {
             Task {
                 try? await APIService.shared.logSession(exos: [sessionType], rpe: rpe, comment: comment)
                 await vm.load()
+                await APIService.shared.fetchDashboard()
                 vm.showSuccess = true
             }
         }
