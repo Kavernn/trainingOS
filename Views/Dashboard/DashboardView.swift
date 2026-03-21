@@ -246,12 +246,17 @@ struct GreetingHeaderView: View {
     }
 
     var streak: Int {
-        let today = Calendar.current.startOfDay(for: Date())
-        let formatter = DateFormatter.isoDate
+        // N'utilise PAS Calendar.startOfDay ni addingTimeInterval :
+        // sur iOS 26 ces appels routent via Calendar.date(byAdding:wrappingComponents:true)
+        // qui recurse infiniment dans _CalendarGregorian.dateComponents → crash 0x8BADF00D.
+        let fmt = DateFormatter.isoDate
+        let todayStr = fmt.string(from: Date())                     // dateComponents, pas date(byAdding:)
+        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }  // parse → Date, pas date(byAdding:)
+        let base = todayMidnight.timeIntervalSince1970              // secondes epoch
         var count = 0
         for i in 0..<365 {
-            let checkDate = today.addingTimeInterval(-Double(i) * 86400)
-            let key = formatter.string(from: checkDate)
+            let checkDate = Date(timeIntervalSince1970: base - Double(i) * 86400.0) // arithmétique pure
+            let key = fmt.string(from: checkDate)
             if dash.sessions[key] != nil {
                 count += 1
             } else if i == 0 {
