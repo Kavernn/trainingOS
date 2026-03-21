@@ -39,7 +39,6 @@ struct ContentView: View {
                     Label("Plus", systemImage: "ellipsis.circle.fill")
                 }
         }
-        .onAppear { configureTabBarAppearance() }
         // Offline banner (top)
         .overlay(alignment: .top) {
             if !network.isOnline {
@@ -81,10 +80,4 @@ struct ContentView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
     }
 
-    private func configureTabBarAppearance() {
-        let appearance = UITabBarAppearance()
-        appearance.configureWithDefaultBackground()
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
-    }
 }
