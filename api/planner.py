@@ -200,10 +200,11 @@ def get_today_evening() -> str | None:
 # Weight suggestions
 # ---------------------------------------------------------------------------
 
-def get_suggested_weights_for_today(weights: dict) -> List[dict]:
+def get_suggested_weights_for_today(weights: dict, program: dict | None = None) -> List[dict]:
     from inventory import load_inventory
     today_session = get_today()
-    program = load_program()
+    if program is None:
+        program = load_program()
     if today_session not in program:
         return []
 

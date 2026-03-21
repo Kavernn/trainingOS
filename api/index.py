@@ -155,9 +155,9 @@ def load_hiit_log_local() -> list:
 def index():
     weights      = load_weights()
     profile      = load_user_profile()
-    suggestions  = get_suggested_weights_for_today(weights)
-    goals        = load_goals()
     full_program = load_program()
+    suggestions  = get_suggested_weights_for_today(weights, full_program)
+    goals        = load_goals()
     deload_state = load_deload_state()
     sessions     = load_sessions()
 
@@ -1427,7 +1427,7 @@ def api_dashboard():
     today_str    = get_today()
     today_date   = get_today_date()
     schedule     = get_week_schedule()
-    suggestions  = get_suggested_weights_for_today(weights)
+    suggestions  = get_suggested_weights_for_today(weights, full_program)
 
     import db as _db
     _today_session = _db.get_workout_session(today_date)
@@ -1491,7 +1491,7 @@ def api_seance_data():
     today_str  = get_today()
     today_date = get_today_date()
     schedule   = get_week_schedule()
-    suggestions = get_suggested_weights_for_today(weights)
+    suggestions = get_suggested_weights_for_today(weights, full_program)
 
     already_logged = today_date in sessions
 
@@ -1541,7 +1541,7 @@ def api_seance_soir_data():
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types = {name: info.get("type", "machine") for name, info in inv.items()}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
-    suggestions     = get_suggested_weights_for_today(weights)
+    suggestions     = get_suggested_weights_for_today(weights, full_program)
 
     return jsonify({
         "has_evening_session": True,
