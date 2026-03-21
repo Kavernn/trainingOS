@@ -8,11 +8,18 @@ struct TrainingOSApp: App {
 
     private let modelContainer: ModelContainer = {
         let schema = Schema([PendingMutation.self])
-        // Essaie sur disque d'abord, fallback mémoire si le store est corrompu (ex: migration iOS)
-        if let container = try? ModelContainer(for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)) {
-            return container
+        let memConfig  = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let diskConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // Essaie sur disque + validation par fetch — fallback mémoire si le store est corrompu
+        if let container = try? ModelContainer(for: schema, configurations: diskConfig) {
+            let ctx = ModelContext(container)
+            if (try? ctx.fetch(FetchDescriptor<PendingMutation>())) != nil {
+                return container   // store lisible, on l'utilise
+            }
         }
-        return try! ModelContainer(for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true))
+        // Store corrompu ou illisible → mémoire (mutations offline perdues, mais l'app ne crashe plus)
+        return (try? ModelContainer(for: schema, configurations: memConfig))
+            ?? { fatalError("Impossible de créer un ModelContainer en mémoire") }()
     }()
 
     init() {
