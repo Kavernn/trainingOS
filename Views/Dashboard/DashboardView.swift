@@ -14,6 +14,7 @@ struct DashboardView: View {
     var body: some View {
         NavigationStack {
             ZStack {
+                AmbientBackground(color: todayAccentColor)
                 if api.isLoading && api.dashboard == nil {
                     VStack(spacing: 16) {
                         ProgressView().tint(.orange).scaleEffect(1.4)
@@ -134,7 +135,6 @@ struct DashboardView: View {
             if scenePhase == .active,
                Date().timeIntervalSince(lastRefresh) > 300 {
                 Task {
-                    await WatchSyncService.shared.syncIfNeeded()
                     await api.fetchDashboard()
                     async let d = APIService.shared.fetchDeloadData()
                     async let m = APIService.shared.checkMoodDue()
