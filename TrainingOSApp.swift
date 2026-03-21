@@ -8,8 +8,11 @@ struct TrainingOSApp: App {
 
     private let modelContainer: ModelContainer = {
         let schema = Schema([PendingMutation.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        return try! ModelContainer(for: schema, configurations: config)
+        // Essaie sur disque d'abord, fallback mémoire si le store est corrompu (ex: migration iOS)
+        if let container = try? ModelContainer(for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)) {
+            return container
+        }
+        return try! ModelContainer(for: schema, configurations: ModelConfiguration(schema: schema, isStoredInMemoryOnly: true))
     }()
 
     init() {
