@@ -567,12 +567,65 @@ ALTER TABLE cardio_logs ADD COLUMN IF NOT EXISTS source      TEXT NOT NULL DEFAU
 ALTER TABLE recovery_logs ADD COLUMN IF NOT EXISTS active_energy  NUMERIC;
 ALTER TABLE recovery_logs ADD COLUMN IF NOT EXISTS source         TEXT NOT NULL DEFAULT 'manual';
 
--- RLS: enable on tables that were missing it
-ALTER TABLE public.body_weight_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.recovery_logs    ENABLE ROW LEVEL SECURITY;
+-- =============================================================================
+-- MIGRATION 002 — RLS + anon policies (2026-03-21)
+-- Le backend utilise SUPABASE_ANON_KEY. RLS doit être activé sur toutes les
+-- tables avec une policy anon permissive (accès total) — cohérent avec le
+-- fait que c'est une app privée mono-utilisateur derrière un backend Flask.
+--
+-- RÈGLE : chaque nouvelle table créée doit avoir ces 2 lignes associées :
+--   ALTER TABLE public.<table> ENABLE ROW LEVEL SECURITY;
+--   CREATE POLICY "anon_all" ON public.<table> FOR ALL TO anon USING (true) WITH CHECK (true);
+-- =============================================================================
 
-CREATE POLICY IF NOT EXISTS "service_role_all" ON public.body_weight_logs
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
+ALTER TABLE public.exercises              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.program_sessions       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.program_blocks         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.program_block_exercises ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.weekly_schedule        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.workout_sessions       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.exercise_logs          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.hiit_logs              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.body_weight_logs       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cardio_logs            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.recovery_logs          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.goals                  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nutrition_settings     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.nutrition_logs         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mood_logs              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pss_records            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.self_care_habits       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.self_care_logs         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.life_stress_scores     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.journal_entries        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.breathwork_sessions    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sleep_records          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.coach_history          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_profile           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.deload_state           ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "service_role_all" ON public.recovery_logs
-  FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.exercises              FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.program_sessions       FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.program_blocks         FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.program_block_exercises FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.weekly_schedule        FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.workout_sessions       FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.exercise_logs          FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.hiit_logs              FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.body_weight_logs       FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.cardio_logs            FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.recovery_logs          FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.goals                  FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.nutrition_settings     FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.nutrition_logs         FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.mood_logs              FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.pss_records            FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.self_care_habits       FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.self_care_logs         FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.life_stress_scores     FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.journal_entries        FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.breathwork_sessions    FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.sleep_records          FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.coach_history          FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.user_profile           FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "anon_all" ON public.deload_state           FOR ALL TO anon USING (true) WITH CHECK (true);
