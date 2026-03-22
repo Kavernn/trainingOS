@@ -11,15 +11,18 @@ struct DashboardView: View {
     @State private var showMoodSheet = false
     @State private var lastRefresh: Date = .distantPast
     @State private var sleepPromptDismissedThisSession = false
+    @State private var todaySleepLogged = false
     @Environment(\.scenePhase) private var scenePhase
 
     private var todayStr: String {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: Date())
     }
     private var shouldShowSleepPrompt: Bool {
-        // UserDefaults = source de vérité inter-sessions et inter-jours
+        // todaySleepLogged = vérité serveur (fonctionne cross-appareils)
+        // UserDefaults = cache local pour éviter un flash après dismissal
         // sleepPromptDismissedThisSession = disparition animée dans la session courante
         !sleepPromptDismissedThisSession &&
+        !todaySleepLogged &&
         UserDefaults.standard.string(forKey: "sleepPromptDate") != todayStr
     }
 
@@ -151,11 +154,15 @@ struct DashboardView: View {
             async let b = APIService.shared.fetchMorningBrief()
             async let s = APIService.shared.fetchSeanceSoirData()
             async let i = APIService.shared.fetchInsights()
+            async let r = APIService.shared.fetchRecoveryData()
             deload   = try? await d
             moodDue  = try? await m
             brief    = try? await b
             soirData = try? await s
             insights = (try? await i) ?? []
+            if let log = try? await r {
+                todaySleepLogged = log.first(where: { $0.date == todayStr })?.sleepHours != nil
+            }
             lastRefresh = Date()
         }
         .onChange(of: scenePhase) {
@@ -168,10 +175,14 @@ struct DashboardView: View {
                     async let m = APIService.shared.checkMoodDue()
                     async let b = APIService.shared.fetchMorningBrief()
                     async let s = APIService.shared.fetchSeanceSoirData()
+                    async let r = APIService.shared.fetchRecoveryData()
                     deload   = try? await d
                     moodDue  = try? await m
                     brief    = try? await b
                     soirData = try? await s
+                    if let log = try? await r {
+                        todaySleepLogged = log.first(where: { $0.date == todayStr })?.sleepHours != nil
+                    }
                     lastRefresh = Date()
                 }
             }
