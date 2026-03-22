@@ -39,7 +39,8 @@ struct RecoveryView: View {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
 
-                            // Watch sync status
+                            // Watch sync status (iOS uniquement — HealthKit non dispo sur Mac)
+                            #if !targetEnvironment(macCatalyst)
                             WatchSyncBannerView(sync: watchSync) {
                                 Task {
                                     await watchSync.requestAuthorizationAndSync()
@@ -48,6 +49,7 @@ struct RecoveryView: View {
                             }
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0)
+                            #endif
 
                             // KPI grid
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
