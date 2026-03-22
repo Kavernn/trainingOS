@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+#if os(iOS)
+import HealthKit
+#endif
 
 /// Orchestrates automatic Apple Watch → Supabase synchronisation.
 ///
@@ -49,9 +52,15 @@ class WatchSyncService: ObservableObject {
     /// Requests HealthKit authorization (shows system dialog) then syncs.
     /// Call this only from an explicit user action (e.g. a "Connect HealthKit" button).
     func requestAuthorizationAndSync() async {
+        #if os(iOS)
+        guard HKHealthStore.isHealthDataAvailable() else {
+            lastError = "HealthKit non disponible sur cet appareil"
+            return
+        }
+        #endif
         let authorized = await hk.requestAuthorization()
         guard authorized else {
-            lastError = "HealthKit non autorisé"
+            lastError = "Accès refusé — activer dans Réglages > Confidentialité > Santé"
             return
         }
         await sync()
