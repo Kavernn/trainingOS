@@ -63,14 +63,21 @@ struct BodyCompView: View {
                                     .appearAnimation(delay: 0.2)
                             }
 
-                            // 5 — Courbe poids brut
+                            // 5 — Tableau comparatif entre deux dates
+                            if bodyWeight.count >= 2 {
+                                ComparisonTableCard(entries: Array(bodyWeight.prefix(30)))
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.22)
+                            }
+
+                            // 6 — Courbe poids brut
                             if bodyWeight.count >= 2 {
                                 WeightChartView(entries: Array(bodyWeight.prefix(20).reversed()))
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.25)
                             }
 
-                            // 6 — Historique
+                            // 7 — Historique
                             historySection
                         }
                         .padding(.vertical, 16)
@@ -457,6 +464,118 @@ struct MeasurementsCard: View {
         .padding(16)
         .background(Color(hex: "11111c"))
         .cornerRadius(14)
+    }
+}
+
+// MARK: - Comparison Table (deux dates côte à côte)
+struct ComparisonTableCard: View {
+    let entries: [BodyWeightEntry]   // newest first
+    @ObservedObject private var units = UnitSettings.shared
+
+    private var newest: BodyWeightEntry? { entries.first }
+    private var oldest: BodyWeightEntry? {
+        entries.dropFirst().last {
+            $0.armsCm != nil || $0.chestCm != nil || $0.waistCm != nil || $0.bodyFat != nil
+        }
+    }
+
+    private func monthLabel(_ date: String) -> String {
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        let out = DateFormatter(); out.dateFormat = "MMM yyyy"
+        out.locale = Locale(identifier: "fr_CA")
+        return df.date(from: date).map { out.string(from: $0) } ?? date
+    }
+
+    private struct Row: Identifiable {
+        let id: String
+        let label: String
+        let old: String?
+        let new: String?
+        let delta: Double?
+        let higherIsBetter: Bool   // true = vert si Δ>0 (ex: bras), false = vert si Δ<0
+    }
+
+    private func fmt(_ v: Double?, decimals: Int = 1) -> String? {
+        guard let v else { return nil }
+        return String(format: decimals == 0 ? "%.0f" : "%.1f", v)
+    }
+
+    private func d(_ a: Double?, _ b: Double?) -> Double? {
+        guard let a, let b else { return nil }
+        return a - b
+    }
+
+    private var rows: [Row] {
+        guard let n = newest, let o = oldest else { return [] }
+        let nw = units.display(n.weight); let ow = units.display(o.weight)
+        let nLean = n.bodyFat.map { n.weight * (1 - $0 / 100) }
+        let oLean = o.bodyFat.map { o.weight * (1 - $0 / 100) }
+        return [
+            Row(id: "poids",    label: "Poids (\(units.label))",  old: fmt(ow),                         new: fmt(nw),                         delta: nw - ow,              higherIsBetter: false),
+            Row(id: "bf",       label: "Masse grasse %",          old: fmt(o.bodyFat),                  new: fmt(n.bodyFat),                  delta: d(n.bodyFat, o.bodyFat),  higherIsBetter: false),
+            Row(id: "lean",     label: "Masse maigre (kg)",       old: fmt(oLean),                      new: fmt(nLean),                      delta: d(nLean, oLean),          higherIsBetter: true),
+            Row(id: "taille",   label: "Taille (cm)",             old: fmt(o.waistCm,  decimals: 0),    new: fmt(n.waistCm,  decimals: 0),    delta: d(n.waistCm,  o.waistCm),  higherIsBetter: false),
+            Row(id: "bras",     label: "Bras (cm)",               old: fmt(o.armsCm,   decimals: 0),    new: fmt(n.armsCm,   decimals: 0),    delta: d(n.armsCm,   o.armsCm),   higherIsBetter: true),
+            Row(id: "poitrine", label: "Poitrine (cm)",           old: fmt(o.chestCm,  decimals: 0),    new: fmt(n.chestCm,  decimals: 0),    delta: d(n.chestCm,  o.chestCm),  higherIsBetter: false),
+            Row(id: "cuisses",  label: "Cuisses (cm)",            old: fmt(o.thighsCm, decimals: 0),    new: fmt(n.thighsCm, decimals: 0),    delta: d(n.thighsCm, o.thighsCm), higherIsBetter: false),
+            Row(id: "hanches",  label: "Hanches (cm)",            old: fmt(o.hipsCm,   decimals: 0),    new: fmt(n.hipsCm,   decimals: 0),    delta: d(n.hipsCm,   o.hipsCm),   higherIsBetter: false),
+        ].filter { $0.old != nil || $0.new != nil }
+    }
+
+    var body: some View {
+        guard let n = newest, let o = oldest, o.date != n.date else { return AnyView(EmptyView()) }
+        return AnyView(
+            VStack(alignment: .leading, spacing: 12) {
+                // Header
+                HStack {
+                    Text("ÉVOLUTION").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Spacer()
+                }
+                // Column labels
+                HStack {
+                    Text("").frame(maxWidth: .infinity, alignment: .leading)
+                    Text(monthLabel(o.date))
+                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.gray)
+                        .frame(width: 68, alignment: .center)
+                    Text(monthLabel(n.date))
+                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
+                        .frame(width: 68, alignment: .center)
+                    Text("Δ")
+                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.gray)
+                        .frame(width: 52, alignment: .trailing)
+                }
+                Divider().background(Color.white.opacity(0.08))
+                // Data rows
+                ForEach(rows) { row in
+                    HStack {
+                        Text(row.label)
+                            .font(.system(size: 12, weight: .medium)).foregroundColor(.white)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(row.old ?? "—")
+                            .font(.system(size: 12)).foregroundColor(.gray)
+                            .frame(width: 68, alignment: .center)
+                        Text(row.new ?? "—")
+                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                            .frame(width: 68, alignment: .center)
+                        Group {
+                            if let d = row.delta, abs(d) >= 0.05 {
+                                let good = row.higherIsBetter ? d > 0 : d < 0
+                                Text("\(d >= 0 ? "+" : "")\(d, specifier: abs(d) < 10 ? "%.1f" : "%.0f")")
+                                    .foregroundColor(good ? .green : .orange)
+                            } else {
+                                Text("=").foregroundColor(.gray)
+                            }
+                        }
+                        .font(.system(size: 11, weight: .semibold))
+                        .frame(width: 52, alignment: .trailing)
+                    }
+                    Divider().background(Color.white.opacity(0.05))
+                }
+            }
+            .padding(16)
+            .background(Color(hex: "11111c"))
+            .cornerRadius(14)
+        )
     }
 }
 
