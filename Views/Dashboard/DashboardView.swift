@@ -31,7 +31,7 @@ struct DashboardView: View {
                             ChecklistCardView()
                                 .appearAnimation(delay: 0.02)
 
-                            if let report = deload, report.recommande {
+                            if let report = deload, report.fatigueLevel > 0 {
                                 DeloadBannerView(report: report)
                                     .appearAnimation(delay: 0.03)
                             }
@@ -180,22 +180,44 @@ struct DeloadBannerView: View {
     let report: DeloadReport
     @ObservedObject private var units = UnitSettings.shared
 
+    private var accentColor: Color {
+        report.fatigueLevel == 2 ? .yellow : .orange
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
             HStack(spacing: 8) {
-                Image(systemName: "arrow.down.circle.fill")
+                Image(systemName: report.fatigueLevel == 2 ? "arrow.down.circle.fill" : "flame.fill")
                     .font(.system(size: 18))
-                    .foregroundColor(.yellow)
-                Text("Semaine de déload recommandée")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(accentColor)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(report.fatigueLevel == 2 ? "Semaine de déload recommandée" : "Fatigue accumulée détectée")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                    if let rpe = report.rpeAvg7j {
+                        Text("RPE moyen 7 jours : \(String(format: "%.1f", rpe))/10")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                }
                 Spacer()
             }
 
+            // Fatigue score gauge
+            FatigueScoreGauge(score: report.fatigueScore)
+
+            // Details
             if report.fatigueRpe {
-                Label("RPE élevé ces dernières semaines", systemImage: "exclamationmark.triangle.fill")
+                Label("RPE élevé ces dernières séances", systemImage: "exclamationmark.triangle.fill")
                     .font(.system(size: 12))
                     .foregroundColor(.orange)
+            }
+
+            if report.streakDays >= 7 {
+                Label("\(report.streakDays) jours consécutifs sans repos", systemImage: "calendar.badge.exclamationmark")
+                    .font(.system(size: 12))
+                    .foregroundColor(.orange.opacity(0.85))
             }
 
             if !report.stagnants.isEmpty {
@@ -205,9 +227,9 @@ struct DeloadBannerView: View {
                     .lineLimit(2)
             }
 
-            if !report.poidsDeload.isEmpty {
+            if report.fatigueLevel == 2, !report.poidsDeload.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Charges suggérées (−10 %)")
+                    Text("Charges suggérées (−15 %)")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.gray)
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 4) {
@@ -215,7 +237,6 @@ struct DeloadBannerView: View {
                             HStack {
                                 Text(ex).lineLimit(1).font(.system(size: 11)).foregroundColor(.white.opacity(0.8))
                                 Spacer()
-                                // Backend returns deload weights in lbs; convert to display unit
                                 Text(units.format(w)).font(.system(size: 11, weight: .semibold)).foregroundColor(.yellow)
                             }
                             .padding(.horizontal, 8).padding(.vertical, 4)
@@ -229,9 +250,49 @@ struct DeloadBannerView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.yellow.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.yellow.opacity(0.3), lineWidth: 1))
+                .fill(accentColor.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(accentColor.opacity(0.3), lineWidth: 1))
         )
+    }
+}
+
+// MARK: - Fatigue Score Gauge
+struct FatigueScoreGauge: View {
+    let score: Int
+
+    private var gaugeColor: Color {
+        if score >= 75 { return .red }
+        if score >= 65 { return .orange }
+        return .green
+    }
+
+    private var label: String {
+        if score >= 75 { return "Critique" }
+        if score >= 65 { return "Attention" }
+        return "Modéré"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Score de fatigue")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.5))
+                Spacer()
+                Text("\(score)/100 — \(label)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(gaugeColor)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.08)).frame(height: 6)
+                    Capsule()
+                        .fill(gaugeColor)
+                        .frame(width: geo.size.width * CGFloat(score) / 100, height: 6)
+                }
+            }
+            .frame(height: 6)
+        }
     }
 }
 

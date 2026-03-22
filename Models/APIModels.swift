@@ -574,6 +574,9 @@ struct DeloadReport: Codable {
     let fatigueRpe: Bool
     let recommande: Bool
     let poidsDeload: [String: Double]
+    let fatigueScore: Int
+    let streakDays: Int
+    let rpeAvg7j: Double?
 
     enum CodingKeys: String, CodingKey {
         case deloadActif  = "deload_actif"
@@ -581,6 +584,28 @@ struct DeloadReport: Codable {
         case fatigueRpe   = "fatigue_rpe"
         case recommande
         case poidsDeload  = "poids_deload"
+        case fatigueScore = "fatigue_score"
+        case streakDays   = "streak_days"
+        case rpeAvg7j     = "rpe_avg_7j"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        deloadActif  = try c.decodeIfPresent(Bool.self,           forKey: .deloadActif)  ?? false
+        stagnants    = try c.decodeIfPresent([String].self,       forKey: .stagnants)    ?? []
+        fatigueRpe   = try c.decodeIfPresent(Bool.self,           forKey: .fatigueRpe)   ?? false
+        recommande   = try c.decodeIfPresent(Bool.self,           forKey: .recommande)   ?? false
+        poidsDeload  = try c.decodeIfPresent([String: Double].self, forKey: .poidsDeload) ?? [:]
+        fatigueScore = try c.decodeIfPresent(Int.self,            forKey: .fatigueScore) ?? 0
+        streakDays   = try c.decodeIfPresent(Int.self,            forKey: .streakDays)   ?? 0
+        rpeAvg7j     = try c.decodeIfPresent(Double.self,         forKey: .rpeAvg7j)
+    }
+
+    /// 0 = OK, 1 = attention (score ≥ 65), 2 = critique (score ≥ 75 ou deload recommandé)
+    var fatigueLevel: Int {
+        if recommande || fatigueScore >= 75 { return 2 }
+        if fatigueScore >= 65 { return 1 }
+        return 0
     }
 }
 

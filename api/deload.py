@@ -120,6 +120,93 @@ def desactiver_deload():
 
 
 # ─────────────────────────────────────────────────────────────
+# SCORE DE FATIGUE CONTINU (0–100)
+# ─────────────────────────────────────────────────────────────
+
+def compute_fatigue_score() -> dict:
+    """
+    Score de fatigue 0–100 basé sur 4 composantes :
+      - RPE 7j vs baseline 30j         (0–40 pts)
+      - Streak consécutif sans repos   (0–20 pts)
+      - Volume 7j vs moyenne hebdo 4s  (0–20 pts)
+      - Fréquence 7j vs baseline 30j   (0–20 pts)
+    """
+    from datetime import date, timedelta
+
+    sessions = load_sessions()
+    if not sessions:
+        return {"score": 0, "components": {"rpe": 0, "streak": 0, "volume": 0, "frequency": 0}, "streak_days": 0}
+
+    today = date.today()
+    dates_7j  = [(today - timedelta(days=i)).isoformat() for i in range(7)]
+    dates_30j = [(today - timedelta(days=i)).isoformat() for i in range(30)]
+
+    # ── RPE (0–40 pts) ───────────────────────────────────────
+    rpes_7j  = [float(sessions[d]["rpe"]) for d in dates_7j  if d in sessions and sessions[d].get("rpe")]
+    rpes_30j = [float(sessions[d]["rpe"]) for d in dates_30j if d in sessions and sessions[d].get("rpe")]
+    rpe_score = 0
+    rpe_avg_7j = None
+    if rpes_7j:
+        rpe_avg_7j = sum(rpes_7j) / len(rpes_7j)
+        if rpes_30j:
+            baseline = sum(rpes_30j) / len(rpes_30j)
+            delta = rpe_avg_7j - baseline
+            rpe_score = min(40, max(0, int(delta * 20)))
+        # Plancher absolu selon le RPE moyen récent
+        if rpe_avg_7j >= 9.0:
+            rpe_score = max(rpe_score, 40)
+        elif rpe_avg_7j >= 8.5:
+            rpe_score = max(rpe_score, 30)
+        elif rpe_avg_7j >= 8.0:
+            rpe_score = max(rpe_score, 20)
+
+    # ── Streak consécutif (0–20 pts) ─────────────────────────
+    streak = 0
+    check = today
+    for _ in range(31):
+        if check.isoformat() in sessions:
+            streak += 1
+            check = check - timedelta(days=1)
+        else:
+            break
+    streak_score = min(20, streak * 2)
+
+    # ── Volume hebdo vs moyenne 4 semaines (0–20 pts) ────────
+    vol_7j = sum(float(sessions[d].get("session_volume") or 0) for d in dates_7j if d in sessions)
+    dates_28j = [(today - timedelta(days=i)).isoformat() for i in range(28)]
+    vol_28j = sum(float(sessions[d].get("session_volume") or 0) for d in dates_28j if d in sessions)
+    avg_weekly_vol = vol_28j / 4
+    vol_score = 0
+    if avg_weekly_vol > 0 and vol_7j > 0:
+        ratio = vol_7j / avg_weekly_vol
+        vol_score = min(20, max(0, int((ratio - 1.0) * 30)))
+
+    # ── Fréquence (0–20 pts) ─────────────────────────────────
+    n_7j  = sum(1 for d in dates_7j  if d in sessions)
+    n_30j = sum(1 for d in dates_30j if d in sessions)
+    freq_score = 0
+    if n_30j > 0:
+        avg_per_week = (n_30j / 30) * 7
+        if avg_per_week > 0:
+            ratio_freq = n_7j / avg_per_week
+            freq_score = min(20, max(0, int((ratio_freq - 1.0) * 20)))
+
+    total = min(100, rpe_score + streak_score + vol_score + freq_score)
+
+    return {
+        "score": total,
+        "components": {
+            "rpe":       rpe_score,
+            "streak":    streak_score,
+            "volume":    vol_score,
+            "frequency": freq_score,
+        },
+        "rpe_avg_7j":  round(rpe_avg_7j, 1) if rpe_avg_7j else None,
+        "streak_days": streak,
+    }
+
+
+# ─────────────────────────────────────────────────────────────
 # ANALYSE COMPLÈTE + RAPPORT
 # ─────────────────────────────────────────────────────────────
 
@@ -131,20 +218,31 @@ def analyser_deload(weights: dict) -> dict:
     - recommandation deload oui/non
     - poids suggérés si deload
     """
-    stagnants = detect_stagnation(weights)
-    fatigue   = detect_fatigue_rpe()
-    state     = load_deload_state()
+    stagnants     = detect_stagnation(weights)
+    fatigue       = detect_fatigue_rpe()
+    fatigue_data  = compute_fatigue_score()
+    state         = load_deload_state()
 
     recommande = len(stagnants) >= 2 or fatigue["fatigue"]
 
+    stagnant_names = [s["exercise"] for s in stagnants]
+
     rapport = {
-        "deload_actif":   state["active"],
-        "deload_since":   state.get("since"),
-        "deload_reason":  state.get("reason"),
-        "stagnants":      stagnants,
-        "fatigue_rpe":    fatigue,
-        "recommande":     recommande,
-        "poids_deload":   calculer_poids_deload(weights, [s["exercise"] for s in stagnants]) if recommande else {}
+        "deload_actif":       state["active"],
+        "deload_since":       state.get("since"),
+        "deload_reason":      state.get("reason"),
+        "stagnants":          stagnant_names,
+        "fatigue_rpe":        fatigue["fatigue"],
+        "recommande":         recommande,
+        "poids_deload":       {ex: round((weights.get(ex, {}).get("current_weight") or
+                                          weights.get(ex, {}).get("weight") or 0) * DELOAD_FACTOR, 1)
+                               for ex in stagnant_names
+                               if (weights.get(ex, {}).get("current_weight") or
+                                   weights.get(ex, {}).get("weight"))} if recommande else {},
+        "fatigue_score":      fatigue_data["score"],
+        "fatigue_components": fatigue_data["components"],
+        "streak_days":        fatigue_data["streak_days"],
+        "rpe_avg_7j":         fatigue_data.get("rpe_avg_7j"),
     }
 
     return rapport
@@ -180,29 +278,30 @@ def afficher_rapport_deload(weights: dict):
     # Stagnation
     if rapport["stagnants"]:
         print(f"  ⚠️  STAGNATION DÉTECTÉE sur {len(rapport['stagnants'])} exercice(s) :\n")
-        for s in rapport["stagnants"]:
-            print(f"    • {s['exercise']:<25} {s['weight']} lbs × {s['stagnation']} séances")
+        for name in rapport["stagnants"]:
+            print(f"    • {name}")
         print()
     else:
         print("  ✅ Aucune stagnation détectée\n")
 
-    # Fatigue RPE
-    fatigue = rapport["fatigue_rpe"]
-    if fatigue["rpe_moyen"]:
-        emoji = "🔴" if fatigue["fatigue"] else "🟢"
-        print(f"  {emoji} RPE moyen (3 dernières séances) : {fatigue['rpe_moyen']}/10")
-        if fatigue["fatigue"]:
+    # Fatigue
+    score = rapport.get("fatigue_score", 0)
+    rpe_avg = rapport.get("rpe_avg_7j")
+    if rpe_avg:
+        emoji = "🔴" if rapport["fatigue_rpe"] else "🟢"
+        print(f"  {emoji} RPE moyen 7j : {rpe_avg}/10  |  Score fatigue : {score}/100")
+        if rapport["fatigue_rpe"]:
             print(f"     → RPE élevé, signe de fatigue accumulée")
         print()
     else:
-        print("  ℹ️  Pas assez de données RPE pour analyser la fatigue\n")
+        print(f"  ℹ️  Score fatigue : {score}/100\n")
 
     # Recommandation
     if rapport["recommande"]:
         print(f"  💡 RECOMMANDATION : Semaine de deload suggérée\n")
         print(f"  Poids suggérés à -15% :\n")
-        for ex, p in rapport["poids_deload"].items():
-            print(f"    • {ex:<25} {p['poids_actuel']} lbs → {p['poids_deload']} lbs")
+        for ex, w in rapport["poids_deload"].items():
+            print(f"    • {ex:<25} → {w} lbs")
         print()
 
         choix = selectionner(
@@ -211,7 +310,7 @@ def afficher_rapport_deload(weights: dict):
         )
 
         if choix == "Oui, activer le deload":
-            raison = "stagnation + RPE élevé" if fatigue["fatigue"] else "stagnation"
+            raison = "stagnation + RPE élevé" if rapport["fatigue_rpe"] else "stagnation"
             activer_deload(raison)
             print(f"\n✅ Deload activé ! Les poids recommandés sont à -15%.")
             print(f"   Reviens ici en fin de semaine pour le désactiver.")
