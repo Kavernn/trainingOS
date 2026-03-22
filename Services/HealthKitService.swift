@@ -59,9 +59,15 @@ class HealthKitService: ObservableObject {
 
     // MARK: - Steps
     func fetchTodaySteps() async -> Int? {
+        return await fetchSteps(for: Date())
+    }
+
+    func fetchSteps(for date: Date) async -> Int? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return nil }
-        let start = Calendar.current.startOfDay(for: Date())
-        let pred  = HKQuery.predicateForSamples(withStart: start, end: Date())
+        let cal   = Calendar.current
+        let start = cal.startOfDay(for: date)
+        let end   = cal.date(byAdding: .day, value: 1, to: start)!
+        let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
         return await withCheckedContinuation { cont in
             let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .cumulativeSum) { _, stats, _ in
                 let val = stats?.sumQuantity()?.doubleValue(for: .count())
@@ -69,6 +75,15 @@ class HealthKitService: ObservableObject {
             }
             store.execute(q)
         }
+    }
+
+    /// Snapshot for a past date (steps + resting HR only — enough for backfill).
+    func fetchSnapshotForDate(_ date: Date) async -> (date: String, steps: Int?, restingHr: Double?) {
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        async let s  = fetchSteps(for: date)
+        async let hr = fetchLatestRestingHR()   // HR is always latest, acceptable for backfill
+        let (steps, rhr) = await (s, hr)
+        return (fmt.string(from: date), steps, rhr)
     }
 
     // MARK: - Sleep (last night)
@@ -247,6 +262,11 @@ class HealthKitService: ObservableObject {
     func hasBeenAuthorized() -> Bool { false }
     func requestAuthorization() async -> Bool { false }
     func fetchTodaySteps() async -> Int? { nil }
+    func fetchSteps(for date: Date) async -> Int? { nil }
+    func fetchSnapshotForDate(_ date: Date) async -> (date: String, steps: Int?, restingHr: Double?) {
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        return (fmt.string(from: date), nil, nil)
+    }
     func fetchLastNightSleep() async -> Double? { nil }
     func fetchLastNightSleepWindow() async -> SleepWindow? { nil }
     func fetchLatestRestingHR() async -> Double? { nil }
