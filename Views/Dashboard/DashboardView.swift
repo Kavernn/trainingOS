@@ -10,14 +10,16 @@ struct DashboardView: View {
     @State private var soirData: SeanceSoirData?
     @State private var showMoodSheet = false
     @State private var lastRefresh: Date = .distantPast
-    @State private var sleepPromptDone = false
+    @State private var sleepPromptDismissedThisSession = false
     @Environment(\.scenePhase) private var scenePhase
 
     private var todayStr: String {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: Date())
     }
     private var shouldShowSleepPrompt: Bool {
-        !sleepPromptDone &&
+        // UserDefaults = source de vérité inter-sessions et inter-jours
+        // sleepPromptDismissedThisSession = disparition animée dans la session courante
+        !sleepPromptDismissedThisSession &&
         UserDefaults.standard.string(forKey: "sleepPromptDate") != todayStr
     }
 
@@ -37,16 +39,17 @@ struct DashboardView: View {
                             GreetingHeaderView(dash: dash)
                                 .appearAnimation(delay: 0)
 
-                            ChecklistCardView()
-                                .appearAnimation(delay: 0.02)
-
                             if shouldShowSleepPrompt {
                                 SleepPromptCard(onDone: {
                                     UserDefaults.standard.set(todayStr, forKey: "sleepPromptDate")
-                                    withAnimation(.easeOut(duration: 0.25)) { sleepPromptDone = true }
+                                    withAnimation(.easeOut(duration: 0.25)) {
+                                        sleepPromptDismissedThisSession = true
+                                    }
                                 })
-                                .appearAnimation(delay: 0.03)
                             }
+
+                            ChecklistCardView()
+                                .appearAnimation(delay: 0.02)
 
                             if let report = deload, report.fatigueLevel > 0 {
                                 DeloadBannerView(report: report)
