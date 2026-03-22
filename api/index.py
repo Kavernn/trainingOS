@@ -997,6 +997,20 @@ def api_programme():
     action  = data.get("action")
     jour    = data.get("jour")
 
+    # ── Session-level actions (no target session required) ───────────────────
+    if action == "create_seance":
+        seance_name = (jour or "").strip()
+        if not seance_name:
+            return jsonify({"error": "Nom invalide"}), 400
+        save_program({seance_name: {"blocks": [make_strength_block({}, order=0)]}})
+        return jsonify({"success": True})
+
+    if action == "delete_seance":
+        if not jour:
+            return jsonify({"error": "jour manquant"}), 400
+        ok = _db.delete_program_session(jour)
+        return jsonify({"success": ok})
+
     # ── Rename: must read all sessions to rename across all ──────────────────
     if action == "rename":
         program = _db.get_full_program()
@@ -1692,6 +1706,19 @@ def api_evening_schedule():
         success = _db.set_evening_week_schedule(schedule)
         return jsonify({"success": success})
     return jsonify(_db.get_evening_week_schedule())
+
+
+@app.route("/api/morning_schedule", methods=["POST"])
+def api_morning_schedule():
+    """Save morning weekly schedule: {"schedule": {"Lun": "Push A", "Mar": "Repos", ...}}"""
+    import db as _db
+    data     = request.get_json() or {}
+    schedule = data.get("schedule", {})
+    # Convert "Repos" sentinel to None (clears the day)
+    cleaned  = {day: (None if seance in ("Repos", "") else seance)
+                for day, seance in schedule.items()}
+    ok = _db.set_relational_week_schedule(cleaned)
+    return jsonify({"success": ok})
 
 
 def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:

@@ -1963,6 +1963,29 @@ def save_full_program(program: dict) -> bool:
         return False
 
 
+def delete_program_session(name: str) -> bool:
+    """Delete a programme session and all its data (blocks, exercises, schedule refs)."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        resp = _client.table("program_sessions").select("id").eq("name", name).limit(1).execute()
+        if not resp.data:
+            return True  # already gone
+        session_id = resp.data[0]["id"]
+        # Clear schedule references first (FK)
+        _client.table("weekly_schedule").delete().eq("session_id", session_id).execute()
+        # Fetch and delete block exercises, then blocks
+        blocks_resp = _client.table("program_blocks").select("id").eq("session_id", session_id).execute()
+        for block in (blocks_resp.data or []):
+            _client.table("program_block_exercises").delete().eq("block_id", block["id"]).execute()
+        _client.table("program_blocks").delete().eq("session_id", session_id).execute()
+        _client.table("program_sessions").delete().eq("id", session_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_program_session error: %s", e)
+        return False
+
+
 def get_relational_week_schedule() -> dict:
     """Return {"Lun": "Push A", "Mar": "Pull A", ...} from weekly_schedule JOIN program_sessions.
 

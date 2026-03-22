@@ -10,14 +10,20 @@ struct ProgrammeView: View {
     @State private var inventory: [String] = []
     @State private var inventorySchemes: [String: String] = [:]
     @State private var isLoading = true
-    @State private var addTarget: SeanceName?      // seance courante pour l'ajout
-    @State private var editTarget: ExerciseTarget? // exercice à éditer
+    @State private var addTarget: SeanceName?
+    @State private var editTarget: ExerciseTarget?
+    @State private var showCreateSeance = false
+    @State private var deleteSeanceTarget: String? = nil
+    @State private var confirmDeleteSeance = false
 
     private let dayNames    = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
     private let seanceOrder = ["Push A", "Pull A", "Legs", "Push B", "Pull B + Full Body", "Yoga / Tai Chi", "Recovery"]
 
+    /// Known seances in canonical order, then any custom seances alphabetically.
     var orderedSeances: [String] {
-        seanceOrder.filter { fullProgram[$0] != nil }
+        let known  = seanceOrder.filter { fullProgram[$0] != nil }
+        let custom = fullProgram.keys.filter { !seanceOrder.contains($0) }.sorted()
+        return known + custom
     }
 
     var body: some View {
@@ -29,8 +35,13 @@ struct ProgrammeView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
-                            WeekScheduleCard(schedule: schedule, dayNames: dayNames)
-                                .padding(.horizontal, 16)
+                            EditableWeekScheduleCard(
+                                schedule: $schedule,
+                                dayNames: dayNames,
+                                sessions: orderedSeances,
+                                onSave: { Task { await saveSchedule() } }
+                            )
+                            .padding(.horizontal, 16)
 
                             EveningScheduleCard(
                                 eveningSchedule: $eveningSchedule,
@@ -54,7 +65,11 @@ struct ProgrammeView: View {
                                     onAdd:    { addTarget = SeanceName(id: seance) },
                                     onEdit:   { ex, scheme in editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme) },
                                     onDelete: { ex in Task { await deleteExercise(seance: seance, exercise: ex) } },
-                                    onReorder: { order in Task { await reorderExercises(seance: seance, order: order) } }
+                                    onReorder: { order in Task { await reorderExercises(seance: seance, order: order) } },
+                                    onDeleteSeance: {
+                                        deleteSeanceTarget = seance
+                                        confirmDeleteSeance = true
+                                    }
                                 )
                                 .padding(.horizontal, 16)
                             }
@@ -66,6 +81,20 @@ struct ProgrammeView: View {
             .navigationTitle("Programme")
             .navigationBarTitleDisplayMode(.large)
             .keyboardOkButton()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showCreateSeance = true } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+            .sheet(isPresented: $showCreateSeance) {
+                CreateSeanceSheet { name in
+                    Task { await createSeance(name: name) }
+                }
+            }
             .sheet(item: $addTarget) { sn in
                 AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: inventorySchemes) { ex, scheme in
                     Task { await addExercise(seance: sn.id, exercise: ex, scheme: scheme) }
@@ -75,6 +104,16 @@ struct ProgrammeView: View {
                 EditSchemeSheet(target: target) { newName, newScheme in
                     Task { await editExercise(seance: target.seance, oldName: target.exercise, newName: newName, scheme: newScheme) }
                 }
+            }
+            .alert("Supprimer \(deleteSeanceTarget ?? "") ?", isPresented: $confirmDeleteSeance) {
+                Button("Supprimer", role: .destructive) {
+                    if let target = deleteSeanceTarget {
+                        Task { await deleteSeance(name: target) }
+                    }
+                }
+                Button("Annuler", role: .cancel) {}
+            } message: {
+                Text("Tous les exercices de cette séance seront supprimés. Cette action est irréversible.")
             }
         }
         .task { await loadData() }
@@ -165,6 +204,37 @@ struct ProgrammeView: View {
         await postProgramme(["action": "reorder", "jour": seance, "ordre": order])
     }
 
+    private func saveSchedule() async {
+        guard let url = URL(string: "\(kBaseURL)/api/morning_schedule") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["schedule": schedule])
+        _ = try? await URLSession.shared.data(for: req)
+        CacheService.shared.clear(for: "seance_data")
+        CacheService.shared.clear(for: "programme_data")
+    }
+
+    private func createSeance(name: String) async {
+        await postProgramme(["action": "create_seance", "jour": name])
+        await MainActor.run {
+            fullProgram[name] = [:]
+            exerciseOrder[name] = []
+        }
+    }
+
+    private func deleteSeance(name: String) async {
+        await postProgramme(["action": "delete_seance", "jour": name])
+        await MainActor.run {
+            fullProgram.removeValue(forKey: name)
+            exerciseOrder.removeValue(forKey: name)
+            // Clear from schedule if assigned
+            for (day, seance) in schedule where seance == name {
+                schedule.removeValue(forKey: day)
+            }
+        }
+    }
+
     private func editExercise(seance: String, oldName: String, newName: String, scheme: String) async {
         if oldName != newName {
             // rename synce tous les jours du programme + inventaire
@@ -213,10 +283,11 @@ struct EditableSeanceProgramCard: View {
     let seance: String
     @Binding var exercises: [String: String]
     @Binding var orderedNames: [String]
-    let onAdd:     () -> Void
-    let onEdit:    (String, String) -> Void
-    let onDelete:  (String) -> Void
-    let onReorder: ([String]) -> Void
+    let onAdd:          () -> Void
+    let onEdit:         (String, String) -> Void
+    let onDelete:       (String) -> Void
+    let onReorder:      ([String]) -> Void
+    var onDeleteSeance: (() -> Void)? = nil
 
     @State private var expanded    = true
     @State private var dragging:   String? = nil
@@ -318,6 +389,17 @@ struct EditableSeanceProgramCard: View {
                         .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
+                if let del = onDeleteSeance {
+                    Button(action: del) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 13))
+                            .foregroundColor(.red.opacity(0.6))
+                            .padding(7)
+                            .background(Color.red.opacity(0.08))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                }
                 Image(systemName: expanded ? "chevron.up" : "chevron.down")
                     .font(.system(size: 11))
                     .foregroundColor(.gray)
@@ -623,36 +705,62 @@ struct EditSchemeSheet: View {
     }
 }
 
-// MARK: - Week Schedule Card (unchanged)
+// MARK: - Editable Week Schedule Card
 
-struct WeekScheduleCard: View {
-    let schedule: [String: String]
+struct EditableWeekScheduleCard: View {
+    @Binding var schedule: [String: String]
     let dayNames: [String]
+    let sessions: [String]
+    let onSave: () -> Void
+
+    private let none = "Repos"
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("SEMAINE TYPE")
-                .font(.system(size: 10, weight: .bold))
-                .tracking(2)
-                .foregroundColor(.gray)
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("SEMAINE TYPE")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(2)
+                        .foregroundColor(.gray)
+                    Text("Appuie sur un jour pour changer la séance")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray.opacity(0.6))
+                }
+                Spacer()
+                Image(systemName: "calendar").foregroundColor(.orange.opacity(0.7)).font(.system(size: 13))
+            }
 
             HStack(spacing: 6) {
-                ForEach(0..<7, id: \.self) { i in
-                    let seance = schedule[dayNames[i]] ?? "Repos"
-                    VStack(spacing: 4) {
-                        Text(dayNames[i])
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.gray)
-                        Text(seanceShort(seance))
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundColor(seanceColor(seance))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
+                ForEach(dayNames, id: \.self) { day in
+                    let current = schedule[day] ?? none
+                    Menu {
+                        Button(none) {
+                            schedule.removeValue(forKey: day)
+                            onSave()
+                        }
+                        ForEach(sessions, id: \.self) { s in
+                            Button(s) {
+                                schedule[day] = s
+                                onSave()
+                            }
+                        }
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text(day)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.gray)
+                            Text(seanceShort(current))
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(current == none ? Color.gray.opacity(0.4) : seanceColor(current))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background((current == none ? Color.gray : seanceColor(current)).opacity(0.1))
+                        .cornerRadius(8)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(seanceColor(seance).opacity(0.1))
-                    .cornerRadius(8)
                 }
             }
         }
@@ -670,7 +778,9 @@ struct WeekScheduleCard: View {
         case "Pull B + Full Body": return "PLL B"
         case "Yoga / Tai Chi":     return "YOGA"
         case "Recovery":           return "REC"
-        default:                   return "—"
+        default:
+            // First 4 chars for custom seances
+            return s.count > 4 ? String(s.prefix(4)).uppercased() : s.uppercased()
         }
     }
 
@@ -681,7 +791,7 @@ struct WeekScheduleCard: View {
         case "Legs":                         return .yellow
         case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
-        default:                             return .gray
+        default:                             return .orange
         }
     }
 }
@@ -771,6 +881,78 @@ struct EveningScheduleCard: View {
         case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
         default:                             return .indigo
+        }
+    }
+}
+
+// MARK: - Create Seance Sheet
+
+struct CreateSeanceSheet: View {
+    let onCreate: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+
+    private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                VStack(spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("NOM DE LA SÉANCE")
+                            .font(.system(size: 12, weight: .bold))
+                            .tracking(1)
+                            .foregroundColor(.gray)
+                            .padding(.horizontal)
+                        TextField("ex: Upper A, Core, Mobility…", text: $name)
+                            .font(.system(size: 17))
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Color(hex: "11111c"))
+                            .cornerRadius(10)
+                            .padding(.horizontal)
+                    }
+
+                    // Quick name chips
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(["Upper A", "Upper B", "Lower A", "Lower B", "Core", "Mobility", "Full Body", "Cardio"], id: \.self) { preset in
+                                Button { name = preset } label: {
+                                    Text(preset)
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(name == preset ? .black : .white)
+                                        .padding(.horizontal, 12).padding(.vertical, 6)
+                                        .background(name == preset ? Color.orange : Color(hex: "11111c"))
+                                        .cornerRadius(20)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+
+                    Spacer()
+                }
+                .padding(.top, 24)
+            }
+            .navigationTitle("Nouvelle séance")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.gray)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Créer") {
+                        let trimmed = name.trimmingCharacters(in: .whitespaces)
+                        guard !trimmed.isEmpty else { return }
+                        onCreate(trimmed)
+                        dismiss()
+                    }
+                    .foregroundColor(canSave ? .orange : .gray)
+                    .disabled(!canSave)
+                }
+            }
         }
     }
 }
