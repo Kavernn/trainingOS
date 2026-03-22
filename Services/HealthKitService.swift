@@ -1,6 +1,13 @@
 import Foundation
 import Combine
 
+// MARK: - Shared types (cross-platform)
+struct SleepWindow {
+    let bedtime:  Date
+    let wakeTime: Date
+    let hours:    Double
+}
+
 #if os(iOS)
 import HealthKit
 
@@ -66,13 +73,18 @@ class HealthKitService: ObservableObject {
 
     // MARK: - Sleep (last night)
     func fetchLastNightSleep() async -> Double? {
+        return await fetchLastNightSleepWindow()?.hours
+    }
+
+    /// Returns the bedtime, wake time, and total sleep duration from HealthKit for the last 18h window.
+    func fetchLastNightSleepWindow() async -> SleepWindow? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
         let now   = Date()
         let start = Calendar.current.date(byAdding: .hour, value: -18, to: now)!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: now)
-        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         return await withCheckedContinuation { cont in
-            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 50, sortDescriptors: [sort]) { _, samples, _ in
+            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 100, sortDescriptors: [sort]) { _, samples, _ in
                 guard let samples = samples as? [HKCategorySample] else { cont.resume(returning: nil); return }
                 let asleep = samples.filter {
                     $0.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue ||
@@ -80,8 +92,12 @@ class HealthKitService: ObservableObject {
                     $0.value == HKCategoryValueSleepAnalysis.asleepDeep.rawValue ||
                     $0.value == HKCategoryValueSleepAnalysis.asleepREM.rawValue
                 }
+                guard !asleep.isEmpty else { cont.resume(returning: nil); return }
                 let totalSec = asleep.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
-                cont.resume(returning: totalSec > 0 ? totalSec / 3600.0 : nil)
+                guard totalSec > 0 else { cont.resume(returning: nil); return }
+                let bedtime  = asleep.min(by: { $0.startDate < $1.startDate })!.startDate
+                let wakeTime = asleep.max(by: { $0.endDate   < $1.endDate   })!.endDate
+                cont.resume(returning: SleepWindow(bedtime: bedtime, wakeTime: wakeTime, hours: totalSec / 3600.0))
             }
             store.execute(q)
         }
@@ -232,6 +248,7 @@ class HealthKitService: ObservableObject {
     func requestAuthorization() async -> Bool { false }
     func fetchTodaySteps() async -> Int? { nil }
     func fetchLastNightSleep() async -> Double? { nil }
+    func fetchLastNightSleepWindow() async -> SleepWindow? { nil }
     func fetchLatestRestingHR() async -> Double? { nil }
     func fetchLatestHRV() async -> Double? { nil }
     func fetchLatestBodyWeight() async -> Double? { nil }

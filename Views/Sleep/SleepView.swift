@@ -413,6 +413,7 @@ struct SleepLogSheet: View {
     @State private var notes    = ""
     @State private var isSaving = false
     @State private var error: String?
+    @State private var hkImported = false   // true when times come from HealthKit
 
     private let qualityLabels = ["", "Très mauvais", "Mauvais", "Moyen", "Bon", "Excellent"]
     private let qualityEmojis = ["", "😫", "😕", "😐", "😊", "🌟"]
@@ -423,6 +424,21 @@ struct SleepLogSheet: View {
             ZStack {
                 AmbientBackground(color: accentColor)
                 Form {
+                    // ── HealthKit banner ──────────────────────────────────
+                    if hkImported {
+                        Section {
+                            HStack(spacing: 10) {
+                                Image(systemName: "heart.fill")
+                                    .foregroundColor(.red)
+                                    .font(.system(size: 13))
+                                Text("Horaires détectés via Santé — ajuste si besoin")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+                            .listRowBackground(Color.red.opacity(0.08))
+                        }
+                    }
+
                     Section("Horaires") {
                         DatePicker("Couché", selection: $bedtime, displayedComponents: .hourAndMinute)
                             .datePickerStyle(.compact)
@@ -430,6 +446,18 @@ struct SleepLogSheet: View {
                         DatePicker("Levé",   selection: $wakeTime, displayedComponents: .hourAndMinute)
                             .datePickerStyle(.compact)
                             .foregroundColor(.white)
+
+                        // Durée calculée en temps réel
+                        let dur = wakeTime.timeIntervalSince(bedtime) / 3600
+                        let durClamped = dur < 0 ? dur + 24 : dur
+                        HStack {
+                            Text("Durée calculée")
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Text(String(format: "%.1fh", durClamped))
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(durationColor(durClamped))
+                        }
                     }
 
                     Section("Qualité du sommeil") {
@@ -514,8 +542,31 @@ struct SleepLogSheet: View {
                 }
                 quality = e.quality
                 notes   = e.notes ?? ""
+            } else {
+                // New entry → try HealthKit auto-import
+                Task { await importFromHealthKit() }
             }
         }
+    }
+
+    // MARK: – HealthKit auto-import
+
+    private func importFromHealthKit() async {
+        guard let window = await HealthKitService.shared.fetchLastNightSleepWindow() else { return }
+        await MainActor.run {
+            bedtime  = window.bedtime
+            wakeTime = window.wakeTime
+            hkImported = true
+        }
+    }
+
+    // MARK: – Helpers
+
+    private func durationColor(_ h: Double) -> Color {
+        if h < 6   { return .red }
+        if h < 7   { return .yellow }
+        if h <= 9  { return .green }
+        return .blue
     }
 
     private func save() async {
