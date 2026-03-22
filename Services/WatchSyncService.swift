@@ -37,7 +37,11 @@ class WatchSyncService: ObservableObject {
     }
 
     /// Syncs only if the last sync was more than 30 min ago.
+    /// Backfill always runs regardless of the throttle — it is idempotent and cheap.
     func syncIfNeeded() async {
+        if hk.hasBeenAuthorized() {
+            await backfillRecentDaysIfNeeded()
+        }
         guard shouldSync else { return }
         await sync()
     }
@@ -72,33 +76,39 @@ class WatchSyncService: ObservableObject {
             catch { lastError = error.localizedDescription }
         }
 
-        // Backfill yesterday if its recovery log has no steps
-        await backfillYesterdayIfNeeded()
+        // Backfill recent days if their recovery logs have no steps
+        await backfillRecentDaysIfNeeded()
 
         lastSyncDate = Date()
         defaults.set(lastSyncDate, forKey: lastSyncKey)
     }
 
-    private func backfillYesterdayIfNeeded() async {
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+    /// Checks the last 7 days and syncs any day that has HealthKit steps but no
+    /// recovery log entry. Safe to call at any time — idempotent.
+    func backfillRecentDaysIfNeeded() async {
+        let cal = Calendar.current
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
-        let dateStr = fmt.string(from: yesterday)
 
-        // Skip if yesterday already has steps
-        if let log = try? await APIService.shared.fetchRecoveryData(),
-           log.first(where: { $0.date == dateStr })?.steps != nil {
-            return
+        // Fetch once to avoid N API calls
+        let existingLog = (try? await APIService.shared.fetchRecoveryData()) ?? []
+
+        for daysAgo in 1...7 {
+            guard let date = cal.date(byAdding: .day, value: -daysAgo, to: Date()) else { continue }
+            let dateStr = fmt.string(from: date)
+
+            // Skip if already has steps for this date
+            if existingLog.first(where: { $0.date == dateStr })?.steps != nil { continue }
+
+            let snap = await hk.fetchSnapshotForDate(date)
+            guard let steps = snap.steps else { continue }  // No HK data → skip
+
+            let backfill = WearableSnapshot(
+                date: snap.date, steps: steps, sleepHours: nil,
+                restingHr: snap.restingHr, hrv: nil, activeEnergy: nil,
+                bodyWeightLbs: nil, bodyFatPct: nil, workouts: []
+            )
+            try? await APIService.shared.syncWearableData(backfill)
         }
-
-        let snap = await hk.fetchSnapshotForDate(yesterday)
-        guard snap.steps != nil || snap.restingHr != nil else { return }
-
-        let backfill = WearableSnapshot(
-            date: snap.date, steps: snap.steps, sleepHours: nil,
-            restingHr: snap.restingHr, hrv: nil, activeEnergy: nil,
-            bodyWeightLbs: nil, bodyFatPct: nil, workouts: []
-        )
-        try? await APIService.shared.syncWearableData(backfill)
     }
 
     /// Registers hourly HealthKit background observers.
