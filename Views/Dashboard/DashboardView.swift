@@ -10,7 +10,16 @@ struct DashboardView: View {
     @State private var soirData: SeanceSoirData?
     @State private var showMoodSheet = false
     @State private var lastRefresh: Date = .distantPast
+    @State private var sleepPromptDone = false
     @Environment(\.scenePhase) private var scenePhase
+
+    private var todayStr: String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: Date())
+    }
+    private var shouldShowSleepPrompt: Bool {
+        !sleepPromptDone &&
+        UserDefaults.standard.string(forKey: "sleepPromptDate") != todayStr
+    }
 
     var body: some View {
         NavigationStack {
@@ -30,6 +39,14 @@ struct DashboardView: View {
 
                             ChecklistCardView()
                                 .appearAnimation(delay: 0.02)
+
+                            if shouldShowSleepPrompt {
+                                SleepPromptCard(onDone: {
+                                    UserDefaults.standard.set(todayStr, forKey: "sleepPromptDate")
+                                    withAnimation(.easeOut(duration: 0.25)) { sleepPromptDone = true }
+                                })
+                                .appearAnimation(delay: 0.03)
+                            }
 
                             if let report = deload, report.fatigueLevel > 0 {
                                 DeloadBannerView(report: report)
@@ -171,6 +188,147 @@ struct DashboardView: View {
         case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
         default:                             return .blue
+        }
+    }
+}
+
+// MARK: - Sleep Prompt Card
+
+struct SleepPromptCard: View {
+    let onDone: () -> Void
+
+    @State private var bedtime  = Calendar.current.date(bySettingHour: 23, minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var wakeTime = Calendar.current.date(bySettingHour: 7,  minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var isSaving = false
+    @State private var hkImported = false
+
+    private var durationHours: Double {
+        let d = wakeTime.timeIntervalSince(bedtime) / 3600
+        return d < 0 ? d + 24 : d
+    }
+
+    private var durationColor: Color {
+        if durationHours < 6  { return .red }
+        if durationHours < 7  { return .yellow }
+        if durationHours <= 9 { return .green }
+        return .blue
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Header
+            HStack(spacing: 8) {
+                Image(systemName: "moon.zzz.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(.indigo)
+                Text("Ton sommeil cette nuit")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                Spacer()
+                Button {
+                    onDone() // dismiss without saving
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.gray)
+                        .padding(6)
+                        .background(Color.white.opacity(0.07))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+
+            if hkImported {
+                Label("Horaires détectés depuis Santé", systemImage: "heart.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(.red.opacity(0.8))
+            }
+
+            // Pickers
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("COUCHÉ")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(.gray)
+                    DatePicker("", selection: $bedtime, displayedComponents: .hourAndMinute)
+                        .labelsHidden()
+                        .colorScheme(.dark)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("LEVÉ")
+                        .font(.system(size: 9, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(.gray)
+                    DatePicker("", selection: $wakeTime, displayedComponents: .hourAndMinute)
+                        .labelsHidden()
+                        .colorScheme(.dark)
+                }
+                Spacer()
+                // Duration badge
+                VStack(spacing: 2) {
+                    Text(String(format: "%.1fh", durationHours))
+                        .font(.system(size: 22, weight: .black, design: .rounded))
+                        .foregroundColor(durationColor)
+                    Text("durée")
+                        .font(.system(size: 9))
+                        .foregroundColor(.gray)
+                }
+            }
+
+            // Save button
+            Button {
+                Task { await save() }
+            } label: {
+                Group {
+                    if isSaving {
+                        ProgressView().tint(.white).scaleEffect(0.8)
+                    } else {
+                        Text("Enregistrer")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.indigo)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
+            .disabled(isSaving || durationHours <= 0 || durationHours > 16)
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.indigo.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.indigo.opacity(0.25), lineWidth: 1))
+        )
+        .task { await tryHealthKitImport() }
+    }
+
+    private func tryHealthKitImport() async {
+        guard let window = await HealthKitService.shared.fetchLastNightSleepWindow() else { return }
+        await MainActor.run {
+            bedtime    = window.bedtime
+            wakeTime   = window.wakeTime
+            hkImported = true
+        }
+    }
+
+    private func save() async {
+        isSaving = true
+        try? await APIService.shared.logRecovery(
+            sleepHours:   durationHours,
+            sleepQuality: nil,
+            restingHr:    nil,
+            hrv:          nil,
+            steps:        nil,
+            soreness:     nil,
+            notes:        ""
+        )
+        await MainActor.run {
+            isSaving = false
+            onDone()
         }
     }
 }

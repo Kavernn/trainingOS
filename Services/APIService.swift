@@ -492,6 +492,7 @@ class APIService: ObservableObject {
         if let v = steps        { body["steps"] = v }
         if let v = soreness     { body["soreness"] = v }
         _ = try await offlinePost(endpoint: "/api/log_recovery", payload: body)
+        CacheService.shared.clear(for: "recovery_data")
     }
 
     func deleteRecovery(date: String) async throws {
