@@ -40,6 +40,7 @@ struct TrainingOSApp: App {
             .onAppear {
                 SyncManager.shared.setup(container: modelContainer)
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+                Task { await HealthKitService.shared.requestAuthorization() }
             }
         }
         .modelContainer(modelContainer)

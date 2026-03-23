@@ -71,6 +71,12 @@ struct RecoveryView: View {
                                     .padding(.horizontal, 16)
                             }
 
+                            // Steps chart
+                            if log.filter({ $0.steps != nil }).count >= 2 {
+                                StepsChart(entries: Array(log.prefix(10).reversed()))
+                                    .padding(.horizontal, 16)
+                            }
+
                             // History
                             if log.isEmpty {
                                 RecoveryEmptyState()
@@ -245,6 +251,52 @@ struct SleepChart: View {
             }
         }
         .padding(16).glassCard(color: .indigo, intensity: 0.05).cornerRadius(14)
+    }
+}
+
+// MARK: - Steps Chart
+struct StepsChart: View {
+    let entries: [RecoveryEntry]
+    var maxSteps: Double { max(entries.compactMap(\.steps).map(Double.init).max() ?? 1, 10_000) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("PAS — DERNIERS JOURS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
+                    let steps = Double(e.steps ?? 0)
+                    let pct   = maxSteps > 0 ? steps / maxSteps : 0
+                    let color: Color = steps >= 10_000 ? .green : (steps >= 7_000 ? .orange : .red)
+                    VStack(spacing: 2) {
+                        if steps > 0 {
+                            Text(steps >= 1000 ? String(format: "%.0fk", steps / 1000) : "\(Int(steps))")
+                                .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
+                        }
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(color.opacity(i == entries.count - 1 ? 1 : 0.5))
+                            .frame(height: max(CGFloat(pct) * 60, 2))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
+                }
+            }
+            .frame(height: 70)
+            HStack(spacing: 12) {
+                HStack(spacing: 4) {
+                    Circle().fill(Color.green).frame(width: 6, height: 6)
+                    Text("≥10k").font(.system(size: 9)).foregroundColor(.gray)
+                }
+                HStack(spacing: 4) {
+                    Circle().fill(Color.orange).frame(width: 6, height: 6)
+                    Text("7k-10k").font(.system(size: 9)).foregroundColor(.gray)
+                }
+                HStack(spacing: 4) {
+                    Circle().fill(Color.red).frame(width: 6, height: 6)
+                    Text("<7k").font(.system(size: 9)).foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(16).glassCard(color: .green, intensity: 0.05).cornerRadius(14)
     }
 }
 

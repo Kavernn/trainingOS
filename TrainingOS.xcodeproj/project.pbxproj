@@ -27,7 +27,6 @@
 		AA1100052F5D98BA002AE470 /* UnitSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100062F5D98BA002AE470 /* UnitSettings.swift */; };
 		AA11001B2F5D98BA002AE470 /* SeanceSoirView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */; };
 		BB001001BB001001BB001001 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001002BB001002BB001002 /* DesignSystem.swift */; };
-		PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH000001PH000001PH000001 /* PlatformHelpers.swift */; };
 		BB2200032F5D98BA002AE470 /* WearableService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200012F5D98BA002AE470 /* WearableService.swift */; };
 		BB2200042F5D98BA002AE470 /* HealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */; };
 		BB3300012F5D98BA002AE471 /* BonusSeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */; };
@@ -55,6 +54,7 @@
 		EE5500042F5D98BA002AE470 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500032F5D98BA002AE470 /* SyncManager.swift */; };
 		FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1100002F5D98BA002AE470 /* WatchSyncService.swift */; };
 		FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11000A2F5D98BA002AE470 /* SplashView.swift */; };
+		PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH000001PH000001PH000001 /* PlatformHelpers.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,7 +88,6 @@
 		AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceSoirView.swift; sourceTree = "<group>"; };
 		AAD71080385415CDA19C0F0A /* CardioView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CardioView.swift; sourceTree = "<group>"; };
 		BB001002BB001002BB001002 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
-		PH000001PH000001PH000001 /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
 		BB2200012F5D98BA002AE470 /* WearableService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WearableService.swift; sourceTree = "<group>"; };
 		BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDashboardView.swift; sourceTree = "<group>"; };
 		BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonusSeanceView.swift; sourceTree = "<group>"; };
@@ -119,6 +118,7 @@
 		EE5500032F5D98BA002AE470 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
 		FF1100002F5D98BA002AE470 /* WatchSyncService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchSyncService.swift; sourceTree = "<group>"; };
 		FF11000A2F5D98BA002AE470 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		PH000001PH000001PH000001 /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -731,6 +731,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TrainingOS/TrainingOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3ZFPQW4FCD;
@@ -770,6 +771,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = TrainingOS/TrainingOS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3ZFPQW4FCD;
