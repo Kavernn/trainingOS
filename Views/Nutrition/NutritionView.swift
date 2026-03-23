@@ -579,7 +579,13 @@ struct AddNutritionSheet: View {
                 Color(hex: "080810").ignoresSafeArea()
                 Form {
                     // Quick presets
-                    Section("Ajout rapide") {
+                    Section(header: VStack(alignment: .leading, spacing: 2) {
+                        Text("AJOUT RAPIDE")
+                        Text("Remplit nom, calories, protéines, glucides et lipides")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                            .textCase(nil)
+                    }) {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(foodPresets, id: \.name) { preset in
