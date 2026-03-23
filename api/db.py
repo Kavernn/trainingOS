@@ -1601,7 +1601,7 @@ def get_nutrition_entries(date: str) -> List[dict]:
 def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
     """Return one summary row per day for the last n distinct days.
 
-    Returns [{"date": ..., "calories": ..., "nb": ...}, ...] newest first.
+    Returns [{"date": ..., "calories": ..., "proteines": ..., "nb": ...}, ...] newest first.
     """
     if _client is None or MODE == "OFFLINE":
         log = get_json("nutrition_log", {})
@@ -1610,9 +1610,10 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
         for day in days:
             entries = (log.get(day) or {}).get("entries", [])
             result.append({
-                "date":     day,
-                "calories": round(sum(e.get("calories", 0) for e in entries)),
-                "nb":       len(entries),
+                "date":      day,
+                "calories":  round(sum(e.get("calories", 0) for e in entries)),
+                "proteines": round(sum(e.get("proteines", 0) for e in entries), 1),
+                "nb":        len(entries),
             })
         return result
     try:
@@ -1620,7 +1621,7 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
         cutoff = (_date.today() - timedelta(days=n * 2)).isoformat()
         resp = (
             _client.table("nutrition_entries")
-            .select("date, calories")
+            .select("date, calories, proteines")
             .gte("date", cutoff)
             .order("date", desc=True)
             .execute()
@@ -1631,12 +1632,14 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
         for row in rows:
             d = row["date"]
             if d not in seen:
-                seen[d] = {"date": d, "calories": 0, "nb": 0}
-            seen[d]["calories"] += row.get("calories", 0)
+                seen[d] = {"date": d, "calories": 0, "proteines": 0.0, "nb": 0}
+            seen[d]["calories"]  += row.get("calories", 0)
+            seen[d]["proteines"] += row.get("proteines", 0)
             seen[d]["nb"] += 1
         sorted_days = sorted(seen.values(), key=lambda x: x["date"], reverse=True)[:n]
         for day in sorted_days:
-            day["calories"] = round(day["calories"])
+            day["calories"]  = round(day["calories"])
+            day["proteines"] = round(day["proteines"], 1)
         return sorted_days
     except Exception as e:
         logger.error("get_nutrition_entries_recent error: %s", e)
@@ -1644,9 +1647,10 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
         days = sorted(log.keys(), reverse=True)[:n]
         return [
             {
-                "date":     d,
-                "calories": round(sum(e.get("calories", 0) for e in (log.get(d) or {}).get("entries", []))),
-                "nb":       len((log.get(d) or {}).get("entries", [])),
+                "date":      d,
+                "calories":  round(sum(e.get("calories", 0) for e in (log.get(d) or {}).get("entries", []))),
+                "proteines": round(sum(e.get("proteines", 0) for e in (log.get(d) or {}).get("entries", [])), 1),
+                "nb":        len((log.get(d) or {}).get("entries", [])),
             }
             for d in days
         ]
