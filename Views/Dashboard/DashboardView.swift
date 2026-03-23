@@ -107,7 +107,7 @@ struct DashboardView: View {
                             WeekGridView(schedule: dash.schedule, sessions: dash.sessions)
                                 .appearAnimation(delay: 0.2)
 
-                            NutritionSummaryView(totals: dash.nutritionTotals)
+                            NutritionSummaryView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
                                 .appearAnimation(delay: 0.25)
                         }
                         .padding(.horizontal, 16)
@@ -1018,16 +1018,60 @@ struct WeekGridView: View {
 // MARK: - Nutrition Summary
 struct NutritionSummaryView: View {
     let totals: NutritionTotals
+    let settings: NutritionSettings?
+
+    private var protTarget: Double { settings?.proteines ?? 160 }
+    private var protCurrent: Double { totals.proteines ?? 0 }
+    private var pct: Double { min(protCurrent / max(protTarget, 1), 1.0) }
+    private var ringColor: Color {
+        if protCurrent > protTarget { return .red }
+        if protCurrent >= protTarget { return .green }
+        return .blue
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             SectionLabel(title: "NUTRITION AUJOURD'HUI", icon: "fork.knife")
 
-            HStack(spacing: 12) {
-                NutriBadge(value: "\(Int(totals.calories ?? 0))", unit: "kcal", color: .orange)
-                NutriBadge(value: "\(Int(totals.proteines ?? 0))", unit: "g prot", color: .blue)
-                NutriBadge(value: "\(Int(totals.glucides ?? 0))", unit: "g carbs", color: .yellow)
-                NutriBadge(value: "\(Int(totals.lipides ?? 0))", unit: "g lip", color: .pink)
+            HStack(spacing: 16) {
+                // Anneau protéines
+                ZStack {
+                    Circle().stroke(Color(hex: "191926"), lineWidth: 7)
+                    Circle()
+                        .trim(from: 0, to: pct)
+                        .stroke(ringColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeOut(duration: 0.6), value: pct)
+                    VStack(spacing: 0) {
+                        Text("\(Int(protCurrent))")
+                            .font(.system(size: 16, weight: .black))
+                            .foregroundColor(.white)
+                        Text("g")
+                            .font(.system(size: 9))
+                            .foregroundColor(.gray)
+                    }
+                }
+                .frame(width: 64, height: 64)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    // Statut protéines
+                    if protCurrent >= protTarget {
+                        Label("Objectif atteint", systemImage: "checkmark.circle.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.green)
+                    } else {
+                        Text("Encore \(Int(protTarget - protCurrent))g de prot")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.blue)
+                    }
+
+                    // Badges macros
+                    HStack(spacing: 8) {
+                        NutriBadge(value: "\(Int(totals.calories ?? 0))", unit: "kcal", color: .orange)
+                        NutriBadge(value: "\(Int(totals.glucides ?? 0))", unit: "g carbs", color: .yellow)
+                        NutriBadge(value: "\(Int(totals.lipides ?? 0))", unit: "g lip", color: .pink)
+                    }
+                }
             }
         }
         .padding(16)

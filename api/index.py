@@ -1607,6 +1607,7 @@ def api_dashboard():
         "goals":               goals_progress,
         "full_program":        {s: get_strength_exercises(sd) for s, sd in full_program.items()},
         "nutrition_totals":    nutrition_totals,
+        "nutrition_settings":  load_nutrition_settings(),
         "profile":             profile,
     })
 

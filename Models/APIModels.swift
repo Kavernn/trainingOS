@@ -77,6 +77,7 @@ struct DashboardData: Codable {
     let goals: [String: GoalProgress]
     let fullProgram: [String: [String: SafeString]]
     let nutritionTotals: NutritionTotals
+    let nutritionSettings: NutritionSettings?
     let profile: UserProfile
 
     enum CodingKeys: String, CodingKey {
@@ -88,6 +89,7 @@ struct DashboardData: Codable {
         case schedule, sessions, goals
         case fullProgram = "full_program"
         case nutritionTotals = "nutrition_totals"
+        case nutritionSettings = "nutrition_settings"
         case profile
     }
 
@@ -104,6 +106,7 @@ struct DashboardData: Codable {
         goals               = try c.decode([String: GoalProgress].self, forKey: .goals)
         fullProgram         = try c.decode([String: [String: SafeString]].self, forKey: .fullProgram)
         nutritionTotals     = try c.decode(NutritionTotals.self, forKey: .nutritionTotals)
+        nutritionSettings   = try? c.decode(NutritionSettings.self, forKey: .nutritionSettings)
         profile             = try c.decode(UserProfile.self, forKey: .profile)
     }
 }
@@ -473,6 +476,29 @@ struct NutritionSettings: Codable {
     let proteines: Double?
     let glucides: Double?
     let lipides: Double?
+
+    init(calories: Double?, proteines: Double?, glucides: Double?, lipides: Double?) {
+        self.calories = calories; self.proteines = proteines
+        self.glucides = glucides; self.lipides = lipides
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: AnyCodingKey.self)
+        calories  = (try? c.decode(Double.self, forKey: .init("limite_calories")))
+                 ?? (try? c.decode(Double.self, forKey: .init("calories")))
+        proteines = (try? c.decode(Double.self, forKey: .init("objectif_proteines")))
+                 ?? (try? c.decode(Double.self, forKey: .init("proteines")))
+        glucides  = try? c.decode(Double.self, forKey: .init("glucides"))
+        lipides   = try? c.decode(Double.self, forKey: .init("lipides"))
+    }
+}
+
+private struct AnyCodingKey: CodingKey {
+    var stringValue: String
+    var intValue: Int? { nil }
+    init(_ string: String) { stringValue = string }
+    init?(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { return nil }
 }
 
 // MARK: - Historique
