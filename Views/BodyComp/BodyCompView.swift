@@ -874,8 +874,8 @@ struct WeightChartView: View {
     private var current: Double { entries.last?.weight ?? 0 }
     private var first: Double   { entries.first?.weight ?? 0 }
     private var delta: Double   { current - first }
-    // Le poids corporel est toujours stocké en kg — pas de conversion UnitSettings
-    private let unit = "kg"
+    // Le poids corporel est stocké en lbs — affichage direct sans conversion
+    private let unit = "lbs"
 
     private var deltaColor: Color {
         if abs(delta) < 0.2 { return .gray }
