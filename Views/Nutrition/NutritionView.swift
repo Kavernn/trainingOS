@@ -540,48 +540,64 @@ struct NutritionEntryRow: View {
 
 private struct FoodPreset {
     let name: String
-    let calories: Double
+    let unitLabel: String   // "g" ou "unité(s)"
+    let per: Double         // base de calcul (100 pour g, 1 pour unité)
+    let calories: Double    // valeurs pour `per` unités
     let proteines: Double
     let glucides: Double
     let lipides: Double
     let isOther: Bool
 
-    init(_ name: String, _ calories: Double, _ proteines: Double, _ glucides: Double, _ lipides: Double, isOther: Bool = false) {
-        self.name = name; self.calories = calories; self.proteines = proteines
+    init(_ name: String, _ unitLabel: String, _ per: Double,
+         _ calories: Double, _ proteines: Double, _ glucides: Double, _ lipides: Double,
+         isOther: Bool = false) {
+        self.name = name; self.unitLabel = unitLabel; self.per = per
+        self.calories = calories; self.proteines = proteines
         self.glucides = glucides; self.lipides = lipides; self.isOther = isOther
     }
 }
 
 private let foodPresets: [FoodPreset] = [
-    FoodPreset("Poulet 100g",   165, 31,  0,   3.5),
-    FoodPreset("Œuf (1)",        70,  6,  0.5, 5),
-    FoodPreset("Thon 100g",     132, 30,  0,   1),
-    FoodPreset("Jambon 100g",   145, 21,  2,   5.5),
-    FoodPreset("Yaourt grec",   100, 10,  3.7, 5),
-    FoodPreset("Cottage 100g",   98, 11,  3.4, 4.3),
-    FoodPreset("Shake protéiné",120, 25,  5,   1.5),
-    FoodPreset("Autres",          0,  0,  0,   0,   isOther: true),
+    FoodPreset("Poulet",         "g",          100, 165, 31,  0,   3.5),
+    FoodPreset("Œuf",            "unité(s)",     1,  70,  6,  0.5, 5),
+    FoodPreset("Thon",           "g",          100, 132, 30,  0,   1),
+    FoodPreset("Jambon",         "g",          100, 145, 21,  2,   5.5),
+    FoodPreset("Yaourt grec",    "g",          100, 100, 10,  3.7, 5),
+    FoodPreset("Cottage",        "g",          100,  98, 11,  3.4, 4.3),
+    FoodPreset("Shake protéiné", "portion(s)",   1, 120, 25,  5,   1.5),
+    FoodPreset("Autres",         "g",          100,   0,  0,  0,   0,   isOther: true),
 ]
 
 struct AddNutritionSheet: View {
     var onSaved: () async -> Void
     @Environment(\.dismiss) private var dismiss
 
+    @State private var selectedPreset: FoodPreset? = nil
+    @State private var quantity = ""
     @State private var name = ""
     @State private var calories = ""
     @State private var proteines = ""
     @State private var glucides = ""
     @State private var lipides = ""
 
+    private var isPresetMode: Bool { selectedPreset != nil && !(selectedPreset?.isOther ?? true) }
+
+    private var calculatedMacros: (cal: Double, prot: Double, gluc: Double, lip: Double)? {
+        guard let preset = selectedPreset, !preset.isOther,
+              let qty = Double(quantity.replacingOccurrences(of: ",", with: ".")) else { return nil }
+        let f = qty / preset.per
+        return (preset.calories * f, preset.proteines * f, preset.glucides * f, preset.lipides * f)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
                 Form {
-                    // Quick presets
+                    // Chips presets
                     Section(header: VStack(alignment: .leading, spacing: 2) {
-                        Text("AJOUT RAPIDE")
-                        Text("Remplit nom, calories, protéines, glucides et lipides")
+                        Text("ALIMENT")
+                        Text("Sélectionne un aliment puis entre la quantité")
                             .font(.system(size: 11))
                             .foregroundColor(.gray)
                             .textCase(nil)
@@ -589,25 +605,28 @@ struct AddNutritionSheet: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
                                 ForEach(foodPresets, id: \.name) { preset in
-                                    Button {
-                                        applyPreset(preset)
-                                    } label: {
+                                    let isSelected = selectedPreset?.name == preset.name
+                                    Button { selectPreset(preset) } label: {
                                         Text(preset.name)
                                             .font(.system(size: 13, weight: .medium))
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 7)
                                             .background(
-                                                preset.isOther
-                                                    ? Color(hex: "191926")
-                                                    : Color.blue.opacity(0.18)
+                                                isSelected ? Color.blue.opacity(0.35)
+                                                : preset.isOther ? Color(hex: "191926")
+                                                : Color.blue.opacity(0.12)
                                             )
-                                            .foregroundColor(preset.isOther ? .gray : .blue)
+                                            .foregroundColor(
+                                                isSelected ? .white
+                                                : preset.isOther ? .gray
+                                                : .blue
+                                            )
                                             .cornerRadius(20)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 20)
                                                     .stroke(
-                                                        preset.isOther ? Color.white.opacity(0.1) : Color.blue.opacity(0.3),
-                                                        lineWidth: 1
+                                                        isSelected ? Color.blue : preset.isOther ? Color.white.opacity(0.1) : Color.blue.opacity(0.25),
+                                                        lineWidth: isSelected ? 1.5 : 1
                                                     )
                                             )
                                     }
@@ -620,16 +639,47 @@ struct AddNutritionSheet: View {
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
-                    Section("Aliment") {
-                        TextField("Nom", text: $name).foregroundColor(.white)
-                        TextField("Calories (kcal)", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
-                    }.listRowBackground(Color(hex: "11111c"))
+                    if isPresetMode, let preset = selectedPreset {
+                        // Mode preset : nom + quantité
+                        Section {
+                            TextField("Nom", text: $name).foregroundColor(.white)
+                            HStack {
+                                TextField("Quantité", text: $quantity)
+                                    .keyboardType(.decimalPad)
+                                    .foregroundColor(.white)
+                                    .onChange(of: quantity) { _ in recalculate() }
+                                Text(preset.unitLabel)
+                                    .foregroundColor(.gray)
+                                    .font(.system(size: 14))
+                            }
+                        }.listRowBackground(Color(hex: "11111c"))
 
-                    Section("Macros (g)") {
-                        TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.white)
-                        TextField("Glucides", text: $glucides).keyboardType(.decimalPad).foregroundColor(.white)
-                        TextField("Lipides", text: $lipides).keyboardType(.decimalPad).foregroundColor(.white)
-                    }.listRowBackground(Color(hex: "11111c"))
+                        // Aperçu macros calculées
+                        if let m = calculatedMacros {
+                            Section("APERÇU") {
+                                HStack(spacing: 0) {
+                                    MacroPreviewPill(value: m.cal,  label: "kcal",  color: .orange)
+                                    MacroPreviewPill(value: m.prot, label: "g prot", color: .blue)
+                                    MacroPreviewPill(value: m.gluc, label: "g carbs", color: .yellow)
+                                    MacroPreviewPill(value: m.lip,  label: "g lip",  color: .pink)
+                                }
+                                .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                            }
+                            .listRowBackground(Color(hex: "11111c"))
+                        }
+                    } else {
+                        // Mode manuel
+                        Section("Aliment") {
+                            TextField("Nom", text: $name).foregroundColor(.white)
+                            TextField("Calories (kcal)", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
+                        }.listRowBackground(Color(hex: "11111c"))
+
+                        Section("Macros (g)") {
+                            TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.white)
+                            TextField("Glucides", text: $glucides).keyboardType(.decimalPad).foregroundColor(.white)
+                            TextField("Lipides", text: $lipides).keyboardType(.decimalPad).foregroundColor(.white)
+                        }.listRowBackground(Color(hex: "11111c"))
+                    }
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -642,23 +692,38 @@ struct AddNutritionSheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Ajouter") { save() }.foregroundColor(.orange).fontWeight(.semibold)
+                    Button("Ajouter") { save() }
+                        .foregroundColor(.orange)
+                        .fontWeight(.semibold)
+                        .disabled(!canSave)
                 }
             }
         }
         .presentationDetents([.medium, .large])
     }
 
-    private func applyPreset(_ preset: FoodPreset) {
+    private var canSave: Bool {
+        if isPresetMode { return !name.isEmpty && !quantity.isEmpty }
+        return !name.isEmpty && !calories.isEmpty
+    }
+
+    private func selectPreset(_ preset: FoodPreset) {
+        selectedPreset = preset
+        quantity = ""
         if preset.isOther {
             name = ""; calories = ""; proteines = ""; glucides = ""; lipides = ""
         } else {
-            name      = preset.name
-            calories  = formatNum(preset.calories)
-            proteines = formatNum(preset.proteines)
-            glucides  = formatNum(preset.glucides)
-            lipides   = formatNum(preset.lipides)
+            name = preset.name
+            calories = ""; proteines = ""; glucides = ""; lipides = ""
         }
+    }
+
+    private func recalculate() {
+        guard let m = calculatedMacros else { return }
+        calories  = formatNum(m.cal)
+        proteines = formatNum(m.prot)
+        glucides  = formatNum(m.gluc)
+        lipides   = formatNum(m.lip)
     }
 
     private func formatNum(_ v: Double) -> String {
@@ -666,6 +731,7 @@ struct AddNutritionSheet: View {
     }
 
     private func save() {
+        if isPresetMode { recalculate() }
         guard !name.isEmpty,
               let cal = Double(calories.replacingOccurrences(of: ",", with: ".")) else { return }
         let prot = Double(proteines.replacingOccurrences(of: ",", with: ".")) ?? 0
@@ -678,5 +744,23 @@ struct AddNutritionSheet: View {
             await onSaved()
             dismiss()
         }
+    }
+}
+
+private struct MacroPreviewPill: View {
+    let value: Double
+    let label: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(value.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(value))" : String(format: "%.1f", value))
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
