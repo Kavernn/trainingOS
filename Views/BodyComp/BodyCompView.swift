@@ -869,32 +869,107 @@ struct MesureField: View {
 struct WeightChartView: View {
     let entries: [BodyWeightEntry]
 
-    var minW: Double { entries.map(\.weight).min() ?? 0 }
-    var maxW: Double { entries.map(\.weight).max() ?? 1 }
+    private var minW: Double { (entries.map(\.weight).min() ?? 0) - 0.5 }
+    private var maxW: Double { (entries.map(\.weight).max() ?? 1) + 0.5 }
+    private var current: Double { entries.last?.weight ?? 0 }
+    private var first: Double   { entries.first?.weight ?? 0 }
+    private var delta: Double   { current - first }
+    private var unit: String    { UnitSettings.shared.label }
+
+    private var deltaColor: Color {
+        if abs(delta) < 0.2 { return .gray }
+        return delta < 0 ? .green : .orange
+    }
+
+    private func shortDate(_ iso: String) -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        let o = DateFormatter(); o.locale = Locale(identifier: "fr_CA"); o.dateFormat = "d MMM"
+        return f.date(from: iso).map { o.string(from: $0) } ?? iso
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("ÉVOLUTION")
-                .font(.system(size: 10, weight: .bold))
-                .tracking(2)
-                .foregroundColor(.gray)
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("POIDS CORPOREL")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(2)
+                        .foregroundColor(.gray)
+                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                        Text(String(format: "%.1f", UnitSettings.shared.display(current)))
+                            .font(.system(size: 28, weight: .black))
+                            .foregroundColor(.white)
+                        Text(unit)
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                }
+                Spacer()
+                // Delta depuis le début de la période
+                if entries.count >= 2 {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("SUR LA PÉRIODE")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(1)
+                            .foregroundColor(.gray)
+                        HStack(spacing: 3) {
+                            Image(systemName: delta < -0.2 ? "arrow.down" : delta > 0.2 ? "arrow.up" : "minus")
+                                .font(.system(size: 10, weight: .bold))
+                            Text(String(format: "%+.1f %@", UnitSettings.shared.display(delta), unit))
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundColor(deltaColor)
+                        if let bf = entries.last?.bodyFat {
+                            Text(String(format: "%.1f%% BF", bf))
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
 
+            // Courbe
             GeometryReader { geo in
                 let w = geo.size.width
                 let h = geo.size.height
                 let range = maxW - minW == 0 ? 1 : maxW - minW
 
                 ZStack(alignment: .bottomLeading) {
+                    // Grille horizontale avec labels Y
                     ForEach(0..<4) { i in
+                        let val = minW + (Double(i) / 3.0) * range
+                        let y = h - (Double(i) / 3.0 * h)
                         Path { path in
-                            let y = h - (Double(i) / 3.0 * h)
                             path.move(to: CGPoint(x: 0, y: y))
                             path.addLine(to: CGPoint(x: w, y: y))
                         }
                         .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                        Text(String(format: "%.0f", UnitSettings.shared.display(val)))
+                            .font(.system(size: 8))
+                            .foregroundColor(.gray.opacity(0.6))
+                            .position(x: 16, y: y - 6)
                     }
 
                     if entries.count > 1 {
+                        // Aire sous la courbe
+                        Path { path in
+                            for (i, entry) in entries.enumerated() {
+                                let x = (Double(i) / Double(entries.count - 1)) * Double(w)
+                                let y = Double(h) - ((entry.weight - minW) / range * Double(h))
+                                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                                else { path.addLine(to: CGPoint(x: x, y: y)) }
+                            }
+                            path.addLine(to: CGPoint(x: Double(w), y: Double(h)))
+                            path.addLine(to: CGPoint(x: 0, y: Double(h)))
+                            path.closeSubpath()
+                        }
+                        .fill(LinearGradient(
+                            colors: [Color.orange.opacity(0.18), Color.orange.opacity(0.0)],
+                            startPoint: .top, endPoint: .bottom
+                        ))
+
+                        // Ligne
                         Path { path in
                             for (i, entry) in entries.enumerated() {
                                 let x = (Double(i) / Double(entries.count - 1)) * Double(w)
@@ -905,19 +980,34 @@ struct WeightChartView: View {
                         }
                         .stroke(Color.orange, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
+                        // Points
                         ForEach(entries.indices, id: \.self) { i in
                             let x = (Double(i) / Double(entries.count - 1)) * Double(w)
                             let y = Double(h) - ((entries[i].weight - minW) / range * Double(h))
                             Circle()
-                                .fill(Color.orange)
-                                .frame(width: 6, height: 6)
+                                .fill(i == entries.count - 1 ? Color.orange : Color.orange.opacity(0.5))
+                                .frame(width: i == entries.count - 1 ? 8 : 5,
+                                       height: i == entries.count - 1 ? 8 : 5)
                                 .position(x: x, y: y)
                         }
                     }
                 }
             }
-            .frame(height: 120)
-            .padding(.vertical, 8)
+            .frame(height: 110)
+
+            // Labels dates X
+            if entries.count >= 2 {
+                HStack {
+                    Text(shortDate(entries.first!.date))
+                        .font(.system(size: 9)).foregroundColor(.gray)
+                    Spacer()
+                    Text("\(entries.count) entrées")
+                        .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                    Spacer()
+                    Text(shortDate(entries.last!.date))
+                        .font(.system(size: 9)).foregroundColor(.gray)
+                }
+            }
         }
         .padding(16)
         .background(Color(hex: "11111c"))
