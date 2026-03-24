@@ -563,6 +563,7 @@ private let foodPresets: [FoodPreset] = [
     FoodPreset("Thon",           "g",          100, 132, 30,  0,   1),
     FoodPreset("Jambon",         "g",          100, 145, 21,  2,   5.5),
     FoodPreset("Yaourt grec",    "g",          100, 100, 10,  3.7, 5),
+    FoodPreset("Yogourt islandais", "g",       100,  65, 10.5, 4,  0.3),
     FoodPreset("Cottage",        "g",          100,  98, 11,  3.4, 4.3),
     FoodPreset("Shake protéiné", "portion(s)",   1, 120, 25,  5,   1.5),
     FoodPreset("Autres",         "g",          100,   0,  0,  0,   0,   isOther: true),
