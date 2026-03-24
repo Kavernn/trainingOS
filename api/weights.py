@@ -63,6 +63,8 @@ def load_weights() -> dict:
                 }
                 if entry["weight"] and entry["reps"]:
                     entry["1rm"] = _calc_1rm(entry["weight"], entry["reps"])
+                if row.get("sets"):
+                    entry["sets"] = row["sets"]
                 history.append(entry)
 
             if not history:
