@@ -1722,11 +1722,52 @@ def api_morning_schedule():
     return jsonify({"success": ok})
 
 
+_MUSCLE_ALIASES: dict = {
+    # Quads
+    "quads":           "quadriceps",
+    "quad":            "quadriceps",
+    # Delts
+    "delts":           "deltoids",
+    "delt":            "deltoids",
+    "shoulders":       "deltoids",
+    "shoulder":        "deltoids",
+    "anterior deltoid":"deltoids",
+    "lateral deltoid": "deltoids",
+    "rear deltoid":    "deltoids",
+    # Chest
+    "pectorals":       "chest",
+    "pectoral":        "chest",
+    "upper chest":     "chest",
+    "lower chest":     "chest",
+    "pecs":            "chest",
+    # Traps
+    "traps":           "trapezius",
+    "trap":            "trapezius",
+    # Back
+    "upper back":      "lats",
+    "rhomboids":       "lats",
+    # Calves
+    "calf":            "calves",
+    # Arms
+    "brachialis":      "biceps",
+    "brachioradialis": "biceps",
+    "avant bras":      "forearms",
+    # External rotators → rear deltoid canonical
+    "external rotators": "rear delt",
+}
+
+def _normalize_muscle(name: str) -> str:
+    return _MUSCLE_ALIASES.get(name.lower().strip(), name.lower().strip())
+
+
 def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:
     """Compute per-muscle volume from weights history × inventory muscles.
 
     sessions.exos is unreliable (often empty in relational layer), so we
     derive exercise dates directly from weights history entries.
+
+    Muscle names are normalized via _MUSCLE_ALIASES to merge duplicates
+    (e.g. 'quads' + 'quadriceps' → 'quadriceps').
 
     Returns {muscle: {volume, sessions, last_date}}.
     """
@@ -1735,7 +1776,8 @@ def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:
     date_muscles_seen: dict = {}
 
     for ex_name, ex_data in weights.items():
-        muscles = (inventory.get(ex_name) or {}).get("muscles") or []
+        raw_muscles = (inventory.get(ex_name) or {}).get("muscles") or []
+        muscles = [_normalize_muscle(m) for m in raw_muscles]
         if not muscles:
             continue
         history = ex_data.get("history") or []
