@@ -874,7 +874,8 @@ struct WeightChartView: View {
     private var current: Double { entries.last?.weight ?? 0 }
     private var first: Double   { entries.first?.weight ?? 0 }
     private var delta: Double   { current - first }
-    private var unit: String    { UnitSettings.shared.label }
+    // Le poids corporel est toujours stocké en kg — pas de conversion UnitSettings
+    private let unit = "kg"
 
     private var deltaColor: Color {
         if abs(delta) < 0.2 { return .gray }
@@ -897,7 +898,7 @@ struct WeightChartView: View {
                         .tracking(2)
                         .foregroundColor(.gray)
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
-                        Text(String(format: "%.1f", UnitSettings.shared.display(current)))
+                        Text(String(format: "%.1f", current))
                             .font(.system(size: 28, weight: .black))
                             .foregroundColor(.white)
                         Text(unit)
@@ -916,7 +917,7 @@ struct WeightChartView: View {
                         HStack(spacing: 3) {
                             Image(systemName: delta < -0.2 ? "arrow.down" : delta > 0.2 ? "arrow.up" : "minus")
                                 .font(.system(size: 10, weight: .bold))
-                            Text(String(format: "%+.1f %@", UnitSettings.shared.display(delta), unit))
+                            Text(String(format: "%+.1f %@", delta, unit))
                                 .font(.system(size: 14, weight: .bold))
                         }
                         .foregroundColor(deltaColor)
@@ -945,7 +946,7 @@ struct WeightChartView: View {
                             path.addLine(to: CGPoint(x: w, y: y))
                         }
                         .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                        Text(String(format: "%.0f", UnitSettings.shared.display(val)))
+                        Text(String(format: "%.0f", val))
                             .font(.system(size: 8))
                             .foregroundColor(.gray.opacity(0.6))
                             .position(x: 16, y: y - 6)
