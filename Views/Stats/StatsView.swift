@@ -262,6 +262,12 @@ struct StatsView: View {
                                     .padding(.horizontal, 16)
                             }
 
+                            // Volume par groupe musculaire
+                            if !muscleStats.isEmpty {
+                                MuscleVolumeView(stats: muscleStats)
+                                    .padding(.horizontal, 16)
+                            }
+
                             // RPE chart
                             if rpeHistory.count >= 3 {
                                 RPEChartView(data: rpeHistory)
@@ -320,9 +326,21 @@ struct StatsView: View {
                                     .padding(.horizontal, 16)
                             }
 
+                            // Protein compliance
+                            if nutritionDays.count >= 3, let target = nutritionTarget {
+                                ProteinComplianceView(days: nutritionDays, target: target)
+                                    .padding(.horizontal, 16)
+                            }
+
                             // RPE distribution
                             if sessions.count >= 5 {
                                 RPEDistributionView(sessions: sessions)
+                                    .padding(.horizontal, 16)
+                            }
+
+                            // PR Tracker
+                            if !weights.isEmpty {
+                                PRTrackerView(weights: weights)
                                     .padding(.horizontal, 16)
                             }
 
@@ -1536,5 +1554,267 @@ struct MuscleBreakdownView: View {
             Circle().fill(color).frame(width: 7, height: 7)
             Text(label).font(.system(size: 10)).foregroundColor(.gray)
         }
+    }
+}
+
+// MARK: - PR Tracker
+
+struct PRTrackerView: View {
+    let weights: [String: WeightData]
+
+    private struct PREntry: Identifiable {
+        let id = UUID()
+        let name: String
+        let prWeight: Double
+        let prDate: String
+        let isRecent: Bool  // < 30 jours
+    }
+
+    private var prs: [PREntry] {
+        let cal = Calendar.current
+        let now = Date()
+        return weights.compactMap { name, data -> PREntry? in
+            guard let history = data.history, !history.isEmpty else { return nil }
+            guard let best = history.max(by: { ($0.weight ?? 0) < ($1.weight ?? 0) }),
+                  let w = best.weight, w > 0, let date = best.date else { return nil }
+            let isRecent: Bool
+            if let d = DateFormatter.isoDate.date(from: date) {
+                isRecent = cal.dateComponents([.day], from: d, to: now).day ?? 99 <= 30
+            } else { isRecent = false }
+            return PREntry(name: name, prWeight: w, prDate: date, isRecent: isRecent)
+        }
+        .sorted { $0.prWeight > $1.prWeight }
+        .prefix(10).map { $0 }
+    }
+
+    private func shortDate(_ iso: String) -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        let o = DateFormatter(); o.locale = Locale(identifier: "fr_CA"); o.dateFormat = "d MMM yyyy"
+        return f.date(from: iso).map { o.string(from: $0) } ?? iso
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("RECORDS PERSONNELS (PR)")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                HStack(spacing: 4) {
+                    Circle().fill(Color.yellow).frame(width: 7, height: 7)
+                    Text("< 30 jours").font(.system(size: 9)).foregroundColor(.gray)
+                }
+            }
+
+            if prs.isEmpty {
+                Text("Aucune donnée disponible")
+                    .font(.system(size: 13)).foregroundColor(.gray).italic()
+            } else {
+                let maxW = prs.map(\.prWeight).max() ?? 1
+                VStack(spacing: 8) {
+                    ForEach(prs) { pr in
+                        HStack(spacing: 10) {
+                            // Nom
+                            Text(pr.name)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .frame(width: 130, alignment: .leading)
+
+                            // Barre
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                                    Capsule()
+                                        .fill(pr.isRecent ? Color.yellow : Color.orange.opacity(0.6))
+                                        .frame(width: geo.size.width * (pr.prWeight / maxW), height: 6)
+                                }
+                            }
+                            .frame(height: 6)
+
+                            // Poids + date
+                            VStack(alignment: .trailing, spacing: 1) {
+                                Text("\(UnitSettings.shared.display(pr.prWeight), specifier: "%.1f") \(UnitSettings.shared.label)")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(pr.isRecent ? .yellow : .orange)
+                                Text(shortDate(pr.prDate))
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.gray)
+                            }
+                            .frame(width: 75, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Protein Compliance
+
+struct ProteinComplianceView: View {
+    let days: [NutritionDay]
+    let target: NutritionSettings
+
+    private var protTarget: Double { target.proteines ?? 160 }
+
+    private struct DayStatus: Identifiable {
+        let id: String
+        let date: String
+        let proteines: Double
+        let hit: Bool
+        let partial: Bool  // >= 75% de l'objectif
+    }
+
+    private var statuses: [DayStatus] {
+        days.compactMap { d in
+            guard let date = d.date else { return nil }
+            let p = d.proteines ?? 0
+            return DayStatus(
+                id: date, date: date, proteines: p,
+                hit: p >= protTarget,
+                partial: p >= protTarget * 0.75 && p < protTarget
+            )
+        }.sorted { $0.date < $1.date }
+    }
+
+    private var hitCount: Int { statuses.filter(\.hit).count }
+    private var complianceRate: Double {
+        statuses.isEmpty ? 0 : Double(hitCount) / Double(statuses.count)
+    }
+    private var avgProteines: Double {
+        statuses.isEmpty ? 0 : statuses.map(\.proteines).reduce(0, +) / Double(statuses.count)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("COMPLIANCE PROTÉINES — 30J")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                Text("Objectif : \(Int(protTarget))g/j")
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray)
+            }
+
+            // KPIs
+            HStack(spacing: 0) {
+                compKPI("\(Int(complianceRate * 100))%", "jours atteints", complianceRate >= 0.8 ? .green : complianceRate >= 0.5 ? .orange : .red)
+                Divider().background(Color.white.opacity(0.07)).frame(height: 36)
+                compKPI("\(hitCount)/\(statuses.count)", "jours trackés", .blue)
+                Divider().background(Color.white.opacity(0.07)).frame(height: 36)
+                compKPI("\(Int(avgProteines))g", "moy. / jour", avgProteines >= protTarget ? .green : .orange)
+            }
+
+            // Dot calendar
+            if !statuses.isEmpty {
+                let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 10)
+                LazyVGrid(columns: columns, spacing: 4) {
+                    ForEach(statuses) { day in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(day.hit ? Color.green : day.partial ? Color.orange : Color(hex: "191926"))
+                            .frame(height: 14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 3)
+                                    .stroke(Color.white.opacity(0.05), lineWidth: 0.5)
+                            )
+                    }
+                }
+
+                HStack(spacing: 12) {
+                    legendDot(.green,           "Objectif atteint")
+                    legendDot(.orange,          "≥ 75%")
+                    legendDot(Color(hex: "191926"), "< 75%")
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+
+    private func compKPI(_ value: String, _ label: String, _ color: Color) -> some View {
+        VStack(spacing: 3) {
+            Text(value).font(.system(size: 17, weight: .black)).foregroundColor(color)
+            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 10, height: 10)
+            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+        }
+    }
+}
+
+// MARK: - Volume par groupe musculaire
+
+struct MuscleVolumeView: View {
+    let stats: [String: MuscleStatEntry]
+
+    private var sorted: [(String, Double)] {
+        stats.map { ($0.key, $0.value.volume) }
+            .filter { $0.1 > 0 }
+            .sorted { $0.1 > $1.1 }
+            .prefix(10).map { $0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("VOLUME PAR GROUPE MUSCULAIRE")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(2)
+                .foregroundColor(.gray)
+
+            if sorted.isEmpty {
+                Text("Aucune donnée disponible")
+                    .font(.system(size: 13)).foregroundColor(.gray).italic()
+            } else {
+                let maxVol = sorted.first?.1 ?? 1
+                VStack(spacing: 8) {
+                    ForEach(sorted, id: \.0) { muscle, volume in
+                        HStack(spacing: 10) {
+                            Text(muscle.capitalized)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .frame(width: 110, alignment: .leading)
+
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                                    Capsule()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color.blue.opacity(0.9), Color.blue.opacity(0.5)],
+                                                startPoint: .leading, endPoint: .trailing
+                                            )
+                                        )
+                                        .frame(width: geo.size.width * (volume / maxVol), height: 6)
+                                }
+                            }
+                            .frame(height: 6)
+
+                            Text("\(UnitSettings.shared.display(volume), specifier: "%.0f") \(UnitSettings.shared.label)")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.blue.opacity(0.8))
+                                .frame(width: 72, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
     }
 }

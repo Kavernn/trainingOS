@@ -1817,7 +1817,7 @@ def api_stats_data():
     body_weight  = load_body_weight()
     recovery_log = _db.get_recovery_logs() or []
     nutr_settings = load_nutrition_settings()
-    nutr_entries  = get_recent_days(7)
+    nutr_entries  = get_recent_days(30)
     inventory       = load_inventory() or {}
     muscle_stats    = _calc_muscle_stats(sessions, weights, inventory)
     inventory_types = {name: info.get("type", "machine") for name, info in inventory.items()}
