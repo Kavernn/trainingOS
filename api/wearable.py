@@ -51,11 +51,11 @@ def register_routes(app):
                 synced.extend(wearable_recovery.keys())
 
         # ── Body composition (push to body_weight log) ────────────────────────
-        bw_lbs  = data.get("body_weight_lbs")
-        bf_pct  = data.get("body_fat_pct")
+        # DB stores weight in lbs — pass bw_lbs directly, no conversion needed
+        bw_lbs = data.get("body_weight_lbs")
+        bf_pct = data.get("body_fat_pct")
         if bw_lbs is not None:
-            bw_kg = round(bw_lbs / 2.20462, 2)
-            db.log_body_weight_wearable(target_date, poids=bw_kg, body_fat=bf_pct)
+            db.log_body_weight_wearable(target_date, poids=round(bw_lbs, 1), body_fat=bf_pct)
             synced.append("body_weight")
 
         # ── Workouts / Cardio ─────────────────────────────────────────────────
