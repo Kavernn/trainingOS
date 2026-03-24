@@ -625,7 +625,7 @@ def api_log():
             # which would link it to the morning session)
             bonus_sid = (bonus_stub or {}).get("id")
             if bonus_sid:
-                _db.upsert_exercise_log_direct(bonus_sid, exercise, round(weight, 1), reps)
+                _db.upsert_exercise_log_direct(bonus_sid, exercise, round(weight, 1), reps, sets_json=sets_data or None)
         elif is_second:
             _db.get_or_create_workout_session_second(today)
             save_weights(weights)

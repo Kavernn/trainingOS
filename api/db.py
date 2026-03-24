@@ -693,7 +693,7 @@ def delete_exercise_logs_for_session(session_id: str) -> bool:
         return False
 
 
-def upsert_exercise_log_direct(session_id: str, exercise_name: str, weight: float, reps: str) -> bool:
+def upsert_exercise_log_direct(session_id: str, exercise_name: str, weight: float, reps: str, sets_json: list | None = None) -> bool:
     """Insert/update an exercise_log row using session_id directly (bypasses date lookup)."""
     if _client is None or MODE == "OFFLINE":
         return False
@@ -708,6 +708,8 @@ def upsert_exercise_log_direct(session_id: str, exercise_name: str, weight: floa
             "weight": weight,
             "reps": reps,
         }
+        if sets_json is not None:
+            payload["sets_json"] = sets_json
         resp = (
             _client.table("exercise_logs")
             .upsert(payload, on_conflict="session_id,exercise_id")
@@ -858,7 +860,7 @@ def get_all_exercise_history() -> dict:
     try:
         resp = (
             _client.table("exercise_logs")
-            .select("weight, reps, exercises(name), workout_sessions(date)")
+            .select("weight, reps, sets_json, exercises(name), workout_sessions(date)")
             .execute()
         )
         rows = resp.data or []
@@ -869,6 +871,9 @@ def get_all_exercise_history() -> dict:
             if not name or not date:
                 continue
             entry = {"date": date, "weight": r.get("weight"), "reps": r.get("reps")}
+            sets_json = r.get("sets_json")
+            if sets_json:
+                entry["sets"] = sets_json
             result.setdefault(name, []).append(entry)
         # Sort each exercise history newest-first
         for name in result:
@@ -933,13 +938,15 @@ def get_session_exercise_logs(session_date: str) -> List[dict]:
 
 
 def upsert_exercise_log(
-    session_date: str, exercise_name: str, weight: float, reps: str
+    session_date: str, exercise_name: str, weight: float, reps: str, sets_json: list | None = None
 ) -> bool:
     """Insert or update an exercise log entry. Resolves IDs internally. Returns True on success."""
     # fallback to KV during migration
     if _client is None or MODE == "OFFLINE":
         weights = get_json("weights", {})
         entry = {"date": session_date, "weight": weight, "reps": reps}
+        if sets_json:
+            entry["sets"] = sets_json
         ex_data = weights.setdefault(exercise_name, {"history": []})
         history = ex_data.get("history", [])
         # Replace today's entry if it exists
@@ -967,6 +974,8 @@ def upsert_exercise_log(
             "weight": weight,
             "reps": reps,
         }
+        if sets_json is not None:
+            payload["sets_json"] = sets_json
         resp = (
             _client.table("exercise_logs")
             .upsert(payload, on_conflict="session_id,exercise_id")
@@ -978,6 +987,8 @@ def upsert_exercise_log(
         # fallback to KV during migration
         weights = get_json("weights", {})
         entry = {"date": session_date, "weight": weight, "reps": reps}
+        if sets_json:
+            entry["sets"] = sets_json
         ex_data = weights.setdefault(exercise_name, {"history": []})
         history = ex_data.get("history", [])
         if history and history[0].get("date") == session_date:

@@ -128,8 +128,9 @@ CREATE TABLE IF NOT EXISTS exercise_logs (
     id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id  UUID    NOT NULL REFERENCES workout_sessions (id) ON DELETE CASCADE,
     exercise_id UUID    NOT NULL REFERENCES exercises (id) ON DELETE CASCADE,
-    weight      NUMERIC,            -- NULL = bodyweight (volume = 0)
+    weight      NUMERIC,            -- NULL = bodyweight (volume = 0); average across sets
     reps        TEXT,               -- comma-separated per-set reps: "7,6,6,5"
+    sets_json   JSONB   DEFAULT '[]'::jsonb,  -- per-set [{weight, reps, total_weight, set_volume}]
     UNIQUE (session_id, exercise_id)
 );
 

@@ -1143,6 +1143,22 @@ struct AddHIITSheet: View {
             }
         }
 
+        // Per-set hint: use individual set weight from last session if available
+        private func perSetHint(for index: Int) -> String {
+            if let lastSets = weightData?.history?.first?.sets, index < lastSets.count {
+                let w = lastSets[index].weight
+                let perSide: Double
+                switch equipmentType {
+                case "barbell":    perSide = w > 45 ? (w - 45) / 2 : 0
+                case "dumbbell":   perSide = w / 2
+                case "bodyweight": return "0.0"
+                default:           perSide = w
+                }
+                if perSide > 0 { return units.inputStr(perSide) }
+            }
+            return inputHint > 0 ? units.inputStr(inputHint) : "0.0"
+        }
+
         private var equipmentLabel: String {
             switch equipmentType {
             case "barbell":    return "Barre"
@@ -1198,7 +1214,6 @@ struct AddHIITSheet: View {
         }
 
         @ViewBuilder private func setRows() -> some View {
-            let hint = inputHint > 0 ? units.inputStr(inputHint) : "0.0"
             VStack(spacing: 6) {
                 HStack {
                     Text("SET")
@@ -1216,7 +1231,7 @@ struct AddHIITSheet: View {
                         Text("S\(i + 1)")
                             .font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
                             .frame(width: 28)
-                        TextField(hint, text: $sets[i].weight)
+                        TextField(perSetHint(for: i), text: $sets[i].weight)
                             .keyboardType(.decimalPad)
                             .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                             .padding(8).background(Color(hex: "191926")).cornerRadius(8)

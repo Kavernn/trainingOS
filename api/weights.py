@@ -92,12 +92,13 @@ def save_weights(weights: dict) -> bool:
             history = ex_data.get("history", [])
             if not history or not isinstance(history[0], dict):
                 continue
-            entry  = history[0]
-            date   = entry.get("date")
-            weight = entry.get("weight")
-            reps   = entry.get("reps")
+            entry     = history[0]
+            date      = entry.get("date")
+            weight    = entry.get("weight")
+            reps      = entry.get("reps")
+            sets_json = entry.get("sets") or None
             if date and (weight is not None or reps is not None):
-                db.upsert_exercise_log(date, exercise_name, weight, reps)
+                db.upsert_exercise_log(date, exercise_name, weight, reps, sets_json=sets_json)
         return True
     except Exception:
         return False
