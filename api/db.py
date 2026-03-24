@@ -1295,6 +1295,9 @@ def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
     Never overwrites: sleep_quality, soreness, notes.
     """
     WEARABLE_KEYS = ("steps", "sleep_hours", "resting_hr", "hrv", "active_energy")
+    # Cumulative metrics grow throughout the day — always update from HealthKit
+    # unless the entry was manually entered by the user.
+    CUMULATIVE_KEYS = {"steps", "active_energy"}
 
     existing_list = get_recovery_logs(limit=365)
     existing      = next((e for e in existing_list if e.get("date") == target_date), {})
@@ -1305,8 +1308,14 @@ def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
     if not existing:
         merged["source"] = "healthkit"
 
+    is_manual = existing.get("source") == "manual"
     for key in WEARABLE_KEYS:
-        if key in wearable and merged.get(key) is None:
+        if key not in wearable:
+            continue
+        if merged.get(key) is None:
+            merged[key] = wearable[key]
+        elif key in CUMULATIVE_KEYS and not is_manual:
+            # Always take the latest HealthKit value for cumulative metrics
             merged[key] = wearable[key]
 
     return upsert_recovery_log(merged)
