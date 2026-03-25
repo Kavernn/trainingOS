@@ -1143,8 +1143,8 @@ def delete_body_weight(date: str) -> bool:
         set_json("body_weight", data)
         return len(data) < before
     try:
-        resp = _client.table("body_weight_logs").delete().eq("date", date).execute()
-        return bool(resp.data)
+        _client.table("body_weight_logs").delete().eq("date", date).execute()
+        return True
     except Exception as e:
         logger.error("delete_body_weight error: %s", e)
         # fallback to KV during migration

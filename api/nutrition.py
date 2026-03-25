@@ -1,6 +1,31 @@
 import db
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+
+def _today_mtl() -> str:
+    """Return today's date in Montreal/Eastern timezone."""
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo("America/Montreal")).strftime("%Y-%m-%d")
+    except Exception:
+        pass
+    try:
+        import pytz
+        return datetime.now(pytz.timezone("America/Montreal")).strftime("%Y-%m-%d")
+    except Exception:
+        pass
+    # DST-aware fallback
+    utc = datetime.now(timezone.utc)
+    from datetime import timedelta as td
+    def nth_sunday(y, m, n):
+        first = datetime(y, m, 1)
+        return first + td(days=(6 - first.weekday()) % 7 + 7 * (n - 1))
+    y = utc.year
+    dst_start = nth_sunday(y, 3,  2).replace(hour=7, tzinfo=timezone.utc)
+    dst_end   = nth_sunday(y, 11, 1).replace(hour=6, tzinfo=timezone.utc)
+    offset = -4 if dst_start <= utc < dst_end else -5
+    return (utc + td(hours=offset)).strftime("%Y-%m-%d")
 
 
 # ── Settings ─────────────────────────────────────────────────────────────────
@@ -26,7 +51,7 @@ def save_settings(limite_calories: int, objectif_proteines: int):
 # ── Entries ───────────────────────────────────────────────────────────────────
 
 def get_today_entries() -> list:
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = _today_mtl()
     return db.get_nutrition_entries(today)
 
 
@@ -42,16 +67,21 @@ def get_today_totals() -> dict:
 
 def add_entry(nom: str, calories: float, proteines: float = 0,
               glucides: float = 0, lipides: float = 0) -> dict:
-    today = datetime.now().strftime("%Y-%m-%d")
+    now_mtl = datetime.now(timezone.utc)
+    try:
+        from zoneinfo import ZoneInfo
+        now_mtl = datetime.now(ZoneInfo("America/Montreal"))
+    except Exception:
+        pass
     entry = {
         "id":        str(uuid.uuid4())[:8],
-        "date":      today,
+        "date":      _today_mtl(),
         "nom":       nom,
         "calories":  round(calories),
         "proteines": round(proteines, 1),
         "glucides":  round(glucides,  1),
         "lipides":   round(lipides,   1),
-        "heure":     datetime.now().strftime("%H:%M"),
+        "heure":     now_mtl.strftime("%H:%M"),
     }
     return db.insert_nutrition_entry(entry)
 

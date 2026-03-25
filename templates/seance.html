@@ -21,6 +21,16 @@
     opacity: 0.65;
   }
 
+  .exercise-card.skipped {
+    border-color: rgba(107,114,128,0.25);
+    opacity: 0.45;
+  }
+
+  .checkmark.skipped {
+    background: rgba(107,114,128,0.25);
+    border-color: rgba(107,114,128,0.4);
+  }
+
   .exercise-header {
     padding: 16px 20px;
     display: flex;
@@ -302,9 +312,10 @@
         <span class="badge badge-blue">{{ ex.type }}</span>
       {% endif %}
       <div class="checkmark{% if ex.logged_today %} done{% endif %}" id="check-{{ loop.index }}">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+        <svg id="check-icon-{{ loop.index }}" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
+        <span id="skip-icon-{{ loop.index }}" style="display:none; font-size:0.75rem;">⏭</span>
       </div>
     </div>
   </div>
@@ -363,6 +374,7 @@
         class="btn btn-primary"
         style="flex: 1;{% if ex.logged_today %} opacity: 0.5; cursor: not-allowed;{% endif %}"
         {% if ex.logged_today %}disabled{% endif %}
+        id="log-btn-{{ loop.index }}"
         onclick="logExercise({{ loop.index }}, '{{ ex.name }}', '{{ ex.type }}', {{ ex.history[0].weight if ex.history else 0 }})"
       >
         {% if ex.logged_today %}✅ Déjà loggué{% else %}✅ Logger{% endif %}
@@ -379,6 +391,17 @@
       >
         ⏱ 3:00
       </button>
+      {% if not ex.logged_today %}
+      <button
+        class="btn btn-secondary"
+        id="skip-btn-{{ loop.index }}"
+        style="color: var(--muted);"
+        onclick="skipExercise({{ loop.index }}, '{{ ex.name }}')"
+        title="Passer cet exercice aujourd'hui"
+      >
+        ⏭
+      </button>
+      {% endif %}
     </div>
 
     <!-- Historique mini -->
@@ -413,7 +436,7 @@
 <div class="summary-bar">
   <div>
     <span id="done-count" class="text-orange" style="font-family: 'Barlow Condensed'; font-size: 1.4rem; font-weight: 800;">0</span>
-    <span class="text-muted"> / {{ exercises|length }} exercices</span>
+    <span class="text-muted"> / <span id="total-count">{{ exercises|length }}</span> exercices</span>
   </div>
   <button class="btn btn-success" id="btn-terminer" onclick="finirSeance()">
     Terminer la séance ✅
@@ -471,6 +494,89 @@
   const ALREADY_LOGGED = {{ 'true' if already_logged else 'false' }};
   let   secondSession  = false;
 
+  // Skip — stocké dans localStorage par date
+  const SKIP_KEY  = `skipped_${new Date().toLocaleDateString('en-CA')}`;
+  const TOTAL_EX  = {{ exercises|length }};
+  let   skipped   = new Set(JSON.parse(localStorage.getItem(SKIP_KEY) || '[]'));
+
+  // Nettoie les clés périmées (> 2 jours)
+  for (const k of Object.keys(localStorage)) {
+    if (k.startsWith('skipped_') && k < SKIP_KEY) localStorage.removeItem(k);
+  }
+
+  // Index name → loop index (pour retrouver la carte par nom)
+  const NAME_TO_IDX = {
+    {% for ex in exercises %}
+    {{ ex.name | tojson }}: {{ loop.index }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  };
+
+  function _updateTotalDisplay() {
+    document.getElementById('total-count').textContent = TOTAL_EX - skipped.size;
+  }
+
+  function skipExercise(idx, name) {
+    skipped.add(name);
+    localStorage.setItem(SKIP_KEY, JSON.stringify([...skipped]));
+    _applySkip(idx);
+    _updateTotalDisplay();
+    showToast(`${name} passé ⏭`);
+  }
+
+  function unskipExercise(idx, name) {
+    skipped.delete(name);
+    localStorage.setItem(SKIP_KEY, JSON.stringify([...skipped]));
+    _applyUnskip(idx);
+    _updateTotalDisplay();
+  }
+
+  function _applySkip(idx) {
+    const card = document.getElementById(`card-${idx}`);
+    card.classList.add('skipped');
+    document.getElementById(`body-${idx}`).classList.remove('open');
+    // Icône checkmark → skip
+    document.getElementById(`check-icon-${idx}`).style.display = 'none';
+    document.getElementById(`skip-icon-${idx}`).style.display  = 'inline';
+    document.getElementById(`check-${idx}`).classList.add('skipped');
+    // Remplace le bouton skip par un undo
+    const btn = document.getElementById(`skip-btn-${idx}`);
+    if (btn) {
+      btn.textContent = '↩';
+      btn.title = 'Remettre';
+      btn.onclick = () => unskipExercise(idx, Object.keys(NAME_TO_IDX).find(n => NAME_TO_IDX[n] === idx));
+    }
+    // Désactive le bouton Logger
+    const logBtn = document.getElementById(`log-btn-${idx}`);
+    if (logBtn && !logBtn.disabled) {
+      logBtn.disabled = true;
+      logBtn.style.opacity = '0.3';
+      logBtn.style.cursor = 'not-allowed';
+    }
+  }
+
+  function _applyUnskip(idx) {
+    const card = document.getElementById(`card-${idx}`);
+    card.classList.remove('skipped');
+    document.getElementById(`check-icon-${idx}`).style.display = 'inline';
+    document.getElementById(`skip-icon-${idx}`).style.display  = 'none';
+    document.getElementById(`check-${idx}`).classList.remove('skipped');
+    const btn = document.getElementById(`skip-btn-${idx}`);
+    const name = Object.keys(NAME_TO_IDX).find(n => NAME_TO_IDX[n] === idx);
+    if (btn) {
+      btn.textContent = '⏭';
+      btn.title = '';
+      btn.onclick = () => skipExercise(idx, name);
+    }
+    // Ré-active le bouton Logger si pas déjà loggué
+    const logBtn = document.getElementById(`log-btn-${idx}`);
+    if (logBtn && !logged[idx]) {
+      logBtn.disabled = false;
+      logBtn.style.opacity = '';
+      logBtn.style.cursor = '';
+    }
+    document.getElementById(`body-${idx}`).classList.add('open');
+  }
+
   function startSecondSession() {
     secondSession = true;
     document.getElementById('already-logged-banner').style.display = 'none';
@@ -494,6 +600,13 @@
       }
     }
     document.getElementById('done-count').textContent = doneCount;
+
+    // Restore skipped exercises from localStorage
+    for (const name of skipped) {
+      const idx = NAME_TO_IDX[name];
+      if (idx !== undefined && !logged[idx]) _applySkip(idx);
+    }
+    _updateTotalDisplay();
 
     // Open first unlogged exercise (or first if all done)
     toggleExercise(firstUnlogged !== null ? firstUnlogged : 1);
