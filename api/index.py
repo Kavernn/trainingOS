@@ -1316,30 +1316,46 @@ def api_ai_coach():
     if not api_key:
         return jsonify({"error": "ANTHROPIC_API_KEY manquant dans .env"}), 500
     try:
-        data   = request.get_json()
-        prompt = data.get("prompt", "")
-        if not prompt:
+        data         = request.get_json()
+        prompt       = data.get("prompt", "")       # legacy single-turn
+        context      = data.get("context", "")      # rich athlete context (new)
+        messages_in  = data.get("messages", [])     # full conversation history (new)
+
+        # Build messages for Claude
+        if messages_in:
+            claude_messages = messages_in            # multi-turn: iOS owns the history
+        elif prompt:
+            claude_messages = [{"role": "user", "content": prompt}]
+        else:
             return jsonify({"error": "Prompt vide"}), 400
 
-        mode   = data.get("mode", "custom")
-        logger.info("Claude coach — tokens_remaining=%d prompt_len=%d mode=%s", _AI_TOKENS, len(prompt), mode)
+        # Keep last 20 messages to avoid token overflow
+        claude_messages = claude_messages[-20:]
+
+        mode = data.get("mode", "custom")
+
+        # System prompt — inject rich athlete context when provided
+        system_base = (
+            "Tu es un coach sportif expert en musculation, HIIT et périodisation de l'entraînement. "
+            "Tu reçois des données réelles d'entraînement et tu les analyses avec rigueur. "
+            "Règles importantes:\n"
+            "- Ne compare JAMAIS le volume brut (lbs×reps) entre groupes musculaires — les jambes "
+            "utilisent toujours des charges plus lourdes, ça ne veut pas dire qu'elles sont sur-entraînées.\n"
+            "- Utilise le NOMBRE DE SETS par groupe musculaire comme indicateur de volume réel.\n"
+            "- Pour les suggestions de programme, sois précis: nomme les exercices à ajouter/retirer/modifier "
+            "avec les schemes (ex: 3x8-10, 4x5-7).\n"
+            "- Pour le HIIT, analyse la fréquence, les types et la récupération entre sessions.\n"
+            "- Réponds toujours en français, de façon directe et actionnable."
+        )
+        system = f"{system_base}\n\nDONNÉES ATHLÈTE:\n{context}" if context else system_base
+
+        logger.info("Claude coach — tokens_remaining=%d msgs=%d mode=%s", _AI_TOKENS, len(claude_messages), mode)
         client = _anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=800,
-            system=(
-                "Tu es un coach sportif expert en musculation, HIIT et périodisation de l'entraînement. "
-                "Tu reçois des données réelles d'entraînement et tu les analyses avec rigueur. "
-                "Règles importantes:\n"
-                "- Ne compare JAMAIS le volume brut (lbs×reps) entre groupes musculaires — les jambes "
-                "utilisent toujours des charges plus lourdes, ça ne veut pas dire qu'elles sont sur-entraînées.\n"
-                "- Utilise le NOMBRE DE SETS par groupe musculaire comme indicateur de volume réel.\n"
-                "- Pour les suggestions de programme, sois précis: nomme les exercices à ajouter/retirer/modifier "
-                "avec les schemes (ex: 3x8-10, 4x5-7).\n"
-                "- Pour le HIIT, analyse la fréquence, les types et la récupération entre sessions.\n"
-                "- Réponds toujours en français, de façon directe et actionnable. Max 7 phrases."
-            ),
-            messages=[{"role": "user", "content": prompt}]
+            max_tokens=1200,
+            system=system,
+            messages=claude_messages
         )
         response_text = message.content[0].text
 

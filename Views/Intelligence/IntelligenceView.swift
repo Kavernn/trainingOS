@@ -13,6 +13,8 @@ struct IntelligenceView: View {
     @State private var showInsights = false
     @FocusState private var inputFocused: Bool
     @StateObject private var api = APIService.shared
+    @State private var recoveryData: [RecoveryEntry] = []
+    @State private var weightsData: [String: WeightData] = [:]
 
     var body: some View {
         NavigationStack {
@@ -175,6 +177,7 @@ struct IntelligenceView: View {
             }
             .navigationTitle("Intelligence")
             .navigationBarTitleDisplayMode(.inline)
+            .task { await loadContextData() }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if !messages.isEmpty {
@@ -192,12 +195,111 @@ struct IntelligenceView: View {
         "Quels muscles devrais-je prioriser ?"
     ]
 
+    private func loadContextData() async {
+        async let r = try? APIService.shared.fetchRecoveryData()
+        async let w = try? APIService.shared.fetchWeights()
+        let (recovery, weights) = await (r, w)
+        await MainActor.run {
+            recoveryData = recovery ?? []
+            weightsData = weights ?? [:]
+        }
+    }
+
     private func buildContext() -> String {
         guard let dash = api.dashboard else { return "Données indisponibles." }
-        let sessionCount = dash.sessions.count
-        let avgRPE = dash.sessions.values.compactMap(\.rpe).reduce(0.0, +) / Double(max(dash.sessions.count, 1))
-        let goals = dash.goals.map { "\($0.key): \($0.value.current)/\($0.value.goal)lbs" }.joined(separator: ", ")
-        return "Séances totales: \(sessionCount). RPE moyen: \(String(format: "%.1f", avgRPE)). Aujourd'hui: \(dash.today). Semaine: \(dash.week). Objectifs: \(goals)."
+        var parts: [String] = []
+
+        // Profile
+        let p = dash.profile
+        var profileParts: [String] = []
+        if let name = p.name    { profileParts.append("Nom: \(name)") }
+        if let w = p.weight     { profileParts.append("Poids: \(String(format: "%.0f", w)) lbs") }
+        if let age = p.age      { profileParts.append("Âge: \(age) ans") }
+        if let goal = p.goal    { profileParts.append("Objectif: \(goal)") }
+        if let level = p.level  { profileParts.append("Niveau: \(level)") }
+        if !profileParts.isEmpty { parts.append("PROFIL: \(profileParts.joined(separator: " | "))") }
+
+        // Date / week
+        parts.append("DATE: \(dash.todayDate) (\(dash.today)) — Semaine \(dash.week)")
+
+        // Schedule
+        let scheduleStr = dash.schedule.sorted { $0.key < $1.key }
+            .map { "\($0.key): \($0.value)" }.joined(separator: " | ")
+        if !scheduleStr.isEmpty { parts.append("HORAIRE: \(scheduleStr)") }
+
+        // Recent sessions (last 10)
+        let recentSessions = dash.sessions.sorted { $0.key > $1.key }.prefix(10)
+        if !recentSessions.isEmpty {
+            let lines = recentSessions.map { (date, s) -> String in
+                var line = date
+                if let exos = s.exos, !exos.isEmpty { line += " [\(exos.joined(separator: ", "))]" }
+                if let rpe = s.rpe  { line += " RPE:\(String(format: "%.1f", rpe))" }
+                if let sets = s.totalSets { line += " \(sets)sets" }
+                if let c = s.comment, !c.isEmpty { line += " \"\(c)\"" }
+                return line
+            }
+            parts.append("SÉANCES RÉCENTES (10 dernières):\n" + lines.joined(separator: "\n"))
+        }
+
+        // Recovery — last 7 entries
+        let recentRecovery = Array(recoveryData.prefix(7))
+        if !recentRecovery.isEmpty {
+            let lines = recentRecovery.compactMap { r -> String? in
+                guard let date = r.date else { return nil }
+                var tokens: [String] = [date]
+                if let v = r.sleepHours    { tokens.append("sommeil:\(String(format: "%.1f", v))h") }
+                if let v = r.sleepQuality  { tokens.append("qualité:\(String(format: "%.0f", v))/10") }
+                if let v = r.hrv           { tokens.append("HRV:\(String(format: "%.0f", v))ms") }
+                if let v = r.soreness      { tokens.append("courbatures:\(String(format: "%.0f", v))/10") }
+                if let v = r.steps         { tokens.append("pas:\(v)") }
+                return tokens.joined(separator: " ")
+            }
+            if !lines.isEmpty { parts.append("RÉCUPÉRATION (7j):\n" + lines.joined(separator: "\n")) }
+        }
+
+        // Nutrition today
+        let nt = dash.nutritionTotals
+        let ns = dash.nutritionSettings
+        var nutriParts: [String] = []
+        if let cal = nt.calories {
+            var s = "Cal:\(String(format: "%.0f", cal))kcal"
+            if let t = ns?.calories { s += "/\(String(format: "%.0f", t))" }
+            nutriParts.append(s)
+        }
+        if let prot = nt.proteines {
+            var s = "Prot:\(String(format: "%.0f", prot))g"
+            if let t = ns?.proteines { s += "/\(String(format: "%.0f", t))g" }
+            nutriParts.append(s)
+        }
+        if let carbs = nt.glucides { nutriParts.append("Carbs:\(String(format: "%.0f", carbs))g") }
+        if let fat = nt.lipides    { nutriParts.append("Lipides:\(String(format: "%.0f", fat))g") }
+        if !nutriParts.isEmpty { parts.append("NUTRITION AUJOURD'HUI: \(nutriParts.joined(separator: " | "))") }
+
+        // Goals
+        if !dash.goals.isEmpty {
+            let goalStrs = dash.goals.sorted { $0.key < $1.key }.map { (k, v) in
+                "\(k): \(String(format: "%.0f", v.current))/\(String(format: "%.0f", v.goal))lbs\(v.achieved ? " ✓" : "")"
+            }
+            parts.append("OBJECTIFS: " + goalStrs.joined(separator: " | "))
+        }
+
+        // Exercise weights (top 10 by current weight)
+        let keyExos = weightsData.compactMap { (name, w) -> (String, WeightData)? in
+            guard w.currentWeight != nil else { return nil }
+            return (name, w)
+        }.sorted { ($0.1.currentWeight ?? 0) > ($1.1.currentWeight ?? 0) }.prefix(10)
+
+        if !keyExos.isEmpty {
+            let lines = keyExos.map { (name, w) -> String in
+                var line = "\(name): \(String(format: "%.0f", w.currentWeight ?? 0)) lbs"
+                if let reps = w.lastReps   { line += " (\(reps))" }
+                if let date = w.lastLogged { line += " — dernier: \(date)" }
+                return line
+            }
+            parts.append("POIDS ACTUELS:\n" + lines.joined(separator: "\n"))
+        }
+
+        return parts.joined(separator: "\n\n")
     }
 
     private func sendMessage() {
@@ -205,19 +307,24 @@ struct IntelligenceView: View {
         guard !text.isEmpty else { return }
 
         let context = buildContext()
-        let fullPrompt = "Contexte athlète: \(context)\n\nQuestion: \(text)"
         messages.append(ChatMessage(role: .user, content: text))
         input = ""
         isLoading = true
         inputFocused = false
 
+        // Build full conversation history (all messages incl. the one just appended)
+        let history = messages.map { ["role": $0.role == .user ? "user" : "assistant", "content": $0.content] }
+
         Task {
             do {
-                let url = URL(string: "https://training-os-rho.vercel.app/api/ai/coach")!
+                let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
                 var req = URLRequest(url: url)
                 req.httpMethod = "POST"
                 req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                req.httpBody = try JSONSerialization.data(withJSONObject: ["prompt": fullPrompt])
+                req.httpBody = try JSONSerialization.data(withJSONObject: [
+                    "context":  context,
+                    "messages": history
+                ])
                 let (data, _) = try await URLSession.shared.data(for: req)
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                     let reply = json["response"] as? String ?? json["error"] as? String ?? "Erreur inconnue"
@@ -259,7 +366,7 @@ struct IntelligenceView: View {
         proposals = []
         Task {
             do {
-                let url = URL(string: "https://training-os-rho.vercel.app/api/ai/propose")!
+                let url = URL(string: "\(APIService.shared.baseURL)/api/ai/propose")!
                 var req = URLRequest(url: url)
                 req.httpMethod = "POST"
                 req.setValue("application/json", forHTTPHeaderField: "Content-Type")
