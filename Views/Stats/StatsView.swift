@@ -45,6 +45,27 @@ private func weekLabel(_ key: String) -> String {
     return f.string(from: d)
 }
 
+// MARK: - Period Selector
+enum StatsPeriod: String, CaseIterable {
+    case month1 = "1M"
+    case month3 = "3M"
+    case month6 = "6M"
+    case all    = "Tout"
+
+    var cutoff: String? {
+        let days: Int?
+        switch self {
+        case .month1: days = 30
+        case .month3: days = 90
+        case .month6: days = 180
+        case .all:    days = nil
+        }
+        guard let d = days else { return nil }
+        let date = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - Double(d) * 86400.0)
+        return DateFormatter.isoDate.string(from: date)
+    }
+}
+
 // MARK: - Main View
 struct StatsView: View {
     @State private var weights:          [String: WeightData]    = [:]
@@ -61,6 +82,8 @@ struct StatsView: View {
     @State private var fetchError   = false
     @State private var selectedExercise: String? = nil
     @State private var searchText   = ""
+    @State private var selectedTab: Int = 0
+    @State private var period: StatsPeriod = .month3
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int { sessions.count }
@@ -201,11 +224,79 @@ struct StatsView: View {
         return base.filter { $0.key.localizedCaseInsensitiveContains(searchText) }.sorted { $0.key < $1.key }
     }
 
+    // ── Period-filtered data ──────────────────────────────────────────
+    var filteredSessions: [String: SessionEntry] {
+        guard let cutoff = period.cutoff else { return sessions }
+        return sessions.filter { $0.key >= cutoff }
+    }
+
+    var filteredBodyWeight: [BodyWeightEntry] {
+        guard let cutoff = period.cutoff else { return bodyWeight }
+        return bodyWeight.filter { $0.date >= cutoff }
+    }
+
+    var filteredRecovery: [RecoveryEntry] {
+        guard let cutoff = period.cutoff else { return recoveryLog }
+        return recoveryLog.filter { ($0.date ?? "") >= cutoff }
+    }
+
+    var filteredNutrition: [NutritionDay] {
+        guard let cutoff = period.cutoff else { return nutritionDays }
+        return nutritionDays.filter { ($0.date ?? "") >= cutoff }
+    }
+
+    var avgRPEPeriod: Double {
+        let rpes = filteredSessions.compactMap { _, e -> Double? in e.rpe }
+        return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
+    }
+
+    // ── Smart Insights ────────────────────────────────────────────────
+    var smartInsights: [(icon: String, text: String, color: Color)] {
+        var insights: [(String, String, Color)] = []
+        let now = Date().timeIntervalSince1970
+        let last4 = sessions.filter {
+            guard let d = DateFormatter.isoDate.date(from: $0.key) else { return false }
+            return now - d.timeIntervalSince1970 < 28 * 86400
+        }.count
+        let prev4 = sessions.filter {
+            guard let d = DateFormatter.isoDate.date(from: $0.key) else { return false }
+            let delta = now - d.timeIntervalSince1970
+            return delta >= 28 * 86400 && delta < 56 * 86400
+        }.count
+        if prev4 > 0 {
+            let pct = Int(round(Double(last4 - prev4) / Double(prev4) * 100))
+            if pct >= 10 {
+                insights.append(("arrow.up.circle.fill", "Fréquence +\(pct)% vs 4 semaines précédentes", .green))
+            } else if pct <= -15 {
+                insights.append(("arrow.down.circle.fill", "Fréquence \(pct)% vs 4 semaines précédentes", .orange))
+            }
+        }
+        if let a = acwr, a.zone.code == "risk" || a.zone.code == "danger" {
+            insights.append(("exclamationmark.triangle.fill", "ACWR \(String(format: "%.2f", a.ratio)) — charge élevée, récupère", .red))
+        }
+        if currentStreak > 0 && currentStreak < bestStreak && currentStreak >= bestStreak - 2 {
+            insights.append(("flame.fill", "À \(bestStreak - currentStreak) séance(s) de ton meilleur streak !", .orange))
+        } else if currentStreak >= 7 {
+            insights.append(("flame.fill", "Streak de \(currentStreak) jours — continue !", .orange))
+        }
+        return Array(insights.prefix(3))
+    }
+
+    private var tabAmbientColor: Color {
+        switch selectedTab {
+        case 1: return .orange
+        case 2: return .green
+        case 3: return .purple
+        case 4: return .cyan
+        default: return .blue
+        }
+    }
+
     // ── Body ─────────────────────────────────────────────────────────
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .blue)
+                AmbientBackground(color: tabAmbientColor)
                 if isLoading {
                     ProgressView().tint(.orange).scaleEffect(1.3)
                 } else if fetchError {
@@ -216,166 +307,31 @@ struct StatsView: View {
                             .foregroundColor(.orange).fontWeight(.semibold)
                     }
                 } else {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 16) {
-
-                            // KPIs
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                                KPICard(value: "\(totalSessions)",   label: "Séances",    color: .orange)
-                                KPICard(value: "\(sessionsThisMonth)", label: "Ce mois",  color: .blue)
-                                KPICard(value: currentStreak > 0 ? "\(currentStreak)🔥" : "0", label: "Streak", color: .red)
-                                KPICard(value: avgRPE30 > 0 ? String(format: "%.1f", avgRPE30) : "—", label: "RPE 30j", color: .purple)
-                                KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .green)
-                                KPICard(value: "\(exercisesCount)", label: "Exercices", color: .cyan)
-                            }
+                    VStack(spacing: 0) {
+                        StatsTabBar(selectedTab: $selectedTab)
                             .padding(.horizontal, 16)
-                            .appearAnimation(delay: 0.05)
+                            .padding(.top, 4)
 
-                            // Heatmap
-                            SessionHeatmapView(sessions: sessions, bestStreak: bestStreak)
+                        if selectedTab < 4 {
+                            PeriodPicker(selected: $period)
                                 .padding(.horizontal, 16)
-
-                            // Personal Records
-                            if !personalRecords.isEmpty {
-                                PersonalRecordsView(records: personalRecords)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Weekly charts
-                            HStack(spacing: 12) {
-                                SimpleBarChart(
-                                    title: "FRÉQUENCE / SEM",
-                                    data: weeklyFrequency.map { (weekLabel($0.0), $0.1) },
-                                    color: .orange,
-                                    unit: "séances"
-                                )
-                                SimpleBarChart(
-                                    title: "VOLUME / SEM",
-                                    data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
-                                    color: .blue,
-                                    unit: UnitSettings.shared.label
-                                )
-                            }
-                            .padding(.horizontal, 16)
-
-                            // Top 5 volume
-                            if !top5Volume.isEmpty {
-                                Top5VolumeView(data: top5Volume)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Muscle breakdown
-                            if !muscleStats.isEmpty {
-                                MuscleBreakdownView(stats: muscleStats)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Volume par groupe musculaire
-                            if !muscleStats.isEmpty {
-                                MuscleVolumeView(stats: muscleStats)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // RPE chart
-                            if rpeHistory.count >= 3 {
-                                RPEChartView(data: rpeHistory)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // HIIT stats
-                            if !hiitLog.isEmpty {
-                                HIITStatsSection(log: hiitLog)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Body weight curve
-                            if bodyWeight.count >= 2 {
-                                WeightChartView(entries: Array(bodyWeight.prefix(20).reversed()))
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Body measurements trend
-                            if bodyWeight.filter({ $0.waistCm != nil || $0.armsCm != nil }).count >= 2 {
-                                MeasurementsTrendView(entries: Array(bodyWeight.prefix(20).reversed()))
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Training load (RPE × durée)
-                            let sessionsWithDuration = sessions.filter { $0.value.durationMin != nil }
-                            if sessionsWithDuration.count >= 2 {
-                                TrainingLoadChart(sessions: sessions, last8Weeks: last8Weeks)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Energy pré-séance trend
-                            let sessionsWithEnergy = sessions.compactMap { d, e -> (String, Int)? in
-                                e.energyPre.map { (d, $0) }
-                            }.sorted { $0.0 < $1.0 }.suffix(20).map { $0 }
-                            if sessionsWithEnergy.count >= 3 {
-                                EnergyTrendView(data: sessionsWithEnergy)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Recovery score trend
-                            if recoveryLog.count >= 3 {
-                                RecoveryScoreChart(log: Array(recoveryLog.prefix(14).reversed()))
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // ACWR — Acute:Chronic Workload Ratio
-                            if let acwrData = acwr {
-                                ACWRCardView(data: acwrData)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Nutrition compliance
-                            if nutritionDays.count >= 3, let target = nutritionTarget {
-                                NutritionComplianceChart(days: nutritionDays, target: target)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Protein compliance
-                            if nutritionDays.count >= 3, let target = nutritionTarget {
-                                ProteinComplianceView(days: nutritionDays, target: target)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // RPE distribution
-                            if sessions.count >= 5 {
-                                RPEDistributionView(sessions: sessions)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // PR Tracker
-                            if !weights.isEmpty {
-                                PRTrackerView(weights: weights)
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Exercise list
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("POIDS ACTUELS")
-                                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                    .padding(.horizontal, 16)
-                                HStack {
-                                    Image(systemName: "magnifyingglass").foregroundColor(.gray)
-                                    TextField("Rechercher un exercice...", text: $searchText)
-                                        .foregroundColor(.white).tint(.orange)
-                                }
-                                .padding(12)
-                                .background(Color(hex: "11111c")).cornerRadius(12)
-                                .padding(.horizontal, 16)
-
-                                ForEach(exercisesWithHistory, id: \.0) { name, data in
-                                    ExerciseStatRow(name: name, data: data)
-                                        .padding(.horizontal, 16)
-                                        .onTapGesture { selectedExercise = name }
-                                }
-                            }
-
-                            Spacer(minLength: 32)
+                                .padding(.vertical, 6)
                         }
-                        .padding(.vertical, 16)
+
+                        ScrollView(showsIndicators: false) {
+                            VStack(spacing: 16) {
+                                if selectedTab == 0, !smartInsights.isEmpty {
+                                    SmartInsightsBanner(insights: smartInsights)
+                                        .padding(.horizontal, 16)
+                                }
+                                if selectedTab == 0 { vueGlobaleTab }
+                                else if selectedTab == 1 { performanceTab }
+                                else if selectedTab == 2 { corpsTab }
+                                else if selectedTab == 3 { nutritionTab }
+                                else { exercicesTab }
+                            }
+                            .padding(.vertical, 8)
+                        }
                     }
                 }
             }
@@ -389,6 +345,175 @@ struct StatsView: View {
             }
         }
         .task { await loadData() }
+    }
+
+    // ── Tab content ───────────────────────────────────────────────────
+    @ViewBuilder private var vueGlobaleTab: some View {
+        let fs = filteredSessions
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            KPICard(value: "\(fs.count)",   label: "Séances",    color: .orange)
+            KPICard(value: "\(sessionsThisMonth)", label: "Ce mois",  color: .blue)
+            KPICard(value: currentStreak > 0 ? "\(currentStreak)🔥" : "0", label: "Streak", color: .red)
+            KPICard(value: avgRPEPeriod > 0 ? String(format: "%.1f", avgRPEPeriod) : "—", label: "RPE moy.", color: .purple)
+            KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .green)
+            KPICard(value: "\(exercisesCount)", label: "Exercices", color: .cyan)
+        }
+        .padding(.horizontal, 16)
+        .appearAnimation(delay: 0.05)
+
+        SessionHeatmapView(sessions: sessions, bestStreak: bestStreak)
+            .padding(.horizontal, 16)
+
+        if !personalRecords.isEmpty {
+            PersonalRecordsView(records: personalRecords)
+                .padding(.horizontal, 16)
+        }
+
+        HStack(spacing: 12) {
+            SimpleBarChart(
+                title: "FRÉQUENCE / SEM",
+                data: weeklyFrequency.map { (weekLabel($0.0), $0.1) },
+                color: .orange,
+                unit: "séances"
+            )
+            SimpleBarChart(
+                title: "VOLUME / SEM",
+                data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
+                color: .blue,
+                unit: UnitSettings.shared.label
+            )
+        }
+        .padding(.horizontal, 16)
+
+        if !top5Volume.isEmpty {
+            Top5VolumeView(data: top5Volume)
+                .padding(.horizontal, 16)
+        }
+
+        if !muscleStats.isEmpty {
+            MuscleBreakdownView(stats: muscleStats)
+                .padding(.horizontal, 16)
+        }
+
+        Spacer(minLength: 32)
+    }
+
+    @ViewBuilder private var performanceTab: some View {
+        if let acwrData = acwr {
+            ACWRCardView(data: acwrData)
+                .padding(.horizontal, 16)
+        }
+
+        if rpeHistory.count >= 3 {
+            RPEChartView(data: rpeHistory)
+                .padding(.horizontal, 16)
+        }
+
+        let sessionsWithDuration = filteredSessions.filter { $0.value.durationMin != nil }
+        if sessionsWithDuration.count >= 2 {
+            TrainingLoadChart(sessions: filteredSessions, last8Weeks: last8Weeks)
+                .padding(.horizontal, 16)
+        }
+
+        let sessionsWithEnergy = filteredSessions.compactMap { d, e -> (String, Int)? in
+            e.energyPre.map { (d, $0) }
+        }.sorted { $0.0 < $1.0 }.suffix(20).map { $0 }
+        if sessionsWithEnergy.count >= 3 {
+            EnergyTrendView(data: sessionsWithEnergy)
+                .padding(.horizontal, 16)
+        }
+
+        if filteredSessions.count >= 5 {
+            RPEDistributionView(sessions: filteredSessions)
+                .padding(.horizontal, 16)
+        }
+
+        if !muscleStats.isEmpty {
+            MuscleVolumeView(stats: muscleStats)
+                .padding(.horizontal, 16)
+        }
+
+        Spacer(minLength: 32)
+    }
+
+    @ViewBuilder private var corpsTab: some View {
+        let filteredBW = filteredBodyWeight
+        if filteredBW.count >= 2 {
+            WeightChartView(entries: Array(filteredBW.prefix(20).reversed()))
+                .padding(.horizontal, 16)
+        }
+
+        if filteredBW.filter({ $0.waistCm != nil || $0.armsCm != nil }).count >= 2 {
+            MeasurementsTrendView(entries: Array(filteredBW.prefix(20).reversed()))
+                .padding(.horizontal, 16)
+        }
+
+        if filteredRecovery.count >= 3 {
+            RecoveryScoreChart(log: Array(filteredRecovery.prefix(14).reversed()))
+                .padding(.horizontal, 16)
+        }
+
+        if !hiitLog.isEmpty {
+            HIITStatsSection(log: hiitLog)
+                .padding(.horizontal, 16)
+        }
+
+        Spacer(minLength: 32)
+    }
+
+    @ViewBuilder private var nutritionTab: some View {
+        let fn = filteredNutrition
+        if fn.count >= 3, let target = nutritionTarget {
+            NutritionComplianceChart(days: fn, target: target)
+                .padding(.horizontal, 16)
+            ProteinComplianceView(days: fn, target: target)
+                .padding(.horizontal, 16)
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: "fork.knife.circle")
+                    .font(.system(size: 40)).foregroundColor(.gray)
+                Text("Pas assez de données nutrition")
+                    .foregroundColor(.gray)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 60)
+        }
+
+        Spacer(minLength: 32)
+    }
+
+    @ViewBuilder private var exercicesTab: some View {
+        if !weights.isEmpty {
+            PRTrackerView(weights: weights)
+                .padding(.horizontal, 16)
+        }
+
+        if !top5Volume.isEmpty {
+            Top5VolumeView(data: top5Volume)
+                .padding(.horizontal, 16)
+        }
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text("POIDS ACTUELS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .padding(.horizontal, 16)
+            HStack {
+                Image(systemName: "magnifyingglass").foregroundColor(.gray)
+                TextField("Rechercher un exercice...", text: $searchText)
+                    .foregroundColor(.white).tint(.orange)
+            }
+            .padding(12)
+            .background(Color(hex: "11111c")).cornerRadius(12)
+            .padding(.horizontal, 16)
+
+            ForEach(exercisesWithHistory, id: \.0) { name, data in
+                ExerciseStatRow(name: name, data: data)
+                    .padding(.horizontal, 16)
+                    .onTapGesture { selectedExercise = name }
+            }
+        }
+
+        Spacer(minLength: 32)
     }
 
     private func formatK(_ v: Double) -> String {
@@ -1829,5 +1954,102 @@ struct MuscleVolumeView: View {
         .padding(16)
         .background(Color(hex: "11111c"))
         .cornerRadius(14)
+    }
+}
+
+// MARK: - Stats Tab Bar
+struct StatsTabBar: View {
+    @Binding var selectedTab: Int
+
+    private let tabs: [(icon: String, label: String)] = [
+        ("chart.bar.fill",  "Global"),
+        ("bolt.fill",       "Perf"),
+        ("figure.stand",    "Corps"),
+        ("fork.knife",      "Nutrition"),
+        ("dumbbell.fill",   "Exercices"),
+    ]
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(tabs.indices, id: \.self) { i in
+                Button {
+                    withAnimation(.spring(response: 0.3)) { selectedTab = i }
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: tabs[i].icon)
+                            .font(.system(size: 13, weight: selectedTab == i ? .bold : .regular))
+                        Text(tabs[i].label)
+                            .font(.system(size: 9, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .foregroundColor(selectedTab == i ? .orange : .gray)
+                    .background(selectedTab == i ? Color.orange.opacity(0.12) : Color.clear)
+                    .cornerRadius(10)
+                }
+            }
+        }
+        .padding(4)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Period Picker
+struct PeriodPicker: View {
+    @Binding var selected: StatsPeriod
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(StatsPeriod.allCases, id: \.self) { p in
+                Button {
+                    withAnimation(.spring(response: 0.25)) { selected = p }
+                } label: {
+                    Text(p.rawValue)
+                        .font(.system(size: 12, weight: .semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 5)
+                        .background(selected == p ? Color.orange : Color(hex: "1a1a28"))
+                        .foregroundColor(selected == p ? .black : .gray)
+                        .cornerRadius(20)
+                }
+            }
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Smart Insights Banner
+struct SmartInsightsBanner: View {
+    let insights: [(icon: String, text: String, color: Color)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "lightbulb.fill").foregroundColor(.yellow).font(.system(size: 10))
+                Text("INSIGHTS").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(insights.indices, id: \.self) { i in
+                    HStack(spacing: 10) {
+                        Image(systemName: insights[i].icon)
+                            .foregroundColor(insights[i].color)
+                            .font(.system(size: 13))
+                            .frame(width: 18)
+                        Text(insights[i].text)
+                            .font(.system(size: 13))
+                            .foregroundColor(.white.opacity(0.9))
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.25), lineWidth: 1))
     }
 }
