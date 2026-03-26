@@ -383,6 +383,7 @@ struct WorkoutSeanceView: View {
     @State private var rpe: Double = 7
     @State private var comment = ""
     @State private var showFinish = false
+    @State private var showFinishConfirm = false
     
     // Programme edit
     @State private var localProgram: [String: String] = [:]
@@ -711,7 +712,7 @@ struct WorkoutSeanceView: View {
                     .padding(.horizontal, 16)
                 }
 
-                Button(action: { showFinish = true }) {
+                Button(action: { showFinishConfirm = true }) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                         Text("Terminer la séance").font(.system(size: 15, weight: .semibold))
@@ -720,6 +721,16 @@ struct WorkoutSeanceView: View {
                     .background(Color.orange).foregroundColor(.white).cornerRadius(14)
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
+                .confirmationDialog(
+                    "Terminer la séance ?",
+                    isPresented: $showFinishConfirm,
+                    titleVisibility: .visible
+                ) {
+                    Button("Oui, terminer") { showFinish = true }
+                    Button("Pas encore", role: .cancel) { }
+                } message: {
+                    Text("Tu es sûr d'avoir terminé tous tes exercices ?")
+                }
             }
         }
         .scrollDismissesKeyboard(.interactively)
