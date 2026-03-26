@@ -1,5 +1,5 @@
 from planner import get_today, get_today_date
-from life_stress_engine import get_life_stress_score
+from life_stress_engine import refresh_life_stress_score
 
 HEAVY = {"Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs"}
 LIGHT = {"Yoga / Tai Chi", "Recovery"}
@@ -14,11 +14,13 @@ def _intensity(session):
 
 
 def get_morning_brief():
-    today    = get_today()
-    lss_data = get_life_stress_score()
-    lss      = lss_data.get("score")
-    flags    = lss_data.get("flags", {})
+    today     = get_today()
+    # Toujours recalculer : la Watch peut avoir synchro après le premier appel
+    lss_data  = refresh_life_stress_score()
+    lss       = lss_data.get("score")
+    flags     = lss_data.get("flags", {})
     intensity = _intensity(today)
+    components = lss_data.get("components", {})
 
     rec, msg, adjustments = _evaluate(lss, intensity, flags)
 
@@ -32,6 +34,7 @@ def get_morning_brief():
         "adjustments":       adjustments,
         "flags":             flags,
         "data_coverage":     lss_data.get("data_coverage", 0),
+        "components":        components,
     }
 
 

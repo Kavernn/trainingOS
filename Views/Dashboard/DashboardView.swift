@@ -66,7 +66,9 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.03)
                             }
 
-                            if let b = brief, b.recommendation != "go" {
+                            if let b = brief,
+                               b.recommendation != "go" ||
+                               b.flags.hrvDrop || b.flags.sleepDeprivation || b.flags.trainingOverload {
                                 MorningBriefCardView(data: b)
                                     .appearAnimation(delay: 0.04)
                             }
@@ -1332,28 +1334,87 @@ struct MorningBriefCardView: View {
         }
     }
 
+    private var iconName: String {
+        switch data.recommendation {
+        case "defer":      return "exclamationmark.triangle.fill"
+        case "reduce":     return "arrow.down.circle.fill"
+        case "go_caution": return "exclamationmark.circle.fill"
+        default:           return "checkmark.circle.fill"
+        }
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: iconName)
-                    .foregroundColor(accentColor)
-                Text("Coach du matin")
-                    .font(.system(size: 11, weight: .bold)).tracking(2)
-                    .foregroundColor(.gray)
+        VStack(alignment: .leading, spacing: 12) {
+
+            // Header
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle().fill(accentColor.opacity(0.15)).frame(width: 32, height: 32)
+                    Image(systemName: iconName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(accentColor)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("COACH DU MATIN")
+                        .font(.system(size: 9, weight: .bold)).tracking(2)
+                        .foregroundColor(.gray)
+                    Text(data.sessionToday)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(accentColor)
+                }
                 Spacer()
-                lssChip
+                if let lss = data.lss {
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("\(Int(lss))")
+                            .font(.system(size: 20, weight: .black))
+                            .foregroundColor(accentColor)
+                        Text("LSS")
+                            .font(.system(size: 9, weight: .bold)).tracking(1)
+                            .foregroundColor(.gray)
+                    }
+                }
             }
+
+            // LSS gauge
+            if let lss = data.lss {
+                LSSGauge(score: lss, color: accentColor)
+            }
+
+            // Message
             Text(data.message)
                 .font(.system(size: 14))
                 .foregroundColor(.white)
+                .fixedSize(horizontal: false, vertical: true)
 
+            // Flags actifs
+            let activeFlags = flagChips
+            if !activeFlags.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(activeFlags, id: \.label) { chip in
+                        HStack(spacing: 4) {
+                            Image(systemName: chip.icon)
+                                .font(.system(size: 9, weight: .bold))
+                            Text(chip.label)
+                                .font(.system(size: 10, weight: .semibold))
+                        }
+                        .foregroundColor(chip.color)
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(chip.color.opacity(0.12))
+                        .overlay(Capsule().stroke(chip.color.opacity(0.3), lineWidth: 0.5))
+                        .clipShape(Capsule())
+                    }
+                }
+            }
+
+            // Ajustements
             if !data.adjustments.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 5) {
                     ForEach(data.adjustments, id: \.self) { adj in
-                        HStack(alignment: .top, spacing: 6) {
-                            Image(systemName: "arrow.right.circle.fill")
-                                .font(.system(size: 11))
-                                .foregroundColor(accentColor)
+                        HStack(alignment: .top, spacing: 7) {
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(accentColor.opacity(0.7))
+                                .padding(.top, 2)
                             Text(adj)
                                 .font(.system(size: 12))
                                 .foregroundColor(.gray)
@@ -1361,33 +1422,134 @@ struct MorningBriefCardView: View {
                     }
                 }
             }
-        }
-        .padding(16)
-        .background(accentColor.opacity(0.08))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(accentColor.opacity(0.3), lineWidth: 1))
-        .cornerRadius(16)
-        .padding(.horizontal, 16)
-    }
 
-    private var lssChip: some View {
-        Group {
-            if let lss = data.lss {
-                Text("LSS \(Int(lss))")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(accentColor)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(accentColor.opacity(0.15))
-                    .cornerRadius(8)
+            // Composantes LSS
+            if let comp = data.components {
+                LSSComponentsRow(components: comp)
+            }
+
+            // Couverture de données insuffisante
+            if data.dataCoverage < 0.6 {
+                HStack(spacing: 5) {
+                    Image(systemName: "exclamationmark.circle")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                    Text("Données partielles — \(Int(data.dataCoverage * 100))% des métriques disponibles")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
             }
         }
+        .padding(16)
+        .background(accentColor.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(accentColor.opacity(0.28), lineWidth: 1))
+        .cornerRadius(16)
     }
 
-    private var iconName: String {
-        switch data.recommendation {
-        case "defer":  return "exclamationmark.triangle.fill"
-        case "reduce": return "arrow.down.circle.fill"
-        default:       return "exclamationmark.circle.fill"
+    private struct FlagChip {
+        let icon: String
+        let label: String
+        let color: Color
+    }
+
+    private var flagChips: [FlagChip] {
+        var chips: [FlagChip] = []
+        if data.flags.hrvDrop        { chips.append(.init(icon: "waveform.path.ecg", label: "HRV bas",          color: .orange)) }
+        if data.flags.sleepDeprivation { chips.append(.init(icon: "moon.zzz.fill",  label: "Manque sommeil",   color: .indigo)) }
+        if data.flags.trainingOverload { chips.append(.init(icon: "flame.fill",      label: "Surcharge",       color: .red)) }
+        return chips
+    }
+}
+
+// MARK: - LSS Gauge
+struct LSSGauge: View {
+    let score: Double
+    let color: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(0.07))
+                    .frame(height: 6)
+                Capsule()
+                    .fill(LinearGradient(
+                        colors: [.red, .orange, .yellow, .green],
+                        startPoint: .leading, endPoint: .trailing
+                    ))
+                    .frame(width: geo.size.width * score / 100, height: 6)
+                    .animation(.easeOut(duration: 0.7), value: score)
+                // Curseur
+                Circle()
+                    .fill(color)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: color.opacity(0.5), radius: 4)
+                    .offset(x: max(0, geo.size.width * score / 100 - 5))
+                    .animation(.easeOut(duration: 0.7), value: score)
+            }
         }
+        .frame(height: 10)
+    }
+}
+
+// MARK: - LSS Components Row
+struct LSSComponentsRow: View {
+    let components: MorningBriefComponents
+
+    private var items: [(String, String, Double?)] {
+        [
+            ("moon.fill",       "Sommeil",   components.sleepQuality),
+            ("waveform.path.ecg", "HRV",     components.hrvTrend),
+            ("heart.fill",      "FC repos",  components.rhrTrend),
+            ("brain.head.profile", "Stress", components.subjectiveStress),
+            ("flame.fill",      "Fatigue",   components.trainingFatigue),
+        ]
+    }
+
+    var body: some View {
+        let available = items.filter { $0.2 != nil }
+        if available.isEmpty { return AnyView(EmptyView()) }
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 6) {
+                Text("DÉTAIL LSS")
+                    .font(.system(size: 9, weight: .bold)).tracking(2)
+                    .foregroundColor(.gray)
+                HStack(spacing: 6) {
+                    ForEach(available, id: \.0) { icon, label, value in
+                        if let v = value {
+                            VStack(spacing: 4) {
+                                Image(systemName: icon)
+                                    .font(.system(size: 9))
+                                    .foregroundColor(scoreColor(v))
+                                GeometryReader { geo in
+                                    ZStack(alignment: .bottom) {
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(Color.white.opacity(0.07))
+                                        RoundedRectangle(cornerRadius: 2)
+                                            .fill(scoreColor(v))
+                                            .frame(height: geo.size.height * v / 100)
+                                    }
+                                }
+                                .frame(width: 6, height: 24)
+                                .animation(.easeOut(duration: 0.6), value: v)
+                                Text(label)
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.gray)
+                                    .lineLimit(1)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    private func scoreColor(_ v: Double) -> Color {
+        if v >= 70 { return .green }
+        if v >= 45 { return .yellow }
+        return .red
     }
 }
 

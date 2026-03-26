@@ -1022,9 +1022,10 @@ struct MorningBriefData: Codable {
     let adjustments: [String]
     let flags: MorningBriefFlags
     let dataCoverage: Double
+    let components: MorningBriefComponents?
 
     enum CodingKeys: String, CodingKey {
-        case date, lss, recommendation, message, adjustments, flags
+        case date, lss, recommendation, message, adjustments, flags, components
         case sessionToday     = "session_today"
         case sessionIntensity = "session_intensity"
         case dataCoverage     = "data_coverage"
@@ -1040,6 +1041,22 @@ struct MorningBriefFlags: Codable {
         case hrvDrop          = "hrv_drop"
         case sleepDeprivation = "sleep_deprivation"
         case trainingOverload = "training_overload"
+    }
+}
+
+struct MorningBriefComponents: Codable {
+    let sleepQuality: Double?
+    let hrvTrend: Double?
+    let rhrTrend: Double?
+    let subjectiveStress: Double?
+    let trainingFatigue: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case sleepQuality     = "sleep_quality"
+        case hrvTrend         = "hrv_trend"
+        case rhrTrend         = "rhr_trend"
+        case subjectiveStress = "subjective_stress"
+        case trainingFatigue  = "training_fatigue"
     }
 }
 
