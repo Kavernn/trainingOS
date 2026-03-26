@@ -367,6 +367,7 @@ struct WorkoutSeanceView: View {
     @State private var editTarget: ExerciseTarget?
     @State private var isEditMode = false
     @State private var showRestTimer = false
+    @State private var sessionStart = Date()
 
     // Optional add-ons
     @State private var showAddCardio = false
@@ -539,33 +540,6 @@ struct WorkoutSeanceView: View {
         return 0
     }
     
-    @ViewBuilder private var rpeCommentSection: some View {
-        VStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("RPE")
-                        .font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
-                    Spacer()
-                    Text("\(rpe, specifier: "%.1f")")
-                        .font(.system(size: 20, weight: .black)).foregroundColor(rpeColor(rpe))
-                }
-                Slider(value: $rpe, in: 1...10, step: 0.5).tint(rpeColor(rpe))
-            }
-            .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
-            
-            VStack(alignment: .leading, spacing: 6) {
-                Text("COMMENTAIRE")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                TextField("Comment ça s'est passé ?", text: $comment, axis: .vertical)
-                    .font(.system(size: 14)).foregroundColor(.white).tint(.orange)
-                    .lineLimit(3, reservesSpace: true)
-                    .padding(12).background(Color(hex: "191926")).cornerRadius(10)
-            }
-            .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
-        }
-        .padding(.horizontal, 16)
-    }
-    
     @ViewBuilder private var optionalAddonsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OPTIONNEL")
@@ -613,36 +587,69 @@ struct WorkoutSeanceView: View {
         ScrollView {
             VStack(spacing: 16) {
                 // Header
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(data.today.uppercased())
-                            .font(.system(size: 13, weight: .black))
-                            .tracking(3)
-                            .foregroundColor(.orange)
-                        Text("Semaine \(data.week)")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
+                VStack(spacing: 6) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(data.today.uppercased())
+                                .font(.system(size: 13, weight: .black))
+                                .tracking(3)
+                                .foregroundColor(.orange)
+                            Text("Semaine \(data.week)")
+                                .font(.system(size: 12))
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                        TimelineView(.periodic(from: sessionStart, by: 60)) { ctx in
+                            let elapsed = Int(ctx.date.timeIntervalSince(sessionStart) / 60)
+                            HStack(spacing: 3) {
+                                Image(systemName: "clock").font(.system(size: 10))
+                                Text("\(elapsed) min")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            }
+                            .foregroundColor(.cyan.opacity(0.75))
+                            .padding(.horizontal, 7).padding(.vertical, 4)
+                            .background(Color.cyan.opacity(0.08))
+                            .cornerRadius(6)
+                        }
+                        Button {
+                            withAnimation { isEditMode.toggle() }
+                        } label: {
+                            Image(systemName: isEditMode ? "checkmark.circle.fill" : "pencil.circle")
+                                .font(.system(size: 20))
+                                .foregroundColor(isEditMode ? .green : .orange)
+                        }
+                        .padding(.leading, 8)
+                        Button {
+                            showRestTimer = true
+                        } label: {
+                            Image(systemName: "timer")
+                                .font(.system(size: 20))
+                                .foregroundColor(.cyan)
+                        }
+                        .padding(.leading, 4)
                     }
-                    Spacer()
-                    Text("\(exercises.count) exercices")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
-                    Button {
-                        withAnimation { isEditMode.toggle() }
-                    } label: {
-                        Image(systemName: isEditMode ? "checkmark.circle.fill" : "pencil.circle")
-                            .font(.system(size: 20))
-                            .foregroundColor(isEditMode ? .green : .orange)
+                    // Progress
+                    let done = vm.logResults.count
+                    let total = exercises.count
+                    HStack {
+                        Text(done == total && total > 0 ? "Tous les exercices loggés ✓" : "\(done) / \(total) exercices")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(done == total && total > 0 ? .green : .gray)
+                        Spacer()
                     }
-                    .padding(.leading, 8)
-                    Button {
-                        showRestTimer = true
-                    } label: {
-                        Image(systemName: "timer")
-                            .font(.system(size: 20))
-                            .foregroundColor(.cyan)
-                    }
-                    .padding(.leading, 4)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.white.opacity(0.08))
+                        .frame(height: 4)
+                        .overlay(
+                            GeometryReader { g in
+                                let fraction: CGFloat = total > 0 ? CGFloat(done) / CGFloat(total) : 0
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(done == total && total > 0 ? Color.green : Color.orange)
+                                    .frame(width: g.size.width * fraction)
+                                    .animation(.spring(response: 0.5), value: done)
+                            },
+                            alignment: .leading
+                        )
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -690,9 +697,11 @@ struct WorkoutSeanceView: View {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
                 logResults: vm.logResults,
+                elapsedMin: Date().timeIntervalSince(sessionStart) / 60,
                 rpe: $rpe,
                 comment: $comment,
-                onSubmit: { dur, energy in
+                onSubmit: { energy in
+                    let dur = Date().timeIntervalSince(sessionStart) / 60
                     Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energy) }
                 }
             )
@@ -778,7 +787,7 @@ struct WorkoutSeanceView: View {
         }
 
         // Fetch fresh programme + inventory types from network
-        guard let url = URL(string: "https://training-os-rho.vercel.app/api/programme_data"),
+        guard let url = URL(string: "\(APIService.shared.baseURL)/api/programme_data"),
               let (networkData, _) = try? await URLSession.shared.data(from: url),
               let json = try? JSONSerialization.jsonObject(with: networkData) as? [String: Any]
         else { return }
@@ -802,7 +811,7 @@ struct WorkoutSeanceView: View {
     }
         
         private func postProgramme(_ body: [String: Any]) async {
-            guard let url = URL(string: "https://training-os-rho.vercel.app/api/programme") else { return }
+            guard let url = URL(string: "\(APIService.shared.baseURL)/api/programme") else { return }
             var req = URLRequest(url: url)
             req.httpMethod = "POST"
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -1467,8 +1476,58 @@ struct AddHIITSheet: View {
                         }
                     }
 
+                    // Quick-fill from last session
+                    if !isTimeBased, lastReps != "—", !lastReps.isEmpty {
+                        Button {
+                            for i in sets.indices {
+                                sets[i].weight = perSetHint(for: i)
+                                let parts = lastRepsParts
+                                sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
+                            }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "arrow.counterclockwise").font(.system(size: 11))
+                                Text("Reprendre la dernière séance")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundColor(.orange.opacity(0.85))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                            .background(Color.orange.opacity(0.08))
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
                     // Per-set rows
                     if isTimeBased { timeSetRows() } else { setRows() }
+
+                    // Add/remove set rows
+                    HStack(spacing: 12) {
+                        Button {
+                            if sets.count > 1 { sets.removeLast() }
+                        } label: {
+                            Image(systemName: "minus.circle")
+                                .font(.system(size: 20))
+                                .foregroundColor(sets.count > 1 ? .red.opacity(0.45) : .gray.opacity(0.2))
+                        }
+                        .disabled(sets.count <= 1)
+                        .buttonStyle(.plain)
+                        Text("\(sets.count) set\(sets.count > 1 ? "s" : "")")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.gray)
+                        Button {
+                            if sets.count < 8 { sets.append(SetInput()) }
+                        } label: {
+                            Image(systemName: "plus.circle")
+                                .font(.system(size: 20))
+                                .foregroundColor(sets.count < 8 ? .green.opacity(0.55) : .gray.opacity(0.2))
+                        }
+                        .disabled(sets.count >= 8)
+                        .buttonStyle(.plain)
+                        Spacer()
+                    }
+                    .padding(.top, 2)
 
                     // Average weight + total (reps mode only)
                     if !isTimeBased, avgWeight != nil {
@@ -1537,30 +1596,58 @@ struct AddHIITSheet: View {
                     }
                 }
 
-                // History
+                // History — most recent entry always visible
                 if let history = weightData?.history, !history.isEmpty {
-                    Button(action: { showHistory.toggle() }) {
-                        HStack {
-                            Text("Historique (\(history.count))").font(.system(size: 12)).foregroundColor(.gray)
+                    VStack(spacing: 4) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray.opacity(0.5))
+                            Text(history[0].date ?? "—")
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray)
+                            Text("·").foregroundColor(.gray.opacity(0.3)).font(.system(size: 10))
+                            Text(units.format(history[0].weight ?? 0))
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white.opacity(0.65))
+                            Text(history[0].reps ?? "—")
+                                .font(.system(size: 10))
+                                .foregroundColor(.gray)
+                            if let note = history[0].note, !note.isEmpty {
+                                Text(note)
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundColor(note.hasPrefix("+") ? .green : .yellow)
+                            }
                             Spacer()
-                            Image(systemName: showHistory ? "chevron.up" : "chevron.down").font(.system(size: 11)).foregroundColor(.gray)
+                            if history.count > 1 {
+                                Button(action: { showHistory.toggle() }) {
+                                    HStack(spacing: 2) {
+                                        Text(showHistory ? "Moins" : "+\(history.count - 1)")
+                                            .font(.system(size: 9))
+                                        Image(systemName: showHistory ? "chevron.up" : "chevron.down")
+                                            .font(.system(size: 9))
+                                    }
+                                    .foregroundColor(.gray.opacity(0.5))
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                    }
-                    if showHistory {
-                        VStack(spacing: 4) {
-                            ForEach(history.prefix(5), id: \.date) { entry in
-                                HStack {
-                                    Text(entry.date ?? "—").font(.system(size: 11)).foregroundColor(.gray)
-                                    Spacer()
-                                    Text(units.format(entry.weight ?? 0)).font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
-                                    Text(entry.reps ?? "—").font(.system(size: 11)).foregroundColor(.gray)
-                                    if let note = entry.note, !note.isEmpty {
-                                        Text(note).font(.system(size: 10)).foregroundColor(note.hasPrefix("+") ? .green : .yellow)
+                        if showHistory && history.count > 1 {
+                            VStack(spacing: 3) {
+                                ForEach(Array(history.dropFirst().prefix(4)), id: \.date) { entry in
+                                    HStack {
+                                        Text(entry.date ?? "—").font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+                                        Spacer()
+                                        Text(units.format(entry.weight ?? 0)).font(.system(size: 10, weight: .semibold)).foregroundColor(.white.opacity(0.5))
+                                        Text(entry.reps ?? "—").font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
+                                        if let note = entry.note, !note.isEmpty {
+                                            Text(note).font(.system(size: 9)).foregroundColor(note.hasPrefix("+") ? .green.opacity(0.7) : .yellow.opacity(0.7))
+                                        }
                                     }
                                 }
                             }
+                            .padding(8).background(Color(hex: "0d0d1a")).cornerRadius(8)
                         }
-                        .padding(8).background(Color(hex: "0d0d1a")).cornerRadius(8)
                     }
                 }
             }
@@ -1679,16 +1766,16 @@ struct AddHIITSheet: View {
     struct FinishSessionSheet: View {
         let exercises: [String]
         let logResults: [String: ExerciseLogResult]
+        let elapsedMin: Double
         @Binding var rpe: Double
         @Binding var comment: String
-        var onSubmit: (Double?, Int?) -> Void   // (durationMin, energyPre)
+        var onSubmit: (Int?) -> Void   // (energyPre)
         @Environment(\.dismiss) private var dismiss
-        
-        @State private var durationStr    = ""
+
         @State private var energyPre: Int = 3   // 1–5
         @State private var confirmDiscard = false
 
-        private var hasUnsavedData: Bool { !durationStr.isEmpty || !comment.isEmpty || energyPre != 3 }
+        private var hasUnsavedData: Bool { !comment.isEmpty || energyPre != 3 }
 
         var loggedCount: Int { logResults.count }
         
@@ -1704,13 +1791,19 @@ struct AddHIITSheet: View {
                                 Text("\(loggedCount) / \(exercises.count) exercices loggés").font(.system(size: 14)).foregroundColor(.gray)
                             }.padding(.top, 20)
                             
-                            // Durée
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("DURÉE (min)").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                TextField("ex: 60", text: $durationStr)
-                                    .keyboardType(.numberPad)
-                                    .foregroundColor(.white).tint(.orange)
-                                    .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                            // Durée auto-calculée
+                            HStack(spacing: 12) {
+                                Image(systemName: "clock.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.cyan)
+                                    .frame(width: 28)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("DURÉE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    Text("\(Int(elapsedMin)) min")
+                                        .font(.system(size: 22, weight: .black))
+                                        .foregroundColor(.white)
+                                }
+                                Spacer()
                             }
                             .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             
@@ -1767,8 +1860,7 @@ struct AddHIITSheet: View {
                             .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             
                             Button(action: {
-                                let dur = Double(durationStr)
-                                onSubmit(dur, energyPre)
+                                onSubmit(energyPre)
                                 dismiss()
                             }) {
                                 Text("Enregistrer la séance")

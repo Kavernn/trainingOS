@@ -28,6 +28,7 @@ struct BonusSeanceView: View {
     @State private var comment = ""
     @State private var showRestTimer = false
     @State private var isLoading = true
+    @State private var sessionStart = Date()
 
     private var computedRPE: Double {
         let vals = vm.logResults.values.compactMap(\.rpe)
@@ -152,9 +153,11 @@ struct BonusSeanceView: View {
             FinishSessionSheet(
                 exercises: exerciseOrder,
                 logResults: vm.logResults,
+                elapsedMin: Date().timeIntervalSince(sessionStart) / 60,
                 rpe: $rpe,
                 comment: $comment,
-                onSubmit: { dur, energy in
+                onSubmit: { energy in
+                    let dur = Date().timeIntervalSince(sessionStart) / 60
                     Task {
                         await vm.finish(
                             rpe: rpe,
