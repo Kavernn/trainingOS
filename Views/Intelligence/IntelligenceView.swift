@@ -13,8 +13,13 @@ struct IntelligenceView: View {
     @State private var showInsights = false
     @FocusState private var inputFocused: Bool
     @StateObject private var api = APIService.shared
-    @State private var recoveryData: [RecoveryEntry] = []
-    @State private var weightsData: [String: WeightData] = [:]
+    @State private var recoveryData:    [RecoveryEntry]          = []
+    @State private var weightsData:     [String: WeightData]     = [:]
+    @State private var bodyWeightData:  [BodyWeightEntry]        = []
+    @State private var muscleStatsData: [String: MuscleStatEntry] = [:]
+    @State private var sessionsData:    [String: SessionEntry]   = [:]
+    @State private var acwrData:        ACWRData?                = nil
+    @State private var lssData:         LifeStressScore?         = nil
 
     var body: some View {
         NavigationStack {
@@ -195,13 +200,50 @@ struct IntelligenceView: View {
         "Quels muscles devrais-je prioriser ?"
     ]
 
+    // Subset of stats_data cache fields we need
+    private struct StatsSnapshot: Codable {
+        let weights:     [String: WeightData]
+        let sessions:    [String: SessionEntry]
+        let bodyWeight:  [BodyWeightEntry]
+        let recoveryLog: [RecoveryEntry]
+        let muscleStats: [String: MuscleStatEntry]
+        enum CodingKeys: String, CodingKey {
+            case weights, sessions
+            case bodyWeight  = "body_weight"
+            case recoveryLog = "recovery_log"
+            case muscleStats = "muscle_stats"
+        }
+    }
+
     private func loadContextData() async {
-        async let r = try? APIService.shared.fetchRecoveryData()
-        async let w = try? APIService.shared.fetchWeights()
-        let (recovery, weights) = await (r, w)
+        // 1. Prefer stats_data cache (already warm if StatsView was visited)
+        if let cached  = CacheService.shared.load(for: "stats_data"),
+           let decoded = try? JSONDecoder().decode(StatsSnapshot.self, from: cached) {
+            await MainActor.run {
+                recoveryData    = decoded.recoveryLog
+                weightsData     = decoded.weights
+                bodyWeightData  = decoded.bodyWeight
+                muscleStatsData = decoded.muscleStats
+                sessionsData    = decoded.sessions
+            }
+        } else {
+            // Fallback: individual network calls
+            async let r = try? APIService.shared.fetchRecoveryData()
+            async let w = try? APIService.shared.fetchWeights()
+            let (recovery, weights) = await (r, w)
+            await MainActor.run {
+                recoveryData = recovery ?? []
+                weightsData  = weights ?? [:]
+            }
+        }
+
+        // 2. ACWR + LSS in parallel (lightweight, separate endpoints)
+        async let acwrTask = try? APIService.shared.fetchACWR()
+        async let lssTask  = try? APIService.shared.fetchLifeStressScore()
+        let (acwrResult, lssResult) = await (acwrTask, lssTask)
         await MainActor.run {
-            recoveryData = recovery ?? []
-            weightsData = weights ?? [:]
+            acwrData = acwrResult
+            lssData  = lssResult
         }
     }
 
@@ -222,27 +264,55 @@ struct IntelligenceView: View {
         // Date / week
         parts.append("DATE: \(dash.todayDate) (\(dash.today)) — Semaine \(dash.week)")
 
+        // LSS — état de récupération actuel
+        if let lss = lssData {
+            var lssParts = ["LSS: \(String(format: "%.0f", lss.score))/100 (\(lss.scoreColor))"]
+            let c = lss.components
+            if let v = c.sleepQuality    { lssParts.append("sommeil:\(String(format: "%.0f", v))") }
+            if let v = c.hrvTrend        { lssParts.append("HRV:\(String(format: "%.0f", v))") }
+            if let v = c.rhrTrend        { lssParts.append("RHR:\(String(format: "%.0f", v))") }
+            if let v = c.subjectiveStress { lssParts.append("stress:\(String(format: "%.0f", v))") }
+            if let v = c.trainingFatigue { lssParts.append("fatigue:\(String(format: "%.0f", v))") }
+            var flags: [String] = []
+            if lss.flags.hrvDrop          { flags.append("⚠️ HRV bas") }
+            if lss.flags.sleepDeprivation { flags.append("⚠️ manque sommeil") }
+            if lss.flags.trainingOverload { flags.append("⚠️ surcharge") }
+            if !flags.isEmpty { lssParts.append(flags.joined(separator: " ")) }
+            parts.append("RÉCUPÉRATION GLOBALE: \(lssParts.joined(separator: " | "))")
+        }
+
+        // ACWR — charge d'entraînement
+        if let acwr = acwrData {
+            let line = "ACWR: \(String(format: "%.2f", acwr.ratio)) — \(acwr.zone.label) | charge aiguë: \(String(format: "%.0f", acwr.acuteLoad)) / chronique: \(String(format: "%.0f", acwr.chronicLoad)) | conseil: \(acwr.zone.recommendation)"
+            parts.append(line)
+        }
+
         // Schedule
         let scheduleStr = dash.schedule.sorted { $0.key < $1.key }
             .map { "\($0.key): \($0.value)" }.joined(separator: " | ")
         if !scheduleStr.isEmpty { parts.append("HORAIRE: \(scheduleStr)") }
 
-        // Recent sessions (last 10)
-        let recentSessions = dash.sessions.sorted { $0.key > $1.key }.prefix(10)
+        // Recent sessions — use full history if available, else dashboard
+        let allSessions = sessionsData.isEmpty ? dash.sessions : sessionsData
+        let recentSessions = allSessions.sorted { $0.key > $1.key }.prefix(14)
         if !recentSessions.isEmpty {
             let lines = recentSessions.map { (date, s) -> String in
                 var line = date
                 if let exos = s.exos, !exos.isEmpty { line += " [\(exos.joined(separator: ", "))]" }
-                if let rpe = s.rpe  { line += " RPE:\(String(format: "%.1f", rpe))" }
+                if let rpe = s.rpe      { line += " RPE:\(String(format: "%.1f", rpe))" }
                 if let sets = s.totalSets { line += " \(sets)sets" }
+                if let dur = s.durationMin { line += " \(dur)min" }
                 if let c = s.comment, !c.isEmpty { line += " \"\(c)\"" }
                 return line
             }
-            parts.append("SÉANCES RÉCENTES (10 dernières):\n" + lines.joined(separator: "\n"))
+            let count30 = allSessions.filter {
+                $0.key >= DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
+            }.count
+            parts.append("SÉANCES RÉCENTES (\(count30) ce mois — 14 dernières):\n" + lines.joined(separator: "\n"))
         }
 
-        // Recovery — last 7 entries
-        let recentRecovery = Array(recoveryData.prefix(7))
+        // Recovery — last 10 entries
+        let recentRecovery = Array(recoveryData.prefix(10))
         if !recentRecovery.isEmpty {
             let lines = recentRecovery.compactMap { r -> String? in
                 guard let date = r.date else { return nil }
@@ -250,11 +320,37 @@ struct IntelligenceView: View {
                 if let v = r.sleepHours    { tokens.append("sommeil:\(String(format: "%.1f", v))h") }
                 if let v = r.sleepQuality  { tokens.append("qualité:\(String(format: "%.0f", v))/10") }
                 if let v = r.hrv           { tokens.append("HRV:\(String(format: "%.0f", v))ms") }
+                if let v = r.restingHr     { tokens.append("RHR:\(String(format: "%.0f", v))bpm") }
                 if let v = r.soreness      { tokens.append("courbatures:\(String(format: "%.0f", v))/10") }
-                if let v = r.steps         { tokens.append("pas:\(v)") }
                 return tokens.joined(separator: " ")
             }
-            if !lines.isEmpty { parts.append("RÉCUPÉRATION (7j):\n" + lines.joined(separator: "\n")) }
+            if !lines.isEmpty { parts.append("RÉCUPÉRATION (10j):\n" + lines.joined(separator: "\n")) }
+        }
+
+        // Body weight trend
+        let bwEntries = Array(bodyWeightData.prefix(5))
+        if !bwEntries.isEmpty {
+            let lines = bwEntries.map { e -> String in
+                var s = "\(e.date): \(String(format: "%.1f", e.weight)) lbs"
+                if let bf = e.bodyFat { s += " (\(String(format: "%.1f", bf))% BF)" }
+                return s
+            }
+            if bwEntries.count >= 2 {
+                let delta = bwEntries[0].weight - bwEntries[bwEntries.count - 1].weight
+                let trend = delta > 0 ? "+\(String(format: "%.1f", delta)) lbs" : "\(String(format: "%.1f", delta)) lbs"
+                parts.append("POIDS DE CORPS (tendance: \(trend)):\n" + lines.joined(separator: "\n"))
+            } else {
+                parts.append("POIDS DE CORPS:\n" + lines.joined(separator: "\n"))
+            }
+        }
+
+        // Muscle volume breakdown (top 6)
+        let topMuscles = muscleStatsData.sorted { $0.value.volume > $1.value.volume }.prefix(6)
+        if !topMuscles.isEmpty {
+            let lines = topMuscles.map { (m, s) in
+                "\(m.capitalized): \(String(format: "%.0f", UnitSettings.shared.display(s.volume))) \(UnitSettings.shared.label) (\(s.sessions) séances)"
+            }
+            parts.append("VOLUME MUSCULAIRE:\n" + lines.joined(separator: "\n"))
         }
 
         // Nutrition today
@@ -283,11 +379,11 @@ struct IntelligenceView: View {
             parts.append("OBJECTIFS: " + goalStrs.joined(separator: " | "))
         }
 
-        // Exercise weights (top 10 by current weight)
+        // Exercise weights (top 12 by current weight)
         let keyExos = weightsData.compactMap { (name, w) -> (String, WeightData)? in
             guard w.currentWeight != nil else { return nil }
             return (name, w)
-        }.sorted { ($0.1.currentWeight ?? 0) > ($1.1.currentWeight ?? 0) }.prefix(10)
+        }.sorted { ($0.1.currentWeight ?? 0) > ($1.1.currentWeight ?? 0) }.prefix(12)
 
         if !keyExos.isEmpty {
             let lines = keyExos.map { (name, w) -> String in
