@@ -141,7 +141,12 @@ struct AddGoalSheet: View {
 
     @State private var exercise = ""
     @State private var goalWeight = ""
-    @State private var deadline = ""
+    @State private var deadline = Date()
+    @State private var apiError: String? = nil
+
+    private static let isoFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
 
     var body: some View {
         NavigationStack {
@@ -154,8 +159,9 @@ struct AddGoalSheet: View {
                         TextField("Poids objectif (\(units.label))", text: $goalWeight)
                             .keyboardType(.decimalPad)
                             .foregroundColor(.white)
-                        TextField("Deadline (YYYY-MM-DD)", text: $deadline)
+                        DatePicker("Deadline", selection: $deadline, displayedComponents: .date)
                             .foregroundColor(.white)
+                            .tint(.orange)
                     }
                     .listRowBackground(Color(hex: "11111c"))
                 }
@@ -171,16 +177,24 @@ struct AddGoalSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Sauvegarder") {
                         guard !exercise.isEmpty, let gw = Double(goalWeight).map({ units.toStorage($0) }) else { return }
+                        let deadlineStr = Self.isoFormatter.string(from: deadline)
                         Task {
-                            try? await APIService.shared.setGoal(exercise: exercise, goalWeight: gw, deadline: deadline)
-                            await onSaved()
-                            dismiss()
+                            do {
+                                try await APIService.shared.setGoal(exercise: exercise, goalWeight: gw, deadline: deadlineStr)
+                                await onSaved()
+                                dismiss()
+                            } catch {
+                                apiError = "Erreur réseau — réessaie"
+                            }
                         }
                     }
                     .foregroundColor(.orange)
                     .fontWeight(.semibold)
                 }
             }
+            .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(apiError ?? "") }
         }
         .presentationDetents([.medium])
     }
@@ -193,13 +207,19 @@ struct EditGoalSheet: View {
     @ObservedObject private var units = UnitSettings.shared
 
     @State private var goalWeight: String
-    @State private var deadline: String
+    @State private var deadline: Date
+    @State private var apiError: String? = nil
+
+    private static let isoFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
 
     init(obj: ObjectifEntry, onSaved: @escaping () async -> Void) {
         self.obj = obj
         self.onSaved = onSaved
         _goalWeight = State(initialValue: UnitSettings.shared.inputStr(obj.goal))
-        _deadline = State(initialValue: obj.deadline)
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        _deadline = State(initialValue: f.date(from: obj.deadline) ?? Date())
     }
 
     var body: some View {
@@ -231,8 +251,9 @@ struct EditGoalSheet: View {
                                 .font(.system(size: 10, weight: .bold))
                                 .tracking(2)
                                 .foregroundColor(.gray)
-                            TextField("YYYY-MM-DD", text: $deadline)
-                                .foregroundColor(.white)
+                            DatePicker("", selection: $deadline, displayedComponents: .date)
+                                .labelsHidden()
+                                .tint(.orange)
                                 .padding(12)
                                 .background(Color(hex: "191926"))
                                 .cornerRadius(10)
@@ -260,16 +281,24 @@ struct EditGoalSheet: View {
                     Button("Fermer") { dismiss() }.foregroundColor(.orange)
                 }
             }
+            .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(apiError ?? "") }
         }
         .presentationDetents([.medium])
     }
 
     private func save() {
         guard let gw = Double(goalWeight).map({ units.toStorage($0) }) else { return }
+        let deadlineStr = Self.isoFormatter.string(from: deadline)
         Task {
-            try? await APIService.shared.setGoal(exercise: obj.exercise, goalWeight: gw, deadline: deadline)
-            await onSaved()
-            dismiss()
+            do {
+                try await APIService.shared.setGoal(exercise: obj.exercise, goalWeight: gw, deadline: deadlineStr)
+                await onSaved()
+                dismiss()
+            } catch {
+                apiError = "Erreur réseau — réessaie"
+            }
         }
     }
 }

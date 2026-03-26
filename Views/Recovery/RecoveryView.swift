@@ -4,6 +4,7 @@ struct RecoveryView: View {
     @State private var log: [RecoveryEntry] = []
     @State private var isLoading = true
     @State private var showSheet = false
+    @State private var apiError: String? = nil
     @StateObject private var watchSync = WatchSyncService.shared
 
     private var todayStr: String {
@@ -88,7 +89,11 @@ struct RecoveryView: View {
                                     ForEach(log) { entry in
                                         RecoveryRow(entry: entry, onDelete: {
                                             Task {
-                                                try? await APIService.shared.deleteRecovery(date: entry.date ?? "")
+                                                do {
+                                                    try await APIService.shared.deleteRecovery(date: entry.date ?? "")
+                                                } catch {
+                                                    await MainActor.run { apiError = "Erreur réseau — réessaie" }
+                                                }
                                                 await loadData()
                                             }
                                         })
@@ -121,6 +126,9 @@ struct RecoveryView: View {
             await watchSync.syncIfNeeded()
             await loadData()
         }
+        .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(apiError ?? "") }
     }
 
     private func loadData() async {
@@ -331,6 +339,7 @@ struct LogRecoverySheet: View {
     @State private var notes = ""
     @State private var isSaving = false
     @State private var isLoadingHK = false
+    @State private var apiError: String? = nil
 
     var body: some View {
         NavigationStack {
@@ -441,6 +450,9 @@ struct LogRecoverySheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
             }
+            .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(apiError ?? "") }
         }
     }
 
@@ -473,18 +485,23 @@ struct LogRecoverySheet: View {
     private func save() {
         isSaving = true
         Task {
-            try? await APIService.shared.logRecovery(
-                sleepHours:   Double(sleepHoursStr.replacingOccurrences(of: ",", with: ".")),
-                sleepQuality: sleepQuality,
-                restingHr:    Double(restingHrStr),
-                hrv:          Double(hrvStr),
-                steps:        Int(stepsStr),
-                soreness:     soreness,
-                notes:        notes
-            )
-            await onSaved()
-            isSaving = false
-            dismiss()
+            do {
+                try await APIService.shared.logRecovery(
+                    sleepHours:   Double(sleepHoursStr.replacingOccurrences(of: ",", with: ".")),
+                    sleepQuality: sleepQuality,
+                    restingHr:    Double(restingHrStr),
+                    hrv:          Double(hrvStr),
+                    steps:        Int(stepsStr),
+                    soreness:     soreness,
+                    notes:        notes
+                )
+                await onSaved()
+                isSaving = false
+                dismiss()
+            } catch {
+                isSaving = false
+                apiError = "Erreur réseau — réessaie"
+            }
         }
     }
 }

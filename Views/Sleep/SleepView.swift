@@ -11,6 +11,7 @@ struct SleepView: View {
     @State private var nextOffset: Int? = nil
     @State private var showLogSheet = false
     @State private var entryToDelete: SleepEntry?
+    @State private var apiError: String? = nil
 
     private let accentColor = Color.indigo
 
@@ -163,6 +164,9 @@ struct SleepView: View {
             Button("Annuler", role: .cancel) {}
         }
         .task { await loadData() }
+        .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(apiError ?? "") }
     }
 
     private func loadData() async {
@@ -194,7 +198,11 @@ struct SleepView: View {
     }
 
     private func deleteEntry(_ entry: SleepEntry) async {
-        try? await APIService.shared.deleteSleepEntry(id: entry.id)
+        do {
+            try await APIService.shared.deleteSleepEntry(id: entry.id)
+        } catch {
+            apiError = "Erreur réseau — réessaie"
+        }
         await loadData()
     }
 }

@@ -1097,7 +1097,7 @@ struct AddHIITSheet: View {
         @State private var isLogged = false
         @State private var isEditing = false
 
-        enum LogStatus { case success(Double), stagné }
+        enum LogStatus { case success(Double), stagné, loading, error(String) }
 
         private var alreadyLogged: Bool { isLogged || logResult != nil }
 
@@ -1503,6 +1503,12 @@ struct AddHIITSheet: View {
                             case .stagné:
                                 Image(systemName: "equal.circle.fill").foregroundColor(.yellow)
                                 Text("Stagné — même poids").font(.system(size: 13, weight: .semibold)).foregroundColor(.yellow)
+                            case .loading:
+                                ProgressView().tint(.orange).scaleEffect(0.8)
+                                Text("Envoi...").font(.system(size: 13, weight: .semibold)).foregroundColor(.orange)
+                            case .error(let msg):
+                                Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
+                                Text(msg).font(.system(size: 13, weight: .semibold)).foregroundColor(.red)
                             }
                         }
                     }
@@ -1565,18 +1571,28 @@ struct AddHIITSheet: View {
             if isEditing { isLogged = false }
             isLogged = true
             isEditing = false
+            logStatus = .loading
 
             // ── Time-based branch ──
             if isTimeBased {
-                logResult = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE)
-                logStatus = .success(0)
-                onLogged?()
                 let setsPayload: [[String: Any]] = sets.map { ["weight": 0, "reps": String($0.duration)] }
                 Task {
-                    try? await APIService.shared.logExercise(
-                        exercise: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
-                        sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
-                        equipmentType: "bodyweight")
+                    do {
+                        try await APIService.shared.logExercise(
+                            exercise: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
+                            sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
+                            equipmentType: "bodyweight")
+                        await MainActor.run {
+                            logResult = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE)
+                            logStatus = .success(0)
+                            onLogged?()
+                        }
+                    } catch {
+                        await MainActor.run {
+                            isLogged = false
+                            logStatus = .error("Erreur réseau — réessaie")
+                        }
+                    }
                 }
                 return
             }
@@ -1587,9 +1603,6 @@ struct AddHIITSheet: View {
             guard let avg = avg else { return }
             let w     = units.toStorage(avg)   // per-side in lbs (0 for bodyweight-only)
             let total = totalWeight(for: w)    // total load: 0 for BW-only, lest for vested, barbell ×2+45…
-            logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE)
-            logStatus = .success(total)
-            onLogged?()
             // Per-set payload
             let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
                 guard !s.reps.isEmpty else { return nil }
@@ -1604,23 +1617,35 @@ struct AddHIITSheet: View {
                 return ["weight": setTotal, "reps": s.reps]
             }
             Task {
-                if let response = try? await APIService.shared.logExercise(
-                    exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE,
-                    sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
-                    equipmentType: equipmentType),
-                   response.isPR == true {
-                    let content = UNMutableNotificationContent()
-                    content.title = "🏆 Nouveau PR !"
-                    content.body  = "\(name) — 1RM estimé : \(String(format: "%.1f", response.oneRM ?? 0)) lbs"
-                    content.sound = .default
-                    let request = UNNotificationRequest(
-                        identifier: "pr-\(name)-\(Date().timeIntervalSince1970)",
-                        content: content,
-                        trigger: nil
-                    )
-                    try? await UNUserNotificationCenter.current().add(request)
+                do {
+                    let response = try await APIService.shared.logExercise(
+                        exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE,
+                        sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
+                        equipmentType: equipmentType)
                     await MainActor.run {
-                        triggerNotificationFeedback(.success)
+                        logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE)
+                        logStatus = .success(total)
+                        onLogged?()
+                    }
+                    if response.isPR == true {
+                        let content = UNMutableNotificationContent()
+                        content.title = "🏆 Nouveau PR !"
+                        content.body  = "\(name) — 1RM estimé : \(String(format: "%.1f", response.oneRM ?? 0)) lbs"
+                        content.sound = .default
+                        let request = UNNotificationRequest(
+                            identifier: "pr-\(name)-\(Date().timeIntervalSince1970)",
+                            content: content,
+                            trigger: nil
+                        )
+                        try? await UNUserNotificationCenter.current().add(request)
+                        await MainActor.run {
+                            triggerNotificationFeedback(.success)
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        isLogged = false
+                        logStatus = .error("Erreur réseau — réessaie")
                     }
                 }
             }

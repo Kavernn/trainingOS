@@ -8,6 +8,7 @@ struct CardioView: View {
     @State private var isLoading = true
     @State private var showSheet = false
     @State private var isImportingHK = false
+    @State private var apiError: String? = nil
     @ObservedObject private var hk = HealthKitService.shared
 
     // KPIs
@@ -57,9 +58,13 @@ struct CardioView: View {
                                     ForEach(log) { entry in
                                         CardioRow(entry: entry, onDelete: {
                                             Task {
-                                                try? await APIService.shared.deleteCardio(
-                                                    date: entry.date ?? "", type: entry.type ?? ""
-                                                )
+                                                do {
+                                                    try await APIService.shared.deleteCardio(
+                                                        date: entry.date ?? "", type: entry.type ?? ""
+                                                    )
+                                                } catch {
+                                                    await MainActor.run { apiError = "Erreur réseau — réessaie" }
+                                                }
                                                 await loadData()
                                             }
                                         })
@@ -105,6 +110,9 @@ struct CardioView: View {
             }
         }
         .task { await loadData() }
+        .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(apiError ?? "") }
     }
 
     private func loadData() async {
@@ -311,6 +319,7 @@ struct LogCardioSheet: View {
     @State private var rpeValue: Double = 6
     @State private var notes = ""
     @State private var isSaving = false
+    @State private var apiError: String? = nil
 
     var body: some View {
         NavigationStack {
@@ -390,26 +399,34 @@ struct LogCardioSheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
             }
+            .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(apiError ?? "") }
         }
     }
 
     private func save() {
         isSaving = true
         Task {
-            try? await APIService.shared.logCardio(
-                type:        selectedType,
-                durationMin: Double(durationStr.replacingOccurrences(of: ",", with: ".")),
-                distanceKm:  Double(distanceStr.replacingOccurrences(of: ",", with: ".")),
-                avgPace:     paceStr.isEmpty ? nil : paceStr,
-                avgHr:       Double(hrStr),
-                cadence:     nil,
-                calories:    Double(caloriesStr.replacingOccurrences(of: ",", with: ".")),
-                rpe:         rpeValue,
-                notes:       notes
-            )
-            await onSaved()
-            isSaving = false
-            dismiss()
+            do {
+                try await APIService.shared.logCardio(
+                    type:        selectedType,
+                    durationMin: Double(durationStr.replacingOccurrences(of: ",", with: ".")),
+                    distanceKm:  Double(distanceStr.replacingOccurrences(of: ",", with: ".")),
+                    avgPace:     paceStr.isEmpty ? nil : paceStr,
+                    avgHr:       Double(hrStr),
+                    cadence:     nil,
+                    calories:    Double(caloriesStr.replacingOccurrences(of: ",", with: ".")),
+                    rpe:         rpeValue,
+                    notes:       notes
+                )
+                await onSaved()
+                isSaving = false
+                dismiss()
+            } catch {
+                isSaving = false
+                apiError = "Erreur réseau — réessaie"
+            }
         }
     }
 }

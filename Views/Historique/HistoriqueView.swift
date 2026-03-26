@@ -25,6 +25,7 @@ struct HistoriqueView: View {
     @State private var selectedTab = 0
     @State private var expandedIDs: Set<String> = []
     @State private var editTarget: HistoriqueMuscu? = nil
+    @State private var apiError: String? = nil
 
     var body: some View {
         NavigationStack {
@@ -89,6 +90,9 @@ struct HistoriqueView: View {
                 Task { await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType) }
             }
         }
+        .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(apiError ?? "") }
     }
 
     private func toggle(_ id: String) {
@@ -150,29 +154,41 @@ struct HistoriqueView: View {
     }
 
     private func deleteMuscu(_ session: HistoriqueMuscu) async {
-        try? await APIService.shared.deleteSession(date: session.date, sessionType: session.sessionType)
-        muscuSessions.removeAll { $0.id == session.id }
+        do {
+            try await APIService.shared.deleteSession(date: session.date, sessionType: session.sessionType)
+            muscuSessions.removeAll { $0.id == session.id }
+        } catch {
+            apiError = "Erreur réseau — réessaie"
+        }
     }
 
     private func saveEdit(date: String, rpe: Double?, comment: String, sessionType: String = "morning") async {
-        try? await APIService.shared.updateSession(date: date, rpe: rpe, comment: comment, sessionType: sessionType)
-        if let idx = muscuSessions.firstIndex(where: { $0.date == date && $0.sessionType == sessionType }) {
-            muscuSessions[idx] = HistoriqueMuscu(
-                date: date,
-                sessionType: sessionType,
-                rpe: rpe,
-                comment: comment,
-                exos: muscuSessions[idx].exos
-            )
+        do {
+            try await APIService.shared.updateSession(date: date, rpe: rpe, comment: comment, sessionType: sessionType)
+            if let idx = muscuSessions.firstIndex(where: { $0.date == date && $0.sessionType == sessionType }) {
+                muscuSessions[idx] = HistoriqueMuscu(
+                    date: date,
+                    sessionType: sessionType,
+                    rpe: rpe,
+                    comment: comment,
+                    exos: muscuSessions[idx].exos
+                )
+            }
+            editTarget = nil
+        } catch {
+            apiError = "Erreur réseau — réessaie"
         }
-        editTarget = nil
     }
 
     private func deleteHIIT(_ session: HIITEntry) async {
         if let date = session.date, let type = session.sessionType {
-            try? await APIService.shared.deleteHIIT(date: date, sessionType: type)
-            hiitSessions.removeAll { $0.id == session.id }
-            CacheService.shared.clear(for: "historique_data")
+            do {
+                try await APIService.shared.deleteHIIT(date: date, sessionType: type)
+                hiitSessions.removeAll { $0.id == session.id }
+                CacheService.shared.clear(for: "historique_data")
+            } catch {
+                apiError = "Erreur réseau — réessaie"
+            }
         }
     }
 }
