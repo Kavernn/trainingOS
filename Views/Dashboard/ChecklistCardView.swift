@@ -10,12 +10,13 @@ private struct ChecklistItem {
 }
 
 private let kItems: [ChecklistItem] = [
-    ChecklistItem(id: "medocs",    label: "Médocs (Vyvance/Mg)"),
+    ChecklistItem(id: "medocs",    label: "Médocs Vyvance"),
     ChecklistItem(id: "telephone",    label: "Téléphone"),
     ChecklistItem(id: "portefeuille", label: "Portefeuille"),
     ChecklistItem(id: "cles",         label: "Clés"),
-    ChecklistItem(id: "vape",         label: "Vape"),
+    ChecklistItem(id: "vape",         label: "Vape/Liquide"),
     ChecklistItem(id: "montre",       label: "Montre"),
+    ChecklistItem(id: "ecouteurs",    label: "Écouteurs"),
     ChecklistItem(id: "gym", label: "Sac de gym", subs: [
         ChecklistItem(id: "gym_bas",      label: "Bas"),
         ChecklistItem(id: "gym_chandail", label: "Chandail"),
