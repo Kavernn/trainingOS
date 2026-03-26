@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import AVFoundation
 import UserNotifications
+import Charts
 
 struct SeanceView: View {
     @StateObject private var vm = SeanceViewModel()
@@ -44,6 +45,8 @@ struct AlreadyLoggedSeanceView: View {
     @ObservedObject var vm: SeanceViewModel
     @State private var showExtra = false
     @State private var confirmReset = false
+    @State private var animateHeader = false
+    @State private var showConfetti = false
 
     var todaySession: SessionEntry? {
         APIService.shared.dashboard?.sessions[data.todayDate]
@@ -86,28 +89,44 @@ struct AlreadyLoggedSeanceView: View {
         return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
     }
     var body: some View {
+        ZStack {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 20) {
 
                 // ── Header ──────────────────────────────────────────────
                 VStack(spacing: 8) {
                     ZStack {
-                        Circle().fill(Color.green.opacity(0.15)).frame(width: 72, height: 72)
+                        Circle().fill(Color.green.opacity(0.15))
+                            .frame(width: 72, height: 72)
+                            .scaleEffect(animateHeader ? 1.0 : 0.5)
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 40))
                             .foregroundColor(.green)
+                            .scaleEffect(animateHeader ? 1.0 : 0.3)
+                            .opacity(animateHeader ? 1.0 : 0.0)
                     }
                     Text("Séance complétée")
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(.white)
+                        .opacity(animateHeader ? 1.0 : 0.0)
+                        .offset(y: animateHeader ? 0 : 12)
                     Text(data.today)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(sessionColor)
                         .padding(.horizontal, 14).padding(.vertical, 5)
                         .background(sessionColor.opacity(0.12))
                         .clipShape(Capsule())
+                        .opacity(animateHeader ? 1.0 : 0.0)
                 }
                 .padding(.top, 24)
+                .onAppear {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.65)) {
+                        animateHeader = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showConfetti = true
+                    }
+                }
 
                 // ── Recap aujourd'hui ────────────────────────────────────
                 VStack(alignment: .leading, spacing: 12) {
@@ -300,6 +319,18 @@ struct AlreadyLoggedSeanceView: View {
         } message: {
             Text("Les données loggées aujourd'hui seront effacées.")
         }
+        // Confetti overlay
+        if showConfetti {
+            ConfettiView()
+                .allowsHitTesting(false)
+                .ignoresSafeArea()
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        showConfetti = false
+                    }
+                }
+        }
+        } // end ZStack
     }
 
     private func resetToday() async {
@@ -367,7 +398,6 @@ struct WorkoutSeanceView: View {
     @State private var editTarget: ExerciseTarget?
     @State private var isEditMode = false
     @State private var showRestTimer = false
-    @State private var sessionStart = Date()
 
     // Optional add-ons
     @State private var showAddCardio = false
@@ -599,8 +629,8 @@ struct WorkoutSeanceView: View {
                                 .foregroundColor(.gray)
                         }
                         Spacer()
-                        TimelineView(.periodic(from: sessionStart, by: 60)) { ctx in
-                            let elapsed = Int(ctx.date.timeIntervalSince(sessionStart) / 60)
+                        TimelineView(.periodic(from: vm.sessionStart, by: 60)) { ctx in
+                            let elapsed = Int(ctx.date.timeIntervalSince(vm.sessionStart) / 60)
                             HStack(spacing: 3) {
                                 Image(systemName: "clock").font(.system(size: 10))
                                 Text("\(elapsed) min")
@@ -697,11 +727,11 @@ struct WorkoutSeanceView: View {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
                 logResults: vm.logResults,
-                elapsedMin: Date().timeIntervalSince(sessionStart) / 60,
+                elapsedMin: Date().timeIntervalSince(vm.sessionStart) / 60,
                 rpe: $rpe,
                 comment: $comment,
                 onSubmit: { energy in
-                    let dur = Date().timeIntervalSince(sessionStart) / 60
+                    let dur = Date().timeIntervalSince(vm.sessionStart) / 60
                     Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energy) }
                 }
             )
@@ -1461,6 +1491,18 @@ struct AddHIITSheet: View {
                         .padding(.horizontal, 12)
                         .background(Color.green.opacity(0.08))
                         .cornerRadius(8)
+                        .contextMenu {
+                            Button { isEditing = true } label: {
+                                Label("Modifier", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                logResult = nil
+                                isLogged = false
+                                logStatus = nil
+                            } label: {
+                                Label("Réinitialiser", systemImage: "arrow.counterclockwise")
+                            }
+                        }
                     }
                 } else {
                     // ── Inputs ──
@@ -1599,6 +1641,28 @@ struct AddHIITSheet: View {
                 // History — most recent entry always visible
                 if let history = weightData?.history, !history.isEmpty {
                     VStack(spacing: 4) {
+                        // Sparkline — shown when 3+ entries with weight data
+                        let sparkData = history.reversed().compactMap { $0.weight }.filter { $0 > 0 }
+                        if sparkData.count >= 3 {
+                            Chart {
+                                ForEach(Array(sparkData.enumerated()), id: \.offset) { i, w in
+                                    AreaMark(x: .value("", i), y: .value("", w))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [Color.orange.opacity(0.35), Color.orange.opacity(0.0)],
+                                                startPoint: .top, endPoint: .bottom
+                                            )
+                                        )
+                                        .interpolationMethod(.catmullRom)
+                                    LineMark(x: .value("", i), y: .value("", w))
+                                        .foregroundStyle(Color.orange.opacity(0.75))
+                                        .interpolationMethod(.catmullRom)
+                                }
+                            }
+                            .chartXAxis(.hidden)
+                            .chartYAxis(.hidden)
+                            .frame(height: 32)
+                        }
                         HStack(spacing: 6) {
                             Image(systemName: "clock.arrow.circlepath")
                                 .font(.system(size: 10))
@@ -1696,6 +1760,8 @@ struct AddHIITSheet: View {
                             logResult = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE)
                             logStatus = .success(0)
                             onLogged?()
+                            triggerNotificationFeedback(.success)
+                            if restSeconds != nil { showRestTimer = true }
                         }
                     } catch {
                         await MainActor.run {
@@ -1736,6 +1802,8 @@ struct AddHIITSheet: View {
                         logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE)
                         logStatus = .success(total)
                         onLogged?()
+                        triggerNotificationFeedback(.success)
+                        if restSeconds != nil { showRestTimer = true }
                     }
                     if response.isPR == true {
                         let content = UNMutableNotificationContent()
@@ -2368,6 +2436,8 @@ struct AddHIITSheet: View {
         @Published var showSuccess = false
         @Published var submitError: String?
 
+        let sessionStart = Date()
+
         var cacheService: CacheService = .shared
 
         func load() async {
@@ -2420,6 +2490,56 @@ struct AddHIITSheet: View {
 
 
 
+
+// MARK: - Confetti
+private struct ConfettiPiece: Identifiable {
+    let id = UUID()
+    var x: CGFloat
+    var y: CGFloat
+    var color: Color
+    var angle: Double
+    var size: CGFloat
+}
+
+private struct ConfettiView: View {
+    private let colors: [Color] = [.orange, .green, .cyan, .yellow, .pink, .purple]
+    @State private var pieces: [ConfettiPiece] = []
+    @State private var animate = false
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(pieces) { p in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(p.color)
+                        .frame(width: p.size, height: p.size * 0.5)
+                        .position(x: p.x, y: animate ? geo.size.height + 40 : p.y)
+                        .rotationEffect(.degrees(p.angle + (animate ? 360 : 0)))
+                        .opacity(animate ? 0 : 1)
+                        .animation(
+                            .easeIn(duration: Double.random(in: 1.4...2.4))
+                            .delay(Double.random(in: 0...0.5)),
+                            value: animate
+                        )
+                }
+            }
+            .onAppear {
+                pieces = (0..<60).map { _ in
+                    ConfettiPiece(
+                        x: CGFloat.random(in: 0...geo.size.width),
+                        y: CGFloat.random(in: -20...geo.size.height * 0.4),
+                        color: colors.randomElement()!,
+                        angle: Double.random(in: 0...360),
+                        size: CGFloat.random(in: 6...12)
+                    )
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    animate = true
+                }
+            }
+        }
+    }
+}
 
 // MARK: - Card Height Preference Key
 private struct CardHeightKey: PreferenceKey {

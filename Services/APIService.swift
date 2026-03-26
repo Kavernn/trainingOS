@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UserNotifications
 
 // MARK: - API Errors
 enum APIError: LocalizedError {
@@ -98,6 +99,7 @@ class APIService: ObservableObject {
                 self.dashboard = decoded
                 self.isLoading = false
             }
+            scheduleMorningNotification(for: decoded)
         } catch let decodingError as DecodingError {
             let msg: String
             switch decodingError {
@@ -121,6 +123,25 @@ class APIService: ObservableObject {
                 self.isLoading = false
             }
         }
+    }
+
+    // MARK: - Morning Notification
+    private func scheduleMorningNotification(for data: DashboardData) {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: ["morning-coaching"])
+
+        let content = UNMutableNotificationContent()
+        let sessionType = data.today
+        content.title = "Bonne séance 💪"
+        content.body  = "Au programme aujourd'hui : \(sessionType)"
+        content.sound = .default
+
+        var dateComponents = DateComponents()
+        dateComponents.hour   = 7
+        dateComponents.minute = 30
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+        let request = UNNotificationRequest(identifier: "morning-coaching", content: content, trigger: trigger)
+        center.add(request)
     }
 
     // MARK: - Seance Data
