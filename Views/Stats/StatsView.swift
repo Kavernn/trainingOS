@@ -58,6 +58,7 @@ struct StatsView: View {
     @State private var muscleStats:      [String: MuscleStatEntry] = [:]
     @State private var inventoryTypes:   [String: String]          = [:]
     @State private var isLoading    = true
+    @State private var fetchError   = false
     @State private var selectedExercise: String? = nil
     @State private var searchText   = ""
 
@@ -207,6 +208,13 @@ struct StatsView: View {
                 AmbientBackground(color: .blue)
                 if isLoading {
                     ProgressView().tint(.orange).scaleEffect(1.3)
+                } else if fetchError {
+                    VStack(spacing: 12) {
+                        Image(systemName: "wifi.slash").font(.system(size: 40)).foregroundColor(.gray)
+                        Text("Impossible de charger les stats").foregroundColor(.gray)
+                        Button("Réessayer") { Task { await loadData() } }
+                            .foregroundColor(.orange).fontWeight(.semibold)
+                    }
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
@@ -425,6 +433,8 @@ struct StatsView: View {
     }
 
     private func loadData() async {
+        fetchError = false
+
         // 1. Show cached data immediately (no spinner if cache exists)
         if let cached = CacheService.shared.load(for: "stats_data"),
            let decoded = try? JSONDecoder().decode(StatsAPIResponse.self, from: cached) {
@@ -433,13 +443,16 @@ struct StatsView: View {
         }
 
         // 2. Fetch fresh data — parallel with ACWR
-        var req = URLRequest(url: URL(string: "https://training-os-rho.vercel.app/api/stats_data")!)
+        var req = URLRequest(url: URL(string: "\(APIService.shared.baseURL)/api/stats_data")!)
         req.timeoutInterval = 15
         async let acwrTask = APIService.shared.fetchACWR()
         if let (data, _) = try? await URLSession.shared.data(for: req),
            let decoded = try? JSONDecoder().decode(StatsAPIResponse.self, from: data) {
             CacheService.shared.save(data, for: "stats_data")
             applyStats(decoded)
+        } else if weights.isEmpty {
+            // No cache and network failed → show error state
+            fetchError = true
         }
         acwr = try? await acwrTask
         isLoading = false

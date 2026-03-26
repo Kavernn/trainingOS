@@ -45,7 +45,7 @@ private func offlinePost(endpoint: String, payload: [String: Any]) async throws 
 class APIService: ObservableObject {
     static let shared = APIService()
 
-    private let baseURL = "https://training-os-rho.vercel.app"
+    let baseURL = "https://training-os-rho.vercel.app"
 
     @Published var dashboard: DashboardData?
     @Published var isLoading = false
@@ -300,45 +300,6 @@ class APIService: ObservableObject {
         _ = try await offlinePost(endpoint: "/api/set_goal", payload: [
             "exercise": exercise, "goal_weight": goalWeight, "deadline": deadline
         ])
-    }
-
-    // MARK: - Stats
-    func fetchStatsData() async throws -> (
-        weights: [String: WeightData],
-        sessions: [String: SessionEntry],
-        hiitLog: [HIITEntry],
-        bodyWeight: [BodyWeightEntry],
-        recoveryLog: [RecoveryEntry],
-        nutritionTarget: NutritionSettings?,
-        nutritionDays: [NutritionDay],
-        muscleStats: [String: MuscleStatEntry],
-        inventoryTypes: [String: String]
-    ) {
-        let url = URL(string: "\(baseURL)/api/stats_data")!
-        let data = try await fetchWithCache(url: url, key: "stats_data")
-        struct StatsResponse: Codable {
-            let weights: [String: WeightData]
-            let sessions: [String: SessionEntry]
-            let hiitLog: [HIITEntry]
-            let bodyWeight: [BodyWeightEntry]
-            let recoveryLog: [RecoveryEntry]
-            let nutritionTarget: NutritionSettings?
-            let nutritionDays: [NutritionDay]
-            let muscleStats: [String: MuscleStatEntry]
-            let inventoryTypes: [String: String]?
-            enum CodingKeys: String, CodingKey {
-                case weights, sessions
-                case hiitLog         = "hiit_log"
-                case bodyWeight      = "body_weight"
-                case recoveryLog     = "recovery_log"
-                case nutritionTarget = "nutrition_target"
-                case nutritionDays   = "nutrition_days"
-                case muscleStats     = "muscle_stats"
-                case inventoryTypes  = "inventory_types"
-            }
-        }
-        let r = try JSONDecoder().decode(StatsResponse.self, from: data)
-        return (r.weights, r.sessions, r.hiitLog, r.bodyWeight, r.recoveryLog, r.nutritionTarget, r.nutritionDays, r.muscleStats, r.inventoryTypes ?? [:])
     }
 
     // MARK: - Health Dashboard
