@@ -651,6 +651,29 @@ struct WorkoutSeanceView: View {
 
                 optionalAddonsSection
 
+                // Live RPE — visible dès qu'un exercice est loggé
+                if !vm.logResults.isEmpty {
+                    HStack(spacing: 10) {
+                        Image(systemName: "gauge.with.dots.needle.67percent")
+                            .font(.system(size: 14))
+                            .foregroundColor(rpeColor(computedSessionRPE))
+                        Text("RPE séance")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.gray)
+                        Spacer()
+                        Text(String(format: "%.1f", computedSessionRPE))
+                            .font(.system(size: 18, weight: .black))
+                            .foregroundColor(rpeColor(computedSessionRPE))
+                        Text("/ 10")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 12)
+                    .background(rpeColor(computedSessionRPE).opacity(0.08))
+                    .cornerRadius(12)
+                    .padding(.horizontal, 16)
+                }
+
                 Button(action: { showFinish = true }) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")

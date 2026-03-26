@@ -479,7 +479,6 @@ struct EditSessionSheet: View {
     let onSave: (String, Double?, String, [EditableExo]) -> Void
 
     @State private var rpe: Double
-    @State private var hasRPE: Bool
     @State private var comment: String
     @State private var exos: [EditableExo]
     @State private var isSaving = false
@@ -488,7 +487,6 @@ struct EditSessionSheet: View {
         self.session = session
         self.onSave = onSave
         _rpe = State(initialValue: session.rpe ?? 7.0)
-        _hasRPE = State(initialValue: session.rpe != nil)
         _comment = State(initialValue: session.comment)
         _exos = State(initialValue: session.exos.map {
             EditableExo(exercise: $0.exercise,
@@ -504,26 +502,19 @@ struct EditSessionSheet: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         // RPE
-                        VStack(spacing: 12) {
+                        VStack(spacing: 8) {
                             HStack {
-                                Text("RPE")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .tracking(1)
+                                Text("RPE SÉANCE")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .tracking(2)
                                     .foregroundColor(.gray)
                                 Spacer()
-                                Toggle("", isOn: $hasRPE)
-                                    .labelsHidden()
-                                    .tint(.orange)
+                                Text(String(format: "%.1f / 10", rpe))
+                                    .font(.system(size: 24, weight: .black))
+                                    .foregroundColor(.orange)
                             }
-                            if hasRPE {
-                                VStack(spacing: 6) {
-                                    Slider(value: $rpe, in: 1...10, step: 0.5)
-                                        .tint(.orange)
-                                    Text(String(format: "%.1f / 10", rpe))
-                                        .font(.system(size: 28, weight: .black))
-                                        .foregroundColor(.orange)
-                                }
-                            }
+                            Slider(value: $rpe, in: 1...10, step: 0.5)
+                                .tint(.orange)
                         }
                         .padding(16)
                         .background(Color(hex: "11111c"))
@@ -587,7 +578,7 @@ struct EditSessionSheet: View {
 
                         Button {
                             isSaving = true
-                            onSave(session.date, hasRPE ? rpe : nil, comment, exos)
+                            onSave(session.date, rpe, comment, exos)
                         } label: {
                             HStack {
                                 if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
