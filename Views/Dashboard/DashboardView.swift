@@ -12,6 +12,7 @@ struct DashboardView: View {
     @State private var lastRefresh: Date = .distantPast
     @State private var sleepPromptDismissedThisSession = false
     @State private var todaySleepLogged = false
+    @State private var todayRecovery: RecoveryEntry?
     @Environment(\.scenePhase) private var scenePhase
 
     private var todayStr: String {
@@ -41,6 +42,12 @@ struct DashboardView: View {
                         VStack(alignment: .leading, spacing: 18) {
                             GreetingHeaderView(dash: dash)
                                 .appearAnimation(delay: 0)
+
+                            if let rec = todayRecovery,
+                               rec.sleepHours != nil || rec.restingHr != nil || rec.hrv != nil || rec.steps != nil {
+                                RecoverySnapshotView(recovery: rec)
+                                    .appearAnimation(delay: 0.01)
+                            }
 
                             if shouldShowSleepPrompt {
                                 SleepPromptCard(onDone: {
@@ -161,7 +168,9 @@ struct DashboardView: View {
             soirData = try? await s
             insights = (try? await i) ?? []
             if let log = try? await r {
-                todaySleepLogged = log.first(where: { $0.date == todayStr })?.sleepHours != nil
+                let entry = log.first(where: { $0.date == todayStr })
+                todaySleepLogged = entry?.sleepHours != nil
+                todayRecovery = entry
             }
             lastRefresh = Date()
         }
@@ -181,7 +190,9 @@ struct DashboardView: View {
                     brief    = try? await b
                     soirData = try? await s
                     if let log = try? await r {
-                        todaySleepLogged = log.first(where: { $0.date == todayStr })?.sleepHours != nil
+                        let entry = log.first(where: { $0.date == todayStr })
+                        todaySleepLogged = entry?.sleepHours != nil
+                        todayRecovery = entry
                     }
                     lastRefresh = Date()
                 }
@@ -509,43 +520,108 @@ struct GreetingHeaderView: View {
         return count
     }
 
-    var body: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text("VINCE")
-                        .font(.system(size: 11, weight: .black))
-                        .tracking(4)
-                        .foregroundColor(.gray.opacity(0.7))
-                    +
-                    Text("SEVEN")
-                        .font(.system(size: 11, weight: .black))
-                        .tracking(4)
-                        .foregroundColor(.orange)
+    var todayColor: Color {
+        switch dash.today {
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
+        case "Recovery":                     return .green
+        default:                             return .blue
+        }
+    }
 
+    var todayIcon: String {
+        switch dash.today {
+        case "Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs": return "dumbbell.fill"
+        case "Yoga / Tai Chi": return "figure.mind.and.body"
+        case "Recovery":       return "heart.fill"
+        default:               return "moon.fill"
+        }
+    }
+
+    var weekSessions: Int {
+        let fmt = DateFormatter.isoDate
+        let todayStr = fmt.string(from: Date())
+        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
+        let base = todayMidnight.timeIntervalSince1970
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        let daysSinceMonday = (weekday + 5) % 7
+        var count = 0
+        for i in 0...daysSinceMonday {
+            let d = Date(timeIntervalSince1970: base - Double(i) * 86400.0)
+            if dash.sessions[fmt.string(from: d)] != nil { count += 1 }
+        }
+        return count
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text("VINCE")
+                            .font(.system(size: 11, weight: .black))
+                            .tracking(4)
+                            .foregroundColor(.gray.opacity(0.7))
+                        +
+                        Text("SEVEN")
+                            .font(.system(size: 11, weight: .black))
+                            .tracking(4)
+                            .foregroundColor(.orange)
+                    }
+                    Text(greeting + (dash.profile.name.map { ", \($0.components(separatedBy: " ").first ?? $0)" } ?? "") + " 👋")
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundColor(.white)
+                    Text(formattedDate)
+                        .font(.system(size: 13))
+                        .foregroundColor(.gray)
                 }
-                Text(greeting + (dash.profile.name.map { ", \($0.components(separatedBy: " ").first ?? $0)" } ?? "") + " 👋")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundColor(.white)
-                Text(formattedDate)
-                    .font(.system(size: 13))
-                    .foregroundColor(.gray)
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    Text("S\(dash.week)")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(Capsule())
+
+                    if streak > 1 {
+                        StreakBadge(count: streak)
+                    }
+                }
             }
 
-            Spacer()
+            // Workout badge + week progress
+            HStack(spacing: 10) {
+                HStack(spacing: 5) {
+                    Image(systemName: todayIcon)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(todayColor)
+                    Text(dash.today)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(todayColor)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(todayColor.opacity(0.12))
+                .overlay(Capsule().stroke(todayColor.opacity(0.25), lineWidth: 1))
+                .clipShape(Capsule())
 
-            VStack(alignment: .trailing, spacing: 6) {
-                Text("S\(dash.week)")
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(1)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color.white.opacity(0.06))
-                    .clipShape(Capsule())
+                Spacer()
 
-                if streak > 1 {
-                    StreakBadge(count: streak)
+                if weekSessions > 0 {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.green.opacity(0.7))
+                        Text("\(weekSessions) séance\(weekSessions != 1 ? "s" : "") cette sem.")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.gray)
+                    }
                 }
             }
         }
@@ -617,6 +693,13 @@ struct TodayCardView: View {
                         Text("Complété")
                             .font(.system(size: 12, weight: .semibold)).foregroundColor(.green)
                     }
+                } else if !exercises.isEmpty {
+                    Text("\(exercises.count) exos")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(Capsule())
                 }
             }
             .padding(.horizontal, 16).padding(.top, 16).padding(.bottom, 12)
@@ -647,16 +730,24 @@ struct TodayCardView: View {
                 // ── Programme prévu (pas encore loggé) ───────────────────
                 if !exercises.isEmpty {
                     VStack(spacing: 0) {
-                        ForEach(exercises.prefix(5), id: \.0) { ex, sets in
-                            HStack {
-                                Circle().fill(todayColor.opacity(0.25)).frame(width: 5, height: 5)
-                                Text(ex)
+                        ForEach(Array(exercises.prefix(5).enumerated()), id: \.offset) { idx, item in
+                            HStack(spacing: 10) {
+                                Text("\(idx + 1)")
+                                    .font(.system(size: 11, weight: .black))
+                                    .foregroundColor(todayColor.opacity(0.5))
+                                    .frame(width: 16)
+                                Text(item.0)
                                     .font(.system(size: 13, weight: .medium)).foregroundColor(.white)
                                 Spacer()
-                                Text(sets)
+                                Text(item.1)
                                     .font(.system(size: 12)).foregroundColor(.gray)
                             }
                             .padding(.horizontal, 16).padding(.vertical, 7)
+                            if idx < exercises.prefix(5).count - 1 {
+                                Divider()
+                                    .background(Color.white.opacity(0.04))
+                                    .padding(.horizontal, 16)
+                            }
                         }
                         if exercises.count > 5 {
                             Text("+ \(exercises.count - 5) exercices")
@@ -836,12 +927,32 @@ struct StatsRowView: View {
         let rpes = dash.sessions.values.compactMap(\.rpe)
         return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
     }
+    var weekSessions: Int {
+        let fmt = DateFormatter.isoDate
+        let todayStr = fmt.string(from: Date())
+        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
+        let base = todayMidnight.timeIntervalSince1970
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        let daysSinceMonday = (weekday + 5) % 7
+        var count = 0
+        for i in 0...daysSinceMonday {
+            let d = Date(timeIntervalSince1970: base - Double(i) * 86400.0)
+            if dash.sessions[fmt.string(from: d)] != nil { count += 1 }
+        }
+        return count
+    }
+    var totalVolume: String {
+        let vol = dash.sessions.values.compactMap(\.sessionVolume).reduce(0, +)
+        if vol >= 1000 { return String(format: "%.1ft", vol / 1000.0) }
+        return vol > 0 ? String(format: "%.0fkg", vol) : "—"
+    }
 
     var body: some View {
-        HStack(spacing: 10) {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             StatPill(value: "\(totalSessions)", label: "SÉANCES", color: .orange)
             StatPill(value: avgRPE > 0 ? String(format: "%.1f", avgRPE) : "—", label: "RPE MOY", color: .purple)
-            StatPill(value: "S\(dash.week)", label: "SEMAINE", color: .blue)
+            StatPill(value: "\(weekSessions)", label: "CETTE SEMAINE", color: .cyan)
+            StatPill(value: totalVolume, label: "VOLUME TOTAL", color: .green)
         }
     }
 }
@@ -884,15 +995,42 @@ struct HeatmapView: View {
 
             // Grid
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 10), spacing: 4) {
-                ForEach(Array(last30Days.enumerated()), id: \.0) { _, day in
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(day.1 ? Color.orange : Color.white.opacity(0.04))
-                        .frame(height: 22)
-                        .overlay(
+                ForEach(Array(last30Days.enumerated()), id: \.0) { idx, day in
+                    let isToday = idx == last30Days.count - 1
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(day.1 ? Color.orange : Color.white.opacity(0.04))
+                        if isToday {
                             RoundedRectangle(cornerRadius: 3)
-                                .stroke(day.1 ? Color.orange.opacity(0.3) : Color.clear, lineWidth: 0.5)
-                        )
+                                .stroke(Color.white.opacity(0.55), lineWidth: 1.5)
+                        } else if day.1 {
+                            RoundedRectangle(cornerRadius: 3)
+                                .stroke(Color.orange.opacity(0.3), lineWidth: 0.5)
+                        }
+                    }
+                    .frame(height: 22)
                 }
+            }
+
+            // Barre d'assiduité
+            let pct = Double(activeDays) / 30.0
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text("Assiduité")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                    Spacer()
+                    Text("\(Int(pct * 100))%")
+                        .font(.system(size: 10, weight: .bold)).foregroundColor(.orange)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.07)).frame(height: 4)
+                        Capsule()
+                            .fill(LinearGradient(colors: [.orange, .yellow], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: max(4, geo.size.width * pct), height: 4)
+                    }
+                }
+                .frame(height: 4)
             }
 
             // Légende
@@ -904,9 +1042,10 @@ struct HeatmapView: View {
                         .font(.system(size: 10)).foregroundColor(.gray)
                 }
                 HStack(spacing: 5) {
-                    RoundedRectangle(cornerRadius: 2).fill(Color.white.opacity(0.08))
+                    RoundedRectangle(cornerRadius: 2)
+                        .stroke(Color.white.opacity(0.5), lineWidth: 1.5)
                         .frame(width: 12, height: 12)
-                    Text("Repos / non loggé")
+                    Text("Aujourd'hui")
                         .font(.system(size: 10)).foregroundColor(.gray)
                 }
                 Spacer()
@@ -1073,6 +1212,33 @@ struct NutritionSummaryView: View {
                     }
                 }
             }
+
+            // Barre de progression calories
+            if let calTarget = settings?.calories, calTarget > 0 {
+                let calCurrent = totals.calories ?? 0
+                let calPct = min(calCurrent / calTarget, 1.0)
+                let overTarget = calCurrent > calTarget
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
+                        Text("Calories")
+                            .font(.system(size: 10)).foregroundColor(.gray)
+                        Spacer()
+                        Text("\(Int(calCurrent)) / \(Int(calTarget)) kcal")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(overTarget ? .red : .orange)
+                    }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.white.opacity(0.07)).frame(height: 5)
+                            Capsule()
+                                .fill(overTarget ? Color.red : Color.orange)
+                                .frame(width: max(5, geo.size.width * calPct), height: 5)
+                                .animation(.easeOut(duration: 0.6), value: calPct)
+                        }
+                    }
+                    .frame(height: 5)
+                }
+            }
         }
         .padding(16)
         .glassCard(color: .orange, intensity: 0.04)
@@ -1100,6 +1266,56 @@ struct NutriBadge: View {
         .background(color.opacity(0.08))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.15), lineWidth: 0.5))
         .cornerRadius(10)
+    }
+}
+
+// MARK: - Recovery Snapshot Strip
+
+struct RecoverySnapshotView: View {
+    let recovery: RecoveryEntry
+
+    var body: some View {
+        HStack(spacing: 0) {
+            if let sleep = recovery.sleepHours {
+                SnapMetric(icon: "moon.zzz.fill", value: String(format: "%.1fh", sleep), label: "Sommeil", color: .indigo)
+            }
+            if let rhr = recovery.restingHr {
+                SnapMetric(icon: "heart.fill", value: "\(Int(rhr))", label: "FC repos", color: .red)
+            }
+            if let hrv = recovery.hrv {
+                SnapMetric(icon: "waveform.path.ecg", value: "\(Int(hrv))ms", label: "HRV", color: .green)
+            }
+            if let steps = recovery.steps {
+                let stepsStr = steps >= 1000 ? String(format: "%.1fk", Double(steps) / 1000.0) : "\(steps)"
+                SnapMetric(icon: "figure.walk", value: stepsStr, label: "Pas", color: .blue)
+            }
+        }
+        .padding(.vertical, 12)
+        .glassCard(color: .cyan, intensity: 0.04)
+    }
+}
+
+struct SnapMetric: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundColor(color)
+            Text(value)
+                .font(.system(size: 15, weight: .black))
+                .foregroundColor(.white)
+                .contentTransition(.numericText())
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .tracking(0.3)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
     }
 }
 
