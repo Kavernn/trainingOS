@@ -1,6 +1,12 @@
 import SwiftUI
 
 // MARK: - Models
+struct EditableExo {
+    let exercise: String
+    var weightStr: String
+    var reps: String
+}
+
 struct HistoriqueMuscu: Identifiable {
     var id: String { "\(date)-\(sessionType)" }
     let date: String
@@ -86,8 +92,8 @@ struct HistoriqueView: View {
         }
         .task { await loadData() }
         .sheet(item: $editTarget) { session in
-            EditSessionSheet(session: session) { date, rpe, comment in
-                Task { await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType) }
+            EditSessionSheet(session: session) { date, rpe, comment, exos in
+                Task { await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType, exos: exos) }
             }
         }
         .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
@@ -162,16 +168,24 @@ struct HistoriqueView: View {
         }
     }
 
-    private func saveEdit(date: String, rpe: Double?, comment: String, sessionType: String = "morning") async {
+    private func saveEdit(date: String, rpe: Double?, comment: String, sessionType: String = "morning", exos: [EditableExo]) async {
+        let exoPayload: [[String: Any]] = exos.compactMap { e in
+            guard let w = Double(e.weightStr.replacingOccurrences(of: ",", with: ".")) else { return nil }
+            return ["exercise": e.exercise, "weight": UnitSettings.shared.toStorage(w), "reps": e.reps]
+        }
         do {
-            try await APIService.shared.updateSession(date: date, rpe: rpe, comment: comment, sessionType: sessionType)
+            try await APIService.shared.editSession(
+                date: date, rpe: rpe, comment: comment, sessionType: sessionType,
+                exercises: exoPayload.isEmpty ? nil : exoPayload
+            )
             if let idx = muscuSessions.firstIndex(where: { $0.date == date && $0.sessionType == sessionType }) {
+                let updatedExos: [HistoriqueExo] = exos.compactMap { e in
+                    guard let w = Double(e.weightStr.replacingOccurrences(of: ",", with: ".")) else { return nil }
+                    return HistoriqueExo(exercise: e.exercise, weight: UnitSettings.shared.toStorage(w), reps: e.reps)
+                }
                 muscuSessions[idx] = HistoriqueMuscu(
-                    date: date,
-                    sessionType: sessionType,
-                    rpe: rpe,
-                    comment: comment,
-                    exos: muscuSessions[idx].exos
+                    date: date, sessionType: sessionType, rpe: rpe, comment: comment,
+                    exos: updatedExos.isEmpty ? muscuSessions[idx].exos : updatedExos
                 )
             }
             editTarget = nil
@@ -460,88 +474,137 @@ struct EmptyHistoriqueView: View {
 // MARK: - Edit Session Sheet
 struct EditSessionSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var units = UnitSettings.shared
     let session: HistoriqueMuscu
-    let onSave: (String, Double?, String) -> Void
+    let onSave: (String, Double?, String, [EditableExo]) -> Void
 
     @State private var rpe: Double
     @State private var hasRPE: Bool
     @State private var comment: String
+    @State private var exos: [EditableExo]
     @State private var isSaving = false
 
-    init(session: HistoriqueMuscu, onSave: @escaping (String, Double?, String) -> Void) {
+    init(session: HistoriqueMuscu, onSave: @escaping (String, Double?, String, [EditableExo]) -> Void) {
         self.session = session
         self.onSave = onSave
         _rpe = State(initialValue: session.rpe ?? 7.0)
         _hasRPE = State(initialValue: session.rpe != nil)
         _comment = State(initialValue: session.comment)
+        _exos = State(initialValue: session.exos.map {
+            EditableExo(exercise: $0.exercise,
+                        weightStr: UnitSettings.shared.inputStr($0.weight),
+                        reps: $0.reps)
+        })
     }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
-                VStack(spacing: 24) {
-                    // RPE
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text("RPE")
-                                .font(.system(size: 13, weight: .bold))
-                                .tracking(1)
-                                .foregroundColor(.gray)
-                            Spacer()
-                            Toggle("", isOn: $hasRPE)
-                                .labelsHidden()
-                                .tint(.orange)
-                        }
-                        if hasRPE {
-                            VStack(spacing: 6) {
-                                Slider(value: $rpe, in: 1...10, step: 0.5)
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // RPE
+                        VStack(spacing: 12) {
+                            HStack {
+                                Text("RPE")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .tracking(1)
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Toggle("", isOn: $hasRPE)
+                                    .labelsHidden()
                                     .tint(.orange)
-                                Text(String(format: "%.1f / 10", rpe))
-                                    .font(.system(size: 28, weight: .black))
-                                    .foregroundColor(.orange)
+                            }
+                            if hasRPE {
+                                VStack(spacing: 6) {
+                                    Slider(value: $rpe, in: 1...10, step: 0.5)
+                                        .tint(.orange)
+                                    Text(String(format: "%.1f / 10", rpe))
+                                        .font(.system(size: 28, weight: .black))
+                                        .foregroundColor(.orange)
+                                }
                             }
                         }
-                    }
-                    .padding(16)
-                    .background(Color(hex: "11111c"))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-
-                    // Comment
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("COMMENTAIRE")
-                            .font(.system(size: 13, weight: .bold))
-                            .tracking(1)
-                            .foregroundColor(.gray)
-                        TextField("Note, ressenti…", text: $comment, axis: .vertical)
-                            .lineLimit(3...6)
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
-                            .padding(12)
-                            .background(Color(hex: "11111c"))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-
-                    Spacer()
-
-                    Button {
-                        isSaving = true
-                        onSave(session.date, hasRPE ? rpe : nil, comment)
-                    } label: {
-                        HStack {
-                            if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
-                            Text("Enregistrer")
-                                .font(.system(size: 16, weight: .bold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(Color.orange)
-                        .foregroundColor(.black)
+                        .padding(16)
+                        .background(Color(hex: "11111c"))
                         .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        // Exercises
+                        if !exos.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("EXERCICES")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .tracking(2)
+                                    .foregroundColor(.gray)
+                                ForEach(exos.indices, id: \.self) { i in
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(exos[i].exercise)
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(.white)
+                                        HStack(spacing: 10) {
+                                            HStack {
+                                                TextField("Poids", text: $exos[i].weightStr)
+                                                    .keyboardType(.decimalPad)
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(.white)
+                                                Text(units.label)
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.gray)
+                                            }
+                                            .padding(10)
+                                            .background(Color(hex: "191926"))
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                            TextField("Reps (ex: 5,5,5)", text: $exos[i].reps)
+                                                .font(.system(size: 14))
+                                                .foregroundColor(.white)
+                                                .padding(10)
+                                                .background(Color(hex: "191926"))
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(16)
+                            .background(Color(hex: "11111c"))
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+
+                        // Comment
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("COMMENTAIRE")
+                                .font(.system(size: 11, weight: .bold))
+                                .tracking(2)
+                                .foregroundColor(.gray)
+                            TextField("Note, ressenti…", text: $comment, axis: .vertical)
+                                .lineLimit(3...6)
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                                .padding(12)
+                                .background(Color(hex: "11111c"))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+
+                        Button {
+                            isSaving = true
+                            onSave(session.date, hasRPE ? rpe : nil, comment, exos)
+                        } label: {
+                            HStack {
+                                if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
+                                Text("Enregistrer")
+                                    .font(.system(size: 16, weight: .bold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.orange)
+                            .foregroundColor(.black)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .disabled(isSaving)
                     }
-                    .disabled(isSaving)
+                    .padding(20)
                 }
-                .padding(20)
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Modifier la séance")
             .navigationBarTitleDisplayMode(.inline)

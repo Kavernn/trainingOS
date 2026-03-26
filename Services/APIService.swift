@@ -188,6 +188,16 @@ class APIService: ObservableObject {
         CacheService.shared.clear(for: "dashboard")
     }
 
+    func editSession(date: String, rpe: Double?, comment: String, sessionType: String = "morning",
+                     exercises: [[String: Any]]? = nil) async throws {
+        var body: [String: Any] = ["date": date, "comment": comment, "session_type": sessionType]
+        if let rpe { body["rpe"] = rpe }
+        if let exercises { body["exercises"] = exercises }
+        _ = try await offlinePost(endpoint: "/api/session/edit", payload: body)
+        CacheService.shared.clear(for: "historique_data")
+        CacheService.shared.clear(for: "dashboard")
+    }
+
     // MARK: - HIIT
     func fetchHIITData() async throws -> [HIITEntry] {
         let url = URL(string: "\(baseURL)/api/hiit_data")!
