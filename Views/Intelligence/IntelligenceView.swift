@@ -248,154 +248,131 @@ struct IntelligenceView: View {
     }
 
     private func buildContext() -> String {
-        guard let dash = api.dashboard else { return "Données indisponibles." }
-        var parts: [String] = []
+        guard let dash = api.dashboard else { return "no data" }
+        var lines: [String] = []
 
-        // Profile
+        // Profile + date (1 line)
         let p = dash.profile
-        var profileParts: [String] = []
-        if let name = p.name    { profileParts.append("Nom: \(name)") }
-        if let w = p.weight     { profileParts.append("Poids: \(String(format: "%.0f", w)) lbs") }
-        if let age = p.age      { profileParts.append("Âge: \(age) ans") }
-        if let goal = p.goal    { profileParts.append("Objectif: \(goal)") }
-        if let level = p.level  { profileParts.append("Niveau: \(level)") }
-        if !profileParts.isEmpty { parts.append("PROFIL: \(profileParts.joined(separator: " | "))") }
+        var info: [String] = []
+        if let n = p.name    { info.append(n) }
+        if let w = p.weight  { info.append("\(String(format: "%.0f", w))lbs") }
+        if let a = p.age     { info.append("\(a)ans") }
+        if let g = p.goal    { info.append(g) }
+        if let l = p.level   { info.append(l) }
+        lines.append("[\(info.joined(separator: " ")) | \(dash.todayDate) \(dash.today) S\(dash.week)]")
 
-        // Date / week
-        parts.append("DATE: \(dash.todayDate) (\(dash.today)) — Semaine \(dash.week)")
-
-        // LSS — état de récupération actuel
+        // LSS + ACWR (1-2 lines)
         if let lss = lssData {
-            var lssParts = ["LSS: \(String(format: "%.0f", lss.score))/100 (\(lss.scoreColor))"]
             let c = lss.components
-            if let v = c.sleepQuality    { lssParts.append("sommeil:\(String(format: "%.0f", v))") }
-            if let v = c.hrvTrend        { lssParts.append("HRV:\(String(format: "%.0f", v))") }
-            if let v = c.rhrTrend        { lssParts.append("RHR:\(String(format: "%.0f", v))") }
-            if let v = c.subjectiveStress { lssParts.append("stress:\(String(format: "%.0f", v))") }
-            if let v = c.trainingFatigue { lssParts.append("fatigue:\(String(format: "%.0f", v))") }
+            var t = "LSS:\(String(format: "%.0f", lss.score))"
+            if let v = c.sleepQuality    { t += " som:\(String(format: "%.0f", v))" }
+            if let v = c.hrvTrend        { t += " hrv:\(String(format: "%.0f", v))" }
+            if let v = c.rhrTrend        { t += " rhr:\(String(format: "%.0f", v))" }
+            if let v = c.subjectiveStress { t += " str:\(String(format: "%.0f", v))" }
+            if let v = c.trainingFatigue { t += " fat:\(String(format: "%.0f", v))" }
             var flags: [String] = []
-            if lss.flags.hrvDrop          { flags.append("⚠️ HRV bas") }
-            if lss.flags.sleepDeprivation { flags.append("⚠️ manque sommeil") }
-            if lss.flags.trainingOverload { flags.append("⚠️ surcharge") }
-            if !flags.isEmpty { lssParts.append(flags.joined(separator: " ")) }
-            parts.append("RÉCUPÉRATION GLOBALE: \(lssParts.joined(separator: " | "))")
+            if lss.flags.hrvDrop          { flags.append("!hrv") }
+            if lss.flags.sleepDeprivation { flags.append("!som") }
+            if lss.flags.trainingOverload { flags.append("!surcharge") }
+            if !flags.isEmpty { t += " \(flags.joined(separator: " "))" }
+            lines.append(t)
         }
-
-        // ACWR — charge d'entraînement
         if let acwr = acwrData {
-            let line = "ACWR: \(String(format: "%.2f", acwr.ratio)) — \(acwr.zone.label) | charge aiguë: \(String(format: "%.0f", acwr.acuteLoad)) / chronique: \(String(format: "%.0f", acwr.chronicLoad)) | conseil: \(acwr.zone.recommendation)"
-            parts.append(line)
+            lines.append("ACWR:\(String(format: "%.2f", acwr.ratio)) \(acwr.zone.code) aiguë:\(String(format: "%.0f", acwr.acuteLoad)) chr:\(String(format: "%.0f", acwr.chronicLoad))")
         }
 
         // Schedule
-        let scheduleStr = dash.schedule.sorted { $0.key < $1.key }
-            .map { "\($0.key): \($0.value)" }.joined(separator: " | ")
-        if !scheduleStr.isEmpty { parts.append("HORAIRE: \(scheduleStr)") }
+        let sched = dash.schedule.sorted { $0.key < $1.key }.map { "\($0.key):\($0.value)" }.joined(separator: " ")
+        if !sched.isEmpty { lines.append("prog: \(sched)") }
 
-        // Recent sessions — use full history if available, else dashboard
+        // Recent sessions
         let allSessions = sessionsData.isEmpty ? dash.sessions : sessionsData
-        let recentSessions = allSessions.sorted { $0.key > $1.key }.prefix(14)
-        if !recentSessions.isEmpty {
-            let lines = recentSessions.map { (date, s) -> String in
-                var line = date
-                if let exos = s.exos, !exos.isEmpty { line += " [\(exos.joined(separator: ", "))]" }
-                if let rpe = s.rpe      { line += " RPE:\(String(format: "%.1f", rpe))" }
-                if let sets = s.totalSets { line += " \(sets)sets" }
-                if let dur = s.durationMin { line += " \(dur)min" }
-                if let c = s.comment, !c.isEmpty { line += " \"\(c)\"" }
-                return line
-            }
+        let recent = allSessions.sorted { $0.key > $1.key }.prefix(12)
+        if !recent.isEmpty {
             let count30 = allSessions.filter {
                 $0.key >= DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
             }.count
-            parts.append("SÉANCES RÉCENTES (\(count30) ce mois — 14 dernières):\n" + lines.joined(separator: "\n"))
-        }
-
-        // Recovery — last 10 entries
-        let recentRecovery = Array(recoveryData.prefix(10))
-        if !recentRecovery.isEmpty {
-            let lines = recentRecovery.compactMap { r -> String? in
-                guard let date = r.date else { return nil }
-                var tokens: [String] = [date]
-                if let v = r.sleepHours    { tokens.append("sommeil:\(String(format: "%.1f", v))h") }
-                if let v = r.sleepQuality  { tokens.append("qualité:\(String(format: "%.0f", v))/10") }
-                if let v = r.hrv           { tokens.append("HRV:\(String(format: "%.0f", v))ms") }
-                if let v = r.restingHr     { tokens.append("RHR:\(String(format: "%.0f", v))bpm") }
-                if let v = r.soreness      { tokens.append("courbatures:\(String(format: "%.0f", v))/10") }
-                return tokens.joined(separator: " ")
+            lines.append("séances(\(count30)/30j):")
+            for (date, s) in recent {
+                let dd = String(date.suffix(5))   // MM-DD
+                var row = dd
+                if let exos = s.exos, !exos.isEmpty { row += " \(exos.joined(separator: "+"))" }
+                if let rpe = s.rpe        { row += " RPE:\(String(format: "%.1f", rpe))" }
+                if let sets = s.totalSets { row += " \(sets)s" }
+                if let dur = s.durationMin { row += " \(dur)m" }
+                lines.append("  \(row)")
             }
-            if !lines.isEmpty { parts.append("RÉCUPÉRATION (10j):\n" + lines.joined(separator: "\n")) }
         }
 
-        // Body weight trend
-        let bwEntries = Array(bodyWeightData.prefix(5))
-        if !bwEntries.isEmpty {
-            let lines = bwEntries.map { e -> String in
-                var s = "\(e.date): \(String(format: "%.1f", e.weight)) lbs"
-                if let bf = e.bodyFat { s += " (\(String(format: "%.1f", bf))% BF)" }
+        // Recovery (last 8)
+        let recov = recoveryData.prefix(8).compactMap { r -> String? in
+            guard let date = r.date else { return nil }
+            let dd = String(date.suffix(5))
+            var t = dd
+            if let v = r.sleepHours   { t += " \(String(format: "%.1f", v))h" }
+            if let v = r.sleepQuality { t += " q:\(String(format: "%.0f", v))" }
+            if let v = r.hrv          { t += " hrv:\(String(format: "%.0f", v))" }
+            if let v = r.restingHr    { t += " rhr:\(String(format: "%.0f", v))" }
+            if let v = r.soreness     { t += " cor:\(String(format: "%.0f", v))" }
+            return t
+        }
+        if !recov.isEmpty { lines.append("récup: " + recov.joined(separator: " | ")) }
+
+        // Body weight trend (1 line)
+        let bw = Array(bodyWeightData.prefix(5))
+        if !bw.isEmpty {
+            let pts = bw.map { e -> String in
+                var s = "\(String(e.date.suffix(5))):\(String(format: "%.1f", e.weight))"
+                if let bf = e.bodyFat { s += "(\(String(format: "%.0f", bf))%)" }
                 return s
-            }
-            if bwEntries.count >= 2 {
-                let delta = bwEntries[0].weight - bwEntries[bwEntries.count - 1].weight
-                let trend = delta > 0 ? "+\(String(format: "%.1f", delta)) lbs" : "\(String(format: "%.1f", delta)) lbs"
-                parts.append("POIDS DE CORPS (tendance: \(trend)):\n" + lines.joined(separator: "\n"))
+            }.joined(separator: " ")
+            if bw.count >= 2 {
+                let delta = bw[0].weight - bw[bw.count - 1].weight
+                lines.append("poids(\(delta >= 0 ? "+" : "")\(String(format: "%.1f", delta))lbs): \(pts)")
             } else {
-                parts.append("POIDS DE CORPS:\n" + lines.joined(separator: "\n"))
+                lines.append("poids: \(pts)")
             }
         }
 
-        // Muscle volume breakdown (top 6)
-        let topMuscles = muscleStatsData.sorted { $0.value.volume > $1.value.volume }.prefix(6)
-        if !topMuscles.isEmpty {
-            let lines = topMuscles.map { (m, s) in
-                "\(m.capitalized): \(String(format: "%.0f", UnitSettings.shared.display(s.volume))) \(UnitSettings.shared.label) (\(s.sessions) séances)"
-            }
-            parts.append("VOLUME MUSCULAIRE:\n" + lines.joined(separator: "\n"))
+        // Muscle volume (top 6, 1 line)
+        let muscles = muscleStatsData.sorted { $0.value.volume > $1.value.volume }.prefix(6)
+        if !muscles.isEmpty {
+            let ms = muscles.map { (m, s) in "\(m):\(String(format: "%.0f", UnitSettings.shared.display(s.volume)))\(UnitSettings.shared.label)(\(s.sessions)s)" }.joined(separator: " ")
+            lines.append("muscles: \(ms)")
         }
 
-        // Nutrition today
-        let nt = dash.nutritionTotals
-        let ns = dash.nutritionSettings
-        var nutriParts: [String] = []
-        if let cal = nt.calories {
-            var s = "Cal:\(String(format: "%.0f", cal))kcal"
-            if let t = ns?.calories { s += "/\(String(format: "%.0f", t))" }
-            nutriParts.append(s)
-        }
-        if let prot = nt.proteines {
-            var s = "Prot:\(String(format: "%.0f", prot))g"
-            if let t = ns?.proteines { s += "/\(String(format: "%.0f", t))g" }
-            nutriParts.append(s)
-        }
-        if let carbs = nt.glucides { nutriParts.append("Carbs:\(String(format: "%.0f", carbs))g") }
-        if let fat = nt.lipides    { nutriParts.append("Lipides:\(String(format: "%.0f", fat))g") }
-        if !nutriParts.isEmpty { parts.append("NUTRITION AUJOURD'HUI: \(nutriParts.joined(separator: " | "))") }
+        // Nutrition today (1 line)
+        let nt = dash.nutritionTotals; let ns = dash.nutritionSettings
+        var nutr: [String] = []
+        if let cal = nt.calories   { nutr.append("cal:\(String(format: "%.0f", cal))\(ns?.calories.map { "/\(String(format: "%.0f", $0))" } ?? "")") }
+        if let prot = nt.proteines { nutr.append("prot:\(String(format: "%.0f", prot))g\(ns?.proteines.map { "/\(String(format: "%.0f", $0))g" } ?? "")") }
+        if let carbs = nt.glucides { nutr.append("carbs:\(String(format: "%.0f", carbs))g") }
+        if let fat = nt.lipides    { nutr.append("lip:\(String(format: "%.0f", fat))g") }
+        if !nutr.isEmpty { lines.append("nutri: \(nutr.joined(separator: " "))") }
 
-        // Goals
+        // Goals (1 line)
         if !dash.goals.isEmpty {
-            let goalStrs = dash.goals.sorted { $0.key < $1.key }.map { (k, v) in
-                "\(k): \(String(format: "%.0f", v.current))/\(String(format: "%.0f", v.goal))lbs\(v.achieved ? " ✓" : "")"
-            }
-            parts.append("OBJECTIFS: " + goalStrs.joined(separator: " | "))
+            let gs = dash.goals.sorted { $0.key < $1.key }.map { (k, v) in
+                "\(k):\(String(format: "%.0f", v.current))/\(String(format: "%.0f", v.goal))\(v.achieved ? "✓" : "")"
+            }.joined(separator: " ")
+            lines.append("goals: \(gs)")
         }
 
-        // Exercise weights (top 12 by current weight)
-        let keyExos = weightsData.compactMap { (name, w) -> (String, WeightData)? in
-            guard w.currentWeight != nil else { return nil }
-            return (name, w)
+        // Lifts (top 12, 1 per line compressed)
+        let lifts = weightsData.compactMap { (name, w) -> (String, WeightData)? in
+            w.currentWeight != nil ? (name, w) : nil
         }.sorted { ($0.1.currentWeight ?? 0) > ($1.1.currentWeight ?? 0) }.prefix(12)
-
-        if !keyExos.isEmpty {
-            let lines = keyExos.map { (name, w) -> String in
-                var line = "\(name): \(String(format: "%.0f", w.currentWeight ?? 0)) lbs"
-                if let reps = w.lastReps   { line += " (\(reps))" }
-                if let date = w.lastLogged { line += " — dernier: \(date)" }
-                return line
+        if !lifts.isEmpty {
+            lines.append("lifts:")
+            for (name, w) in lifts {
+                var row = "\(name):\(String(format: "%.0f", w.currentWeight ?? 0))lbs"
+                if let r = w.lastReps   { row += "(\(r))" }
+                if let d = w.lastLogged { row += " \(String(d.suffix(5)))" }
+                lines.append("  \(row)")
             }
-            parts.append("POIDS ACTUELS:\n" + lines.joined(separator: "\n"))
         }
 
-        return parts.joined(separator: "\n\n")
+        return lines.joined(separator: "\n")
     }
 
     private func sendMessage() {
@@ -408,8 +385,8 @@ struct IntelligenceView: View {
         isLoading = true
         inputFocused = false
 
-        // Build full conversation history (all messages incl. the one just appended)
-        let history = messages.map { ["role": $0.role == .user ? "user" : "assistant", "content": $0.content] }
+        // Keep last 12 messages (6 exchanges) — server caps at 20 but less is cheaper
+        let history = messages.suffix(12).map { ["role": $0.role == .user ? "user" : "assistant", "content": $0.content] }
 
         Task {
             do {
