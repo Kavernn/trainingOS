@@ -39,7 +39,9 @@ struct TrainingOSApp: App {
             .preferredColorScheme(.dark)
             .onAppear {
                 SyncManager.shared.setup(container: modelContainer)
-                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { _, _ in }
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                    if granted { NotificationService.scheduleAll() }
+                }
                 Task { await HealthKitService.shared.requestAuthorization() }
             }
         }

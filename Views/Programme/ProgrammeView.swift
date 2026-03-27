@@ -16,6 +16,17 @@ struct ProgrammeView: View {
     @State private var deleteSeanceTarget: String? = nil
     @State private var confirmDeleteSeance = false
 
+    // Multi-programmes
+    @State private var programs: [ProgramInfo] = []
+    @State private var selectedProgramId: String = ""
+    @State private var allSessions: [String] = []         // toutes les sessions, tous programmes
+    @State private var showCreateProgram = false
+    @State private var newProgramName = ""
+    @State private var renameProgramTarget: ProgramInfo? = nil
+    @State private var renameProgramName = ""
+    @State private var deleteProgramTarget: ProgramInfo? = nil
+    @State private var confirmDeleteProgram = false
+
     private let dayNames    = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
     private let seanceOrder = ["Push A", "Pull A", "Legs", "Push B", "Pull B + Full Body", "Yoga / Tai Chi", "Recovery"]
 
@@ -35,10 +46,28 @@ struct ProgrammeView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
+                            // ── Onglets programmes ────────────────────────
+                            if !programs.isEmpty {
+                                ProgramTabsView(
+                                    programs: programs,
+                                    selectedId: $selectedProgramId,
+                                    onAdd: { showCreateProgram = true },
+                                    onRename: { p in
+                                        renameProgramTarget = p
+                                        renameProgramName   = p.name
+                                    },
+                                    onDelete: { p in
+                                        deleteProgramTarget  = p
+                                        confirmDeleteProgram = true
+                                    }
+                                )
+                                .padding(.horizontal, 16)
+                            }
+
                             EditableWeekScheduleCard(
                                 schedule: $schedule,
                                 dayNames: dayNames,
-                                sessions: orderedSeances,
+                                sessions: allSessions.isEmpty ? orderedSeances : allSessions,
                                 onSave: { Task { await saveSchedule() } }
                             )
                             .padding(.horizontal, 16)
@@ -46,7 +75,7 @@ struct ProgrammeView: View {
                             EveningScheduleCard(
                                 eveningSchedule: $eveningSchedule,
                                 dayNames: dayNames,
-                                sessions: orderedSeances,
+                                sessions: allSessions.isEmpty ? orderedSeances : allSessions,
                                 onSave: { Task { await saveEveningSchedule() } }
                             )
                             .padding(.horizontal, 16)
@@ -115,8 +144,46 @@ struct ProgrammeView: View {
             } message: {
                 Text("Tous les exercices de cette séance seront supprimés. Cette action est irréversible.")
             }
+            // ── Créer programme ──────────────────────────────────
+            .alert("Nouveau programme", isPresented: $showCreateProgram) {
+                TextField("Nom du programme", text: $newProgramName)
+                Button("Créer") {
+                    let name = newProgramName.trimmingCharacters(in: .whitespaces)
+                    guard !name.isEmpty else { return }
+                    Task { await createProgram(name: name) }
+                    newProgramName = ""
+                }
+                Button("Annuler", role: .cancel) { newProgramName = "" }
+            }
+            // ── Renommer programme ───────────────────────────────
+            .alert("Renommer", isPresented: Binding(get: { renameProgramTarget != nil }, set: { if !$0 { renameProgramTarget = nil } })) {
+                TextField("Nouveau nom", text: $renameProgramName)
+                Button("Renommer") {
+                    let name = renameProgramName.trimmingCharacters(in: .whitespaces)
+                    guard !name.isEmpty, let target = renameProgramTarget else { return }
+                    Task { await renameProgram(id: target.id, name: name) }
+                    renameProgramTarget = nil
+                }
+                Button("Annuler", role: .cancel) { renameProgramTarget = nil }
+            }
+            // ── Supprimer programme ──────────────────────────────
+            .alert("Supprimer \(deleteProgramTarget?.name ?? "") ?", isPresented: $confirmDeleteProgram) {
+                Button("Supprimer", role: .destructive) {
+                    if let target = deleteProgramTarget {
+                        Task { await deleteProgram(id: target.id) }
+                    }
+                    deleteProgramTarget = nil
+                }
+                Button("Annuler", role: .cancel) { deleteProgramTarget = nil }
+            } message: {
+                Text("Toutes les séances de ce programme seront supprimées. Cette action est irréversible.")
+            }
         }
         .task { await loadData() }
+        .onChange(of: selectedProgramId) { _, newId in
+            guard !newId.isEmpty else { return }
+            Task { await loadData(programId: newId) }
+        }
     }
 
     // MARK: – Load
@@ -131,10 +198,26 @@ struct ProgrammeView: View {
         if let order = json["exercise_order"] as? [String: [String]] {
             exerciseOrder = order
         }
+        // Programs
+        if let rawPrograms = json["programs"] as? [[String: Any]] {
+            programs = rawPrograms.compactMap { d in
+                guard let id = d["id"] as? String, let name = d["name"] as? String else { return nil }
+                return ProgramInfo(id: id, name: name)
+            }
+        }
+        if let pid = json["current_program_id"] as? String, !pid.isEmpty {
+            if selectedProgramId.isEmpty { selectedProgramId = pid }
+        }
+        if let sessions = json["all_sessions"] as? [String] {
+            allSessions = sessions
+        }
     }
 
-    private func loadData() async {
-        let url = URL(string: "\(kBaseURL)/api/programme_data")!
+    private func loadData(programId: String? = nil) async {
+        var urlStr = "\(kBaseURL)/api/programme_data"
+        let pid = programId ?? (selectedProgramId.isEmpty ? nil : selectedProgramId)
+        if let pid = pid { urlStr += "?program_id=\(pid)" }
+        let url = URL(string: urlStr)!
         // Affichage immédiat depuis cache
         if let cached = CacheService.shared.load(for: "programme_data"),
            let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
@@ -173,7 +256,11 @@ struct ProgrammeView: View {
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        var enrichedBody = body
+        if !selectedProgramId.isEmpty, enrichedBody["program_id"] == nil {
+            enrichedBody["program_id"] = selectedProgramId
+        }
+        req.httpBody = try? JSONSerialization.data(withJSONObject: enrichedBody)
         _ = try? await URLSession.shared.data(for: req)
         // Invalide les deux caches pour que la séance recharge dans le bon ordre
         CacheService.shared.clear(for: "programme_data")
@@ -216,11 +303,64 @@ struct ProgrammeView: View {
     }
 
     private func createSeance(name: String) async {
-        await postProgramme(["action": "create_seance", "jour": name])
+        var body: [String: Any] = ["action": "create_seance", "jour": name]
+        if !selectedProgramId.isEmpty { body["program_id"] = selectedProgramId }
+        await postProgramme(body)
         await MainActor.run {
             fullProgram[name] = [:]
             exerciseOrder[name] = []
         }
+    }
+
+    // MARK: – Programme CRUD
+
+    private func createProgram(name: String) async {
+        guard let url = URL(string: "\(kBaseURL)/api/programs") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "create", "name": name])
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let pid  = json["id"] as? String else { return }
+        CacheService.shared.clear(for: "programme_data")
+        await MainActor.run {
+            let p = ProgramInfo(id: pid, name: name)
+            programs.append(p)
+            selectedProgramId = pid
+            fullProgram = [:]
+            exerciseOrder = [:]
+        }
+    }
+
+    private func renameProgram(id: String, name: String) async {
+        guard let url = URL(string: "\(kBaseURL)/api/programs") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "rename", "program_id": id, "name": name])
+        _ = try? await URLSession.shared.data(for: req)
+        CacheService.shared.clear(for: "programme_data")
+        await MainActor.run {
+            if let idx = programs.firstIndex(where: { $0.id == id }) {
+                programs[idx] = ProgramInfo(id: id, name: name)
+            }
+        }
+    }
+
+    private func deleteProgram(id: String) async {
+        guard let url = URL(string: "\(kBaseURL)/api/programs") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "delete", "program_id": id])
+        _ = try? await URLSession.shared.data(for: req)
+        CacheService.shared.clear(for: "programme_data")
+        await MainActor.run {
+            programs.removeAll { $0.id == id }
+            if selectedProgramId == id { selectedProgramId = programs.first?.id ?? "" }
+        }
+        await loadData(programId: selectedProgramId.isEmpty ? nil : selectedProgramId)
     }
 
     private func deleteSeance(name: String) async {
@@ -253,6 +393,53 @@ struct ProgrammeView: View {
         } else {
             await postProgramme(["action": "scheme", "jour": seance, "exercise": oldName, "scheme": scheme])
             await MainActor.run { fullProgram[seance]?[oldName] = scheme }
+        }
+    }
+}
+
+// MARK: - ProgramTabsView
+
+private struct ProgramTabsView: View {
+    let programs: [ProgramInfo]
+    @Binding var selectedId: String
+    let onAdd: () -> Void
+    let onRename: (ProgramInfo) -> Void
+    let onDelete: (ProgramInfo) -> Void
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(programs) { prog in
+                    let isSelected = selectedId == prog.id
+                    Text(prog.name)
+                        .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                        .foregroundColor(isSelected ? .black : .white.opacity(0.7))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(isSelected ? Color.orange : Color.white.opacity(0.08))
+                        )
+                        .onTapGesture { selectedId = prog.id }
+                        .contextMenu {
+                            Button("Renommer") { onRename(prog) }
+                            Button("Supprimer", role: .destructive) { onDelete(prog) }
+                        }
+                }
+                // Bouton "+"
+                Button(action: onAdd) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20)
+                                .stroke(Color.orange.opacity(0.5), lineWidth: 1)
+                        )
+                }
+            }
+            .padding(.vertical, 4)
         }
     }
 }

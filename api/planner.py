@@ -166,6 +166,12 @@ def _montreal_now() -> datetime:
 
 
 def get_today() -> str:
+    import db as _db
+    schedule = _db.get_relational_week_schedule()
+    if schedule:
+        days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+        day_key = days[_montreal_now().weekday()]
+        return schedule.get(day_key, SCHEDULE[_montreal_now().weekday()])
     return SCHEDULE[_montreal_now().weekday()]
 
 

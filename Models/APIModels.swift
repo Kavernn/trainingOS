@@ -200,6 +200,16 @@ struct MuscleLandmark: Codable {
     }
 }
 
+// MARK: - Programs
+struct ProgramInfo: Codable, Identifiable, Equatable {
+    let id: String
+    let name: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+    }
+}
+
 // MARK: - Seance
 struct SeanceData: Codable {
     let today: String

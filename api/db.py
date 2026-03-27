@@ -1782,9 +1782,100 @@ def set_deload_state(
 # (program_sessions, program_blocks, program_block_exercises, weekly_schedule)
 # ---------------------------------------------------------------------------
 
-def get_full_program() -> dict | None:
+# ---------------------------------------------------------------------------
+# Programs management
+# ---------------------------------------------------------------------------
+
+def ensure_schema_migrations() -> bool:
+    """Check that migration 002_multi_programs has been applied.
+
+    Returns True if schema is up-to-date.
+    Logs a clear error with instructions if migration is missing.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return True
+    try:
+        _client.table("weekly_schedule").select("day_name, slot").limit(1).execute()
+        _client.table("programs").select("id").limit(1).execute()
+        _client.table("program_sessions").select("id, program_id").limit(1).execute()
+        return True
+    except Exception as e:
+        logger.error(
+            "⚠️  Schema migration required! Run docs/migrations/002_multi_programs.sql "
+            "in your Supabase SQL Editor. Error: %s", e
+        )
+        return False
+
+
+def get_all_programs() -> list:
+    """Return [{id, name, created_at}, ...] ordered by created_at ASC."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        resp = _client.table("programs").select("id, name, created_at").order("created_at").execute()
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_all_programs error: %s", e)
+        return []
+
+
+def get_default_program_id() -> str | None:
+    """Return the UUID of the first (oldest) program, or None if none exist."""
+    programs = get_all_programs()
+    return programs[0]["id"] if programs else None
+
+
+def create_program(name: str) -> str | None:
+    """Insert a new program. Returns its UUID or None on error."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("programs").insert({"name": name}).execute()
+        return resp.data[0]["id"] if resp.data else None
+    except Exception as e:
+        logger.error("create_program error: %s", e)
+        return None
+
+
+def rename_program(program_id: str, new_name: str) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("programs").update({"name": new_name}).eq("id", program_id).execute()
+        return True
+    except Exception as e:
+        logger.error("rename_program error: %s", e)
+        return False
+
+
+def delete_program(program_id: str) -> bool:
+    """Delete a program — sessions cascade via FK."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("programs").delete().eq("id", program_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_program error: %s", e)
+        return False
+
+
+def get_all_session_names() -> list[str]:
+    """Return all session names across all programs (for schedule pickers)."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        resp = _client.table("program_sessions").select("name").order("name").execute()
+        return [r["name"] for r in (resp.data or [])]
+    except Exception as e:
+        logger.error("get_all_session_names error: %s", e)
+        return []
+
+
+def get_full_program(program_id: str | None = None) -> dict | None:
     """Return {session_name: {"blocks": [{"type", "order", "exercises": {name: scheme}}]}}.
 
+    If program_id is None, uses the first/oldest program.
     Compatible with the block format used by planner.py / blocks.py.
     Returns {} if relational tables are genuinely empty (no sessions).
     Returns None if the relational layer is unavailable or a network/query error occurs —
@@ -1792,9 +1883,15 @@ def get_full_program() -> dict | None:
     """
     if _client is None or MODE == "OFFLINE":
         return None
+    # Resolve program_id
+    if program_id is None:
+        program_id = get_default_program_id()
     try:
-        # Load all sessions
-        sessions_resp = _client.table("program_sessions").select("id, name, order_index").order("order_index").execute()
+        # Load sessions filtered by program
+        q = _client.table("program_sessions").select("id, name, order_index")
+        if program_id:
+            q = q.eq("program_id", program_id)
+        sessions_resp = q.order("order_index").execute()
         sessions = sessions_resp.data or []
         if not sessions:
             return {}  # Genuinely empty — safe to seed defaults
@@ -1847,7 +1944,10 @@ def get_full_program() -> dict | None:
         logger.warning("get_full_program error: %s — retrying once", e)
         # Retry once on transient connection errors (e.g. "Server disconnected")
         try:
-            sessions_resp = _client.table("program_sessions").select("id, name, order_index").order("order_index").execute()
+            q2 = _client.table("program_sessions").select("id, name, order_index")
+            if program_id:
+                q2 = q2.eq("program_id", program_id)
+            sessions_resp = q2.order("order_index").execute()
             sessions = sessions_resp.data or []
             if not sessions:
                 return {}
@@ -1871,31 +1971,34 @@ def get_full_program() -> dict | None:
             return None
 
 
-def save_full_program(program: dict) -> bool:
+def save_full_program(program: dict, program_id: str | None = None) -> bool:
     """Persist {session_name: {"blocks": [...]}} to relational tables.
 
+    If program_id is None, uses the first/oldest program.
     For each session: upsert program_sessions, upsert program_blocks,
     delete + reinsert program_block_exercises.
     Returns True on full success, False on any error.
     """
     if _client is None or MODE == "OFFLINE":
         return False
+    if program_id is None:
+        program_id = get_default_program_id()
     try:
         for order_idx, (session_name, session_def) in enumerate(program.items()):
-            # Upsert session
+            # Upsert session (conflict on program_id + name after migration)
+            upsert_data: dict = {"name": session_name, "order_index": order_idx}
+            if program_id:
+                upsert_data["program_id"] = program_id
             sess_resp = (
                 _client.table("program_sessions")
-                .upsert({"name": session_name, "order_index": order_idx}, on_conflict="name")
+                .upsert(upsert_data, on_conflict="program_id,name")
                 .execute()
             )
             # Fetch session id
-            sess_row = (
-                _client.table("program_sessions")
-                .select("id")
-                .eq("name", session_name)
-                .single()
-                .execute()
-            )
+            q = _client.table("program_sessions").select("id").eq("name", session_name)
+            if program_id:
+                q = q.eq("program_id", program_id)
+            sess_row = q.single().execute()
             if not sess_row.data:
                 logger.error("save_full_program: session %s not found after upsert", session_name)
                 continue

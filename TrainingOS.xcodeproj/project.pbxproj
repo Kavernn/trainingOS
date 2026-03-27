@@ -32,6 +32,7 @@
 		BB3300012F5D98BA002AE471 /* BonusSeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */; };
 		CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3300012F5D98BA002AE472 /* PSSView.swift */; };
 		CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */; };
+		D60EC6EA2F76B1F2003A5209 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EC6E92F76B1F2003A5209 /* NotificationService.swift */; };
 		D665E4472F5D98BA002AE470 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4332F5D98B8002AE470 /* ContentView.swift */; };
 		D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4422F5D98B8002AE470 /* SeanceView.swift */; };
 		D665E4492F5D98BA002AE470 /* HistoriqueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43E2F5D98B8002AE470 /* HistoriqueView.swift */; };
@@ -94,6 +95,7 @@
 		C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		CC3300012F5D98BA002AE472 /* PSSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PSSView.swift; sourceTree = "<group>"; };
 		CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardView.swift; sourceTree = "<group>"; };
+		D60EC6E92F76B1F2003A5209 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		D665E4252F5D9858002AE470 /* TrainingOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainingOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D665E4332F5D98B8002AE470 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D665E4342F5D98B8002AE470 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
@@ -303,6 +305,7 @@
 		D665E4382F5D98B8002AE470 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				D60EC6E92F76B1F2003A5209 /* NotificationService.swift */,
 				D665E4372F5D98B8002AE470 /* APIService.swift */,
 				27D3508F57CBFDAD2C6FDA2D /* HealthKitService.swift */,
 				AA1100012F5D98BA002AE470 /* NetworkMonitor.swift */,
@@ -560,6 +563,7 @@
 				AA0020072F5D98BA002AE470 /* ProgrammeView.swift in Sources */,
 				AA0020082F5D98BA002AE470 /* XPView.swift in Sources */,
 				AA0020092F5D98BA002AE470 /* NotesView.swift in Sources */,
+				D60EC6EA2F76B1F2003A5209 /* NotificationService.swift in Sources */,
 				AA00200A2F5D98BA002AE470 /* InventaireView.swift in Sources */,
 				AA00200B2F5D98BA002AE470 /* IntelligenceView.swift in Sources */,
 				663379608FE0A821EC0F7D89 /* CardioView.swift in Sources */,

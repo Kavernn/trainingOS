@@ -103,6 +103,10 @@ app.secret_key = _secret_key
 # ── Wearable / Apple Watch routes ───────────────────────────
 wearable.register_routes(app)
 
+# ── Schema health-check at startup ──────────────────────────
+import db as _db_startup
+_db_startup.ensure_schema_migrations()
+
 UPLOAD_FOLDER      = os.path.join(BASE_DIR, "static", "uploads")
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -1005,19 +1009,60 @@ def api_delete_exercise_log():
     return jsonify({"success": True})
 
 
+@app.route("/api/programs", methods=["GET", "POST"])
+def api_programs():
+    """GET  → [{id, name, created_at}, ...]
+    POST → {action: "create"|"rename"|"delete", ...}
+    """
+    import db as _db
+    if request.method == "GET":
+        return jsonify(_db.get_all_programs())
+
+    data   = request.get_json() or {}
+    action = data.get("action")
+
+    if action == "create":
+        name = (data.get("name") or "").strip()
+        if not name:
+            return jsonify({"error": "Nom invalide"}), 400
+        pid = _db.create_program(name)
+        return jsonify({"success": bool(pid), "id": pid})
+
+    if action == "rename":
+        pid  = data.get("program_id", "")
+        name = (data.get("name") or "").strip()
+        if not pid or not name:
+            return jsonify({"error": "program_id et name requis"}), 400
+        ok = _db.rename_program(pid, name)
+        return jsonify({"success": ok})
+
+    if action == "delete":
+        pid = data.get("program_id", "")
+        if not pid:
+            return jsonify({"error": "program_id requis"}), 400
+        # Refuse de supprimer le dernier programme
+        if len(_db.get_all_programs()) <= 1:
+            return jsonify({"error": "Impossible de supprimer le dernier programme"}), 400
+        ok = _db.delete_program(pid)
+        return jsonify({"success": ok})
+
+    return jsonify({"error": "action inconnue"}), 400
+
+
 @app.route("/api/programme", methods=["POST"])
 def api_programme():
     import db as _db
-    data    = request.json
-    action  = data.get("action")
-    jour    = data.get("jour")
+    data       = request.json
+    action     = data.get("action")
+    jour       = data.get("jour")
+    program_id = data.get("program_id") or None  # optional — falls back to default
 
     # ── Session-level actions (no target session required) ───────────────────
     if action == "create_seance":
         seance_name = (jour or "").strip()
         if not seance_name:
             return jsonify({"error": "Nom invalide"}), 400
-        save_program({seance_name: {"blocks": [make_strength_block({}, order=0)]}})
+        _db.save_full_program({seance_name: {"blocks": [make_strength_block({}, order=0)]}}, program_id)
         return jsonify({"success": True})
 
     if action == "delete_seance":
@@ -1028,7 +1073,7 @@ def api_programme():
 
     # ── Rename: must read all sessions to rename across all ──────────────────
     if action == "rename":
-        program = _db.get_full_program()
+        program = _db.get_full_program(program_id)
         if program is None:
             return jsonify({"error": "Supabase indisponible"}), 503
         old_ex = data.get("old_exercise")
@@ -1040,7 +1085,7 @@ def api_programme():
                 sb["exercises"][new_ex] = sb["exercises"].pop(old_ex)
                 modified[sname] = sdef
         if modified:
-            save_program(modified)
+            _db.save_full_program(modified, program_id)
         inv = load_inventory() or {}
         if new_ex in inv:
             if old_ex in inv:
@@ -1064,7 +1109,7 @@ def api_programme():
         return jsonify({"error": "jour manquant"}), 400
 
     # Read only the target session from Supabase
-    session_data = _db.get_full_program()
+    session_data = _db.get_full_program(program_id)
     if session_data is None:
         return jsonify({"error": "Impossible de lire le programme (Supabase indisponible)"}), 503
     if jour not in session_data:
@@ -1152,7 +1197,7 @@ def api_programme():
         session_def["blocks"] = reorder_blocks(blks, data.get("order", []))
 
     # Save only the modified session — never touch other sessions
-    save_program({jour: session_def})
+    _db.save_full_program({jour: session_def}, program_id)
     return jsonify({"success": True})
 
 
@@ -2108,9 +2153,15 @@ def api_notes_data():
 
 @app.route("/api/programme_data")
 def api_programme_data():
-    full_program = load_program()
+    import db as _db
+    program_id   = request.args.get("program_id") or None
+    full_program = _db.get_full_program(program_id) or load_program()
+    if program_id is None:
+        program_id = _db.get_default_program_id()
     schedule     = get_week_schedule()
     inventory    = load_inventory()
+    programs     = _db.get_all_programs()
+    all_sessions = _db.get_all_session_names()
     # Aplatit la structure bloc → {seance: {exercice: scheme}} pour le client iOS
     flat_program = {
         seance: get_strength_exercises(session_def)
@@ -2134,14 +2185,17 @@ def api_programme_data():
     inventory_schemes  = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
     exercise_order     = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     return jsonify({
-        "full_program":       flat_program,
-        "schedule":           schedule,
-        "inventory":          list(inv.keys()),
-        "inventory_types":    inventory_types,
-        "inventory_tracking": inventory_tracking,
-        "inventory_rest":     inventory_rest,
-        "inventory_schemes":  inventory_schemes,
-        "exercise_order":     exercise_order,
+        "full_program":        flat_program,
+        "schedule":            schedule,
+        "inventory":           list(inv.keys()),
+        "inventory_types":     inventory_types,
+        "inventory_tracking":  inventory_tracking,
+        "inventory_rest":      inventory_rest,
+        "inventory_schemes":   inventory_schemes,
+        "exercise_order":      exercise_order,
+        "programs":            programs,
+        "current_program_id":  program_id,
+        "all_sessions":        all_sessions,
     })
 
 
