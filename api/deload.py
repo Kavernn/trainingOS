@@ -71,6 +71,35 @@ def detect_fatigue_rpe() -> dict:
 
 
 # ─────────────────────────────────────────────────────────────
+# DÉTECTION CHUTE DE PERFORMANCE (1RM)
+# ─────────────────────────────────────────────────────────────
+
+def detect_performance_drop(weights: dict, threshold: float = 0.10) -> list[dict]:
+    """
+    Détecte les exercices où le 1RM a chuté d'au moins `threshold` (défaut 10%)
+    sur les 3 dernières séances.
+    """
+    drops = []
+    for ex, data in weights.items():
+        if ex == "sessions":
+            continue
+        hist = data.get("history", [])
+        onerm_vals = [float(e["1rm"]) for e in hist[:3] if e.get("1rm")]
+        if len(onerm_vals) < 2:
+            continue
+        best_recent = onerm_vals[0]   # séance la plus récente
+        oldest      = onerm_vals[-1]  # la plus ancienne des 3
+        if oldest > 0 and (oldest - best_recent) / oldest >= threshold:
+            drops.append({
+                "exercise":   ex,
+                "drop_pct":   round((oldest - best_recent) / oldest * 100, 1),
+                "1rm_recent": best_recent,
+                "1rm_prev":   oldest,
+            })
+    return drops
+
+
+# ─────────────────────────────────────────────────────────────
 # CALCUL DES POIDS DE DELOAD
 # ─────────────────────────────────────────────────────────────
 
@@ -221,28 +250,32 @@ def analyser_deload(weights: dict) -> dict:
     stagnants     = detect_stagnation(weights)
     fatigue       = detect_fatigue_rpe()
     fatigue_data  = compute_fatigue_score()
+    drops         = detect_performance_drop(weights)
     state         = load_deload_state()
 
-    recommande = len(stagnants) >= 2 or fatigue["fatigue"]
+    recommande = len(stagnants) >= 2 or fatigue["fatigue"] or len(drops) > 0
 
     stagnant_names = [s["exercise"] for s in stagnants]
+    drop_names     = [d["exercise"] for d in drops]
+    deload_targets = list(dict.fromkeys(stagnant_names + drop_names))  # deduplicated
 
     rapport = {
-        "deload_actif":       state["active"],
-        "deload_since":       state.get("since"),
-        "deload_reason":      state.get("reason"),
-        "stagnants":          stagnant_names,
-        "fatigue_rpe":        fatigue["fatigue"],
-        "recommande":         recommande,
-        "poids_deload":       {ex: round((weights.get(ex, {}).get("current_weight") or
-                                          weights.get(ex, {}).get("weight") or 0) * DELOAD_FACTOR, 1)
-                               for ex in stagnant_names
-                               if (weights.get(ex, {}).get("current_weight") or
-                                   weights.get(ex, {}).get("weight"))} if recommande else {},
-        "fatigue_score":      fatigue_data["score"],
-        "fatigue_components": fatigue_data["components"],
-        "streak_days":        fatigue_data["streak_days"],
-        "rpe_avg_7j":         fatigue_data.get("rpe_avg_7j"),
+        "deload_actif":        state["active"],
+        "deload_since":        state.get("since"),
+        "deload_reason":       state.get("reason"),
+        "stagnants":           stagnant_names,
+        "performance_drops":   drop_names,
+        "fatigue_rpe":         fatigue["fatigue"],
+        "recommande":          recommande,
+        "poids_deload":        {ex: round((weights.get(ex, {}).get("current_weight") or
+                                           weights.get(ex, {}).get("weight") or 0) * DELOAD_FACTOR, 1)
+                                for ex in deload_targets
+                                if (weights.get(ex, {}).get("current_weight") or
+                                    weights.get(ex, {}).get("weight"))} if recommande else {},
+        "fatigue_score":       fatigue_data["score"],
+        "fatigue_components":  fatigue_data["components"],
+        "streak_days":         fatigue_data["streak_days"],
+        "rpe_avg_7j":          fatigue_data.get("rpe_avg_7j"),
     }
 
     return rapport

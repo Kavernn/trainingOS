@@ -306,9 +306,10 @@ struct WeightHistoryEntry: Codable {
         let reps: String
         let totalWeight: Double?
         let setVolume: Double?
+        let rir: Int?
 
         enum CodingKeys: String, CodingKey {
-            case weight, reps
+            case weight, reps, rir
             case totalWeight = "total_weight"
             case setVolume   = "set_volume"
         }

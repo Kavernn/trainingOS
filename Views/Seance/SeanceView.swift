@@ -1310,6 +1310,7 @@ struct AddHIITSheet: View {
             var weight: String = ""
             var reps: String = ""
             var duration: Int = 30   // seconds, used when isTimeBased
+            var rir: Int = 3         // Reps In Reserve (0 = failure, 3 = typical target)
         }
 
         @State private var sets: [SetInput] = []
@@ -1449,6 +1450,9 @@ struct AddHIITSheet: View {
                     Text("REPS")
                         .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                         .frame(width: 56, alignment: .center)
+                    Text("RIR")
+                        .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
+                        .frame(width: 52, alignment: .center)
                 }
                 ForEach(sets.indices, id: \.self) { i in
                     HStack(spacing: 8) {
@@ -1466,6 +1470,23 @@ struct AddHIITSheet: View {
                             .multilineTextAlignment(.center)
                             .frame(width: 56)
                             .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                        // RIR stepper
+                        HStack(spacing: 3) {
+                            Button { if sets[i].rir > 0 { sets[i].rir -= 1 } } label: {
+                                Image(systemName: "minus").font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.gray)
+                            }.buttonStyle(.plain)
+                            Text("\(sets[i].rir)")
+                                .font(.system(size: 13, weight: .black)).foregroundColor(.cyan)
+                                .frame(width: 18, alignment: .center)
+                            Button { if sets[i].rir < 6 { sets[i].rir += 1 } } label: {
+                                Image(systemName: "plus").font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.cyan)
+                            }.buttonStyle(.plain)
+                        }
+                        .frame(width: 52)
+                        .padding(.vertical, 8).padding(.horizontal, 4)
+                        .background(Color(hex: "191926")).cornerRadius(8)
                     }
                 }
                 if !repsStr.isEmpty {
@@ -1947,12 +1968,12 @@ struct AddHIITSheet: View {
                 if equipmentType == "bodyweight" {
                     // Send lest weight (0 if no lest) so backend knows it's bodyweight-only
                     let lest = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
-                    return ["weight": units.toStorage(lest), "reps": s.reps]
+                    return ["weight": units.toStorage(lest), "reps": s.reps, "rir": s.rir]
                 }
                 guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")),
                       sw > 0 else { return nil }
                 let setTotal = totalWeight(for: units.toStorage(sw))
-                return ["weight": setTotal, "reps": s.reps]
+                return ["weight": setTotal, "reps": s.reps, "rir": s.rir]
             }
             Task {
                 do {

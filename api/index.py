@@ -559,7 +559,17 @@ def api_log():
             rpe = last_entry.get("rpe")
             if rpe is not None:
                 rpe = float(rpe)
-        new_w, action = suggest_next_weight(exercise, weight, reps, rpe)
+        # Compute avg_rir from sets if provided
+        avg_rir = None
+        if sets_data:
+            rir_vals = [float(s["rir"]) for s in sets_data if s.get("rir") is not None]
+            if rir_vals:
+                avg_rir = round(sum(rir_vals) / len(rir_vals), 1)
+
+        new_w, action = suggest_next_weight(
+            exercise, weight, reps, rpe,
+            history=existing_history, avg_rir=avg_rir
+        )
         increase  = action == "increase"
         onerm     = estimate_1rm(weight, reps)
 
