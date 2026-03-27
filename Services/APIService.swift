@@ -400,6 +400,26 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode([LifeStressScore].self, from: data)
     }
 
+    func fetchWeeklyNarrative(context: String, weekKey: String) async throws -> String {
+        let url = URL(string: "\(baseURL)/api/ai/narrative")!
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["context": context, "week": weekKey])
+        let (data, _) = try await URLSession.shared.data(for: req)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let narrative = json["narrative"] as? String else {
+            throw URLError(.badServerResponse)
+        }
+        return narrative
+    }
+
+    func fetchPeakPrediction() async throws -> PeakPredictionResponse {
+        let url = URL(string: "\(baseURL)/api/peak_prediction")!
+        let data = try await fetchWithCache(url: url, key: "peak_prediction")
+        return try JSONDecoder().decode(PeakPredictionResponse.self, from: data)
+    }
+
     // MARK: - ACWR
     func fetchACWR() async throws -> ACWRData {
         let url = URL(string: "\(baseURL)/api/acwr")!

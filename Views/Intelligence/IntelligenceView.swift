@@ -13,6 +13,8 @@ struct IntelligenceView: View {
     @State private var showInsights = false
     @FocusState private var inputFocused: Bool
     @StateObject private var api = APIService.shared
+    @State private var narrative:        String?                  = nil
+    @State private var isLoadingNarrative = false
     @State private var recoveryData:    [RecoveryEntry]          = []
     @State private var weightsData:     [String: WeightData]     = [:]
     @State private var bodyWeightData:  [BodyWeightEntry]        = []
@@ -52,6 +54,28 @@ struct IntelligenceView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
 
+                    // Narrative button
+                    Button(action: loadNarrative) {
+                        HStack {
+                            if isLoadingNarrative {
+                                ProgressView().tint(.white).scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "text.quote")
+                            }
+                            Text(isLoadingNarrative ? "Rédaction en cours..." : "Récit de la semaine")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.teal.opacity(0.15))
+                        .foregroundColor(.teal)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.teal.opacity(0.35), lineWidth: 1))
+                        .cornerRadius(10)
+                    }
+                    .disabled(isLoadingNarrative)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+
                     // Insights button
                     Button(action: loadInsights) {
                         HStack {
@@ -80,6 +104,13 @@ struct IntelligenceView: View {
                     // Proposals sheet
                     if !proposals.isEmpty {
                         ProposalsCard(proposals: proposals, onDismiss: { proposals = [] })
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 4)
+                    }
+
+                    // Narrative card
+                    if let text = narrative {
+                        NarrativeCard(text: text, onDismiss: { narrative = nil })
                             .padding(.horizontal, 16)
                             .padding(.bottom, 4)
                     }
@@ -415,6 +446,36 @@ struct IntelligenceView: View {
         }
     }
 
+    private var currentWeekKey: String {
+        let y = Calendar.current.component(.yearForWeekOfYear, from: Date())
+        let w = Calendar.current.component(.weekOfYear, from: Date())
+        return String(format: "%04d-W%02d", y, w)
+    }
+
+    private func loadNarrative() {
+        guard !isLoadingNarrative else { return }
+        // Return cached narrative for current week
+        let cacheKey = "narrative_\(currentWeekKey)"
+        if let cached = CacheService.shared.load(for: cacheKey),
+           let text = String(data: cached, encoding: .utf8) {
+            narrative = text; return
+        }
+        let context = buildContext()
+        isLoadingNarrative = true
+        Task {
+            do {
+                let text = try await APIService.shared.fetchWeeklyNarrative(context: context, weekKey: currentWeekKey)
+                // Cache for the week
+                if let data = text.data(using: .utf8) {
+                    CacheService.shared.save(data, for: cacheKey)
+                }
+                await MainActor.run { narrative = text; isLoadingNarrative = false }
+            } catch {
+                await MainActor.run { isLoadingNarrative = false }
+            }
+        }
+    }
+
     private func loadInsights() {
         guard !isLoadingCorrelations else { return }
         isLoadingCorrelations = true
@@ -713,6 +774,35 @@ struct CorrelationRow: View {
             .padding(.leading, 28)
         }
         .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Narrative Card
+struct NarrativeCard: View {
+    let text: String
+    var onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Récit de la semaine", systemImage: "text.quote")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.teal)
+                Spacer()
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
+                }
+            }
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundColor(.white.opacity(0.9))
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .background(Color(hex: "0a1018"))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.teal.opacity(0.3), lineWidth: 1))
+        .cornerRadius(12)
     }
 }
 

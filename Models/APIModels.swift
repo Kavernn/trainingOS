@@ -1011,6 +1011,27 @@ struct ACWRWeek: Codable, Identifiable {
     let chronic: Double
 }
 
+// MARK: - Peak Prediction
+struct PeakDay: Codable, Identifiable {
+    var id: String { date }
+    let date: String
+    let predictedLss: Double
+    let level: String    // "go" | "go_caution" | "reduce" | "defer"
+    let isPeak: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case date, level
+        case predictedLss = "predicted_lss"
+        case isPeak       = "is_peak"
+    }
+}
+
+struct PeakPredictionResponse: Codable {
+    let days: [PeakDay]
+    let slope: Double
+    let baseline: Double
+}
+
 // MARK: - Morning Brief
 struct MorningBriefData: Codable {
     let date: String

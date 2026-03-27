@@ -1306,6 +1306,42 @@ def api_ai_propose():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/ai/narrative", methods=["POST"])
+def api_ai_narrative():
+    """Génère un récit hebdomadaire (~150 mots) style journaliste sportif."""
+    if not _ai_rate_check():
+        return jsonify({"error": "Trop de requêtes — réessaie dans quelques minutes."}), 429
+    import os
+    import anthropic as _anthropic
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY manquant"}), 500
+    try:
+        data    = request.get_json()
+        context = data.get("context", "")
+        week    = data.get("week", "")
+        if not context:
+            return jsonify({"error": "Contexte manquant"}), 400
+
+        client  = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=400,
+            system=(
+                "Tu es un journaliste sportif qui rédige le bilan hebdomadaire d'un athlète. "
+                "À partir des données d'entraînement fournies, écris un récit de 100-150 mots. "
+                "Style : direct, vivant, motivant. Mentionne les faits marquants : volume, RPE, récupération, progrès. "
+                "Écris à la deuxième personne (tu/ton). Pas de bullet points, seulement du texte narratif. "
+                "Termine sur une note d'anticipation pour la semaine suivante. Réponds uniquement en français."
+            ),
+            messages=[{"role": "user", "content": f"Données athlète:\n{context}"}]
+        )
+        narrative = message.content[0].text.strip()
+        return jsonify({"narrative": narrative, "week": week})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/ai/coach", methods=["POST"])
 def api_ai_coach():
     if not _ai_rate_check():
@@ -1436,6 +1472,55 @@ def api_acwr():
 def api_morning_brief():
     from morning_brief import get_morning_brief
     return jsonify(get_morning_brief())
+
+
+@app.route("/api/peak_prediction")
+def api_peak_prediction():
+    """Prédit le LSS des 7 prochains jours via régression linéaire sur les 14 derniers."""
+    from life_stress_engine import get_recent_life_stress_trend
+    from datetime import date as date_cls, timedelta
+
+    history = get_recent_life_stress_trend(14)   # index 0 = today
+    scores  = [h["score"] for h in history if h.get("score") is not None]
+
+    # Régression linéaire simple (méthode des moindres carrés)
+    n = len(scores)
+    if n >= 3:
+        xs = list(range(n))
+        mx = sum(xs) / n
+        my = sum(scores) / n
+        num = sum((x - mx) * (y - my) for x, y in zip(xs, scores))
+        den = sum((x - mx) ** 2 for x in xs)
+        slope = num / den if den != 0 else 0
+    else:
+        slope = 0
+
+    last_score = scores[0] if scores else 65.0
+    today = date_cls.today()
+
+    def level(s):
+        if s >= 65:   return "go"
+        if s >= 45:   return "go_caution"
+        if s >= 25:   return "reduce"
+        return "defer"
+
+    result = []
+    peak_idx = None
+    peak_val = -1
+    for i in range(1, 8):
+        # Projection : tendance linéaire + retour vers 70 (régression vers la moyenne)
+        projected = last_score + slope * i + (70 - last_score) * 0.08 * i
+        projected = max(0, min(100, projected))
+        d = (today + timedelta(days=i)).isoformat()
+        if projected > peak_val:
+            peak_val = projected
+            peak_idx = i - 1
+        result.append({"date": d, "predicted_lss": round(projected, 1), "level": level(projected), "is_peak": False})
+
+    if peak_idx is not None and result:
+        result[peak_idx]["is_peak"] = True
+
+    return jsonify({"days": result, "slope": round(slope, 3), "baseline": round(last_score, 1)})
 
 
 @app.route("/api/insights")

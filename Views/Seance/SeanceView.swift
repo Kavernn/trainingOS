@@ -376,6 +376,13 @@ struct ExtraSessionSheet: View {
 }
 
 // MARK: - Workout Seance (Upper/Lower)
+struct GhostData {
+    let date: String
+    let volume: Double
+    let rpe: Double?
+    let sets: Int?
+}
+
 struct WorkoutSeanceView: View {
     let data: SeanceData
     @ObservedObject var vm: SeanceViewModel
@@ -384,6 +391,9 @@ struct WorkoutSeanceView: View {
     @State private var comment = ""
     @State private var showFinish = false
     @State private var showFinishConfirm = false
+    @State private var ghostData: GhostData? = nil
+    @State private var showGhost = true
+    @State private var ghostBeaten = false
     
     // Programme edit
     @State private var localProgram: [String: String] = [:]
@@ -421,6 +431,49 @@ struct WorkoutSeanceView: View {
             return (name, scheme)
         }
     }
+    private var currentVolume: Double {
+        vm.logResults.values.reduce(0.0) { acc, r in
+            let s = r.reps.trimmingCharacters(in: .whitespaces).lowercased()
+            let reps: Double
+            if s.contains(",") {
+                reps = s.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }.reduce(0, +)
+            } else if let rx = s.range(of: "x"),
+                      let sets = Double(s[s.startIndex..<rx.lowerBound]),
+                      let rep  = Double(s[rx.upperBound...]) {
+                reps = sets * rep
+            } else {
+                reps = Double(s) ?? 0
+            }
+            return acc + r.weight * reps
+        }
+    }
+
+    private struct GhostSnapshot: Codable {
+        let sessions: [String: SessionEntry]
+    }
+
+    private func computeGhost() {
+        guard let cached  = CacheService.shared.load(for: "stats_data"),
+              let snap    = try? JSONDecoder().decode(GhostSnapshot.self, from: cached)
+        else { return }
+        let currentExos = Set(localProgram.keys.map { $0.lowercased() })
+        guard !currentExos.isEmpty else { return }
+
+        let best = snap.sessions
+            .filter { $0.key != data.todayDate && ($0.value.sessionVolume ?? 0) > 0 }
+            .compactMap { date, s -> (String, SessionEntry)? in
+                guard let exos = s.exos else { return nil }
+                let overlap = currentExos.intersection(Set(exos.map { $0.lowercased() })).count
+                guard Double(overlap) / Double(min(currentExos.count, exos.count)) >= 0.5 else { return nil }
+                return (date, s)
+            }
+            .max { ($0.1.sessionVolume ?? 0) < ($1.1.sessionVolume ?? 0) }
+
+        if let (date, s) = best, let vol = s.sessionVolume {
+            ghostData = GhostData(date: date, volume: vol, rpe: s.rpe, sets: s.totalSets)
+        }
+    }
+
     @ViewBuilder private var exerciseSection: some View {
         if isEditMode {
             VStack(spacing: 0) {
@@ -684,7 +737,23 @@ struct WorkoutSeanceView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
-                
+
+                // Ghost mode banner
+                if showGhost, let ghost = ghostData {
+                    GhostBanner(
+                        ghost: ghost,
+                        currentVolume: currentVolume,
+                        beaten: ghostBeaten,
+                        onDismiss: { withAnimation { showGhost = false } }
+                    )
+                    .padding(.horizontal, 16)
+                    .onChange(of: currentVolume) {
+                        if !ghostBeaten && currentVolume >= ghost.volume {
+                            ghostBeaten = true
+                        }
+                    }
+                }
+
                 exerciseSection
 
                 optionalAddonsSection
@@ -780,7 +849,10 @@ struct WorkoutSeanceView: View {
             AddHIITSheet { hiitLogged = true }
                 .presentationDetents([.large])
         }
-        .onAppear { Task { await loadInventory() } }
+        .onAppear {
+            Task { await loadInventory() }
+            computeGhost()
+        }
         .onChange(of: data.inventoryTypes) { fresh in
             if !fresh.isEmpty { inventoryTypes = fresh }
         }
@@ -889,6 +961,85 @@ struct WorkoutSeanceView: View {
                 await MainActor.run { localProgram[oldName] = scheme }
             }
         }
+}
+
+// MARK: - Ghost Banner
+struct GhostBanner: View {
+    let ghost: GhostData
+    let currentVolume: Double
+    let beaten: Bool
+    var onDismiss: () -> Void
+
+    private var progress: Double {
+        guard ghost.volume > 0 else { return 0 }
+        return min(currentVolume / ghost.volume, 1.0)
+    }
+
+    private func shortDate(_ s: String) -> String {
+        String(s.suffix(5))  // MM-DD
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Text("👻")
+                    .font(.system(size: 16))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("GHOST · \(shortDate(ghost.date))")
+                        .font(.system(size: 9, weight: .bold)).tracking(2)
+                        .foregroundColor(.gray)
+                    HStack(spacing: 6) {
+                        Text(beaten ? "Battu ! 🔥" : "\(UnitSettings.shared.display(ghost.volume), specifier: "%.0f") \(UnitSettings.shared.label)")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(beaten ? .orange : .white)
+                        if let rpe = ghost.rpe {
+                            Text("RPE \(String(format: "%.1f", rpe))")
+                                .font(.system(size: 11)).foregroundColor(.gray)
+                        }
+                        if let sets = ghost.sets {
+                            Text("\(sets) sets")
+                                .font(.system(size: 11)).foregroundColor(.gray)
+                        }
+                    }
+                }
+                Spacer()
+                Button(action: onDismiss) {
+                    Image(systemName: "xmark").font(.system(size: 11)).foregroundColor(.gray)
+                }
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.white.opacity(0.07)).frame(height: 5)
+                    Capsule()
+                        .fill(beaten
+                            ? LinearGradient(colors: [.orange, .yellow], startPoint: .leading, endPoint: .trailing)
+                            : LinearGradient(colors: [.purple.opacity(0.8), .blue.opacity(0.6)], startPoint: .leading, endPoint: .trailing)
+                        )
+                        .frame(width: geo.size.width * progress, height: 5)
+                        .animation(.spring(response: 0.5), value: progress)
+                }
+            }
+            .frame(height: 5)
+
+            HStack {
+                Text(currentVolume > 0
+                    ? "\(UnitSettings.shared.display(currentVolume), specifier: "%.0f") / \(UnitSettings.shared.display(ghost.volume), specifier: "%.0f") \(UnitSettings.shared.label)"
+                    : "Commence à logger pour suivre ta progression")
+                    .font(.system(size: 10)).foregroundColor(.gray)
+                Spacer()
+                Text("\(Int(progress * 100))%")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(beaten ? .orange : .purple)
+            }
+        }
+        .padding(12)
+        .background(Color(hex: "0e0e1c"))
+        .cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+            beaten ? Color.orange.opacity(0.5) : Color.purple.opacity(0.25), lineWidth: 1
+        ))
+    }
 }
 
 // MARK: - Add Cardio Sheet

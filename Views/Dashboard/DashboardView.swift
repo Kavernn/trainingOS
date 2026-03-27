@@ -1,5 +1,6 @@
 
 import SwiftUI
+import Charts
 
 struct DashboardView: View {
     @ObservedObject private var api = APIService.shared
@@ -13,6 +14,8 @@ struct DashboardView: View {
     @State private var sleepPromptDismissedThisSession = false
     @State private var todaySleepLogged = false
     @State private var todayRecovery: RecoveryEntry?
+    @State private var lssTrend: [LifeStressScore] = []
+    @State private var peakPrediction: PeakPredictionResponse? = nil
     @Environment(\.scenePhase) private var scenePhase
 
     private var todayStr: String {
@@ -69,8 +72,17 @@ struct DashboardView: View {
                             if let b = brief,
                                b.recommendation != "go" ||
                                b.flags.hrvDrop || b.flags.sleepDeprivation || b.flags.trainingOverload {
-                                MorningBriefCardView(data: b)
-                                    .appearAnimation(delay: 0.04)
+                                MorningBriefCardView(
+                                    data: b,
+                                    lssTrend: lssTrend,
+                                    lastSessionDate: api.dashboard?.sessions.keys.max()
+                                )
+                                .appearAnimation(delay: 0.04)
+                            }
+
+                            if let peak = peakPrediction, !peak.days.isEmpty {
+                                PeakPredictionCard(prediction: peak)
+                                    .appearAnimation(delay: 0.045)
                             }
 
                             if moodDue?.isDue == true {
@@ -164,11 +176,15 @@ struct DashboardView: View {
             async let s = APIService.shared.fetchSeanceSoirData()
             async let i = APIService.shared.fetchInsights()
             async let r = APIService.shared.fetchRecoveryData()
-            deload   = try? await d
-            moodDue  = try? await m
-            brief    = try? await b
-            soirData = try? await s
-            insights = (try? await i) ?? []
+            async let t = APIService.shared.fetchLifeStressTrend(days: 7)
+            async let p = APIService.shared.fetchPeakPrediction()
+            deload         = try? await d
+            moodDue        = try? await m
+            brief          = try? await b
+            soirData       = try? await s
+            insights       = (try? await i) ?? []
+            lssTrend       = (try? await t) ?? []
+            peakPrediction = try? await p
             if let log = try? await r {
                 let entry = log.first(where: { $0.date == todayStr })
                 todaySleepLogged = entry?.sleepHours != nil
@@ -187,10 +203,14 @@ struct DashboardView: View {
                     async let b = APIService.shared.fetchMorningBrief()
                     async let s = APIService.shared.fetchSeanceSoirData()
                     async let r = APIService.shared.fetchRecoveryData()
-                    deload   = try? await d
-                    moodDue  = try? await m
-                    brief    = try? await b
-                    soirData = try? await s
+                    async let t = APIService.shared.fetchLifeStressTrend(days: 7)
+                    async let p = APIService.shared.fetchPeakPrediction()
+                    deload         = try? await d
+                    moodDue        = try? await m
+                    brief          = try? await b
+                    soirData       = try? await s
+                    lssTrend       = (try? await t) ?? []
+                    peakPrediction = try? await p
                     if let log = try? await r {
                         let entry = log.first(where: { $0.date == todayStr })
                         todaySleepLogged = entry?.sleepHours != nil
@@ -1324,6 +1344,8 @@ struct SnapMetric: View {
 // MARK: - Morning Brief Card
 struct MorningBriefCardView: View {
     let data: MorningBriefData
+    var lssTrend: [LifeStressScore] = []
+    var lastSessionDate: String? = nil
 
     private var accentColor: Color {
         switch data.recommendation {
@@ -1428,6 +1450,30 @@ struct MorningBriefCardView: View {
                 LSSComponentsRow(components: comp)
             }
 
+            // LSS sparkline + delta vs semaine
+            if lssTrend.count >= 3 {
+                LSSSparklineRow(trend: lssTrend, currentLss: data.lss, accentColor: accentColor)
+            }
+
+            // Contexte temporel
+            let hour = Calendar.current.component(.hour, from: Date())
+            if let lastDate = lastSessionDate,
+               let last = DateFormatter.isoDate.date(from: lastDate) {
+                let hours = Int(Date().timeIntervalSince(last) / 3600)
+                HStack(spacing: 5) {
+                    Image(systemName: "clock").font(.system(size: 10)).foregroundColor(.gray)
+                    Text("Dernière séance il y a \(hours)h")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                }
+            }
+            if hour >= 20 {
+                HStack(spacing: 5) {
+                    Image(systemName: "moon.stars.fill").font(.system(size: 10)).foregroundColor(.indigo)
+                    Text("Séance tardive — pense à bien récupérer après")
+                        .font(.system(size: 11)).foregroundColor(.indigo.opacity(0.8))
+                }
+            }
+
             // Couverture de données insuffisante
             if data.dataCoverage < 0.6 {
                 HStack(spacing: 5) {
@@ -1458,6 +1504,127 @@ struct MorningBriefCardView: View {
         if data.flags.sleepDeprivation { chips.append(.init(icon: "moon.zzz.fill",  label: "Manque sommeil",   color: .indigo)) }
         if data.flags.trainingOverload { chips.append(.init(icon: "flame.fill",      label: "Surcharge",       color: .red)) }
         return chips
+    }
+}
+
+// MARK: - Peak Prediction Card
+struct PeakPredictionCard: View {
+    let prediction: PeakPredictionResponse
+
+    private func levelColor(_ level: String) -> Color {
+        switch level {
+        case "go":         return .green
+        case "go_caution": return .yellow
+        case "reduce":     return .orange
+        default:           return .red
+        }
+    }
+
+    private func dayLabel(_ dateStr: String) -> String {
+        guard let d = DateFormatter.isoDate.date(from: dateStr) else { return "?" }
+        let f = DateFormatter(); f.dateFormat = "EEE"; f.locale = Locale(identifier: "fr_CA")
+        return f.string(from: d).capitalized
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 10, weight: .bold)).foregroundColor(.purple)
+                Text("PRÉVISION 7 JOURS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text("base LSS \(String(format: "%.0f", prediction.baseline))")
+                    .font(.system(size: 10)).foregroundColor(.gray)
+            }
+
+            HStack(spacing: 6) {
+                ForEach(prediction.days) { day in
+                    VStack(spacing: 5) {
+                        ZStack {
+                            Circle()
+                                .fill(levelColor(day.level).opacity(day.isPeak ? 0.3 : 0.1))
+                                .frame(width: 36, height: 36)
+                            if day.isPeak {
+                                Circle()
+                                    .stroke(Color.orange, lineWidth: 1.5)
+                                    .frame(width: 36, height: 36)
+                            }
+                            Text("\(Int(day.predictedLss))")
+                                .font(.system(size: 11, weight: day.isPeak ? .black : .semibold))
+                                .foregroundColor(day.isPeak ? .orange : levelColor(day.level))
+                        }
+                        Text(dayLabel(day.date))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(day.isPeak ? .orange : .gray)
+                        if day.isPeak {
+                            Image(systemName: "star.fill")
+                                .font(.system(size: 7)).foregroundColor(.orange)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+    }
+}
+
+// MARK: - LSS Sparkline Row
+struct LSSSparklineRow: View {
+    let trend: [LifeStressScore]   // index 0 = today (most recent)
+    let currentLss: Double?
+    let accentColor: Color
+
+    private var sorted: [LifeStressScore] { trend.sorted { $0.date < $1.date } }
+
+    private var avg: Double {
+        let scores = trend.map { $0.score }
+        return scores.isEmpty ? 0 : scores.reduce(0, +) / Double(scores.count)
+    }
+
+    private var delta: Double {
+        guard let lss = currentLss else { return 0 }
+        return lss - avg
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Chart {
+                ForEach(sorted.indices, id: \.self) { i in
+                    LineMark(
+                        x: .value("j", i),
+                        y: .value("LSS", sorted[i].score)
+                    )
+                    .foregroundStyle(accentColor.opacity(0.8))
+                    .interpolationMethod(.catmullRom)
+                    AreaMark(
+                        x: .value("j", i),
+                        y: .value("LSS", sorted[i].score)
+                    )
+                    .foregroundStyle(accentColor.opacity(0.12))
+                    .interpolationMethod(.catmullRom)
+                }
+            }
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .chartYScale(domain: 0...100)
+            .frame(width: 72, height: 28)
+
+            let d = delta
+            HStack(spacing: 3) {
+                Image(systemName: d >= 3 ? "arrow.up.right" : d <= -3 ? "arrow.down.right" : "arrow.right")
+                    .font(.system(size: 9, weight: .bold))
+                Text("\(d >= 0 ? "+" : "")\(String(format: "%.0f", d)) pts vs moy 7j")
+                    .font(.system(size: 11))
+            }
+            .foregroundColor(d >= 5 ? .green : d <= -5 ? .orange : .gray)
+
+            Spacer()
+        }
     }
 }
 
