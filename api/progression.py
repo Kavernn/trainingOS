@@ -2,20 +2,27 @@
 """
 Progression logic with RPE-based autoregulation.
 
-RPE rules (graduated scale):
+Graduated RPE scale:
   ≤ 5.5   → increase full increment
   5.6–6.5 → increase half increment
-  6.6–7.9 → maintain (or +half if 4-week trend stalled)
+  6.6–7.9 → maintain (nudge based on 4-week trend magnitude)
   8.0–8.9 → decrease half increment
   ≥ 9.0   → decrease full increment
 
-RIR fallback (when RPE absent): RIR → RPE ≈ 10 − RIR
-Falls back to reps-based for exercises with no RPE/RIR history.
+Trend-modulated maintain zone:
+  rate <  0.0 lbs/week → regressing  → full increment nudge
+  rate <  0.5 lbs/week → stalling    → half increment nudge
+  rate >= 0.5 lbs/week → progressing → no nudge
+
+Fatigue cap (post-processing):
+  score >= 70 → block any increase (return maintain)
+  score >= 50 → cap increase to half increment
+
+RIR fallback: avg_rir provided → rpe_approx = 10 − avg_rir.
 """
 from __future__ import annotations
 from datetime import datetime
 
-# Target rep ranges — used for reps-based fallback only
 REPS_RULES: dict[str, dict] = {
     "Bench Press":       {"min": 5,  "max": 7},
     "Back Squat":        {"min": 5,  "max": 7},
@@ -41,24 +48,26 @@ INCREMENT_RULES: dict[str, float] = {
 }
 
 # Graduated RPE thresholds
-_RPE_INCREASE_FULL = 5.5   # ≤ 5.5  → increase full increment
-_RPE_INCREASE_HALF = 6.5   # 5.6–6.5 → increase half increment
-_RPE_DECREASE_HALF = 8.0   # 8.0–8.9 → decrease half increment
-_RPE_DECREASE_FULL = 9.0   # ≥ 9.0  → decrease full increment
+_RPE_INCREASE_FULL = 5.5
+_RPE_INCREASE_HALF = 6.5
+_RPE_DECREASE_HALF = 8.0
+_RPE_DECREASE_FULL = 9.0
 
-# Legacy aliases kept for backward-compat
+# Trend thresholds (lbs/week of 1RM gain)
+_RATE_STALL     = 0.5   # below this = stalling
+_RATE_REGRESS   = 0.0   # below this = regressing
+
+# Legacy aliases
 _RPE_INCREASE = _RPE_INCREASE_FULL
 _RPE_DECREASE = _RPE_DECREASE_FULL
 
 
 def _get_increment(exercise: str, inventory: dict | None = None) -> float:
-    # 1. Inventory (source of truth) — uses exercises.increment from Supabase
     if inventory:
         entry = inventory.get(exercise, {})
         inc = entry.get("increment")
         if inc is not None:
             return float(inc)
-    # 2. Hardcoded fallback by name
     if exercise in INCREMENT_RULES:
         return INCREMENT_RULES[exercise]
     return INCREMENT_RULES["type:default"]
@@ -82,10 +91,8 @@ def parse_reps(reps_str: str) -> list[int]:
 
 def compute_progression_rate(history: list[dict]) -> float | None:
     """
-    Compute weekly e1RM gain rate over last 4 weeks.
-
-    Returns lbs/week (positive = gaining, negative = regressing).
-    Returns None if < 2 data points in the 28-day window.
+    Weekly e1RM gain rate (lbs/week) via linear regression on last 28 days.
+    Positive = gaining, negative = regressing. None if < 2 data points.
     """
     if not history or len(history) < 2:
         return None
@@ -102,63 +109,57 @@ def compute_progression_rate(history: list[dict]) -> float | None:
     if len(entries) < 2:
         return None
     n = len(entries)
-    x_vals = [e[0] for e in entries]   # days_ago (0 = today)
-    y_vals = [e[1] for e in entries]   # 1RM in lbs
+    x_vals = [e[0] for e in entries]
+    y_vals = [e[1] for e in entries]
     x_mean = sum(x_vals) / n
     y_mean = sum(y_vals) / n
-    numerator   = sum((x - x_mean) * (y - y_mean) for x, y in zip(x_vals, y_vals))
-    denominator = sum((x - x_mean) ** 2 for x in x_vals)
-    if denominator == 0:
+    num  = sum((x - x_mean) * (y - y_mean) for x, y in zip(x_vals, y_vals))
+    den  = sum((x - x_mean) ** 2 for x in x_vals)
+    if den == 0:
         return None
-    # slope: Δ1RM per day, negative when days_ago↑ and 1RM↑ (improving over time)
-    slope = numerator / denominator
-    return round(-slope * 7, 2)   # positive = gaining lbs/week
+    return round(-num / den * 7, 2)   # positive = gaining lbs/week
 
 
-def suggest_next_weight(
+def _suggest_uncapped(
     exercise: str,
     current_weight: float,
     last_reps: str,
-    rpe: float | None = None,
-    inventory: dict | None = None,
-    history: list[dict] | None = None,
-    avg_rir: float | None = None,
+    rpe: float | None,
+    inc: float,
+    history: list[dict] | None,
+    avg_rir: float | None,
 ) -> tuple[float, str]:
-    """
-    Returns (suggested_weight, action) where action ∈ {increase, maintain, decrease}.
-
-    Priority: RPE → RIR (converted to approximate RPE) → reps-based fallback.
-
-    Graduated scale:
-      ≤ 5.5  → +full increment
-      5.6–6.5 → +half increment
-      6.6–7.9 → maintain (or +half if 4-week trend is stalled/regressing)
-      8.0–8.9 → -half increment
-      ≥ 9.0  → -full increment
-    """
-    inc = _get_increment(exercise, inventory)
-
-    # RIR → approximate RPE fallback: RIR 0 ≈ RPE 10, RIR 4 ≈ RPE 6
+    """Core suggestion logic — no fatigue cap applied here."""
+    # RIR → approximate RPE fallback
     if rpe is None and avg_rir is not None:
         rpe = round(10.0 - avg_rir, 1)
 
     if rpe is not None:
         if rpe <= _RPE_INCREASE_FULL:
             return (round(current_weight + inc, 1), "increase")
+
         elif rpe <= _RPE_INCREASE_HALF:
             return (round(current_weight + inc * 0.5, 1), "increase")
+
         elif rpe < _RPE_DECREASE_HALF:
-            # Maintain zone — nudge up with half increment if stalled ≥ 4 weeks
+            # Maintain zone — use 4-week trend magnitude
             rate = compute_progression_rate(history) if history else None
-            if rate is not None and rate <= 0.0:
-                return (round(current_weight + inc * 0.5, 1), "increase")
+            if rate is not None:
+                if rate < _RATE_REGRESS:
+                    # Regressing → full increment nudge
+                    return (round(current_weight + inc, 1), "increase")
+                elif rate < _RATE_STALL:
+                    # Stalling → half increment nudge
+                    return (round(current_weight + inc * 0.5, 1), "increase")
             return (current_weight, "maintain")
+
         elif rpe < _RPE_DECREASE_FULL:
             return (round(max(0.0, current_weight - inc * 0.5), 1), "decrease")
+
         else:
             return (round(max(0.0, current_weight - inc), 1), "decrease")
 
-    # Reps-based fallback — works for ALL exercises
+    # Reps-based fallback
     rule = REPS_RULES.get(exercise, DEFAULT_REP_RANGE)
     try:
         reps = parse_reps(last_reps)
@@ -169,10 +170,81 @@ def suggest_next_weight(
     return (current_weight, "maintain")
 
 
-# ── Legacy helpers (kept for backward-compat) ─────────────────────────────
+def suggest_next_weight(
+    exercise: str,
+    current_weight: float,
+    last_reps: str,
+    rpe: float | None = None,
+    inventory: dict | None = None,
+    history: list[dict] | None = None,
+    avg_rir: float | None = None,
+    fatigue_score: int | None = None,
+) -> tuple[float, str]:
+    """
+    Returns (suggested_weight, action) where action ∈ {increase, maintain, decrease}.
+
+    Applies fatigue cap after computing the base suggestion:
+      fatigue_score >= 70 → block any increase
+      fatigue_score >= 50 → cap increase to half increment
+    """
+    inc = _get_increment(exercise, inventory)
+    new_w, action = _suggest_uncapped(exercise, current_weight, last_reps, rpe, inc, history, avg_rir)
+
+    # Fatigue cap
+    if fatigue_score is not None and action == "increase":
+        if fatigue_score >= 70:
+            return (current_weight, "maintain")
+        if fatigue_score >= 50:
+            max_w = round(current_weight + inc * 0.5, 1)
+            return (min(new_w, max_w), action)
+
+    return new_w, action
+
+
+def prescribe_volume(
+    exercise: str,
+    base_sets: int = 3,
+    rep_min: int = 8,
+    rep_max: int = 12,
+    fatigue_score: int | None = None,
+    history: list[dict] | None = None,
+) -> dict:
+    """
+    Prescribe sets × rep range for next session, adjusting for fatigue and trend.
+
+    Returns {sets, rep_min, rep_max, note}.
+    base_sets comes from the programme scheme (e.g. "3x8-10" → 3).
+    """
+    sets  = base_sets
+    notes: list[str] = []
+
+    # Fatigue adjustment: reduce volume when fatigued
+    if fatigue_score is not None:
+        if fatigue_score >= 70:
+            sets = max(2, base_sets - 2)
+            notes.append(f"fatigue élevée → {sets} sets")
+        elif fatigue_score >= 50:
+            sets = max(2, base_sets - 1)
+            notes.append(f"fatigue modérée → {sets} sets")
+
+    # Trend: ride a wave of positive progression → add a set
+    rate = compute_progression_rate(history) if history else None
+    if rate is not None and rate >= 1.0:
+        if fatigue_score is None or fatigue_score < 50:
+            sets = min(6, sets + 1)
+            notes.append("progression ↑ +1 set")
+
+    return {
+        "sets":    sets,
+        "rep_min": rep_min,
+        "rep_max": rep_max,
+        "note":    " · ".join(notes) if notes else None,
+    }
+
+
+# ── Legacy helpers ─────────────────────────────────────────────────────────
 
 def should_increase(reps_str: str, exercise: str) -> bool:
-    """Legacy: reps-based only. Prefer suggest_next_weight()."""
     rule = REPS_RULES.get(exercise, DEFAULT_REP_RANGE)
     try:
         reps = parse_reps(reps_str)
@@ -182,12 +254,10 @@ def should_increase(reps_str: str, exercise: str) -> bool:
 
 
 def next_weight(exercise: str, current_weight: float) -> float:
-    """Legacy linear increment. Prefer suggest_next_weight()."""
     return round(current_weight + _get_increment(exercise), 1)
 
 
 def estimate_1rm(weight: float, reps_str: str) -> float:
-    """Formule Epley."""
     try:
         reps = parse_reps(reps_str)
         if not reps:

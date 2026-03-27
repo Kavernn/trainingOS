@@ -66,8 +66,8 @@ from log_workout  import log_single_exercise
 from inventory    import load_inventory, save_inventory, add_exercise, rename_inventory_exercise, calculate_plates
 from sessions     import load_sessions, log_session, log_second_session, log_bonus_session, session_exists
 from user_profile import load_user_profile, save_user_profile
-from progression  import estimate_1rm, should_increase, next_weight, parse_reps, progression_status, suggest_next_weight
-from deload       import analyser_deload, load_deload_state
+from progression  import estimate_1rm, should_increase, next_weight, parse_reps, progression_status, suggest_next_weight, prescribe_volume, compute_progression_rate
+from deload       import analyser_deload, load_deload_state, get_cached_fatigue_score
 from goals        import load_goals, check_goals_achieved, get_progress_bar, set_goal
 from body_weight  import load_body_weight, log_body_weight, get_tendance
 from nutrition    import (load_settings as load_nutrition_settings,
@@ -544,11 +544,14 @@ def api_log():
         # Optional per-set data: [{weight: X, reps: "5"}, ...]
         sets_data = data.get("sets", [])
 
-        # If sets provided, recompute average weight server-side
+        # If sets provided, use first working set as the training weight.
+        # First set is the primary stimulus; averaging distorts progression
+        # signals when later sets are lighter (fatigue drops, drop sets, etc.)
         if sets_data:
-            set_weights = [float(s["weight"]) for s in sets_data if "weight" in s]
-            if set_weights:
-                weight = round(sum(set_weights) / len(set_weights), 1)
+            first_weights = [float(s["weight"]) for s in sets_data
+                             if s.get("weight") and float(s["weight"]) > 0]
+            if first_weights:
+                weight = round(first_weights[0], 1)
 
         reps_list = parse_reps(reps_str)
         reps      = ",".join(map(str, reps_list))
@@ -566,9 +569,11 @@ def api_log():
             if rir_vals:
                 avg_rir = round(sum(rir_vals) / len(rir_vals), 1)
 
+        fatigue_score = get_cached_fatigue_score()
         new_w, action = suggest_next_weight(
             exercise, weight, reps, rpe,
-            history=existing_history, avg_rir=avg_rir
+            history=existing_history, avg_rir=avg_rir,
+            fatigue_score=fatigue_score,
         )
         increase  = action == "increase"
         onerm     = estimate_1rm(weight, reps)
@@ -1752,6 +1757,22 @@ def api_seance_data():
     # Ordered list of exercise names per session (preserves user-defined order)
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
 
+    # Build per-exercise prescriptions (sets × reps adjusted for fatigue + trend)
+    fatigue_score = get_cached_fatigue_score()
+    prescriptions = {}
+    for session_exos in flat_program.values():
+        for ex_name, scheme in session_exos.items():
+            base_sets, rmin, rmax = _parse_scheme(str(scheme))
+            ex_history = weights.get(ex_name, {}).get("history", [])
+            prescriptions[ex_name] = prescribe_volume(
+                exercise=ex_name,
+                base_sets=base_sets,
+                rep_min=rmin,
+                rep_max=rmax,
+                fatigue_score=fatigue_score,
+                history=ex_history,
+            )
+
     return jsonify({
         "today": today_str,
         "today_date": today_date,
@@ -1765,6 +1786,7 @@ def api_seance_data():
         "inventory_tracking": inventory_tracking,
         "inventory_rest": inventory_rest,
         "exercise_order": exercise_order,
+        "prescriptions": prescriptions,
     })
 
 
@@ -1833,6 +1855,19 @@ def api_morning_schedule():
     return jsonify({"success": ok})
 
 
+import re as _re
+
+def _parse_scheme(scheme: str) -> tuple[int, int, int]:
+    """Parse '3x8-10' or '4×6' → (sets, rep_min, rep_max). Defaults: (3, 8, 12)."""
+    m = _re.match(r'(\d+)\s*[xX×]\s*(\d+)(?:\s*[-–]\s*(\d+))?', scheme or "")
+    if m:
+        sets = max(1, min(int(m.group(1)), 8))
+        rmin = int(m.group(2))
+        rmax = int(m.group(3)) if m.group(3) else rmin
+        return sets, rmin, rmax
+    return 3, 8, 12
+
+
 _MUSCLE_ALIASES: dict = {
     # Quads
     "quads":           "quadriceps",
@@ -1869,6 +1904,51 @@ _MUSCLE_ALIASES: dict = {
 
 def _normalize_muscle(name: str) -> str:
     return _MUSCLE_ALIASES.get(name.lower().strip(), name.lower().strip())
+
+
+# Weekly set landmarks per muscle (MEV/MAV/MRV — Israetel et al.)
+# Keys match _normalize_muscle() output
+MUSCLE_LANDMARKS: dict[str, dict] = {
+    "chest":      {"mev": 8,  "mav": 16, "mrv": 22},
+    "lats":       {"mev": 10, "mav": 18, "mrv": 25},
+    "deltoids":   {"mev": 8,  "mav": 16, "mrv": 22},
+    "rear delt":  {"mev": 6,  "mav": 14, "mrv": 20},
+    "trapezius":  {"mev": 4,  "mav": 12, "mrv": 18},
+    "biceps":     {"mev": 6,  "mav": 14, "mrv": 20},
+    "triceps":    {"mev": 6,  "mav": 14, "mrv": 18},
+    "quadriceps": {"mev": 8,  "mav": 16, "mrv": 22},
+    "hamstrings": {"mev": 6,  "mav": 12, "mrv": 16},
+    "glutes":     {"mev": 4,  "mav": 12, "mrv": 16},
+    "calves":     {"mev": 8,  "mav": 16, "mrv": 20},
+    "abs":        {"mev": 4,  "mav": 16, "mrv": 25},
+    "forearms":   {"mev": 4,  "mav": 10, "mrv": 14},
+}
+
+
+def _calc_weekly_sets_per_muscle(weights: dict, inventory: dict) -> dict[str, int]:
+    """Count direct hard sets per muscle group logged in the last 7 days."""
+    from datetime import date, timedelta
+    cutoff = (date.today() - timedelta(days=7)).isoformat()
+    weekly: dict[str, int] = {}
+    for ex_name, ex_data in weights.items():
+        raw_muscles = (inventory.get(ex_name) or {}).get("muscles") or []
+        muscles = [_normalize_muscle(m) for m in raw_muscles]
+        if not muscles:
+            continue
+        for entry in ex_data.get("history", []):
+            d = entry.get("date") or ""
+            if d < cutoff:
+                break  # history is newest-first
+            if entry.get("sets"):
+                n_sets = len(entry["sets"])
+            else:
+                try:
+                    n_sets = len(parse_reps(entry.get("reps") or ""))
+                except Exception:
+                    n_sets = 1
+            for muscle in muscles:
+                weekly[muscle] = weekly.get(muscle, 0) + n_sets
+    return weekly
 
 
 def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:
@@ -1931,7 +2011,17 @@ def api_stats_data():
     nutr_entries  = get_recent_days(30)
     inventory       = load_inventory() or {}
     muscle_stats    = _calc_muscle_stats(sessions, weights, inventory)
+    weekly_sets     = _calc_weekly_sets_per_muscle(weights, inventory)
     inventory_types = {name: info.get("type", "machine") for name, info in inventory.items()}
+
+    # Landmark data: only for muscles the user actually trains
+    tracked_muscles = set(muscle_stats.keys()) | set(weekly_sets.keys())
+    muscle_landmarks = {
+        muscle: {**MUSCLE_LANDMARKS[muscle], "weekly_sets": weekly_sets.get(muscle, 0)}
+        for muscle in tracked_muscles
+        if muscle in MUSCLE_LANDMARKS
+    }
+
     return jsonify({
         "weights":          weights,
         "sessions":         sessions,
@@ -1943,6 +2033,7 @@ def api_stats_data():
         "week":             get_current_week(),
         "muscle_stats":     muscle_stats,
         "inventory_types":  inventory_types,
+        "muscle_landmarks": muscle_landmarks,
     })
 
 

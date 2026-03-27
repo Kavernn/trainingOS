@@ -545,6 +545,7 @@ struct WorkoutSeanceView: View {
             isSecondSession: isSecondSession,
             isBonusSession: false,
             restSeconds: restSeconds(for: name),
+            prescription: data.prescriptions?[name],
             logResult: $vm.logResults[name],
             onLogged: nil
         )
@@ -1298,6 +1299,7 @@ struct AddHIITSheet: View {
         var isSecondSession: Bool = false
         var isBonusSession: Bool = false
         var restSeconds: Int? = nil
+        var prescription: ExercisePrescription? = nil
         @Binding var logResult: ExerciseLogResult?
         var onLogged: (() -> Void)? = nil
         @ObservedObject private var units = UnitSettings.shared
@@ -1330,6 +1332,8 @@ struct AddHIITSheet: View {
         var lastReps: String { weightData?.lastReps ?? "—" }
 
         private var setsCount: Int {
+            // Prescription overrides scheme when fatigue/trend adjusts volume
+            if let p = prescription { return max(1, min(p.sets, 8)) }
             let s = scheme.lowercased()
             if let x = s.firstIndex(of: "x") {
                 let before = String(s[s.startIndex..<x])
@@ -1689,6 +1693,25 @@ struct AddHIITSheet: View {
                     }
                 } else {
                     // ── Inputs ──
+
+                    // Prescription chip (sets × reps, with fatigue/trend note)
+                    if let p = prescription {
+                        HStack(spacing: 6) {
+                            Text(p.label)
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.purple)
+                                .padding(.horizontal, 8).padding(.vertical, 3)
+                                .background(Color.purple.opacity(0.12))
+                                .cornerRadius(6)
+                            if let note = p.note {
+                                Text(note)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.orange.opacity(0.8))
+                                    .lineLimit(1)
+                            }
+                            Spacer()
+                        }
+                    }
 
                     // Recommended weight hint
                     if currentWeight > 0 {

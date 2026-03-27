@@ -162,6 +162,44 @@ struct UserProfile: Codable {
     }
 }
 
+// MARK: - Exercise Prescription
+struct ExercisePrescription: Codable {
+    let sets: Int
+    let repMin: Int
+    let repMax: Int
+    let note: String?
+
+    enum CodingKeys: String, CodingKey {
+        case sets, note
+        case repMin = "rep_min"
+        case repMax = "rep_max"
+    }
+
+    var label: String { "\(sets)×\(repMin)–\(repMax)" }
+}
+
+// MARK: - Muscle Landmark
+struct MuscleLandmark: Codable {
+    let mev: Int        // Minimum Effective Volume (weekly sets)
+    let mav: Int        // Maximum Adaptive Volume
+    let mrv: Int        // Maximum Recoverable Volume
+    let weeklySets: Int // Actual sets logged this week
+
+    enum CodingKeys: String, CodingKey {
+        case mev, mav, mrv
+        case weeklySets = "weekly_sets"
+    }
+
+    enum Zone { case underMEV, optimal, approachingMRV, overMRV }
+
+    var zone: Zone {
+        if weeklySets < mev  { return .underMEV }
+        if weeklySets > mrv  { return .overMRV }
+        if weeklySets >= mav { return .approachingMRV }
+        return .optimal
+    }
+}
+
 // MARK: - Seance
 struct SeanceData: Codable {
     let today: String
@@ -176,6 +214,7 @@ struct SeanceData: Codable {
     let inventoryTracking: [String: String]   // "reps" | "time"
     let inventoryRest: [String: Int]          // exercise name → rest seconds
     let exerciseOrder: [String: [String]]
+    let prescriptions: [String: ExercisePrescription]?
 
     enum CodingKeys: String, CodingKey {
         case today
@@ -183,7 +222,7 @@ struct SeanceData: Codable {
         case alreadyLogged = "already_logged"
         case schedule
         case fullProgram = "full_program"
-        case weights, week
+        case weights, week, prescriptions
         case inventoryTypes    = "inventory_types"
         case inventoryTracking = "inventory_tracking"
         case inventoryRest     = "inventory_rest"
@@ -203,6 +242,7 @@ struct SeanceData: Codable {
         inventoryTracking  = (try? c.decode([String: String].self, forKey: .inventoryTracking)) ?? [:]
         inventoryRest      = (try? c.decode([String: Int].self,    forKey: .inventoryRest))     ?? [:]
         exerciseOrder      = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))   ?? [:]
+        prescriptions      = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
     }
 
     init(today: String, todayDate: String, alreadyLogged: Bool,
@@ -210,7 +250,8 @@ struct SeanceData: Codable {
          weights: [String: WeightData], week: Int,
          inventoryTypes: [String: String], inventoryTracking: [String: String] = [:],
          inventoryRest: [String: Int] = [:],
-         exerciseOrder: [String: [String]]) {
+         exerciseOrder: [String: [String]],
+         prescriptions: [String: ExercisePrescription]? = nil) {
         self.today              = today
         self.todayDate          = todayDate
         self.alreadyLogged      = alreadyLogged
@@ -222,6 +263,7 @@ struct SeanceData: Codable {
         self.inventoryTracking  = inventoryTracking
         self.inventoryRest      = inventoryRest
         self.exerciseOrder      = exerciseOrder
+        self.prescriptions      = prescriptions
     }
 }
 

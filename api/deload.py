@@ -9,9 +9,10 @@ BASE_DIR      = Path(__file__).parent
 DATA_FILE     = BASE_DIR / "data" / "weights.json"
 DELOAD_FILE   = BASE_DIR / "data" / "deload.json"
 
-STAGNATION_THRESHOLD = 3    # nb de séances au même poids = stagnation
-RPE_FATIGUE_THRESHOLD = 8.5 # RPE moyen au dessus de ça = fatigue
-DELOAD_FACTOR = 0.85        # -15% pendant le deload
+STAGNATION_THRESHOLD  = 3    # nb de séances au même poids = stagnation
+RPE_FATIGUE_THRESHOLD = 8.5  # RPE moyen au dessus de ça = fatigue
+DELOAD_FACTOR         = 0.85 # -15% pendant le deload
+PLANNED_DELOAD_WEEKS  = 8    # deload planifié toutes les N semaines
 
 
 # ─────────────────────────────────────────────────────────────
@@ -134,6 +135,42 @@ def save_deload_state(state: dict):
     set_json("deload_state", state)
 
 
+def get_cached_fatigue_score() -> int:
+    """
+    Return today's fatigue score (0–100). Cached in KV daily to avoid
+    redundant Supabase reads on every exercise log.
+    """
+    from datetime import date
+    today = date.today().isoformat()
+    cached = get_json("fatigue_score_cache", {})
+    if isinstance(cached, dict) and cached.get("date") == today:
+        return int(cached.get("score", 0))
+    result = compute_fatigue_score()
+    set_json("fatigue_score_cache", {"date": today, "score": result["score"]})
+    return result["score"]
+
+
+def check_planned_deload() -> dict:
+    """
+    Check if a planned deload is due based on time elapsed since last deload.
+    Returns {due: bool, weeks_since: float | None}.
+    """
+    from datetime import date
+    state = load_deload_state()
+    last_str = state.get("last_completed")
+    if not last_str:
+        return {"due": False, "weeks_since": None}
+    try:
+        last = date.fromisoformat(last_str)
+        weeks_since = (date.today() - last).days / 7
+        return {
+            "due":         weeks_since >= PLANNED_DELOAD_WEEKS,
+            "weeks_since": round(weeks_since, 1),
+        }
+    except Exception:
+        return {"due": False, "weeks_since": None}
+
+
 def activer_deload(reason: str):
     from datetime import datetime
     state = {
@@ -145,7 +182,15 @@ def activer_deload(reason: str):
 
 
 def desactiver_deload():
-    save_deload_state({"active": False, "since": None, "reason": None})
+    from datetime import date
+    state = load_deload_state()
+    save_deload_state({
+        "active":         False,
+        "since":          None,
+        "reason":         None,
+        "last_completed": date.today().isoformat(),
+        # Preserve previous last_completed if already set (only overwrite on actual deload end)
+    })
 
 
 # ─────────────────────────────────────────────────────────────
@@ -251,13 +296,19 @@ def analyser_deload(weights: dict) -> dict:
     fatigue       = detect_fatigue_rpe()
     fatigue_data  = compute_fatigue_score()
     drops         = detect_performance_drop(weights)
+    planned       = check_planned_deload()
     state         = load_deload_state()
 
-    recommande = len(stagnants) >= 2 or fatigue["fatigue"] or len(drops) > 0
+    recommande = (
+        len(stagnants) >= 2
+        or fatigue["fatigue"]
+        or len(drops) > 0
+        or planned["due"]
+    )
 
     stagnant_names = [s["exercise"] for s in stagnants]
     drop_names     = [d["exercise"] for d in drops]
-    deload_targets = list(dict.fromkeys(stagnant_names + drop_names))  # deduplicated
+    deload_targets = list(dict.fromkeys(stagnant_names + drop_names))
 
     rapport = {
         "deload_actif":        state["active"],
@@ -267,6 +318,8 @@ def analyser_deload(weights: dict) -> dict:
         "performance_drops":   drop_names,
         "fatigue_rpe":         fatigue["fatigue"],
         "recommande":          recommande,
+        "planned_deload_due":  planned["due"],
+        "weeks_since_deload":  planned.get("weeks_since"),
         "poids_deload":        {ex: round((weights.get(ex, {}).get("current_weight") or
                                            weights.get(ex, {}).get("weight") or 0) * DELOAD_FACTOR, 1)
                                 for ex in deload_targets

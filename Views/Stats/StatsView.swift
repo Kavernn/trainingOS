@@ -76,8 +76,9 @@ struct StatsView: View {
     @State private var nutritionTarget:  NutritionSettings?      = nil
     @State private var nutritionDays:    [NutritionDay]          = []
     @State private var acwr:             ACWRData?               = nil
-    @State private var muscleStats:      [String: MuscleStatEntry] = [:]
-    @State private var inventoryTypes:   [String: String]          = [:]
+    @State private var muscleStats:      [String: MuscleStatEntry]  = [:]
+    @State private var muscleLandmarks:  [String: MuscleLandmark]   = [:]
+    @State private var inventoryTypes:   [String: String]            = [:]
     @State private var isLoading    = true
     @State private var fetchError   = false
     @State private var selectedExercise: String? = nil
@@ -395,6 +396,11 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
+        if !muscleLandmarks.isEmpty {
+            VolumeLandmarksCard(landmarks: muscleLandmarks)
+                .padding(.horizontal, 16)
+        }
+
         Spacer(minLength: 32)
     }
 
@@ -533,6 +539,7 @@ struct StatsView: View {
         let nutritionDays:   [NutritionDay]
         let muscleStats:     [String: MuscleStatEntry]
         let inventoryTypes:  [String: String]?
+        let muscleLandmarks: [String: MuscleLandmark]?
         enum CodingKeys: String, CodingKey {
             case weights, sessions
             case hiitLog         = "hiit_log"
@@ -542,6 +549,7 @@ struct StatsView: View {
             case nutritionDays   = "nutrition_days"
             case muscleStats     = "muscle_stats"
             case inventoryTypes  = "inventory_types"
+            case muscleLandmarks = "muscle_landmarks"
         }
     }
 
@@ -555,6 +563,7 @@ struct StatsView: View {
         nutritionDays   = r.nutritionDays
         muscleStats     = r.muscleStats
         inventoryTypes  = r.inventoryTypes ?? [:]
+        muscleLandmarks = r.muscleLandmarks ?? [:]
     }
 
     private func loadData() async {
@@ -1956,6 +1965,121 @@ struct MuscleVolumeView: View {
         .cornerRadius(14)
     }
 }
+
+// MARK: - Volume Landmarks Card
+struct VolumeLandmarksCard: View {
+    let landmarks: [String: MuscleLandmark]
+
+    private var sorted: [(String, MuscleLandmark)] {
+        landmarks.sorted { a, b in
+            // Sort: over-MRV first, then under-MEV, then by muscle name
+            let priorityA = a.1.zone == .overMRV ? 0 : a.1.zone == .underMEV ? 1 : 2
+            let priorityB = b.1.zone == .overMRV ? 0 : b.1.zone == .underMEV ? 1 : 2
+            return priorityA != priorityB ? priorityA < priorityB : a.0 < b.0
+        }
+    }
+
+    private func zoneColor(_ zone: MuscleLandmark.Zone) -> Color {
+        switch zone {
+        case .underMEV:       return .blue
+        case .optimal:        return .green
+        case .approachingMRV: return .orange
+        case .overMRV:        return .red
+        }
+    }
+
+    private func zoneLabel(_ zone: MuscleLandmark.Zone) -> String {
+        switch zone {
+        case .underMEV:       return "< MEV"
+        case .optimal:        return "optimal"
+        case .approachingMRV: return "→ MRV"
+        case .overMRV:        return "> MRV"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .font(.system(size: 11))
+                    .foregroundColor(.purple)
+                Text("VOLUME HEBDO — LANDMARKS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2)
+                    .foregroundColor(.gray)
+            }
+
+            // Legend
+            HStack(spacing: 14) {
+                legendDot(.blue,   "< MEV")
+                legendDot(.green,  "Optimal")
+                legendDot(.orange, "→ MRV")
+                legendDot(.red,    "> MRV")
+            }
+
+            VStack(spacing: 7) {
+                ForEach(sorted, id: \.0) { muscle, lm in
+                    HStack(spacing: 8) {
+                        Text(muscle.capitalized)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 100, alignment: .leading)
+                            .lineLimit(1)
+
+                        // Progress bar: filled to weekly_sets/mrv, marker at MEV and MAV
+                        GeometryReader { geo in
+                            let w = geo.size.width
+                            let ratio = min(Double(lm.weeklySets) / Double(lm.mrv), 1.2)
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.white.opacity(0.06))
+                                    .frame(height: 8)
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(zoneColor(lm.zone).opacity(0.8))
+                                    .frame(width: min(w * ratio, w), height: 8)
+                                // MEV marker
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.4))
+                                    .frame(width: 1, height: 12)
+                                    .offset(x: w * Double(lm.mev) / Double(lm.mrv))
+                                // MAV marker
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.25))
+                                    .frame(width: 1, height: 12)
+                                    .offset(x: min(w * Double(lm.mav) / Double(lm.mrv), w - 1))
+                            }
+                        }
+                        .frame(height: 12)
+
+                        Text("\(lm.weeklySets)")
+                            .font(.system(size: 12, weight: .black))
+                            .foregroundColor(zoneColor(lm.zone))
+                            .frame(width: 22, alignment: .trailing)
+
+                        Text(zoneLabel(lm.zone))
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(zoneColor(lm.zone).opacity(0.8))
+                            .frame(width: 44, alignment: .trailing)
+                    }
+                }
+            }
+
+            Text("MEV · MAV · MRV d'après Renaissance Periodization (Israetel et al.)")
+                .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+                .padding(.top, 2)
+        }
+        .padding(16)
+        .glassCard()
+        .cornerRadius(16)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(.gray)
+        }
+    }
+}
+
 
 // MARK: - Stats Tab Bar
 struct StatsTabBar: View {
