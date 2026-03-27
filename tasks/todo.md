@@ -26,7 +26,7 @@
 
 - [ ] **Pas de pagination dans Historique** : toutes les séances sont chargées d'un coup. Implémenter une pagination (20 items + "Charger plus").
 - [ ] **Pas de filtre par date dans Historique** : impossible de chercher "séances de février". Ajouter un picker mois/année.
-- [ ] **1RM formula ignore RPE** : `w × (1 + reps/30)` surestime si les reps étaient à faible effort. Ajouter un facteur RPE dans le calcul (Brzycki ajusté).
+- [x] **1RM formula ignore RPE** : `w × (1 + reps/30)` surestime si les reps étaient à faible effort. → Résolu partiellement via RIR : quand avg_rir disponible, RPE implicite = 10−rir, modifie la suggestion de poids. 1RM Epley reste comme base de comparaison PR.
 - [ ] **Deload recommandé mais pas auto-appliqué** : la bannière suggère un deload mais l'utilisateur doit manuellement baisser les poids. Ajouter un bouton "Appliquer le déload (−10%)" qui pré-remplit les charges.
 - [ ] **Goals sans deadline enforcement** : la deadline est affichée mais pas rappelée. Ajouter une notification locale J-7 et J-1 avant deadline d'un objectif.
 - [ ] **Pas d'indication "exo jamais utilisé" dans inventaire** : des centaines d'exos ExerciseDB ne sont jamais utilisés dans le programme. Ajouter un badge ou tri "En programme / Jamais utilisé".
@@ -72,6 +72,17 @@
 ---
 
 ## ✅ Déjà résolu récemment
+
+- [x] **Progressive overload — RIR capture** : champ RIR par set (stepper 0–6), envoyé à l'API, stocké en JSONB, utilisé comme fallback RPE dans suggest_next_weight (2026-03-26)
+- [x] **Progressive overload — RPE gradué** : remplacement des seuils binaires par 5 niveaux (±full, ±half, maintain) dans `progression.py` (2026-03-26)
+- [x] **Progressive overload — chute de performance** : `detect_performance_drop()` dans `deload.py`, déclenche déload si 1RM chute ≥10% sur 3 sessions (2026-03-26)
+- [x] **Progressive overload — trend 4 semaines** : `compute_progression_rate()` via régression linéaire 28j, nudge +demi-incrément si trend ≤0 en zone maintain (2026-03-26)
+- [x] **StatsView refactor** : 5 onglets (Volume, 1RM, Groupes, Cardio, Corps), period picker, smart insights auto-générés (2026-03-26)
+- [x] **IntelligenceView — optimisation données** : réutilise cache `stats_data`, contexte athlete enrichi (LSS, ACWR, poids, muscles), format terse −50% tokens (2026-03-26)
+- [x] **Ghost Mode** : bannière dans SeanceView avec meilleure session historique + barre de progression volume en temps réel (2026-03-26)
+- [x] **Pre-Brief enrichi** : MorningBriefCardView avec sparkline LSS 7j, readiness delta, heures depuis dernière séance (2026-03-26)
+- [x] **Narrative hebdomadaire** : NarrativeCard dans IntelligenceView (Claude ~150 mots style journaliste), cachée par semaine ISO (2026-03-26)
+- [x] **Peak Prediction** : strip 7j dans Dashboard avec LSS prédit par régression + jour optimal mis en avant (2026-03-26)
 
 - [x] Exercices ajoutés au programme → inventaire (timeout `save_inventory` fixé → `add_exercise` ciblé)
 - [x] Limit 1000 rows PostgREST sur `get_exercises` → `.limit(10000)`
