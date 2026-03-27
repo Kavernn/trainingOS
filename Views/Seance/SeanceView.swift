@@ -1930,8 +1930,10 @@ struct AddHIITSheet: View {
                 if sets.isEmpty { sets = Array(repeating: SetInput(), count: setsCount) }
             }
             .onChange(of: setsCount) {
-                if sets.count != setsCount {
-                    sets = Array(repeating: SetInput(), count: setsCount)
+                if sets.count < setsCount {
+                    sets.append(contentsOf: Array(repeating: SetInput(), count: setsCount - sets.count))
+                } else if sets.count > setsCount {
+                    sets = Array(sets.prefix(setsCount))
                 }
             }
             .onChange(of: logResult == nil) { isNil in
