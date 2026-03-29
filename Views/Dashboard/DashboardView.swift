@@ -82,7 +82,7 @@ struct DashboardView: View {
 
                             if let peak = peakPrediction, !peak.days.isEmpty {
                                 PeakPredictionCard(prediction: peak)
-                                    .appearAnimation(delay: 0.045)
+                                    .appearAnimation(delay: 0.05)
                             }
 
                             if moodDue?.isDue == true {
@@ -103,33 +103,33 @@ struct DashboardView: View {
                                     .cornerRadius(12)
                                 }
                                 .buttonStyle(.plain)
-                                .appearAnimation(delay: 0.04)
+                                .appearAnimation(delay: 0.05)
                             }
 
                             if !insights.isEmpty {
                                 DashboardInsightsCard(insights: insights)
-                                    .appearAnimation(delay: 0.05)
+                                    .appearAnimation(delay: 0.06)
                             }
 
                             TodayCardView(dash: dash)
-                                .appearAnimation(delay: 0.06)
+                                .appearAnimation(delay: 0.07)
 
                             if let soir = soirData, soir.hasEveningSession {
                                 SoirCardView(data: soir)
-                                    .appearAnimation(delay: 0.07)
+                                    .appearAnimation(delay: 0.08)
                             }
 
                             StatsRowView(dash: dash)
-                                .appearAnimation(delay: 0.1)
+                                .appearAnimation(delay: 0.09)
 
                             HeatmapView(sessions: dash.sessions)
-                                .appearAnimation(delay: 0.15)
+                                .appearAnimation(delay: 0.11)
 
                             WeekGridView(schedule: dash.schedule, sessions: dash.sessions)
-                                .appearAnimation(delay: 0.2)
+                                .appearAnimation(delay: 0.13)
 
                             NutritionSummaryView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
-                                .appearAnimation(delay: 0.25)
+                                .appearAnimation(delay: 0.16)
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 8)

@@ -42,19 +42,28 @@ private struct iOSContentView: View {
         }
         .overlay(alignment: .top) { offlineBanner }
         .overlay(alignment: .bottom) { offlineToast }
+        .tint(.orange)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
     }
 
     @ViewBuilder private var offlineBanner: some View {
         if !network.isOnline {
             HStack(spacing: 6) {
-                Image(systemName: "wifi.slash").font(.system(size: 12, weight: .semibold))
+                Image(systemName: "wifi.slash").font(.system(size: 11, weight: .semibold))
                 Text("Hors-ligne — données en cache").font(.system(size: 12, weight: .medium))
             }
             .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
-            .background(Color.orange.opacity(0.9))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 7)
+            .background(
+                Capsule()
+                    .fill(Color(hex: "1c1c1e"))
+                    .overlay(Capsule().stroke(Color.orange.opacity(0.55), lineWidth: 1))
+            )
+            .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
+            .padding(.top, 52)
+            .transition(.move(edge: .top).combined(with: .opacity))
+            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: network.isOnline)
             .allowsHitTesting(false)
         }
     }

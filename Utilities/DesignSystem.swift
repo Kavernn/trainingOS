@@ -26,14 +26,14 @@ struct GlassCard: ViewModifier {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .stroke(
                         LinearGradient(
-                            colors: [.white.opacity(0.12), .white.opacity(0.03)],
+                            colors: [.white.opacity(0.07), .white.opacity(0)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
                         lineWidth: 1
                     )
             )
-            .shadow(color: .black.opacity(0.35), radius: 16, x: 0, y: 8)
+            .shadow(color: .black.opacity(0.22), radius: 10, x: 0, y: 5)
     }
 }
 
@@ -84,7 +84,7 @@ extension View {
 
 // MARK: - Spring Button Style
 struct SpringButtonStyle: ButtonStyle {
-    var scale: CGFloat = 0.96
+    var scale: CGFloat = 0.97
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -101,9 +101,9 @@ struct AppearModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : 18)
+            .offset(y: appeared ? 0 : 10)
             .onAppear {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.8).delay(delay)) {
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.82).delay(delay)) {
                     appeared = true
                 }
             }
@@ -134,7 +134,7 @@ struct FAB: View {
                         )
                     )
                     .frame(width: 58, height: 58)
-                    .shadow(color: .orange.opacity(0.45), radius: 16, x: 0, y: 8)
+                    .shadow(color: .orange.opacity(0.30), radius: 12, x: 0, y: 6)
                 Image(systemName: icon)
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.white)
@@ -155,13 +155,13 @@ struct SectionLabel: View {
         HStack {
             if let icon = icon {
                 Image(systemName: icon)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.gray)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.4))
             }
             Text(title)
-                .font(.system(size: 10, weight: .bold))
-                .tracking(2)
-                .foregroundColor(.gray)
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(1.2)
+                .foregroundColor(.white.opacity(0.4))
             Spacer()
             if let action = action {
                 Button(actionLabel, action: action)
@@ -293,8 +293,8 @@ struct StatPill: View {
                 .foregroundColor(color)
                 .contentTransition(.numericText())
             Text(label)
-                .font(.system(size: 9, weight: .semibold))
-                .tracking(1)
+                .font(.system(size: 10, weight: .semibold))
+                .tracking(0.5)
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
