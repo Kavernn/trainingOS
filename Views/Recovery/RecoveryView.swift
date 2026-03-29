@@ -4,6 +4,7 @@ struct RecoveryView: View {
     @State private var log: [RecoveryEntry] = []
     @State private var isLoading = true
     @State private var showSheet = false
+    @State private var editTarget: RecoveryEntry? = nil
     @State private var apiError: String? = nil
     @StateObject private var watchSync = WatchSyncService.shared
 
@@ -98,16 +99,20 @@ struct RecoveryView: View {
                                         .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         .padding(.horizontal, 16)
                                     ForEach(log) { entry in
-                                        RecoveryRow(entry: entry, onDelete: {
-                                            Task {
-                                                do {
-                                                    try await APIService.shared.deleteRecovery(date: entry.date ?? "")
-                                                } catch {
-                                                    await MainActor.run { apiError = "Erreur réseau — réessaie" }
+                                        RecoveryRow(
+                                            entry: entry,
+                                            onEdit: { editTarget = entry },
+                                            onDelete: {
+                                                Task {
+                                                    do {
+                                                        try await APIService.shared.deleteRecovery(date: entry.date ?? "")
+                                                    } catch {
+                                                        await MainActor.run { apiError = "Erreur réseau — réessaie" }
+                                                    }
+                                                    await loadData()
                                                 }
-                                                await loadData()
                                             }
-                                        })
+                                        )
                                         .padding(.horizontal, 16)
                                     }
                                 }
@@ -125,12 +130,19 @@ struct RecoveryView: View {
             .sheet(isPresented: $showSheet) {
                 LogRecoverySheet(onSaved: { await loadData() })
             }
+            .sheet(item: $editTarget) { entry in
+                LogRecoverySheet(prefillEntry: entry, onSaved: { await loadData() })
+            }
             .overlay(alignment: .bottomTrailing) {
-                if !alreadyLoggedToday {
-                    FAB(icon: "plus") { showSheet = true }
-                        .padding(.trailing, 20)
-                        .padding(.bottom, fabBottomPadding + 16)
+                FAB(icon: alreadyLoggedToday ? "pencil" : "plus") {
+                    if alreadyLoggedToday, let todayEntry = log.first(where: { $0.date == todayStr }) {
+                        editTarget = todayEntry
+                    } else {
+                        showSheet = true
+                    }
                 }
+                .padding(.trailing, 20)
+                .padding(.bottom, fabBottomPadding + 16)
             }
         }
         .task {
@@ -152,6 +164,7 @@ struct RecoveryView: View {
 // MARK: - Row
 struct RecoveryRow: View {
     let entry: RecoveryEntry
+    var onEdit: (() -> Void)? = nil
     let onDelete: () -> Void
     @State private var confirmDelete = false
 
@@ -200,6 +213,18 @@ struct RecoveryRow: View {
                     Text("douleurs")
                         .font(.system(size: 9)).foregroundColor(.gray)
                 }
+            }
+
+            if let onEdit {
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 12))
+                        .frame(width: 30, height: 30)
+                        .background(Color.indigo.opacity(0.12))
+                        .foregroundColor(.indigo)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
             }
 
             Button { confirmDelete = true } label: {
@@ -337,6 +362,7 @@ struct RecoveryEmptyState: View {
 
 // MARK: - Log Sheet
 struct LogRecoverySheet: View {
+    var prefillEntry: RecoveryEntry? = nil
     var onSaved: () async -> Void
     @Environment(\.dismiss) private var dismiss
     @StateObject private var hk = HealthKitService.shared
@@ -352,6 +378,8 @@ struct LogRecoverySheet: View {
     @State private var isSaving = false
     @State private var isLoadingHK = false
     @State private var apiError: String? = nil
+
+    private var isEditing: Bool { prefillEntry != nil }
 
     private var dateStr: String {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
@@ -465,7 +493,7 @@ struct LogRecoverySheet: View {
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
-            .navigationTitle("Récupération du jour")
+            .navigationTitle(isEditing ? "Modifier la récupération" : "Récupération du jour")
             .navigationBarTitleDisplayMode(.inline)
             .keyboardOkButton()
             .toolbar {
@@ -476,7 +504,21 @@ struct LogRecoverySheet: View {
             .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(apiError ?? "") }
+            .onAppear { prefill() }
         }
+    }
+
+    private func prefill() {
+        guard let e = prefillEntry else { return }
+        if let h  = e.sleepHours    { sleepHoursStr = String(format: "%.1f", h) }
+        if let q  = e.sleepQuality  { sleepQuality  = q }
+        if let hr = e.restingHr     { restingHrStr  = String(format: "%.0f", hr) }
+        if let v  = e.hrv           { hrvStr         = String(format: "%.0f", v) }
+        if let s  = e.steps         { stepsStr       = "\(s)" }
+        if let so = e.soreness      { soreness       = so }
+        notes = e.notes ?? ""
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        if let d = e.date, let parsed = f.date(from: d) { selectedDate = parsed }
     }
 
     private func sorenessColor(_ v: Double) -> Color {
