@@ -35,23 +35,36 @@ struct DashboardView: View {
             ZStack {
                 AmbientBackground(color: todayAccentColor)
                 if api.isLoading && api.dashboard == nil {
-                    VStack(spacing: 16) {
-                        ProgressView().tint(.orange).scaleEffect(1.4)
-                        Text("Chargement...")
-                            .font(.system(size: 13)).foregroundColor(.gray)
-                    }
+                    DashboardSkeletonView()
                 } else if let dash = api.dashboard {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 18) {
                             GreetingHeaderView(dash: dash)
                                 .appearAnimation(delay: 0)
 
-                            if let rec = todayRecovery,
-                               rec.sleepHours != nil || rec.restingHr != nil || rec.hrv != nil || rec.steps != nil {
-                                RecoverySnapshotView(recovery: rec)
-                                    .appearAnimation(delay: 0.01)
+                            // Fix #1: TodayCard at top — primary action every session
+                            TodayCardView(
+                                dash: dash,
+                                showGreatDayBadge: brief?.recommendation == "go" && (deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil
+                            )
+                            .appearAnimation(delay: 0.01)
+
+                            if let soir = soirData, soir.hasEveningSession {
+                                SoirCardView(data: soir)
+                                    .appearAnimation(delay: 0.02)
                             }
 
+                            // Fix #3: tappable recovery strip; Fix #15: indigo accent
+                            if let rec = todayRecovery,
+                               rec.sleepHours != nil || rec.restingHr != nil || rec.hrv != nil || rec.steps != nil {
+                                NavigationLink(destination: RecoveryView()) {
+                                    RecoverySnapshotView(recovery: rec)
+                                }
+                                .buttonStyle(.plain)
+                                .appearAnimation(delay: 0.03)
+                            }
+
+                            // Fix #2: remove inline re-show button; keep SleepPromptCard only
                             if shouldShowSleepPrompt {
                                 SleepPromptCard(onDone: {
                                     UserDefaults.standard.set(todayStr, forKey: "sleepPromptDate")
@@ -59,33 +72,23 @@ struct DashboardView: View {
                                         sleepPromptDismissedThisSession = true
                                     }
                                 })
-                            } else if !todaySleepLogged {
-                                Button {
-                                    withAnimation(.easeOut(duration: 0.2)) {
-                                        sleepPromptDismissedThisSession = false
-                                        UserDefaults.standard.removeObject(forKey: "sleepPromptDate")
-                                    }
-                                } label: {
-                                    Label("Loguer le sommeil", systemImage: "moon.zzz.fill")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.indigo.opacity(0.8))
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.indigo.opacity(0.08))
-                                        .clipShape(Capsule())
-                                }
-                                .buttonStyle(.plain)
-                                .appearAnimation(delay: 0.01)
+                                .appearAnimation(delay: 0.04)
                             }
 
                             ChecklistCardView()
-                                .appearAnimation(delay: 0.02)
+                                .appearAnimation(delay: 0.05)
 
+                            // Fix #7: full banner only for level 2; compact chip for level 1
                             if let report = deload, report.fatigueLevel > 0 {
-                                DeloadBannerView(report: report) {
-                                    Task { await applyDeload(report: report) }
+                                if report.fatigueLevel == 2 {
+                                    DeloadBannerView(report: report) {
+                                        Task { await applyDeload(report: report) }
+                                    }
+                                    .appearAnimation(delay: 0.06)
+                                } else {
+                                    DeloadChipView(report: report)
+                                        .appearAnimation(delay: 0.06)
                                 }
-                                .appearAnimation(delay: 0.03)
                             }
 
                             if let b = brief,
@@ -96,66 +99,41 @@ struct DashboardView: View {
                                     lssTrend: lssTrend,
                                     lastSessionDate: api.dashboard?.sessions.keys.max()
                                 )
-                                .appearAnimation(delay: 0.04)
+                                .appearAnimation(delay: 0.07)
                             }
 
                             if let peak = peakPrediction, !peak.days.isEmpty {
                                 PeakPredictionCard(prediction: peak)
-                                    .appearAnimation(delay: 0.05)
+                                    .appearAnimation(delay: 0.08)
                             }
 
+                            // Fix #8: mood button redesigned as proper card
                             if moodDue?.isDue == true {
-                                Button { showMoodSheet = true } label: {
-                                    HStack(spacing: 10) {
-                                        Image(systemName: "face.smiling.fill")
-                                            .foregroundColor(.yellow)
-                                        Text("Loguer ton humeur aujourd'hui")
-                                            .font(.subheadline)
-                                            .foregroundColor(.white)
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.5))
-                                    }
-                                    .padding(12)
-                                    .background(Color.yellow.opacity(0.18))
-                                    .cornerRadius(12)
-                                }
-                                .buttonStyle(.plain)
-                                .appearAnimation(delay: 0.05)
+                                MoodCardView { showMoodSheet = true }
+                                    .appearAnimation(delay: 0.09)
                             }
 
                             if !insights.isEmpty {
                                 DashboardInsightsCard(insights: insights)
-                                    .appearAnimation(delay: 0.06)
+                                    .appearAnimation(delay: 0.10)
                             }
 
-                            if brief?.recommendation == "go",
-                               deload?.fatigueLevel == 0,
-                               dash.sessions[todayStr] != nil {
-                                GreatDayCard()
-                                    .appearAnimation(delay: 0.065)
+                            // Fix #3: tappable stats row
+                            NavigationLink(destination: StatsView()) {
+                                StatsRowView(dash: dash)
                             }
-
-                            TodayCardView(dash: dash)
-                                .appearAnimation(delay: 0.07)
-
-                            if let soir = soirData, soir.hasEveningSession {
-                                SoirCardView(data: soir)
-                                    .appearAnimation(delay: 0.08)
-                            }
-
-                            StatsRowView(dash: dash)
-                                .appearAnimation(delay: 0.09)
-
-                            HeatmapView(sessions: dash.sessions)
-                                .appearAnimation(delay: 0.11)
+                            .buttonStyle(.plain)
+                            .appearAnimation(delay: 0.11)
 
                             WeekGridView(schedule: dash.schedule, sessions: dash.sessions)
                                 .appearAnimation(delay: 0.13)
 
-                            NutritionSummaryView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
-                                .appearAnimation(delay: 0.16)
+                            // Fix #3: tappable nutrition summary; Fix #9: HeatmapView removed (redundant)
+                            NavigationLink(destination: NutritionView()) {
+                                NutritionSummaryView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
+                            }
+                            .buttonStyle(.plain)
+                            .appearAnimation(delay: 0.15)
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
@@ -280,6 +258,141 @@ struct DashboardView: View {
     }
 }
 
+// MARK: - Dashboard Skeleton (fix #5)
+struct DashboardSkeletonView: View {
+    var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 18) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 8) {
+                        SkeletonBar(width: 80, height: 10)
+                        SkeletonBar(width: 200, height: 26)
+                        SkeletonBar(width: 140, height: 12)
+                    }
+                    Spacer()
+                    SkeletonBar(width: 36, height: 36, radius: 18)
+                }
+                .padding(.top, 12)
+
+                // TodayCard
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 10) {
+                        SkeletonBar(width: 36, height: 36, radius: 18)
+                        VStack(alignment: .leading, spacing: 6) {
+                            SkeletonBar(width: 70, height: 9)
+                            SkeletonBar(width: 130, height: 16)
+                        }
+                        Spacer()
+                    }
+                    SkeletonBar(height: 48, radius: 12)
+                }
+                .padding(16)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(16)
+
+                // Recovery strip
+                HStack(spacing: 0) {
+                    ForEach(0..<4, id: \.self) { _ in
+                        VStack(spacing: 6) {
+                            SkeletonBar(width: 16, height: 16, radius: 8)
+                            SkeletonBar(width: 32, height: 14)
+                            SkeletonBar(width: 28, height: 9)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(.vertical, 12)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(16)
+
+                // Stats grid
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(0..<4, id: \.self) { _ in SkeletonBar(height: 60, radius: 12) }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+        }
+    }
+}
+
+struct SkeletonBar: View {
+    var width: CGFloat? = nil
+    var height: CGFloat = 16
+    var radius: CGFloat = 6
+    @State private var opacity: Double = 0.04
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: radius)
+            .fill(Color.white.opacity(opacity))
+            .frame(width: width, height: height)
+            .onAppear {
+                withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                    opacity = 0.13
+                }
+            }
+    }
+}
+
+// MARK: - Deload Compact Chip (fix #7 — level 1 only)
+struct DeloadChipView: View {
+    let report: DeloadReport
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "flame.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.orange)
+            Text("Fatigue accumulée détectée — score \(report.fatigueScore)/100")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white)
+            Spacer()
+            Text("Niv. \(report.fatigueLevel)")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.orange)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(Color.orange.opacity(0.10))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Mood Card (fix #8 — proper card instead of raw button)
+struct MoodCardView: View {
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(Color.yellow.opacity(0.15)).frame(width: 40, height: 40)
+                    Image(systemName: "face.smiling.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.yellow)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("HUMEUR DU JOUR")
+                        .font(.system(size: 9, weight: .bold)).tracking(2)
+                        .foregroundColor(.gray)
+                    Text("Comment tu te sens aujourd'hui ?")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.gray)
+            }
+            .padding(14)
+            .glassCard(color: .yellow, intensity: 0.05)
+            .cornerRadius(16)
+        }
+        .buttonStyle(SpringButtonStyle())
+    }
+}
+
 // MARK: - Sleep Prompt Card
 
 struct SleepPromptCard: View {
@@ -384,6 +497,14 @@ struct SleepPromptCard: View {
             }
             .buttonStyle(.plain)
             .disabled(isSaving || durationHours <= 0 || durationHours > 16)
+
+            // Fix #16: explain why save is disabled
+            if durationHours <= 0 || durationHours > 16 {
+                Text("Durée invalide — ajuste l'heure de coucher ou de réveil")
+                    .font(.system(size: 11))
+                    .foregroundColor(.orange.opacity(0.85))
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
         .padding(16)
         .background(
@@ -719,6 +840,7 @@ struct GreetingHeaderView: View {
 // MARK: - Today Card
 struct TodayCardView: View {
     let dash: DashboardData
+    var showGreatDayBadge: Bool = false
 
     /// Source de vérité : alreadyLoggedToday OU session présente dans le dict.
     /// Double-check côté client pour absorber les désync API/cache.
@@ -776,9 +898,23 @@ struct TodayCardView: View {
                 Spacer()
                 if isLoggedToday {
                     HStack(spacing: 5) {
-                        PulsingDot(color: .green)
-                        Text("Complété")
-                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.green)
+                        if showGreatDayBadge {
+                            HStack(spacing: 4) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.orange)
+                                Text("Parfait")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.orange)
+                            }
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(Color.orange.opacity(0.12))
+                            .clipShape(Capsule())
+                        } else {
+                            PulsingDot(color: .green)
+                            Text("Complété")
+                                .font(.system(size: 12, weight: .semibold)).foregroundColor(.green)
+                        }
                     }
                 } else if !exercises.isEmpty {
                     Text("\(exercises.count) exos")
@@ -1181,7 +1317,7 @@ struct WeekGridView: View {
 
                     VStack(spacing: 5) {
                         Text(days[i])
-                            .font(.system(size: 9, weight: today ? .bold : .medium))
+                            .font(.system(size: 10, weight: today ? .bold : .medium))
                             .foregroundColor(today ? .white : .gray)
 
                         ZStack {
@@ -1198,7 +1334,7 @@ struct WeekGridView: View {
                                     .foregroundColor(.white)
                             } else {
                                 Text(seanceShort(seance))
-                                    .font(.system(size: 8, weight: .bold))
+                                    .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(seanceColor(seance))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.5)
@@ -1378,7 +1514,8 @@ struct RecoverySnapshotView: View {
             }
         }
         .padding(.vertical, 12)
-        .glassCard(color: .cyan, intensity: 0.04)
+        .glassCard(color: .indigo, intensity: 0.05)
+        .cornerRadius(16)
     }
 }
 
@@ -1539,7 +1676,7 @@ struct MorningBriefCardView: View {
                 }
             }
 
-            // Couverture de données insuffisante
+            // Couverture de données insuffisante — Fix #16: direct action link
             if data.dataCoverage < 0.6 {
                 HStack(spacing: 5) {
                     Image(systemName: "exclamationmark.circle")
@@ -1548,6 +1685,11 @@ struct MorningBriefCardView: View {
                     Text("Données partielles — \(Int(data.dataCoverage * 100))% des métriques disponibles")
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
+                    NavigationLink(destination: RecoveryView()) {
+                        Text("Compléter →")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.indigo)
+                    }
                 }
             }
         }
@@ -1620,7 +1762,7 @@ struct PeakPredictionCard: View {
                                 .foregroundColor(day.isPeak ? .orange : levelColor(day.level))
                         }
                         Text(dayLabel(day.date))
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.system(size: 10, weight: .medium))
                             .foregroundColor(day.isPeak ? .orange : .gray)
                         if day.isPeak {
                             Image(systemName: "star.fill")
@@ -1630,11 +1772,32 @@ struct PeakPredictionCard: View {
                     .frame(maxWidth: .infinity)
                 }
             }
+
+            // Fix #6: CTA toward best training day
+            if let peakDay = prediction.days.first(where: { $0.isPeak }) {
+                NavigationLink(destination: StatsView()) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(.orange)
+                        Text("Jour optimal : \(dayLabel(peakDay.date)) — Voir les stats")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.orange)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10))
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 8)
+                    .background(Color.orange.opacity(0.08))
+                    .cornerRadius(10)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
-        .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+        .glassCard(color: .purple, intensity: 0.04)
+        .cornerRadius(16)
     }
 }
 
