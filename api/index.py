@@ -1545,6 +1545,27 @@ def api_deload():
     return jsonify(analyser_deload(load_weights()))
 
 
+@app.route("/api/apply_deload", methods=["POST"])
+def api_apply_deload():
+    """Override current_weight for each exercise in poids_deload dict."""
+    try:
+        data         = request.get_json()
+        poids_deload = data.get("poids_deload", {})
+        if not poids_deload:
+            return jsonify({"error": "poids_deload manquant"}), 400
+
+        weights = load_weights()
+        updated = []
+        for exercise, new_weight in poids_deload.items():
+            if exercise in weights:
+                weights[exercise]["current_weight"] = float(new_weight)
+                updated.append(exercise)
+        save_weights(weights)
+        return jsonify({"success": True, "updated": updated})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/acwr")
 def api_acwr():
     from acwr import calc_acwr

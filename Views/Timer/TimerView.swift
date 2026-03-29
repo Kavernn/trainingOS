@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import UserNotifications
 
 struct TimerView: View {
     @Environment(\.scenePhase) private var scenePhase
@@ -200,7 +201,13 @@ struct TimerView: View {
         .background(AmbientBackground(color: phaseColor))
         .onDisappear { persistState() }
         .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active { syncFromBackground() }
+            if newPhase == .background {
+                persistState()
+                scheduleBackgroundNotifications()
+            } else if newPhase == .active {
+                cancelBackgroundNotifications()
+                syncFromBackground()
+            }
         }
     }
 
@@ -213,6 +220,8 @@ struct TimerView: View {
         if running {
             stopTimer()
         } else {
+            UNUserNotificationCenter.current()
+                .requestAuthorization(options: [.alert, .sound]) { _, _ in }
             if phase == .idle || phase == .done {
                 currentRound = 1
                 phase = .prepare
@@ -228,6 +237,7 @@ struct TimerView: View {
         running = false
         timerTask?.cancel()
         timerTask = nil
+        cancelBackgroundNotifications()
         clearPersistedState()
     }
 
@@ -251,6 +261,60 @@ struct TimerView: View {
                     Self.bgWorkKey, Self.bgRestKey, Self.bgPrepareKey, Self.bgTotalKey] {
             ud.removeObject(forKey: key)
         }
+    }
+
+    // Schedule a notification for every upcoming phase transition (max 64 — iOS limit).
+    private func scheduleBackgroundNotifications() {
+        guard running, phase != .done, phase != .idle else { return }
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+
+        var delay    = TimeInterval(remaining)
+        var curPhase = phase
+        var curRound = currentRound
+        var idx      = 0
+
+        while idx < 60 {
+            // Determine the phase that follows the current one
+            let (nextPhase, nextRound): (TimerPhase, Int) = {
+                switch curPhase {
+                case .prepare: return (.work, curRound)
+                case .work:    return curRound >= totalRounds ? (.done, curRound) : (.rest, curRound)
+                case .rest:    return (.work, curRound + 1)
+                default:       return (.done, curRound)
+                }
+            }()
+
+            let content   = UNMutableNotificationContent()
+            content.sound = .default
+            switch nextPhase {
+            case .work:
+                content.title = "WORK ⚡"
+                content.body  = "Round \(nextRound)/\(totalRounds) — \(formatTime(workSecs))"
+            case .rest:
+                content.title = "REST 💤"
+                content.body  = "Round \(curRound)/\(totalRounds) — \(formatTime(restSecs))"
+            case .done:
+                content.title = "TERMINÉ 🔥"
+                content.body  = "\(totalRounds) rounds complétés !"
+            default:
+                break
+            }
+
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, delay), repeats: false)
+            UNUserNotificationCenter.current().add(
+                UNNotificationRequest(identifier: "timer_bg_\(idx)", content: content, trigger: trigger)
+            )
+            idx += 1
+            if nextPhase == .done { break }
+
+            curPhase = nextPhase
+            curRound = nextRound
+            delay += nextPhase == .work ? TimeInterval(workSecs) : TimeInterval(restSecs)
+        }
+    }
+
+    private func cancelBackgroundNotifications() {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
 
     private func syncFromBackground() {

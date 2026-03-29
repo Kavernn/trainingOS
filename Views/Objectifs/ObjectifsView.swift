@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct ObjectifsView: View {
     @State private var objectifs: [ObjectifEntry] = []
@@ -209,6 +210,7 @@ struct AddGoalSheet: View {
                         Task {
                             do {
                                 try await APIService.shared.setGoal(exercise: exercise, goalWeight: gw, deadline: deadlineStr)
+                                scheduleGoalDeadlineNotifications(exercise: exercise, deadlineStr: deadlineStr)
                                 await onSaved()
                                 dismiss()
                             } catch {
@@ -322,11 +324,51 @@ struct EditGoalSheet: View {
         Task {
             do {
                 try await APIService.shared.setGoal(exercise: obj.exercise, goalWeight: gw, deadline: deadlineStr)
+                scheduleGoalDeadlineNotifications(exercise: obj.exercise, deadlineStr: deadlineStr)
                 await onSaved()
                 dismiss()
             } catch {
                 apiError = "Erreur réseau — réessaie"
             }
+        }
+    }
+}
+
+// MARK: - Goal deadline notifications helper
+
+/// Schedules J-7 and J-1 notifications for a goal deadline.
+/// Re-scheduling replaces any existing notification for the same goal.
+private func scheduleGoalDeadlineNotifications(exercise: String, deadlineStr: String) {
+    let center = UNUserNotificationCenter.current()
+    center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+        guard granted else { return }
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        guard let deadline = f.date(from: deadlineStr) else { return }
+        let now = Date()
+
+        let alerts: [(daysOffset: Int, title: String, body: String)] = [
+            (-7, "Objectif — 7 jours restants 🎯",  "Il te reste 7 jours pour atteindre ton objectif de \(exercise)."),
+            (-1, "Objectif — demain dernier jour !",  "Dernière chance pour \(exercise) 🎯 Go !"),
+        ]
+
+        for (offset, title, body) in alerts {
+            let fireDate = Calendar.current.date(byAdding: .day, value: offset, to: deadline)!
+            guard fireDate > now else { continue }
+
+            let content       = UNMutableNotificationContent()
+            content.title     = title
+            content.body      = body
+            content.sound     = .default
+
+            let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+            var triggerComps  = comps
+            triggerComps.hour   = 9
+            triggerComps.minute = 0
+
+            let trigger = UNCalendarNotificationTrigger(dateMatching: triggerComps, repeats: false)
+            let id      = "goal_\(offset < -1 ? "7d" : "1d")_\(exercise.lowercased().replacingOccurrences(of: " ", with: "_"))"
+            center.removePendingNotificationRequests(withIdentifiers: [id])
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
     }
 }

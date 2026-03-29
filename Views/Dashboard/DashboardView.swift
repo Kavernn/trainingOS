@@ -82,8 +82,10 @@ struct DashboardView: View {
                                 .appearAnimation(delay: 0.02)
 
                             if let report = deload, report.fatigueLevel > 0 {
-                                DeloadBannerView(report: report)
-                                    .appearAnimation(delay: 0.03)
+                                DeloadBannerView(report: report) {
+                                    Task { await applyDeload(report: report) }
+                                }
+                                .appearAnimation(delay: 0.03)
                             }
 
                             if let b = brief,
@@ -262,6 +264,20 @@ struct DashboardView: View {
         default:                             return .blue
         }
     }
+
+    private func applyDeload(report: DeloadReport) async {
+        let url = URL(string: "https://training-os-rho.vercel.app/api/apply_deload")!
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["poids_deload": report.poidsDeload]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        _ = try? await URLSession.shared.data(for: req)
+        CacheService.shared.clear(for: "seance_data")
+        CacheService.shared.clear(for: "dashboard")
+        await api.fetchDashboard()
+        deload = nil   // Masquer la bannière après application
+    }
 }
 
 // MARK: - Sleep Prompt Card
@@ -408,7 +424,9 @@ struct SleepPromptCard: View {
 // MARK: - Deload Banner
 struct DeloadBannerView: View {
     let report: DeloadReport
+    var onApplyDeload: (() -> Void)? = nil
     @ObservedObject private var units = UnitSettings.shared
+    @State private var isApplying = false
 
     private var accentColor: Color {
         report.fatigueLevel == 2 ? .yellow : .orange
@@ -458,7 +476,7 @@ struct DeloadBannerView: View {
             }
 
             if report.fatigueLevel == 2, !report.poidsDeload.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Charges suggérées (−15 %)")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.gray)
@@ -473,6 +491,28 @@ struct DeloadBannerView: View {
                             .background(Color.white.opacity(0.05))
                             .cornerRadius(6)
                         }
+                    }
+                    if let onApplyDeload {
+                        Button {
+                            isApplying = true
+                            onApplyDeload()
+                        } label: {
+                            HStack(spacing: 6) {
+                                if isApplying {
+                                    ProgressView().tint(.black).scaleEffect(0.75)
+                                } else {
+                                    Image(systemName: "arrow.down.circle.fill")
+                                }
+                                Text("Appliquer le déload (−15 %)")
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(Color.yellow)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .disabled(isApplying)
                     }
                 }
             }
