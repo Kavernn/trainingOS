@@ -193,8 +193,9 @@ struct DashboardView: View {
             lastRefresh = Date()
         }
         .onChange(of: scenePhase) {
-            // Ne refetch que si la dernière mise à jour date de plus de 5 min
+            // Ne refetch que si la dernière mise à jour date de plus de 5 min et qu'aucun fetch n'est en cours
             if scenePhase == .active,
+               !api.isLoading,
                Date().timeIntervalSince(lastRefresh) > 300 {
                 Task {
                     await api.fetchDashboard()

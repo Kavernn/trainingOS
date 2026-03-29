@@ -163,10 +163,13 @@ class APIService: ObservableObject {
         if isBonus  { body["is_bonus"] = true }
         if !equipmentType.isEmpty { body["equipment_type"] = equipmentType }
         let data = try await offlinePost(endpoint: "/api/log", payload: body)
-        if !isBonus {
-            CacheService.shared.clear(for: isSecond ? "seance_soir_data" : "seance_data")
+        if !data.isEmpty {  // data vide = queued offline, conserver le cache existant
+            if !isBonus {
+                CacheService.shared.clear(for: isSecond ? "seance_soir_data" : "seance_data")
+            }
+            CacheService.shared.clear(for: "dashboard")
+            CacheService.shared.clear(for: "stats_data")
         }
-        CacheService.shared.clear(for: "dashboard")
         return (try? JSONDecoder().decode(LogExerciseResponse.self, from: data))
             ?? LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
     }
@@ -179,13 +182,15 @@ class APIService: ObservableObject {
         if let e = energyPre    { body["energy_pre"] = e }
         if secondSession        { body["second_session"] = true }
         if bonusSession         { body["bonus_session"] = true }
-        _ = try await offlinePost(endpoint: "/api/log_session", payload: body)
-        CacheService.shared.clear(for: "dashboard")
-        CacheService.shared.clear(for: "historique_data")
-        if !bonusSession {
-            CacheService.shared.clear(for: secondSession ? "seance_soir_data" : "seance_data")
+        let sessionData = try await offlinePost(endpoint: "/api/log_session", payload: body)
+        if !sessionData.isEmpty {  // data vide = queued offline, conserver le cache existant
+            CacheService.shared.clear(for: "dashboard")
+            CacheService.shared.clear(for: "historique_data")
+            if !bonusSession {
+                CacheService.shared.clear(for: secondSession ? "seance_soir_data" : "seance_data")
+            }
+            CacheService.shared.clear(for: "stats_data")
         }
-        CacheService.shared.clear(for: "stats_data")
     }
 
     func fetchSeanceSoirData() async throws -> SeanceSoirData {
@@ -195,18 +200,22 @@ class APIService: ObservableObject {
     }
 
     func deleteSession(date: String, sessionType: String = "morning") async throws {
-        _ = try await offlinePost(endpoint: "/api/session/delete",
-                                  payload: ["date": date, "session_type": sessionType])
-        CacheService.shared.clear(for: "historique_data")
-        CacheService.shared.clear(for: "dashboard")
+        let data = try await offlinePost(endpoint: "/api/session/delete",
+                                         payload: ["date": date, "session_type": sessionType])
+        if !data.isEmpty {
+            CacheService.shared.clear(for: "historique_data")
+            CacheService.shared.clear(for: "dashboard")
+        }
     }
 
     func updateSession(date: String, rpe: Double?, comment: String, sessionType: String = "morning") async throws {
         var body: [String: Any] = ["date": date, "comment": comment, "session_type": sessionType]
         if let rpe { body["rpe"] = rpe }
-        _ = try await offlinePost(endpoint: "/api/update_session", payload: body)
-        CacheService.shared.clear(for: "historique_data")
-        CacheService.shared.clear(for: "dashboard")
+        let data = try await offlinePost(endpoint: "/api/update_session", payload: body)
+        if !data.isEmpty {
+            CacheService.shared.clear(for: "historique_data")
+            CacheService.shared.clear(for: "dashboard")
+        }
     }
 
     func editSession(date: String, rpe: Double?, comment: String, sessionType: String = "morning",
@@ -214,9 +223,11 @@ class APIService: ObservableObject {
         var body: [String: Any] = ["date": date, "comment": comment, "session_type": sessionType]
         if let rpe { body["rpe"] = rpe }
         if let exercises { body["exercises"] = exercises }
-        _ = try await offlinePost(endpoint: "/api/session/edit", payload: body)
-        CacheService.shared.clear(for: "historique_data")
-        CacheService.shared.clear(for: "dashboard")
+        let data = try await offlinePost(endpoint: "/api/session/edit", payload: body)
+        if !data.isEmpty {
+            CacheService.shared.clear(for: "historique_data")
+            CacheService.shared.clear(for: "dashboard")
+        }
     }
 
     // MARK: - HIIT

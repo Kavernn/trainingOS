@@ -1,6 +1,9 @@
 from __future__ import annotations
 import db
+import logging
 from datetime import datetime
+
+logger = logging.getLogger("trainingos.sessions")
 
 
 def load_sessions() -> dict:
@@ -19,8 +22,8 @@ def load_sessions() -> dict:
                             entry[field] = float(entry[field])
                     result[date] = entry
             return result
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("load_sessions failed: %s", e)
     return {}
 
 
@@ -29,8 +32,8 @@ def save_sessions(sessions: dict):
         for date, entry in sessions.items():
             if isinstance(entry, dict):
                 db.update_workout_session(date, entry)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("save_sessions failed: %s", e)
 
 
 def log_session(
@@ -89,8 +92,8 @@ def log_session(
                 duration_min=duration_min,
                 energy_pre=energy_pre,
             )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("log_session failed for %s: %s", date, e)
 
 
 def log_second_session(
@@ -180,8 +183,8 @@ def log_bonus_session(
                 energy_pre=energy_pre,
                 session_type="bonus",
             )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error("log_bonus_session failed for %s: %s", date, e)
 
 
 def session_exists(date: str) -> bool:

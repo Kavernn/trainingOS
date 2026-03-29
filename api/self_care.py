@@ -126,10 +126,11 @@ def get_streaks() -> list[dict]:
     result = []
 
     for habit in habits:
-        hid     = habit["id"]
-        streak  = 0
-        longest = 0
-        current = 0
+        hid          = habit["id"]
+        streak       = 0
+        longest      = 0
+        current      = 0
+        still_active = True  # False dès qu'on trouve un jour manquant dans la chaîne
 
         # Parcours DESC depuis aujourd'hui
         d = today
@@ -139,13 +140,12 @@ def get_streaks() -> list[dict]:
             if done:
                 current += 1
                 longest  = max(longest, current)
-                if d >= today - timedelta(days=1):
+                if still_active:
                     streak = current
             else:
-                if d < today:
-                    if streak == 0:
-                        streak = 0
-                    current = 0
+                if d < today:    # aujourd'hui absent n'invalide pas encore la chaîne
+                    still_active = False
+                    current      = 0
             d -= timedelta(days=1)
 
         result.append({
