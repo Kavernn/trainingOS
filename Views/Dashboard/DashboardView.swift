@@ -59,6 +59,23 @@ struct DashboardView: View {
                                         sleepPromptDismissedThisSession = true
                                     }
                                 })
+                            } else if !todaySleepLogged {
+                                Button {
+                                    withAnimation(.easeOut(duration: 0.2)) {
+                                        sleepPromptDismissedThisSession = false
+                                        UserDefaults.standard.removeObject(forKey: "sleepPromptDate")
+                                    }
+                                } label: {
+                                    Label("Loguer le sommeil", systemImage: "moon.zzz.fill")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.indigo.opacity(0.8))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Color.indigo.opacity(0.08))
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                                .appearAnimation(delay: 0.01)
                             }
 
                             ChecklistCardView()
@@ -109,6 +126,13 @@ struct DashboardView: View {
                             if !insights.isEmpty {
                                 DashboardInsightsCard(insights: insights)
                                     .appearAnimation(delay: 0.06)
+                            }
+
+                            if brief?.recommendation == "go",
+                               deload?.fatigueLevel == 0,
+                               dash.sessions[todayStr] != nil {
+                                GreatDayCard()
+                                    .appearAnimation(delay: 0.065)
                             }
 
                             TodayCardView(dash: dash)
@@ -1885,5 +1909,23 @@ struct DashboardInsightsCard: View {
             Spacer(minLength: 4)
         }
         .glassCard(color: .purple, intensity: 0.05)
+    }
+}
+
+// MARK: - Great Day Card
+struct GreatDayCard: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(Color.green)
+                .frame(width: 8, height: 8)
+            Text("Récupération optimale — séance complète")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.green)
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .glassCard(color: .green, intensity: 0.06)
     }
 }

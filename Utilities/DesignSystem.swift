@@ -280,6 +280,26 @@ var contentBottomPadding: CGFloat {
 #endif
 }
 
+// MARK: - Empty Chart Placeholder
+struct EmptyChartPlaceholder: View {
+    let message: String
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.system(size: 28, weight: .light))
+                .foregroundColor(.gray.opacity(0.4))
+            Text(message)
+                .font(.system(size: 12))
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+        .glassCard(color: .white, intensity: 0.03)
+    }
+}
+
 // MARK: - Stat Pill
 struct StatPill: View {
     let value: String

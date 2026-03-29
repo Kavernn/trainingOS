@@ -413,6 +413,9 @@ struct StatsView: View {
         if rpeHistory.count >= 3 {
             RPEChartView(data: rpeHistory)
                 .padding(.horizontal, 16)
+        } else {
+            EmptyChartPlaceholder(message: "Logge au moins 3 séances avec RPE pour voir la tendance")
+                .padding(.horizontal, 16)
         }
 
         let sessionsWithDuration = filteredSessions.filter { $0.value.durationMin != nil }
@@ -446,6 +449,9 @@ struct StatsView: View {
         let filteredBW = filteredBodyWeight
         if filteredBW.count >= 2 {
             WeightChartView(entries: Array(filteredBW.prefix(20).reversed()))
+                .padding(.horizontal, 16)
+        } else {
+            EmptyChartPlaceholder(message: "Logge au moins 2 pesées pour voir la courbe de poids")
                 .padding(.horizontal, 16)
         }
 

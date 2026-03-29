@@ -143,7 +143,7 @@ struct IntelligenceView: View {
 
                                         VStack(spacing: 8) {
                                             ForEach(suggestions, id: \.self) { s in
-                                                Button(action: { input = s }) {
+                                                Button(action: { input = s; inputFocused = true }) {
                                                     Text(s)
                                                         .font(.system(size: 13))
                                                         .foregroundColor(.purple)

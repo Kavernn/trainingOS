@@ -595,14 +595,18 @@ struct LifeStressCard: View {
                 }
             }
 
-            // Top recommendation
-            if let rec = score.recommendations.first {
-                HStack(alignment: .top, spacing: 6) {
-                    Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 11)).foregroundColor(.yellow)
-                    Text(rec)
-                        .font(.system(size: 12)).foregroundColor(.gray)
-                        .fixedSize(horizontal: false, vertical: true)
+            // Recommendations
+            if !score.recommendations.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(score.recommendations, id: \.self) { rec in
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "lightbulb.fill")
+                                .font(.system(size: 11)).foregroundColor(.yellow)
+                            Text(rec)
+                                .font(.system(size: 12)).foregroundColor(.gray)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
             }
 

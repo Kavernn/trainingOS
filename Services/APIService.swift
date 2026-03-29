@@ -737,6 +737,14 @@ class APIService: ObservableObject {
         CacheService.shared.clear(for: "sleep_stats")
     }
 
+    // MARK: - Stats Data (background warm-up for ghost mode)
+    func fetchStatsData() async throws {
+        let url = URL(string: "\(baseURL)/api/stats_data")!
+        var req = URLRequest(url: url); req.timeoutInterval = 15
+        let (data, _) = try await URLSession.shared.data(for: req)
+        CacheService.shared.save(data, for: "stats_data")
+    }
+
     // MARK: - Morning Brief
     func fetchMorningBrief() async throws -> MorningBriefData {
         let url = URL(string: "\(baseURL)/api/coach/morning_brief")!

@@ -409,6 +409,7 @@ struct WorkoutSeanceView: View {
     @State private var editTarget: ExerciseTarget?
     @State private var isEditMode = false
     @State private var showRestTimer = false
+    @State private var orderSaveError = false
 
     // Optional add-ons
     @State private var showAddCardio = false
@@ -453,6 +454,10 @@ struct WorkoutSeanceView: View {
     }
 
     private func computeGhost() {
+        if CacheService.shared.load(for: "stats_data") == nil {
+            Task { try? await APIService.shared.fetchStatsData(); computeGhost() }
+            return
+        }
         guard let cached  = CacheService.shared.load(for: "stats_data"),
               let snap    = try? JSONDecoder().decode(GhostSnapshot.self, from: cached)
         else { return }
@@ -502,6 +507,21 @@ struct WorkoutSeanceView: View {
                 }
             }
             .onPreferenceChange(CardHeightKey.self) { cardHeights.merge($0) { $1 } }
+
+            if orderSaveError {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
+                    Text("Ordre non sauvegardé — réessaie").font(.system(size: 12)).foregroundColor(.red)
+                    Spacer()
+                    Button { orderSaveError = false } label: {
+                        Image(systemName: "xmark").font(.system(size: 11)).foregroundColor(.gray)
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Color.red.opacity(0.08))
+                .cornerRadius(8)
+                .padding(.horizontal, 16)
+            }
         }
     }
 
@@ -924,18 +944,27 @@ struct WorkoutSeanceView: View {
         }
     }
         
-        private func postProgramme(_ body: [String: Any]) async {
-            guard let url = URL(string: "\(APIService.shared.baseURL)/api/programme") else { return }
+        @discardableResult
+        private func postProgramme(_ body: [String: Any]) async -> Bool {
+            guard let url = URL(string: "\(APIService.shared.baseURL)/api/programme") else { return false }
             var req = URLRequest(url: url)
             req.httpMethod = "POST"
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-            _ = try? await URLSession.shared.data(for: req)
+            do {
+                let (_, resp) = try await URLSession.shared.data(for: req)
+                return (resp as? HTTPURLResponse)?.statusCode == 200
+            } catch {
+                return false
+            }
         }
-        
+
         private func saveOrder(_ order: [String]) async {
             guard order.count >= localProgram.count else { return }
-            await postProgramme(["action": "reorder", "jour": data.today, "ordre": order])
+            let ok = await postProgramme(["action": "reorder", "jour": data.today, "ordre": order])
+            if !ok {
+                await MainActor.run { orderSaveError = true }
+            }
         }
 
         private func addExercise(_ name: String, scheme: String) async {
@@ -1832,7 +1861,11 @@ struct AddHIITSheet: View {
                                     .font(.system(size: 13, weight: .semibold)).foregroundColor(.green)
                             case .stagné:
                                 Image(systemName: "equal.circle.fill").foregroundColor(.yellow)
-                                Text("Stagné — même poids").font(.system(size: 13, weight: .semibold)).foregroundColor(.yellow)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Stagné — même poids").font(.system(size: 13, weight: .semibold)).foregroundColor(.yellow)
+                                    Text(exerciseRPE < 7.5 ? "RPE bas — essaie +1 rep" : "RPE élevé — maintiens le poids")
+                                        .font(.system(size: 11)).foregroundColor(.yellow.opacity(0.7))
+                                }
                             case .loading:
                                 ProgressView().tint(.orange).scaleEffect(0.8)
                                 Text("Envoi...").font(.system(size: 13, weight: .semibold)).foregroundColor(.orange)

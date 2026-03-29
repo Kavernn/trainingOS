@@ -29,6 +29,9 @@ struct RecoveryView: View {
     var avgSteps: Double {
         let v = log.compactMap(\.steps).map(Double.init); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
     }
+    var avgActiveEnergy: Double {
+        let v = log.compactMap(\.activeEnergy); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
+    }
 
     var body: some View {
         NavigationStack {
@@ -53,7 +56,7 @@ struct RecoveryView: View {
                             #endif
 
                             // KPI grid
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                                 KPICard(value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
                                         label: "Sommeil moy.", color: .indigo)
                                 KPICard(value: avgSleepQuality > 0 ? String(format: "%.1f/10", avgSleepQuality) : "—",
@@ -62,6 +65,8 @@ struct RecoveryView: View {
                                         label: "FC repos moy.", color: .red)
                                 KPICard(value: avgSteps > 0 ? String(format: "%.0f", avgSteps) : "—",
                                         label: "Pas moy./jour", color: .green)
+                                KPICard(value: avgActiveEnergy > 0 ? String(format: "%.0f kcal", avgActiveEnergy) : "—",
+                                        label: "Énergie active", color: .orange)
                             }
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.05)
@@ -70,11 +75,17 @@ struct RecoveryView: View {
                             if log.filter({ $0.sleepHours != nil }).count >= 2 {
                                 SleepChart(entries: Array(log.prefix(10).reversed()))
                                     .padding(.horizontal, 16)
+                            } else {
+                                EmptyChartPlaceholder(message: "Logge au moins 2 nuits pour voir l'évolution du sommeil")
+                                    .padding(.horizontal, 16)
                             }
 
                             // Steps chart
                             if log.filter({ $0.steps != nil }).count >= 2 {
                                 StepsChart(entries: Array(log.prefix(10).reversed()))
+                                    .padding(.horizontal, 16)
+                            } else {
+                                EmptyChartPlaceholder(message: "Logge au moins 2 jours de pas pour voir la tendance")
                                     .padding(.horizontal, 16)
                             }
 
