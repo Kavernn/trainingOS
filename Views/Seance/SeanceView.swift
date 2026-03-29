@@ -1496,13 +1496,21 @@ struct AddHIITSheet: View {
                             .keyboardType(.decimalPad)
                             .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                             .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                        let repsInvalid = !sets[i].reps.isEmpty && Int(sets[i].reps) == nil
                         TextField(lastRepsParts.indices.contains(i) ? lastRepsParts[i] : "0",
                                   text: $sets[i].reps)
                             .keyboardType(.numberPad)
-                            .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(repsInvalid ? .red : .white)
                             .multilineTextAlignment(.center)
                             .frame(width: 56)
-                            .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                            .padding(8)
+                            .background(Color(hex: "191926"))
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.red.opacity(repsInvalid ? 0.7 : 0), lineWidth: 1.5)
+                            )
                         // RIR stepper
                         HStack(spacing: 3) {
                             Button { if sets[i].rir > 0 { sets[i].rir -= 1 } } label: {

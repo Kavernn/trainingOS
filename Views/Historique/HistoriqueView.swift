@@ -28,9 +28,14 @@ struct HistoriqueView: View {
     @State private var muscuSessions: [HistoriqueMuscu] = []
     @State private var hiitSessions: [HIITEntry] = []
     @State private var isLoading = true
+    @State private var isLoadingMore = false
+    @State private var hasMore = false
+    @State private var currentOffset = 0
+    private let pageSize = 20
     @State private var selectedTab = 0
     @State private var expandedIDs: Set<String> = []
     @State private var editTarget: HistoriqueMuscu? = nil
+    @State private var editHIITTarget: HIITEntry? = nil
     @State private var apiError: String? = nil
 
     var body: some View {
@@ -66,6 +71,27 @@ struct HistoriqueView: View {
                                             )
                                             .padding(.horizontal, 16)
                                         }
+                                        if hasMore {
+                                            Button {
+                                                Task { await loadMore() }
+                                            } label: {
+                                                Group {
+                                                    if isLoadingMore {
+                                                        ProgressView().tint(.orange).scaleEffect(0.8)
+                                                    } else {
+                                                        Text("Charger plus")
+                                                            .font(.system(size: 13, weight: .semibold))
+                                                            .foregroundColor(.orange)
+                                                    }
+                                                }
+                                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                                .background(Color.orange.opacity(0.08))
+                                                .cornerRadius(12)
+                                            }
+                                            .buttonStyle(.plain)
+                                            .padding(.horizontal, 16)
+                                            .disabled(isLoadingMore)
+                                        }
                                     }
                                 } else {
                                     if hiitSessions.isEmpty {
@@ -74,7 +100,8 @@ struct HistoriqueView: View {
                                         ForEach(hiitSessions) { session in
                                             HIITSessionCard(
                                                 session: session,
-                                                onDelete: { Task { await deleteHIIT(session) } }
+                                                onDelete: { Task { await deleteHIIT(session) } },
+                                                onEdit: { editHIITTarget = session }
                                             )
                                             .padding(.horizontal, 16)
                                         }
@@ -96,6 +123,11 @@ struct HistoriqueView: View {
                 Task { await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType, exos: exos) }
             }
         }
+        .sheet(item: $editHIITTarget) { session in
+            EditHIITSheet(session: session) { rpe, rounds, notes in
+                Task { await saveHIITEdit(session: session, rpe: rpe, rounds: rounds, notes: notes) }
+            }
+        }
         .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(apiError ?? "") }
@@ -107,26 +139,45 @@ struct HistoriqueView: View {
     }
 
     private func loadData() async {
+        currentOffset = 0
         // Show cached data first
         if let cached = CacheService.shared.load(for: "historique_data"),
            let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
-            applyJSON(json)
+            applyJSON(json, append: false)
         }
 
         isLoading = true
-        var req = URLRequest(url: URL(string: "https://training-os-rho.vercel.app/api/historique_data")!)
+        let urlStr = "https://training-os-rho.vercel.app/api/historique_data?limit=\(pageSize)&offset=0"
+        var req = URLRequest(url: URL(string: urlStr)!)
         req.timeoutInterval = 15
         if let (data, _) = try? await URLSession.shared.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             CacheService.shared.save(data, for: "historique_data")
-            applyJSON(json)
+            applyJSON(json, append: false)
+            hasMore = json["has_more"] as? Bool ?? false
         }
         isLoading = false
     }
 
-    private func applyJSON(_ json: [String: Any]) {
+    private func loadMore() async {
+        guard hasMore, !isLoadingMore else { return }
+        isLoadingMore = true
+        let newOffset = currentOffset + pageSize
+        let urlStr = "https://training-os-rho.vercel.app/api/historique_data?limit=\(pageSize)&offset=\(newOffset)"
+        var req = URLRequest(url: URL(string: urlStr)!)
+        req.timeoutInterval = 15
+        if let (data, _) = try? await URLSession.shared.data(for: req),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            applyJSON(json, append: true)
+            hasMore = json["has_more"] as? Bool ?? false
+            currentOffset = newOffset
+        }
+        isLoadingMore = false
+    }
+
+    private func applyJSON(_ json: [String: Any], append: Bool) {
         if let list = json["session_list"] as? [[String: Any]] {
-            muscuSessions = list.compactMap { d in
+            let parsed = list.compactMap { d -> HistoriqueMuscu? in
                 guard let date = d["date"] as? String else { return nil }
                 let exos = (d["exos"] as? [[String: Any]] ?? []).map {
                     HistoriqueExo(
@@ -143,18 +194,28 @@ struct HistoriqueView: View {
                     exos: exos
                 )
             }
+            if append {
+                muscuSessions.append(contentsOf: parsed)
+            } else {
+                muscuSessions = parsed
+            }
         }
         if let list = json["hiit_list"] as? [[String: Any]] {
-            hiitSessions = list.compactMap { d in
+            let parsed = list.compactMap { d in
                 HIITEntry(
                     date: d["date"] as? String,
                     sessionType: d["session_type"] as? String,
-                    rounds: d["rounds"] as? Int,
+                    rounds: d["rounds_completes"] as? Int ?? d["rounds"] as? Int,
                     workTime: d["work_time"] as? Int,
                     restTime: d["rest_time"] as? Int,
                     rpe: d["rpe"] as? Double,
-                    notes: d["notes"] as? String
+                    notes: d["comment"] as? String ?? d["notes"] as? String
                 )
+            }
+            if append {
+                hiitSessions.append(contentsOf: parsed)
+            } else {
+                hiitSessions = parsed
             }
         }
     }
@@ -203,6 +264,26 @@ struct HistoriqueView: View {
             } catch {
                 apiError = "Erreur réseau — réessaie"
             }
+        }
+    }
+
+    private func saveHIITEdit(session: HIITEntry, rpe: Double, rounds: Int, notes: String) async {
+        guard let date = session.date, let type = session.sessionType else { return }
+        do {
+            let body: [String: Any] = ["date": date, "session_type": type,
+                                       "rpe": rpe, "rounds": rounds, "notes": notes]
+            _ = try await APIService.shared.hiitEdit(body: body)
+            if let idx = hiitSessions.firstIndex(where: { $0.id == session.id }) {
+                hiitSessions[idx] = HIITEntry(
+                    date: date, sessionType: type,
+                    rounds: rounds, workTime: session.workTime, restTime: session.restTime,
+                    rpe: rpe, notes: notes.isEmpty ? nil : notes
+                )
+            }
+            editHIITTarget = nil
+            CacheService.shared.clear(for: "historique_data")
+        } catch {
+            apiError = "Erreur réseau — réessaie"
         }
     }
 }
@@ -344,6 +425,7 @@ struct MuscuSessionCard: View {
 struct HIITSessionCard: View {
     let session: HIITEntry
     let onDelete: () -> Void
+    var onEdit: (() -> Void)? = nil
     @State private var isExpanded = false
     @State private var confirmDelete = false
 
@@ -407,6 +489,13 @@ struct HIITSessionCard: View {
                     }
 
                     HStack {
+                        if let onEdit = onEdit {
+                            Button(action: onEdit) {
+                                Label("Modifier", systemImage: "pencil")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.orange)
+                            }
+                        }
                         Spacer()
                         Button(role: .destructive) { confirmDelete = true } label: {
                             Label("Supprimer", systemImage: "trash")
@@ -603,6 +692,80 @@ struct EditSessionSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }
                         .foregroundColor(.orange)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Edit HIIT Sheet
+struct EditHIITSheet: View {
+    let session: HIITEntry
+    let onSave: (Double, Int, String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var rpe: Double
+    @State private var rounds: Int
+    @State private var notes: String
+    @State private var isSaving = false
+
+    init(session: HIITEntry, onSave: @escaping (Double, Int, String) -> Void) {
+        self.session = session
+        self.onSave = onSave
+        _rpe = State(initialValue: session.rpe ?? 7)
+        _rounds = State(initialValue: session.rounds ?? 4)
+        _notes = State(initialValue: session.notes ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("ROUNDS").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            Stepper("\(rounds) rounds", value: $rounds, in: 1...20)
+                                .foregroundColor(.white)
+                                .padding(12).background(Color(hex: "11111c")).clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Spacer()
+                                Text(String(format: "%.1f", rpe)).font(.system(size: 15, weight: .black)).foregroundColor(.orange)
+                            }
+                            Slider(value: $rpe, in: 6...10, step: 0.5).tint(.orange)
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("NOTES").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            TextField("Notes…", text: $notes, axis: .vertical)
+                                .lineLimit(3...5).font(.system(size: 14)).foregroundColor(.white)
+                                .padding(12).background(Color(hex: "11111c")).clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+
+                        Button {
+                            isSaving = true
+                            onSave(rpe, rounds, notes)
+                        } label: {
+                            HStack {
+                                if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
+                                Text("Sauvegarder").font(.system(size: 15, weight: .bold))
+                            }
+                            .foregroundColor(.black).frame(maxWidth: .infinity).padding(14)
+                            .background(Color.orange).clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .disabled(isSaving)
+                    }
+                    .padding(20)
+                }
+            }
+            .navigationTitle("Modifier le HIIT")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
             }
         }

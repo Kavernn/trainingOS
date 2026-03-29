@@ -236,6 +236,22 @@ def api_nutrition_delete():
     return jsonify({"success": ok, "totals": get_today_totals()})
 
 
+@app.route("/api/nutrition/edit", methods=["POST"])
+def api_nutrition_edit():
+    try:
+        import db as _db
+        data     = request.get_json()
+        entry_id = data.get("id", "")
+        if not entry_id:
+            return jsonify({"error": "id manquant"}), 400
+        patch = {k: data[k] for k in ("nom", "calories", "proteines", "glucides", "lipides", "quantity")
+                 if k in data}
+        ok = _db.update_nutrition_entry(entry_id, patch)
+        return jsonify({"success": ok, "totals": get_today_totals()})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/nutrition/settings", methods=["POST"])
 def api_nutrition_settings():
     data = request.get_json()
@@ -905,17 +921,24 @@ def api_delete_hiit():
 def api_hiit_edit():
     try:
         import db as _db
-        data     = request.get_json()
-        idx      = data.get("index")
-        hiit_log = _db.get_hiit_logs() or []
+        data         = request.get_json()
+        date         = data.get("date")
+        session_type = data.get("session_type")
+        hiit_log     = _db.get_hiit_logs() or []
 
-        if idx is None or not (0 <= idx < len(hiit_log)):
-            return jsonify({"error": "Index introuvable"}), 400
+        entry = next(
+            (e for e in hiit_log
+             if e.get("date") == date and e.get("session_type") == session_type),
+            None
+        )
+        if entry is None:
+            return jsonify({"error": "Entrée introuvable"}), 400
 
-        entry = hiit_log[idx]
-        patch = {f: data[f] for f in ("rpe", "feeling", "comment", "rounds_completes",
-                                       "vitesse_max", "vitesse_croisiere", "duration")
-                 if f in data}
+        patch = {}
+        if "rpe"    in data: patch["rpe"]              = data["rpe"]
+        if "rounds" in data: patch["rounds_completes"] = data["rounds"]
+        if "notes"  in data: patch["comment"]          = data["notes"]
+
         _db.update_hiit_log(entry.get("id"), patch)
         return jsonify({"success": True})
     except Exception as e:
@@ -2212,6 +2235,9 @@ def api_inventaire_data():
 def api_historique_data():
     import db as _db
 
+    limit  = min(int(request.args.get("limit",  90)),  200)
+    offset = int(request.args.get("offset", 0))
+
     sessions = _db.get_workout_sessions(limit=500)
     ex_by_session = _db.get_exercise_history_grouped_by_session()
     hiit_log = _db.get_hiit_logs(limit=100)
@@ -2235,9 +2261,14 @@ def api_historique_data():
             "exos":         ex_by_session.get(sid, []),
         })
 
+    total = len(session_list)
+    page  = session_list[offset:offset + limit]
+
     return jsonify({
-        "session_list": session_list[:90],
+        "session_list": page,
         "hiit_list":    hiit_log[:30],
+        "total":        total,
+        "has_more":     offset + limit < total,
     })
 
 

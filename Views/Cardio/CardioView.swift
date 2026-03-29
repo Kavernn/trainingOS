@@ -202,12 +202,22 @@ struct CardioRow: View {
                 }
                 HStack(spacing: 6) {
                     if let dur = entry.durationMin {
-                        Text(String(format: "%.0f min", dur))
+                        Label(String(format: "%.0f min", dur), systemImage: "clock")
                             .font(.system(size: 11)).foregroundColor(.gray)
                     }
                     if let pace = entry.avgPace {
-                        Text(pace + "/km")
-                            .font(.system(size: 11)).foregroundColor(.gray)
+                        Label(pace + "/km", systemImage: "speedometer")
+                            .font(.system(size: 11)).foregroundColor(.blue)
+                    }
+                }
+                HStack(spacing: 6) {
+                    if let cad = entry.cadence {
+                        Label(String(format: "%.0f spm", cad), systemImage: "metronome")
+                            .font(.system(size: 11)).foregroundColor(.orange)
+                    }
+                    if let cal = entry.calories {
+                        Label(String(format: "%.0f kcal", cal), systemImage: "flame.fill")
+                            .font(.system(size: 11)).foregroundColor(.red)
                     }
                 }
             }

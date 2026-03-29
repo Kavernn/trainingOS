@@ -1720,6 +1720,25 @@ def delete_nutrition_entry(entry_id: str) -> bool:
         return False
 
 
+def update_nutrition_entry(entry_id: str, patch: dict) -> bool:
+    """Update fields of a nutrition entry by id. Returns True on success."""
+    if _client is None or MODE == "OFFLINE":
+        log = get_json("nutrition_log", {})
+        for day_data in log.values():
+            for entry in day_data.get("entries", []):
+                if entry.get("id") == entry_id:
+                    entry.update(patch)
+                    set_json("nutrition_log", log)
+                    return True
+        return False
+    try:
+        resp = _client.table("nutrition_entries").update(patch).eq("id", entry_id).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("update_nutrition_entry error: %s", e)
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Deload state
 # ---------------------------------------------------------------------------

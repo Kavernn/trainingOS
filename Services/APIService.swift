@@ -253,6 +253,10 @@ class APIService: ObservableObject {
         _ = try await offlinePost(endpoint: "/api/delete_hiit", payload: ["date": date, "session_type": sessionType])
     }
 
+    func hiitEdit(body: [String: Any]) async throws -> Data {
+        try await offlinePost(endpoint: "/api/hiit/edit", payload: body)
+    }
+
     // MARK: - Body Weight / Profil
     func fetchProfilData() async throws -> (profile: UserProfile, bodyWeight: [BodyWeightEntry], tendance: String) {
         let url = URL(string: "\(baseURL)/api/profil_data")!
@@ -506,7 +510,8 @@ class APIService: ObservableObject {
     }
 
     func logRecovery(sleepHours: Double?, sleepQuality: Double?, restingHr: Double?,
-                     hrv: Double?, steps: Int?, soreness: Double?, notes: String) async throws {
+                     hrv: Double?, steps: Int?, soreness: Double?, notes: String,
+                     date: String? = nil) async throws {
         var body: [String: Any] = ["notes": notes]
         if let v = sleepHours   { body["sleep_hours"] = v }
         if let v = sleepQuality { body["sleep_quality"] = v }
@@ -514,6 +519,7 @@ class APIService: ObservableObject {
         if let v = hrv          { body["hrv"] = v }
         if let v = steps        { body["steps"] = v }
         if let v = soreness     { body["soreness"] = v }
+        if let d = date         { body["date"] = d }
         _ = try await offlinePost(endpoint: "/api/log_recovery", payload: body)
         CacheService.shared.clear(for: "recovery_data")
     }

@@ -8,6 +8,7 @@ struct NutritionView: View {
     @State private var history: [NutritionDayHistory] = []
     @State private var isLoading = true
     @State private var showAdd = false
+    @State private var editTarget: NutritionEntry? = nil
 
     var body: some View {
         NavigationStack {
@@ -61,9 +62,11 @@ struct NutritionView: View {
                                         .padding(.horizontal, 16)
                                 } else {
                                     ForEach(entries) { entry in
-                                        NutritionEntryRow(entry: entry) {
-                                            Task { await deleteEntry(entry) }
-                                        }
+                                        NutritionEntryRow(
+                                            entry: entry,
+                                            onEdit: { editTarget = entry },
+                                            onDelete: { Task { await deleteEntry(entry) } }
+                                        )
                                         .padding(.horizontal, 16)
                                     }
                                 }
@@ -88,6 +91,9 @@ struct NutritionView: View {
             }
             .sheet(isPresented: $showAdd) {
                 AddNutritionSheet { await loadData() }
+            }
+            .sheet(item: $editTarget) { entry in
+                EditNutritionSheet(entry: entry) { await loadData() }
             }
             .overlay(alignment: .bottomTrailing) {
                 FAB(icon: "plus") { showAdd = true }
@@ -500,6 +506,7 @@ struct MacroBar: View {
 
 struct NutritionEntryRow: View {
     let entry: NutritionEntry
+    var onEdit: (() -> Void)? = nil
     let onDelete: () -> Void
     @State private var confirmDelete = false
 
@@ -519,11 +526,19 @@ struct NutritionEntryRow: View {
             Text("\(Int(entry.calories ?? 0)) kcal")
                 .font(.system(size: 15, weight: .bold))
                 .foregroundColor(.orange)
+            if let onEdit {
+                Button { onEdit() } label: {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 14))
+                        .foregroundColor(.orange.opacity(0.8))
+                        .padding(.leading, 12)
+                }
+            }
             Button { confirmDelete = true } label: {
                 Image(systemName: "trash")
                     .font(.system(size: 14))
                     .foregroundColor(.red.opacity(0.7))
-                    .padding(.leading, 12)
+                    .padding(.leading, 8)
             }
         }
         .padding(12)
@@ -745,6 +760,84 @@ struct AddNutritionSheet: View {
             await onSaved()
             dismiss()
         }
+    }
+}
+
+// MARK: - Edit Nutrition Sheet
+struct EditNutritionSheet: View {
+    let entry: NutritionEntry
+    var onSaved: () async -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name: String
+    @State private var calories: String
+    @State private var proteines: String
+    @State private var glucides: String
+    @State private var lipides: String
+    @State private var isSaving = false
+
+    init(entry: NutritionEntry, onSaved: @escaping () async -> Void) {
+        self.entry = entry
+        self.onSaved = onSaved
+        _name      = State(initialValue: entry.name ?? "")
+        _calories  = State(initialValue: entry.calories.map { String(Int($0)) } ?? "")
+        _proteines = State(initialValue: entry.proteines.map { String(format: "%.1f", $0) } ?? "")
+        _glucides  = State(initialValue: entry.glucides.map { String(format: "%.1f", $0) } ?? "")
+        _lipides   = State(initialValue: entry.lipides.map { String(format: "%.1f", $0) } ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                Form {
+                    Section("Aliment") {
+                        TextField("Nom", text: $name).foregroundColor(.white)
+                        TextField("Calories (kcal)", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
+                    }.listRowBackground(Color(hex: "11111c"))
+                    Section("Macros (g)") {
+                        TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.white)
+                        TextField("Glucides",  text: $glucides).keyboardType(.decimalPad).foregroundColor(.white)
+                        TextField("Lipides",   text: $lipides).keyboardType(.decimalPad).foregroundColor(.white)
+                    }.listRowBackground(Color(hex: "11111c"))
+                }
+                .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+            }
+            .navigationTitle("Modifier")
+            .navigationBarTitleDisplayMode(.inline)
+            .keyboardOkButton()
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Sauvegarder") { Task { await save() } }
+                        .foregroundColor(.orange).fontWeight(.semibold)
+                        .disabled(name.isEmpty || calories.isEmpty || isSaving)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func save() async {
+        guard let eid = entry.entryId,
+              let cal = Double(calories.replacingOccurrences(of: ",", with: ".")) else { return }
+        isSaving = true
+        var body: [String: Any] = ["id": eid, "nom": name, "calories": cal]
+        if let v = Double(proteines.replacingOccurrences(of: ",", with: ".")) { body["proteines"] = v }
+        if let v = Double(glucides.replacingOccurrences(of: ",", with: "."))  { body["glucides"]  = v }
+        if let v = Double(lipides.replacingOccurrences(of: ",", with: "."))   { body["lipides"]   = v }
+        let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition/edit")!
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        _ = try? await URLSession.shared.data(for: req)
+        await onSaved()
+        isSaving = false
+        dismiss()
     }
 }
 

@@ -599,6 +599,18 @@ struct EditableSeanceProgramCard: View {
             if expanded {
                 Divider().background(Color.white.opacity(0.07))
 
+                if orderedPairs.isEmpty {
+                    HStack {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 13))
+                            .foregroundColor(color.opacity(0.5))
+                        Text("Aucun exercice — tape + pour en ajouter")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+                }
+
                 ForEach(orderedPairs, id: \.0) { name, scheme in
                     let isDragging = dragging == name
                     HStack(spacing: 0) {

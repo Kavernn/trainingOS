@@ -341,6 +341,7 @@ struct LogRecoverySheet: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var hk = HealthKitService.shared
 
+    @State private var selectedDate = Date()
     @State private var sleepHoursStr = ""
     @State private var sleepQuality: Double = 7
     @State private var restingHrStr = ""
@@ -352,12 +353,23 @@ struct LogRecoverySheet: View {
     @State private var isLoadingHK = false
     @State private var apiError: String? = nil
 
+    private var dateStr: String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: selectedDate)
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 18) {
+
+                        // Date picker
+                        DatePicker("Date", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
+                            .datePickerStyle(.compact)
+                            .colorScheme(.dark)
+                            .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
 
                         // HealthKit auto-fill button
                         Button(action: fillFromHealthKit) {
@@ -504,7 +516,8 @@ struct LogRecoverySheet: View {
                     hrv:          Double(hrvStr),
                     steps:        Int(stepsStr),
                     soreness:     soreness,
-                    notes:        notes
+                    notes:        notes,
+                    date:         dateStr
                 )
                 await onSaved()
                 isSaving = false

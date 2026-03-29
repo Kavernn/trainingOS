@@ -1179,6 +1179,14 @@ struct ExerciseDetailView: View {
             .navigationTitle(name).navigationBarTitleDisplayMode(.large)
             .keyboardOkButton()
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if let w = data?.currentWeight, let reps = data?.lastReps {
+                        let oneRMStr = data?.history?.first?.oneRM.map { String(format: "→ 1RM estimé %.1f\(units.label)", $0) } ?? ""
+                        ShareLink(item: "🏆 Record personnel — TrainingOS\n\(name) : \(units.format(w)) × \(reps) \(oneRMStr)") {
+                            Image(systemName: "square.and.arrow.up").foregroundColor(.orange)
+                        }
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fermer") { dismiss() }.foregroundColor(.orange)
                 }

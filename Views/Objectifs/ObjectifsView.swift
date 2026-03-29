@@ -62,6 +62,7 @@ struct ObjectifsView: View {
 struct ObjectifCard: View {
     let obj: ObjectifEntry
     @ObservedObject private var units = UnitSettings.shared
+    @State private var celebrate = false
 
     var pct: Double {
         guard obj.goal > 0 else { return 0 }
@@ -69,7 +70,8 @@ struct ObjectifCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        ZStack {
+            VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(obj.exercise)
@@ -86,6 +88,8 @@ struct ObjectifCard: View {
                     Label("Atteint", systemImage: "checkmark.seal.fill")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(.green)
+                        .scaleEffect(celebrate ? 1.0 : 0.4)
+                        .opacity(celebrate ? 1.0 : 0)
                 }
             }
 
@@ -127,10 +131,34 @@ struct ObjectifCard: View {
             Text("\(Int(pct * 100))% complété")
                 .font(.system(size: 12))
                 .foregroundColor(.gray)
+            }
+            .padding(16)
+            .glassCardAccent(obj.achieved ? .green : .orange)
+            .cornerRadius(16)
+            .scaleEffect(celebrate ? 1.03 : 1.0)
+
+            // Sparkles overlay on achievement
+            if celebrate {
+                ForEach(0..<6, id: \.self) { i in
+                    Image(systemName: "sparkle")
+                        .font(.system(size: CGFloat([10, 14, 8, 12, 10, 8][i])))
+                        .foregroundColor(.green.opacity(0.7))
+                        .offset(
+                            x: CGFloat([-40, 40, -60, 60, 0, -20][i]),
+                            y: CGFloat([-20, -15, 5, 10, -30, 20][i])
+                        )
+                        .opacity(celebrate ? 1 : 0)
+                        .animation(.easeOut(duration: 0.6).delay(Double(i) * 0.05), value: celebrate)
+                }
+            }
         }
-        .padding(16)
-        .glassCardAccent(obj.achieved ? .green : .orange)
-        .cornerRadius(16)
+        .onAppear {
+            if obj.achieved {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.6).delay(0.1)) {
+                    celebrate = true
+                }
+            }
+        }
     }
 }
 

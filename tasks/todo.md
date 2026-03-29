@@ -15,8 +15,8 @@
 ## 🟠 HAUTE PRIORITÉ — UX bloquante
 
 - [ ] **Edit session dans Historique** : on peut supprimer mais pas modifier (RPE, commentaire, exercices). Faut tout supprimer et re-logger → friction énorme. Ajouter un sheet d'édition rapide.
-- [ ] **Pas de helper format reps dans SeanceView** : le champ reps accepte "5,5,5,5" mais aussi "abc" → afficher un exemple sous le champ ("ex: 5,5,5,4") et rejeter les formats invalides côté iOS avant envoi.
-- [ ] **Pas de config sauvegardée dans Timer** : l'utilisateur re-configure work/rest/rounds à chaque séance. Ajouter des presets sauvegardables (ex: "Tabata 20/10 x8").
+- [x] **Validation reps dans SeanceView** : champ reps rouge + bordure rouge si valeur non numérique saisie (2026-03-29).
+- [x] **Config Timer persistée** : workSecs/restSecs/prepareSecs/totalRounds sauvegardés via @AppStorage (2026-03-29).
 - [ ] **Timer se stoppe en arrière-plan** : si l'app passe en background pendant le timer, il s'arrête. Utiliser `UNUserNotificationCenter` pour planifier des notifications à chaque phase (work/rest/done).
 - [ ] **Validation photo profil** : aucune limite de taille sur l'upload photo → risque de timeout Vercel ou crash. Compresser/resizer avant envoi (max 500KB).
 
@@ -28,6 +28,10 @@
 - [ ] **Pas de filtre par date dans Historique** : impossible de chercher "séances de février". Ajouter un picker mois/année.
 - [x] **1RM formula ignore RPE** : `w × (1 + reps/30)` surestime si les reps étaient à faible effort. → Résolu partiellement via RIR : quand avg_rir disponible, RPE implicite = 10−rir, modifie la suggestion de poids. 1RM Epley reste comme base de comparaison PR.
 - [ ] **Deload recommandé mais pas auto-appliqué** : la bannière suggère un deload mais l'utilisateur doit manuellement baisser les poids. Ajouter un bouton "Appliquer le déload (−10%)" qui pré-remplit les charges.
+- [x] **CacheService TTL** : TTL par endpoint (dashboard=5min, seance=5min, stats=15min, programme=1h, etc.) avec sidecar .expiry (2026-03-29).
+- [x] **Programme : message si séance vide** : placeholder "Aucun exercice — tape + pour en ajouter" dans EditableSeanceProgramCard (2026-03-29).
+- [x] **Nutrition : édition d'entrée** : bouton crayon sur chaque entrée + EditNutritionSheet + endpoint /api/nutrition/edit (2026-03-29).
+- [x] **Objectifs : animation achievement** : sparkles + scale spring au appear quand obj.achieved (2026-03-29).
 - [ ] **Goals sans deadline enforcement** : la deadline est affichée mais pas rappelée. Ajouter une notification locale J-7 et J-1 avant deadline d'un objectif.
 - [ ] **Pas d'indication "exo jamais utilisé" dans inventaire** : des centaines d'exos ExerciseDB ne sont jamais utilisés dans le programme. Ajouter un badge ou tri "En programme / Jamais utilisé".
 - [ ] **HIIT : pas de templates favoris** : reconfigurer chaque HIIT (rounds, work, rest) à chaque fois. Ajouter des configs sauvegardables.

@@ -3,10 +3,10 @@ import AVFoundation
 
 struct TimerView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @State private var workSecs = 40
-    @State private var restSecs = 20
-    @State private var prepareSecs = 5
-    @State private var totalRounds = 8
+    @AppStorage("timer_workSecs")    private var workSecs    = 40
+    @AppStorage("timer_restSecs")    private var restSecs    = 20
+    @AppStorage("timer_prepareSecs") private var prepareSecs = 5
+    @AppStorage("timer_totalRounds") private var totalRounds = 8
     @State private var currentRound = 1
     @State private var phase: TimerPhase = .idle
     @State private var remaining = 40
