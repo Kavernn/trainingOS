@@ -929,9 +929,12 @@ struct TodayCardView: View {
 
             Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 16)
 
-            if isLoggedToday, let session = todaySession {
+            if isLoggedToday {
                 // ── Récap séance loggée ───────────────────────────────────
-                TodaySessionRecap(session: session, color: todayColor)
+                // isLoggedToday peut être vrai via alreadyLoggedToday même sans session dans le dict
+                if let session = todaySession {
+                    TodaySessionRecap(session: session, color: todayColor)
+                }
                 NavigationLink(destination: BonusSeanceView()) {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.circle")
