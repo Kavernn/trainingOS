@@ -220,11 +220,12 @@ def nutrition():
 def api_nutrition_add():
     data  = request.get_json()
     entry = nutrition_add_entry(
-        nom      = data.get("nom", ""),
-        calories = float(data.get("calories", 0)),
-        proteines= float(data.get("proteines", 0)),
-        glucides = float(data.get("glucides", 0)),
-        lipides  = float(data.get("lipides", 0)),
+        nom       = data.get("nom", ""),
+        calories  = float(data.get("calories", 0)),
+        proteines = float(data.get("proteines", 0)),
+        glucides  = float(data.get("glucides", 0)),
+        lipides   = float(data.get("lipides", 0)),
+        meal_type = data.get("meal_type"),
     )
     return jsonify({"success": True, "entry": entry, "totals": get_today_totals()})
 
@@ -258,6 +259,8 @@ def api_nutrition_settings():
     save_nutrition_settings(
         int(data.get("limite_calories", 2200)),
         int(data.get("objectif_proteines", 160)),
+        float(data.get("glucides", 0)),
+        float(data.get("lipides",  0)),
     )
     return jsonify({"success": True})
 

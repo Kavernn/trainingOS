@@ -495,10 +495,22 @@ class APIService: ObservableObject {
         return (r.settings, r.entries, r.totals)
     }
 
-    func addNutritionEntry(name: String, calories: Double, proteines: Double, glucides: Double, lipides: Double) async throws {
-        _ = try await offlinePost(endpoint: "/api/nutrition/add", payload: [
+    func addNutritionEntry(name: String, calories: Double, proteines: Double, glucides: Double,
+                           lipides: Double, mealType: String? = nil) async throws {
+        var payload: [String: Any] = [
             "nom": name, "calories": calories,
             "proteines": proteines, "glucides": glucides, "lipides": lipides
+        ]
+        if let mt = mealType { payload["meal_type"] = mt }
+        _ = try await offlinePost(endpoint: "/api/nutrition/add", payload: payload)
+    }
+
+    func updateNutritionSettings(calories: Double, proteines: Double, glucides: Double, lipides: Double) async {
+        _ = try? await offlinePost(endpoint: "/api/nutrition/settings", payload: [
+            "limite_calories":    Int(calories),
+            "objectif_proteines": Int(proteines),
+            "glucides":           glucides,
+            "lipides":            lipides,
         ])
     }
 

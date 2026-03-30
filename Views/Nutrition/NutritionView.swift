@@ -9,6 +9,21 @@ struct NutritionView: View {
     @State private var isLoading = true
     @State private var showAdd = false
     @State private var editTarget: NutritionEntry? = nil
+    @State private var showSettings = false
+    @AppStorage("special_session_logged_date") private var specialSessionDate: String = ""
+
+    private var workoutBonusActive: Bool {
+        specialSessionDate == DateFormatter.isoDate.string(from: Date())
+    }
+
+    private var effectiveSettings: NutritionSettings? {
+        guard let s = settings else { return nil }
+        guard workoutBonusActive else { return s }
+        return NutritionSettings(calories: (s.calories ?? 2200) + 300,
+                                 proteines: s.proteines,
+                                 glucides: s.glucides,
+                                 lipides: s.lipides)
+    }
 
     var body: some View {
         NavigationStack {
@@ -28,9 +43,19 @@ struct NutritionView: View {
                             .appearAnimation(delay: 0.05)
 
                             // Résumé calories + macros
-                            MacroSummaryCard(totals: totals, settings: settings)
+                            MacroSummaryCard(totals: totals, settings: effectiveSettings)
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.1)
+
+                            if workoutBonusActive {
+                                WorkoutBonusBadge()
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.11)
+                            }
+
+                            DailyRemainingCard(totals: totals, settings: effectiveSettings)
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.13)
 
                             // Historique protéines 7j
                             if !history.isEmpty {
@@ -44,6 +69,12 @@ struct NutritionView: View {
                                 WeeklyCalorieChart(history: history, target: settings?.calories)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.2)
+                            }
+
+                            if !history.isEmpty {
+                                AdherenceScoreCard(history: history, settings: settings)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.22)
                             }
 
                             // Entrées du jour
@@ -84,8 +115,13 @@ struct NutritionView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { Task { await loadData() } }) {
-                        Image(systemName: "arrow.clockwise").foregroundColor(.orange)
+                    HStack(spacing: 16) {
+                        Button { showSettings = true } label: {
+                            Image(systemName: "gearshape").foregroundColor(.orange)
+                        }
+                        Button(action: { Task { await loadData() } }) {
+                            Image(systemName: "arrow.clockwise").foregroundColor(.orange)
+                        }
                     }
                 }
             }
@@ -94,6 +130,9 @@ struct NutritionView: View {
             }
             .sheet(item: $editTarget) { entry in
                 EditNutritionSheet(entry: entry) { await loadData() }
+            }
+            .sheet(isPresented: $showSettings) {
+                NutritionSettingsSheet(settings: settings) { await loadData() }
             }
             .overlay(alignment: .bottomTrailing) {
                 FAB(icon: "plus") { showAdd = true }
@@ -136,7 +175,8 @@ struct NutritionView: View {
                         lipides: d["lipides"] as? Double,
                         quantity: d["quantity"] as? Double,
                         unit: d["unit"] as? String,
-                        time: (d["heure"] as? String) ?? (d["time"] as? String)
+                        time: (d["heure"] as? String) ?? (d["time"] as? String),
+                        mealType: d["meal_type"] as? String
                     )
                 }
             }
@@ -512,6 +552,12 @@ struct NutritionEntryRow: View {
 
     var body: some View {
         HStack {
+            if let mt = entry.mealType {
+                Image(systemName: mealTypeIcon(mt))
+                    .font(.system(size: 12))
+                    .foregroundColor(mealTypeColor(mt))
+                    .frame(width: 18)
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name ?? "—")
                     .font(.system(size: 14, weight: .semibold))
@@ -549,6 +595,26 @@ struct NutritionEntryRow: View {
             Button("Annuler", role: .cancel) {}
         }
     }
+
+    private func mealTypeIcon(_ type: String) -> String {
+        switch type {
+        case "matin":     return "sunrise.fill"
+        case "midi":      return "sun.max.fill"
+        case "soir":      return "moon.fill"
+        case "collation": return "leaf.fill"
+        default:          return "fork.knife"
+        }
+    }
+
+    private func mealTypeColor(_ type: String) -> Color {
+        switch type {
+        case "matin":     return .yellow
+        case "midi":      return .orange
+        case "soir":      return .indigo
+        case "collation": return .green
+        default:          return .gray
+        }
+    }
 }
 
 // MARK: - Add Nutrition Sheet
@@ -562,6 +628,16 @@ struct AddNutritionSheet: View {
     @State private var quantity = ""
     @State private var manualMode = false
     @State private var showCatalog = false
+
+    @State private var mealType: String = {
+        let h = Calendar.current.component(.hour, from: Date())
+        switch h {
+        case 5..<10:  return "matin"
+        case 10..<14: return "midi"
+        case 14..<20: return "soir"
+        default:      return "collation"
+        }
+    }()
 
     // Champs mode manuel
     @State private var manName = ""
@@ -704,6 +780,18 @@ struct AddNutritionSheet: View {
                         }
                         .listRowBackground(Color(hex: "11111c"))
                     }
+
+                    Section("REPAS") {
+                        Picker("", selection: $mealType) {
+                            Text("Matin").tag("matin")
+                            Text("Midi").tag("midi")
+                            Text("Soir").tag("soir")
+                            Text("Collation").tag("collation")
+                        }
+                        .pickerStyle(.segmented)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -743,14 +831,16 @@ struct AddNutritionSheet: View {
                 guard !manName.isEmpty, let cal = Double(manCal.replacingOccurrences(of: ",", with: ".")) else { return }
                 try? await APIService.shared.addNutritionEntry(
                     name: manName, calories: cal,
-                    proteines: p(manProt), glucides: p(manGluc), lipides: p(manLip)
+                    proteines: p(manProt), glucides: p(manGluc), lipides: p(manLip),
+                    mealType: mealType
                 )
             } else {
                 guard let item = selected, let qty = Double(quantity.replacingOccurrences(of: ",", with: ".")) else { return }
                 let m = item.macros(for: qty)
                 try? await APIService.shared.addNutritionEntry(
                     name: item.name, calories: m.cal,
-                    proteines: m.prot, glucides: m.gluc, lipides: m.lip
+                    proteines: m.prot, glucides: m.gluc, lipides: m.lip,
+                    mealType: mealType
                 )
             }
             await onSaved()
@@ -852,5 +942,260 @@ private struct MacroPreviewPill: View {
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Workout Bonus Badge
+
+struct WorkoutBonusBadge: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(.orange)
+            Text("+300 kcal · Séance enregistrée aujourd'hui")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.orange)
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+    }
+}
+
+// MARK: - Daily Remaining Card
+
+struct DailyRemainingCard: View {
+    let totals: NutritionTotals?
+    let settings: NutritionSettings?
+
+    private var remainingCal: Double  { max((settings?.calories  ?? 2200) - (totals?.calories  ?? 0), 0) }
+    private var remainingProt: Double { max((settings?.proteines ?? 160)  - (totals?.proteines ?? 0), 0) }
+    private var allDone: Bool         { remainingCal <= 0 && remainingProt <= 0 }
+
+    private var suggestion: (icon: String, text: String, color: Color) {
+        if allDone           { return ("checkmark.seal.fill", "Objectifs atteints !", .green) }
+        if remainingProt >= 40 { return ("fork.knife", "Repas complet protéiné", .blue) }
+        if remainingProt >= 20 { return ("cup.and.saucer.fill", "Collation protéinée", .blue) }
+        if remainingProt >= 5  { return ("takeoutbag.and.cup.and.straw.fill", "Shake ou skyr", .blue) }
+        if remainingCal > 200  { return ("leaf.fill", "Légumes ou fruit", .green) }
+        return ("checkmark.seal.fill", "Objectifs atteints !", .green)
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Text("RESTE AUJOURD'HUI")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+            }
+
+            if allDone {
+                Label("Objectifs atteints !", systemImage: "checkmark.seal.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.green)
+                    .frame(maxWidth: .infinity)
+            } else {
+                HStack(spacing: 0) {
+                    VStack(spacing: 2) {
+                        Text("\(Int(remainingCal))")
+                            .font(.system(size: 28, weight: .black))
+                            .foregroundColor(.orange)
+                        Text("kcal restantes")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Divider().frame(height: 40).background(Color.white.opacity(0.07))
+
+                    VStack(spacing: 2) {
+                        Text("\(Int(remainingProt))g")
+                            .font(.system(size: 28, weight: .black))
+                            .foregroundColor(.blue)
+                        Text("protéines restantes")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+
+                let s = suggestion
+                HStack(spacing: 6) {
+                    Image(systemName: s.icon).font(.system(size: 12)).foregroundColor(s.color)
+                    Text(s.text).font(.system(size: 12, weight: .medium)).foregroundColor(s.color)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(s.color.opacity(0.1))
+                .cornerRadius(8)
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Adherence Score Card
+
+struct AdherenceScoreCard: View {
+    let history: [NutritionDayHistory]
+    let settings: NutritionSettings?
+
+    private var protTarget: Double { settings?.proteines ?? 160 }
+    private var calTarget:  Double { settings?.calories  ?? 2200 }
+
+    private var successDays: Int {
+        history.filter { $0.proteines >= protTarget * 0.9 && $0.calories <= calTarget * 1.1 }.count
+    }
+    private var score: Int {
+        history.isEmpty ? 0 : Int(Double(successDays) / Double(history.count) * 100)
+    }
+    private var badge: (text: String, color: Color) {
+        if score >= 85 { return ("Super semaine", .green) }
+        if score >= 60 { return ("En progression", .yellow) }
+        return ("À améliorer", .orange)
+    }
+    private var pct: Double { Double(score) / 100.0 }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            HStack {
+                Text("ADHÉRENCE 7 JOURS")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+            }
+
+            HStack(spacing: 24) {
+                ZStack {
+                    Circle().stroke(Color(hex: "191926"), lineWidth: 10)
+                    Circle()
+                        .trim(from: 0, to: pct)
+                        .stroke(badge.color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeOut(duration: 0.6), value: pct)
+                    Text("\(score)%")
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundColor(.white)
+                }
+                .frame(width: 90, height: 90)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(badge.text)
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(badge.color)
+                    Text("\(successDays)/\(history.count) jours dans les objectifs")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                    Text("Prot ≥ 90% · Cal ≤ 110%")
+                        .font(.system(size: 10))
+                        .foregroundColor(Color.gray.opacity(0.6))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Nutrition Settings Sheet
+
+struct NutritionSettingsSheet: View {
+    let settings: NutritionSettings?
+    var onSaved: () async -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var calories:  String
+    @State private var proteines: String
+    @State private var glucides:  String
+    @State private var lipides:   String
+    @State private var isSaving = false
+
+    init(settings: NutritionSettings?, onSaved: @escaping () async -> Void) {
+        self.settings = settings
+        self.onSaved  = onSaved
+        let fmt = { (v: Double?) -> String in v.map { "\(Int($0))" } ?? "" }
+        _calories  = State(initialValue: fmt(settings?.calories))
+        _proteines = State(initialValue: fmt(settings?.proteines))
+        _glucides  = State(initialValue: fmt(settings?.glucides))
+        _lipides   = State(initialValue: fmt(settings?.lipides))
+    }
+
+    private var canSave: Bool {
+        Double(calories) != nil && Double(proteines) != nil
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                Form {
+                    Section("OBJECTIF CALORIQUE") {
+                        HStack {
+                            TextField("2200", text: $calories)
+                                .keyboardType(.numberPad)
+                                .foregroundColor(.white)
+                            Text("kcal / jour").foregroundColor(.gray).font(.system(size: 13))
+                        }
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+
+                    Section("OBJECTIFS MACROS (g / jour)") {
+                        HStack {
+                            TextField("160", text: $proteines).keyboardType(.numberPad).foregroundColor(.white)
+                            Text("g protéines").foregroundColor(.gray).font(.system(size: 13))
+                        }
+                        HStack {
+                            TextField("0", text: $glucides).keyboardType(.numberPad).foregroundColor(.white)
+                            Text("g glucides").foregroundColor(.gray).font(.system(size: 13))
+                        }
+                        HStack {
+                            TextField("0", text: $lipides).keyboardType(.numberPad).foregroundColor(.white)
+                            Text("g lipides").foregroundColor(.gray).font(.system(size: 13))
+                        }
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+                }
+                .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+            }
+            .navigationTitle("Objectifs nutrition")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Sauvegarder") { Task { await save() } }
+                        .foregroundColor(.orange).fontWeight(.semibold)
+                        .disabled(!canSave || isSaving)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func save() async {
+        guard let cal  = Double(calories),
+              let prot = Double(proteines) else { return }
+        isSaving = true
+        await APIService.shared.updateNutritionSettings(
+            calories: cal, proteines: prot,
+            glucides: Double(glucides) ?? 0,
+            lipides:  Double(lipides)  ?? 0
+        )
+        await onSaved()
+        isSaving = false
+        dismiss()
     }
 }

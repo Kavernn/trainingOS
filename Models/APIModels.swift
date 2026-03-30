@@ -523,6 +523,7 @@ struct NutritionEntry: Codable, Identifiable {
     let quantity: Double?
     let unit: String?
     let time: String?
+    let mealType: String?
 }
 
 struct NutritionSettings: Codable {

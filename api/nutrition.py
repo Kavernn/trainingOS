@@ -38,13 +38,18 @@ def load_settings() -> dict:
     return {
         "limite_calories":    raw.get("limite_calories")    or raw.get("calorie_limit")    or 2200,
         "objectif_proteines": raw.get("objectif_proteines") or raw.get("protein_target")   or 160,
+        "glucides":           raw.get("glucides") or 0,
+        "lipides":            raw.get("lipides")  or 0,
     }
 
 
-def save_settings(limite_calories: int, objectif_proteines: int):
+def save_settings(limite_calories: int, objectif_proteines: int,
+                  glucides: float = 0, lipides: float = 0):
     db.update_nutrition_settings({
         "limite_calories":    limite_calories,
         "objectif_proteines": objectif_proteines,
+        "glucides":           glucides,
+        "lipides":            lipides,
     })
 
 
@@ -66,7 +71,7 @@ def get_today_totals() -> dict:
 
 
 def add_entry(nom: str, calories: float, proteines: float = 0,
-              glucides: float = 0, lipides: float = 0) -> dict:
+              glucides: float = 0, lipides: float = 0, meal_type: str = None) -> dict:
     now_mtl = datetime.now(timezone.utc)
     try:
         from zoneinfo import ZoneInfo
@@ -83,6 +88,8 @@ def add_entry(nom: str, calories: float, proteines: float = 0,
         "lipides":   round(lipides,   1),
         "heure":     now_mtl.strftime("%H:%M"),
     }
+    if meal_type:
+        entry["meal_type"] = meal_type
     return db.insert_nutrition_entry(entry)
 
 
