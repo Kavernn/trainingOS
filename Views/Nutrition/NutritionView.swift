@@ -42,16 +42,16 @@ struct NutritionView: View {
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.05)
 
+                            if workoutBonusActive {
+                                WorkoutBonusBadge()
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.08)
+                            }
+
                             // Résumé calories + macros
                             MacroSummaryCard(totals: totals, settings: effectiveSettings)
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.1)
-
-                            if workoutBonusActive {
-                                WorkoutBonusBadge()
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.11)
-                            }
 
                             DailyRemainingCard(totals: totals, settings: effectiveSettings)
                                 .padding(.horizontal, 16)
@@ -132,7 +132,7 @@ struct NutritionView: View {
                 EditNutritionSheet(entry: entry) { await loadData() }
             }
             .sheet(isPresented: $showSettings) {
-                NutritionSettingsSheet(settings: settings) { await loadData() }
+                NutritionSettingsSheet(settings: settings) { await loadData(silent: true) }
             }
             .overlay(alignment: .bottomTrailing) {
                 FAB(icon: "plus") { showAdd = true }
@@ -143,8 +143,8 @@ struct NutritionView: View {
         .task { await loadData() }
     }
 
-    private func loadData() async {
-        isLoading = true
+    private func loadData(silent: Bool = false) async {
+        if !silent { isLoading = true }
         let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition_data")!
         if let (data, _) = try? await URLSession.shared.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -552,12 +552,16 @@ struct NutritionEntryRow: View {
 
     var body: some View {
         HStack {
-            if let mt = entry.mealType {
-                Image(systemName: mealTypeIcon(mt))
-                    .font(.system(size: 12))
-                    .foregroundColor(mealTypeColor(mt))
-                    .frame(width: 18)
+            Group {
+                if let mt = entry.mealType {
+                    Image(systemName: mealTypeIcon(mt))
+                        .font(.system(size: 12))
+                        .foregroundColor(mealTypeColor(mt))
+                } else {
+                    Color.clear
+                }
             }
+            .frame(width: 18)
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.name ?? "—")
                     .font(.system(size: 14, weight: .semibold))
@@ -610,7 +614,7 @@ struct NutritionEntryRow: View {
         switch type {
         case "matin":     return .yellow
         case "midi":      return .orange
-        case "soir":      return .indigo
+        case "soir":      return .purple
         case "collation": return .green
         default:          return .gray
         }
@@ -628,6 +632,7 @@ struct AddNutritionSheet: View {
     @State private var quantity = ""
     @State private var manualMode = false
     @State private var showCatalog = false
+    @State private var isSaving = false
 
     @State private var mealType: String = {
         let h = Calendar.current.component(.hour, from: Date())
@@ -667,6 +672,18 @@ struct AddNutritionSheet: View {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
                 Form {
+                    Section("REPAS") {
+                        Picker("", selection: $mealType) {
+                            Text("Matin").tag("matin")
+                            Text("Midi").tag("midi")
+                            Text("Soir").tag("soir")
+                            Text("Collation").tag("collation")
+                        }
+                        .pickerStyle(.segmented)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+
                     if !manualMode {
                         // ── Chips catalogue ─────────────────────────────
                         Section(header: HStack {
@@ -781,17 +798,6 @@ struct AddNutritionSheet: View {
                         .listRowBackground(Color(hex: "11111c"))
                     }
 
-                    Section("REPAS") {
-                        Picker("", selection: $mealType) {
-                            Text("Matin").tag("matin")
-                            Text("Midi").tag("midi")
-                            Text("Soir").tag("soir")
-                            Text("Collation").tag("collation")
-                        }
-                        .pickerStyle(.segmented)
-                        .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
-                    }
-                    .listRowBackground(Color(hex: "11111c"))
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -806,7 +812,7 @@ struct AddNutritionSheet: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Ajouter") { save() }
                         .foregroundColor(.orange).fontWeight(.semibold)
-                        .disabled(!canSave)
+                        .disabled(!canSave || isSaving)
                 }
             }
             .sheet(isPresented: $showCatalog, onDismiss: {
@@ -827,15 +833,16 @@ struct AddNutritionSheet: View {
 
     private func save() {
         Task {
+            isSaving = true
             if manualMode {
-                guard !manName.isEmpty, let cal = Double(manCal.replacingOccurrences(of: ",", with: ".")) else { return }
+                guard !manName.isEmpty, let cal = Double(manCal.replacingOccurrences(of: ",", with: ".")) else { isSaving = false; return }
                 try? await APIService.shared.addNutritionEntry(
                     name: manName, calories: cal,
                     proteines: p(manProt), glucides: p(manGluc), lipides: p(manLip),
                     mealType: mealType
                 )
             } else {
-                guard let item = selected, let qty = Double(quantity.replacingOccurrences(of: ",", with: ".")) else { return }
+                guard let item = selected, let qty = Double(quantity.replacingOccurrences(of: ",", with: ".")) else { isSaving = false; return }
                 let m = item.macros(for: qty)
                 try? await APIService.shared.addNutritionEntry(
                     name: item.name, calories: m.cal,
@@ -844,6 +851,7 @@ struct AddNutritionSheet: View {
                 )
             }
             await onSaved()
+            isSaving = false
             dismiss()
         }
     }
@@ -1001,39 +1009,29 @@ struct DailyRemainingCard: View {
                     .foregroundColor(.green)
                     .frame(maxWidth: .infinity)
             } else {
-                HStack(spacing: 0) {
+                HStack(alignment: .center, spacing: 16) {
                     VStack(spacing: 2) {
                         Text("\(Int(remainingCal))")
-                            .font(.system(size: 28, weight: .black))
+                            .font(.system(size: 36, weight: .black))
                             .foregroundColor(.orange)
                         Text("kcal restantes")
-                            .font(.system(size: 11))
+                            .font(.system(size: 12))
                             .foregroundColor(.gray)
                     }
                     .frame(maxWidth: .infinity)
 
-                    Divider().frame(height: 40).background(Color.white.opacity(0.07))
-
-                    VStack(spacing: 2) {
-                        Text("\(Int(remainingProt))g")
-                            .font(.system(size: 28, weight: .black))
-                            .foregroundColor(.blue)
-                        Text("protéines restantes")
-                            .font(.system(size: 11))
-                            .foregroundColor(.gray)
+                    let s = suggestion
+                    HStack(spacing: 6) {
+                        Image(systemName: s.icon).font(.system(size: 13)).foregroundColor(s.color)
+                        Text(s.text).font(.system(size: 12, weight: .medium)).foregroundColor(s.color)
+                            .multilineTextAlignment(.leading)
                     }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(s.color.opacity(0.1))
+                    .cornerRadius(8)
                     .frame(maxWidth: .infinity)
                 }
-
-                let s = suggestion
-                HStack(spacing: 6) {
-                    Image(systemName: s.icon).font(.system(size: 12)).foregroundColor(s.color)
-                    Text(s.text).font(.system(size: 12, weight: .medium)).foregroundColor(s.color)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(s.color.opacity(0.1))
-                .cornerRadius(8)
             }
         }
         .padding(16)
@@ -1060,7 +1058,7 @@ struct AdherenceScoreCard: View {
     private var badge: (text: String, color: Color) {
         if score >= 85 { return ("Super semaine", .green) }
         if score >= 60 { return ("En progression", .yellow) }
-        return ("À améliorer", .orange)
+        return ("À améliorer", .red)
     }
     private var pct: Double { Double(score) / 100.0 }
 
@@ -1074,32 +1072,40 @@ struct AdherenceScoreCard: View {
                 Spacer()
             }
 
-            HStack(spacing: 24) {
-                ZStack {
-                    Circle().stroke(Color(hex: "191926"), lineWidth: 10)
-                    Circle()
-                        .trim(from: 0, to: pct)
-                        .stroke(badge.color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeOut(duration: 0.6), value: pct)
-                    Text("\(score)%")
-                        .font(.system(size: 22, weight: .black))
-                        .foregroundColor(.white)
-                }
-                .frame(width: 90, height: 90)
+            if history.count < 3 {
+                Text("Pas encore assez de données · Revenez dans \(3 - history.count) jour(s)")
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+            } else {
+                HStack(spacing: 24) {
+                    ZStack {
+                        Circle().stroke(Color(hex: "191926"), lineWidth: 10)
+                        Circle()
+                            .trim(from: 0, to: pct)
+                            .stroke(badge.color, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeOut(duration: 0.6), value: pct)
+                        Text("\(score)%")
+                            .font(.system(size: 22, weight: .black))
+                            .foregroundColor(.white)
+                    }
+                    .frame(width: 90, height: 90)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(badge.text)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(badge.color)
-                    Text("\(successDays)/\(history.count) jours dans les objectifs")
-                        .font(.system(size: 12))
-                        .foregroundColor(.gray)
-                    Text("Prot ≥ 90% · Cal ≤ 110%")
-                        .font(.system(size: 10))
-                        .foregroundColor(Color.gray.opacity(0.6))
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(badge.text)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(badge.color)
+                        Text("\(successDays)/\(history.count) jours dans les objectifs")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                        Text("Prot ≥ 90% · Cal ≤ 110%")
+                            .font(.system(size: 10))
+                            .foregroundColor(Color.gray.opacity(0.6))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(16)

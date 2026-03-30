@@ -7,43 +7,63 @@ struct FoodCatalogView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showAdd = false
     @State private var editTarget: FoodItem? = nil
+    @State private var pendingDelete: IndexSet? = nil
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
-                List {
-                    ForEach(items) { item in
-                        Button { editTarget = item } label: {
-                            VStack(alignment: .leading, spacing: 4) {
+                if items.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "fork.knife.circle")
+                            .font(.system(size: 48))
+                            .foregroundColor(.gray.opacity(0.35))
+                        Text("Catalogue vide")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.gray)
+                        Text("Tape + pour ajouter un aliment")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray.opacity(0.6))
+                    }
+                } else {
+                    List {
+                        ForEach(items) { item in
+                            Button { editTarget = item } label: {
                                 HStack {
-                                    Text(item.name)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(.white)
-                                    Spacer()
-                                    Text("pour \(formatQty(item.refQty)) \(item.refUnit)")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.gray)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            Text(item.name)
+                                                .font(.system(size: 14, weight: .semibold))
+                                                .foregroundColor(.white)
+                                            Spacer()
+                                            Text("pour \(formatQty(item.refQty)) \(item.refUnit)")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.gray)
+                                        }
+                                        HStack(spacing: 12) {
+                                            macroChip("\(Int(item.calories)) kcal", .orange)
+                                            macroChip("\(fmt(item.proteines))g P", .blue)
+                                            macroChip("\(fmt(item.glucides))g C", .yellow)
+                                            macroChip("\(fmt(item.lipides))g L", .pink)
+                                        }
+                                    }
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundColor(.gray.opacity(0.35))
                                 }
-                                HStack(spacing: 12) {
-                                    macroChip("\(Int(item.calories)) kcal", .orange)
-                                    macroChip("\(fmt(item.proteines))g P", .blue)
-                                    macroChip("\(fmt(item.glucides))g C", .yellow)
-                                    macroChip("\(fmt(item.lipides))g L", .pink)
-                                }
+                                .padding(.vertical, 4)
                             }
-                            .padding(.vertical, 4)
+                            .buttonStyle(.plain)
+                            .listRowBackground(Color(hex: "11111c"))
                         }
-                        .buttonStyle(.plain)
-                        .listRowBackground(Color(hex: "11111c"))
+                        .onDelete { idx in
+                            pendingDelete = idx
+                            showDeleteConfirm = true
+                        }
                     }
-                    .onDelete { idx in
-                        items.remove(atOffsets: idx)
-                        FoodCatalogStore.save(items)
-                        Task { await APIService.shared.saveFoodCatalog(items) }
-                    }
+                    .scrollContentBackground(.hidden)
                 }
-                .scrollContentBackground(.hidden)
             }
             .navigationTitle("Catalogue")
             .navigationBarTitleDisplayMode(.inline)
@@ -56,6 +76,16 @@ struct FoodCatalogView: View {
                         Image(systemName: "plus").foregroundColor(.orange)
                     }
                 }
+            }
+            .confirmationDialog("Supprimer cet aliment du catalogue ?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("Supprimer", role: .destructive) {
+                    if let idx = pendingDelete {
+                        items.remove(atOffsets: idx)
+                        FoodCatalogStore.save(items)
+                        Task { await APIService.shared.saveFoodCatalog(items) }
+                    }
+                }
+                Button("Annuler", role: .cancel) { pendingDelete = nil }
             }
             .sheet(isPresented: $showAdd) {
                 FoodItemFormView(existing: nil) { newItem in
