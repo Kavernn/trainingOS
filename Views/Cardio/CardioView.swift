@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 #if os(iOS)
 import HealthKit
 #endif
@@ -10,6 +11,7 @@ struct CardioView: View {
     @State private var isImportingHK = false
     @State private var apiError: String? = nil
     @ObservedObject private var hk = HealthKitService.shared
+    @AppStorage("cardio_max_hr") private var maxHR: Int = 190
 
     // KPIs
     var totalSessions: Int { log.count }
@@ -44,6 +46,19 @@ struct CardioView: View {
                             // Distance chart (last 8 sessions)
                             if log.filter({ $0.distanceKm != nil }).count >= 2 {
                                 CardioDistanceChart(entries: Array(log.prefix(8).reversed()))
+                                    .padding(.horizontal, 16)
+                            }
+
+                            // HR Zones
+                            let hrEntries = log.compactMap(\.avgHr).filter { $0 > 0 }
+                            if hrEntries.count >= 2 {
+                                HRZonesCard(hrValues: hrEntries, maxHR: maxHR, onSetMaxHR: { maxHR = $0 })
+                                    .padding(.horizontal, 16)
+                            }
+
+                            // Progression cardio
+                            if let prog = cardioProgression {
+                                CardioProgressionCard(suggestion: prog)
                                     .padding(.horizontal, 16)
                             }
 
@@ -121,6 +136,35 @@ struct CardioView: View {
         isLoading = false
     }
 
+    // Progression cardio: compare last 2 sessions of the most common type
+    struct CardioProg { let type: String; let msg: String }
+
+    var cardioProgression: CardioProg? {
+        guard log.count >= 2 else { return nil }
+        let types = Dictionary(grouping: log.compactMap(\.type), by: { $0 })
+        guard let topType = types.max(by: { $0.value.count < $1.value.count })?.key else { return nil }
+        let same = log.filter { $0.type == topType }
+        guard same.count >= 2 else { return nil }
+        let cur = same[0]; let prev = same[1]
+
+        // Distance progression
+        if let cd = cur.distanceKm, let pd = prev.distanceKm, pd > 0 {
+            let pct = (cd - pd) / pd * 100
+            if pct > 0 {
+                let target = round((cd + 0.5) * 10) / 10
+                return CardioProg(type: topType, msg: "+\(String(format: "%.0f", pct))% distance. Vise \(String(format: "%.1f", target)) km la prochaine fois.")
+            }
+        }
+        // Duration progression
+        if let cd = cur.durationMin, let pd = prev.durationMin, pd > 0 {
+            let diff = cd - pd
+            if diff < 5 {
+                return CardioProg(type: topType, msg: "Vise \(Int(cd) + 5) min la prochaine fois (+5 min).")
+            }
+        }
+        return nil
+    }
+
     private func importFromHealthKit() {
         isImportingHK = true
         Task {
@@ -165,6 +209,101 @@ struct CardioView: View {
             await loadData()
             isImportingHK = false
         }
+    }
+}
+
+// MARK: - HR Zones Card
+struct HRZonesCard: View {
+    let hrValues: [Double]
+    let maxHR: Int
+    var onSetMaxHR: (Int) -> Void
+    @State private var showMaxHRInput = false
+    @State private var maxHRStr = ""
+
+    private let zones: [(name: String, min: Double, max: Double, color: Color)] = [
+        ("Z1 Récup.",   0.50, 0.60, .blue),
+        ("Z2 Aérobie",  0.60, 0.70, .green),
+        ("Z3 Seuil",    0.70, 0.80, .yellow),
+        ("Z4 Anaéro.", 0.80, 0.90, .orange),
+        ("Z5 VO2max",  0.90, 1.00, .red)
+    ]
+
+    private func zoneCounts() -> [Int] {
+        let mhr = Double(maxHR)
+        var counts = [0, 0, 0, 0, 0]
+        for hr in hrValues {
+            let pct = hr / mhr
+            let idx = zones.firstIndex { pct >= $0.min && pct < $0.max } ?? (pct >= 0.9 ? 4 : 0)
+            counts[idx] += 1
+        }
+        return counts
+    }
+
+    var body: some View {
+        let counts = zoneCounts()
+        let total = max(hrValues.count, 1)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("ZONES CARDIO")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Button("FCmax \(maxHR)") {
+                    maxHRStr = "\(maxHR)"
+                    showMaxHRInput = true
+                }
+                .font(.system(size: 11)).foregroundColor(.teal)
+            }
+            VStack(spacing: 5) {
+                ForEach(zones.indices, id: \.self) { i in
+                    HStack(spacing: 8) {
+                        Text(zones[i].name)
+                            .font(.system(size: 11)).foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                        GeometryReader { geo in
+                            RoundedRectangle(cornerRadius: 3)
+                                .fill(zones[i].color.opacity(0.3))
+                                .frame(height: 14)
+                                .overlay(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(zones[i].color)
+                                        .frame(width: geo.size.width * Double(counts[i]) / Double(total), height: 14)
+                                }
+                        }
+                        .frame(height: 14)
+                        Text("\(Int(Double(counts[i]) / Double(total) * 100))%")
+                            .font(.system(size: 10, weight: .bold)).foregroundColor(zones[i].color)
+                            .frame(width: 32, alignment: .trailing)
+                    }
+                }
+            }
+            Text("Basé sur \(hrValues.count) session(s) avec FC")
+                .font(.caption).foregroundColor(.secondary)
+        }
+        .padding(14).glassCard().cornerRadius(14)
+        .alert("FC maximale", isPresented: $showMaxHRInput) {
+            TextField("Ex: 190", text: $maxHRStr).keyboardType(.numberPad)
+            Button("OK") { if let v = Int(maxHRStr), v > 100 { onSetMaxHR(v) } }
+            Button("Annuler", role: .cancel) {}
+        } message: { Text("Utilise 220 − ton âge ou une mesure réelle.") }
+    }
+}
+
+// MARK: - Cardio Progression Card
+struct CardioProgressionCard: View {
+    let suggestion: CardioView.CardioProg
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "arrow.up.circle.fill").font(.system(size: 20)).foregroundColor(.teal)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("PROGRESSION — \(suggestion.type.uppercased())")
+                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                Text(suggestion.msg)
+                    .font(.system(size: 13)).foregroundColor(.white)
+            }
+            Spacer()
+        }
+        .padding(12).background(Color.teal.opacity(0.08))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.teal.opacity(0.2), lineWidth: 1))
+        .cornerRadius(12)
     }
 }
 

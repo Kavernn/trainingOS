@@ -267,6 +267,29 @@ struct AlreadyLoggedSeanceView: View {
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(tomorrowColor.opacity(0.15), lineWidth: 1))
                 .padding(.horizontal, 16)
 
+                // ── Partager la séance ─────────────────────────────────
+                let shareText: String = {
+                    var parts = ["💪 \(data.today) — TrainingOS"]
+                    if let s = todaySession {
+                        if let exos = s.exos { parts.append("\(exos.count) exercices : \(exos.prefix(3).joined(separator: ", "))\(exos.count > 3 ? "…" : "")") }
+                        if let rpe = s.rpe { parts.append("RPE \(String(format: "%.1f", rpe))") }
+                        if let dur = s.durationMin { parts.append("\(Int(dur)) min") }
+                    }
+                    return parts.joined(separator: "\n")
+                }()
+                ShareLink(item: shareText) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "square.and.arrow.up").font(.system(size: 15))
+                        Text("Partager la séance").font(.system(size: 14, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+                    .background(Color(hex: "1c1c2e"))
+                    .foregroundColor(.white.opacity(0.7))
+                    .cornerRadius(14)
+                }
+                .buttonStyle(SpringButtonStyle())
+                .padding(.horizontal, 16)
+
                 // ── Reset aujourd'hui ───────────────────────────────────
                 Button(action: { confirmReset = true }) {
                     HStack(spacing: 10) {
@@ -1436,6 +1459,27 @@ struct AddHIITSheet: View {
         @State private var painZone: String = ""
         @State private var setBySetMode: Bool = false
         @State private var currentSetIndex: Int = 0
+        @State private var showWarmup: Bool = false
+        @AppStorage("exo_notes_data") private var exoNotesData: String = "{}"
+
+        private var exoNote: String {
+            (try? JSONDecoder().decode([String: String].self, from: Data(exoNotesData.utf8)))?[name] ?? ""
+        }
+        private func saveExoNote(_ note: String) {
+            var notes = (try? JSONDecoder().decode([String: String].self, from: Data(exoNotesData.utf8))) ?? [:]
+            if note.isEmpty { notes.removeValue(forKey: name) } else { notes[name] = note }
+            if let d = try? JSONEncoder().encode(notes), let s = String(data: d, encoding: .utf8) {
+                exoNotesData = s
+            }
+        }
+
+        // Warm-up sets at 40%, 60%, 80% of currentWeight
+        private var warmupSets: [(pct: Int, weight: Double)] {
+            guard currentWeight > 0 else { return [] }
+            return [(40, round(currentWeight * 0.4 / 2.5) * 2.5),
+                    (60, round(currentWeight * 0.6 / 2.5) * 2.5),
+                    (80, round(currentWeight * 0.8 / 2.5) * 2.5)]
+        }
         // Set synchronously before any async call to prevent race conditions
         @State private var isLogged = false
         @State private var isEditing = false
@@ -1923,6 +1967,35 @@ struct AddHIITSheet: View {
                         .buttonStyle(.plain)
                     }
 
+                    // Warm-up sets toggle
+                    if !isTimeBased && !warmupSets.isEmpty {
+                        Button {
+                            withAnimation { showWarmup.toggle() }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: showWarmup ? "chevron.down" : "flame")
+                                    .font(.system(size: 11)).foregroundColor(.yellow.opacity(0.7))
+                                Text("Échauffement (\(Int(currentWeight)) \(UnitSettings.shared.label))")
+                                    .font(.system(size: 11, weight: .medium)).foregroundColor(.yellow.opacity(0.7))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        if showWarmup {
+                            VStack(spacing: 4) {
+                                ForEach(warmupSets, id: \.pct) { ws in
+                                    HStack {
+                                        Text("\(ws.pct)%")
+                                            .font(.system(size: 10, weight: .bold)).foregroundColor(.yellow.opacity(0.6))
+                                            .frame(width: 32)
+                                        Text("1×5 @ \(UnitSettings.shared.format(ws.weight, decimals: 1))")
+                                            .font(.system(size: 12)).foregroundColor(.gray)
+                                    }
+                                }
+                            }
+                            .padding(8).background(Color.yellow.opacity(0.05)).cornerRadius(8)
+                        }
+                    }
+
                     // Per-set rows
                     if isTimeBased { timeSetRows() } else { setRows() }
 
@@ -1978,6 +2051,20 @@ struct AddHIITSheet: View {
                         Image(systemName: "bandage").font(.system(size: 11)).foregroundColor(.red.opacity(0.6))
                         TextField("Zone douloureuse (optionnel)", text: $painZone)
                             .font(.system(size: 12)).foregroundColor(painZone.isEmpty ? .gray : .red)
+                    }
+                    .padding(.top, 2)
+
+                    // Notes persistées par exercice
+                    HStack(spacing: 6) {
+                        Image(systemName: "note.text").font(.system(size: 11)).foregroundColor(.cyan.opacity(0.6))
+                        let noteBinding = Binding<String>(
+                            get: { exoNote },
+                            set: { saveExoNote($0) }
+                        )
+                        TextField("Notes techniques (persistent)", text: noteBinding, axis: .vertical)
+                            .font(.system(size: 12))
+                            .foregroundColor(exoNote.isEmpty ? .gray : .cyan)
+                            .lineLimit(1...3)
                     }
                     .padding(.top, 2)
 
@@ -2238,6 +2325,8 @@ struct AddHIITSheet: View {
 
         @State private var energyPre: Int = 3   // 1–5
         @State private var confirmDiscard = false
+        @State private var aiAnalysis: String? = nil
+        @State private var isLoadingAI = false
 
         private var hasUnsavedData: Bool { !comment.isEmpty || energyPre != 3 }
 
@@ -2322,7 +2411,35 @@ struct AddHIITSheet: View {
                                     .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                             }
                             .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
-                            
+
+                            // IA analyse post-séance
+                            VStack(alignment: .leading, spacing: 8) {
+                                Button(action: loadAIAnalysis) {
+                                    HStack(spacing: 6) {
+                                        if isLoadingAI {
+                                            ProgressView().tint(.purple).scaleEffect(0.7)
+                                        } else {
+                                            Image(systemName: "brain.head.profile").font(.system(size: 13))
+                                        }
+                                        Text(isLoadingAI ? "Analyse en cours…" : "Analyse IA post-séance")
+                                            .font(.system(size: 13, weight: .medium))
+                                    }
+                                    .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                    .background(Color.purple.opacity(0.12))
+                                    .foregroundColor(.purple)
+                                    .cornerRadius(10)
+                                }
+                                .disabled(isLoadingAI)
+
+                                if let analysis = aiAnalysis {
+                                    Text(analysis)
+                                        .font(.system(size: 13)).foregroundColor(.white.opacity(0.85))
+                                        .padding(12).background(Color.purple.opacity(0.08))
+                                        .cornerRadius(10)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+
                             Button(action: {
                                 onSubmit(energyPre)
                                 dismiss()
@@ -2350,6 +2467,32 @@ struct AddHIITSheet: View {
                     Button("Continuer", role: .cancel) {}
                 }
                 .keyboardOkButton()
+            }
+        }
+
+        private func loadAIAnalysis() {
+            guard !isLoadingAI else { return }
+            isLoadingAI = true
+            let exoSummary = logResults.map { k, v in
+                "\(k): \(v.reps) @ \(String(format: "%.0f", v.weight))lbs RPE\(String(format: "%.1f", v.rpe ?? rpe))"
+            }.joined(separator: ", ")
+            let prompt = "Séance terminée en \(Int(elapsedMin)) min. Exercices: \(exoSummary). RPE global: \(String(format: "%.1f", rpe)). Donne une analyse courte (3-4 phrases) : points positifs, point à améliorer, conseil pour la prochaine séance."
+            Task {
+                do {
+                    let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
+                    var req = URLRequest(url: url)
+                    req.httpMethod = "POST"
+                    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    req.httpBody = try JSONSerialization.data(withJSONObject: [
+                        "context": "Post-session analysis",
+                        "messages": [["role": "user", "content": prompt]]
+                    ])
+                    let (data, _) = try await URLSession.shared.data(for: req)
+                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                       let reply = json["response"] as? String {
+                        await MainActor.run { aiAnalysis = reply; isLoadingAI = false }
+                    } else { await MainActor.run { isLoadingAI = false } }
+                } catch { await MainActor.run { isLoadingAI = false } }
             }
         }
 
@@ -2444,10 +2587,15 @@ struct AddHIITSheet: View {
         @ObservedObject var vm: SeanceViewModel
         @State private var rpe: Double = 5
         @State private var comment = ""
-        
+        @AppStorage("special_session_logged_date") private var loggedDate: String = ""
+
+        private var alreadyLoggedToday: Bool {
+            loggedDate == DateFormatter.isoDate.string(from: Date())
+        }
+
         var color: Color { sessionType == "Yoga / Tai Chi" ? .purple : .green }
         var icon: String  { sessionType == "Yoga / Tai Chi" ? "figure.mind.and.body" : "heart.fill" }
-        
+
         var body: some View {
             ScrollView {
                 VStack(spacing: 20) {
@@ -2455,34 +2603,48 @@ struct AddHIITSheet: View {
                         Image(systemName: icon).font(.system(size: 48)).foregroundColor(color)
                         Text(sessionType).font(.system(size: 24, weight: .black)).foregroundColor(.white)
                     }.padding(.top, 24)
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
-                            Spacer()
-                            Text("\(rpe, specifier: "%.1f")").font(.system(size: 20, weight: .black)).foregroundColor(color)
+
+                    if alreadyLoggedToday {
+                        HStack(spacing: 10) {
+                            Image(systemName: "checkmark.circle.fill").foregroundColor(color)
+                            Text("Séance déjà enregistrée aujourd'hui")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(color)
                         }
-                        Slider(value: $rpe, in: 1...10, step: 0.5).tint(color)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(color.opacity(0.12))
+                        .cornerRadius(14)
+                        .padding(.horizontal, 16)
+                    } else {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Spacer()
+                                Text("\(rpe, specifier: "%.1f")").font(.system(size: 20, weight: .black)).foregroundColor(color)
+                            }
+                            Slider(value: $rpe, in: 1...10, step: 0.5).tint(color)
+                        }
+                        .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            TextField("Comment c'était ?", text: $comment, axis: .vertical)
+                                .foregroundColor(.white).tint(.orange)
+                                .lineLimit(3, reservesSpace: true)
+                                .submitLabel(.done)
+                                .onSubmit { hideKeyboard() }
+                                .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                        }
+                        .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+
+                        Button(action: logSession) {
+                            Text("Enregistrer \(sessionType)")
+                                .font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 14)
+                                .background(color).foregroundColor(.white).cornerRadius(14)
+                        }
+                        .padding(.horizontal, 16).padding(.bottom, 24)
                     }
-                    .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
-                    
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                        TextField("Comment c'était ?", text: $comment, axis: .vertical)
-                            .foregroundColor(.white).tint(.orange)
-                            .lineLimit(3, reservesSpace: true)
-                            .submitLabel(.done)
-                            .onSubmit { hideKeyboard() }
-                            .padding(12).background(Color(hex: "191926")).cornerRadius(10)
-                    }
-                    .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
-                    
-                    Button(action: logSession) {
-                        Text("Enregistrer \(sessionType)")
-                            .font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 14)
-                            .background(color).foregroundColor(.white).cornerRadius(14)
-                    }
-                    .padding(.horizontal, 16).padding(.bottom, 24)
                 }
             }
             .scrollDismissesKeyboard(.interactively)
@@ -2490,10 +2652,11 @@ struct AddHIITSheet: View {
                 Button("OK") { Task { await vm.load() } }
             }
         }
-        
+
         private func logSession() {
             Task {
                 try? await APIService.shared.logSession(exos: [sessionType], rpe: rpe, comment: comment)
+                loggedDate = DateFormatter.isoDate.string(from: Date())
                 await vm.load()
                 await APIService.shared.fetchDashboard()
                 vm.showSuccess = true

@@ -15,6 +15,75 @@ struct ProgrammeView: View {
     @State private var showCreateSeance = false
     @State private var deleteSeanceTarget: String? = nil
     @State private var confirmDeleteSeance = false
+    @AppStorage("programme_clipboard") private var clipboardData: String = "{}"
+    @AppStorage("periodisation_start") private var periodisationStart: String = ""
+    @State private var showResetMesocycle = false
+
+    private var clipboard: [String: String] {
+        (try? JSONDecoder().decode([String: String].self, from: Data(clipboardData.utf8))) ?? [:]
+    }
+    private func copySeance(_ exercises: [String: String]) {
+        if let d = try? JSONEncoder().encode(exercises), let s = String(data: d, encoding: .utf8) {
+            clipboardData = s
+        }
+    }
+    private func pasteSeance(into seance: String) {
+        let pasted = clipboard
+        guard !pasted.isEmpty else { return }
+        var prog = fullProgram[seance] ?? [:]
+        for (ex, scheme) in pasted { prog[ex] = scheme }
+        fullProgram[seance] = prog
+        Task {
+            for (ex, scheme) in pasted {
+                await addExercise(seance: seance, exercise: ex, scheme: scheme)
+            }
+        }
+    }
+
+    // MARK: - Périodisation
+    private enum Phase: String {
+        case hypertrophie = "Hypertrophie"
+        case force        = "Force"
+        case peak         = "Peak"
+        case deload       = "Deload"
+    }
+    private var mesocycleWeek: Int {
+        guard !periodisationStart.isEmpty,
+              let start = DateFormatter.isoDate.date(from: periodisationStart) else { return 0 }
+        let days = Calendar.current.dateComponents([.day], from: start, to: Date()).day ?? 0
+        return max(1, days / 7 + 1)
+    }
+    private var currentPhase: Phase {
+        let w = mesocycleWeek
+        if w <= 4 { return .hypertrophie }
+        if w <= 8 { return .force }
+        if w <= 10 { return .peak }
+        return .deload
+    }
+    private var phaseScheme: String {
+        switch currentPhase {
+        case .hypertrophie: return "3-4 × 8-12 reps — 65–75% 1RM"
+        case .force:        return "4-5 × 4-6 reps — 80–90% 1RM"
+        case .peak:         return "5 × 1-3 reps — 90–95% 1RM"
+        case .deload:       return "3 × 10-12 reps — 50–60% 1RM"
+        }
+    }
+    private var nextPhase: Phase {
+        switch currentPhase {
+        case .hypertrophie: return .force
+        case .force:        return .peak
+        case .peak:         return .deload
+        case .deload:       return .hypertrophie
+        }
+    }
+    private var phaseColor: Color {
+        switch currentPhase {
+        case .hypertrophie: return .orange
+        case .force:        return .red
+        case .peak:         return .yellow
+        case .deload:       return .green
+        }
+    }
 
     // Multi-programmes
     @State private var programs: [ProgramInfo] = []
@@ -80,6 +149,20 @@ struct ProgrammeView: View {
                             )
                             .padding(.horizontal, 16)
 
+                            PeriodisationCard(
+                                week: mesocycleWeek,
+                                phase: currentPhase.rawValue,
+                                scheme: phaseScheme,
+                                next: nextPhase.rawValue,
+                                color: phaseColor,
+                                started: !periodisationStart.isEmpty,
+                                onStart: {
+                                    periodisationStart = DateFormatter.isoDate.string(from: Date())
+                                },
+                                onReset: { showResetMesocycle = true }
+                            )
+                            .padding(.horizontal, 16)
+
                             ForEach(orderedSeances, id: \.self) { seance in
                                 EditableSeanceProgramCard(
                                     seance:   seance,
@@ -98,7 +181,9 @@ struct ProgrammeView: View {
                                     onDeleteSeance: {
                                         deleteSeanceTarget = seance
                                         confirmDeleteSeance = true
-                                    }
+                                    },
+                                    onCopy: { copySeance(fullProgram[seance] ?? [:]) },
+                                    onPaste: clipboard.isEmpty ? nil : { pasteSeance(into: seance) }
                                 )
                                 .padding(.horizontal, 16)
                             }
@@ -143,6 +228,14 @@ struct ProgrammeView: View {
                 Button("Annuler", role: .cancel) {}
             } message: {
                 Text("Tous les exercices de cette séance seront supprimés. Cette action est irréversible.")
+            }
+            .alert("Nouveau mésocycle ?", isPresented: $showResetMesocycle) {
+                Button("Recommencer", role: .destructive) {
+                    periodisationStart = DateFormatter.isoDate.string(from: Date())
+                }
+                Button("Annuler", role: .cancel) {}
+            } message: {
+                Text("La semaine 1 recommencera à partir d'aujourd'hui.")
             }
             // ── Créer programme ──────────────────────────────────
             .alert("Nouveau programme", isPresented: $showCreateProgram) {
@@ -397,6 +490,95 @@ struct ProgrammeView: View {
     }
 }
 
+// MARK: - PeriodisationCard
+
+struct PeriodisationCard: View {
+    let week: Int
+    let phase: String
+    let scheme: String
+    let next: String
+    let color: Color
+    let started: Bool
+    let onStart: () -> Void
+    let onReset: () -> Void
+
+    private let totalWeeks = 11
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .foregroundColor(color)
+                    .font(.system(size: 13, weight: .bold))
+                Text("Périodisation")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white.opacity(0.8))
+                Spacer()
+                if started {
+                    Button(action: onReset) {
+                        Text("Nouveau mésocycle")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(color)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            if started {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(phase)
+                        .font(.system(size: 20, weight: .black))
+                        .foregroundColor(color)
+                    Text("— Semaine \(week)/\(totalWeeks)")
+                        .font(.system(size: 13))
+                        .foregroundColor(.gray)
+                }
+
+                // Progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.07))
+                            .frame(height: 6)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(color)
+                            .frame(width: geo.size.width * CGFloat(min(week, totalWeeks)) / CGFloat(totalWeeks), height: 6)
+                    }
+                }
+                .frame(height: 6)
+
+                HStack {
+                    Label(scheme, systemImage: "dumbbell")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.65))
+                    Spacer()
+                    Text("→ \(next)")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                }
+            } else {
+                Button(action: onStart) {
+                    HStack {
+                        Image(systemName: "play.fill")
+                        Text("Démarrer un mésocycle")
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(color)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(color.opacity(0.1))
+                    .cornerRadius(10)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
+        .cornerRadius(14)
+    }
+}
+
 // MARK: - ProgramTabsView
 
 private struct ProgramTabsView: View {
@@ -475,6 +657,8 @@ struct EditableSeanceProgramCard: View {
     let onDelete:       (String) -> Void
     let onReorder:      ([String]) -> Void
     var onDeleteSeance: (() -> Void)? = nil
+    var onCopy:         (() -> Void)? = nil
+    var onPaste:        (() -> Void)? = nil
 
     @State private var expanded    = true
     @State private var dragging:   String? = nil
@@ -576,6 +760,28 @@ struct EditableSeanceProgramCard: View {
                         .cornerRadius(8)
                 }
                 .buttonStyle(.plain)
+                if let copy = onCopy {
+                    Button(action: copy) {
+                        Image(systemName: "doc.on.doc")
+                            .font(.system(size: 13))
+                            .foregroundColor(.orange.opacity(0.7))
+                            .padding(7)
+                            .background(Color.orange.opacity(0.08))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                }
+                if let paste = onPaste {
+                    Button(action: paste) {
+                        Image(systemName: "doc.on.clipboard")
+                            .font(.system(size: 13))
+                            .foregroundColor(.cyan.opacity(0.7))
+                            .padding(7)
+                            .background(Color.cyan.opacity(0.08))
+                            .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                }
                 if let del = onDeleteSeance {
                     Button(action: del) {
                         Image(systemName: "trash")

@@ -45,6 +45,12 @@ private func weekLabel(_ key: String) -> String {
     return f.string(from: d)
 }
 
+private func _formatK(_ v: Double) -> String {
+    if v >= 1_000_000 { return String(format: "%.1fM", v / 1_000_000) }
+    if v >= 1_000 { return String(format: "%.0fK", v / 1_000) }
+    return String(format: "%.0f", v)
+}
+
 // MARK: - Period Selector
 enum StatsPeriod: String, CaseIterable {
     case month1 = "1M"
@@ -251,6 +257,55 @@ struct StatsView: View {
         return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
     }
 
+    // ── Week comparison ───────────────────────────────────────────────
+    private func weekBounds(weeksAgo: Int) -> (String, String) {
+        let cal = Calendar.current
+        let today = Date()
+        let daysSinceMonday = (cal.component(.weekday, from: today) + 5) % 7
+        let monday = Date(timeIntervalSince1970: today.timeIntervalSince1970 - Double(daysSinceMonday + weeksAgo * 7) * 86400)
+        let sunday = Date(timeIntervalSince1970: monday.timeIntervalSince1970 + 6 * 86400)
+        return (DateFormatter.isoDate.string(from: monday), DateFormatter.isoDate.string(from: sunday))
+    }
+
+    var thisWeekSessions:   Int {
+        let (mon, sun) = weekBounds(weeksAgo: 0)
+        return sessions.keys.filter { $0 >= mon && $0 <= sun }.count
+    }
+    var lastWeekSessions:   Int {
+        let (mon, sun) = weekBounds(weeksAgo: 1)
+        return sessions.keys.filter { $0 >= mon && $0 <= sun }.count
+    }
+    var thisWeekVolume: Double {
+        let (mon, sun) = weekBounds(weeksAgo: 0)
+        return weights.values.flatMap { $0.history ?? [] }.filter {
+            guard let d = $0.date else { return false }; return d >= mon && d <= sun
+        }.compactMap { e -> Double? in
+            if let v = e.exerciseVolume, v > 0 { return v }
+            guard let w = e.weight, let r = e.reps else { return nil }
+            return w * totalReps(r)
+        }.reduce(0, +)
+    }
+    var lastWeekVolume: Double {
+        let (mon, sun) = weekBounds(weeksAgo: 1)
+        return weights.values.flatMap { $0.history ?? [] }.filter {
+            guard let d = $0.date else { return false }; return d >= mon && d <= sun
+        }.compactMap { e -> Double? in
+            if let v = e.exerciseVolume, v > 0 { return v }
+            guard let w = e.weight, let r = e.reps else { return nil }
+            return w * totalReps(r)
+        }.reduce(0, +)
+    }
+    var thisWeekAvgRPE: Double {
+        let (mon, sun) = weekBounds(weeksAgo: 0)
+        let rpes = sessions.filter { $0.key >= mon && $0.key <= sun }.compactMap { $0.value.rpe }
+        return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
+    }
+    var lastWeekAvgRPE: Double {
+        let (mon, sun) = weekBounds(weeksAgo: 1)
+        let rpes = sessions.filter { $0.key >= mon && $0.key <= sun }.compactMap { $0.value.rpe }
+        return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
+    }
+
     // ── Smart Insights ────────────────────────────────────────────────
     var smartInsights: [(icon: String, text: String, color: Color)] {
         var insights: [(String, String, Color)] = []
@@ -281,6 +336,30 @@ struct StatsView: View {
             insights.append(("flame.fill", "Streak de \(currentStreak) jours — continue !", .orange))
         }
         return Array(insights.prefix(3))
+    }
+
+    // ── Badges ────────────────────────────────────────────────────────
+    struct Badge: Identifiable {
+        let id: String
+        let icon: String
+        let title: String
+        let desc: String
+        let earned: Bool
+        let color: Color
+    }
+    var earnedBadges: [Badge] {
+        [
+            Badge(id: "first_session",   icon: "🏋️", title: "Premier set",     desc: "1ère séance",             earned: totalSessions >= 1,       color: .orange),
+            Badge(id: "sessions_10",     icon: "💪", title: "10 séances",       desc: "10 séances au total",     earned: totalSessions >= 10,      color: .orange),
+            Badge(id: "sessions_30",     icon: "🏆", title: "30 séances",       desc: "30 séances au total",     earned: totalSessions >= 30,      color: .yellow),
+            Badge(id: "sessions_100",    icon: "💎", title: "100 séances",      desc: "100 séances au total",    earned: totalSessions >= 100,     color: .cyan),
+            Badge(id: "streak_7",        icon: "🔥", title: "Streak 7j",        desc: "7 jours consécutifs",     earned: bestStreak >= 7,          color: .red),
+            Badge(id: "streak_14",       icon: "🔥", title: "Streak 14j",       desc: "14 jours consécutifs",    earned: bestStreak >= 14,         color: .red),
+            Badge(id: "streak_30",       icon: "⚡", title: "Streak 30j",       desc: "30 jours consécutifs",    earned: bestStreak >= 30,         color: .purple),
+            Badge(id: "exercises_10",    icon: "📚", title: "10 exercices",     desc: "10 exercices différents", earned: exercisesCount >= 10,     color: .blue),
+            Badge(id: "perfect_month",   icon: "🌟", title: "Mois actif",       desc: "20 séances en 1 mois",   earned: sessionsThisMonth >= 20,  color: .yellow),
+            Badge(id: "pr_5",            icon: "🥇", title: "5 records",        desc: "5 exercices avec PR",     earned: personalRecords.count >= 5, color: .green),
+        ]
     }
 
     private var tabAmbientColor: Color {
@@ -362,13 +441,27 @@ struct StatsView: View {
         .padding(.horizontal, 16)
         .appearAnimation(delay: 0.05)
 
-        SessionHeatmapView(sessions: sessions, bestStreak: bestStreak)
-            .padding(.horizontal, 16)
+        SessionHeatmapView(
+            sessions: sessions,
+            hiitDates: Set(hiitLog.compactMap(\.date).map { String($0.prefix(10)) }),
+            bestStreak: bestStreak
+        )
+        .padding(.horizontal, 16)
 
         if !personalRecords.isEmpty {
             PersonalRecordsView(records: personalRecords)
                 .padding(.horizontal, 16)
         }
+
+        WeekComparisonCard(
+            thisWeekSessions: thisWeekSessions, lastWeekSessions: lastWeekSessions,
+            thisWeekVolume: thisWeekVolume,     lastWeekVolume: lastWeekVolume,
+            thisWeekAvgRPE: thisWeekAvgRPE,     lastWeekAvgRPE: lastWeekAvgRPE
+        )
+        .padding(.horizontal, 16)
+
+        BadgesView(badges: earnedBadges)
+            .padding(.horizontal, 16)
 
         HStack(spacing: 12) {
             SimpleBarChart(
@@ -528,11 +621,7 @@ struct StatsView: View {
         Spacer(minLength: 32)
     }
 
-    private func formatK(_ v: Double) -> String {
-        if v >= 1_000_000 { return String(format: "%.1fM", v / 1_000_000) }
-        if v >= 1_000 { return String(format: "%.0fK", v / 1_000) }
-        return String(format: "%.0f", v)
-    }
+    private func formatK(_ v: Double) -> String { _formatK(v) }
 
     // Local decodable mirror of the stats response (StatsResponse in APIService is private)
     private struct StatsAPIResponse: Codable {
@@ -596,6 +685,11 @@ struct StatsView: View {
         }
         acwr = try? await acwrTask
         isLoading = false
+        // Schedule contextual notifications (inactivity + streak milestones)
+        NotificationService.scheduleContextual(
+            sessionDates: Array(sessions.keys),
+            currentStreak: currentStreak
+        )
     }
 }
 
@@ -749,22 +843,37 @@ private struct ACWRSparkline: View {
     }
 }
 
-// MARK: - Heatmap (updated with streak stats)
+// MARK: - Heatmap (muscu=orange, HIIT=blue, both=purple)
 struct SessionHeatmapView: View {
     let sessions: [String: SessionEntry]
+    var hiitDates: Set<String> = []
     var bestStreak: Int = 0
     private let days = 90
 
-    private var cells: [(String, Bool)] {
+    enum CellType { case none, muscu, hiit, both }
+
+    private var cells: [(String, CellType)] {
         let base = Date().timeIntervalSince1970
         return (0..<days).reversed().map { offset in
             let date = Date(timeIntervalSince1970: base - Double(offset) * 86400.0)
             let key = DateFormatter.isoDate.string(from: date)
-            return (key, sessions[key] != nil)
+            let hasMuscu = sessions[key] != nil
+            let hasHIIT  = hiitDates.contains(key)
+            let type: CellType = hasMuscu && hasHIIT ? .both : hasMuscu ? .muscu : hasHIIT ? .hiit : .none
+            return (key, type)
         }
     }
 
-    var activeDays: Int { cells.filter(\.1).count }
+    var activeDays: Int { cells.filter { $0.1 != .none }.count }
+
+    private func cellColor(_ t: CellType) -> Color {
+        switch t {
+        case .none:  return Color(hex: "191926")
+        case .muscu: return .orange
+        case .hiit:  return .blue
+        case .both:  return .purple
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -778,16 +887,144 @@ struct SessionHeatmapView: View {
                 }
             }
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 3), count: 15), spacing: 3) {
-                ForEach(cells, id: \.0) { _, has in
+                ForEach(cells, id: \.0) { _, type in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(has ? Color.orange : Color(hex: "191926"))
+                        .fill(cellColor(type))
                         .frame(height: 16)
                 }
             }
-            HStack {
+            HStack(spacing: 12) {
                 Text("\(activeDays) séances").font(.system(size: 11)).foregroundColor(.gray)
                 Spacer()
-                Text("\(Int(Double(activeDays) / 90.0 * 100))% actif").font(.system(size: 11)).foregroundColor(.orange)
+                HStack(spacing: 4) {
+                    Circle().fill(Color.orange).frame(width: 8, height: 8)
+                    Text("Muscu").font(.system(size: 10)).foregroundColor(.gray)
+                }
+                HStack(spacing: 4) {
+                    Circle().fill(Color.blue).frame(width: 8, height: 8)
+                    Text("HIIT").font(.system(size: 10)).foregroundColor(.gray)
+                }
+                HStack(spacing: 4) {
+                    Circle().fill(Color.purple).frame(width: 8, height: 8)
+                    Text("Les 2").font(.system(size: 10)).foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+}
+
+//// MARK: - Badges View
+
+struct BadgesView: View {
+    let badges: [StatsView.Badge]
+    private let cols = Array(repeating: GridItem(.flexible(), spacing: 10), count: 5)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "medal.fill")
+                    .foregroundColor(.yellow)
+                    .font(.system(size: 13, weight: .bold))
+                Text("Badges")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white.opacity(0.8))
+                Spacer()
+                let count = badges.filter(\.earned).count
+                Text("\(count)/\(badges.count)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.gray)
+            }
+
+            LazyVGrid(columns: cols, spacing: 10) {
+                ForEach(badges) { badge in
+                    VStack(spacing: 4) {
+                        Text(badge.icon)
+                            .font(.system(size: 24))
+                            .opacity(badge.earned ? 1.0 : 0.25)
+                        Text(badge.title)
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(badge.earned ? badge.color : .gray)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .background(badge.earned ? badge.color.opacity(0.1) : Color.white.opacity(0.03))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(badge.earned ? badge.color.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1))
+                    .cornerRadius(10)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.15), lineWidth: 1))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Week Comparison Card
+struct WeekComparisonCard: View {
+    let thisWeekSessions: Int;  let lastWeekSessions: Int
+    let thisWeekVolume: Double; let lastWeekVolume: Double
+    let thisWeekAvgRPE: Double; let lastWeekAvgRPE: Double
+    @ObservedObject private var units = UnitSettings.shared
+
+    private func delta(_ a: Double, _ b: Double) -> (String, Color) {
+        let d = a - b
+        if abs(d) < 0.01 { return ("=", .gray) }
+        let s = d > 0 ? "+\(String(format: "%.0f", abs(d)))" : "-\(String(format: "%.0f", abs(d)))"
+        return (s, d > 0 ? .green : .red)
+    }
+    private func deltaInt(_ a: Int, _ b: Int) -> (String, Color) {
+        let d = a - b
+        if d == 0 { return ("=", .gray) }
+        return (d > 0 ? "+\(d)" : "\(d)", d > 0 ? .green : .red)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("CETTE SEMAINE VS DERNIÈRE")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack(spacing: 0) {
+                // Header
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("").font(.system(size: 11)).frame(height: 18)
+                    Text("Séances").font(.system(size: 12)).foregroundColor(.gray)
+                    Text("Volume").font(.system(size: 12)).foregroundColor(.gray)
+                    Text("RPE moy.").font(.system(size: 12)).foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // This week
+                VStack(alignment: .center, spacing: 10) {
+                    Text("Cette sem.").font(.system(size: 10, weight: .bold)).foregroundColor(.orange)
+                    Text("\(thisWeekSessions)").font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                    Text(thisWeekVolume > 0 ? _formatK(thisWeekVolume) : "—").font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                    Text(thisWeekAvgRPE > 0 ? String(format: "%.1f", thisWeekAvgRPE) : "—").font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                }
+                .frame(maxWidth: .infinity)
+
+                // Delta
+                VStack(alignment: .center, spacing: 10) {
+                    Text("").font(.system(size: 10)).frame(height: 18)
+                    let ds = deltaInt(thisWeekSessions, lastWeekSessions)
+                    Text(ds.0).font(.system(size: 12, weight: .bold)).foregroundColor(ds.1)
+                    let dv = delta(thisWeekVolume, lastWeekVolume)
+                    Text(dv.0).font(.system(size: 12, weight: .bold)).foregroundColor(dv.1)
+                    let dr = delta(thisWeekAvgRPE, lastWeekAvgRPE)
+                    Text(dr.0).font(.system(size: 12, weight: .bold)).foregroundColor(dr.1)
+                }
+                .frame(width: 40)
+
+                // Last week
+                VStack(alignment: .center, spacing: 10) {
+                    Text("Sem. passée").font(.system(size: 10, weight: .bold)).foregroundColor(.gray)
+                    Text("\(lastWeekSessions)").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
+                    Text(lastWeekVolume > 0 ? _formatK(lastWeekVolume) : "—").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
+                    Text(lastWeekAvgRPE > 0 ? String(format: "%.1f", lastWeekAvgRPE) : "—").font(.system(size: 14, weight: .bold)).foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .padding(16).glassCard().cornerRadius(14)
