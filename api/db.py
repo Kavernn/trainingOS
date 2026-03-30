@@ -1740,6 +1740,39 @@ def update_nutrition_entry(entry_id: str, patch: dict) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Food catalog
+# ---------------------------------------------------------------------------
+
+def get_food_catalog() -> list:
+    """Return all food catalog items."""
+    if _client is None or MODE == "OFFLINE":
+        return get_json("food_catalog", [])
+    try:
+        resp = _client.table("food_catalog").select("*").execute()
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_food_catalog error: %s", e)
+        return get_json("food_catalog", [])
+
+
+def save_food_catalog(items: list) -> bool:
+    """Replace entire food catalog (delete-all + reinsert)."""
+    if _client is None or MODE == "OFFLINE":
+        set_json("food_catalog", items)
+        return True
+    try:
+        _client.table("food_catalog").delete().neq("id", "").execute()
+        if items:
+            _client.table("food_catalog").insert(items).execute()
+        set_json("food_catalog", items)
+        return True
+    except Exception as e:
+        logger.error("save_food_catalog error: %s", e)
+        set_json("food_catalog", items)
+        return False
+
+
+# ---------------------------------------------------------------------------
 # Deload state
 # ---------------------------------------------------------------------------
 

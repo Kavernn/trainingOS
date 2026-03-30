@@ -40,6 +40,7 @@ struct FoodCatalogView: View {
                     .onDelete { idx in
                         items.remove(atOffsets: idx)
                         FoodCatalogStore.save(items)
+                        Task { await APIService.shared.saveFoodCatalog(items) }
                     }
                 }
                 .scrollContentBackground(.hidden)
@@ -60,6 +61,7 @@ struct FoodCatalogView: View {
                 FoodItemFormView(existing: nil) { newItem in
                     items.append(newItem)
                     FoodCatalogStore.save(items)
+                    Task { await APIService.shared.saveFoodCatalog(items) }
                 }
             }
             .sheet(item: $editTarget) { item in
@@ -67,6 +69,7 @@ struct FoodCatalogView: View {
                     if let idx = items.firstIndex(where: { $0.id == updated.id }) {
                         items[idx] = updated
                         FoodCatalogStore.save(items)
+                        Task { await APIService.shared.saveFoodCatalog(items) }
                     }
                 }
             }

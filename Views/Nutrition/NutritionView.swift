@@ -726,6 +726,13 @@ struct AddNutritionSheet: View {
             }) {
                 FoodCatalogView(items: $catalog)
             }
+            .task {
+                let remote = await APIService.shared.fetchFoodCatalog()
+                if !remote.isEmpty {
+                    catalog = remote
+                    FoodCatalogStore.save(remote)
+                }
+            }
         }
         .presentationDetents([.medium, .large])
     }

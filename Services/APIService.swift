@@ -462,6 +462,26 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode(DeloadReport.self, from: data)
     }
 
+    // MARK: - Food Catalog
+
+    func fetchFoodCatalog() async -> [FoodItem] {
+        guard let url = URL(string: "\(baseURL)/api/food_catalog"),
+              let data = try? await fetchWithCache(url: url, key: "food_catalog") else { return [] }
+        return FoodCatalogStore.decodeFromAPI(data)
+    }
+
+    func saveFoodCatalog(_ items: [FoodItem]) async {
+        guard let url = URL(string: "\(baseURL)/api/food_catalog"),
+              let body = FoodCatalogStore.encodeForAPI(items) else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+        req.timeoutInterval = 15
+        _ = try? await URLSession.shared.data(for: req)
+        CacheService.shared.clear(for: "food_catalog")
+    }
+
     // MARK: - Nutrition
     func fetchNutritionData() async throws -> (settings: NutritionSettings?, entries: [NutritionEntry], totals: NutritionTotals?) {
         let url = URL(string: "\(baseURL)/api/nutrition_data")!

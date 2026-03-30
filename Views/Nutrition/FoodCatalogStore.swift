@@ -53,4 +53,27 @@ enum FoodCatalogStore {
         guard let data = try? JSONEncoder().encode(items) else { return }
         UserDefaults.standard.set(data, forKey: key)
     }
+
+    // MARK: - API codec (snake_case ↔ camelCase)
+
+    private static var apiEncoder: JSONEncoder {
+        let e = JSONEncoder()
+        e.keyEncodingStrategy = .convertToSnakeCase
+        return e
+    }
+    private static var apiDecoder: JSONDecoder {
+        let d = JSONDecoder()
+        d.keyDecodingStrategy = .convertFromSnakeCase
+        return d
+    }
+
+    static func encodeForAPI(_ items: [FoodItem]) -> Data? {
+        struct Payload: Encodable { let items: [FoodItem] }
+        return try? apiEncoder.encode(Payload(items: items))
+    }
+
+    static func decodeFromAPI(_ data: Data) -> [FoodItem] {
+        struct Resp: Decodable { let items: [FoodItem] }
+        return (try? apiDecoder.decode(Resp.self, from: data))?.items ?? []
+    }
 }

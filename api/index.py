@@ -2891,6 +2891,21 @@ def find_free_port(start=5000, end=5100):
     raise RuntimeError("Aucun port libre")
 
 
+@app.route("/api/food_catalog", methods=["GET"])
+def api_food_catalog_get():
+    import db as _db
+    return jsonify({"items": _db.get_food_catalog()})
+
+
+@app.route("/api/food_catalog", methods=["POST"])
+def api_food_catalog_save():
+    import db as _db
+    data  = request.get_json() or {}
+    items = data.get("items", [])
+    ok    = _db.save_food_catalog(items)
+    return jsonify({"success": ok})
+
+
 if __name__ == "__main__":
     # PORT stocké dans l'env pour que le child du reloader utilise le même
     port = int(os.environ.setdefault("PORT", str(find_free_port())))
