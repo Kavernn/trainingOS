@@ -544,7 +544,7 @@ struct IntelligenceView: View {
 }
 
 // MARK: - Chat Models
-struct ChatMessage: Identifiable, Codable {
+struct ChatMessage: Identifiable, Codable, Equatable {
     let id: UUID
     enum Role: String, Codable { case user, assistant }
     let role: Role
