@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-03-26
+Dernière mise à jour : 2026-03-29
 
 ---
 
@@ -15,13 +15,13 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 ### Core entraînement
 - Logging séances musculaires (exercices, séries, poids, RPE, RIR)
-- Progression automatique des charges (1RM Epley, algorithme RPE gradué)
-- Déload automatique (détection stagnation + fatigue RPE + chute de performance)
-- Séances HIIT avec timer dédié (beeps, flash, presets)
-- Séance du soir (second slot quotidien)
-- Historique des séances par date
-- Programme hebdomadaire (planificateur par jour)
-- Inventaire des exercices (CRUD complet)
+- Progression automatique des charges (1RM Epley, algorithme RPE gradué 5 niveaux)
+- Déload automatique (détection stagnation + fatigue RPE + chute de performance) + bouton "Appliquer le déload (−15%)"
+- Séances HIIT avec timer dédié (beeps, flash, presets, notifications background)
+- Séance du soir (second slot quotidien) — pipeline complet, migration Supabase en attente
+- Historique séances muscu + HIIT avec édition et pagination (limit/offset)
+- Programme hebdomadaire (planificateur par jour, placeholder si séance vide)
+- Inventaire des exercices (CRUD complet, temps de repos, tracking type)
 
 ### Statistiques & progression
 - StatsView 5 onglets : Volume / 1RM / Groupes musculaires / Cardio / Corps
@@ -33,35 +33,44 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 ### Coach IA (IntelligenceView)
 - Propositions de séance (Claude Sonnet 4.6)
 - Insights hebdomadaires
-- Récit narratif de la semaine (NarrativeCard)
-- Contexte athlete enrichi : LSS, ACWR, poids, groupes musculaires, sessions
-- Contexte optimisé (~1400 chars, format terse)
-- Cache narratif par semaine (clé `narrative_YYYY-WXX`)
+- Récit narratif de la semaine (NarrativeCard, cache par semaine ISO)
+- Contexte athlete enrichi : LSS, ACWR, poids, groupes musculaires, sessions (~1400 chars terse)
 
 ### Dashboard & UX
-- MorningBrief enrichi : LSS sparkline 7j, readiness delta, heures depuis dernière séance
-- PeakPredictionCard : 7 jours avec LSS prédit, jour optimal mis en avant (orange)
-- Ghost Mode (SeanceView) : bannière avec meilleure session historique + barre de progression volume
+- TodayCard en position #1 (action principale en haut de page)
+- Skeleton loading animé (`DashboardSkeletonView` + `SkeletonBar`)
+- Cards tappables : RecoverySnapshot → RecoveryView, StatsRow → StatsView, NutritionSummary → NutritionView
+- MorningBrief enrichi : LSS sparkline 7j, readiness delta, lien "Compléter →" si données partielles
+- PeakPredictionCard avec CTA "Jour optimal : X → Voir les stats"
+- DeloadChipView (niveau 1 compact) vs DeloadBannerView (niveau 2 complet)
+- MoodCardView (card proper avec icône + titre)
+- GreatDayCard intégré comme badge "Parfait ⭐" dans TodayCardView
+- Ghost Mode (SeanceView) : bannière meilleure session + barre progression volume
 - Haptics sur toutes les actions importantes
 - Confetti sur PR et complétion de séance
 - Timer de repos auto-start après chaque log
 
 ### Santé & récupération
+- Recovery modifiable (LogRecoverySheet avec prefillEntry, FAB adaptatif)
+- Nutrition : édition d'entrée (EditNutritionSheet, endpoint /api/nutrition/edit)
 - Apple Watch sync (HealthKit → Supabase via WatchSyncService)
 - Life Stress Score (LSS) : 5 composantes (sommeil, HRV, FC repos, stress, fatigue)
 - ACWR (Acute:Chronic Workload Ratio)
-- RecoveryView (sommeil, FC repos, HRV, douleurs musculaires)
-- BodyCompView (poids corporel + tendance)
-- CardioView (log course, vélo, natation)
-- SleepView
+- RecoveryView, BodyCompView, CardioView, SleepView
 - MentalHealth suite (mood, journal, breathwork, PSS, self-care)
 - HealthDashboard agrégé
 
+### Objectifs
+- CRUD objectifs avec deadline
+- Animation achievement (sparkles + scale spring)
+- Notifications locales J-7 et J-1 avant deadline
+
 ### Infrastructure
 - Offline-first : SyncManager (SwiftData → retry queue) + Supabase
-- CacheService (TTL disque par clé)
+- CacheService avec TTL par endpoint (dashboard=5min, seance=5min, stats=15min, programme=1h, recovery/cardio=10min, nutrition=5min, profil=30min) via sidecar `.expiry`
 - NetworkMonitor (NWPathMonitor)
 - UnitSettings (kg/lbs, km/mi)
+- Timer background : `UNUserNotificationCenter` planifie notifications par phase
 
 ---
 
@@ -80,12 +89,20 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 ---
 
+## Migrations en attente
+
+| Migration | Fichier | Statut |
+|---|---|---|
+| 003_session_type | `docs/migrations/003_session_type.sql` | ⚠️ À appliquer manuellement sur Supabase |
+
+---
+
 ## En cours / Prochaines étapes
 
-1. Tests automatisés élargis (couverture iOS SeanceView + progression logic)
-2. Edit session inline dans Historique (sheet d'édition RPE/commentaire/exercices)
-3. Background timer (UNUserNotificationCenter) pour séances HIIT
-4. Pagination Historique (20 items + "Charger plus")
+1. Appliquer migration 003 sur Supabase prod (débloquer Séance du Soir)
+2. Filtre par date dans Historique (picker mois/année)
+3. Export données CSV/JSON dans ProfileView
+4. Tests E2E iOS (XCUITest flows critiques)
 
 ---
 

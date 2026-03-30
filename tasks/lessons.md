@@ -144,3 +144,35 @@ if seanceData == nil { isLoading = true }
 ## Tests — Régression sur les bugs de sync
 
 Après chaque correction de bug CRUD programme/inventaire, ajouter un test de régression dans `tests/test_programme_inventory_sync.py`. Les bugs fuzzy-match et value-type Swift reviennent facilement.
+
+---
+
+## Swift — Condition composée `if let` avec bool indépendant
+
+`if isLoggedToday, let session = todaySession` **échoue si `isLoggedToday=true` mais `session=nil`** — la condition tombe dans le `else` même si le bool est vrai.
+
+**Règle :** Séparer les conditions booléennes des optional bindings quand ils sont indépendants :
+```swift
+if isLoggedToday {
+    if let session = todaySession {
+        // récap seulement si données disponibles
+    }
+    // CTA "bonus" affiché dans tous les cas de isLoggedToday
+}
+```
+Le bug typique : `alreadyLoggedToday=true` (flag API) mais `sessions[todayDate]=nil` (désync cache) → "Commencer la séance" affiché après une séance déjà loggée.
+
+---
+
+## Swift — Division entière dans les labels de durée
+
+`90 / 60 = 1` en Swift (division entière) → deux chips identiques "1min" pour 60s et 90s.
+
+**Règle :** Toujours utiliser une fonction `formatDur` qui gère les secondes résiduelles :
+```swift
+private func formatDur(_ s: Int) -> String {
+    s >= 60 ? "\(s / 60)min\(s % 60 > 0 ? "\(s % 60)s" : "")" : "\(s)s"
+}
+// 60 → "1min", 90 → "1min30s", 120 → "2min"
+```
+Ne jamais écrire `s < 60 ? "\(s)s" : "\(s / 60)min"` pour des durées potentiellement non multiples de 60.
