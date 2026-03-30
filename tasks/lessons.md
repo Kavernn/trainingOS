@@ -164,6 +164,28 @@ Le bug typique : `alreadyLoggedToday=true` (flag API) mais `sessions[todayDate]=
 
 ---
 
+## iOS — Ordre d'appel dans `onAppear` : reset avant lecture de flags
+
+**Bug :** `ChecklistCardView` invisible chaque matin malgré un nouveau jour.
+
+**Cause :** `isHiddenToday` était lu **avant** `load()`. `load()` efface `cl_hidden_date_v2` pour un nouveau jour — mais si l'app est gardée en mémoire à cheval sur minuit, `cl_date_v2` peut déjà valoir aujourd'hui et `cl_hidden_date_v2` aussi → `isHiddenToday = true` même si rien n'a été coché aujourd'hui.
+
+**Règle :** Toujours appeler la **mutation de reset** (`load()`, etc.) **avant** de lire les flags dérivés dans `onAppear`.
+
+```swift
+// ❌ Mauvais
+isHidden = ChecklistStore.isHiddenToday
+states   = ChecklistStore.load()  // efface hiddenDate, mais trop tard
+
+// ✅ Correct
+states   = ChecklistStore.load()  // efface hiddenDate pour nouveau jour d'abord
+isHidden = ChecklistStore.isHiddenToday
+```
+
+**Généralisation :** Tout `UserDefaults` flag lu dans `onAppear` qui dépend d'un reset de date → toujours reset avant lecture.
+
+---
+
 ## Swift — Division entière dans les labels de durée
 
 `90 / 60 = 1` en Swift (division entière) → deux chips identiques "1min" pour 60s et 90s.

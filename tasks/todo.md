@@ -1,6 +1,6 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-03-29.
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-03-30.
 
 ---
 
@@ -9,6 +9,7 @@
 - [x] **409 guard + SyncManager requeue** : `SyncManager` traite déjà 409 comme succès (`|| code == 409`) → pas de requeue. `offlinePost()` ne queue que sur erreur réseau (URLError), jamais sur 4xx. Confirmé correct.
 - [x] **Cache stale après log séance** : `APIService.logExercise()` invalide maintenant `seance_data` + `dashboard` immédiatement après chaque log.
 - [x] **Désync timezone client/serveur** : supprimé `localToday` (recalcul depuis timezone iPhone) dans `DashboardData` et `SeanceData`. Toutes les vues utilisent `today` (fourni par le serveur en heure MTL).
+- [x] **ChecklistCardView invisible au matin** : `isHiddenToday` lu avant `load()` → reset de date inefficace si app gardée en mémoire la nuit. Fix : swap ordre dans `onAppear` (2026-03-30).
 - [x] **TodayCard affiche "Commencer" malgré séance loggée** : `if isLoggedToday, let session` échouait quand `alreadyLoggedToday=true` mais `sessions[todayDate]=nil` (désync cache). Séparé en deux conditions indépendantes (2026-03-29).
 - [x] **Schema Supabase manquant `session_type`** : colonne `session_type` absente de `workout_sessions` bloquait le pipeline Séance du Soir. Migration 003 créée (2026-03-29).
 
