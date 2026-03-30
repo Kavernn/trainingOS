@@ -93,14 +93,13 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 | Migration | Fichier | Statut |
 |---|---|---|
-| 003_session_type | `docs/migrations/003_session_type.sql` | ⚠️ À appliquer manuellement sur Supabase |
+| 003_session_type | `docs/migrations/003_session_type.sql` | ✅ Appliquée (2026-03-29) |
 
 ---
 
 ## En cours / Prochaines étapes
 
-1. Appliquer migration 003 sur Supabase prod (débloquer Séance du Soir)
-2. Filtre par date dans Historique (picker mois/année)
+1. Filtre par date dans Historique (picker mois/année)
 3. Export données CSV/JSON dans ProfileView
 4. Tests E2E iOS (XCUITest flows critiques)
 

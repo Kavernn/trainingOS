@@ -60,7 +60,7 @@
 
 - [ ] **Pas de suite de tests E2E** : les tests pytest couvrent le backend mais pas les chemins critiques iOS (log + cache + sync). Considérer XCUITest pour les flows principaux.
 - [ ] **API sans documentation** : aucun Swagger/OpenAPI. Documenter les endpoints principaux dans `api/README.md`.
-- [ ] **Migration 003 à appliquer manuellement sur Supabase** : `docs/migrations/003_session_type.sql` — ajoute `session_type` + backfill + contrainte UNIQUE(date, session_type).
+- [x] **Migration 003 appliquée sur Supabase** : `session_type` + backfill + contrainte UNIQUE(date, session_type) (2026-03-29).
 
 ---
 
@@ -72,7 +72,7 @@
 - [x] **Étape 7** — SeanceSoirView.swift
 - [x] **Étape 8** — DashboardView.swift : `SoirCardView`
 - [x] **Schéma** — `session_type` ajouté à `docs/schema.sql` + migration 003 créée
-- [ ] **⚠️ Blocker** — Migration 003 pas encore appliquée sur Supabase prod (action manuelle requise)
+- [x] **Migration 003 appliquée sur Supabase prod** (2026-03-29)
 
 ---
 
