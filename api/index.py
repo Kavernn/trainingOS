@@ -1721,6 +1721,12 @@ def api_insights():
     return jsonify({"insights": insights[:3]})
 
 
+@app.route("/api/proactive_alerts")
+def api_proactive_alerts():
+    from alerts import get_all_alerts
+    return jsonify({"alerts": get_all_alerts()})
+
+
 @app.route("/api/insights/correlations")
 def api_insights_correlations():
     try:

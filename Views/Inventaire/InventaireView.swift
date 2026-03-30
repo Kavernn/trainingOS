@@ -46,7 +46,7 @@ struct InventaireView: View {
     @State private var showAdd = false
     @State private var errorMsg: String?
 
-    let types      = ["Tous", "barbell", "dumbbell", "cable", "machine", "bodyweight"]
+    let types      = ["Tous", "barbell", "ez-bar", "dumbbell", "cable", "machine", "bodyweight"]
     let categories = ["Tous", "push", "pull", "legs", "core", "mobility"]
 
     var filtered: [InventoryItem] {
@@ -256,9 +256,10 @@ struct InventaireView: View {
 
     private func typeLabel(_ t: String) -> String {
         switch t {
-        case "barbell": return "Barre"; case "dumbbell": return "Haltère"
-        case "cable": return "Câble"; case "machine": return "Machine"
-        case "bodyweight": return "Corps"; default: return "Tous"
+        case "barbell": return "Barre"; case "ez-bar": return "EZ-Bar"
+        case "dumbbell": return "Haltère"; case "cable": return "Câble"
+        case "machine": return "Machine"; case "bodyweight": return "Corps"
+        default: return "Tous"
         }
     }
 
@@ -271,9 +272,10 @@ struct InventaireView: View {
 
     private func typeColor(_ t: String) -> Color {
         switch t {
-        case "barbell": return .orange; case "dumbbell": return .blue
-        case "cable": return .teal; case "machine": return .purple
-        case "bodyweight": return .green; default: return .gray
+        case "barbell": return .orange; case "ez-bar": return .yellow
+        case "dumbbell": return .blue; case "cable": return .teal
+        case "machine": return .purple; case "bodyweight": return .green
+        default: return .gray
         }
     }
 
@@ -295,6 +297,7 @@ struct InventaireRow: View {
     var typeIcon: String {
         switch item.type {
         case "barbell":    return "chart.bar.fill"
+        case "ez-bar":     return "chart.bar.fill"
         case "dumbbell":   return "dumbbell.fill"
         case "cable":      return "link"
         case "bodyweight": return "figure.walk"
@@ -304,9 +307,9 @@ struct InventaireRow: View {
 
     var typeColor: Color {
         switch item.type {
-        case "barbell": return .orange; case "dumbbell": return .blue
-        case "cable": return .teal; case "bodyweight": return .green
-        default: return .purple
+        case "barbell": return .orange; case "ez-bar": return .yellow
+        case "dumbbell": return .blue; case "cable": return .teal
+        case "bodyweight": return .green; default: return .purple
         }
     }
 
@@ -400,7 +403,7 @@ struct InventoryFormSheet: View {
     @State private var timeDuration  = 30  // seconds
     @State private var restSecs: Int? = nil   // nil = pas de repos configuré
 
-    let types      = ["barbell", "dumbbell", "cable", "machine", "bodyweight"]
+    let types      = ["barbell", "ez-bar", "dumbbell", "cable", "machine", "bodyweight"]
     let categories = ["", "push", "pull", "legs", "core", "mobility"]
     let levels     = ["", "beginner", "intermediate", "advanced"]
     let schemes    = ["3x5", "4x5-7", "3x8-10", "4x8-10", "3x10-12", "4x12-15", "3x15"]
@@ -555,11 +558,11 @@ struct InventoryFormSheet: View {
                                     .foregroundColor(.white)
                                     .frame(width: 60)
                             }
-                            if type == "barbell" {
+                            if type == "barbell" || type == "ez-bar" {
                                 HStack {
-                                    Text("Poids barre (lbs)").foregroundColor(.gray)
+                                    Text(type == "ez-bar" ? "Poids barre EZ (lbs)" : "Poids barre (lbs)").foregroundColor(.gray)
                                     Spacer()
-                                    TextField("45", text: $barWeight)
+                                    TextField(type == "ez-bar" ? "25" : "45", text: $barWeight)
                                         .keyboardType(.decimalPad)
                                         .multilineTextAlignment(.trailing)
                                         .foregroundColor(.white)
@@ -693,12 +696,12 @@ struct InventoryFormSheet: View {
 
     private var typeGrid: some View {
         let icons: [String: String] = [
-            "barbell": "Barre", "dumbbell": "Haltère", "cable": "Câble",
-            "machine": "Machine", "bodyweight": "Corps"
+            "barbell": "Barre", "ez-bar": "EZ-Bar", "dumbbell": "Haltère",
+            "cable": "Câble", "machine": "Machine", "bodyweight": "Corps"
         ]
         let colors: [String: Color] = [
-            "barbell": .orange, "dumbbell": .blue, "cable": .teal,
-            "machine": .purple, "bodyweight": .green
+            "barbell": .orange, "ez-bar": .yellow, "dumbbell": .blue,
+            "cable": .teal, "machine": .purple, "bodyweight": .green
         ]
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), spacing: 8)], spacing: 8) {
             ForEach(types, id: \.self) { t in

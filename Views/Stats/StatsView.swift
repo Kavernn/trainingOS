@@ -2257,6 +2257,8 @@ struct VolumeLandmarksCard: View {
                 Text("VOLUME HEBDO — LANDMARKS")
                     .font(.system(size: 10, weight: .bold)).tracking(2)
                     .foregroundColor(.gray)
+                Spacer()
+                CardInfoButton(title: "Volume landmarks", entries: InfoEntry.volumeLandmarkEntries)
             }
 
             // Legend

@@ -126,7 +126,10 @@ struct NutritionView: View {
                 }
             }
             .sheet(isPresented: $showAdd) {
-                AddNutritionSheet { await loadData() }
+                AddNutritionSheet {
+                    await loadData()
+                    await AlertService.shared.fetch()
+                }
             }
             .sheet(item: $editTarget) { entry in
                 EditNutritionSheet(entry: entry) { await loadData() }

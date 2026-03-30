@@ -1551,6 +1551,7 @@ struct AddHIITSheet: View {
         private var equipmentLabel: String {
             switch equipmentType {
             case "barbell":    return "Barre"
+            case "ez-bar":     return "EZ-Bar"
             case "dumbbell":   return "Haltères"
             case "bodyweight": return "Poids corps"
             case "cable":      return "Câble"
@@ -1563,6 +1564,7 @@ struct AddHIITSheet: View {
             case "barbell":    return "POIDS PAR CÔTÉ (\(units.label.uppercased()))"
             case "dumbbell":   return "POIDS PAR HALTÈRE (\(units.label.uppercased()))"
             case "bodyweight": return "LEST (\(units.label.uppercased()))"
+            case "ez-bar":     return "POIDS TOTAL (\(units.label.uppercased()))"
             default:           return "POIDS (\(units.label.uppercased()))"
             }
         }

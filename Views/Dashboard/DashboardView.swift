@@ -4,6 +4,7 @@ import Charts
 
 struct DashboardView: View {
     @ObservedObject private var api = APIService.shared
+    @ObservedObject private var alertService = AlertService.shared
     @State private var insights: [InsightEntry] = []
     @State private var deload: DeloadReport?
     @State private var moodDue: MoodDueStatus?
@@ -39,6 +40,15 @@ struct DashboardView: View {
                 } else if let dash = api.dashboard {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 18) {
+                            if let alert = alertService.visibleAlert {
+                                ProactiveBannerCard(alert: alert) {
+                                    withAnimation(.easeOut(duration: 0.25)) {
+                                        alertService.dismiss(alert)
+                                    }
+                                }
+                                .appearAnimation(delay: 0)
+                            }
+
                             GreetingHeaderView(dash: dash)
                                 .appearAnimation(delay: 0)
 
@@ -194,6 +204,7 @@ struct DashboardView: View {
                 todaySleepLogged = entry?.sleepHours != nil
                 todayRecovery = entry
             }
+            await alertService.fetch()
             lastRefresh = Date()
         }
         .onChange(of: scenePhase) {
@@ -221,6 +232,7 @@ struct DashboardView: View {
                         todaySleepLogged = entry?.sleepHours != nil
                         todayRecovery = entry
                     }
+                    await alertService.fetch()
                     lastRefresh = Date()
                 }
             }
@@ -351,6 +363,7 @@ struct DeloadChipView: View {
             Text("Niv. \(report.fatigueLevel)")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.orange)
+            CardInfoButton(title: "Fatigue & déload", entries: InfoEntry.deloadEntries)
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background(Color.orange.opacity(0.10))
@@ -571,6 +584,7 @@ struct DeloadBannerView: View {
                     }
                 }
                 Spacer()
+                CardInfoButton(title: "Fatigue & déload", entries: InfoEntry.deloadEntries)
             }
 
             // Fatigue score gauge
@@ -1590,6 +1604,7 @@ struct MorningBriefCardView: View {
                         .foregroundColor(accentColor)
                 }
                 Spacer()
+                CardInfoButton(title: "Coach du matin", entries: InfoEntry.lssEntries)
                 if let lss = data.lss {
                     VStack(alignment: .trailing, spacing: 1) {
                         Text("\(Int(lss))")
@@ -1746,6 +1761,7 @@ struct PeakPredictionCard: View {
                 Spacer()
                 Text("base LSS \(String(format: "%.0f", prediction.baseline))")
                     .font(.system(size: 10)).foregroundColor(.gray)
+                CardInfoButton(title: "Prévision 7 jours", entries: InfoEntry.predictionEntries)
             }
 
             HStack(spacing: 6) {
