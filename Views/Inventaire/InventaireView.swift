@@ -584,7 +584,7 @@ struct InventoryFormSheet: View {
                                     Button {
                                         restSecs = s
                                     } label: {
-                                        Text(s < 60 ? "\(s)s" : "\(s / 60)min")
+                                        Text(formatDur(s))
                                             .font(.system(size: 13, weight: .semibold))
                                             .foregroundColor(restSecs == s ? .black : .white)
                                             .padding(.horizontal, 14).padding(.vertical, 7)
@@ -598,7 +598,7 @@ struct InventoryFormSheet: View {
                             HStack {
                                 Text("Repos configuré").foregroundColor(.gray).font(.system(size: 13))
                                 Spacer()
-                                Text(r < 60 ? "\(r)s" : "\(r / 60) min")
+                                Text(formatDur(r))
                                     .font(.system(size: 13, weight: .semibold)).foregroundColor(.orange)
                             }
                         }
