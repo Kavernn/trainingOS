@@ -22,14 +22,14 @@
 - [x] **Timer se stoppe en arrière-plan** : `UNUserNotificationCenter` planifie une notification par phase (work/rest/done) au passage en background (2026-03-29).
 - [x] **Recovery modifiable** : bouton crayon + `LogRecoverySheet(prefillEntry:)` + FAB adaptatif (2026-03-29).
 - [x] **Deload recommandé mais pas auto-appliqué** : bouton "Appliquer le déload (−15%)" dans `DeloadBannerView` → POST `/api/apply_deload` (2026-03-29).
-- [ ] **Validation photo profil** : aucune limite de taille sur l'upload photo → risque de timeout Vercel ou crash. Compresser/resizer avant envoi (max 500KB).
+- [x] **Validation photo profil** : limite 500KB, alert `photoError`, compression JPEG 0.7 (2026-03-29).
 
 ---
 
 ## 🟡 MOYENNE PRIORITÉ — Qualité & cohérence
 
 - [x] **Pagination dans Historique** : `/api/historique_data` avec `limit`/`offset`/`has_more`, "Charger plus" dans HistoriqueView (2026-03-29).
-- [ ] **Filtre par date dans Historique** : impossible de chercher "séances de février". Ajouter un picker mois/année.
+- [x] **Filtre par date dans Historique** : `MonthPickerSheet` + `?month=YYYY-MM` param dans `loadData()`, backend filtre par mois (2026-03-29).
 - [x] **1RM formula ignore RPE** : résolu via RIR : quand avg_rir disponible, RPE implicite = 10−rir, modifie la suggestion de poids.
 - [x] **CacheService TTL** : TTL par endpoint (dashboard=5min, seance=5min, stats=15min, programme=1h, etc.) avec sidecar .expiry (2026-03-29).
 - [x] **Programme : message si séance vide** : placeholder "Aucun exercice — tape + pour en ajouter" dans EditableSeanceProgramCard (2026-03-29).
@@ -37,22 +37,22 @@
 - [x] **Objectifs : animation achievement** : sparkles + scale spring au appear quand obj.achieved (2026-03-29).
 - [x] **Goals sans deadline enforcement** : notification locale J-7 et J-1 via `scheduleGoalDeadlineNotifications()` (2026-03-29).
 - [x] **Inventaire : repos 90s affiché "1min"** : division entière 90/60=1 → deux chips identiques. Remplacé par `formatDur()` (2026-03-29).
-- [ ] **Pas d'indication "exo jamais utilisé" dans inventaire** : des centaines d'exos ExerciseDB ne sont jamais utilisés dans le programme. Ajouter un badge ou tri "En programme / Jamais utilisé".
-- [ ] **HIIT : pas de templates favoris** : reconfigurer chaque HIIT (rounds, work, rest) à chaque fois. Ajouter des configs sauvegardables.
-- [ ] **HealthKit auto-import cardio/recovery** : fréquence cardiaque au repos, steps, et workouts importés manuellement seulement. Ajouter un auto-sync au lancement ou pull-to-refresh.
-- [ ] **Pas d'export données** : aucun moyen de télécharger ses données (CSV/JSON). Ajouter un bouton "Exporter mes données" dans le profil.
+- [x] **Pas d'indication "exo jamais utilisé" dans inventaire** : badge ⭐ "En programme" + filtre chip dans InventaireView (2026-03-29).
+- [x] **HIIT : pas de templates favoris** : `HIITTemplate` (Codable), `@AppStorage("hiit_templates")`, chips de templates + alert "Sauvegarder" dans `AddHIITSheet` (2026-03-29).
+- [x] **HealthKit auto-import cardio/recovery** : `WatchSyncService.syncIfNeeded()` appelé au lancement dans `TrainingOSApp.onAppear` (2026-03-29).
+- [x] **Pas d'export données** : bouton "Exporter mes données" dans `ProfileView`, endpoint `/api/export_data`, ShareSheet (2026-03-29).
 
 ---
 
 ## 🟢 BASSE PRIORITÉ — Améliorations UX
 
-- [ ] **SeanceView : log set-by-set** : actuellement on log "100kg 5,5,5,5" mais pas set par set en temps réel. Ajouter une option "mode set-by-set" qui incrémente automatiquement après chaque set.
-- [ ] **Intelligence : historique conversations** : les propositions IA disparaissent après fermeture. Sauvegarder l'historique des conversations du coach local.
-- [ ] **Mood : corrélation avec performance** : le mood est loggé mais jamais croisé avec les stats d'entraînement. Ajouter un graphe "humeur vs RPE" dans MentalHealthView ou StatsView.
-- [ ] **HIIT vs Muscu sur même vue** : dans Historique, les 2 tabs sont séparés mais une journée peut contenir les deux. Ajouter une vue "Timeline" qui merge tout par date.
+- [x] **SeanceView : log set-by-set** : bouton ➜ dans l'en-tête des sets, mode set-by-set avec highlight + bouton ✓ par set, auto-log quand dernier set confirmé (2026-03-29).
+- [x] **Intelligence : historique conversations** : `ChatMessage` Codable, `@AppStorage("intelligence_history")`, restore au `.task`, save à `onChange(of: messages)` (2026-03-29).
+- [x] **Mood : corrélation avec performance** : `MoodRPECorrelationCard` scatter chart + Pearson r dans `MoodTrackerView` (2026-03-29).
+- [x] **HIIT vs Muscu sur même vue** : 3e tab "Timeline" dans `HistoriqueView`, `buildTimeline()` merge muscu+HIIT par date, `TimelineRow` (2026-03-29).
 - [ ] **Heatmap HIIT distinct de muscu** : la heatmap 30 jours traite identiquement une séance HIIT et une séance muscu. Utiliser une couleur différente (ex: bleu pour HIIT, orange pour muscu). (Note: HeatmapView retirée du Dashboard → considérer dans StatsView.)
-- [ ] **Injury tracking** : aucun moyen de logger une douleur/blessure et d'en tenir compte dans les suggestions. Ajouter un champ optionnel "zone douloureuse" dans le log séance.
-- [ ] **Pas de badge achèvement objectif** : quand un objectif est atteint, l'animation sparkles est là mais pas d'archivage automatique. Ajouter archivage auto + confetti.
+- [x] **Injury tracking** : champ "Zone douloureuse" optionnel dans `ExerciseCard`, transmis via `pain_zone` dans payload `/api/log`, stocké dans `history_entry` (2026-03-29).
+- [x] **Pas de badge achèvement objectif** : sections Active/Atteints/Archivés dans `ObjectifsView`, bouton "Archiver" sur goals atteints, endpoint `/api/archive_objectif` + KV `goals_archived` (2026-03-29).
 
 ---
 

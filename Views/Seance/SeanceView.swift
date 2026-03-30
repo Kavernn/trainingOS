@@ -1205,6 +1205,16 @@ struct AddCardioSheet: View {
     }
 }
 
+// MARK: - HIIT Template
+struct HIITTemplate: Codable, Identifiable {
+    var id = UUID()
+    var name: String
+    var sessionType: String
+    var rounds: Int
+    var workTime: Int
+    var restTime: Int
+}
+
 // MARK: - Add HIIT Sheet
 struct AddHIITSheet: View {
     var onDone: () -> Void
@@ -1216,6 +1226,27 @@ struct AddHIITSheet: View {
     @State private var rpe: Double = 8
     @State private var notes       = ""
     @State private var isLogging   = false
+    @State private var showSavePrompt = false
+    @State private var templateName   = ""
+
+    @AppStorage("hiit_templates") private var templatesData: String = "[]"
+
+    private var templates: [HIITTemplate] {
+        (try? JSONDecoder().decode([HIITTemplate].self, from: Data(templatesData.utf8))) ?? []
+    }
+
+    private func saveTemplates(_ list: [HIITTemplate]) {
+        if let d = try? JSONEncoder().encode(list) {
+            templatesData = String(data: d, encoding: .utf8) ?? "[]"
+        }
+    }
+
+    private func applyTemplate(_ t: HIITTemplate) {
+        sessionType = t.sessionType
+        rounds      = "\(t.rounds)"
+        workTime    = "\(t.workTime)"
+        restTime    = "\(t.restTime)"
+    }
 
     var body: some View {
         NavigationStack {
@@ -1223,6 +1254,32 @@ struct AddHIITSheet: View {
                 Color(hex: "080810").ignoresSafeArea()
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
+                        // Saved templates
+                        if !templates.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("TEMPLATES SAUVEGARDÉS").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(templates) { t in
+                                            HStack(spacing: 4) {
+                                                Button(t.name) { applyTemplate(t) }
+                                                    .font(.system(size: 13, weight: .semibold))
+                                                    .foregroundColor(.red)
+                                                Button {
+                                                    saveTemplates(templates.filter { $0.id != t.id })
+                                                } label: {
+                                                    Image(systemName: "xmark").font(.system(size: 10)).foregroundColor(.gray)
+                                                }
+                                            }
+                                            .padding(.horizontal, 10).padding(.vertical, 6)
+                                            .background(Color(hex: "1c1c2e")).cornerRadius(8)
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                        }
+
                         // Session type
                         VStack(alignment: .leading, spacing: 6) {
                             Text("TYPE DE SESSION").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
@@ -1269,6 +1326,18 @@ struct AddHIITSheet: View {
                         }
                         .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
 
+                        // Save template button
+                        Button {
+                            templateName = sessionType.isEmpty ? "HIIT" : sessionType
+                            showSavePrompt = true
+                        } label: {
+                            Label("Sauvegarder comme template", systemImage: "bookmark")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.orange)
+                                .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                .background(Color(hex: "1c1c2e")).cornerRadius(10)
+                        }
+
                         Button(action: submit) {
                             HStack {
                                 if isLogging { ProgressView().tint(.white) }
@@ -1292,6 +1361,21 @@ struct AddHIITSheet: View {
                 }
             }
             .keyboardOkButton()
+            .alert("Nom du template", isPresented: $showSavePrompt) {
+                TextField("Ex: Tabata 20/10", text: $templateName)
+                Button("Sauvegarder") {
+                    guard !templateName.isEmpty else { return }
+                    let t = HIITTemplate(
+                        name: templateName,
+                        sessionType: sessionType.isEmpty ? "HIIT" : sessionType,
+                        rounds:   Int(rounds)   ?? 10,
+                        workTime: Int(workTime) ?? 20,
+                        restTime: Int(restTime) ?? 10
+                    )
+                    saveTemplates(templates + [t])
+                }
+                Button("Annuler", role: .cancel) {}
+            }
         }
     }
 
@@ -1349,6 +1433,9 @@ struct AddHIITSheet: View {
         @State private var showRestTimer = false
         @State private var logStatus: LogStatus? = nil
         @State private var exerciseRPE: Double = 7
+        @State private var painZone: String = ""
+        @State private var setBySetMode: Bool = false
+        @State private var currentSetIndex: Int = 0
         // Set synchronously before any async call to prevent race conditions
         @State private var isLogged = false
         @State private var isEditing = false
@@ -1473,6 +1560,7 @@ struct AddHIITSheet: View {
 
         @ViewBuilder private func setRows() -> some View {
             VStack(spacing: 6) {
+                // Set-by-set mode toggle
                 HStack {
                     Text("SET")
                         .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
@@ -1486,16 +1574,32 @@ struct AddHIITSheet: View {
                     Text("RIR")
                         .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
                         .frame(width: 52, alignment: .center)
+                    Button {
+                        withAnimation {
+                            setBySetMode.toggle()
+                            if setBySetMode { currentSetIndex = 0 }
+                        }
+                    } label: {
+                        Image(systemName: setBySetMode ? "list.number" : "arrow.forward.circle")
+                            .font(.system(size: 14))
+                            .foregroundColor(setBySetMode ? .orange : .gray.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.leading, 4)
                 }
                 ForEach(sets.indices, id: \.self) { i in
+                    let isActive = setBySetMode && i == currentSetIndex
+                    let isDone   = setBySetMode && i < currentSetIndex
                     HStack(spacing: 8) {
                         Text("S\(i + 1)")
-                            .font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(isDone ? .green : isActive ? .orange : .gray)
                             .frame(width: 28)
                         TextField(perSetHint(for: i), text: $sets[i].weight)
                             .keyboardType(.decimalPad)
                             .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                             .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                            .disabled(setBySetMode && !isActive && !isDone)
                         let repsInvalid = !sets[i].reps.isEmpty && Int(sets[i].reps) == nil
                         TextField(lastRepsParts.indices.contains(i) ? lastRepsParts[i] : "0",
                                   text: $sets[i].reps)
@@ -1511,6 +1615,7 @@ struct AddHIITSheet: View {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.red.opacity(repsInvalid ? 0.7 : 0), lineWidth: 1.5)
                             )
+                            .disabled(setBySetMode && !isActive && !isDone)
                         // RIR stepper
                         HStack(spacing: 3) {
                             Button { if sets[i].rir > 0 { sets[i].rir -= 1 } } label: {
@@ -1528,7 +1633,36 @@ struct AddHIITSheet: View {
                         .frame(width: 52)
                         .padding(.vertical, 8).padding(.horizontal, 4)
                         .background(Color(hex: "191926")).cornerRadius(8)
+                        .disabled(setBySetMode && !isActive && !isDone)
+
+                        // Set-by-set confirm button
+                        if isActive {
+                            Button {
+                                withAnimation {
+                                    triggerImpact(style: .medium)
+                                    if currentSetIndex < sets.count - 1 {
+                                        currentSetIndex += 1
+                                    } else {
+                                        // All sets done — auto-log
+                                        setBySetMode = false
+                                        logExercise()
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.orange)
+                            }
+                            .buttonStyle(.plain)
+                        } else if isDone {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 18)).foregroundColor(.green.opacity(0.6))
+                        }
                     }
+                    .padding(isActive ? 6 : 0)
+                    .background(isActive ? Color.orange.opacity(0.06) : Color.clear)
+                    .cornerRadius(8)
+                    .animation(.easeInOut(duration: 0.2), value: currentSetIndex)
                 }
                 if !repsStr.isEmpty {
                     HStack {
@@ -1538,6 +1672,11 @@ struct AddHIITSheet: View {
                         Spacer()
                     }
                     .padding(.top, 2)
+                }
+                if setBySetMode {
+                    Text("Set \(currentSetIndex + 1)/\(sets.count) — appuie ✓ après chaque set")
+                        .font(.system(size: 11)).foregroundColor(.orange.opacity(0.7))
+                        .padding(.top, 2)
                 }
             }
         }
@@ -1834,6 +1973,14 @@ struct AddHIITSheet: View {
                     }
                     .padding(.top, 4)
 
+                    // Pain zone (optional)
+                    HStack(spacing: 6) {
+                        Image(systemName: "bandage").font(.system(size: 11)).foregroundColor(.red.opacity(0.6))
+                        TextField("Zone douloureuse (optionnel)", text: $painZone)
+                            .font(.system(size: 12)).foregroundColor(painZone.isEmpty ? .gray : .red)
+                    }
+                    .padding(.top, 2)
+
                     // Log / Mettre à jour button
                     HStack {
                         if isEditing {
@@ -2004,7 +2151,7 @@ struct AddHIITSheet: View {
                         try await APIService.shared.logExercise(
                             exercise: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
                             sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
-                            equipmentType: "bodyweight")
+                            equipmentType: "bodyweight", painZone: painZone)
                         await MainActor.run {
                             logResult = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE)
                             logStatus = .success(0)
@@ -2046,7 +2193,7 @@ struct AddHIITSheet: View {
                     let response = try await APIService.shared.logExercise(
                         exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE,
                         sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
-                        equipmentType: equipmentType)
+                        equipmentType: equipmentType, painZone: painZone)
                     await MainActor.run {
                         logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE)
                         logStatus = .success(total)

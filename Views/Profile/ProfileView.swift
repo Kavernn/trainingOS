@@ -14,6 +14,10 @@ struct ProfileView: View {
     @State private var selectedPhoto: PhotosPickerItem? = nil
     @State private var profileImage: UIImage? = nil
     @State private var isUploadingPhoto = false
+    @State private var photoError: String? = nil
+    @State private var isExporting = false
+    @State private var exportURL: URL? = nil
+    @State private var showExportShare = false
 
     var profile: UserProfile? { api.dashboard?.profile }
 
@@ -35,6 +39,20 @@ struct ProfileView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.orange)
                 }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        Task { await exportData() }
+                    } label: {
+                        if isExporting {
+                            ProgressView().scaleEffect(0.75).tint(.gray)
+                        } else {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .disabled(isExporting)
+                }
             }
             .confirmationDialog("Photo de profil", isPresented: $showPhotoOptions, titleVisibility: .visible) {
                 Button("Prendre une photo") { showCamera = true }
@@ -54,6 +72,14 @@ struct ProfileView: View {
             }
             .sheet(isPresented: $showAddWeight) {
                 BodyWeightSheet(editEntry: nil) { await loadBodyWeight() }
+            }
+            .alert("Photo trop lourde", isPresented: Binding(get: { photoError != nil }, set: { if !$0 { photoError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: { Text(photoError ?? "") }
+            .sheet(isPresented: $showExportShare) {
+                if let url = exportURL {
+                    ShareSheet(items: [url])
+                }
             }
         }
         .task { await loadData() }
@@ -202,6 +228,20 @@ struct ProfileView: View {
         isLoading = false
     }
 
+    private func exportData() async {
+        isExporting = true
+        defer { isExporting = false }
+        guard let url = URL(string: "https://training-os-rho.vercel.app/api/export_data"),
+              let (data, _) = try? await URLSession.shared.data(from: url) else { return }
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("trainingos_export_\(DateFormatter.isoDate.string(from: Date())).json")
+        try? data.write(to: tmp)
+        await MainActor.run {
+            exportURL = tmp
+            showExportShare = true
+        }
+    }
+
     private func loadBodyWeight() async {
         if let (_, bw, t) = try? await APIService.shared.fetchProfilData() {
             bodyWeight = bw
@@ -226,7 +266,11 @@ struct ProfileView: View {
             return
         }
         let b64 = "data:image/jpeg;base64," + jpegData.base64EncodedString()
-        guard b64.count < 800_000 else { isUploadingPhoto = false; return }
+        guard b64.count < 500_000 else {
+            isUploadingPhoto = false
+            photoError = "Image trop lourde (\(jpegData.count / 1024)KB). Choisis une photo plus petite."
+            return
+        }
 
         do {
             let url = URL(string: "https://training-os-rho.vercel.app/api/update_profile_photo")!
@@ -269,6 +313,15 @@ struct CameraView: UIViewControllerRepresentable {
             picker.dismiss(animated: true)
         }
     }
+}
+
+// MARK: - Share Sheet
+struct ShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - UIImage resize helper

@@ -154,7 +154,7 @@ class APIService: ObservableObject {
     func logExercise(exercise: String, weight: Double, reps: String,
                      rpe: Double? = nil, sets: [[String: Any]] = [],
                      force: Bool = false, isSecond: Bool = false, isBonus: Bool = false,
-                     equipmentType: String = "") async throws -> LogExerciseResponse {
+                     equipmentType: String = "", painZone: String = "") async throws -> LogExerciseResponse {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
         if let rpe { body["rpe"] = rpe }
         if !sets.isEmpty { body["sets"] = sets }
@@ -162,6 +162,7 @@ class APIService: ObservableObject {
         if isSecond { body["is_second"] = true }
         if isBonus  { body["is_bonus"] = true }
         if !equipmentType.isEmpty { body["equipment_type"] = equipmentType }
+        if !painZone.isEmpty { body["pain_zone"] = painZone }
         let data = try await offlinePost(endpoint: "/api/log", payload: body)
         if !data.isEmpty {  // data vide = queued offline, conserver le cache existant
             if !isBonus {
@@ -323,13 +324,18 @@ class APIService: ObservableObject {
         struct ObjResponse: Codable { let goals: [String: ObjData] }
         struct ObjData: Codable {
             let current: Double; let goal: Double; let achieved: Bool
-            let deadline: String?; let note: String?
+            let deadline: String?; let note: String?; let archived: Bool?
         }
         let r = try JSONDecoder().decode(ObjResponse.self, from: data)
         return r.goals.map { ex, d in
             ObjectifEntry(exercise: ex, current: d.current, goal: d.goal,
-                          achieved: d.achieved, deadline: d.deadline ?? "", note: d.note ?? "")
+                          achieved: d.achieved, deadline: d.deadline ?? "", note: d.note ?? "",
+                          archived: d.archived ?? false)
         }.sorted { $0.exercise < $1.exercise }
+    }
+
+    func archiveObjectif(exercise: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/archive_objectif", payload: ["exercise": exercise])
     }
 
     func setGoal(exercise: String, goalWeight: Double, deadline: String) async throws {

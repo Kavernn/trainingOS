@@ -542,6 +542,7 @@ def api_log():
         is_second      = bool(data.get("is_second", False))
         is_bonus       = bool(data.get("is_bonus", False))
         equipment_type = data.get("equipment_type", "")
+        pain_zone      = data.get("pain_zone", "")
 
         if not exercise or not reps_str:
             return jsonify({"error": "Données manquantes"}), 400
@@ -639,6 +640,8 @@ def api_log():
             history_entry["rpe"] = rpe
         if sets_data:
             history_entry["sets"] = sets_data
+        if pain_zone:
+            history_entry["pain_zone"] = pain_zone
 
         if exercise not in weights:
             weights[exercise] = {"history": []}
@@ -2128,18 +2131,21 @@ def api_stats_data():
 
 @app.route("/api/objectifs_data")
 def api_objectifs_data():
-    weights = load_weights()
-    goals   = load_goals()
+    import db as _db
+    weights  = load_weights()
+    goals    = load_goals()
+    archived = set(_db.get_json("goals_archived", []) or [])
     goals_progress = {}
     for ex, goal in goals.items():
         current = weights.get(ex, {}).get("current_weight", 0) or 0
         goals_progress[ex] = {
             "current":  current,
-            "goal":     goal["goal_weight"],
-            "bar":      get_progress_bar(current, goal["goal_weight"]),
+            "goal":     goal.get("goal_weight") or goal.get("target_weight", 0),
+            "bar":      get_progress_bar(current, goal.get("goal_weight") or goal.get("target_weight", 0)),
             "achieved": goal.get("achieved", False),
-            "deadline": goal.get("deadline", ""),
+            "deadline": goal.get("deadline", "") or goal.get("target_date", ""),
             "note":     goal.get("note", ""),
+            "archived": ex in archived,
         }
     return jsonify({"goals": goals_progress})
 
@@ -2248,8 +2254,14 @@ def api_inventaire_data():
     import db as _db
     inventory = load_inventory()
     if inventory is None:
-        return jsonify({"inventory": {}})
-    return jsonify({"inventory": inventory})
+        return jsonify({"inventory": {}, "in_program": []})
+    # Derive which exercises are currently in the program
+    full_program = _db.get_full_program(None) or load_program()
+    in_program: set = set()
+    for session_def in full_program.values():
+        exos = get_strength_exercises(session_def) if isinstance(session_def, dict) and "blocks" in session_def else (session_def if isinstance(session_def, dict) else {})
+        in_program.update(exos.keys())
+    return jsonify({"inventory": inventory, "in_program": sorted(in_program)})
 
 
 @app.route("/api/historique_data")
@@ -2258,10 +2270,11 @@ def api_historique_data():
 
     limit  = min(int(request.args.get("limit",  90)),  200)
     offset = int(request.args.get("offset", 0))
+    month  = request.args.get("month")  # "YYYY-MM" filter
 
     sessions = _db.get_workout_sessions(limit=500)
     ex_by_session = _db.get_exercise_history_grouped_by_session()
-    hiit_log = _db.get_hiit_logs(limit=100)
+    hiit_log = _db.get_hiit_logs(limit=500)
 
     session_list = []
     for s in sessions:
@@ -2270,7 +2283,8 @@ def api_historique_data():
         stype = s.get("session_type") or ("evening" if s.get("is_second") else "morning")
         if not d:
             continue
-        # Filter stubs: skip if not completed, no RPE, and no exercises logged
+        if month and not d.startswith(month):
+            continue
         has_exos = bool(ex_by_session.get(sid))
         if not s.get("completed") and s.get("rpe") is None and not has_exos:
             continue
@@ -2280,6 +2294,15 @@ def api_historique_data():
             "rpe":          s.get("rpe"),
             "comment":      s.get("comment", ""),
             "exos":         ex_by_session.get(sid, []),
+        })
+
+    if month:
+        filtered_hiit = [h for h in hiit_log if h.get("date", "").startswith(month)]
+        return jsonify({
+            "session_list": session_list,
+            "hiit_list":    filtered_hiit,
+            "total":        len(session_list),
+            "has_more":     False,
         })
 
     total = len(session_list)
@@ -2370,6 +2393,68 @@ def api_delete_recovery():
     import db as _db
     data = request.get_json()
     _db.delete_recovery_log(data.get("date", ""))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/archive_objectif", methods=["POST"])
+def api_archive_objectif():
+    """Marque un objectif comme archivé (caché de la liste principale)."""
+    import db as _db
+    data     = request.get_json() or {}
+    exercise = data.get("exercise", "")
+    if not exercise:
+        return jsonify({"error": "missing exercise"}), 400
+    archived = list(_db.get_json("goals_archived", []) or [])
+    if exercise not in archived:
+        archived.append(exercise)
+    _db.set_json("goals_archived", archived)
+    return jsonify({"ok": True})
+
+
+@app.route("/api/export_data")
+def api_export_data():
+    """Export complet des données utilisateur en JSON."""
+    import db as _db
+    sessions     = _db.get_workout_sessions(limit=2000)
+    hiit         = _db.get_hiit_logs(limit=1000)
+    recovery     = _db.get_recovery_logs() or []
+    body_weight  = load_body_weight()
+    goals        = load_goals()
+    cardio       = _db.get_cardio_logs() or []
+    return jsonify({
+        "export_date":  _today_mtl(),
+        "sessions":     sessions,
+        "hiit":         hiit,
+        "recovery":     recovery,
+        "body_weight":  body_weight,
+        "goals":        goals,
+        "cardio":       cardio,
+    })
+
+
+@app.route("/api/healthkit_sync", methods=["POST"])
+def api_healthkit_sync():
+    """Importe les données HealthKit du jour — ne remplace pas les champs déjà remplis."""
+    import db as _db
+    data  = request.get_json() or {}
+    today = _today_mtl()
+    # Fetch existing entry for today
+    logs     = _db.get_recovery_logs() or []
+    existing = next((e for e in logs if e.get("date") == today), {})
+    # Only fill in fields that are currently null
+    entry = {
+        "date":        today,
+        "sleep_hours": existing.get("sleep_hours") or data.get("sleep_hours"),
+        "resting_hr":  existing.get("resting_hr")  or data.get("resting_hr"),
+        "hrv":         existing.get("hrv")          or data.get("hrv"),
+        "steps":       existing.get("steps")        or data.get("steps"),
+        "sleep_quality": existing.get("sleep_quality"),
+        "soreness":    existing.get("soreness"),
+        "notes":       existing.get("notes", ""),
+    }
+    if not any([entry["sleep_hours"], entry["resting_hr"], entry["hrv"], entry["steps"]]):
+        return jsonify({"ok": False, "msg": "no data"})
+    _db.upsert_recovery_log(entry)
     return jsonify({"ok": True})
 
 

@@ -508,6 +508,7 @@ struct ObjectifEntry: Identifiable {
     let achieved: Bool
     let deadline: String
     let note: String
+    var archived: Bool = false
 }
 
 // MARK: - Nutrition

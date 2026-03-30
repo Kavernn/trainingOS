@@ -37,6 +37,9 @@ struct HistoriqueView: View {
     @State private var editTarget: HistoriqueMuscu? = nil
     @State private var editHIITTarget: HIITEntry? = nil
     @State private var apiError: String? = nil
+    @State private var monthFilter: String? = nil   // "YYYY-MM"
+    @State private var showMonthPicker = false
+    @State private var pickerDate = Date()
 
     var body: some View {
         NavigationStack {
@@ -51,9 +54,34 @@ struct HistoriqueView: View {
                         HStack(spacing: 8) {
                             TabChip(title: "🏋️ Muscu (\(muscuSessions.count))", selected: selectedTab == 0) { selectedTab = 0 }
                             TabChip(title: "⚡ HIIT (\(hiitSessions.count))", selected: selectedTab == 1) { selectedTab = 1 }
+                            TabChip(title: "📅 Timeline", selected: selectedTab == 2) { selectedTab = 2 }
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
+
+                        // Month filter bar
+                        HStack(spacing: 8) {
+                            Button {
+                                showMonthPicker = true
+                            } label: {
+                                Label(monthFilter ?? "Tous les mois", systemImage: "calendar")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(monthFilter != nil ? .orange : .gray)
+                                    .padding(.horizontal, 12).padding(.vertical, 6)
+                                    .background(Color(hex: "1c1c2e")).cornerRadius(8)
+                            }
+                            if monthFilter != nil {
+                                Button {
+                                    monthFilter = nil
+                                    Task { await loadData() }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill").foregroundColor(.gray)
+                                }
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 4)
 
                         ScrollView {
                             VStack(spacing: 10) {
@@ -93,7 +121,7 @@ struct HistoriqueView: View {
                                             .disabled(isLoadingMore)
                                         }
                                     }
-                                } else {
+                                } else if selectedTab == 1 {
                                     if hiitSessions.isEmpty {
                                         EmptyHistoriqueView(label: "Aucune séance HIIT")
                                     } else {
@@ -104,6 +132,17 @@ struct HistoriqueView: View {
                                                 onEdit: { editHIITTarget = session }
                                             )
                                             .padding(.horizontal, 16)
+                                        }
+                                    }
+                                } else {
+                                    // Timeline: merge muscu + hiit sorted by date desc
+                                    let timelineItems = buildTimeline()
+                                    if timelineItems.isEmpty {
+                                        EmptyHistoriqueView(label: "Aucune activité")
+                                    } else {
+                                        ForEach(timelineItems, id: \.date) { item in
+                                            TimelineRow(item: item)
+                                                .padding(.horizontal, 16)
                                         }
                                     }
                                 }
@@ -128,6 +167,12 @@ struct HistoriqueView: View {
                 Task { await saveHIITEdit(session: session, rpe: rpe, rounds: rounds, notes: notes) }
             }
         }
+        .sheet(isPresented: $showMonthPicker) {
+            MonthPickerSheet(selected: $monthFilter, pickerDate: $pickerDate) {
+                showMonthPicker = false
+                Task { await loadData() }
+            }
+        }
         .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(apiError ?? "") }
@@ -140,19 +185,21 @@ struct HistoriqueView: View {
 
     private func loadData() async {
         currentOffset = 0
-        // Show cached data first
-        if let cached = CacheService.shared.load(for: "historique_data"),
+        // Only use unfiltered cache when no month filter active
+        if monthFilter == nil,
+           let cached = CacheService.shared.load(for: "historique_data"),
            let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
             applyJSON(json, append: false)
         }
 
         isLoading = true
-        let urlStr = "https://training-os-rho.vercel.app/api/historique_data?limit=\(pageSize)&offset=0"
+        var urlStr = "https://training-os-rho.vercel.app/api/historique_data?limit=\(pageSize)&offset=0"
+        if let m = monthFilter { urlStr += "&month=\(m)" }
         var req = URLRequest(url: URL(string: urlStr)!)
         req.timeoutInterval = 15
         if let (data, _) = try? await URLSession.shared.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            CacheService.shared.save(data, for: "historique_data")
+            if monthFilter == nil { CacheService.shared.save(data, for: "historique_data") }
             applyJSON(json, append: false)
             hasMore = json["has_more"] as? Bool ?? false
         }
@@ -284,6 +331,125 @@ struct HistoriqueView: View {
             CacheService.shared.clear(for: "historique_data")
         } catch {
             apiError = "Erreur réseau — réessaie"
+        }
+    }
+
+    struct TimelineDay: Identifiable {
+        var id: String { date }
+        let date: String
+        let muscuCount: Int
+        let hiitCount: Int
+        let exercises: [String]
+        let rpe: Double?
+    }
+
+    private func buildTimeline() -> [TimelineDay] {
+        var days: [String: TimelineDay] = [:]
+        for s in muscuSessions {
+            let existing = days[s.date]
+            days[s.date] = TimelineDay(
+                date: s.date,
+                muscuCount: (existing?.muscuCount ?? 0) + 1,
+                hiitCount:  existing?.hiitCount ?? 0,
+                exercises:  (existing?.exercises ?? []) + s.exos.prefix(3).map(\.exercise),
+                rpe:        s.rpe ?? existing?.rpe
+            )
+        }
+        for h in hiitSessions {
+            guard let date = h.date else { continue }
+            let existing = days[date]
+            days[date] = TimelineDay(
+                date: date,
+                muscuCount: existing?.muscuCount ?? 0,
+                hiitCount:  (existing?.hiitCount ?? 0) + 1,
+                exercises:  existing?.exercises ?? [],
+                rpe:        existing?.rpe ?? h.rpe
+            )
+        }
+        return days.values.sorted { $0.date > $1.date }
+    }
+}
+
+// MARK: - Timeline Row
+struct TimelineRow: View {
+    let item: HistoriqueView.TimelineDay
+    var body: some View {
+        HStack(spacing: 12) {
+            // Date column
+            VStack(spacing: 2) {
+                Text(String(item.date.suffix(5)))
+                    .font(.system(size: 13, weight: .bold)).foregroundColor(.orange)
+                if let rpe = item.rpe {
+                    Text("RPE \(String(format: "%.1f", rpe))")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                }
+            }
+            .frame(width: 52)
+
+            // Divider dot
+            Circle().fill(Color.orange.opacity(0.6)).frame(width: 8, height: 8)
+
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    if item.muscuCount > 0 {
+                        Label("\(item.muscuCount) muscu", systemImage: "dumbbell.fill")
+                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.orange)
+                    }
+                    if item.hiitCount > 0 {
+                        Label("\(item.hiitCount) HIIT", systemImage: "bolt.fill")
+                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.red)
+                    }
+                }
+                if !item.exercises.isEmpty {
+                    Text(item.exercises.prefix(3).joined(separator: ", "))
+                        .font(.system(size: 11)).foregroundColor(.gray).lineLimit(1)
+                }
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(Color(hex: "11111c")).cornerRadius(12)
+    }
+}
+
+// MARK: - Month Picker Sheet
+struct MonthPickerSheet: View {
+    @Binding var selected: String?
+    @Binding var pickerDate: Date
+    var onApply: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM"; return f
+    }()
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                VStack(spacing: 20) {
+                    DatePicker("Mois", selection: $pickerDate, displayedComponents: [.date])
+                        .datePickerStyle(.graphical)
+                        .tint(.orange)
+                        .colorScheme(.dark)
+                    Button("Appliquer") {
+                        selected = Self.formatter.string(from: pickerDate)
+                        onApply()
+                    }
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Color.orange).foregroundColor(.white).cornerRadius(14)
+                    .padding(.horizontal, 20)
+                }
+                .padding(.top, 20)
+            }
+            .navigationTitle("Filtrer par mois").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+            }
         }
     }
 }

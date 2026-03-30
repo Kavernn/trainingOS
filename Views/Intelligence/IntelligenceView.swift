@@ -3,6 +3,7 @@ import Combine
 
 struct IntelligenceView: View {
     @State private var messages: [ChatMessage] = []
+    @AppStorage("intelligence_history") private var historyData: String = "[]"
     @State private var input = ""
     @State private var isLoading = false
     @State private var showPropose = false
@@ -213,11 +214,24 @@ struct IntelligenceView: View {
             }
             .navigationTitle("Intelligence")
             .navigationBarTitleDisplayMode(.inline)
-            .task { await loadContextData() }
+            .task {
+                // Restore persisted chat history
+                if let data = historyData.data(using: .utf8),
+                   let saved = try? JSONDecoder().decode([ChatMessage].self, from: data), !saved.isEmpty {
+                    messages = saved
+                }
+                await loadContextData()
+            }
+            .onChange(of: messages) {
+                if let data = try? JSONEncoder().encode(Array(messages.suffix(50))),
+                   let str = String(data: data, encoding: .utf8) {
+                    historyData = str
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if !messages.isEmpty {
-                        Button("Effacer") { messages = [] }.foregroundColor(.purple)
+                        Button("Effacer") { messages = []; historyData = "[]" }.foregroundColor(.purple)
                     }
                 }
             }
@@ -530,11 +544,12 @@ struct IntelligenceView: View {
 }
 
 // MARK: - Chat Models
-struct ChatMessage: Identifiable {
-    let id = UUID()
-    enum Role { case user, assistant }
+struct ChatMessage: Identifiable, Codable {
+    let id: UUID
+    enum Role: String, Codable { case user, assistant }
     let role: Role
     let content: String
+    init(role: Role, content: String) { self.id = UUID(); self.role = role; self.content = content }
 }
 
 struct AIProposal: Identifiable {

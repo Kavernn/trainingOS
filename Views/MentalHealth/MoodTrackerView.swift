@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 struct MoodTrackerView: View {
     @State private var entries: [MoodEntry] = []
@@ -8,6 +9,7 @@ struct MoodTrackerView: View {
     @State private var isLoadingMore = false
     @State private var hasMore = false
     @State private var nextOffset: Int? = nil
+    @State private var rpeByDate: [String: Double] = [:]
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -31,6 +33,19 @@ struct MoodTrackerView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List {
+                        // Correlation chart header
+                        let correlationPoints = entries.compactMap { e -> (Int, Double)? in
+                            guard let rpe = rpeByDate[String(e.date.prefix(10))] else { return nil }
+                            return (e.score, rpe)
+                        }
+                        if correlationPoints.count >= 3 {
+                            Section {
+                                MoodRPECorrelationCard(points: correlationPoints)
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets())
+                            }
+                        }
+
                         ForEach(entries) { entry in
                             MoodEntryRow(entry: entry, emotions: emotions)
                         }
@@ -86,6 +101,16 @@ struct MoodTrackerView: View {
                 nextOffset = page.nextOffset
             }
             isLoading = false
+        }
+        // Load RPE by date from stats cache
+        if let cached = CacheService.shared.load(for: "stats_data"),
+           let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any],
+           let sessions = json["sessions"] as? [String: [String: Any]] {
+            let map = Dictionary(uniqueKeysWithValues: sessions.compactMap { (date, s) -> (String, Double)? in
+                guard let rpe = s["rpe"] as? Double else { return nil }
+                return (date, rpe)
+            })
+            await MainActor.run { rpeByDate = map }
         }
     }
 
@@ -345,5 +370,68 @@ struct FlowLayoutMH: Layout {
             x         += size.width + spacing
             rowHeight  = max(rowHeight, size.height)
         }
+    }
+}
+
+// MARK: - Mood / RPE Correlation Card
+private struct MoodRPECorrelationCard: View {
+    let points: [(mood: Int, rpe: Double)]
+
+    private var correlation: Double {
+        guard points.count >= 2 else { return 0 }
+        let n  = Double(points.count)
+        let xs = points.map { Double($0.mood) }
+        let ys = points.map { $0.rpe }
+        let mx = xs.reduce(0, +) / n
+        let my = ys.reduce(0, +) / n
+        let num = zip(xs, ys).map { ($0 - mx) * ($1 - my) }.reduce(0, +)
+        let dx  = xs.map { pow($0 - mx, 2) }.reduce(0, +)
+        let dy  = ys.map { pow($0 - my, 2) }.reduce(0, +)
+        let den = sqrt(dx * dy)
+        return den == 0 ? 0 : num / den
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("HUMEUR vs RPE")
+                    .font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.secondary)
+                Spacer()
+                let r = correlation
+                Text("r = \(String(format: "%.2f", r))")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(abs(r) > 0.4 ? .yellow : .secondary)
+            }
+
+            Chart(points.indices, id: \.self) { i in
+                PointMark(
+                    x: .value("Humeur", points[i].mood),
+                    y: .value("RPE", points[i].rpe)
+                )
+                .foregroundStyle(Color.yellow.opacity(0.7))
+                .symbolSize(60)
+            }
+            .chartXAxis {
+                AxisMarks(values: [1, 3, 5, 7, 9, 10]) { v in
+                    AxisValueLabel { Text("\(v.as(Int.self) ?? 0)").font(.caption2) }
+                }
+            }
+            .chartYAxis {
+                AxisMarks(values: [6, 7, 8, 9, 10]) { v in
+                    AxisValueLabel { Text("\(v.as(Int.self) ?? 0)").font(.caption2) }
+                }
+            }
+            .chartXAxisLabel("Humeur (1–10)", alignment: .center)
+            .chartYAxisLabel("RPE", position: .leading)
+            .frame(height: 150)
+
+            let r = correlation
+            Text(r < -0.3 ? "Bonne humeur → RPE plus bas" : r > 0.3 ? "Humeur élevée → effort intense" : "Pas de corrélation claire")
+                .font(.caption).foregroundColor(.secondary)
+        }
+        .padding(14)
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .padding(.horizontal, 4)
     }
 }

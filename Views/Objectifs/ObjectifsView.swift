@@ -5,8 +5,12 @@ struct ObjectifsView: View {
     @State private var objectifs: [ObjectifEntry] = []
     @State private var isLoading = true
     @State private var showAddGoal = false
-
+    @State private var showArchived = false
     @State private var selectedObjectif: ObjectifEntry? = nil
+
+    private var active:   [ObjectifEntry] { objectifs.filter { !$0.achieved && !$0.archived } }
+    private var achieved: [ObjectifEntry] { objectifs.filter { $0.achieved && !$0.archived } }
+    private var archived: [ObjectifEntry] { objectifs.filter { $0.archived } }
 
     var body: some View {
         NavigationStack {
@@ -23,12 +27,50 @@ struct ObjectifsView: View {
                     }
                 } else {
                     ScrollView(showsIndicators: false) {
-                        VStack(spacing: 12) {
-                            ForEach(Array(objectifs.enumerated()), id: \.1.id) { i, obj in
-                                ObjectifCard(obj: obj)
-                                    .onTapGesture { selectedObjectif = obj }
-                                    .appearAnimation(delay: Double(i) * 0.06)
+                        VStack(alignment: .leading, spacing: 16) {
+                            // Active
+                            if !active.isEmpty {
+                                SectionHeader(title: "EN COURS")
+                                ForEach(Array(active.enumerated()), id: \.1.id) { i, obj in
+                                    ObjectifCard(obj: obj, onArchive: nil)
+                                        .onTapGesture { selectedObjectif = obj }
+                                        .appearAnimation(delay: Double(i) * 0.06)
+                                }
                             }
+
+                            // Achieved
+                            if !achieved.isEmpty {
+                                SectionHeader(title: "ATTEINTS (\(achieved.count))")
+                                ForEach(Array(achieved.enumerated()), id: \.1.id) { i, obj in
+                                    ObjectifCard(obj: obj, onArchive: {
+                                        Task { await archiveGoal(obj) }
+                                    })
+                                    .appearAnimation(delay: Double(i) * 0.06)
+                                }
+                            }
+
+                            // Archived (collapsible)
+                            if !archived.isEmpty {
+                                Button {
+                                    withAnimation { showArchived.toggle() }
+                                } label: {
+                                    HStack {
+                                        SectionHeader(title: "ARCHIVÉS (\(archived.count))")
+                                        Spacer()
+                                        Image(systemName: showArchived ? "chevron.up" : "chevron.down")
+                                            .font(.system(size: 11)).foregroundColor(.gray)
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                                if showArchived {
+                                    ForEach(Array(archived.enumerated()), id: \.1.id) { i, obj in
+                                        ObjectifCard(obj: obj, onArchive: nil)
+                                            .opacity(0.5)
+                                            .appearAnimation(delay: Double(i) * 0.04)
+                                    }
+                                }
+                            }
+
                             Spacer(minLength: 80)
                         }
                         .padding(16)
@@ -58,10 +100,30 @@ struct ObjectifsView: View {
         objectifs = (try? await APIService.shared.fetchObjectifsData()) ?? []
         isLoading = false
     }
+
+    private func archiveGoal(_ obj: ObjectifEntry) async {
+        try? await APIService.shared.archiveObjectif(exercise: obj.exercise)
+        if let idx = objectifs.firstIndex(where: { $0.id == obj.id }) {
+            objectifs[idx] = ObjectifEntry(
+                exercise: obj.exercise, current: obj.current, goal: obj.goal,
+                achieved: obj.achieved, deadline: obj.deadline, note: obj.note, archived: true
+            )
+        }
+    }
+}
+
+private struct SectionHeader: View {
+    let title: String
+    var body: some View {
+        Text(title)
+            .font(.system(size: 11, weight: .bold)).tracking(2)
+            .foregroundColor(.gray)
+    }
 }
 
 struct ObjectifCard: View {
     let obj: ObjectifEntry
+    var onArchive: (() -> Void)? = nil
     @ObservedObject private var units = UnitSettings.shared
     @State private var celebrate = false
 
@@ -86,11 +148,22 @@ struct ObjectifCard: View {
                 }
                 Spacer()
                 if obj.achieved {
-                    Label("Atteint", systemImage: "checkmark.seal.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.green)
-                        .scaleEffect(celebrate ? 1.0 : 0.4)
-                        .opacity(celebrate ? 1.0 : 0)
+                    HStack(spacing: 8) {
+                        Label("Atteint", systemImage: "checkmark.seal.fill")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.green)
+                            .scaleEffect(celebrate ? 1.0 : 0.4)
+                            .opacity(celebrate ? 1.0 : 0)
+                        if let archive = onArchive {
+                            Button(action: archive) {
+                                Label("Archiver", systemImage: "archivebox")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.gray)
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(Color(hex: "191926")).cornerRadius(8)
+                            }
+                        }
+                    }
                 }
             }
 

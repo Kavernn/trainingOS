@@ -42,7 +42,10 @@ struct TrainingOSApp: App {
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
                     if granted { NotificationService.scheduleAll() }
                 }
-                Task { await HealthKitService.shared.requestAuthorization() }
+                Task {
+                    await HealthKitService.shared.requestAuthorization()
+                    await WatchSyncService.shared.syncIfNeeded()
+                }
             }
         }
         .modelContainer(modelContainer)

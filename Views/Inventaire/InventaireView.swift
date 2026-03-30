@@ -36,10 +36,12 @@ struct InventoryItem: Identifiable {
 
 struct InventaireView: View {
     @State private var items: [InventoryItem] = []
+    @State private var inProgram: Set<String> = []
     @State private var isLoading = true
     @State private var searchText = ""
     @State private var selectedType = "Tous"
     @State private var selectedCategory = "Tous"
+    @State private var filterProgram = false
     @State private var editTarget: InventoryItem?
     @State private var showAdd = false
     @State private var errorMsg: String?
@@ -51,6 +53,7 @@ struct InventaireView: View {
         items.filter { item in
             (selectedType == "Tous" || item.type == selectedType) &&
             (selectedCategory == "Tous" || item.category == selectedCategory) &&
+            (!filterProgram || inProgram.contains(item.name)) &&
             (searchText.isEmpty || item.name.localizedCaseInsensitiveContains(searchText))
         }
         .sorted { $0.name < $1.name }
@@ -130,6 +133,9 @@ struct InventaireView: View {
                         selectedType = t
                     }
                 }
+                FilterChip(label: "⭐ En programme", selected: filterProgram, color: .orange) {
+                    filterProgram.toggle()
+                }
             }
             .padding(.horizontal, 16)
         }
@@ -173,7 +179,7 @@ struct InventaireView: View {
     private var itemList: some View {
         List {
             ForEach(filtered, id: \.name) { item in
-                InventaireRow(item: item)
+                InventaireRow(item: item, isInProgram: inProgram.contains(item.name))
                     .listRowBackground(Color(hex: "11111c"))
                     .listRowSeparatorTint(Color.white.opacity(0.07))
                     .contentShape(Rectangle())
@@ -199,8 +205,9 @@ struct InventaireView: View {
         if let (data, _) = try? await URLSession.shared.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let inv  = json["inventory"] as? [String: [String: Any]] {
-            let loaded = inv.map { InventoryItem(name: $0.key, $0.value) }
-            await MainActor.run { items = loaded }
+            let loaded   = inv.map { InventoryItem(name: $0.key, $0.value) }
+            let prog     = Set(json["in_program"] as? [String] ?? [])
+            await MainActor.run { items = loaded; inProgram = prog }
         }
         await MainActor.run { isLoading = false }
     }
@@ -283,6 +290,7 @@ struct InventaireView: View {
 
 struct InventaireRow: View {
     let item: InventoryItem
+    var isInProgram: Bool = false
 
     var typeIcon: String {
         switch item.type {
@@ -317,6 +325,10 @@ struct InventaireRow: View {
                     Text(item.name)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
+                    if isInProgram {
+                        Text("⭐")
+                            .font(.system(size: 10))
+                    }
                     if item.trackingType == "time" {
                         Text("TEMPS")
                             .font(.system(size: 9, weight: .bold))

@@ -99,9 +99,23 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 ## En cours / Prochaines étapes
 
-1. Filtre par date dans Historique (picker mois/année)
-3. Export données CSV/JSON dans ProfileView
-4. Tests E2E iOS (XCUITest flows critiques)
+1. Tests E2E iOS (XCUITest flows critiques)
+2. Heatmap HIIT distinct de muscu dans StatsView
+
+## Complété récemment (2026-03-29) — Phase 2 todos
+
+- Validation photo profil (500KB max, alert erreur)
+- Export données CSV/JSON dans ProfileView (`/api/export_data`, ShareSheet)
+- Badge "En programme" + filtre chip dans InventaireView
+- HIIT templates favoris sauvegardables (`@AppStorage("hiit_templates")`)
+- HealthKit auto-sync au lancement (`WatchSyncService.syncIfNeeded()`)
+- Filtre par mois dans Historique (`MonthPickerSheet`, `?month=YYYY-MM`)
+- Timeline tab dans Historique (muscu + HIIT merged par date)
+- Archivage objectifs atteints (sections Active/Atteints/Archivés, `/api/archive_objectif`)
+- Intelligence : historique conversations persisté (`@AppStorage`, Codable `ChatMessage`)
+- Mood corrélation RPE : `MoodRPECorrelationCard` scatter + Pearson r
+- Injury tracking : champ "zone douloureuse" dans `ExerciseCard`, `pain_zone` dans `/api/log`
+- SeanceView mode set-by-set : toggle ➜ + bouton ✓ par set, auto-log au dernier set
 
 ---
 
