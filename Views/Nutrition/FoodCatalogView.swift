@@ -111,14 +111,17 @@ struct FoodItemFormView: View {
     init(existing: FoodItem?, onSave: @escaping (FoodItem) -> Void) {
         self.existing = existing
         self.onSave = onSave
+        let f = { (v: Double) -> String in
+            v.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(v))" : String(format: "%.1f", v)
+        }
         let item = existing
         _name      = State(initialValue: item?.name ?? "")
-        _refQty    = State(initialValue: item.map { fmt($0.refQty) } ?? "100")
+        _refQty    = State(initialValue: item.map { f($0.refQty) } ?? "100")
         _refUnit   = State(initialValue: item?.refUnit ?? "g")
-        _calories  = State(initialValue: item.map { fmt($0.calories) } ?? "")
-        _proteines = State(initialValue: item.map { fmt($0.proteines) } ?? "")
-        _glucides  = State(initialValue: item.map { fmt($0.glucides) } ?? "")
-        _lipides   = State(initialValue: item.map { fmt($0.lipides) } ?? "")
+        _calories  = State(initialValue: item.map { f($0.calories) } ?? "")
+        _proteines = State(initialValue: item.map { f($0.proteines) } ?? "")
+        _glucides  = State(initialValue: item.map { f($0.glucides) } ?? "")
+        _lipides   = State(initialValue: item.map { f($0.lipides) } ?? "")
     }
 
     private var canSave: Bool {
@@ -206,9 +209,6 @@ struct FoodItemFormView: View {
         dismiss()
     }
 
-    private static func fmt(_ v: Double) -> String {
-        v.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(v))" : String(format: "%.1f", v)
-    }
 }
 
 private func fmt(_ v: Double) -> String {
