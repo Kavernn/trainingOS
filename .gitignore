@@ -26,6 +26,7 @@ __pycache__/
 # Scripts locaux / migration
 run_migration.sh
 verify_migration.py
+ai.py
 
 # Docs locaux
 docs/*.odt
