@@ -17,6 +17,8 @@
 		AA0020042F5D98BA002AE470 /* BodyCompView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010042F5D98B8002AE470 /* BodyCompView.swift */; };
 		AA0020052F5D98BA002AE470 /* HIITHistoriqueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010052F5D98B8002AE470 /* HIITHistoriqueView.swift */; };
 		AA0020062F5D98BA002AE470 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010062F5D98B8002AE470 /* NutritionView.swift */; };
+		44C9676C9DEC490EA46497D2 /* FoodCatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D99C0DF3AB4F7ABC77DFE0 /* FoodCatalogStore.swift */; };
+		FF51E36866234A41AFD33040 /* FoodCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */; };
 		AA0020072F5D98BA002AE470 /* ProgrammeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010072F5D98B8002AE470 /* ProgrammeView.swift */; };
 		AA0020082F5D98BA002AE470 /* XPView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010082F5D98B8002AE470 /* XPView.swift */; };
 		AA0020092F5D98BA002AE470 /* NotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010092F5D98B8002AE470 /* NotesView.swift */; };
@@ -78,6 +80,8 @@
 		AA0010042F5D98B8002AE470 /* BodyCompView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompView.swift; sourceTree = "<group>"; };
 		AA0010052F5D98B8002AE470 /* HIITHistoriqueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIITHistoriqueView.swift; sourceTree = "<group>"; };
 		AA0010062F5D98B8002AE470 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
+		34D99C0DF3AB4F7ABC77DFE0 /* FoodCatalogStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalogStore.swift; sourceTree = "<group>"; };
+		1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalogView.swift; sourceTree = "<group>"; };
 		AA0010072F5D98B8002AE470 /* ProgrammeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammeView.swift; sourceTree = "<group>"; };
 		AA0010082F5D98B8002AE470 /* XPView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPView.swift; sourceTree = "<group>"; };
 		AA0010092F5D98B8002AE470 /* NotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesView.swift; sourceTree = "<group>"; };
@@ -206,6 +210,8 @@
 			isa = PBXGroup;
 			children = (
 				AA0010062F5D98B8002AE470 /* NutritionView.swift */,
+				34D99C0DF3AB4F7ABC77DFE0 /* FoodCatalogStore.swift */,
+				1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */,
 			);
 			path = Nutrition;
 			sourceTree = "<group>";
@@ -560,6 +566,8 @@
 				AA0020042F5D98BA002AE470 /* BodyCompView.swift in Sources */,
 				AA0020052F5D98BA002AE470 /* HIITHistoriqueView.swift in Sources */,
 				AA0020062F5D98BA002AE470 /* NutritionView.swift in Sources */,
+				44C9676C9DEC490EA46497D2 /* FoodCatalogStore.swift in Sources */,
+				FF51E36866234A41AFD33040 /* FoodCatalogView.swift in Sources */,
 				AA0020072F5D98BA002AE470 /* ProgrammeView.swift in Sources */,
 				AA0020082F5D98BA002AE470 /* XPView.swift in Sources */,
 				AA0020092F5D98BA002AE470 /* NotesView.swift in Sources */,
