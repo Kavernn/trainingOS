@@ -112,8 +112,8 @@ struct ChecklistCardView: View {
             .cornerRadius(16)
             .animation(.spring(response: 0.35, dampingFraction: 0.82), value: minimized)
             .onAppear {
+                states    = ChecklistStore.load()   // resets hidden flag si nouveau jour
                 isHidden  = ChecklistStore.isHiddenToday
-                states    = ChecklistStore.load()
                 gymExpanded = ChecklistStore.gymExpanded
                 // Auto-expand if any items are already checked
                 let anyChecked = kAllIDs.contains { states[$0] == true }
