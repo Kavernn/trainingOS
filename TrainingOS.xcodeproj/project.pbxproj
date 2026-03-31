@@ -38,6 +38,7 @@
 		329ACD1942044D42B9EE63F3 /* AlertService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0FE1CA8525F46319027AD6D /* AlertService.swift */; };
 		15AFE1BFA7B8487CBEECB98C /* ProactiveAlert.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAD9AC36E56041C996317086 /* ProactiveAlert.swift */; };
 		E3BB78033EEA4FB1AE6D7812 /* ProactiveBannerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* InfoButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */; };
 		D665E4472F5D98BA002AE470 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4332F5D98B8002AE470 /* ContentView.swift */; };
 		D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4422F5D98B8002AE470 /* SeanceView.swift */; };
 		D665E4492F5D98BA002AE470 /* HistoriqueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43E2F5D98B8002AE470 /* HistoriqueView.swift */; };
@@ -106,6 +107,7 @@
 		D0FE1CA8525F46319027AD6D /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
 		EAD9AC36E56041C996317086 /* ProactiveAlert.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveAlert.swift; sourceTree = "<group>"; };
 		C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveBannerCard.swift; sourceTree = "<group>"; };
+		F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoButton.swift; sourceTree = "<group>"; };
 		D665E4252F5D9858002AE470 /* TrainingOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainingOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D665E4332F5D98B8002AE470 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D665E4342F5D98B8002AE470 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
@@ -349,6 +351,7 @@
 				D665E43C2F5D98B8002AE470 /* DashboardView.swift */,
 				CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */,
 				C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */,
+				F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -584,6 +587,7 @@
 				329ACD1942044D42B9EE63F3 /* AlertService.swift in Sources */,
 				15AFE1BFA7B8487CBEECB98C /* ProactiveAlert.swift in Sources */,
 				E3BB78033EEA4FB1AE6D7812 /* ProactiveBannerCard.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* InfoButton.swift in Sources */,
 				AA00200A2F5D98BA002AE470 /* InventaireView.swift in Sources */,
 				AA00200B2F5D98BA002AE470 /* IntelligenceView.swift in Sources */,
 				663379608FE0A821EC0F7D89 /* CardioView.swift in Sources */,
