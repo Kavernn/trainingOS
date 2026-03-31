@@ -215,23 +215,24 @@ def prescribe_volume(
     Returns {sets, rep_min, rep_max, note}.
     base_sets comes from the programme scheme (e.g. "3x8-10" → 3).
     """
-    sets  = base_sets
+    MAX_SETS = 4
+    sets  = min(base_sets, MAX_SETS)
     notes: list[str] = []
 
     # Fatigue adjustment: reduce volume when fatigued
     if fatigue_score is not None:
         if fatigue_score >= 70:
-            sets = max(2, base_sets - 2)
+            sets = max(2, sets - 2)
             notes.append(f"fatigue élevée → {sets} sets")
         elif fatigue_score >= 50:
-            sets = max(2, base_sets - 1)
+            sets = max(2, sets - 1)
             notes.append(f"fatigue modérée → {sets} sets")
 
-    # Trend: ride a wave of positive progression → add a set
+    # Trend: ride a wave of positive progression → add a set (max 4)
     rate = compute_progression_rate(history) if history else None
     if rate is not None and rate >= 1.0:
         if fatigue_score is None or fatigue_score < 50:
-            sets = min(6, sets + 1)
+            sets = min(MAX_SETS, sets + 1)
             notes.append("progression ↑ +1 set")
 
     return {
