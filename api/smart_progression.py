@@ -146,15 +146,32 @@ def generate_suggestions(session_date: str, session_type: str, session_name: str
         return []
 
     current_session = db.get_workout_session_by_type(session_date, session_type)
-    if not current_session:
-        return []
 
-    # Match by session_name (e.g. "Push A") for accurate same-type comparison.
-    # Fall back to session_type if session_name not stored (older sessions).
+    # Pre-session mode: session not yet logged. Use the last known session as
+    # "current" so coaching is available before the session starts.
+    pre_session_mode = False
+    if not current_session:
+        if session_name:
+            current_session = db.get_previous_session_by_name(session_date, session_name)
+        if not current_session:
+            current_session = db.get_previous_session_of_type(session_date, session_type)
+        if not current_session:
+            return []
+        pre_session_mode = True
+
+    # In pre-session mode use current_session's own date as the cutoff so we
+    # find the session *before* it.  In normal mode use today's date.
+    ref_date = current_session["date"] if pre_session_mode else session_date
+
+    # Match by session_name for accurate same-type comparison.
+    # Always fall back to session_type for sessions logged before migration 010
+    # (session_name = NULL).
     if session_name:
-        prev_session = db.get_previous_session_by_name(session_date, session_name)
+        prev_session = db.get_previous_session_by_name(ref_date, session_name)
+        if not prev_session:
+            prev_session = db.get_previous_session_of_type(ref_date, session_type)
     else:
-        prev_session = db.get_previous_session_of_type(session_date, session_type)
+        prev_session = db.get_previous_session_of_type(ref_date, session_type)
 
     if not prev_session:
         return []

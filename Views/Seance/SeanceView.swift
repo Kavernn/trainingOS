@@ -437,6 +437,7 @@ struct WorkoutSeanceView: View {
     // Progression
     @State private var showProgressionSheet = false
     @State private var progressionSuggestions: [ProgressionSuggestion] = []
+    @State private var didLoadPreCoaching = false
 
     // Optional add-ons
     @State private var showAddCardio = false
@@ -922,6 +923,17 @@ struct WorkoutSeanceView: View {
         .onAppear {
             Task { await loadInventory() }
             computeGhost()
+            guard !didLoadPreCoaching else { return }
+            didLoadPreCoaching = true
+            Task {
+                let sType = isSecondSession ? "evening" : "morning"
+                if let sug = try? await APIService.shared.fetchProgressionSuggestions(
+                    date: data.todayDate, sessionType: sType, sessionName: data.today
+                ), !sug.filter({ $0.suggestionType != "maintain" }).isEmpty {
+                    progressionSuggestions = sug
+                    showProgressionSheet = true
+                }
+            }
         }
         .onChange(of: data.inventoryTypes) { fresh in
             if !fresh.isEmpty { inventoryTypes = fresh }
