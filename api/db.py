@@ -937,6 +937,102 @@ def get_session_exercise_logs(session_date: str) -> List[dict]:
         return result
 
 
+def get_workout_session_by_type(date: str, session_type: str) -> Optional[dict]:
+    """Return workout session for date + session_type, or None."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("*")
+            .eq("date", date)
+            .eq("session_type", session_type)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("get_workout_session_by_type(%s,%s) error: %s", date, session_type, e)
+        return None
+
+
+def get_exercise_logs_for_session_with_names(session_id: str) -> List[dict]:
+    """Return [{exercise_name, weight, reps, sets_json}] for a session_id."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        resp = (
+            _client.table("exercise_logs")
+            .select("weight, reps, sets_json, exercises(name)")
+            .eq("session_id", session_id)
+            .execute()
+        )
+        rows = resp.data or []
+        return [
+            {
+                "exercise_name": r["exercises"]["name"],
+                "weight": r["weight"],
+                "reps": r["reps"],
+                "sets_json": r.get("sets_json") or [],
+            }
+            for r in rows
+            if r.get("exercises")
+        ]
+    except Exception as e:
+        logger.error("get_exercise_logs_for_session_with_names(%s) error: %s", session_id, e)
+        return []
+
+
+def get_previous_session_of_type(current_date: str, session_type: str) -> Optional[dict]:
+    """Return the most recent workout_session of session_type strictly before current_date."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("*")
+            .eq("session_type", session_type)
+            .lt("date", current_date)
+            .order("date", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("get_previous_session_of_type(%s,%s) error: %s", current_date, session_type, e)
+        return None
+
+
+def get_exercise_info(exercise_name: str) -> Optional[dict]:
+    """Return exercise row (category, load_profile, default_scheme) from exercises table."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = (
+            _client.table("exercises")
+            .select("name, category, load_profile, default_scheme")
+            .eq("name", exercise_name)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("get_exercise_info(%s) error: %s", exercise_name, e)
+        return None
+
+
+def update_exercise_default_scheme(exercise_name: str, default_scheme: str) -> bool:
+    """Update exercises.default_scheme for an exercise."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("exercises").update({"default_scheme": default_scheme}).eq("name", exercise_name).execute()
+        return True
+    except Exception as e:
+        logger.error("update_exercise_default_scheme(%s) error: %s", exercise_name, e)
+        return False
+
+
 def upsert_exercise_log(
     session_date: str, exercise_name: str, weight: float, reps: str, sets_json: list | None = None
 ) -> bool:

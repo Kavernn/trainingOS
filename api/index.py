@@ -2915,6 +2915,45 @@ def api_food_catalog_save():
     return jsonify({"success": ok})
 
 
+@app.route("/api/progression_suggestions", methods=["GET"])
+def api_progression_suggestions():
+    """Return smart progression suggestions for a session.
+
+    Query params:
+      date         — session date (YYYY-MM-DD)
+      session_type — 'morning' | 'evening'
+    """
+    import smart_progression
+    session_date = request.args.get("date")
+    session_type = request.args.get("session_type", "morning")
+    if not session_date:
+        return jsonify({"error": "date required"}), 400
+    if session_type not in ("morning", "evening"):
+        return jsonify({"suggestions": []})
+    suggestions = smart_progression.generate_suggestions(session_date, session_type)
+    return jsonify({"suggestions": suggestions})
+
+
+@app.route("/api/apply_progression", methods=["POST"])
+def api_apply_progression():
+    """Persist an approved progression suggestion.
+
+    Body JSON:
+      exercise_name    — str
+      suggested_weight — float
+      suggested_scheme — str | null
+    """
+    import smart_progression
+    data = request.get_json() or {}
+    exercise_name = data.get("exercise_name")
+    suggested_weight = data.get("suggested_weight")
+    suggested_scheme = data.get("suggested_scheme")
+    if not exercise_name or suggested_weight is None:
+        return jsonify({"error": "exercise_name and suggested_weight required"}), 400
+    ok = smart_progression.apply_suggestion(exercise_name, float(suggested_weight), suggested_scheme)
+    return jsonify({"success": ok})
+
+
 if __name__ == "__main__":
     # PORT stocké dans l'env pour que le child du reloader utilise le même
     port = int(os.environ.setdefault("PORT", str(find_free_port())))

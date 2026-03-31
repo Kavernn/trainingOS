@@ -802,4 +802,25 @@ class APIService: ObservableObject {
         let data = try await fetchWithCache(url: url, key: "correlations")
         return try JSONDecoder().decode(CorrelationsData.self, from: data)
     }
+
+    // MARK: - Smart Progression
+    func fetchProgressionSuggestions(date: String, sessionType: String) async throws -> [ProgressionSuggestion] {
+        let url = URL(string: "\(baseURL)/api/progression_suggestions?date=\(date)&session_type=\(sessionType)")!
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 15
+        let (data, _) = try await URLSession.shared.data(for: req)
+        let decoded = try JSONDecoder().decode(ProgressionSuggestionsResponse.self, from: data)
+        return decoded.suggestions
+    }
+
+    func applyProgression(exerciseName: String, suggestedWeight: Double, suggestedScheme: String?) async throws {
+        var payload: [String: Any] = [
+            "exercise_name": exerciseName,
+            "suggested_weight": suggestedWeight
+        ]
+        if let scheme = suggestedScheme {
+            payload["suggested_scheme"] = scheme
+        }
+        _ = try await offlinePost(endpoint: "/api/apply_progression", payload: payload)
+    }
 }

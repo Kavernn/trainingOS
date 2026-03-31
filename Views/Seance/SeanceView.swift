@@ -434,6 +434,10 @@ struct WorkoutSeanceView: View {
     @State private var showRestTimer = false
     @State private var orderSaveError = false
 
+    // Progression
+    @State private var showProgressionSheet = false
+    @State private var progressionSuggestions: [ProgressionSuggestion] = []
+
     // Optional add-ons
     @State private var showAddCardio = false
     @State private var showAddHIIT   = false
@@ -862,8 +866,27 @@ struct WorkoutSeanceView: View {
             .presentationDetents([.medium, .large])
             .onAppear { rpe = computedSessionRPE }
         }
-        .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
-            Button("OK") { Task { await vm.load() } }
+        .onChange(of: vm.showSuccess) { success in
+            guard success else { return }
+            vm.showSuccess = false
+            Task {
+                let sType = isSecondSession ? "evening" : "morning"
+                let todayStr = data.todayDate
+                if let suggestions = try? await APIService.shared.fetchProgressionSuggestions(
+                    date: todayStr, sessionType: sType
+                ), !suggestions.filter({ $0.suggestionType != "maintain" }).isEmpty {
+                    progressionSuggestions = suggestions
+                    showProgressionSheet = true
+                } else {
+                    await vm.load()
+                }
+            }
+        }
+        .sheet(isPresented: $showProgressionSheet) {
+            ProgressionSuggestionsSheet(suggestions: progressionSuggestions) {
+                showProgressionSheet = false
+                Task { await vm.load() }
+            }
         }
         .alert("Erreur", isPresented: .constant(vm.submitError != nil)) {
             Button("OK") { vm.submitError = nil }
