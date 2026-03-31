@@ -73,12 +73,8 @@ def log_session(
         patch["duration_min"] = duration_min
     if energy_pre is not None:
         patch["energy_pre"] = energy_pre
-    if session_volume is not None:
-        patch["session_volume"] = session_volume
-    if total_reps is not None:
-        patch["total_reps"] = total_reps
-    if total_sets is not None:
-        patch["total_sets"] = total_sets
+    # session_volume / total_reps / total_sets are computed fields removed from
+    # workout_sessions schema — do NOT include in Supabase patch
 
     try:
         existing = db.get_workout_session(date)
@@ -163,12 +159,8 @@ def log_bonus_session(
         patch["duration_min"] = duration_min
     if energy_pre is not None:
         patch["energy_pre"] = energy_pre
-    if session_volume is not None:
-        patch["session_volume"] = session_volume
-    if total_reps is not None:
-        patch["total_reps"] = total_reps
-    if total_sets is not None:
-        patch["total_sets"] = total_sets
+    # session_volume / total_reps / total_sets are computed fields removed from
+    # workout_sessions schema — do NOT include in Supabase patch
 
     try:
         existing = db.get_workout_session_bonus(date)

@@ -102,7 +102,7 @@ ON CONFLICT (day_name) DO NOTHING;
 CREATE TABLE IF NOT EXISTS workout_sessions (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     date            DATE        NOT NULL,
-    rpe             SMALLINT    CHECK (rpe BETWEEN 1 AND 10),
+    rpe             NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),
     comment         TEXT,
     duration_min    INT,
     energy_pre      INT         CHECK (energy_pre BETWEEN 1 AND 10),
@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS hiit_logs (
     session_type        TEXT        NOT NULL,   -- e.g. "HIIT 1", "Sprint"
     rounds_planned      SMALLINT,
     rounds_completed    SMALLINT,
-    rpe                 SMALLINT    CHECK (rpe BETWEEN 1 AND 10),
+    rpe                 NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),
     feeling             TEXT,
     comment             TEXT,
     speed_max           NUMERIC,
@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS cardio_logs (
     cadence         NUMERIC,
     notes           TEXT,
     source          TEXT        NOT NULL DEFAULT 'manual',  -- manual | healthkit
-    rpe             SMALLINT    CHECK (rpe BETWEEN 1 AND 10),
+    rpe             NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),
     logged_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
