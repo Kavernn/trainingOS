@@ -883,7 +883,10 @@ struct WorkoutSeanceView: View {
             }
         }
         .sheet(isPresented: $showProgressionSheet) {
-            ProgressionSuggestionsSheet(suggestions: progressionSuggestions) {
+            ProgressionSuggestionsSheet(
+                suggestions: progressionSuggestions,
+                sessionName: data.today
+            ) {
                 showProgressionSheet = false
                 Task { await vm.load() }
             }

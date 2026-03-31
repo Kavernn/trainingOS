@@ -57,3 +57,4 @@ node_modules/
 *.xcuserstate
 xcuserdata/
 docs/Seance_Bonus_Samedi_V1.pdf
+.vercel

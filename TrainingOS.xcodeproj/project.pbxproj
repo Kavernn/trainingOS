@@ -62,6 +62,8 @@
 		FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1100002F5D98BA002AE470 /* WatchSyncService.swift */; };
 		FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11000A2F5D98BA002AE470 /* SplashView.swift */; };
 		PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH000001PH000001PH000001 /* PlatformHelpers.swift */; };
+		PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000001PS000001PS000001 /* ProgressionSuggestion.swift */; };
+		PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -133,6 +135,8 @@
 		FF1100002F5D98BA002AE470 /* WatchSyncService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchSyncService.swift; sourceTree = "<group>"; };
 		FF11000A2F5D98BA002AE470 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		PH000001PH000001PH000001 /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
+		PS000001PS000001PS000001 /* ProgressionSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestion.swift; sourceTree = "<group>"; };
+		PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestionsSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -313,6 +317,7 @@
 			children = (
 				D665E4342F5D98B8002AE470 /* APIModels.swift */,
 				EAD9AC36E56041C996317086 /* ProactiveAlert.swift */,
+				PS000001PS000001PS000001 /* ProgressionSuggestion.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -378,6 +383,7 @@
 				D665E4422F5D98B8002AE470 /* SeanceView.swift */,
 				AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */,
 				BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */,
+				PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */,
 			);
 			path = Seance;
 			sourceTree = "<group>";
@@ -610,6 +616,8 @@
 				DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */,
 				DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */,
 				FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */,
+				PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */,
+				PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

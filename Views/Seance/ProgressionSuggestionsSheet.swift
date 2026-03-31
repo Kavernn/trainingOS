@@ -2,11 +2,14 @@ import SwiftUI
 
 struct ProgressionSuggestionsSheet: View {
     let suggestions: [ProgressionSuggestion]
+    let sessionName: String          // F1 — titre contextuel
     var onDone: () -> Void
 
     @State private var applied: Set<String> = []
+    @State private var ignored: Set<String> = []
     @State private var applying: String? = nil
     @State private var errorMsg: String? = nil
+    @State private var showMaintain = false
 
     private var actionable: [ProgressionSuggestion] {
         suggestions.filter { $0.suggestionType != "maintain" }
@@ -17,30 +20,36 @@ struct ProgressionSuggestionsSheet: View {
     private var hasFatigue: Bool {
         suggestions.contains { $0.fatigueWarning }
     }
+    // F9 — "Passer" tant qu'il reste des suggestions non traitées
+    private var allHandled: Bool {
+        actionable.allSatisfy { applied.contains($0.exerciseName) || ignored.contains($0.exerciseName) }
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.black.ignoresSafeArea()
+                Color(hex: "080810").ignoresSafeArea()  // F10
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 14) {
 
+                        // Fatigue banner
                         if hasFatigue {
                             HStack(spacing: 10) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundColor(.orange)
-                                Text("Fatigue globale détectée — charge réduite recommandée")
+                                Text("Fatigue globale — charge réduite recommandée")
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.orange)
                             }
                             .padding(12)
                             .background(Color.orange.opacity(0.12))
-                            .cornerRadius(10)
+                            .cornerRadius(12)
                             .padding(.horizontal)
                         }
 
+                        // Actionable suggestions
                         if !actionable.isEmpty {
-                            Text("PROGRESSIONS")
+                            Text("COACHING")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(.gray)
                                 .padding(.horizontal)
@@ -50,26 +59,35 @@ struct ProgressionSuggestionsSheet: View {
                                 SuggestionRow(
                                     suggestion: s,
                                     isApplied: applied.contains(s.exerciseName),
+                                    isIgnored: ignored.contains(s.exerciseName),
                                     isApplying: applying == s.exerciseName,
-                                    onApply: { apply(s) }
+                                    onApply: { apply(s) },
+                                    onIgnore: { ignored.insert(s.exerciseName) }
                                 )
                             }
                         }
 
+                        // F4 — MAINTENIR compact, masqué par défaut
                         if !maintain.isEmpty {
-                            Text("MAINTENIR")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.gray)
-                                .padding(.horizontal)
-                                .padding(.top, 4)
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) { showMaintain.toggle() }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text("MAINTENIR (\(maintain.count))")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.gray)
+                                    Image(systemName: showMaintain ? "chevron.up" : "chevron.down")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(.gray)
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.top, 8)
 
-                            ForEach(maintain) { s in
-                                SuggestionRow(
-                                    suggestion: s,
-                                    isApplied: false,
-                                    isApplying: false,
-                                    onApply: nil
-                                )
+                            if showMaintain {
+                                ForEach(maintain) { s in
+                                    MaintainRow(suggestion: s)
+                                }
                             }
                         }
 
@@ -85,20 +103,27 @@ struct ProgressionSuggestionsSheet: View {
                     .padding(.top, 8)
                 }
             }
-            .navigationTitle("Progression")
+            .navigationTitle("Coaching — \(sessionName)")   // F1
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Terminer") { onDone() }
-                        .foregroundColor(.cyan)
+                    // F9 — "Passer" tant que non traité, "Terminer" quand tout est fait
+                    Button(allHandled ? "Terminer" : "Passer") { onDone() }
+                        .foregroundColor(allHandled ? .cyan : .gray)
+                        .fontWeight(allHandled ? .semibold : .regular)
                 }
             }
         }
+        // F14
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
     }
 
     private func apply(_ s: ProgressionSuggestion) {
         guard let weight = s.suggestedWeight else { return }
         applying = s.exerciseName
+        // F15 — haptic feedback
+        triggerImpact(style: .medium)
         Task {
             do {
                 try await APIService.shared.applyProgression(
@@ -120,74 +145,108 @@ struct ProgressionSuggestionsSheet: View {
     }
 }
 
-// MARK: - Row
+// MARK: - Actionable Row
 
 private struct SuggestionRow: View {
     let suggestion: ProgressionSuggestion
     let isApplied: Bool
+    let isIgnored: Bool
     let isApplying: Bool
-    let onApply: (() -> Void)?
+    let onApply: () -> Void
+    let onIgnore: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            // Type icon
-            Image(systemName: typeIcon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(typeColor)
-                .frame(width: 24)
+        VStack(alignment: .leading, spacing: 8) {  // F3 — hiérarchie verticale claire
 
-            VStack(alignment: .leading, spacing: 3) {
+            // Ligne 1 : icône + nom
+            HStack(spacing: 8) {
+                Image(systemName: typeIcon)
+                    .font(.system(size: 18, weight: .regular))  // F12 — 18pt regular
+                    .foregroundColor(typeColor)
+                    .frame(width: 22)
                 Text(suggestion.exerciseName)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.white)
+            }
 
-                Text(suggestion.reason)
-                    .font(.system(size: 12))
-                    .foregroundColor(.gray)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if let cur = suggestion.currentWeight, let sug = suggestion.suggestedWeight,
-                   suggestion.suggestionType != "maintain" {
-                    HStack(spacing: 4) {
-                        Text("\(cur.formatted()) kg")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.gray)
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 10))
-                            .foregroundColor(.gray)
-                        Text("\(sug.formatted()) kg")
-                            .font(.system(size: 13, weight: .black))
-                            .foregroundColor(typeColor)
-                    }
+            // Ligne 2 : poids current → suggested (F3 — avant la raison)
+            if let cur = suggestion.currentWeight, let sug = suggestion.suggestedWeight,
+               suggestion.suggestionType != "maintain" {
+                HStack(spacing: 6) {
+                    Text(cur.fmtLbs())
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.gray)
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.gray)
+                    Text(sug.fmtLbs())
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundColor(typeColor)
                 }
             }
 
-            Spacer()
+            // Ligne 3 : justification courte
+            Text(suggestion.reason)
+                .font(.system(size: 12))
+                .foregroundColor(Color.white.opacity(0.45))
+                .fixedSize(horizontal: false, vertical: true)
 
-            if let onApply = onApply {
-                if isApplied {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                        .font(.system(size: 20))
-                } else if isApplying {
-                    ProgressView()
-                        .tint(.cyan)
-                } else {
-                    Button(action: onApply) {
-                        Text("OK")
-                            .font(.system(size: 13, weight: .bold))
+            // Ligne 4 : actions
+            if !isApplied && !isIgnored {
+                HStack(spacing: 10) {
+                    // F8 — bouton Ignorer
+                    Button(action: onIgnore) {
+                        Text("Ignorer")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(Color.white.opacity(0.07))
+                            .cornerRadius(10)   // F11
+                    }
+
+                    // F7 — "Appliquer" avec poids cible
+                    if isApplying {
+                        ProgressView().tint(.cyan)
+                            .padding(.horizontal, 14)
+                    } else {
+                        Button(action: onApply) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 11, weight: .bold))
+                                if let sug = suggestion.suggestedWeight {
+                                    Text("Appliquer · \(sug.fmtLbs())")
+                                        .font(.system(size: 13, weight: .semibold))
+                                } else {
+                                    Text("Appliquer")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                            }
                             .foregroundColor(.black)
                             .padding(.horizontal, 14)
-                            .padding(.vertical, 6)
+                            .padding(.vertical, 7)
                             .background(typeColor)
-                            .cornerRadius(8)
+                            .cornerRadius(10)   // F11
+                        }
                     }
                 }
+            } else if isApplied {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text("Appliqué")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.green)
+                }
+            } else {
+                Text("Ignoré")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.gray.opacity(0.6))
             }
         }
         .padding(14)
-        .background(Color.white.opacity(0.05))
-        .cornerRadius(12)
+        .background(Color.white.opacity(0.07))  // F13 — 0.07 vs 0.05
+        .cornerRadius(14)
         .padding(.horizontal)
     }
 
@@ -212,10 +271,43 @@ private struct SuggestionRow: View {
     }
 }
 
+// MARK: - Compact Maintain Row  (F4)
+
+private struct MaintainRow: View {
+    let suggestion: ProgressionSuggestion
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "minus.circle")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(.gray)
+                .frame(width: 18)
+            Text(suggestion.exerciseName)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Color.white.opacity(0.55))
+            Spacer()
+            if let w = suggestion.currentWeight {
+                Text(w.fmtLbs())
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(10)
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - Helpers
+
 extension Double {
-    func formatted() -> String {
-        self.truncatingRemainder(dividingBy: 1) == 0
+    /// "165 lbs" — no decimal if whole number
+    func fmtLbs() -> String {
+        let s = self.truncatingRemainder(dividingBy: 1) == 0
             ? String(Int(self))
             : String(format: "%.1f", self)
+        return "\(s) lbs"
     }
 }
