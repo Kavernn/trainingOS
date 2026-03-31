@@ -177,12 +177,14 @@ class APIService: ObservableObject {
 
     func logSession(exos: [String], rpe: Double, comment: String,
                     durationMin: Double? = nil, energyPre: Int? = nil,
-                    secondSession: Bool = false, bonusSession: Bool = false) async throws {
+                    secondSession: Bool = false, bonusSession: Bool = false,
+                    sessionName: String? = nil) async throws {
         var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment]
         if let d = durationMin  { body["duration_min"] = d }
         if let e = energyPre    { body["energy_pre"] = e }
         if secondSession        { body["second_session"] = true }
         if bonusSession         { body["bonus_session"] = true }
+        if let n = sessionName, !n.isEmpty { body["session_name"] = n }
         let sessionData = try await offlinePost(endpoint: "/api/log_session", payload: body)
         if !sessionData.isEmpty {  // data vide = queued offline, conserver le cache existant
             CacheService.shared.clear(for: "dashboard")
@@ -804,8 +806,12 @@ class APIService: ObservableObject {
     }
 
     // MARK: - Smart Progression
-    func fetchProgressionSuggestions(date: String, sessionType: String) async throws -> [ProgressionSuggestion] {
-        let url = URL(string: "\(baseURL)/api/progression_suggestions?date=\(date)&session_type=\(sessionType)")!
+    func fetchProgressionSuggestions(date: String, sessionType: String, sessionName: String = "") async throws -> [ProgressionSuggestion] {
+        var urlStr = "\(baseURL)/api/progression_suggestions?date=\(date)&session_type=\(sessionType)"
+        if !sessionName.isEmpty, let encoded = sessionName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+            urlStr += "&session_name=\(encoded)"
+        }
+        let url = URL(string: urlStr)!
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
         let (data, _) = try await URLSession.shared.data(for: req)

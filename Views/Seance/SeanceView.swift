@@ -860,7 +860,7 @@ struct WorkoutSeanceView: View {
                 comment: $comment,
                 onSubmit: { energy in
                     let dur = Date().timeIntervalSince(vm.sessionStart) / 60
-                    Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energy) }
+                    Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energy, sessionName: data.today) }
                 }
             )
             .presentationDetents([.medium, .large])
@@ -873,7 +873,7 @@ struct WorkoutSeanceView: View {
                 let sType = isSecondSession ? "evening" : "morning"
                 let todayStr = data.todayDate
                 if let suggestions = try? await APIService.shared.fetchProgressionSuggestions(
-                    date: todayStr, sessionType: sType
+                    date: todayStr, sessionType: sType, sessionName: data.today
                 ), !suggestions.filter({ $0.suggestionType != "maintain" }).isEmpty {
                     progressionSuggestions = suggestions
                     showProgressionSheet = true
@@ -3066,11 +3066,12 @@ struct AddHIITSheet: View {
             logResults = restored
         }
         
-        func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil) async {
+        func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil) async {
             let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
             do {
                 try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
-                                                       durationMin: durationMin, energyPre: energyPre)
+                                                       durationMin: durationMin, energyPre: energyPre,
+                                                       sessionName: sessionName)
                 showSuccess = true
                 await APIService.shared.fetchDashboard()
             } catch { submitError = error.localizedDescription }

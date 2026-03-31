@@ -1,6 +1,6 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-03-30.
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-03-31.
 
 ---
 
@@ -74,6 +74,24 @@
 - [x] **Étape 8** — DashboardView.swift : `SoirCardView`
 - [x] **Schéma** — `session_type` ajouté à `docs/schema.sql` + migration 003 créée
 - [x] **Migration 003 appliquée sur Supabase prod** (2026-03-29)
+
+---
+
+## 🧠 Smart Progression — Coaching post-séance
+
+- [x] **Classification exercices** : `load_profile` (compound_heavy/hypertrophy/isolation/NULL) + `category` (push/pull/legs/core) sur tous les exercices (migration 006–008, 2026-03-31)
+- [x] **`api/smart_progression.py`** : moteur de suggestion post-séance — compare session courante vs précédente du même nom, génère increase_weight/increase_sets/deload/maintain/regression (2026-03-31)
+- [x] **Plateau detection** : ≥3 sessions consécutives au même poids → add set (cycle 2-2-2-2, max 4 sets) ou deload −10% (2026-03-31)
+- [x] **Wave loading** : seuls les sets au poids maximum (working sets) évalués pour le hit rate (2026-03-31)
+- [x] **Anti-régression** : si max_weight < session précédente → flag regression (2026-03-31)
+- [x] **Fatigue globale** : ≥50% exercices en régression → fatigue_warning sur toutes les suggestions (2026-03-31)
+- [x] **session_name matching** : Push A vs Push A (pas morning vs morning) — colonne `session_name TEXT` dans `workout_sessions` (migration 010), fallback vers session_type pour les anciennes sessions (2026-03-31)
+- [x] **GET /api/progression_suggestions** : endpoint + paramètre `session_name` (2026-03-31)
+- [x] **POST /api/apply_progression** : applique une suggestion → update default_scheme + weights KV (2026-03-31)
+- [x] **`Models/ProgressionSuggestion.swift`** : struct Codable avec CodingKeys snake_case (2026-03-31)
+- [x] **`Views/Seance/ProgressionSuggestionsSheet.swift`** : sheet post-séance, sections COACHING / MAINTENIR, boutons Appliquer/Ignorer, toolbar Passer→Terminer (2026-03-31)
+- [x] **SeanceView intégration** : `onChange(vm.showSuccess)` → fetch suggestions → show sheet si actionable, sinon reload direct (2026-03-31)
+- [x] **Migrations 006–010** : classification exercices (006–009) + session_name colonne (010) — 009 et 010 à appliquer manuellement si pas encore fait (2026-03-31)
 
 ---
 

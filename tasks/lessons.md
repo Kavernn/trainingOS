@@ -229,6 +229,50 @@ final class MyService: ObservableObject {
 
 ---
 
+## Backend — session_type insuffisant pour comparer des séances du même type
+
+`session_type = "morning"` ne suffit pas : Push A et Pull B sont tous deux `morning`. Comparer Push A vs Pull B = 0 suggestions pertinentes.
+
+**Règle :** Pour le coaching de progression, toujours matcher par `session_name` (ex: "Push A") stocké dans `workout_sessions.session_name`. Fallback vers `session_type` uniquement pour les anciennes sessions qui n'ont pas de `session_name`.
+
+```python
+if session_name:
+    prev_session = db.get_previous_session_by_name(session_date, session_name)
+else:
+    prev_session = db.get_previous_session_of_type(session_date, session_type)
+```
+
+**Côté iOS :** passer `data.today` (ex: "Push A") comme `sessionName` dans `logSession()` et `fetchProgressionSuggestions()`.
+
+---
+
+## Python — Bug de parité de plateau (parity off-by-one)
+
+`plateau % 2 == 0 → increase_sets` était **inversé** : plateau=3 (impair) déclenchait deload au lieu de add_set.
+
+**Cause :** La logique de cycle doit commencer par add_set à la session 3, donc compter *depuis 3*, pas depuis 0.
+
+**Correct :**
+```python
+cycle_pos = (plateau - 3) % 4
+if cycle_pos < 2 and can_add_set:  # sessions 3-4 → add set
+    ...
+else:                               # sessions 5-6 → deload
+    ...
+```
+
+**Règle générale :** Pour tout cycle qui commence à N≠0, utiliser `(count - N) % cycle_length` plutôt que `count % 2`.
+
+---
+
+## Backend — PostgREST rejette silencieusement un UPDATE si une colonne est absente du schéma
+
+Si on inclut une colonne qui n'existe pas encore en DB dans un `.update({...})` via PostgREST/Supabase, **l'UPDATE entier échoue sans erreur visible** (pas d'exception levée).
+
+**Règle :** Avant de passer un patch avec de nouvelles colonnes, s'assurer que la migration SQL est appliquée. Ne jamais ajouter une colonne au code Python avant d'avoir la colonne en DB.
+
+---
+
 ## Swift — Division entière dans les labels de durée
 
 `90 / 60 = 1` en Swift (division entière) → deux chips identiques "1min" pour 60s et 90s.

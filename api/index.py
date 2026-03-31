@@ -836,6 +836,7 @@ def api_log_session():
         bonus_session  = data.get("bonus_session", False)
         duration_min   = data.get("duration_min")
         energy_pre     = data.get("energy_pre")
+        session_name   = data.get("session_name")  # e.g. "Push A", "Pull B", "Legs"
 
         import db as _db
         if not second_session and not bonus_session:
@@ -853,10 +854,12 @@ def api_log_session():
             _db.complete_workout_session_bonus(today)
         elif second_session:
             log_second_session(today, rpe, comment, exos, duration_min, energy_pre,
-                               blocks=blocks, **vol_stats)
+                               blocks=blocks, **vol_stats, session_name=session_name)
+            if session_name:
+                _db.update_workout_session_by_type(today, "evening", {"session_name": session_name})
         else:
             log_session(today, rpe, comment, exos, duration_min, energy_pre,
-                        blocks=blocks, **vol_stats)
+                        blocks=blocks, **vol_stats, session_name=session_name)
             _db.complete_workout_session(today)
 
         return jsonify({"success": True})
@@ -2926,11 +2929,12 @@ def api_progression_suggestions():
     import smart_progression
     session_date = request.args.get("date")
     session_type = request.args.get("session_type", "morning")
+    session_name = request.args.get("session_name", "")
     if not session_date:
         return jsonify({"error": "date required"}), 400
     if session_type not in ("morning", "evening"):
         return jsonify({"suggestions": []})
-    suggestions = smart_progression.generate_suggestions(session_date, session_type)
+    suggestions = smart_progression.generate_suggestions(session_date, session_type, session_name)
     return jsonify({"suggestions": suggestions})
 
 

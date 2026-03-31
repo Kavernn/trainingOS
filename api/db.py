@@ -752,6 +752,24 @@ def get_exercise_history_grouped_by_session() -> dict:
         return {}
 
 
+def update_workout_session_by_type(date: str, session_type: str, patch: dict) -> bool:
+    """Update fields on a workout session identified by date + session_type."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .update(patch)
+            .eq("date", date)
+            .eq("session_type", session_type)
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("update_workout_session_by_type(%s,%s) error: %s", date, session_type, e)
+        return False
+
+
 def update_workout_session(date: str, patch: dict) -> bool:
     """Update fields on a workout session by date. Returns True on success."""
     # fallback to KV during migration
@@ -935,6 +953,26 @@ def get_session_exercise_logs(session_date: str) -> List[dict]:
                     "reps": history[0].get("reps"),
                 })
         return result
+
+
+def get_previous_session_by_name(current_date: str, session_name: str) -> Optional[dict]:
+    """Return the most recent workout_session with session_name strictly before current_date."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("*")
+            .eq("session_name", session_name)
+            .lt("date", current_date)
+            .order("date", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("get_previous_session_by_name(%s,%s) error: %s", current_date, session_name, e)
+        return None
 
 
 def get_workout_session_by_type(date: str, session_type: str) -> Optional[dict]:

@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-03-30
+Dernière mise à jour : 2026-03-31
 
 ---
 
@@ -12,6 +12,20 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 ---
 
 ## Systèmes complétés
+
+### Smart Progression (coaching post-séance)
+- Classification exercices : `load_profile` (compound_heavy/hypertrophy/isolation/NULL) + `category` (push/pull/legs/core) sur tous les exercices de la table `exercises`
+- `api/smart_progression.py` : moteur de suggestions — compare session courante vs précédente du même `session_name` (Push A vs Push A, etc.)
+- Règles par profil : compound_heavy/hypertrophy → ≥90% working sets at top_reps → +weight; isolation → 100%
+- Wave loading : seuls les sets au poids max évalués (working sets)
+- Plateau ≥3 sessions : cycle add_set (max 4 sets) → deload −10%
+- Anti-régression : max_weight < précédent → flag regression
+- Fatigue globale : ≥50% regressions → fatigue_warning sur toutes les suggestions
+- `GET /api/progression_suggestions?date&session_type&session_name` → liste de suggestions
+- `POST /api/apply_progression` → update default_scheme + weights KV
+- iOS : `ProgressionSuggestionsSheet.swift` (sheet post-séance avec sections COACHING/MAINTENIR, Appliquer/Ignorer, toolbar Passer→Terminer)
+- iOS : `Models/ProgressionSuggestion.swift` (struct Codable)
+- `workout_sessions.session_name TEXT` : colonne stockant "Push A", "Pull B", etc. pour le matching précis (migration 010)
 
 ### Core entraînement
 - Logging séances musculaires (exercices, séries, poids, RPE, RIR)
@@ -95,6 +109,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 | Détection stagnation | ✅ | `deload.py` |
 | Déload auto (stagnation + RPE + drop) | ✅ | `deload.py` |
 | e1RM Epley | ✅ | `progression.py` |
+| Smart progression post-séance (per-exercise coaching) | ✅ (2026-03-31) | `smart_progression.py` |
 
 ---
 
@@ -105,13 +120,29 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 | 003_session_type | `docs/migrations/003_session_type.sql` | ✅ Appliquée (2026-03-29) |
 | 004_food_catalog | `docs/migrations/004_food_catalog.sql` | ✅ Appliquée (2026-03-30) |
 | 005_nutrition_intel | `docs/migrations/005_nutrition_intel.sql` | ✅ Appliquée (2026-03-30) |
+| 006_load_profile | `docs/migrations/006_load_profile.sql` | ✅ Appliquée (2026-03-31) |
+| 007_exercise_classification_1 | `docs/migrations/007_exercise_classification_1.sql` | ✅ Appliquée (2026-03-31) |
+| 008_exercise_classification_2 | `docs/migrations/008_exercise_classification_2.sql` | ✅ Appliquée (2026-03-31) |
+| 009_fix_categories_2 | `docs/migrations/009_fix_categories_2.sql` | ✅ Appliquée (2026-03-31) |
+| 010_session_name | `docs/migrations/010_session_name.sql` | ⚠️ À appliquer manuellement |
 
 ---
 
 ## En cours / Prochaines étapes
 
-1. Tests E2E iOS (XCUITest flows critiques)
-2. Heatmap HIIT distinct de muscu dans StatsView
+1. Appliquer migration 010 sur Supabase : `ALTER TABLE public.workout_sessions ADD COLUMN IF NOT EXISTS session_name TEXT; CREATE INDEX IF NOT EXISTS idx_workout_sessions_name ON public.workout_sessions (session_name, date DESC);`
+2. Tests E2E iOS (XCUITest flows critiques)
+3. Heatmap HIIT distinct de muscu dans StatsView
+
+## Complété récemment (2026-03-31)
+
+- **Smart Progression Engine** : `api/smart_progression.py` — coaching post-séance per-exercise (increase_weight, increase_sets, deload, maintain, regression, fatigue_warning)
+- **Classification exercices** : `load_profile` + `category` sur tous les exercices (migrations 006–009)
+- **session_name matching** : colonne `workout_sessions.session_name` (migration 010) pour comparer Push A vs Push A, pas morning vs morning
+- **iOS ProgressionSuggestionsSheet** : sheet post-séance avec Appliquer/Ignorer par exercice, toolbar Passer→Terminer
+- **Suite de tests** : `tests/test_progression.py` (69 tests)
+- **Nouveaux fichiers iOS** : `Models/ProgressionSuggestion.swift`, `Views/Seance/ProgressionSuggestionsSheet.swift`
+- **Nouveaux fichiers Python** : `api/smart_progression.py`
 
 ## Complété récemment (2026-03-30)
 

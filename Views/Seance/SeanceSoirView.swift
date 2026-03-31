@@ -30,12 +30,12 @@ class SeanceSoirViewModel: SeanceViewModel {
         isLoading = false
     }
 
-    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil) async {
+    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil) async {
         let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
         do {
             try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
                                                    durationMin: durationMin, energyPre: energyPre,
-                                                   secondSession: true)
+                                                   secondSession: true, sessionName: sessionName)
             showSuccess = true
             await APIService.shared.fetchDashboard()
         } catch { submitError = error.localizedDescription }

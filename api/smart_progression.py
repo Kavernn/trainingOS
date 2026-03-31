@@ -121,9 +121,12 @@ def _plateau_count(history: list[dict], max_weight: float) -> int:
 # Core
 # ---------------------------------------------------------------------------
 
-def generate_suggestions(session_date: str, session_type: str) -> list[dict]:
+def generate_suggestions(session_date: str, session_type: str, session_name: str = "") -> list[dict]:
     """
     Return suggestion dicts for each exercise in the current session.
+
+    Matches against the previous session with the same session_name (e.g. "Push A").
+    Falls back to session_type matching if session_name is not available.
 
     Dict shape:
       {
@@ -146,7 +149,13 @@ def generate_suggestions(session_date: str, session_type: str) -> list[dict]:
     if not current_session:
         return []
 
-    prev_session = db.get_previous_session_of_type(session_date, session_type)
+    # Match by session_name (e.g. "Push A") for accurate same-type comparison.
+    # Fall back to session_type if session_name not stored (older sessions).
+    if session_name:
+        prev_session = db.get_previous_session_by_name(session_date, session_name)
+    else:
+        prev_session = db.get_previous_session_of_type(session_date, session_type)
+
     if not prev_session:
         return []
 

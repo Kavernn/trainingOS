@@ -47,6 +47,7 @@ def log_session(
     session_volume=None,
     total_reps=None,
     total_sets=None,
+    session_name: str | None = None,
 ):
     """Log a workout session for the given date.
 
@@ -73,6 +74,8 @@ def log_session(
         patch["duration_min"] = duration_min
     if energy_pre is not None:
         patch["energy_pre"] = energy_pre
+    if session_name is not None:
+        patch["session_name"] = session_name
     # session_volume / total_reps / total_sets are computed fields removed from
     # workout_sessions schema — do NOT include in Supabase patch
 
@@ -103,6 +106,7 @@ def log_second_session(
     session_volume=None,
     total_reps=None,
     total_sets=None,
+    session_name: str | None = None,
 ):
     """Append a second session to the same day without overwriting the first."""
     sessions = load_sessions()
