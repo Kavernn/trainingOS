@@ -1619,7 +1619,7 @@ struct AddHIITSheet: View {
                         .frame(width: 56, alignment: .center)
                     Text("RIR")
                         .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
-                        .frame(width: 52, alignment: .center)
+                        .frame(width: 70, alignment: .center)
                     Button {
                         withAnimation {
                             setBySetMode.toggle()
@@ -1663,21 +1663,25 @@ struct AddHIITSheet: View {
                             )
                             .disabled(setBySetMode && !isActive && !isDone)
                         // RIR stepper
-                        HStack(spacing: 3) {
+                        HStack(spacing: 0) {
                             Button { if sets[i].rir > 0 { sets[i].rir -= 1 } } label: {
-                                Image(systemName: "minus").font(.system(size: 9, weight: .bold))
+                                Image(systemName: "minus").font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.gray)
+                                    .frame(width: 26, height: 36)
+                                    .contentShape(Rectangle())
                             }.buttonStyle(.plain)
                             Text("\(sets[i].rir)")
                                 .font(.system(size: 13, weight: .black)).foregroundColor(.cyan)
                                 .frame(width: 18, alignment: .center)
                             Button { if sets[i].rir < 6 { sets[i].rir += 1 } } label: {
-                                Image(systemName: "plus").font(.system(size: 9, weight: .bold))
+                                Image(systemName: "plus").font(.system(size: 11, weight: .bold))
                                     .foregroundColor(.cyan)
+                                    .frame(width: 26, height: 36)
+                                    .contentShape(Rectangle())
                             }.buttonStyle(.plain)
                         }
-                        .frame(width: 52)
-                        .padding(.vertical, 8).padding(.horizontal, 4)
+                        .frame(width: 70)
+                        .padding(.vertical, 0).padding(.horizontal, 0)
                         .background(Color(hex: "191926")).cornerRadius(8)
                         .disabled(setBySetMode && !isActive && !isDone)
 
