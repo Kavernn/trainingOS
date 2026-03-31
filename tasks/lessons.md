@@ -186,6 +186,49 @@ isHidden = ChecklistStore.isHiddenToday
 
 ---
 
+## Python — int(rpe) tronque les valeurs décimales RPE
+
+`int(7.5) = 7` — la précision est silencieusement perdue.
+
+**Règle :** Dans `db.create_workout_session` (et toute fonction qui stocke RPE), toujours utiliser `round(float(rpe), 1)` :
+```python
+# ❌ Mauvais
+payload["rpe"] = int(rpe)
+
+# ✅ Correct
+payload["rpe"] = round(float(rpe), 1)
+```
+
+---
+
+## iOS — Xcode : les nouveaux fichiers Swift doivent être ajoutés manuellement au pbxproj
+
+Créer un fichier `.swift` avec Write ne l'ajoute **pas** automatiquement au target Xcode. L'erreur "Cannot find 'TypeName' in scope" dans un autre fichier est le symptôme classique.
+
+**Règle :** Après chaque nouveau fichier Swift, ajouter manuellement les 4 entrées dans `project.pbxproj` :
+1. `PBXBuildFile` (avec fileRef UUID)
+2. `PBXFileReference` (avec path et sourceTree)
+3. Children du group parent (par dossier)
+4. `PBXSourcesBuildPhase files`
+
+---
+
+## iOS — ObservableObject / @Published requiert import Combine
+
+`@Published` est défini dans `Combine`. Sans `import Combine`, Swift ne peut pas synthétiser la conformité à `ObservableObject` même si `Foundation` est importé.
+
+**Règle :** Tout `class` qui utilise `@Published` doit avoir `import Combine` :
+```swift
+import Foundation
+import Combine  // ← obligatoire
+
+final class MyService: ObservableObject {
+    @Published var items: [Item] = []
+}
+```
+
+---
+
 ## Swift — Division entière dans les labels de durée
 
 `90 / 60 = 1` en Swift (division entière) → deux chips identiques "1min" pour 60s et 90s.

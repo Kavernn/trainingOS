@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-03-29
+Dernière mise à jour : 2026-03-30
 
 ---
 
@@ -22,6 +22,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - Historique séances muscu + HIIT avec édition et pagination (limit/offset)
 - Programme hebdomadaire (planificateur par jour, placeholder si séance vide)
 - Inventaire des exercices (CRUD complet, temps de repos, tracking type)
+- Type EZ-Bar : poids total direct (pas de multiplication), champ "poids barre EZ", couleur jaune
 
 ### Statistiques & progression
 - StatsView 5 onglets : Volume / 1RM / Groupes musculaires / Cardio / Corps
@@ -49,6 +50,8 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - Haptics sur toutes les actions importantes
 - Confetti sur PR et complétion de séance
 - Timer de repos auto-start après chaque log
+- `CardInfoButton` + `InfoSheetView` : bouton ⓘ contextuel sur les cards LSS, déload, prévision 7j, volume landmarks (MEV/MAV/MRV)
+- `ProactiveBannerCard` : bannière dismissable en tête du Dashboard pour les alertes proactives
 
 ### Santé & récupération
 - Recovery modifiable (LogRecoverySheet avec prefillEntry, FAB adaptatif)
@@ -64,6 +67,12 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - CRUD objectifs avec deadline
 - Animation achievement (sparkles + scale spring)
 - Notifications locales J-7 et J-1 avant deadline
+
+### Feedback proactif (`api/alerts.py` + `AlertService.swift`)
+- 5 détecteurs read-only : protéines basses 2j, calories insuffisantes 2j, aucun log après 18h, même groupe musculaire 2j consécutifs, RPE > 8.5 sur 3 séances
+- `GET /api/proactive_alerts` → liste d'alertes triées par priorité
+- `AlertService` singleton : fetch au foreground + après log nutrition, dismiss par jour via UserDefaults
+- Notification locale schedulée à 19h30 si alerte présente et heure non passée
 
 ### Infrastructure
 - Offline-first : SyncManager (SwiftData → retry queue) + Supabase
@@ -94,6 +103,8 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 | Migration | Fichier | Statut |
 |---|---|---|
 | 003_session_type | `docs/migrations/003_session_type.sql` | ✅ Appliquée (2026-03-29) |
+| 004_food_catalog | `docs/migrations/004_food_catalog.sql` | ✅ Appliquée (2026-03-30) |
+| 005_nutrition_intel | `docs/migrations/005_nutrition_intel.sql` | ✅ Appliquée (2026-03-30) |
 
 ---
 
@@ -101,6 +112,15 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 1. Tests E2E iOS (XCUITest flows critiques)
 2. Heatmap HIIT distinct de muscu dans StatsView
+
+## Complété récemment (2026-03-30)
+
+- **RPE bonus session fix** : `int(rpe)` → `round(float(rpe), 1)` dans `db.create_workout_session`
+- **Ez-bar** : nouveau type d'équipement (poids total, pas par côté), champ bar_weight, couleur jaune
+- **CardInfoButton** : bouton ⓘ sur cards LSS/Coach du matin, Prévision 7j, Déload, Volume Landmarks
+- **Système d'alertes proactives** : `api/alerts.py` + `AlertService.swift` + `ProactiveBannerCard` + notification 19h30
+- **Nutrition intelligence** : settings glucides/lipides, DailyRemainingCard, AdherenceScoreCard, WorkoutBonusBadge, meal_type sur entrées
+- **Migrations** : 004_food_catalog, 005_nutrition_intel appliquées
 
 ## Complété récemment (2026-03-29) — Phase 2 todos
 
