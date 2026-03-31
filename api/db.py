@@ -1021,6 +1021,70 @@ def get_exercise_logs_for_session_with_names(session_id: str) -> List[dict]:
         return []
 
 
+def get_previous_session_by_exercises(ref_date: str, session_type: str, exercise_names: list) -> Optional[dict]:
+    """
+    Find the most recent session before ref_date whose exercise_logs contain
+    the most overlap with exercise_names.  Used as fallback when session_name
+    is NULL (sessions logged before migration 010).
+
+    Three queries: exercise IDs → session IDs with overlap count → session rows.
+    Returns the most recent session with ≥40% exercise overlap, or the most
+    recent session among the candidates if none reaches the threshold.
+    """
+    if not exercise_names or _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        # 1. Resolve exercise names → IDs
+        ex_resp = (
+            _client.table("exercises")
+            .select("id")
+            .in_("name", exercise_names)
+            .execute()
+        )
+        ex_ids = [e["id"] for e in (ex_resp.data or [])]
+        if not ex_ids:
+            return None
+
+        # 2. Find session IDs that have any of those exercises
+        logs_resp = (
+            _client.table("exercise_logs")
+            .select("session_id, exercise_id")
+            .in_("exercise_id", ex_ids)
+            .limit(1000)
+            .execute()
+        )
+        session_counts: dict = {}
+        for log in (logs_resp.data or []):
+            sid = log["session_id"]
+            session_counts[sid] = session_counts.get(sid, 0) + 1
+        if not session_counts:
+            return None
+
+        # 3. Filter to sessions of the right type before ref_date
+        sessions_resp = (
+            _client.table("workout_sessions")
+            .select("id, date, session_type, session_name")
+            .in_("id", list(session_counts.keys()))
+            .eq("session_type", session_type)
+            .lt("date", ref_date)
+            .order("date", desc=True)
+            .limit(10)
+            .execute()
+        )
+        candidates = sessions_resp.data or []
+        if not candidates:
+            return None
+
+        threshold = max(1, len(exercise_names) * 0.4)
+        for s in candidates:
+            if session_counts.get(s["id"], 0) >= threshold:
+                return s
+        return candidates[0]
+    except Exception as e:
+        logger.error("get_previous_session_by_exercises(%s) error: %s", ref_date, e)
+        return None
+
+
 def get_previous_session_of_type(current_date: str, session_type: str) -> Optional[dict]:
     """Return the most recent workout_session of session_type strictly before current_date."""
     if _client is None or MODE == "OFFLINE":

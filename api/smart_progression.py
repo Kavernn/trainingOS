@@ -121,12 +121,22 @@ def _plateau_count(history: list[dict], max_weight: float) -> int:
 # Core
 # ---------------------------------------------------------------------------
 
-def generate_suggestions(session_date: str, session_type: str, session_name: str = "") -> list[dict]:
+def generate_suggestions(
+    session_date: str,
+    session_type: str,
+    session_name: str = "",
+    session_exercises: Optional[list] = None,
+) -> list[dict]:
     """
     Return suggestion dicts for each exercise in the current session.
 
-    Matches against the previous session with the same session_name (e.g. "Push A").
-    Falls back to session_type matching if session_name is not available.
+    Lookup priority (same-workout matching):
+      1. By session_name  (e.g. "Pull A") — accurate for post-migration sessions
+      2. By exercise overlap — handles pre-migration sessions with session_name=NULL
+      3. By session_type only — last-resort fallback
+
+    session_exercises: list of exercise names in the current program session,
+        used for exercise-based matching when session_name lookup fails.
 
     Dict shape:
       {
@@ -134,7 +144,7 @@ def generate_suggestions(session_date: str, session_type: str, session_name: str
         "load_profile":   str | None,
         "suggestion_type": "increase_weight" | "increase_sets" | "deload"
                           | "maintain" | "regression",
-        "current_weight":  float | None,   # max weight this session
+        "current_weight":  float | None,
         "suggested_weight": float | None,
         "current_scheme":  str | None,
         "suggested_scheme": str | None,
@@ -145,34 +155,35 @@ def generate_suggestions(session_date: str, session_type: str, session_name: str
     if session_type not in ("morning", "evening"):
         return []
 
+    exercises = session_exercises or []
+
+    def _find_session(ref: str) -> Optional[dict]:
+        """Find the most recent matching session strictly before ref."""
+        if session_name:
+            s = db.get_previous_session_by_name(ref, session_name)
+            if s:
+                return s
+        if exercises:
+            s = db.get_previous_session_by_exercises(ref, session_type, exercises)
+            if s:
+                return s
+        return db.get_previous_session_of_type(ref, session_type)
+
     current_session = db.get_workout_session_by_type(session_date, session_type)
 
-    # Pre-session mode: session not yet logged. Use the last known session as
-    # "current" so coaching is available before the session starts.
+    # Pre-session mode: session not yet logged.
     pre_session_mode = False
     if not current_session:
-        if session_name:
-            current_session = db.get_previous_session_by_name(session_date, session_name)
-        if not current_session:
-            current_session = db.get_previous_session_of_type(session_date, session_type)
+        current_session = _find_session(session_date)
         if not current_session:
             return []
         pre_session_mode = True
 
-    # In pre-session mode use current_session's own date as the cutoff so we
-    # find the session *before* it.  In normal mode use today's date.
+    # In pre-session mode use the found session's date as cutoff to find the
+    # session *before* it.  In post-session mode use today's date.
     ref_date = current_session["date"] if pre_session_mode else session_date
 
-    # Match by session_name for accurate same-type comparison.
-    # Always fall back to session_type for sessions logged before migration 010
-    # (session_name = NULL).
-    if session_name:
-        prev_session = db.get_previous_session_by_name(ref_date, session_name)
-        if not prev_session:
-            prev_session = db.get_previous_session_of_type(ref_date, session_type)
-    else:
-        prev_session = db.get_previous_session_of_type(ref_date, session_type)
-
+    prev_session = _find_session(ref_date)
     if not prev_session:
         return []
 

@@ -2934,7 +2934,18 @@ def api_progression_suggestions():
         return jsonify({"error": "date required"}), 400
     if session_type not in ("morning", "evening"):
         return jsonify({"suggestions": []})
-    suggestions = smart_progression.generate_suggestions(session_date, session_type, session_name)
+    # Pass the current program's exercise list for this session so the engine
+    # can fall back to exercise-based matching for pre-migration sessions
+    # (session_name = NULL).
+    try:
+        program = load_program()
+        flat = {s: get_strength_exercises(d) for s, d in program.items()}
+        session_exercises = list(flat.get(session_name, {}).keys())
+    except Exception:
+        session_exercises = []
+    suggestions = smart_progression.generate_suggestions(
+        session_date, session_type, session_name, session_exercises
+    )
     return jsonify({"suggestions": suggestions})
 
 
