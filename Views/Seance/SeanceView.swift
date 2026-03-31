@@ -2641,20 +2641,18 @@ struct AddHIITSheet: View {
         @State private var ignored = false
 
         var body: some View {
-            if ignored { return AnyView(EmptyView()) }
-            if applied {
-                return AnyView(
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 12)).foregroundColor(.green)
-                        Text("Appliqué")
-                            .font(.system(size: 12, weight: .medium)).foregroundColor(.green)
-                    }
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Color.green.opacity(0.1)).cornerRadius(8)
-                )
-            }
-            return AnyView(
+            if ignored {
+                EmptyView()
+            } else if applied {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 12)).foregroundColor(.green)
+                    Text("Appliqué")
+                        .font(.system(size: 12, weight: .medium)).foregroundColor(.green)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(Color.green.opacity(0.1)).cornerRadius(8)
+            } else {
                 HStack(spacing: 8) {
                     Image(systemName: typeIcon)
                         .font(.system(size: 12)).foregroundColor(typeColor)
@@ -2668,24 +2666,26 @@ struct AddHIITSheet: View {
                     Spacer()
                     Button("Ignorer") { ignored = true }
                         .font(.system(size: 11)).foregroundColor(.gray)
-                    Button("Appliquer") {
-                        applied = true
-                        triggerImpact(style: .light)
-                        Task {
-                            try? await APIService.shared.applyProgression(
-                                exerciseName: suggestion.exerciseName,
-                                suggestedWeight: suggestion.suggestedWeight ?? 0,
-                                suggestedScheme: suggestion.suggestedScheme
-                            )
+                    if let w = suggestion.suggestedWeight {
+                        Button("Appliquer") {
+                            applied = true
+                            triggerImpact(style: .light)
+                            Task {
+                                try? await APIService.shared.applyProgression(
+                                    exerciseName: suggestion.exerciseName,
+                                    suggestedWeight: w,
+                                    suggestedScheme: suggestion.suggestedScheme
+                                )
+                            }
                         }
+                        .font(.system(size: 11, weight: .semibold)).foregroundColor(typeColor)
                     }
-                    .font(.system(size: 11, weight: .semibold)).foregroundColor(typeColor)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 6)
                 .background(typeColor.opacity(0.08))
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(typeColor.opacity(0.2), lineWidth: 1))
                 .cornerRadius(8)
-            )
+            }
         }
 
         private var typeIcon: String {
