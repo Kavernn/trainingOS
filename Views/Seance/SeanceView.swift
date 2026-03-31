@@ -374,6 +374,10 @@ struct ExtraSessionSheet: View {
     let data: SeanceData
     @StateObject private var extraVM = SeanceViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var showExitAlert = false
+    @State private var showFinishFromExit = false
+    @State private var exitRpe: Double = 7
+    @State private var exitComment: String = ""
 
     var body: some View {
         NavigationStack {
@@ -391,8 +395,43 @@ struct ExtraSessionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.orange)
+                    Button("Fermer") {
+                        if !extraVM.showSuccess && !extraVM.logResults.isEmpty {
+                            showExitAlert = true
+                        } else {
+                            dismiss()
+                        }
+                    }
+                    .foregroundColor(.orange)
                 }
+            }
+            .alert("Séance en cours", isPresented: $showExitAlert) {
+                Button("Sauvegarder") { showFinishFromExit = true }
+                Button("Abandonner", role: .destructive) {
+                    extraVM.logResults = [:]
+                    dismiss()
+                }
+                Button("Continuer", role: .cancel) {}
+            } message: {
+                Text("Tu as \(extraVM.logResults.count) exercice(s) loggé(s) non sauvegardés.")
+            }
+            .sheet(isPresented: $showFinishFromExit) {
+                FinishSessionSheet(
+                    exercises: Array(extraVM.logResults.keys),
+                    logResults: extraVM.logResults,
+                    elapsedMin: Date().timeIntervalSince(extraVM.sessionStart) / 60,
+                    rpe: $exitRpe,
+                    comment: $exitComment,
+                    onSubmit: { energy in
+                        let dur = Date().timeIntervalSince(extraVM.sessionStart) / 60
+                        Task { await extraVM.finish(rpe: exitRpe, comment: exitComment, durationMin: dur, energyPre: energy) }
+                    }
+                )
+            }
+            .onChange(of: extraVM.showSuccess) { success in
+                guard success else { return }
+                showFinishFromExit = false
+                dismiss()
             }
         }
     }
@@ -2082,18 +2121,26 @@ struct AddHIITSheet: View {
                         avgTotalRow
                     }
 
-                    // RPE slider
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text("RPE")
-                                .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                            Spacer()
-                            Text(String(format: "%.1f", exerciseRPE))
-                                .font(.system(size: 15, weight: .black))
-                                .foregroundColor(rpeColor(exerciseRPE))
+                    // RPE buttons
+                    HStack(spacing: 6) {
+                        Text("RPE")
+                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Spacer()
+                        ForEach([6, 7, 8, 9, 10], id: \.self) { val in
+                            let selected = Int(exerciseRPE) == val
+                            Button {
+                                exerciseRPE = Double(val)
+                                triggerImpact(style: .light)
+                            } label: {
+                                Text("\(val)")
+                                    .font(.system(size: 13, weight: selected ? .black : .medium))
+                                    .foregroundColor(selected ? .black : .gray)
+                                    .frame(width: 32, height: 26)
+                                    .background(selected ? rpeColor(Double(val)) : Color(hex: "1a1a2e"))
+                                    .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
                         }
-                        Slider(value: $exerciseRPE, in: 6...10, step: 0.5)
-                            .tint(rpeColor(exerciseRPE))
                     }
                     .padding(.top, 4)
 
@@ -2275,35 +2322,20 @@ struct AddHIITSheet: View {
         private func logExercise() {
             guard !alreadyLogged || isEditing, canLog else { return }
             guard !repsStr.isEmpty else { return }
-            let wasEditing = isEditing
             if isEditing { isLogged = false }
             isLogged = true
             isEditing = false
-            logStatus = .loading
 
             // ── Time-based branch ──
             if isTimeBased {
                 let setsPayload: [[String: Any]] = sets.map { ["weight": 0, "reps": String($0.duration)] }
-                Task {
-                    do {
-                        try await APIService.shared.logExercise(
-                            exercise: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
-                            sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
-                            equipmentType: "bodyweight", painZone: painZone)
-                        await MainActor.run {
-                            logResult = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE)
-                            logStatus = .success(0)
-                            onLogged?()
-                            triggerNotificationFeedback(.success)
-                            if restSeconds != nil { showRestTimer = true }
-                        }
-                    } catch {
-                        await MainActor.run {
-                            isLogged = false
-                            logStatus = .error("Erreur réseau — réessaie")
-                        }
-                    }
-                }
+                logResult = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
+                    sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
+                    equipmentType: "bodyweight", painZone: painZone)
+                logStatus = .success(0)
+                onLogged?()
+                triggerNotificationFeedback(.success)
+                if restSeconds != nil { showRestTimer = true }
                 return
             }
 
@@ -2317,7 +2349,6 @@ struct AddHIITSheet: View {
             let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
                 guard !s.reps.isEmpty else { return nil }
                 if equipmentType == "bodyweight" {
-                    // Send lest weight (0 if no lest) so backend knows it's bodyweight-only
                     let lest = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
                     return ["weight": units.toStorage(lest), "reps": s.reps, "rir": s.rir]
                 }
@@ -2326,41 +2357,13 @@ struct AddHIITSheet: View {
                 let setTotal = totalWeight(for: units.toStorage(sw))
                 return ["weight": setTotal, "reps": s.reps, "rir": s.rir]
             }
-            Task {
-                do {
-                    let response = try await APIService.shared.logExercise(
-                        exercise: name, weight: total, reps: repsStr, rpe: exerciseRPE,
-                        sets: setsPayload, force: wasEditing, isSecond: isSecondSession, isBonus: isBonusSession,
-                        equipmentType: equipmentType, painZone: painZone)
-                    await MainActor.run {
-                        logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE)
-                        logStatus = .success(total)
-                        onLogged?()
-                        triggerNotificationFeedback(.success)
-                        if restSeconds != nil { showRestTimer = true }
-                    }
-                    if response.isPR == true {
-                        let content = UNMutableNotificationContent()
-                        content.title = "🏆 Nouveau PR !"
-                        content.body  = "\(name) — 1RM estimé : \(String(format: "%.1f", response.oneRM ?? 0)) lbs"
-                        content.sound = .default
-                        let request = UNNotificationRequest(
-                            identifier: "pr-\(name)-\(Date().timeIntervalSince1970)",
-                            content: content,
-                            trigger: nil
-                        )
-                        try? await UNUserNotificationCenter.current().add(request)
-                        await MainActor.run {
-                            triggerNotificationFeedback(.success)
-                        }
-                    }
-                } catch {
-                    await MainActor.run {
-                        isLogged = false
-                        logStatus = .error("Erreur réseau — réessaie")
-                    }
-                }
-            }
+            logResult = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE,
+                sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
+                equipmentType: equipmentType, painZone: painZone)
+            logStatus = .success(total)
+            onLogged?()
+            triggerNotificationFeedback(.success)
+            if restSeconds != nil { showRestTimer = true }
         }
     }
     
@@ -3111,6 +3114,11 @@ struct AddHIITSheet: View {
         let weight: Double
         let reps: String
         var rpe: Double? = nil
+        var sets: [[String: Any]] = []
+        var isSecond: Bool = false
+        var isBonus: Bool = false
+        var equipmentType: String = ""
+        var painZone: String = ""
     }
     
     @MainActor
@@ -3164,6 +3172,24 @@ struct AddHIITSheet: View {
         func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil) async {
             let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
             do {
+                // Batch-commit all exercise logs (deferred from session)
+                for result in logResults.values {
+                    let response = try await APIService.shared.logExercise(
+                        exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
+                        sets: result.sets, force: false,
+                        isSecond: result.isSecond, isBonus: result.isBonus,
+                        equipmentType: result.equipmentType, painZone: result.painZone)
+                    if response.isPR == true {
+                        let content = UNMutableNotificationContent()
+                        content.title = "🏆 Nouveau PR !"
+                        content.body  = "\(result.name) — 1RM estimé : \(String(format: "%.1f", response.oneRM ?? 0)) lbs"
+                        content.sound = .default
+                        let request = UNNotificationRequest(
+                            identifier: "pr-\(result.name)-\(Date().timeIntervalSince1970)",
+                            content: content, trigger: nil)
+                        try? await UNUserNotificationCenter.current().add(request)
+                    }
+                }
                 try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
                                                        durationMin: durationMin, energyPre: energyPre,
                                                        sessionName: sessionName)
