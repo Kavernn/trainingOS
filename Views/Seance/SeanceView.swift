@@ -594,6 +594,7 @@ struct WorkoutSeanceView: View {
             isBonusSession: false,
             restSeconds: restSeconds(for: name),
             prescription: data.prescriptions?[name],
+            suggestion: data.exerciseSuggestions?[name],
             logResult: $vm.logResults[name],
             onLogged: nil
         )
@@ -1474,6 +1475,7 @@ struct AddHIITSheet: View {
         var isBonusSession: Bool = false
         var restSeconds: Int? = nil
         var prescription: ExercisePrescription? = nil
+        var suggestion: ProgressionSuggestion? = nil
         @Binding var logResult: ExerciseLogResult?
         var onLogged: (() -> Void)? = nil
         @ObservedObject private var units = UnitSettings.shared
@@ -1907,6 +1909,11 @@ struct AddHIITSheet: View {
                             }
                         }
                     }
+                }
+
+                // Inline coaching chip — shown when not yet logged and suggestion is actionable
+                if logResult == nil, let s = suggestion, s.suggestionType != "maintain" {
+                    CoachingChip(suggestion: s)
                 }
 
                 if alreadyLogged && !isEditing {
@@ -2625,6 +2632,82 @@ struct AddHIITSheet: View {
         }
     }
     
+    // MARK: - Inline Coaching Chip
+
+    private struct CoachingChip: View {
+        let suggestion: ProgressionSuggestion
+
+        @State private var applied = false
+        @State private var ignored = false
+
+        var body: some View {
+            if ignored { return AnyView(EmptyView()) }
+            if applied {
+                return AnyView(
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 12)).foregroundColor(.green)
+                        Text("Appliqué")
+                            .font(.system(size: 12, weight: .medium)).foregroundColor(.green)
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Color.green.opacity(0.1)).cornerRadius(8)
+                )
+            }
+            return AnyView(
+                HStack(spacing: 8) {
+                    Image(systemName: typeIcon)
+                        .font(.system(size: 12)).foregroundColor(typeColor)
+                    if let w = suggestion.suggestedWeight {
+                        Text(w.fmtLbs())
+                            .font(.system(size: 13, weight: .black)).foregroundColor(typeColor)
+                    }
+                    Text(suggestion.reason)
+                        .font(.system(size: 11)).foregroundColor(.white.opacity(0.5))
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Ignorer") { ignored = true }
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                    Button("Appliquer") {
+                        applied = true
+                        triggerImpact(style: .light)
+                        Task {
+                            try? await APIService.shared.applyProgression(
+                                exerciseName: suggestion.exerciseName,
+                                suggestedWeight: suggestion.suggestedWeight ?? 0,
+                                suggestedScheme: suggestion.suggestedScheme
+                            )
+                        }
+                    }
+                    .font(.system(size: 11, weight: .semibold)).foregroundColor(typeColor)
+                }
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(typeColor.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(typeColor.opacity(0.2), lineWidth: 1))
+                .cornerRadius(8)
+            )
+        }
+
+        private var typeIcon: String {
+            switch suggestion.suggestionType {
+            case "increase_weight": return "arrow.up.circle.fill"
+            case "increase_sets":   return "plus.circle.fill"
+            case "deload":          return "arrow.down.circle.fill"
+            case "regression":      return "exclamationmark.circle.fill"
+            default:                return "minus.circle"
+            }
+        }
+        private var typeColor: Color {
+            switch suggestion.suggestionType {
+            case "increase_weight": return .cyan
+            case "increase_sets":   return .green
+            case "deload":          return .orange
+            case "regression":      return .red
+            default:                return .gray
+            }
+        }
+    }
+
     // MARK: - Special (Yoga/Recovery)
     struct SpecialSeanceView: View {
         let sessionType: String

@@ -840,7 +840,7 @@ def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
             return weights.get(exercise_name, {}).get("history", [])[:limit]
         resp = (
             _client.table("exercise_logs")
-            .select("weight, reps, session_id, workout_sessions(date)")
+            .select("weight, reps, sets_json, session_id, workout_sessions(date)")
             .eq("exercise_id", ex_id)
             .order("workout_sessions(date)", desc=True)
             .limit(limit)
@@ -852,6 +852,7 @@ def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
                 "date":       r["workout_sessions"]["date"],
                 "weight":     r["weight"],
                 "reps":       r["reps"],
+                "sets_json":  r.get("sets_json"),
                 "session_id": r["session_id"],
             }
             for r in rows

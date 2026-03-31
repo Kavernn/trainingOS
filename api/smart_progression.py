@@ -118,7 +118,149 @@ def _plateau_count(history: list[dict], max_weight: float) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Core
+# Core — per-exercise helper
+# ---------------------------------------------------------------------------
+
+def _suggest_for_exercise(
+    name: str,
+    log: dict,
+    prev_log: dict,
+    info: dict,
+    history: list[dict],
+) -> Optional[dict]:
+    """
+    Run the full progression logic for a single exercise.
+    `log` and `prev_log` are exercise_log rows (weight, reps, sets_json).
+    `history` is the full recent history used for plateau detection.
+    Returns a suggestion dict, or None when no suggestion can be made
+    (e.g. no load_profile, no valid scheme).
+    """
+    load_profile   = info.get("load_profile")
+    category       = (info.get("category") or "").lower()
+    default_scheme = (info.get("default_scheme") or "")
+
+    if not load_profile:
+        return None
+
+    all_sets  = _sets_from_log(log)
+    working   = _working_sets(all_sets)
+    cur_max_w = _max_weight(all_sets)
+
+    prev_all_sets = _sets_from_log(prev_log)
+    prev_max_w    = _max_weight(prev_all_sets)
+
+    # Anti-regression
+    if cur_max_w is not None and prev_max_w is not None and cur_max_w < prev_max_w:
+        lbs = int(prev_max_w) if prev_max_w == int(prev_max_w) else prev_max_w
+        return {
+            "exercise_name":   name,
+            "load_profile":    load_profile,
+            "suggestion_type": "regression",
+            "current_weight":  cur_max_w,
+            "suggested_weight": prev_max_w,
+            "current_scheme":  default_scheme,
+            "suggested_scheme": None,
+            "reason":          f"↓ vs dernière session ({lbs} lbs). Récupère avant d'augmenter.",
+            "fatigue_warning": False,
+        }
+
+    target_sets, top_reps = _parse_scheme(default_scheme)
+    if top_reps == 0:
+        return None
+
+    threshold = 1.0 if load_profile == "isolation" else 0.9
+    hit       = _hit_rate(working, top_reps)
+    plateau   = _plateau_count(history, cur_max_w) if cur_max_w else 0
+
+    if hit >= threshold and cur_max_w is not None:
+        if plateau >= 3:
+            can_add_set = target_sets < 4
+            cycle_pos   = (plateau - 3) % 4
+            if cycle_pos < 2 and can_add_set:
+                new_scheme = (
+                    f"{target_sets + 1}x{default_scheme.split('x')[1]}"
+                    if "x" in default_scheme else default_scheme
+                )
+                return {
+                    "exercise_name":   name,
+                    "load_profile":    load_profile,
+                    "suggestion_type": "increase_sets",
+                    "current_weight":  cur_max_w,
+                    "suggested_weight": cur_max_w,
+                    "current_scheme":  default_scheme,
+                    "suggested_scheme": new_scheme,
+                    "reason":          f"Bloqué {plateau}× — essaie {target_sets + 1} séries",
+                    "fatigue_warning": False,
+                }
+            else:
+                deload_w = round(cur_max_w * 0.9 / 2.5) * 2.5
+                reason   = (
+                    f"Bloqué {plateau}× à 4 séries — décharge -10%"
+                    if not can_add_set else
+                    f"Bloqué {plateau}× — décharge -10%"
+                )
+                return {
+                    "exercise_name":   name,
+                    "load_profile":    load_profile,
+                    "suggestion_type": "deload",
+                    "current_weight":  cur_max_w,
+                    "suggested_weight": deload_w,
+                    "current_scheme":  default_scheme,
+                    "suggested_scheme": default_scheme,
+                    "reason":          reason,
+                    "fatigue_warning": False,
+                }
+        else:
+            increment = _increment_for_category(category)
+            new_w     = cur_max_w + increment
+            return {
+                "exercise_name":   name,
+                "load_profile":    load_profile,
+                "suggestion_type": "increase_weight",
+                "current_weight":  cur_max_w,
+                "suggested_weight": new_w,
+                "current_scheme":  default_scheme,
+                "suggested_scheme": default_scheme,
+                "reason":          f"{target_sets}×{top_reps} accompli → +{int(increment)} lbs. Objectif : {default_scheme}",
+                "fatigue_warning": False,
+            }
+    else:
+        return {
+            "exercise_name":   name,
+            "load_profile":    load_profile,
+            "suggestion_type": "maintain",
+            "current_weight":  cur_max_w,
+            "suggested_weight": cur_max_w,
+            "current_scheme":  default_scheme,
+            "suggested_scheme": default_scheme,
+            "reason":          f"Objectif : {default_scheme}. Continue à ce poids.",
+            "fatigue_warning": False,
+        }
+
+
+def generate_exercise_suggestion(exercise_name: str) -> Optional[dict]:
+    """
+    Generate a progression suggestion for a single exercise based on its
+    two most recent logs, regardless of session.
+    Returns None for maintain (silent) or when data is insufficient.
+    """
+    history = db.get_exercise_history(exercise_name, limit=6)
+    if len(history) < 2:
+        return None
+
+    info = db.get_exercise_info(exercise_name)
+    if not info or not info.get("load_profile"):
+        return None
+
+    s = _suggest_for_exercise(exercise_name, history[0], history[1], info, history)
+    # Suppress maintain — shown only when actionable
+    if s and s["suggestion_type"] == "maintain":
+        return None
+    return s
+
+
+# ---------------------------------------------------------------------------
+# Core — session-level
 # ---------------------------------------------------------------------------
 
 def generate_suggestions(
@@ -199,120 +341,20 @@ def generate_suggestions(
     regression_count = 0
 
     for log in current_logs:
-        name = log["exercise_name"]
-        info = db.get_exercise_info(name)
-        load_profile   = info.get("load_profile") if info else None
-        category       = (info.get("category") or "").lower() if info else ""
-        default_scheme = (info.get("default_scheme") or "") if info else ""
-
-        if not load_profile:
+        name     = log["exercise_name"]
+        info     = db.get_exercise_info(name)
+        if not info:
             continue
-
         prev_log = prev_by_name.get(name)
         if not prev_log:
             continue
-
-        all_sets     = _sets_from_log(log)
-        working      = _working_sets(all_sets)
-        cur_max_w    = _max_weight(all_sets)
-
-        prev_all_sets = _sets_from_log(prev_log)
-        prev_max_w    = _max_weight(prev_all_sets)
-
-        # Anti-regression (compare max weights)
-        if cur_max_w is not None and prev_max_w is not None and cur_max_w < prev_max_w:
+        history  = db.get_exercise_history(name, limit=5)
+        s = _suggest_for_exercise(name, log, prev_log, info, history)
+        if s is None:
+            continue
+        if s["suggestion_type"] == "regression":
             regression_count += 1
-            suggestions.append({
-                "exercise_name":  name,
-                "load_profile":   load_profile,
-                "suggestion_type": "regression",
-                "current_weight": cur_max_w,
-                "suggested_weight": prev_max_w,
-                "current_scheme": default_scheme,
-                "suggested_scheme": None,
-                "reason": f"↓ vs dernière session ({int(prev_max_w) if prev_max_w == int(prev_max_w) else prev_max_w} lbs). Récupère avant d'augmenter.",
-                "fatigue_warning": False,
-            })
-            continue
-
-        target_sets, top_reps = _parse_scheme(default_scheme)
-        if top_reps == 0:
-            continue
-
-        threshold = 1.0 if load_profile == "isolation" else 0.9
-        hit = _hit_rate(working, top_reps)
-
-        # Plateau detection on max weight
-        history = db.get_exercise_history(name, limit=5)
-        plateau = _plateau_count(history, cur_max_w) if cur_max_w else 0
-
-        if hit >= threshold and cur_max_w is not None:
-            if plateau >= 3:
-                # Cycle: sessions 3-4 → add set, 5-6 → deload, 7-8 → add set, …
-                # Never exceed 4 sets. If already at 4, go straight to deload.
-                can_add_set = target_sets < 4
-                cycle_pos = (plateau - 3) % 4
-                if cycle_pos < 2 and can_add_set:
-                    new_scheme = (
-                        f"{target_sets + 1}x{default_scheme.split('x')[1]}"
-                        if "x" in default_scheme else default_scheme
-                    )
-                    suggestions.append({
-                        "exercise_name":  name,
-                        "load_profile":   load_profile,
-                        "suggestion_type": "increase_sets",
-                        "current_weight": cur_max_w,
-                        "suggested_weight": cur_max_w,
-                        "current_scheme": default_scheme,
-                        "suggested_scheme": new_scheme,
-                        "reason": f"Bloqué {plateau}× — essaie {target_sets + 1} séries",
-                        "fatigue_warning": False,
-                    })
-                else:
-                    # Already at 4 sets or in deload cycle
-                    deload_w = round(cur_max_w * 0.9 / 2.5) * 2.5
-                    reason = (
-                        f"Bloqué {plateau}× à 4 séries — décharge -10%"
-                        if not can_add_set else
-                        f"Bloqué {plateau}× — décharge -10%"
-                    )
-                    suggestions.append({
-                        "exercise_name":  name,
-                        "load_profile":   load_profile,
-                        "suggestion_type": "deload",
-                        "current_weight": cur_max_w,
-                        "suggested_weight": deload_w,
-                        "current_scheme": default_scheme,
-                        "suggested_scheme": default_scheme,
-                        "reason": reason,
-                        "fatigue_warning": False,
-                    })
-            else:
-                increment = _increment_for_category(category)
-                new_w = cur_max_w + increment
-                suggestions.append({
-                    "exercise_name":  name,
-                    "load_profile":   load_profile,
-                    "suggestion_type": "increase_weight",
-                    "current_weight": cur_max_w,
-                    "suggested_weight": new_w,
-                    "current_scheme": default_scheme,
-                    "suggested_scheme": default_scheme,
-                    "reason": f"{target_sets}×{top_reps} accompli → +{int(increment)} lbs. Objectif : {default_scheme}",
-                    "fatigue_warning": False,
-                })
-        else:
-            suggestions.append({
-                "exercise_name":  name,
-                "load_profile":   load_profile,
-                "suggestion_type": "maintain",
-                "current_weight": cur_max_w,
-                "suggested_weight": cur_max_w,
-                "current_scheme": default_scheme,
-                "suggested_scheme": default_scheme,
-                "reason": f"Objectif : {default_scheme}. Continue à ce poids.",
-                "fatigue_warning": False,
-            })
+        suggestions.append(s)
 
     # Global fatigue flag
     if current_logs and regression_count / len(current_logs) >= 0.5:

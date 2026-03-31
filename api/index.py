@@ -1877,6 +1877,16 @@ def api_seance_data():
                 history=ex_history,
             )
 
+    # Per-exercise inline coaching (only when session not yet logged)
+    import smart_progression as _sp
+    exercise_suggestions = {}
+    if not already_logged:
+        today_exercises = flat_program.get(today_str, {})
+        for ex_name in today_exercises:
+            s = _sp.generate_exercise_suggestion(ex_name)
+            if s:
+                exercise_suggestions[ex_name] = s
+
     return jsonify({
         "today": today_str,
         "today_date": today_date,
@@ -1891,6 +1901,7 @@ def api_seance_data():
         "inventory_rest": inventory_rest,
         "exercise_order": exercise_order,
         "prescriptions": prescriptions,
+        "exercise_suggestions": exercise_suggestions,
     })
 
 

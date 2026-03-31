@@ -225,6 +225,7 @@ struct SeanceData: Codable {
     let inventoryRest: [String: Int]          // exercise name → rest seconds
     let exerciseOrder: [String: [String]]
     let prescriptions: [String: ExercisePrescription]?
+    let exerciseSuggestions: [String: ProgressionSuggestion]?
 
     enum CodingKeys: String, CodingKey {
         case today
@@ -233,10 +234,11 @@ struct SeanceData: Codable {
         case schedule
         case fullProgram = "full_program"
         case weights, week, prescriptions
-        case inventoryTypes    = "inventory_types"
-        case inventoryTracking = "inventory_tracking"
-        case inventoryRest     = "inventory_rest"
-        case exerciseOrder     = "exercise_order"
+        case inventoryTypes       = "inventory_types"
+        case inventoryTracking    = "inventory_tracking"
+        case inventoryRest        = "inventory_rest"
+        case exerciseOrder        = "exercise_order"
+        case exerciseSuggestions  = "exercise_suggestions"
     }
 
     init(from decoder: Decoder) throws {
@@ -253,6 +255,7 @@ struct SeanceData: Codable {
         inventoryRest      = (try? c.decode([String: Int].self,    forKey: .inventoryRest))     ?? [:]
         exerciseOrder      = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))   ?? [:]
         prescriptions      = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
+        exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
     }
 
     init(today: String, todayDate: String, alreadyLogged: Bool,
@@ -261,19 +264,21 @@ struct SeanceData: Codable {
          inventoryTypes: [String: String], inventoryTracking: [String: String] = [:],
          inventoryRest: [String: Int] = [:],
          exerciseOrder: [String: [String]],
-         prescriptions: [String: ExercisePrescription]? = nil) {
-        self.today              = today
-        self.todayDate          = todayDate
-        self.alreadyLogged      = alreadyLogged
-        self.schedule           = schedule
-        self.fullProgram        = fullProgram
-        self.weights            = weights
-        self.week               = week
-        self.inventoryTypes     = inventoryTypes
-        self.inventoryTracking  = inventoryTracking
-        self.inventoryRest      = inventoryRest
-        self.exerciseOrder      = exerciseOrder
-        self.prescriptions      = prescriptions
+         prescriptions: [String: ExercisePrescription]? = nil,
+         exerciseSuggestions: [String: ProgressionSuggestion]? = nil) {
+        self.today               = today
+        self.todayDate           = todayDate
+        self.alreadyLogged       = alreadyLogged
+        self.schedule            = schedule
+        self.fullProgram         = fullProgram
+        self.weights             = weights
+        self.week                = week
+        self.inventoryTypes      = inventoryTypes
+        self.inventoryTracking   = inventoryTracking
+        self.inventoryRest       = inventoryRest
+        self.exerciseOrder       = exerciseOrder
+        self.prescriptions       = prescriptions
+        self.exerciseSuggestions = exerciseSuggestions
     }
 }
 
