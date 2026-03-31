@@ -17,6 +17,7 @@ struct InventoryItem: Identifiable {
     var muscles: [String]
     var trackingType: String
     var restSeconds: Int?
+    var loadProfile: String   // "compound_heavy" | "compound_hypertrophy" | "isolation" | ""
     init(name: String, _ d: [String: Any]) {
         self.name          = name
         self.type          = d["type"]          as? String ?? "machine"
@@ -29,6 +30,7 @@ struct InventoryItem: Identifiable {
         self.muscles       = d["muscles"]       as? [String] ?? []
         self.trackingType  = d["tracking_type"] as? String ?? "reps"
         self.restSeconds   = d["rest_seconds"]  as? Int
+        self.loadProfile   = d["load_profile"]  as? String ?? ""
     }
 }
 
@@ -225,6 +227,7 @@ struct InventaireView: View {
             "muscles":        item.muscles,
             "tracking_type":  item.trackingType,
             "rest_seconds":   item.restSeconds as Any,
+            "load_profile":   item.loadProfile.isEmpty ? NSNull() : item.loadProfile,
         ]
         if let orig = originalName, orig != item.name {
             body["original_name"] = orig
@@ -294,6 +297,15 @@ struct InventaireRow: View {
     let item: InventoryItem
     var isInProgram: Bool = false
 
+    func loadProfileInfo(_ lp: String) -> (String, Color) {
+        switch lp {
+        case "compound_heavy":        return ("LOURD", .red)
+        case "compound_hypertrophy":  return ("HYPER", .orange)
+        case "isolation":             return ("ISO", .yellow)
+        default:                      return ("", .gray)
+        }
+    }
+
     var typeIcon: String {
         switch item.type {
         case "barbell":    return "chart.bar.fill"
@@ -354,6 +366,15 @@ struct InventaireRow: View {
                         Text(item.defaultScheme)
                             .font(.system(size: 11, weight: .medium)).foregroundColor(.orange.opacity(0.8))
                     }
+                    if !item.loadProfile.isEmpty {
+                        let (lpLabel, lpColor) = loadProfileInfo(item.loadProfile)
+                        Text(lpLabel)
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(lpColor)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(lpColor.opacity(0.15))
+                            .cornerRadius(4)
+                    }
                 }
             }
             Spacer()
@@ -402,6 +423,7 @@ struct InventoryFormSheet: View {
     @State private var timeSets      = 3
     @State private var timeDuration  = 30  // seconds
     @State private var restSecs: Int? = nil   // nil = pas de repos configuré
+    @State private var loadProfile   = ""     // "" | "compound_heavy" | "compound_hypertrophy" | "isolation"
 
     let types      = ["barbell", "ez-bar", "dumbbell", "cable", "machine", "bodyweight"]
     let categories = ["", "push", "pull", "legs", "core", "mobility"]
@@ -573,6 +595,14 @@ struct InventoryFormSheet: View {
                         .listRowBackground(Color(hex: "11111c"))
                     }
 
+                    // ── Profil de charge ──────────────────────────
+                    Section {
+                        loadProfileGrid
+                    } header: {
+                        sectionHeader("Profil de charge")
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+
                     // ── Niveau ────────────────────────────────────
                     Section {
                         levelGrid
@@ -647,6 +677,7 @@ struct InventoryFormSheet: View {
                         item.muscles       = muscles.sorted()
                         item.trackingType  = trackingType
                         item.restSeconds   = restSecs
+                        item.loadProfile   = loadProfile
                         onSave(item)
                         dismiss()
                     }
@@ -668,6 +699,7 @@ struct InventoryFormSheet: View {
                 muscles       = Set(e.muscles)
                 trackingType  = e.trackingType
                 restSecs      = e.restSeconds
+                loadProfile   = e.loadProfile
                 // Parse existing time scheme (e.g. "3x45s" → sets=3, duration=45)
                 if e.trackingType == "time" {
                     let parts = e.defaultScheme.lowercased().split(separator: "x")
@@ -825,6 +857,32 @@ struct InventoryFormSheet: View {
                         .background(sel ? Color.orange : Color(hex: "191926"))
                         .cornerRadius(10)
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var loadProfileGrid: some View {
+        let opts: [(String, String, Color)] = [
+            ("compound_heavy",        "Composé lourd\n5–8 reps",    .red),
+            ("compound_hypertrophy",  "Composé hyper\n8–12 reps",   .orange),
+            ("isolation",             "Isolation\n12–15 reps",       .yellow),
+        ]
+        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            ForEach(opts, id: \.0) { value, label, color in
+                let sel = loadProfile == value
+                Button { loadProfile = (loadProfile == value ? "" : value) } label: {
+                    Text(label)
+                        .font(.system(size: 10, weight: .semibold))
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(sel ? .black : color)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(sel ? color : color.opacity(0.12))
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : color.opacity(0.3), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
