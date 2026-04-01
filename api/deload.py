@@ -2,7 +2,7 @@
 import json
 from pathlib import Path
 from sessions import load_sessions
-from db import get_json, set_json
+import db as _db
 
 
 BASE_DIR      = Path(__file__).parent
@@ -129,24 +129,27 @@ def calculer_poids_deload(weights: dict, exercices: list[str] = None) -> dict:
 # ─────────────────────────────────────────────────────────────
 
 def load_deload_state() -> dict:
-    return get_json("deload_state", {"active": False})
+    return _db.get_deload_state()
 
 def save_deload_state(state: dict):
-    set_json("deload_state", state)
+    _db.set_deload_state(
+        active=state.get("active", False),
+        started_at=state.get("started_at"),
+        reason=state.get("reason"),
+    )
 
+
+_fatigue_cache: dict = {}
 
 def get_cached_fatigue_score() -> int:
-    """
-    Return today's fatigue score (0–100). Cached in KV daily to avoid
-    redundant Supabase reads on every exercise log.
-    """
+    """Return today's fatigue score (0–100). Cached in memory for the request lifetime."""
     from datetime import date
     today = date.today().isoformat()
-    cached = get_json("fatigue_score_cache", {})
-    if isinstance(cached, dict) and cached.get("date") == today:
-        return int(cached.get("score", 0))
+    if _fatigue_cache.get("date") == today:
+        return int(_fatigue_cache.get("score", 0))
     result = compute_fatigue_score()
-    set_json("fatigue_score_cache", {"date": today, "score": result["score"]})
+    _fatigue_cache["date"] = today
+    _fatigue_cache["score"] = result["score"]
     return result["score"]
 
 

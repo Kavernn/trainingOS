@@ -327,6 +327,13 @@ class BaseRouteTest(unittest.TestCase):
                 return True
             return False
 
+        def get_deload_state():
+            return copy.deepcopy(store.get("deload_state", {"active": False, "started_at": None, "reason": None}))
+
+        def set_deload_state(active=False, started_at=None, reason=None):
+            store["deload_state"] = {"active": active, "started_at": started_at, "reason": reason}
+            return True
+
         db_mock = MagicMock(
             get_json=get_json,
             set_json=set_json,
@@ -356,6 +363,8 @@ class BaseRouteTest(unittest.TestCase):
             delete_exercise_log_entry=delete_exercise_log_entry,
             get_nutrition_settings=get_nutrition_settings,
             delete_program_session=delete_program_session,
+            get_deload_state=get_deload_state,
+            set_deload_state=set_deload_state,
         )
 
         self.db_patch = patch.dict("sys.modules", {"db": db_mock})

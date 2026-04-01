@@ -46,10 +46,10 @@ def load_settings() -> dict:
 def save_settings(limite_calories: int, objectif_proteines: int,
                   glucides: float = 0, lipides: float = 0):
     db.update_nutrition_settings({
-        "limite_calories":    limite_calories,
-        "objectif_proteines": objectif_proteines,
-        "glucides":           glucides,
-        "lipides":            lipides,
+        "calorie_limit":  limite_calories,
+        "protein_target": objectif_proteines,
+        "glucides":       glucides,
+        "lipides":        lipides,
     })
 
 

@@ -657,22 +657,22 @@ def api_log():
         weights[exercise]["last_reps"] = reps
         weights[exercise]["last_logged"]    = datetime.now().strftime("%Y-%m-%d %H:%M")
 
-        # Ensure session stub exists so exercise_log can write the FK
+        # Ensure session stub exists; write exercise log directly by session_id
         import db as _db
         today = _today_mtl()
         if is_bonus:
-            bonus_stub = _db.get_or_create_workout_session_bonus(today)
-            # Write this exercise directly to the bonus session (not via save_weights
-            # which would link it to the morning session)
-            bonus_sid = (bonus_stub or {}).get("id")
-            if bonus_sid:
-                _db.upsert_exercise_log_direct(bonus_sid, exercise, round(weight, 1), reps, sets_json=sets_data or None)
+            stub = _db.get_or_create_workout_session_bonus(today)
         elif is_second:
-            _db.get_or_create_workout_session_second(today)
-            save_weights(weights)
+            stub = _db.get_or_create_workout_session_second(today)
         else:
-            _db.get_or_create_workout_session(today)
-            save_weights(weights)
+            stub = _db.get_or_create_workout_session(today)
+
+        sid = (stub or {}).get("id")
+        if sid:
+            _db.upsert_exercise_log_direct(
+                sid, exercise, round(weight, 1), reps,
+                sets_json=sets_data or None,
+            )
         achieved = check_goals_achieved(weights)
 
         return jsonify({
@@ -1029,15 +1029,6 @@ def api_delete_exercise_log():
     # Delete from relational layer first
     import db as _db
     _db.delete_exercise_log_entry(date, exercise)
-
-    # Delete from KV
-    weights = load_weights()
-    if exercise in weights:
-        history = weights[exercise].get("history", [])
-        weights[exercise]["history"] = [e for e in history if e.get("date") != date]
-        if weights[exercise]["history"]:
-            weights[exercise]["current_weight"] = weights[exercise]["history"][0].get("weight", 0)
-        save_weights(weights)
 
     return jsonify({"success": True})
 
