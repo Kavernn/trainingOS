@@ -29,6 +29,7 @@ PROGRAM = {
             "exercises": {
                 "Back Squat":        "4x5-7",
                 "Romanian Deadlift": "3x8-10",
+                "Bench Press":       "3x8-10",
             },
         }]
     },
@@ -171,10 +172,10 @@ def make_store():
         store["program"] = program
         return True
 
-    def get_full_program():
+    def get_full_program(program_id=None):
         return copy.deepcopy(store.get("program", {}))
 
-    def save_full_program(program):
+    def save_full_program(program, program_id=None):
         current = store.get("program", {})
         current.update(copy.deepcopy(program))
         store["program"] = current
@@ -470,6 +471,63 @@ def make_store():
         store["deload_state"] = state
         return True
 
+    def get_all_programs():
+        return []
+
+    def get_default_program_id():
+        return None
+
+    def get_all_session_names():
+        program = store.get("program", {})
+        return sorted(program.keys())
+
+    def complete_workout_session(date):
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            sessions[date]["completed"] = True
+            store["sessions"] = sessions
+            return True
+        return False
+
+    def complete_workout_session_bonus(date):
+        return True
+
+    def get_workout_session_bonus(date):
+        return None
+
+    def delete_workout_session_by_type(date, session_type="morning"):
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            del sessions[date]
+            store["sessions"] = sessions
+            return True
+        return False
+
+    def update_workout_session_by_type(date, session_type, patch):
+        sessions = store.get("sessions", {})
+        if date in sessions:
+            sessions[date].update(patch)
+            store["sessions"] = sessions
+            return True
+        return False
+
+    def delete_exercise_logs_for_session(session_id):
+        return True
+
+    def get_relational_week_schedule():
+        return copy.deepcopy(store.get("morning_schedule", {}))
+
+    def set_relational_week_schedule(schedule):
+        store["morning_schedule"] = copy.deepcopy(schedule)
+        return True
+
+    def get_evening_week_schedule():
+        return copy.deepcopy(store.get("evening_schedule", {}))
+
+    def set_evening_week_schedule(schedule):
+        store["evening_schedule"] = copy.deepcopy(schedule)
+        return True
+
     db_mock = MagicMock(
         get_json=get_json,
         set_json=set_json,
@@ -521,6 +579,19 @@ def make_store():
         update_nutrition_settings=update_nutrition_settings,
         get_deload_state=get_deload_state,
         set_deload_state=set_deload_state,
+        get_all_programs=get_all_programs,
+        get_default_program_id=get_default_program_id,
+        get_all_session_names=get_all_session_names,
+        complete_workout_session=complete_workout_session,
+        complete_workout_session_bonus=complete_workout_session_bonus,
+        get_workout_session_bonus=get_workout_session_bonus,
+        delete_workout_session_by_type=delete_workout_session_by_type,
+        update_workout_session_by_type=update_workout_session_by_type,
+        delete_exercise_logs_for_session=delete_exercise_logs_for_session,
+        get_relational_week_schedule=get_relational_week_schedule,
+        set_relational_week_schedule=set_relational_week_schedule,
+        get_evening_week_schedule=get_evening_week_schedule,
+        set_evening_week_schedule=set_evening_week_schedule,
     )
     return store, db_mock
 

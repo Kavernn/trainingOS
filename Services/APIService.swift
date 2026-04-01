@@ -507,8 +507,8 @@ class APIService: ObservableObject {
         _ = try await offlinePost(endpoint: "/api/nutrition/add", payload: payload)
     }
 
-    func updateNutritionSettings(calories: Double, proteines: Double, glucides: Double, lipides: Double) async {
-        _ = try? await offlinePost(endpoint: "/api/nutrition/settings", payload: [
+    func updateNutritionSettings(calories: Double, proteines: Double, glucides: Double, lipides: Double) async throws {
+        _ = try await offlinePost(endpoint: "/api/nutrition/settings", payload: [
             "limite_calories":    Int(calories),
             "objectif_proteines": Int(proteines),
             "glucides":           glucides,

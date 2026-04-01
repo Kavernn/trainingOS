@@ -944,9 +944,10 @@ def api_hiit_edit():
             return jsonify({"error": "Entrée introuvable"}), 400
 
         patch = {}
-        if "rpe"    in data: patch["rpe"]              = data["rpe"]
-        if "rounds" in data: patch["rounds_completes"] = data["rounds"]
-        if "notes"  in data: patch["comment"]          = data["notes"]
+        if "rpe"     in data: patch["rpe"]              = data["rpe"]
+        if "rounds"  in data: patch["rounds_completes"] = data["rounds"]
+        if "notes"   in data: patch["comment"]          = data["notes"]
+        if "feeling" in data: patch["feeling"]          = data["feeling"]
 
         _db.update_hiit_log(entry.get("id"), patch)
         return jsonify({"success": True})
@@ -1166,7 +1167,17 @@ def api_programme():
                 add_exercise(exercise, {"default_scheme": scheme, "type": "machine", "increment": 5})
 
         elif action == "remove":
-            exercises.pop(data.get("exercise", ""), None)
+            exercise_to_remove = data.get("exercise", "")
+            exercises.pop(exercise_to_remove, None)
+            # Cascade delete from inventory if exercise no longer appears in any other session
+            if exercise_to_remove:
+                is_in_other = any(
+                    exercise_to_remove in get_strength_exercises(sdef)
+                    for sname, sdef in session_data.items()
+                    if sname != jour
+                )
+                if not is_in_other:
+                    _db.delete_exercise_by_name(exercise_to_remove)
 
         elif action == "scheme":
             exercise   = data.get("exercise")
@@ -1529,7 +1540,7 @@ def api_deload_status():
         "Deload status — recommande=%s stagnants=%d rpe_moyen=%s",
         rapport["recommande"],
         len(rapport["stagnants"]),
-        rapport["fatigue_rpe"].get("rpe_moyen"),
+        rapport["fatigue_rpe"],
     )
     return jsonify(rapport)
 

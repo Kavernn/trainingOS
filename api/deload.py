@@ -314,7 +314,7 @@ def analyser_deload(weights: dict) -> dict:
         "deload_actif":        state["active"],
         "deload_since":        state.get("since"),
         "deload_reason":       state.get("reason"),
-        "stagnants":           stagnant_names,
+        "stagnants":           stagnants,
         "performance_drops":   drop_names,
         "fatigue_rpe":         fatigue["fatigue"],
         "recommande":          recommande,
@@ -364,7 +364,8 @@ def afficher_rapport_deload(weights: dict):
     # Stagnation
     if rapport["stagnants"]:
         print(f"  ⚠️  STAGNATION DÉTECTÉE sur {len(rapport['stagnants'])} exercice(s) :\n")
-        for name in rapport["stagnants"]:
+        for item in rapport["stagnants"]:
+            name = item["exercise"] if isinstance(item, dict) else item
             print(f"    • {name}")
         print()
     else:

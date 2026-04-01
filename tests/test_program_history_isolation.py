@@ -20,20 +20,25 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
 # ── Fixtures ────────────────────────────────────────────────────────────────
 
-# Old flat format — migration to blocks happens automatically in load_program()
 FAKE_PROGRAM = {
     "Upper A": {
-        "Bench Press":      "4x5-7",
-        "Barbell Row":      "4x6-8",
-        "Overhead Press":   "3x6-8",
+        "blocks": [{"type": "strength", "order": 0, "exercises": {
+            "Bench Press":    "4x5-7",
+            "Barbell Row":    "4x6-8",
+            "Overhead Press": "3x6-8",
+        }}]
     },
     "Upper B": {
-        "Incline DB Press": "4x8-10",
-        "Seated Row":       "3x10-12",
+        "blocks": [{"type": "strength", "order": 0, "exercises": {
+            "Incline DB Press": "4x8-10",
+            "Seated Row":       "3x10-12",
+        }}]
     },
     "Lower": {
-        "Back Squat":       "4x5-7",
-        "Romanian Deadlift":"3x8-10",
+        "blocks": [{"type": "strength", "order": 0, "exercises": {
+            "Back Squat":        "4x5-7",
+            "Romanian Deadlift": "3x8-10",
+        }}]
     },
 }
 
@@ -67,10 +72,11 @@ FAKE_WEIGHTS = {
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 def make_db_store():
-    """Retourne un store in-memory qui simule get_json / set_json."""
+    """Retourne un store in-memory qui simule les méthodes db."""
     store = {
         "program": copy.deepcopy(FAKE_PROGRAM),
         "weights": copy.deepcopy(FAKE_WEIGHTS),
+        "inventory": {},
     }
 
     def get_json(key, default=None):
@@ -80,7 +86,46 @@ def make_db_store():
         store[key] = copy.deepcopy(value)
         return True
 
-    return store, get_json, set_json
+    def get_full_program(program_id=None):
+        return copy.deepcopy(store.get("program", {}))
+
+    def save_full_program(program, program_id=None):
+        current = store.get("program", {})
+        current.update(copy.deepcopy(program))
+        store["program"] = current
+        return True
+
+    def get_exercises():
+        return copy.deepcopy(store.get("inventory", {}))
+
+    def upsert_exercise(data):
+        name = data.get("name", "")
+        inv = store.get("inventory", {})
+        inv[name] = {k: v for k, v in data.items() if k != "name"}
+        store["inventory"] = inv
+        return data
+
+    def delete_exercise_by_name(name):
+        inv = store.get("inventory", {})
+        inv.pop(name, None)
+        store["inventory"] = inv
+        return True
+
+    def delete_program_session(name):
+        prog = store.get("program", {})
+        prog.pop(name, None)
+        store["program"] = prog
+        return True
+
+    def get_relational_week_schedule():
+        return None
+
+    def get_evening_week_schedule():
+        return None
+
+    return store, get_json, set_json, get_full_program, save_full_program, \
+        get_exercises, upsert_exercise, delete_exercise_by_name, \
+        delete_program_session, get_relational_week_schedule, get_evening_week_schedule
 
 
 def _session_exercises(store, jour):
@@ -105,7 +150,10 @@ class TestProgramDoesNotAffectHistory(unittest.TestCase):
 
     def setUp(self):
         """Crée une app Flask de test avec un store isolé."""
-        self.store, get_json, set_json = make_db_store()
+        (self.store, get_json, set_json, get_full_program, save_full_program,
+         get_exercises, upsert_exercise, delete_exercise_by_name,
+         delete_program_session, get_relational_week_schedule,
+         get_evening_week_schedule) = make_db_store()
 
         # Patch db avant d'importer index
         self.db_patch = patch.dict("sys.modules", {
@@ -113,6 +161,14 @@ class TestProgramDoesNotAffectHistory(unittest.TestCase):
                 get_json=get_json,
                 set_json=set_json,
                 _ON_VERCEL=False,
+                get_full_program=get_full_program,
+                save_full_program=save_full_program,
+                get_exercises=get_exercises,
+                upsert_exercise=upsert_exercise,
+                delete_exercise_by_name=delete_exercise_by_name,
+                delete_program_session=delete_program_session,
+                get_relational_week_schedule=get_relational_week_schedule,
+                get_evening_week_schedule=get_evening_week_schedule,
             )
         })
         self.db_patch.start()
@@ -210,13 +266,14 @@ class TestProgramDoesNotAffectHistory(unittest.TestCase):
     def test_history_entries_survive_full_program_replacement(self):
         """Remplacer TOUS les exercices d'un jour ne supprime rien de weights."""
         before = self._weights_snapshot()
-        for ex in list(FAKE_PROGRAM["Upper A"].keys()):
+        original_exos = list(_session_exercises(self.store, "Upper A").keys())
+        for ex in original_exos:
             self._post({"action": "remove", "jour": "Upper A", "exercise": ex})
         for ex in ["Push-up", "Pull-up", "Dip"]:
             self._post({"action": "add", "jour": "Upper A",
                         "exercise": ex, "scheme": "3x15"})
         # Tous les anciens exercices ont disparu du programme
-        for ex in FAKE_PROGRAM["Upper A"]:
+        for ex in original_exos:
             self.assertNotIn(ex, _session_exercises(self.store, "Upper A"))
         # Mais leur historique est intact
         self.assertEqual(before, self._weights_snapshot(),

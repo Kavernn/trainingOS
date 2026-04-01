@@ -26,34 +26,69 @@ def make_db_store(initial_log=None, initial_settings=None):
         }),
     }
 
-    def get_json(key, default=None):
-        return copy.deepcopy(store.get(key, default))
+    def get_nutrition_entries(date):
+        log = store.get("nutrition_log", {})
+        return copy.deepcopy((log.get(date) or {}).get("entries", []))
 
-    def set_json(key, value):
-        store[key] = copy.deepcopy(value)
+    def get_nutrition_entries_recent(n=7):
+        log = store.get("nutrition_log", {})
+        days = sorted(log.keys(), reverse=True)[:n]
+        return [
+            {
+                "date":     d,
+                "calories": round(sum(e.get("calories", 0) for e in (log.get(d) or {}).get("entries", []))),
+                "nb":       len((log.get(d) or {}).get("entries", [])),
+            }
+            for d in days
+        ]
+
+    def insert_nutrition_entry(data):
+        log = store.get("nutrition_log", {})
+        d = data.get("date", "")
+        if d not in log:
+            log[d] = {"entries": []}
+        log[d]["entries"].append(copy.deepcopy(data))
+        store["nutrition_log"] = log
+        return copy.deepcopy(data)
+
+    def delete_nutrition_entry(entry_id):
+        log = store.get("nutrition_log", {})
+        for day_data in log.values():
+            before = len(day_data.get("entries", []))
+            day_data["entries"] = [e for e in day_data.get("entries", []) if e.get("id") != entry_id]
+            if len(day_data["entries"]) < before:
+                store["nutrition_log"] = log
+                return True
+        return False
+
+    def get_nutrition_settings():
+        return copy.deepcopy(store.get("nutrition_settings", {}))
+
+    def update_nutrition_settings(patch):
+        settings = store.get("nutrition_settings", {})
+        settings.update(patch)
+        store["nutrition_settings"] = settings
         return True
 
-    return store, get_json, set_json
+    return store, MagicMock(
+        get_nutrition_entries=get_nutrition_entries,
+        get_nutrition_entries_recent=get_nutrition_entries_recent,
+        insert_nutrition_entry=insert_nutrition_entry,
+        delete_nutrition_entry=delete_nutrition_entry,
+        get_nutrition_settings=get_nutrition_settings,
+        update_nutrition_settings=update_nutrition_settings,
+    )
 
 
-def load_nutrition_module(get_json_fn, set_json_fn):
-    """Importe nutrition.py avec un db mocké.
-
-    patch.dict revertit toutes les modifications de sys.modules à la sortie du
-    contexte, y compris l'ajout de 'nutrition'. On gère le cycle manuellement
-    pour que 'nutrition' reste dans sys.modules et que patch('nutrition.datetime')
-    fonctionne ensuite dans les tests.
-    """
-    db_mock = MagicMock(get_json=get_json_fn, set_json=set_json_fn)
-
+def load_nutrition_module(db_mock):
+    """Importe nutrition.py avec un db mocké (méthodes relationnelles)."""
     original_db = sys.modules.get("db", None)
     sys.modules["db"] = db_mock
 
     if "nutrition" in sys.modules:
         del sys.modules["nutrition"]
-    import nutrition  # lie nutrition.get_json / set_json aux mocks
+    import nutrition
 
-    # Restaure db sans toucher à nutrition
     if original_db is None:
         sys.modules.pop("db", None)
     else:
@@ -115,9 +150,9 @@ def fake_now(date_str):
 class TestDailyIsolation(unittest.TestCase):
 
     def _module(self, initial_log=None):
-        store, g, s = make_db_store(initial_log)
+        store, db_mock = make_db_store(initial_log)
         self.store = store
-        return load_nutrition_module(g, s), store
+        return load_nutrition_module(db_mock), store
 
     def test_add_entry_creates_day_key(self):
         """add_entry crée la clé YYYY-MM-DD si elle n'existe pas."""
@@ -226,16 +261,16 @@ class TestDailyIsolation(unittest.TestCase):
                 f"Le jour {day} a été modifié après suppression sur 2026-03-07",
             )
 
-    def test_delete_entry_returns_false_for_wrong_day(self):
-        """delete_entry() retourne False si l'ID appartient à un autre jour."""
-        nut, _ = self._module(copy.deepcopy(LOG_MULTI_DAY))
+    def test_delete_entry_by_id_regardless_of_day(self):
+        """delete_entry() supprime par ID sans restriction de date."""
+        nut, store = self._module(copy.deepcopy(LOG_MULTI_DAY))
 
-        # bbb00001 est du 2026-03-02, on essaie de le supprimer en étant le 07
-        with patch("nutrition.datetime") as mock_dt:
-            mock_dt.now.return_value = fake_now("2026-03-07")
-            result = nut.delete_entry("bbb00001")
+        # bbb00001 est du 2026-03-02 ; doit être supprimable depuis n'importe quel jour
+        result = nut.delete_entry("bbb00001")
 
-        self.assertFalse(result)
+        self.assertTrue(result)
+        entries_march2 = store["nutrition_log"].get("2026-03-02", {}).get("entries", [])
+        self.assertFalse(any(e["id"] == "bbb00001" for e in entries_march2))
 
     def test_each_entry_has_unique_id(self):
         """Deux entrées ajoutées le même jour ont des IDs distincts."""
@@ -258,9 +293,9 @@ class TestDailyIsolation(unittest.TestCase):
 class TestWeeklySummary(unittest.TestCase):
 
     def _module(self, initial_log=None):
-        store, g, s = make_db_store(initial_log)
+        store, db_mock = make_db_store(initial_log)
         self.store = store
-        return load_nutrition_module(g, s)
+        return load_nutrition_module(db_mock)
 
     def test_get_recent_days_returns_7_days(self):
         """get_recent_days() retourne au plus 7 jours quand le log en contient 7."""

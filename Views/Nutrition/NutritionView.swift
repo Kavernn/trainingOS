@@ -149,7 +149,10 @@ struct NutritionView: View {
     private func loadData(silent: Bool = false) async {
         if !silent { isLoading = true }
         let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition_data")!
-        if let (data, _) = try? await URLSession.shared.data(from: url),
+        var req = URLRequest(url: url)
+        req.cachePolicy = .reloadIgnoringLocalCacheData
+        req.timeoutInterval = 15
+        if let (data, _) = try? await URLSession.shared.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             if let s = json["settings"] as? [String: Any] {
                 settings = NutritionSettings(
@@ -1129,6 +1132,7 @@ struct NutritionSettingsSheet: View {
     @State private var glucides:  String
     @State private var lipides:   String
     @State private var isSaving = false
+    @State private var saveError: String? = nil
 
     init(settings: NutritionSettings?, onSaved: @escaping () async -> Void) {
         self.settings = settings
@@ -1192,19 +1196,32 @@ struct NutritionSettingsSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .alert("Erreur de sauvegarde", isPresented: Binding(
+            get: { saveError != nil },
+            set: { if !$0 { saveError = nil } }
+        )) {
+            Button("OK", role: .cancel) { saveError = nil }
+        } message: {
+            Text(saveError ?? "")
+        }
     }
 
     private func save() async {
         guard let cal  = Double(calories),
               let prot = Double(proteines) else { return }
         isSaving = true
-        await APIService.shared.updateNutritionSettings(
-            calories: cal, proteines: prot,
-            glucides: Double(glucides) ?? 0,
-            lipides:  Double(lipides)  ?? 0
-        )
-        await onSaved()
+        saveError = nil
+        do {
+            try await APIService.shared.updateNutritionSettings(
+                calories: cal, proteines: prot,
+                glucides: Double(glucides) ?? 0,
+                lipides:  Double(lipides)  ?? 0
+            )
+            await onSaved()
+            dismiss()
+        } catch {
+            saveError = error.localizedDescription
+        }
         isSaving = false
-        dismiss()
     }
 }

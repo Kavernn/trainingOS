@@ -1750,10 +1750,10 @@ def update_profile(patch: dict) -> bool:
 # ---------------------------------------------------------------------------
 
 def get_nutrition_settings() -> dict:
-    """Return nutrition settings (single row)."""
+    """Return nutrition settings (single row, Supabase only)."""
     _default = {"calorie_limit": 2000, "protein_target": 150}
     if _client is None or MODE == "OFFLINE":
-        return get_json("nutrition_settings", _default)
+        return _default
     try:
         resp = (
             _client.table("nutrition_settings")
@@ -1762,35 +1762,23 @@ def get_nutrition_settings() -> dict:
             .limit(1)
             .execute()
         )
-        return (resp.data[0] if resp and resp.data else None) or get_json("nutrition_settings", _default)
+        return (resp.data[0] if resp and resp.data else None) or _default
     except Exception as e:
         logger.warning("get_nutrition_settings error: %s", e)
-        return get_json("nutrition_settings", _default)
+        return _default
 
 
 def update_nutrition_settings(patch: dict) -> bool:
-    """Update nutrition settings row."""
-    # fallback to KV during migration
+    """Update nutrition settings row (Supabase only)."""
     if _client is None or MODE == "OFFLINE":
-        settings = get_json("nutrition_settings", {})
-        settings.update(patch)
-        set_json("nutrition_settings", settings)
-        return True
-    try:
-        payload = {**patch, "id": 1, "updated_at": _now_iso()}
-        resp = (
-            _client.table("nutrition_settings")
-            .upsert(payload, on_conflict="id")
-            .execute()
-        )
-        return bool(resp.data)
-    except Exception as e:
-        logger.error("update_nutrition_settings error: %s", e)
-        # fallback to KV during migration
-        settings = get_json("nutrition_settings", {})
-        settings.update(patch)
-        set_json("nutrition_settings", settings)
-        return True
+        raise RuntimeError("Supabase client not available")
+    payload = {**patch, "id": 1, "updated_at": _now_iso()}
+    resp = (
+        _client.table("nutrition_settings")
+        .upsert(payload, on_conflict="id")
+        .execute()
+    )
+    return bool(resp.data)
 
 
 # ---------------------------------------------------------------------------

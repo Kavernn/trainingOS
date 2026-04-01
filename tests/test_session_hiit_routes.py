@@ -214,26 +214,30 @@ class TestDeleteHiit(BaseRouteTest):
 # ── /api/hiit/edit ───────────────────────────────────────────────────────────
 
 class TestHiitEdit(BaseRouteTest):
+    # La route /api/hiit/edit identifie l'entrée par date + session_type
+    # et mappe : rpe→rpe, rounds→rounds_completes, notes→comment, feeling→feeling
+
+    _PAYLOAD_BASE = {"date": "2026-03-11", "session_type": "Tabata"}
 
     def test_edit_rpe(self):
-        r = self.post("/api/hiit/edit", {"index": 0, "rpe": 9})
+        r = self.post("/api/hiit/edit", {**self._PAYLOAD_BASE, "rpe": 9})
         self.assertEqual(200, r.status_code)
         self.assertEqual(9, self.store["hiit_log"][0]["rpe"])
 
     def test_edit_comment(self):
-        self.post("/api/hiit/edit", {"index": 0, "comment": "tough one"})
+        self.post("/api/hiit/edit", {**self._PAYLOAD_BASE, "notes": "tough one"})
         self.assertEqual("tough one", self.store["hiit_log"][0]["comment"])
 
     def test_edit_feeling(self):
-        self.post("/api/hiit/edit", {"index": 0, "feeling": "great"})
+        self.post("/api/hiit/edit", {**self._PAYLOAD_BASE, "feeling": "great"})
         self.assertEqual("great", self.store["hiit_log"][0]["feeling"])
 
     def test_edit_rounds_completes(self):
-        self.post("/api/hiit/edit", {"index": 0, "rounds_completes": 6})
+        self.post("/api/hiit/edit", {**self._PAYLOAD_BASE, "rounds": 6})
         self.assertEqual(6, self.store["hiit_log"][0]["rounds_completes"])
 
     def test_edit_invalid_index_returns_400(self):
-        r = self.post("/api/hiit/edit", {"index": 999, "rpe": 8})
+        r = self.post("/api/hiit/edit", {"date": "1999-01-01", "session_type": "Inexistant", "rpe": 8})
         self.assertEqual(400, r.status_code)
 
 

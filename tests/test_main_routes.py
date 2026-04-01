@@ -148,6 +148,7 @@ def make_db_store():
         for date in sorted(sessions.keys(), reverse=True)[:limit]:
             entry = copy.deepcopy(sessions[date])
             entry["date"] = date
+            entry.setdefault("id", date)
             result.append(entry)
         return result
 
@@ -206,10 +207,81 @@ def make_db_store():
         store["weights"] = weights
         return True
 
+    def get_full_program(program_id=None):
+        return copy.deepcopy(store.get("program", {}))
+
+    def save_full_program(program, program_id=None):
+        current = store.get("program", {})
+        current.update(copy.deepcopy(program))
+        store["program"] = current
+        return True
+
+    def get_relational_week_schedule():
+        return None  # fall back to hardcoded schedule
+
+    def get_evening_week_schedule():
+        return None
+
+    def get_exercise_history_grouped_by_session():
+        weights = store.get("weights", {})
+        result = {}
+        for name, ex_data in weights.items():
+            for entry in ex_data.get("history", []):
+                d = entry.get("date")
+                if d:
+                    result.setdefault(d, []).append({
+                        "exercise": name,
+                        "weight":   entry.get("weight"),
+                        "reps":     entry.get("reps"),
+                    })
+        return result
+
+    def get_hiit_logs(limit=100):
+        return copy.deepcopy(store.get("hiit_log", []))[:limit]
+
+    def get_all_programs():
+        return []
+
+    def get_default_program_id():
+        return None
+
+    def get_all_session_names():
+        return sorted(store.get("program", {}).keys())
+
+    def delete_exercise_by_name(name):
+        inv = store.get("inventory", {})
+        inv.pop(name, None)
+        store["inventory"] = inv
+        return True
+
+    def delete_exercise_log_entry(session_date, exercise_name):
+        weights = store.get("weights", {})
+        if exercise_name in weights:
+            weights[exercise_name]["history"] = [
+                e for e in weights[exercise_name].get("history", [])
+                if e.get("date") != session_date
+            ]
+            store["weights"] = weights
+        return True
+
+    def get_nutrition_settings():
+        return copy.deepcopy(store.get("nutrition_settings", {}))
+
+    def delete_program_session(name):
+        program = store.get("program", {})
+        program.pop(name, None)
+        store["program"] = program
+        return True
+
     return store, get_json, set_json, update_json, append_json_list, \
         get_all_exercise_history, get_workout_sessions, get_workout_session, \
         get_or_create_workout_session, create_workout_session, update_workout_session, \
-        upsert_exercise_log
+        upsert_exercise_log, get_full_program, save_full_program, \
+        get_relational_week_schedule, get_evening_week_schedule, \
+        get_exercise_history_grouped_by_session, get_hiit_logs, \
+        get_all_programs, get_default_program_id, get_all_session_names, \
+        delete_exercise_by_name, delete_exercise_log_entry, \
+        get_nutrition_settings, delete_program_session
 
 
 # ── Base test class ──────────────────────────────────────────────────────────
@@ -224,7 +296,13 @@ class BaseRouteTest(unittest.TestCase):
          get_json, set_json, update_json, append_json_list,
          get_all_exercise_history, get_workout_sessions, get_workout_session,
          get_or_create_workout_session, create_workout_session,
-         update_workout_session, upsert_exercise_log) = make_db_store()
+         update_workout_session, upsert_exercise_log,
+         get_full_program, save_full_program,
+         get_relational_week_schedule, get_evening_week_schedule,
+         get_exercise_history_grouped_by_session, get_hiit_logs,
+         get_all_programs, get_default_program_id, get_all_session_names,
+         delete_exercise_by_name, delete_exercise_log_entry,
+         get_nutrition_settings, delete_program_session) = make_db_store()
 
         store = self.store   # capture local ref for closures
 
@@ -265,6 +343,19 @@ class BaseRouteTest(unittest.TestCase):
             create_workout_session=create_workout_session,
             update_workout_session=update_workout_session,
             upsert_exercise_log=upsert_exercise_log,
+            get_full_program=get_full_program,
+            save_full_program=save_full_program,
+            get_relational_week_schedule=get_relational_week_schedule,
+            get_evening_week_schedule=get_evening_week_schedule,
+            get_exercise_history_grouped_by_session=get_exercise_history_grouped_by_session,
+            get_hiit_logs=get_hiit_logs,
+            get_all_programs=get_all_programs,
+            get_default_program_id=get_default_program_id,
+            get_all_session_names=get_all_session_names,
+            delete_exercise_by_name=delete_exercise_by_name,
+            delete_exercise_log_entry=delete_exercise_log_entry,
+            get_nutrition_settings=get_nutrition_settings,
+            delete_program_session=delete_program_session,
         )
 
         self.db_patch = patch.dict("sys.modules", {"db": db_mock})
