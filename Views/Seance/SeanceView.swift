@@ -453,6 +453,7 @@ struct WorkoutSeanceView: View {
     @State private var comment = ""
     @State private var showFinish = false
     @State private var showFinishConfirm = false
+    @State private var showSummary = false
     @State private var ghostData: GhostData? = nil
     @State private var showGhost = true
     @State private var ghostBeaten = false
@@ -827,6 +828,24 @@ struct WorkoutSeanceView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
 
+                // Resume banner — shown when exercises were already logged (partial prior session)
+                if vm.isResuming {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.clockwise.circle.fill")
+                            .font(.system(size: 15))
+                            .foregroundColor(.cyan)
+                        Text("Continuer la séance — \(vm.logResults.count) exercice(s) déjà loggué(s)")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.cyan)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .background(Color.cyan.opacity(0.08))
+                    .cornerRadius(10)
+                    .padding(.horizontal, 16)
+                    .transition(.opacity)
+                }
+
                 // Ghost mode banner
                 if showGhost, let ghost = ghostData {
                     GhostBanner(
@@ -870,7 +889,7 @@ struct WorkoutSeanceView: View {
                     .padding(.horizontal, 16)
                 }
 
-                Button(action: { showFinishConfirm = true }) {
+                Button(action: { showSummary = true }) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                         Text("Terminer la séance").font(.system(size: 15, weight: .semibold))
@@ -879,19 +898,17 @@ struct WorkoutSeanceView: View {
                     .background(Color.orange).foregroundColor(.white).cornerRadius(14)
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
-                .confirmationDialog(
-                    "Terminer la séance ?",
-                    isPresented: $showFinishConfirm,
-                    titleVisibility: .visible
-                ) {
-                    Button("Oui, terminer") { showFinish = true }
-                    Button("Pas encore", role: .cancel) { }
-                } message: {
-                    Text("Tu es sûr d'avoir terminé tous tes exercices ?")
-                }
             }
         }
         .scrollDismissesKeyboard(.interactively)
+        .sheet(isPresented: $showSummary) {
+            WorkoutSummarySheet(
+                exercises: exercises.map(\.0),
+                logResults: vm.logResults,
+                onConfirm: { showFinish = true }
+            )
+            .presentationDetents([.medium, .large])
+        }
         .sheet(isPresented: $showFinish) {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
@@ -936,6 +953,11 @@ struct WorkoutSeanceView: View {
             Button("OK") { vm.submitError = nil }
         } message: {
             Text(vm.submitError ?? "")
+        }
+        .alert("Séance enregistrée ⚠️", isPresented: .constant(vm.commitWarning != nil)) {
+            Button("OK") { vm.commitWarning = nil }
+        } message: {
+            Text(vm.commitWarning ?? "")
         }
         .sheet(item: $addTarget) { (sn: SeanceName) in
             AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: [:]) { ex, scheme in
@@ -2367,6 +2389,137 @@ struct AddHIITSheet: View {
         }
     }
     
+    // MARK: - Summary Sheet (confirmation before commit)
+    struct WorkoutSummarySheet: View {
+        let exercises: [String]
+        let logResults: [String: ExerciseLogResult]
+        var onConfirm: () -> Void
+        @Environment(\.dismiss) private var dismiss
+
+        var loggedExercises: [(String, ExerciseLogResult)] {
+            exercises.compactMap { name in
+                guard let r = logResults[name] else { return nil }
+                return (name, r)
+            }
+        }
+        var unloggedExercises: [String] {
+            exercises.filter { logResults[$0] == nil }
+        }
+
+        var body: some View {
+            NavigationStack {
+                ZStack {
+                    Color(hex: "080810").ignoresSafeArea()
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            // Header
+                            VStack(spacing: 6) {
+                                Image(systemName: loggedExercises.count == exercises.count
+                                      ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                                    .font(.system(size: 48))
+                                    .foregroundColor(loggedExercises.count == exercises.count ? .green : .orange)
+                                Text("Récapitulatif")
+                                    .font(.system(size: 22, weight: .bold)).foregroundColor(.white)
+                                Text("\(loggedExercises.count) / \(exercises.count) exercices loggués")
+                                    .font(.system(size: 14)).foregroundColor(.gray)
+                            }
+                            .padding(.top, 20)
+
+                            // Logged exercises
+                            if !loggedExercises.isEmpty {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text("LOGGUÉS")
+                                        .font(.system(size: 10, weight: .bold)).tracking(2)
+                                        .foregroundColor(.gray)
+                                        .padding(.horizontal, 16).padding(.bottom, 8)
+                                    VStack(spacing: 0) {
+                                        ForEach(loggedExercises, id: \.0) { name, result in
+                                            HStack {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(.green)
+                                                Text(name)
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                Spacer()
+                                                Text("\(String(format: "%.0f", result.weight))lbs · \(result.reps)")
+                                                    .font(.system(size: 13))
+                                                    .foregroundColor(.gray)
+                                            }
+                                            .padding(.horizontal, 16).padding(.vertical, 12)
+                                            if name != loggedExercises.last?.0 {
+                                                Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
+                                            }
+                                        }
+                                    }
+                                    .background(Color(hex: "11111c")).cornerRadius(14)
+                                    .padding(.horizontal, 20)
+                                }
+                            }
+
+                            // Unlogged exercises warning
+                            if !unloggedExercises.isEmpty {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Text("NON LOGGUÉS")
+                                        .font(.system(size: 10, weight: .bold)).tracking(2)
+                                        .foregroundColor(.orange)
+                                        .padding(.horizontal, 16).padding(.bottom, 8)
+                                    VStack(spacing: 0) {
+                                        ForEach(unloggedExercises, id: \.self) { name in
+                                            HStack {
+                                                Image(systemName: "minus.circle")
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(.orange.opacity(0.7))
+                                                Text(name)
+                                                    .font(.system(size: 14))
+                                                    .foregroundColor(.gray)
+                                                Spacer()
+                                            }
+                                            .padding(.horizontal, 16).padding(.vertical, 12)
+                                            if name != unloggedExercises.last {
+                                                Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
+                                            }
+                                        }
+                                    }
+                                    .background(Color(hex: "11111c")).cornerRadius(14)
+                                    .padding(.horizontal, 20)
+                                }
+                            }
+
+                            // CTA
+                            VStack(spacing: 10) {
+                                Button(action: {
+                                    dismiss()
+                                    onConfirm()
+                                }) {
+                                    Text(loggedExercises.isEmpty
+                                         ? "Terminer sans exercices"
+                                         : "Confirmer et logger ces \(loggedExercises.count) exercice(s)")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                                        .background(loggedExercises.isEmpty ? Color.gray.opacity(0.3) : Color.orange)
+                                        .foregroundColor(.white).cornerRadius(14)
+                                }
+                                .padding(.horizontal, 20)
+
+                                Button("Continuer la séance", action: { dismiss() })
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.orange)
+                            }
+                            .padding(.bottom, 32)
+                        }
+                    }
+                }
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Retour") { dismiss() }.foregroundColor(.orange)
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Finish Sheet
     struct FinishSessionSheet: View {
         let exercises: [String]
@@ -3129,6 +3282,8 @@ struct AddHIITSheet: View {
         @Published var logResults: [String: ExerciseLogResult] = [:]
         @Published var showSuccess = false
         @Published var submitError: String?
+        @Published var isResuming = false
+        @Published var commitWarning: String?
 
         let sessionStart = Date()
 
@@ -3167,16 +3322,20 @@ struct AddHIITSheet: View {
                 }
             }
             logResults = restored
+            if !restored.isEmpty { isResuming = true }
         }
         
         func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil) async {
             let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
-            do {
-                // Batch-commit all exercise logs (deferred from session)
-                for result in logResults.values {
+            var failedExercises: [String] = []
+
+            // 1. Batch-commit all exercise logs
+            //    force=true so a resumed session (partial prior commit) overwrites correctly
+            for result in logResults.values {
+                do {
                     let response = try await APIService.shared.logExercise(
                         exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
-                        sets: result.sets, force: false,
+                        sets: result.sets, force: true,
                         isSecond: result.isSecond, isBonus: result.isBonus,
                         equipmentType: result.equipmentType, painZone: result.painZone)
                     if response.isPR == true {
@@ -3189,13 +3348,41 @@ struct AddHIITSheet: View {
                             content: content, trigger: nil)
                         try? await UNUserNotificationCenter.current().add(request)
                     }
+                } catch {
+                    failedExercises.append(result.name)
                 }
+            }
+
+            // 2. Commit session
+            do {
                 try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
                                                        durationMin: durationMin, energyPre: energyPre,
                                                        sessionName: sessionName)
-                showSuccess = true
+            } catch {
+                submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
                 await APIService.shared.fetchDashboard()
-            } catch { submitError = error.localizedDescription }
+                return
+            }
+
+            // 3. Verify: re-fetch seance_data (cache cleared by logSession) and check alreadyLogged
+            let verified: Bool
+            do {
+                let fresh = try await APIService.shared.fetchSeanceData()
+                verified = fresh.alreadyLogged
+            } catch {
+                verified = false
+            }
+
+            // 4. Report result
+            await APIService.shared.fetchDashboard()
+            if !verified {
+                submitError = "Séance non confirmée en base — vérifie ta connexion et réessaie."
+            } else if !failedExercises.isEmpty {
+                commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
+                showSuccess = true
+            } else {
+                showSuccess = true
+            }
         }
         
     }
