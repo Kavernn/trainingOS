@@ -99,7 +99,7 @@ private enum MacPage: String, Identifiable {
     // Entraînement
     case stats, objectifs, timer, hiit, historique, xp
     // Corps & Santé
-    case healthDashboard, bodyComp, nutrition, cardio, recovery, pss, mentalHealth
+    case healthDashboard, bodyComp, cardio, recovery, pss, mentalHealth
     // Divers
     case notes, inventaire, profil
 
