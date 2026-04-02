@@ -33,9 +33,9 @@ private struct iOSContentView: View {
             ProgrammeView()
                 .tag(2)
                 .tabItem { Label("Programme", systemImage: "list.bullet.clipboard") }
-            TimerView()
+            NutritionView()
                 .tag(3)
-                .tabItem { Label("Timer", systemImage: "timer") }
+                .tabItem { Label("Nutrition", systemImage: "fork.knife") }
             MoreView()
                 .tag(4)
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
@@ -93,11 +93,11 @@ private struct iOSContentView: View {
 #if targetEnvironment(macCatalyst)
 private enum MacPage: String, Identifiable {
     // Principal
-    case dashboard, seance, programme, timer
+    case dashboard, seance, programme, nutrition
     // IA
     case intelligence
     // Entraînement
-    case stats, objectifs, hiit, historique, xp
+    case stats, objectifs, timer, hiit, historique, xp
     // Corps & Santé
     case healthDashboard, bodyComp, nutrition, cardio, recovery, pss, mentalHealth
     // Divers
@@ -187,10 +187,10 @@ private struct MacSidebarSection {
 }
 
 private let macSections: [MacSidebarSection] = [
-    MacSidebarSection(title: "Principal",      pages: [.dashboard, .seance, .programme, .timer]),
+    MacSidebarSection(title: "Principal",      pages: [.dashboard, .seance, .programme, .nutrition]),
     MacSidebarSection(title: "IA",             pages: [.intelligence]),
-    MacSidebarSection(title: "Entraînement",   pages: [.stats, .objectifs, .hiit, .historique, .xp]),
-    MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .nutrition, .cardio, .recovery, .pss, .mentalHealth]),
+    MacSidebarSection(title: "Entraînement",   pages: [.stats, .objectifs, .timer, .hiit, .historique, .xp]),
+    MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .cardio, .recovery, .pss, .mentalHealth]),
     MacSidebarSection(title: "Divers",         pages: [.notes, .inventaire, .profil]),
 ]
 
