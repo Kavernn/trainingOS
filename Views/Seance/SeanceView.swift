@@ -437,6 +437,172 @@ struct ExtraSessionSheet: View {
     }
 }
 
+// MARK: - Rest Timer Manager
+
+/// Singleton managing rest timer state across all views.
+/// Using a shared instance ensures a single source of truth regardless of
+/// how many ExerciseCards or sheets observe it.
+@MainActor
+final class RestTimerManager: ObservableObject {
+    static let shared = RestTimerManager()
+    private init() {}
+
+    private static let endDateKey = "restTimerEndDate"
+    private static let totalKey   = "restTimerTotal"
+    static  let presetKey         = "restTimerPreset"
+
+    @Published var totalSeconds = 120
+    @Published var remaining    = 120
+    @Published var isRunning    = false
+
+    private var timerTask: Task<Void, Never>?
+    private var beepPlayer: AVAudioPlayer?
+
+    var progress: Double {
+        totalSeconds > 0 ? min(1.0, Double(remaining) / Double(totalSeconds)) : 0
+    }
+    var timerColor: Color {
+        if progress > 0.5  { return .green }
+        if progress > 0.25 { return .yellow }
+        return .red
+    }
+
+    func start() {
+        guard remaining > 0 else { return }
+        isRunning = true
+        let endDate = Date().addingTimeInterval(TimeInterval(remaining))
+        UserDefaults.standard.set(endDate,      forKey: Self.endDateKey)
+        UserDefaults.standard.set(totalSeconds, forKey: Self.totalKey)
+        scheduleNotification(seconds: remaining)
+        timerTask = Task { await runLoop() }
+    }
+
+    func stop() {
+        isRunning = false
+        timerTask?.cancel()
+        timerTask = nil
+        UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+        UserDefaults.standard.removeObject(forKey: Self.totalKey)
+        cancelNotification()
+    }
+
+    func reset() { stop(); remaining = totalSeconds }
+
+    /// +/- adjustment. When running, extends totalSeconds if needed to keep progress ≤ 1.
+    func adjustTime(by delta: Int) {
+        remaining = max(10, remaining + delta)
+        if isRunning {
+            totalSeconds = max(totalSeconds, remaining)
+            rescheduleNotification(seconds: remaining)
+        } else {
+            totalSeconds = remaining
+        }
+    }
+
+    /// Apply a preset chip. Restarts if already running.
+    func applyPreset(_ seconds: Int) {
+        let wasRunning = isRunning
+        if isRunning { stop() }
+        totalSeconds = seconds
+        remaining    = seconds
+        UserDefaults.standard.set(seconds, forKey: Self.presetKey)
+        if wasRunning { start() }
+    }
+
+    /// Called when an exercise is logged. Always restarts with the new exercise's rest time.
+    func applyAutoStart(_ seconds: Int) {
+        stop()
+        totalSeconds = seconds
+        remaining    = seconds
+        UserDefaults.standard.set(seconds, forKey: Self.presetKey)
+        start()
+    }
+
+    /// Restore state on sheet appear. If already running (singleton), just sync time.
+    func restoreIfNeeded(autoStartSeconds: Int? = nil) {
+        if isRunning { syncFromEndDate(); return }
+        if let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date {
+            let left = Int(end.timeIntervalSinceNow.rounded())
+            guard left > 0 else {
+                UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+                applyInitial(autoStartSeconds: autoStartSeconds)
+                return
+            }
+            totalSeconds = UserDefaults.standard.integer(forKey: Self.totalKey)
+            if totalSeconds == 0 { totalSeconds = left }
+            remaining = left
+            isRunning = true
+            timerTask = Task { await runLoop() }
+        } else {
+            applyInitial(autoStartSeconds: autoStartSeconds)
+        }
+    }
+
+    func syncFromEndDate() {
+        guard let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date else { return }
+        let left = Int(end.timeIntervalSinceNow.rounded())
+        if left <= 0 {
+            remaining = 0; isRunning = false
+            timerTask?.cancel(); timerTask = nil
+            UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+            playBeep(hz: 1200); triggerNotificationFeedback(.success)
+        } else {
+            remaining = left
+        }
+    }
+
+    private func applyInitial(autoStartSeconds: Int?) {
+        if let auto = autoStartSeconds, auto > 0 {
+            totalSeconds = auto; remaining = auto
+            UserDefaults.standard.set(auto, forKey: Self.presetKey)
+            start()
+        } else {
+            let saved = UserDefaults.standard.integer(forKey: Self.presetKey)
+            if saved > 0 { totalSeconds = saved; remaining = saved }
+        }
+    }
+
+    private func scheduleNotification(seconds: Int) {
+        cancelNotification()
+        let content = UNMutableNotificationContent()
+        content.title = "Repos terminé ✅"; content.body = "C'est reparti !"; content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
+        UNUserNotificationCenter.current().add(
+            UNNotificationRequest(identifier: "restTimer", content: content, trigger: trigger))
+    }
+
+    private func rescheduleNotification(seconds: Int) {
+        UserDefaults.standard.set(Date().addingTimeInterval(TimeInterval(seconds)), forKey: Self.endDateKey)
+        scheduleNotification(seconds: seconds)
+    }
+
+    private func cancelNotification() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["restTimer"])
+    }
+
+    private func runLoop() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard !Task.isCancelled else { break }
+            if remaining > 0 {
+                remaining -= 1
+                if remaining <= 3 && remaining > 0 {
+                    playBeep(hz: 880); triggerImpact(style: .rigid)
+                } else if remaining == 0 {
+                    isRunning = false
+                    UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+                    playBeep(hz: 1200); triggerNotificationFeedback(.success)
+                }
+            }
+        }
+    }
+
+    private func playBeep(hz: Double) {
+        beepPlayer = makeBeep(hz: hz, duration: hz > 1000 ? 0.35 : 0.12)
+        beepPlayer?.play()
+    }
+}
+
 // MARK: - Workout Seance (Upper/Lower)
 struct GhostData {
     let date: String
@@ -793,14 +959,8 @@ struct WorkoutSeanceView: View {
                                 .foregroundColor(isEditMode ? .green : .orange)
                         }
                         .padding(.leading, 8)
-                        Button {
-                            showRestTimer = true
-                        } label: {
-                            Image(systemName: "timer")
-                                .font(.system(size: 20))
-                                .foregroundColor(.cyan)
-                        }
-                        .padding(.leading, 4)
+                        TimerHeaderButton(onTap: { showRestTimer = true })
+                            .padding(.leading, 4)
                     }
                     // Progress
                     let done = vm.logResults.count
@@ -1932,23 +2092,9 @@ struct AddHIITSheet: View {
                         Text(scheme).font(.system(size: 12)).foregroundColor(.gray)
                     }
                     Spacer()
-                    // Bouton repos — toujours visible, ouvre le timer avec preset si configuré
-                    Button { showRestTimer = true } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "timer")
-                                .font(.system(size: 14, weight: .semibold))
-                            if let r = restSeconds {
-                                Text(r < 60 ? "\(r)s" : "\(r / 60):\(String(format: "%02d", r % 60))")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .monospacedDigit()
-                            }
-                        }
-                        .foregroundColor(.cyan)
-                        .padding(.horizontal, 8).padding(.vertical, 5)
-                        .background(Color.cyan.opacity(0.12))
-                        .cornerRadius(8)
-                    }
-                    .padding(.trailing, 4)
+                    // Bouton repos — live countdown via RestTimerBadge
+                    RestTimerBadge(restSeconds: restSeconds, onTap: { showRestTimer = true })
+                        .padding(.trailing, 4)
                     if let r = logResult {
                         HStack(spacing: 10) {
                             VStack(alignment: .trailing, spacing: 2) {
@@ -2357,7 +2503,7 @@ struct AddHIITSheet: View {
                 logStatus = .success(0)
                 onLogged?()
                 triggerNotificationFeedback(.success)
-                if restSeconds != nil { showRestTimer = true }
+                if let r = restSeconds { RestTimerManager.shared.applyAutoStart(r); showRestTimer = true }
                 return
             }
 
@@ -2385,7 +2531,7 @@ struct AddHIITSheet: View {
             logStatus = .success(total)
             onLogged?()
             triggerNotificationFeedback(.success)
-            if restSeconds != nil { showRestTimer = true }
+            if let r = restSeconds { RestTimerManager.shared.applyAutoStart(r); showRestTimer = true }
         }
     }
     
@@ -2972,30 +3118,83 @@ struct AddHIITSheet: View {
         }
     }
     
-    // MARK: - Rest Timer Sheet
+    // MARK: - Rest Timer live indicator (used in ExerciseCard and WorkoutSeanceView header)
+
+    /// Shows a live countdown when the timer is running, or the configured rest time when idle.
+    /// Isolated into its own View so only this small widget re-renders every second.
+    struct RestTimerBadge: View {
+        let restSeconds: Int?
+        var onTap: () -> Void
+        @ObservedObject private var timer = RestTimerManager.shared
+
+        var body: some View {
+            Button(action: onTap) {
+                HStack(spacing: 4) {
+                    Image(systemName: "timer")
+                        .font(.system(size: 14, weight: .semibold))
+                    Group {
+                        if timer.isRunning {
+                            Text(formatTime(timer.remaining))
+                                .font(.system(size: 12, weight: .bold))
+                                .monospacedDigit()
+                        } else if let r = restSeconds {
+                            Text(r < 60 ? "\(r)s" : "\(r / 60):\(String(format: "%02d", r % 60))")
+                                .font(.system(size: 12, weight: .bold))
+                                .monospacedDigit()
+                        }
+                    }
+                }
+                .foregroundColor(timer.isRunning ? timer.timerColor : .cyan)
+                .padding(.horizontal, 8).padding(.vertical, 5)
+                .background((timer.isRunning ? timer.timerColor : Color.cyan).opacity(0.12))
+                .cornerRadius(8)
+                .animation(.easeInOut(duration: 0.2), value: timer.isRunning)
+            }
+        }
+
+        private func formatTime(_ s: Int) -> String {
+            "\(s / 60):\(String(format: "%02d", s % 60))"
+        }
+    }
+
+    /// Timer button for the session header — shows live countdown without re-rendering the full view.
+    struct TimerHeaderButton: View {
+        var onTap: () -> Void
+        @ObservedObject private var timer = RestTimerManager.shared
+
+        var body: some View {
+            Button(action: onTap) {
+                HStack(spacing: 4) {
+                    Image(systemName: "timer")
+                        .font(.system(size: 20))
+                    if timer.isRunning {
+                        Text(formatTime(timer.remaining))
+                            .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    }
+                }
+                .foregroundColor(timer.isRunning ? timer.timerColor : .cyan)
+                .animation(.easeInOut(duration: 0.2), value: timer.isRunning)
+            }
+        }
+
+        private func formatTime(_ s: Int) -> String {
+            "\(s / 60):\(String(format: "%02d", s % 60))"
+        }
+    }
+
+    // MARK: - Rest Timer Sheet (thin UI shell — state lives in RestTimerManager.shared)
     struct RestTimerSheet: View {
         var autoStartSeconds: Int? = nil
 
+        @ObservedObject private var timer = RestTimerManager.shared
         @Environment(\.dismiss)    private var dismiss
         @Environment(\.scenePhase) private var scenePhase
-        @State private var totalSeconds = 120
-        @State private var remaining    = 120
-        @State private var isRunning    = false
-        @State private var timerTask:   Task<Void, Never>?
-        @State private var beepPlayer:  AVAudioPlayer?
 
-        private static let endDateKey  = "restTimerEndDate"
-        private static let totalKey    = "restTimerTotal"
-        private static let presetKey   = "restTimerPreset"
-        private let presets            = [60, 90, 120, 180]
-
-        private var progress: Double {
-            totalSeconds > 0 ? Double(remaining) / Double(totalSeconds) : 0
-        }
-        private var timerColor: Color {
-            if progress > 0.5 { return .green }
-            if progress > 0.25 { return .yellow }
-            return .red
+        /// Base presets + exercise-specific value if not already included.
+        private var allPresets: [Int] {
+            let base = [60, 90, 120, 180]
+            guard let auto = autoStartSeconds, auto > 0, !base.contains(auto) else { return base }
+            return (base + [auto]).sorted()
         }
 
         var body: some View {
@@ -3010,23 +3209,21 @@ struct AddHIITSheet: View {
 
                     // Preset chips
                     HStack(spacing: 8) {
-                        ForEach(presets, id: \.self) { p in
-                            Button {
-                                totalSeconds = p
-                                remaining = p
-                                UserDefaults.standard.set(p, forKey: Self.presetKey)
-                            } label: {
+                        ForEach(allPresets, id: \.self) { p in
+                            Button { timer.applyPreset(p) } label: {
                                 Text(p < 60 ? "\(p)s" : (p % 60 == 0 ? "\(p / 60) min" : "\(p)s"))
                                     .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(totalSeconds == p ? .black : timerColor)
+                                    .foregroundColor(timer.totalSeconds == p ? .black : timer.timerColor)
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 7)
-                                    .background(totalSeconds == p ? timerColor : timerColor.opacity(0.12))
+                                    .background(timer.totalSeconds == p
+                                                ? timer.timerColor
+                                                : timer.timerColor.opacity(0.12))
                                     .clipShape(Capsule())
                             }
                         }
                     }
-                    .opacity(isRunning ? 0 : 1)
+                    .opacity(timer.isRunning ? 0 : 1)
 
                     // Ring
                     ZStack {
@@ -3034,39 +3231,28 @@ struct AddHIITSheet: View {
                             .stroke(Color.white.opacity(0.07), lineWidth: 14)
                             .frame(width: 180, height: 180)
                         Circle()
-                            .trim(from: 0, to: progress)
-                            .stroke(timerColor, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                            .trim(from: 0, to: timer.progress)
+                            .stroke(timer.timerColor,
+                                    style: StrokeStyle(lineWidth: 14, lineCap: .round))
                             .frame(width: 180, height: 180)
                             .rotationEffect(.degrees(-90))
-                            .animation(.linear(duration: 0.5), value: progress)
-                        Text(formatTime(remaining))
+                            .animation(.linear(duration: 0.5), value: timer.progress)
+                        Text(formatTime(timer.remaining))
                             .font(.system(size: 52, weight: .black, design: .rounded))
-                            .foregroundColor(timerColor)
+                            .foregroundColor(timer.timerColor)
                             .monospacedDigit()
                             .contentTransition(.numericText())
                     }
 
                     // Adjust buttons
                     HStack(spacing: 16) {
-                        adjustButton(label: "−10s") {
-                            let newVal = max(10, remaining - 10)
-                            remaining = newVal
-                            if isRunning { rescheduleNotification(seconds: newVal) }
-                            else { totalSeconds = newVal }
-                        }
-                        adjustButton(label: "+10s") {
-                            remaining += 10
-                            if isRunning { rescheduleNotification(seconds: remaining) }
-                            else { totalSeconds = remaining }
-                        }
+                        adjustButton(label: "−10s") { timer.adjustTime(by: -10) }
+                        adjustButton(label: "+10s") { timer.adjustTime(by: +10) }
                     }
 
-                    // Play/Pause + Reset
+                    // Play/Pause + Reset + Close (✕ keeps timer running in background)
                     HStack(spacing: 20) {
-                        Button {
-                            stopTimer()
-                            remaining = totalSeconds
-                        } label: {
+                        Button { timer.reset() } label: {
                             Image(systemName: "arrow.counterclockwise")
                                 .font(.system(size: 20, weight: .semibold))
                                 .foregroundColor(.white.opacity(0.7))
@@ -3076,17 +3262,16 @@ struct AddHIITSheet: View {
                         }
 
                         Button {
-                            if isRunning { stopTimer() } else { startTimer() }
+                            if timer.isRunning { timer.stop() } else { timer.start() }
                         } label: {
-                            Image(systemName: isRunning ? "pause.fill" : "play.fill")
+                            Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
                                 .font(.system(size: 26, weight: .bold))
                                 .foregroundColor(.black)
                                 .frame(width: 72, height: 72)
-                                .background(timerColor)
+                                .background(timer.timerColor)
                                 .clipShape(Circle())
                         }
 
-                        // Fermer sans arrêter le timer
                         Button { dismiss() } label: {
                             Image(systemName: "xmark")
                                 .font(.system(size: 18, weight: .semibold))
@@ -3099,119 +3284,19 @@ struct AddHIITSheet: View {
                 }
                 .frame(maxWidth: .infinity)
             }
-            .onAppear { restoreIfNeeded() }
+            .onAppear { timer.restoreIfNeeded(autoStartSeconds: autoStartSeconds) }
             .onChange(of: scenePhase) { phase in
-                if phase == .active { syncFromEndDate() }
-            }
-            // Ne pas arrêter le timer à la fermeture du sheet
-        }
-
-        // MARK: – Timer control
-
-        private func startTimer() {
-            guard remaining > 0 else { return }
-            isRunning = true
-            let endDate = Date().addingTimeInterval(TimeInterval(remaining))
-            UserDefaults.standard.set(endDate,      forKey: Self.endDateKey)
-            UserDefaults.standard.set(totalSeconds, forKey: Self.totalKey)
-            scheduleNotification(seconds: remaining)
-            timerTask = Task { await runLoop() }
-        }
-
-        private func stopTimer() {
-            isRunning = false
-            timerTask?.cancel()
-            timerTask = nil
-            UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-            UserDefaults.standard.removeObject(forKey: Self.totalKey)
-            cancelNotification()
-        }
-
-        /// Recalcule le remaining depuis la endDate persistée (retour premier plan).
-        private func syncFromEndDate() {
-            guard isRunning,
-                  let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date else { return }
-            let left = Int(end.timeIntervalSinceNow.rounded())
-            if left <= 0 {
-                remaining  = 0
-                isRunning  = false
-                timerTask?.cancel()
-                timerTask  = nil
-                UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-                playBeep(hz: 1200)
-                triggerNotificationFeedback(.success)
-            } else {
-                remaining = left
+                if phase == .active { timer.syncFromEndDate() }
             }
         }
-
-        /// Restaure un timer en cours si l'app a été quittée avec le timer actif.
-        private func restoreIfNeeded() {
-            if let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date {
-                let left = Int(end.timeIntervalSinceNow.rounded())
-                guard left > 0 else {
-                    UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-                    applyAutoStartOrPreset()
-                    return
-                }
-                totalSeconds = UserDefaults.standard.integer(forKey: Self.totalKey)
-                if totalSeconds == 0 { totalSeconds = left }
-                remaining = left
-                isRunning = true
-                timerTask = Task { await runLoop() }
-            } else {
-                applyAutoStartOrPreset()
-            }
-        }
-
-        private func applyAutoStartOrPreset() {
-            if let auto = autoStartSeconds, auto > 0 {
-                totalSeconds = auto
-                remaining    = auto
-                UserDefaults.standard.set(auto, forKey: Self.presetKey)
-                startTimer()
-            } else {
-                loadPreset()
-            }
-        }
-
-        private func loadPreset() {
-            let saved = UserDefaults.standard.integer(forKey: Self.presetKey)
-            if saved > 0 { totalSeconds = saved; remaining = saved }
-        }
-
-        // MARK: – Notifications
-
-        private func scheduleNotification(seconds: Int) {
-            cancelNotification()
-            let content = UNMutableNotificationContent()
-            content.title = "Repos terminé ✅"
-            content.body  = "C'est reparti !"
-            content.sound = .default
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
-            let request = UNNotificationRequest(identifier: "restTimer", content: content, trigger: trigger)
-            UNUserNotificationCenter.current().add(request, withCompletionHandler: nil)
-        }
-
-        private func rescheduleNotification(seconds: Int) {
-            let endDate = Date().addingTimeInterval(TimeInterval(seconds))
-            UserDefaults.standard.set(endDate, forKey: Self.endDateKey)
-            scheduleNotification(seconds: seconds)
-        }
-
-        private func cancelNotification() {
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["restTimer"])
-        }
-
-        // MARK: – Helpers
 
         private func adjustButton(label: String, action: @escaping () -> Void) -> some View {
             Button(action: action) {
                 Text(label)
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(timerColor)
+                    .foregroundColor(timer.timerColor)
                     .frame(width: 80, height: 40)
-                    .background(timerColor.opacity(0.12))
+                    .background(timer.timerColor.opacity(0.12))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             }
         }
@@ -3220,30 +3305,6 @@ struct AddHIITSheet: View {
             "\(s / 60):\(String(format: "%02d", s % 60))"
         }
 
-        @MainActor
-        private func runLoop() async {
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                guard !Task.isCancelled else { break }
-                if remaining > 0 {
-                    remaining -= 1
-                    if remaining <= 3 && remaining > 0 {
-                        playBeep(hz: 880)
-                        triggerImpact(style: .rigid)
-                    } else if remaining == 0 {
-                        isRunning = false
-                        UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-                        playBeep(hz: 1200)
-                        triggerNotificationFeedback(.success)
-                    }
-                }
-            }
-        }
-
-        private func playBeep(hz: Double) {
-            beepPlayer = makeBeep(hz: hz, duration: hz > 1000 ? 0.35 : 0.12)
-            beepPlayer?.play()
-        }
     }
     
     
