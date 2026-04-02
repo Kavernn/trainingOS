@@ -30,12 +30,12 @@ private struct iOSContentView: View {
             SeanceView()
                 .tag(1)
                 .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
-            ProgrammeView()
-                .tag(2)
-                .tabItem { Label("Programme", systemImage: "list.bullet.clipboard") }
             NutritionView()
-                .tag(3)
+                .tag(2)
                 .tabItem { Label("Nutrition", systemImage: "fork.knife") }
+            TimerView()
+                .tag(3)
+                .tabItem { Label("Timer", systemImage: "timer") }
             MoreView()
                 .tag(4)
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
@@ -93,11 +93,11 @@ private struct iOSContentView: View {
 #if targetEnvironment(macCatalyst)
 private enum MacPage: String, Identifiable {
     // Principal
-    case dashboard, seance, programme, nutrition
+    case dashboard, seance, nutrition
     // IA
     case intelligence
     // Entraînement
-    case stats, objectifs, timer, hiit, historique, xp
+    case programme, stats, objectifs, timer, hiit, historique, xp
     // Corps & Santé
     case healthDashboard, bodyComp, cardio, recovery, pss, mentalHealth
     // Divers
@@ -187,9 +187,9 @@ private struct MacSidebarSection {
 }
 
 private let macSections: [MacSidebarSection] = [
-    MacSidebarSection(title: "Principal",      pages: [.dashboard, .seance, .programme, .nutrition]),
+    MacSidebarSection(title: "Principal",      pages: [.dashboard, .seance, .nutrition]),
     MacSidebarSection(title: "IA",             pages: [.intelligence]),
-    MacSidebarSection(title: "Entraînement",   pages: [.stats, .objectifs, .timer, .hiit, .historique, .xp]),
+    MacSidebarSection(title: "Entraînement",   pages: [.programme, .stats, .objectifs, .timer, .hiit, .historique, .xp]),
     MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .cardio, .recovery, .pss, .mentalHealth]),
     MacSidebarSection(title: "Divers",         pages: [.notes, .inventaire, .profil]),
 ]

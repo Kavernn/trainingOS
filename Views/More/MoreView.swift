@@ -16,6 +16,7 @@ struct MoreView: View {
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
                     Section("Entraînement") {
+                        MoreRow(icon: "list.bullet.clipboard", color: .blue,   title: "Programme")    { ProgrammeView() }
                         MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")        { StatsView() }
                         MoreRow(icon: "target",                color: .orange, title: "Objectifs")    { ObjectifsView() }
                         MoreRow(icon: "timer",                 color: .orange, title: "Timer")        { TimerView() }
