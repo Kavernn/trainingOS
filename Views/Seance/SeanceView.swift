@@ -3023,7 +3023,11 @@ struct AddHIITSheet: View {
         @AppStorage("special_session_logged_date") private var loggedDate: String = ""
 
         private var alreadyLoggedToday: Bool {
-            loggedDate == DateFormatter.isoDate.string(from: Date())
+            // Server is source of truth — if server says not logged, allow re-log
+            // (handles case where local AppStorage is stale after a failed network call)
+            let localSaysLogged = loggedDate == DateFormatter.isoDate.string(from: Date())
+            let serverSaysLogged = vm.seanceData?.alreadyLogged ?? false
+            return localSaysLogged && serverSaysLogged
         }
 
         var color: Color { sessionType == "Yoga / Tai Chi" ? .purple : .green }
