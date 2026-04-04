@@ -76,7 +76,6 @@ from nutrition    import (load_settings as load_nutrition_settings,
                           add_entry as nutrition_add_entry,
                           delete_entry as nutrition_delete_entry,
                           get_recent_days)
-from db           import get_json, set_json
 from db           import _ON_VERCEL
 from volume       import calc_set_volume, calc_exercise_volume, calc_session_volume, _calc_session_volume_legacy
 import wearable
@@ -1489,15 +1488,12 @@ def api_ai_coach():
         )
         response_text = message.content[0].text
 
-        # Persist exchange in coach_history (keep last 50)
-        history = get_json("coach_history", [])
-        history.insert(0, {
-            "timestamp": _now_mtl().strftime("%Y-%m-%d %H:%M"),
-            "date":      _today_mtl(),
-            "mode":      mode,
-            "response":  response_text,
+        # Persist exchange in coach_history
+        _db.insert_coach_message({
+            "created_at": _now_mtl().strftime("%Y-%m-%dT%H:%M:00"),
+            "mode":       mode,
+            "assistant_response": response_text,
         })
-        set_json("coach_history", history[:50])
 
         return jsonify({"response": response_text})
     except _anthropic.AuthenticationError:
@@ -1509,9 +1505,10 @@ def api_ai_coach():
 @app.route("/api/ai/coach/history")
 def api_ai_coach_history():
     """Returns the last N coach exchanges."""
+    import db as _db
     limit = min(int(request.args.get("limit", 20)), 50)
-    history = get_json("coach_history", [])
-    return jsonify({"history": history[:limit]})
+    history = _db.get_coach_history(limit=limit)
+    return jsonify({"history": history})
 
 
 @app.route("/api/sync_status")
@@ -2159,7 +2156,7 @@ def api_objectifs_data():
     import db as _db
     weights  = load_weights()
     goals    = load_goals()
-    archived = set(_db.get_json("goals_archived", []) or [])
+    archived = set(_db.get_goals_archived())
     goals_progress = {}
     for ex, goal in goals.items():
         current = weights.get(ex, {}).get("current_weight", 0) or 0
@@ -2429,10 +2426,7 @@ def api_archive_objectif():
     exercise = data.get("exercise", "")
     if not exercise:
         return jsonify({"error": "missing exercise"}), 400
-    archived = list(_db.get_json("goals_archived", []) or [])
-    if exercise not in archived:
-        archived.append(exercise)
-    _db.set_json("goals_archived", archived)
+    _db.add_goal_archived(exercise)
     return jsonify({"ok": True})
 
 
@@ -2622,18 +2616,18 @@ def api_pss_check_due():
 @app.route("/api/pss/delete", methods=["POST"])
 def api_pss_delete():
     """Supprime un enregistrement PSS par id. Body JSON: {"id": "..."}"""
-    from db import get_json, set_json
+    import db as _db_pss
     data = request.get_json() or {}
     record_id = data.get("id")
     if not record_id:
         return jsonify({"error": "id requis"}), 400
-    records = get_json("pss_records", [])
-    before = len(records)
-    records = [r for r in records if r.get("id") != record_id]
-    if len(records) == before:
-        return jsonify({"error": "introuvable"}), 404
-    set_json("pss_records", records)
-    return jsonify({"success": True})
+    if _db_pss._client is None:
+        return jsonify({"error": "base de données non disponible"}), 503
+    try:
+        _db_pss._client.table("pss_records").delete().eq("id", record_id).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ── Sommeil ──────────────────────────────────────────────────

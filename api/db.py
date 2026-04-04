@@ -12,8 +12,6 @@ logger = logging.getLogger("trainingos.db")
 MODE = os.getenv("APP_DATA_MODE", "ONLINE").upper()  # ONLINE | OFFLINE | HYBRID
 _SUPABASE_URL = os.getenv("SUPABASE_URL")
 _SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
-_TABLE = "kv"
-
 # Détecter Vercel pour éviter tout write local en prod (FS readonly)
 _ON_VERCEL = bool(os.getenv("VERCEL") or os.getenv("VERCEL_ENV"))
 
@@ -162,85 +160,6 @@ def _set_online(key: str, value: Any) -> Tuple[bool, Optional[str]]:
     except Exception as e:
         logger.error("Supabase error for key %s: %s — %s", key, type(e).__name__, e)
         return False, None
-
-
-# ---------------------------------------------------------------------------
-# API publique utilisée par tes modules (KV — preserved as-is)
-# ---------------------------------------------------------------------------
-def get_json(key: str, default: Any = None) -> Any:
-    """
-    Lecture offline-first:
-      - ONLINE/HYBRID: tente Supabase; si KO → lit SQLite; sinon default
-      - OFFLINE: lit SQLite; sinon default
-    Mets à jour le cache local (clean) quand on lit depuis Supabase.
-    """
-    if MODE == "OFFLINE":
-        val, _, _ = _sqlite_get(key)
-        return default if val is None else val
-
-    # ONLINE/HYBRID
-    value, updated_at = _get_online(key)
-    if value is not None:
-        # Miroir local clean
-        _sqlite_upsert_clean(key, value, updated_at_iso=updated_at)
-        return value
-
-    # Fallback local
-    val, _, _ = _sqlite_get(key)
-    if val is not None:
-        return val
-
-    return default
-
-
-def set_json(key: str, value: Any) -> bool:
-    """
-    Écriture offline-first:
-      - ONLINE: upsert Supabase; si OK → local clean; sinon → local dirty
-      - HYBRID: tente Supabase; si KO → local dirty
-      - OFFLINE: local dirty (persiste en SQLite) pour synchro ultérieure
-    """
-    if MODE == "ONLINE" and _client:
-        ok, updated_at = _set_online(key, value)
-        if ok:
-            _sqlite_upsert_clean(key, value, updated_at_iso=updated_at)
-            return True
-        # Basculer en local dirty si échec réseau ponctuel
-        _sqlite_set(key, value, dirty=1)
-        return False
-
-    # HYBRID: tente remote, sinon local dirty
-    if MODE == "HYBRID" and _client:
-        ok, updated_at = _set_online(key, value)
-        if ok:
-            _sqlite_upsert_clean(key, value, updated_at_iso=updated_at)
-            return True
-        _sqlite_set(key, value, dirty=1)
-        return False
-
-    # OFFLINE: écriture locale dirty
-    _sqlite_set(key, value, dirty=1)
-    return False
-
-
-def update_json(key: str, patch: Dict[str, Any]) -> Any:
-    base = get_json(key, {}) or {}
-    if not isinstance(base, dict):
-        base = {}
-    base.update(patch)
-    set_json(key, base)
-    return base
-
-
-def append_json_list(key: str, entry: Any, max_items: Optional[int] = None) -> list:
-    arr = get_json(key, []) or []
-    if not isinstance(arr, list):
-        arr = []
-    arr.insert(0, entry)
-    if max_items:
-        arr = arr[:max_items]
-    set_json(key, arr)
-    return arr
 
 
 def client():
@@ -2127,3 +2046,455 @@ def set_evening_week_schedule(schedule: dict) -> bool:
     except Exception as e:
         logger.error("set_evening_week_schedule error: %s", e)
         return False
+
+
+# ---------------------------------------------------------------------------
+# Mood logs
+# ---------------------------------------------------------------------------
+
+def get_mood_logs(days: int = 0, limit: int = 0) -> List[dict]:
+    """Return mood log entries, newest first."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        from datetime import date as _date, timedelta
+        q = _client.table("mood_logs").select("*").order("date", desc=True)
+        if days:
+            cutoff = (_date.today() - timedelta(days=days)).isoformat()
+            q = q.gte("date", cutoff)
+        if limit:
+            q = q.limit(limit)
+        resp = q.execute()
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_mood_logs error: %s", e)
+        return []
+
+
+def insert_mood_log(entry: dict) -> Optional[dict]:
+    """Insert a mood log entry. Returns saved record or None."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("mood_logs").insert(entry).execute()
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("insert_mood_log error: %s", e)
+        return None
+
+
+# ---------------------------------------------------------------------------
+# PSS records
+# ---------------------------------------------------------------------------
+
+def get_pss_records(pss_type: Optional[str] = None, limit: int = 0) -> List[dict]:
+    """Return PSS records, newest first."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        q = _client.table("pss_records").select("*").order("date", desc=True)
+        if pss_type:
+            q = q.eq("type", pss_type)
+        if limit:
+            q = q.limit(limit)
+        resp = q.execute()
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_pss_records error: %s", e)
+        return []
+
+
+def insert_pss_record(entry: dict) -> Optional[dict]:
+    """Insert a PSS record. Returns saved record or None."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("pss_records").insert(entry).execute()
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("insert_pss_record error: %s", e)
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Sleep records
+# ---------------------------------------------------------------------------
+
+def get_sleep_records(limit: int = 0, offset: int = 0) -> List[dict]:
+    """Return sleep records, newest first."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        q = _client.table("sleep_records").select("*").order("date", desc=True)
+        if limit:
+            q = q.range(offset, offset + limit - 1)
+        resp = q.execute()
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_sleep_records error: %s", e)
+        return []
+
+
+def upsert_sleep_record(entry: dict) -> Optional[dict]:
+    """Insert or replace sleep record for a date (on_conflict=date)."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("sleep_records").upsert(entry, on_conflict="date").execute()
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("upsert_sleep_record error: %s", e)
+        return None
+
+
+def delete_sleep_record(record_id: str) -> bool:
+    """Delete a sleep record by id."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("sleep_records").delete().eq("id", record_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_sleep_record error: %s", e)
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Journal entries
+# ---------------------------------------------------------------------------
+
+def get_journal_entries_all(limit: int = 0, offset: int = 0) -> List[dict]:
+    """Return journal entries, newest first."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        q = _client.table("journal_entries").select("*").order("date", desc=True)
+        if limit:
+            q = q.range(offset, offset + limit - 1)
+        resp = q.execute()
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_journal_entries_all error: %s", e)
+        return []
+
+
+def insert_journal_entry(entry: dict) -> Optional[dict]:
+    """Insert a journal entry."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("journal_entries").insert(entry).execute()
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("insert_journal_entry error: %s", e)
+        return None
+
+
+def search_journal_entries_db(query: str) -> List[dict]:
+    """Search journal entries by content or prompt (case-insensitive)."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        resp = (
+            _client.table("journal_entries")
+            .select("*")
+            .or_(f"content.ilike.%{query}%,prompt.ilike.%{query}%")
+            .order("date", desc=True)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.error("search_journal_entries_db error: %s", e)
+        return []
+
+
+def count_journal_entries_since(since_date: str) -> int:
+    """Count journal entries on or after since_date."""
+    if _client is None or MODE == "OFFLINE":
+        return 0
+    try:
+        resp = (
+            _client.table("journal_entries")
+            .select("id", count="exact")
+            .gte("date", since_date)
+            .execute()
+        )
+        return resp.count or 0
+    except Exception as e:
+        logger.error("count_journal_entries_since error: %s", e)
+        return 0
+
+
+# ---------------------------------------------------------------------------
+# Breathwork sessions
+# ---------------------------------------------------------------------------
+
+def get_breathwork_sessions(days: int = 30) -> List[dict]:
+    """Return breathwork sessions within last N days, newest first."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        from datetime import date as _date, timedelta
+        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        resp = (
+            _client.table("breathwork_sessions")
+            .select("*")
+            .gte("date", cutoff)
+            .order("date", desc=True)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_breathwork_sessions error: %s", e)
+        return []
+
+
+def insert_breathwork_session(entry: dict) -> Optional[dict]:
+    """Insert a breathwork session."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("breathwork_sessions").insert(entry).execute()
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("insert_breathwork_session error: %s", e)
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Self-care habits + logs
+# ---------------------------------------------------------------------------
+
+def get_self_care_habits() -> List[dict]:
+    """Return all self-care habits ordered by order_index."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        resp = _client.table("self_care_habits").select("*").order("order_index").execute()
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_self_care_habits error: %s", e)
+        return []
+
+
+def upsert_self_care_habit(habit: dict) -> Optional[dict]:
+    """Insert or update a self-care habit by id."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("self_care_habits").upsert(habit, on_conflict="id").execute()
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("upsert_self_care_habit error: %s", e)
+        return None
+
+
+def delete_self_care_habit(habit_id: str) -> bool:
+    """Delete a self-care habit and all its log entries."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("self_care_logs").delete().eq("habit_id", habit_id).execute()
+        _client.table("self_care_habits").delete().eq("id", habit_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_self_care_habit error: %s", e)
+        return False
+
+
+def get_self_care_log(days: int = 90) -> Dict[str, List[str]]:
+    """Return {date: [habit_id, ...]} for last N days."""
+    if _client is None or MODE == "OFFLINE":
+        return {}
+    try:
+        from datetime import date as _date, timedelta
+        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        resp = (
+            _client.table("self_care_logs")
+            .select("date, habit_id")
+            .gte("date", cutoff)
+            .execute()
+        )
+        result: Dict[str, List[str]] = {}
+        for row in (resp.data or []):
+            result.setdefault(row["date"], []).append(row["habit_id"])
+        return result
+    except Exception as e:
+        logger.error("get_self_care_log error: %s", e)
+        return {}
+
+
+def set_self_care_log_for_date(date: str, habit_ids: List[str]) -> bool:
+    """Replace self-care log for a specific date."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("self_care_logs").delete().eq("date", date).execute()
+        if habit_ids:
+            rows = [{"date": date, "habit_id": hid} for hid in habit_ids]
+            _client.table("self_care_logs").insert(rows).execute()
+        return True
+    except Exception as e:
+        logger.error("set_self_care_log_for_date error: %s", e)
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Life stress scores
+# ---------------------------------------------------------------------------
+
+def get_life_stress_score_db(date: str) -> Optional[dict]:
+    """Return cached life stress score for a date, or None."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("life_stress_scores").select("*").eq("date", date).single().execute()
+        return resp.data
+    except Exception:
+        return None
+
+
+def upsert_life_stress_score(entry: dict) -> bool:
+    """Insert or update a life stress score entry."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("life_stress_scores").upsert(entry, on_conflict="date").execute()
+        return True
+    except Exception as e:
+        logger.error("upsert_life_stress_score error: %s", e)
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Coach history
+# ---------------------------------------------------------------------------
+
+def get_coach_history(limit: int = 50) -> List[dict]:
+    """Return coach history entries, newest first."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        resp = (
+            _client.table("coach_history")
+            .select("*")
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_coach_history error: %s", e)
+        return []
+
+
+def insert_coach_message(entry: dict) -> Optional[dict]:
+    """Insert a coach history message."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("coach_history").insert(entry).execute()
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("insert_coach_message error: %s", e)
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Goals archived
+# ---------------------------------------------------------------------------
+
+def get_goals_archived() -> List[str]:
+    """Return list of archived exercise names."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        resp = _client.table("goals_archived").select("exercise_name").execute()
+        return [r["exercise_name"] for r in (resp.data or [])]
+    except Exception as e:
+        logger.error("get_goals_archived error: %s", e)
+        return []
+
+
+def add_goal_archived(exercise_name: str) -> bool:
+    """Archive a goal by exercise name."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("goals_archived").upsert(
+            {"exercise_name": exercise_name}, on_conflict="exercise_name"
+        ).execute()
+        return True
+    except Exception as e:
+        logger.error("add_goal_archived error: %s", e)
+        return False
+
+
+def remove_goal_archived(exercise_name: str) -> bool:
+    """Restore a goal (remove from archived)."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("goals_archived").delete().eq("exercise_name", exercise_name).execute()
+        return True
+    except Exception as e:
+        logger.error("remove_goal_archived error: %s", e)
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Exercise current weight (smart progression pre-fill)
+# ---------------------------------------------------------------------------
+
+def update_exercise_current_weight(name: str, weight: float) -> bool:
+    """Update current_weight for an exercise (used by SeanceView pre-fill)."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        resp = _client.table("exercises").update({"current_weight": weight}).eq("name", name).execute()
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("update_exercise_current_weight error: %s", e)
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Sessions with volume (for correlations)
+# ---------------------------------------------------------------------------
+
+def get_sessions_for_correlations(days: int = 60) -> Dict[str, dict]:
+    """Return {date: {rpe, session_volume}} for the last N days."""
+    if _client is None or MODE == "OFFLINE":
+        return {}
+    from datetime import date as _date, timedelta
+    cutoff = (_date.today() - timedelta(days=days)).isoformat()
+    result: Dict[str, dict] = {}
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("date, rpe")
+            .gte("date", cutoff)
+            .execute()
+        )
+        for row in (resp.data or []):
+            d = str(row.get("date", ""))[:10]
+            if d:
+                result[d] = {"rpe": row.get("rpe")}
+    except Exception as e:
+        logger.error("get_sessions_for_correlations (sessions) error: %s", e)
+
+    try:
+        resp = (
+            _client.table("v_session_volume")
+            .select("date, total_volume")
+            .gte("date", cutoff)
+            .execute()
+        )
+        for row in (resp.data or []):
+            d = str(row.get("date", ""))[:10]
+            if d:
+                result.setdefault(d, {})["session_volume"] = row.get("total_volume")
+    except Exception as e:
+        logger.error("get_sessions_for_correlations (volume) error: %s", e)
+
+    return result

@@ -41,31 +41,8 @@ def _volumes_from_view(days: int = 35) -> dict[str, float]:
         return {}
 
 
-def _volumes_from_kv(days: int = 35) -> dict[str, float]:
-    """Fallback: derive session volumes from KV weights history."""
-    weights = db.get_json("weights", {}) or {}
-    cutoff = (date_cls.today() - timedelta(days=days)).isoformat()
-    volumes: dict[str, float] = {}
-    for ex_data in weights.values():
-        if not isinstance(ex_data, dict):
-            continue
-        for entry in ex_data.get("history", []):
-            d = str(entry.get("date", ""))
-            if not d or d < cutoff:
-                continue
-            w = float(entry.get("weight") or 0)
-            reps_str = str(entry.get("reps") or "")
-            try:
-                total_reps = sum(int(r) for r in reps_str.split(",") if r.strip().isdigit())
-            except Exception:
-                total_reps = 0
-            volumes[d] = volumes.get(d, 0) + w * total_reps
-    return volumes
-
-
 def _get_volumes(days: int = 35) -> dict[str, float]:
-    v = _volumes_from_view(days)
-    return v if v else _volumes_from_kv(days)
+    return _volumes_from_view(days)
 
 
 def _zone(ratio: float) -> dict:

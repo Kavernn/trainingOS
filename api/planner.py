@@ -1,6 +1,6 @@
 from __future__ import annotations
 import logging
-from db import get_json, set_json
+
 from datetime import datetime
 from typing import Dict, List
 from blocks import make_strength_block, get_strength_exercises, sorted_blocks

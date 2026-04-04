@@ -4,7 +4,7 @@ import requests
 
 # ── Ajoute /api au path pour accéder à db.py ────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "api"))
-from db import get_json, set_json
+import db as _db
 
 HEADERS = {
     "X-RapidAPI-Key": os.getenv("X_RAPIDAPI_KEY", "35105723d4msh22056a747ded06ap1784e0jsnda9b2359112f"),
@@ -156,7 +156,7 @@ def import_exercises(total: int = 1300, merge: bool = True):
     print(f"📥 Import ExerciseDB — total={total}, merge={merge}, batch={BATCH_SIZE}")
     print(f"⏱  ~{(total // BATCH_SIZE)} appels API nécessaires\n")
 
-    existing  = get_json("inventory", {}) if merge else {}
+    existing  = _db.get_exercises() or {} if merge else {}
     new_count = 0
     upd_count = 0
     offset    = 0
@@ -179,6 +179,7 @@ def import_exercises(total: int = 1300, merge: bool = True):
             name, entry = parse_exercise(item, existing)
             is_new = name not in existing
             existing[name] = entry
+            _db.upsert_exercise(entry)
             if is_new:
                 new_count += 1
             else:
@@ -187,18 +188,12 @@ def import_exercises(total: int = 1300, merge: bool = True):
 
         offset += BATCH_SIZE
 
-        # Sauvegarde intermédiaire tous les 100 exercices
         if offset % 100 == 0:
-            ok = set_json("inventory", existing)
-            status = "💾 sauvegardé" if ok else "⚠️ SQLite local"
-            print(f"\n─── {offset} traités · {len(existing)} total · {status} ───\n")
+            print(f"\n─── {offset} traités · {len(existing)} total ───\n")
 
         time.sleep(0.3)  # Évite le rate limit RapidAPI
 
-    # Sauvegarde finale
-    ok = set_json("inventory", existing)
-    print(f"\n{'🚀 Inventaire sauvegardé dans Supabase !' if ok else '⚠️  Sauvegarde locale uniquement'}")
-    print(f"📊 {new_count} ajoutés · {upd_count} mis à jour · {len(existing)} total")
+    print(f"\n🚀 Import terminé — {new_count} ajoutés · {upd_count} mis à jour · {len(existing)} total")
 
 
 if __name__ == "__main__":

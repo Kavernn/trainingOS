@@ -15,21 +15,10 @@ from __future__ import annotations
 from datetime import date as date_cls, datetime, timedelta
 import uuid
 
-from db import get_json, set_json
-
-_KV_KEY = "sleep_records"
+import db
 
 _QUALITY_LABELS = {1: "Très mauvais", 2: "Mauvais", 3: "Moyen", 4: "Bon", 5: "Excellent"}
 _QUALITY_EMOJIS = {1: "😫", 2: "😕", 3: "😐", 4: "😊", 5: "🌟"}
-
-
-# ── Stockage ──────────────────────────────────────────────────────────────────
-
-def _load() -> list:
-    return get_json(_KV_KEY) or []
-
-def _save(records: list) -> None:
-    set_json(_KV_KEY, records)
 
 
 # ── Durée ─────────────────────────────────────────────────────────────────────
@@ -101,9 +90,9 @@ def save_sleep_entry(
     quality: int,
     notes: str | None = None,
 ) -> dict:
-    records  = _load()
     today    = date_cls.today().isoformat()
     duration = _calc_duration(bedtime, wake_time)
+    history  = db.get_sleep_records(limit=6)
 
     entry = {
         "id":               str(uuid.uuid4()),
@@ -117,37 +106,38 @@ def save_sleep_entry(
         "duration_category": _duration_category(duration),
         "duration_color":   _duration_color(duration),
         "notes":            notes,
-        "insights":         _insights(duration, quality, records),
+        "insights":         _insights(duration, quality, history),
         "logged_at":        datetime.now().isoformat(),
     }
 
-    # Remplace si déjà loggé aujourd'hui
-    records = [r for r in records if r.get("date") != today]
-    records.insert(0, entry)
-    _save(records)
+    db.upsert_sleep_record(entry)
     return entry
 
 
 def get_history(limit: int = 20, offset: int = 0) -> dict:
-    all_records = _load()
-    page = all_records[offset: offset + limit]
+    all_records = db.get_sleep_records()
+    total = len(all_records)
+    page  = all_records[offset: offset + limit]
     return {
         "items":       page,
         "offset":      offset,
         "limit":       limit,
-        "total":       len(all_records),
-        "has_more":    offset + limit < len(all_records),
-        "next_offset": offset + limit if offset + limit < len(all_records) else None,
+        "total":       total,
+        "has_more":    offset + limit < total,
+        "next_offset": offset + limit if offset + limit < total else None,
     }
 
 
 def get_today() -> dict | None:
-    today = date_cls.today().isoformat()
-    return next((r for r in _load() if r.get("date") == today), None)
+    today   = date_cls.today().isoformat()
+    records = db.get_sleep_records(limit=1)
+    if records and records[0].get("date") == today:
+        return records[0]
+    return None
 
 
 def get_stats() -> dict:
-    records = _load()
+    records = db.get_sleep_records()
     if not records:
         return {"avg_duration": None, "avg_quality": None, "total": 0, "streak": 0}
 
@@ -157,7 +147,6 @@ def get_stats() -> dict:
     avg_duration = round(sum(r["duration_hours"] for r in recent7) / len(recent7), 1) if recent7 else None
     avg_quality  = round(sum(r["quality"] for r in recent7q) / len(recent7q), 1) if recent7q else None
 
-    # Streak consécutif
     streak = 0
     day    = date_cls.today()
     dates  = {r["date"] for r in records}
@@ -174,10 +163,4 @@ def get_stats() -> dict:
 
 
 def delete_entry(record_id: str) -> bool:
-    records = _load()
-    before  = len(records)
-    records = [r for r in records if r.get("id") != record_id]
-    if len(records) < before:
-        _save(records)
-        return True
-    return False
+    return db.delete_sleep_record(record_id)

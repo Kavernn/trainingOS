@@ -469,6 +469,8 @@ final class RestTimerManager: ObservableObject {
 
     func start() {
         guard remaining > 0 else { return }
+        timerTask?.cancel()
+            timerTask = nil
         isRunning = true
         let endDate = Date().addingTimeInterval(TimeInterval(remaining))
         UserDefaults.standard.set(endDate,      forKey: Self.endDateKey)
@@ -531,8 +533,10 @@ final class RestTimerManager: ObservableObject {
             totalSeconds = UserDefaults.standard.integer(forKey: Self.totalKey)
             if totalSeconds == 0 { totalSeconds = left }
             remaining = left
-            isRunning = true
+            
+            timerTask?.cancel()
             timerTask = Task { await runLoop() }
+            isRunning = true
         } else {
             applyInitial(autoStartSeconds: autoStartSeconds)
         }

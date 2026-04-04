@@ -21,7 +21,7 @@ import math
 from datetime import date as date_cls, timedelta
 from typing import Optional
 
-from db import get_json
+import db
 
 # ── Catalogue des paires ──────────────────────────────────────────────────────
 # (id, label, x_key, y_key, lag_days, sf_icon, color)
@@ -39,7 +39,7 @@ MIN_R = 0.35   # seuil de signification
 MIN_N = 5      # points minimum par paire
 
 
-# ── Chargement des données (4 lectures KV, pas 60×4) ─────────────────────────
+# ── Chargement des données (4 lectures relationnelles) ─────────────────────────
 
 def _load_by_date(days: int) -> dict[str, dict]:
     today = date_cls.today()
@@ -48,20 +48,10 @@ def _load_by_date(days: int) -> dict[str, dict]:
         for i in range(days)
     }
 
-    # 4 lectures KV
-    rec_log  = get_json("recovery_log") or []
-    sessions = get_json("sessions") or {}
-    nutr_log = get_json("nutrition_log") or {}
-    mood_log = get_json("mood_log") or []
-
-    # Normalise mood_log au cas où ce serait un dict
-    if isinstance(mood_log, dict):
-        mood_log = list(mood_log.values())
-
     by_date: dict[str, dict] = {d: {} for d in date_range}
 
-    # recovery_log → list[dict]
-    for entry in rec_log:
+    # recovery_logs
+    for entry in db.get_recovery_logs(limit=days + 10):
         d = entry.get("date")
         if d not in by_date:
             continue
@@ -70,8 +60,8 @@ def _load_by_date(days: int) -> dict[str, dict]:
             if val is not None:
                 by_date[d][key] = val
 
-    # sessions → {date: dict}
-    for d, sess in sessions.items():
+    # workout_sessions + v_session_volume
+    for d, sess in db.get_sessions_for_correlations(days=days).items():
         if d not in by_date:
             continue
         for key in ("rpe", "session_volume"):
@@ -79,18 +69,23 @@ def _load_by_date(days: int) -> dict[str, dict]:
             if val is not None:
                 by_date[d][key] = val
 
-    # nutrition_log → {date: {entries: [...]}}
-    for d, day_data in nutr_log.items():
-        if d not in by_date:
-            continue
-        entries = (day_data or {}).get("entries", [])
-        if entries:
-            total_protein = sum(e.get("proteines", 0) for e in entries)
-            if total_protein > 0:
-                by_date[d]["protein"] = round(total_protein, 1)
+    # nutrition_entries → sum protein par date
+    if db._client:
+        cutoff = (today - timedelta(days=days)).isoformat()
+        try:
+            resp = db._client.table("nutrition_entries").select("date, proteines").gte("date", cutoff).execute()
+            for row in (resp.data or []):
+                d = row.get("date")
+                if d not in by_date:
+                    continue
+                protein = float(row.get("proteines") or 0)
+                if protein > 0:
+                    by_date[d]["protein"] = round(by_date[d].get("protein", 0) + protein, 1)
+        except Exception:
+            pass
 
-    # mood_log → list[dict]
-    for entry in mood_log:
+    # mood_logs
+    for entry in db.get_mood_logs(days=days):
         d = entry.get("date")
         if d not in by_date:
             continue

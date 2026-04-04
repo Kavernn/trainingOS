@@ -16,7 +16,7 @@ from datetime import date as date_cls, timedelta
 from typing import Optional
 import uuid
 
-from db import get_json, set_json
+import db
 
 # ── Questions PSS-10 (version française validée) ──────────────────────────────
 
@@ -123,10 +123,7 @@ def _get_category(score: int, is_short: bool) -> tuple[str, str]:
 # ── Stockage ──────────────────────────────────────────────────────────────────
 
 def _load_records() -> list:
-    return get_json(_KV_KEY) or []
-
-def _save_records(records: list) -> None:
-    set_json(_KV_KEY, records)
+    return db.get_pss_records()
 
 
 def save_pss_record(
@@ -163,9 +160,7 @@ def save_pss_record(
         "insights":        generate_insights(result, prev, responses if not is_short else None),
     }
 
-    # Insère au début (ordre DESC)
-    records.insert(0, record)
-    _save_records(records)
+    db.insert_pss_record(record)
     return record
 
 
@@ -183,8 +178,7 @@ def check_due(pss_type: str = "full") -> dict:
         "message": str | None,          # message de suggestion si dû
       }
     """
-    records  = _load_records()
-    relevant = [r for r in records if r.get("type") == pss_type]
+    relevant = db.get_pss_records(pss_type=pss_type, limit=1)
 
     if not relevant:
         return {
@@ -311,15 +305,12 @@ def _compute_streak(records: list, pss_type: str) -> int:
 
 def get_history(pss_type: str | None = None, limit: int = 20) -> list:
     """Retourne l'historique PSS (tous types si pss_type=None)."""
-    records = _load_records()
-    if pss_type:
-        records = [r for r in records if r.get("type") == pss_type]
-    return records[:limit]
+    return db.get_pss_records(pss_type=pss_type, limit=limit)
 
 
 def get_latest_pss_score(pss_type: str = "full") -> dict | None:
     """Retourne le dernier enregistrement PSS du type donné, ou None."""
-    records = [r for r in _load_records() if r.get("type") == pss_type]
+    records = db.get_pss_records(pss_type=pss_type, limit=1)
     return records[0] if records else None
 
 

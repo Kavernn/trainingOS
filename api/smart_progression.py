@@ -375,10 +375,6 @@ def apply_suggestion(exercise_name: str, suggested_weight: float, suggested_sche
     if suggested_scheme:
         ok = db.update_exercise_default_scheme(exercise_name, suggested_scheme) and ok
 
-    weights = db.get_json("weights", {})
-    ex_data = weights.get(exercise_name, {})
-    ex_data["current_weight"] = suggested_weight
-    weights[exercise_name] = ex_data
-    db.set_json("weights", weights)
+    db.update_exercise_current_weight(exercise_name, suggested_weight)
 
     return ok

@@ -18,10 +18,7 @@ from __future__ import annotations
 from datetime import date as date_cls, timedelta
 import uuid
 
-from db import get_json, set_json
-
-_HABITS_KEY = "self_care_habits"
-_LOG_KEY    = "self_care_log"
+import db
 
 # ── Habitudes par défaut ──────────────────────────────────────────────────────
 
@@ -39,75 +36,50 @@ DEFAULT_HABITS = [
 ]
 
 
-# ── Stockage ──────────────────────────────────────────────────────────────────
-
-def _load_habits() -> list:
-    stored = get_json(_HABITS_KEY)
-    if stored is None:
-        # Premier accès → initialiser avec les habitudes par défaut actives
-        defaults = [h for h in DEFAULT_HABITS if h["is_default"]]
-        set_json(_HABITS_KEY, defaults)
-        return defaults
-    return stored
-
-def _save_habits(habits: list) -> None:
-    set_json(_HABITS_KEY, habits)
-
-def _load_log() -> dict:
-    return get_json(_LOG_KEY) or {}
-
-def _save_log(log: dict) -> None:
-    set_json(_LOG_KEY, log)
-
-
 # ── Habitudes ─────────────────────────────────────────────────────────────────
 
 def get_habits() -> list:
-    return _load_habits()
+    habits = db.get_self_care_habits()
+    if not habits and db._client is not None:
+        # Premier accès → initialiser avec les habitudes par défaut
+        defaults = [h for h in DEFAULT_HABITS if h["is_default"]]
+        for h in defaults:
+            db.upsert_self_care_habit(h)
+        return defaults
+    return habits
 
 def add_habit(name: str, icon: str = "star.fill", category: str = "mental") -> dict:
-    habits = _load_habits()
+    existing = db.get_self_care_habits()
     habit = {
-        "id":         str(uuid.uuid4()),
-        "name":       name,
-        "icon":       icon,
-        "category":   category,
-        "is_default": False,
+        "id":          str(uuid.uuid4()),
+        "name":        name,
+        "icon":        icon,
+        "category":    category,
+        "is_default":  False,
+        "order_index": len(existing),
     }
-    habits.append(habit)
-    _save_habits(habits)
+    db.upsert_self_care_habit(habit)
     return habit
 
 def delete_habit(habit_id: str) -> bool:
-    habits = _load_habits()
-    new = [h for h in habits if h["id"] != habit_id]
-    if len(new) == len(habits):
-        return False
-    _save_habits(new)
-    # Retirer du log aussi
-    log = _load_log()
-    for date_key in log:
-        log[date_key] = [h for h in log[date_key] if h != habit_id]
-    _save_log(log)
-    return True
+    return db.delete_self_care_habit(habit_id)
 
 
 # ── Log quotidien ─────────────────────────────────────────────────────────────
 
 def log_today(habit_ids: list[str]) -> dict:
     """Remplace le log du jour par la liste fournie."""
-    log  = _load_log()
-    today = date_cls.today().isoformat()
-    valid_ids = {h["id"] for h in _load_habits()}
-    log[today] = [hid for hid in habit_ids if hid in valid_ids]
-    _save_log(log)
+    today     = date_cls.today().isoformat()
+    valid_ids = {h["id"] for h in get_habits()}
+    filtered  = [hid for hid in habit_ids if hid in valid_ids]
+    db.set_self_care_log_for_date(today, filtered)
     return get_today_status()
 
 def get_today_status() -> dict:
-    today   = date_cls.today().isoformat()
-    habits  = _load_habits()
-    log     = _load_log()
-    done    = set(log.get(today, []))
+    today  = date_cls.today().isoformat()
+    habits = get_habits()
+    log    = db.get_self_care_log(days=1)
+    done   = set(log.get(today, []))
     return {
         "date":      today,
         "habits":    habits,
@@ -120,8 +92,8 @@ def get_today_status() -> dict:
 
 def get_streaks() -> list[dict]:
     """Calcule le streak courant et max pour chaque habitude."""
-    habits = _load_habits()
-    log    = _load_log()
+    habits = get_habits()
+    log    = db.get_self_care_log(days=90)
     today  = date_cls.today()
     result = []
 
@@ -161,10 +133,10 @@ def get_streaks() -> list[dict]:
 
 def get_completion_rate(days: int = 7) -> float:
     """Taux de complétion moyen sur N jours."""
-    habits = _load_habits()
+    habits = get_habits()
     if not habits:
         return 0.0
-    log = _load_log()
+    log = db.get_self_care_log(days=days)
     today = date_cls.today()
     totals = []
     for i in range(days):

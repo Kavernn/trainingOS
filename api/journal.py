@@ -14,9 +14,7 @@ from __future__ import annotations
 from datetime import date as date_cls
 import uuid
 
-from db import get_json, set_json
-
-_KV_KEY = "journal_entries"
+import db
 
 # ── Prompts quotidiens (rotation par jour de l'année) ─────────────────────────
 
@@ -60,57 +58,44 @@ def get_today_prompt() -> str:
     return PROMPTS[day_of_year % len(PROMPTS)]
 
 
-# ── Stockage ──────────────────────────────────────────────────────────────────
-
-def _load() -> list:
-    return get_json(_KV_KEY) or []
-
-def _save(entries: list) -> None:
-    set_json(_KV_KEY, entries)
-
-
 # ── CRUD ──────────────────────────────────────────────────────────────────────
 
 def save_entry(prompt: str, content: str) -> dict:
     if not content or not content.strip():
         raise ValueError("Le contenu ne peut pas être vide.")
 
-    entries = _load()
     entry = {
         "id":      str(uuid.uuid4()),
         "date":    date_cls.today().isoformat(),
         "prompt":  prompt,
         "content": content.strip(),
     }
-    entries.insert(0, entry)
-    _save(entries)
+    db.insert_journal_entry(entry)
     return entry
 
 
 def get_entries(limit: int = 20, offset: int = 0) -> dict:
-    all_entries = _load()
-    page = all_entries[offset: offset + limit]
+    all_entries = db.get_journal_entries_all()
+    total = len(all_entries)
+    page  = all_entries[offset: offset + limit]
     return {
         "items":      page,
         "offset":     offset,
         "limit":      limit,
-        "total":      len(all_entries),
-        "has_more":   offset + limit < len(all_entries),
-        "next_offset": offset + limit if offset + limit < len(all_entries) else None,
+        "total":      total,
+        "has_more":   offset + limit < total,
+        "next_offset": offset + limit if offset + limit < total else None,
     }
 
 
 def search_entries(query: str) -> list:
-    q = query.lower().strip()
+    q = query.strip()
     if not q:
-        return get_entries()
-    return [
-        e for e in _load()
-        if q in e.get("content", "").lower() or q in e.get("prompt", "").lower()
-    ]
+        return db.get_journal_entries_all()
+    return db.search_journal_entries_db(q)
 
 
 def get_entry_count(days: int = 7) -> int:
     from datetime import timedelta
     cutoff = (date_cls.today() - timedelta(days=days)).isoformat()
-    return sum(1 for e in _load() if e.get("date", "") >= cutoff)
+    return db.count_journal_entries_since(cutoff)

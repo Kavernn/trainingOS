@@ -14,9 +14,7 @@ from __future__ import annotations
 from datetime import date as date_cls, timedelta
 import uuid
 
-from db import get_json, set_json
-
-_KV_KEY = "breathwork_sessions"
+import db
 
 # ── Techniques disponibles ────────────────────────────────────────────────────
 
@@ -84,15 +82,7 @@ TECHNIQUES = [
 ]
 
 _TECHNIQUE_MAP = {t["id"]: t for t in TECHNIQUES}
-
-
-# ── Stockage ──────────────────────────────────────────────────────────────────
-
-def _load() -> list:
-    return get_json(_KV_KEY) or []
-
-def _save(sessions: list) -> None:
-    set_json(_KV_KEY, sessions)
+_TECHNIQUE_MAP_BY_NAME = {t["name"]: t for t in TECHNIQUES}
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
@@ -101,36 +91,49 @@ def log_session(technique_id: str, duration_sec: int, cycles: int) -> dict:
     if technique_id not in _TECHNIQUE_MAP:
         raise ValueError(f"Technique inconnue : {technique_id}")
 
-    sessions = _load()
+    technique_name = _TECHNIQUE_MAP[technique_id]["name"]
     session = {
         "id":           str(uuid.uuid4()),
         "date":         date_cls.today().isoformat(),
         "technique_id": technique_id,
-        "technique":    _TECHNIQUE_MAP[technique_id]["name"],
+        "technique":    technique_name,
         "duration_sec": duration_sec,
+        "duration_min": duration_sec // 60,
         "cycles":       cycles,
+        "logged_at":    date_cls.today().isoformat(),
     }
-    sessions.insert(0, session)
-    _save(sessions)
+    db.insert_breathwork_session(session)
     return session
 
 
 def get_history(days: int = 30) -> list:
-    cutoff = (date_cls.today() - timedelta(days=days)).isoformat()
-    return [s for s in _load() if s.get("date", "") >= cutoff]
+    sessions = db.get_breathwork_sessions(days=days)
+    # Enrichit technique_id si absent (données migrées)
+    for s in sessions:
+        if not s.get("technique_id") and s.get("technique"):
+            tech = _TECHNIQUE_MAP_BY_NAME.get(s["technique"])
+            if tech:
+                s["technique_id"] = tech["id"]
+    return sessions
 
 
 def get_stats(days: int = 7) -> dict:
     """Statistiques hebdomadaires/mensuelles."""
     sessions = get_history(days)
-    total_min = sum(s.get("duration_sec", 0) for s in sessions) // 60
+    total_min = sum(
+        s.get("duration_min") or (s.get("duration_sec", 0) // 60)
+        for s in sessions
+    )
     by_technique: dict[str, int] = {}
     for s in sessions:
-        tid = s.get("technique_id", "?")
-        by_technique[tid] = by_technique.get(tid, 0) + 1
+        key = s.get("technique_id") or s.get("technique", "?")
+        by_technique[key] = by_technique.get(key, 0) + 1
 
     fav = max(by_technique, key=by_technique.get) if by_technique else None
-    fav_name = _TECHNIQUE_MAP[fav]["name"] if fav and fav in _TECHNIQUE_MAP else None
+    if fav:
+        fav_name = _TECHNIQUE_MAP[fav]["name"] if fav in _TECHNIQUE_MAP else fav
+    else:
+        fav_name = None
 
     return {
         "sessions_count": len(sessions),

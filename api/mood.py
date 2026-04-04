@@ -16,10 +16,8 @@ from datetime import date as date_cls, timedelta
 from typing import Optional
 import uuid
 
-from db  import get_json, set_json
+import db
 from pss import get_latest_pss_score
-
-_KV_KEY = "mood_log"
 
 # ── Émotions disponibles ──────────────────────────────────────────────────────
 
@@ -39,15 +37,6 @@ EMOTIONS = [
 ]
 
 _EMOTION_MAP = {e["id"]: e for e in EMOTIONS}
-
-
-# ── Stockage ──────────────────────────────────────────────────────────────────
-
-def _load() -> list:
-    return get_json(_KV_KEY) or []
-
-def _save(records: list) -> None:
-    set_json(_KV_KEY, records)
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
@@ -75,8 +64,6 @@ def save_mood_entry(
     if pss and pss.get("date") == date_cls.today().isoformat():
         pss_score_linked = pss.get("score")
 
-    records = _load()
-
     entry = {
         "id":               str(uuid.uuid4()),
         "date":             date_cls.today().isoformat(),
@@ -86,18 +73,13 @@ def save_mood_entry(
         "triggers":         triggers or [],
         "pss_score_linked": pss_score_linked,
     }
-    records.insert(0, entry)
-    _save(records)
+    db.insert_mood_log(entry)
     return entry
 
 
 def _list_history(days: int = 30) -> list:
     """Retourne la liste brute des entrées — usage interne uniquement."""
-    records = _load()
-    if days:
-        cutoff = (date_cls.today() - timedelta(days=days)).isoformat()
-        records = [r for r in records if r.get("date", "") >= cutoff]
-    return records
+    return db.get_mood_logs(days=days)
 
 
 def get_history(days: int = 30, limit: int = 20, offset: int = 0) -> dict:
@@ -115,14 +97,15 @@ def get_history(days: int = 30, limit: int = 20, offset: int = 0) -> dict:
 
 def get_today_entry() -> dict | None:
     today = date_cls.today().isoformat()
-    return next((r for r in _load() if r.get("date") == today), None)
+    entries = db.get_mood_logs(limit=1)
+    if entries and entries[0].get("date") == today:
+        return entries[0]
+    return None
 
 
 def check_due() -> dict:
     """Retourne True si aucune humeur loggée aujourd'hui."""
-    today = date_cls.today().isoformat()
-    records = _load()
-    logged = any(r.get("date") == today for r in records)
+    logged = get_today_entry() is not None
     return {
         "is_due":  not logged,
         "message": "T'as-tu pris 30 secondes pour noter ton humeur aujourd'hui ?" if not logged else None,
@@ -173,14 +156,14 @@ def generate_insights(days: int = 30) -> list[str]:
 # ── Moyenne hebdo pour le dashboard ──────────────────────────────────────────
 
 def get_weekly_avg(days: int = 7) -> Optional[float]:
-    records = _list_history(days)
-    scores = [r["score"] for r in records]
+    records = db.get_mood_logs(days=days)
+    scores = [r["score"] for r in records if r.get("score") is not None]
     return round(sum(scores) / len(scores), 1) if scores else None
 
 
 def get_mood_trend(days: int = 7) -> str:
     """Retourne 'up', 'down' ou 'stable'."""
-    records = _list_history(days * 2)
+    records = db.get_mood_logs(days=days * 2)
     if len(records) < 4:
         return "stable"
     half = len(records) // 2

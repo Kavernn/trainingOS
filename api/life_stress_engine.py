@@ -30,7 +30,7 @@ import math
 from datetime import date as date_cls, timedelta
 from typing import Optional
 
-from db           import get_json, set_json
+import db
 from health_data  import _load_recovery_log
 from sessions     import load_sessions
 from deload       import detect_fatigue_rpe
@@ -52,11 +52,6 @@ _SLEEP_DEPRIVATION_QUALITY = 5.0
 def _clamp(value: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, value))
 
-def _load_scores() -> dict:
-    return get_json(_KV_KEY) or {}
-
-def _save_scores(scores: dict) -> None:
-    set_json(_KV_KEY, scores)
 
 def _rec_entry_for(target_date: str) -> Optional[dict]:
     """Retourne l'entrée recovery_log pour une date donnée, ou None."""
@@ -324,14 +319,13 @@ def get_life_stress_score(target_date: str | None = None) -> dict:
     if target_date is None:
         target_date = date_cls.today().isoformat()
 
-    scores = _load_scores()
-    if target_date not in scores:
-        result = compute_life_stress_score(target_date)
-        scores[target_date] = result
-        _save_scores(scores)
-        return result
+    cached = db.get_life_stress_score_db(target_date)
+    if cached:
+        return cached
 
-    return scores[target_date]
+    result = compute_life_stress_score(target_date)
+    db.upsert_life_stress_score(result)
+    return result
 
 
 def refresh_life_stress_score(target_date: str | None = None) -> dict:
@@ -339,9 +333,7 @@ def refresh_life_stress_score(target_date: str | None = None) -> dict:
     if target_date is None:
         target_date = date_cls.today().isoformat()
     result = compute_life_stress_score(target_date)
-    scores = _load_scores()
-    scores[target_date] = result
-    _save_scores(scores)
+    db.upsert_life_stress_score(result)
     return result
 
 
@@ -350,16 +342,15 @@ def get_recent_life_stress_trend(days: int = 7) -> list[dict]:
     Retourne les LSS des `days` derniers jours (du plus récent au plus ancien).
     Calcule les scores manquants à la volée.
     """
-    today  = date_cls.today()
-    trend  = []
-    scores = _load_scores()
+    today = date_cls.today()
+    trend = []
 
     for i in range(days):
         d = (today - timedelta(days=i)).isoformat()
-        if d not in scores:
-            result = compute_life_stress_score(d)
-            scores[d] = result
-        trend.append(scores[d])
+        entry = db.get_life_stress_score_db(d)
+        if not entry:
+            entry = compute_life_stress_score(d)
+            db.upsert_life_stress_score(entry)
+        trend.append(entry)
 
-    _save_scores(scores)
     return trend
