@@ -301,7 +301,7 @@ def seance():
             data    = weights.get(ex, {})
             ex_info = inv.get(ex, {})
             current = data.get("current_weight", 0) or 0
-            ex_type = ex_info.get("type", "machine")
+            ex_type = ex_info.get("type") or "machine"
             bar_w   = ex_info.get("bar_weight", 45.0)
 
             if ex_type == "barbell" and current:
@@ -1854,7 +1854,7 @@ def api_seance_data():
     }
 
     inv = inventory if isinstance(inventory, dict) else {}
-    inventory_types    = {name: info.get("type", "machine") for name, info in inv.items()}
+    inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
     # Ordered list of exercise names per session (preserves user-defined order)
@@ -1923,7 +1923,7 @@ def api_seance_soir_data():
         for seance, session_def in full_program.items()
     }
     inv = inventory if isinstance(inventory, dict) else {}
-    inventory_types    = {name: info.get("type", "machine") for name, info in inv.items()}
+    inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
@@ -2126,7 +2126,7 @@ def api_stats_data():
     inventory       = load_inventory() or {}
     muscle_stats    = _calc_muscle_stats(sessions, weights, inventory)
     weekly_sets     = _calc_weekly_sets_per_muscle(weights, inventory)
-    inventory_types = {name: info.get("type", "machine") for name, info in inventory.items()}
+    inventory_types = {name: info.get("type") or "machine" for name, info in inventory.items()}
 
     # Landmark data: only for muscles the user actually trains
     tracked_muscles = set(muscle_stats.keys()) | set(weekly_sets.keys())
@@ -2251,7 +2251,7 @@ def api_programme_data():
                     entry = {"type": "machine", "increment": 5, "default_scheme": scheme}
                     add_exercise(ex_name, entry)
                     inv[ex_name] = entry
-    inventory_types    = {name: info.get("type", "machine")          for name, info in inv.items()}
+    inventory_types    = {name: info.get("type") or "machine"          for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps")   for name, info in inv.items()}
     inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
     inventory_schemes  = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
