@@ -463,7 +463,7 @@ def create_workout_session(
     """Insert a new workout session row. Returns the created record."""
     payload: dict = {"date": date, "is_second": is_second, "session_type": session_type}
     if rpe is not None:
-        payload["rpe"] = round(float(rpe), 1)
+        payload["rpe"] = int(round(float(rpe)))
     if comment is not None:
         payload["comment"] = comment
     if duration_min is not None:
