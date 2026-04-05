@@ -2778,10 +2778,11 @@ def api_journal_today_prompt():
 @app.route("/api/journal/save", methods=["POST"])
 def api_journal_save():
     data = request.get_json(silent=True) or {}
-    prompt  = data.get("prompt", "")
-    content = data.get("content", "")
+    prompt     = data.get("prompt", "")
+    content    = data.get("content", "")
+    mood_score = data.get("mood_score")
     try:
-        entry = journal_save(prompt, content)
+        entry = journal_save(prompt, content, mood_score=mood_score)
         return jsonify(entry), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 422

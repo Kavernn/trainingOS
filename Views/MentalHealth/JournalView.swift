@@ -164,8 +164,21 @@ struct JournalEntrySheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var content = ""
+    @State private var moodEnabled = false
+    @State private var moodValue: Double = 5
     @State private var isSubmitting = false
     @State private var errorMsg: String?
+
+    private var moodInt: Int { Int(moodValue.rounded()) }
+
+    private var moodColor: Color {
+        switch moodInt {
+        case 1...3: return .red
+        case 4...6: return .orange
+        case 7...8: return .yellow
+        default:    return .green
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -178,6 +191,38 @@ struct JournalEntrySheet: View {
                 Section("Ton entrée") {
                     TextField("Commence à écrire…", text: $content, axis: .vertical)
                         .lineLimit(6...20)
+                }
+                Section {
+                    Toggle(isOn: $moodEnabled.animation(.easeInOut(duration: 0.2))) {
+                        Label("Humeur du moment", systemImage: "face.smiling")
+                            .foregroundColor(.indigo)
+                    }
+                    .tint(.indigo)
+
+                    if moodEnabled {
+                        VStack(spacing: 12) {
+                            Text("\(moodInt)")
+                                .font(.system(size: 42, weight: .black))
+                                .foregroundColor(moodColor)
+                                .frame(maxWidth: .infinity)
+
+                            Slider(value: $moodValue, in: 1...10, step: 1)
+                                .tint(moodColor)
+
+                            HStack {
+                                Text("😞 Très bas")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text("Excellent 😄")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } header: {
+                    Text("Humeur (optionnel)")
                 }
                 if let err = errorMsg {
                     Section {
@@ -204,7 +249,11 @@ struct JournalEntrySheet: View {
         isSubmitting = true
         Task {
             do {
-                _ = try await APIService.shared.submitJournalEntry(prompt: prompt, content: content)
+                _ = try await APIService.shared.submitJournalEntry(
+                    prompt: prompt,
+                    content: content,
+                    moodScore: moodEnabled ? moodInt : nil
+                )
                 await MainActor.run { dismiss() }
             } catch {
                 await MainActor.run {

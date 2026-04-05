@@ -646,8 +646,10 @@ class APIService: ObservableObject {
         return obj["prompt"] ?? ""
     }
 
-    func submitJournalEntry(prompt: String, content: String) async throws -> JournalEntry {
-        let data = try await offlinePost(endpoint: "/api/journal/save", payload: ["prompt": prompt, "content": content])
+    func submitJournalEntry(prompt: String, content: String, moodScore: Int? = nil) async throws -> JournalEntry {
+        var body: [String: Any] = ["prompt": prompt, "content": content]
+        if let m = moodScore { body["mood_score"] = m }
+        let data = try await offlinePost(endpoint: "/api/journal/save", payload: body)
         guard !data.isEmpty else {
             throw NSError(domain: "Offline", code: -1,
                           userInfo: [NSLocalizedDescriptionKey: "Journal enregistré, sera synchronisé quand le réseau sera disponible."])

@@ -60,7 +60,7 @@ def get_today_prompt() -> str:
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
 
-def save_entry(prompt: str, content: str) -> dict:
+def save_entry(prompt: str, content: str, mood_score: int | None = None) -> dict:
     if not content or not content.strip():
         raise ValueError("Le contenu ne peut pas être vide.")
 
@@ -70,6 +70,8 @@ def save_entry(prompt: str, content: str) -> dict:
         "prompt":  prompt,
         "content": content.strip(),
     }
+    if mood_score is not None and 1 <= int(mood_score) <= 10:
+        entry["mood_score"] = int(mood_score)
     db.insert_journal_entry(entry)
     return entry
 

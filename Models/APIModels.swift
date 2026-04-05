@@ -869,6 +869,12 @@ struct JournalEntry: Codable, Identifiable {
     let date: String
     let prompt: String
     let content: String
+    let moodScore: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case id, date, prompt, content
+        case moodScore = "mood_score"
+    }
 }
 
 // — Breathwork —
