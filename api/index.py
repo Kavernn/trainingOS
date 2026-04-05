@@ -1819,6 +1819,16 @@ def api_dashboard():
         if d and d not in merged_sessions:
             merged_sessions[d] = {"session_type": entry.get("session_type", "HIIT")}
 
+    # Enrich merged_sessions with session_volume from v_session_volume view
+    # (session_volume was removed from workout_sessions schema — lives in the view)
+    try:
+        vol_by_date = _db.get_sessions_for_correlations(days=500)
+        for date, vol_data in vol_by_date.items():
+            if date in merged_sessions and vol_data.get("session_volume") is not None:
+                merged_sessions[date]["session_volume"] = vol_data["session_volume"]
+    except Exception:
+        pass
+
     return jsonify({
         "today":               today_str,
         "week":                get_current_week(),
