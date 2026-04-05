@@ -64,6 +64,7 @@
 		PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH000001PH000001PH000001 /* PlatformHelpers.swift */; };
 		PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000001PS000001PS000001 /* ProgressionSuggestion.swift */; };
 		PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */; };
+		OB000002OB000002OB000002 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB000001OB000001OB000001 /* OnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -137,6 +138,7 @@
 		PH000001PH000001PH000001 /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
 		PS000001PS000001PS000001 /* ProgressionSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestion.swift; sourceTree = "<group>"; };
 		PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestionsSheet.swift; sourceTree = "<group>"; };
+		OB000001OB000001OB000001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -420,9 +422,18 @@
 				BB2200052F5D98BA002AE470 /* HealthDashboard */,
 				CC3300032F5D98BA002AE472 /* PSS */,
 				DD44000F2F5D98BA002AE473 /* MentalHealth */,
+				OB000003OB000003OB000003 /* Onboarding */,
 				FF11000A2F5D98BA002AE470 /* SplashView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		OB000003OB000003OB000003 /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				OB000001OB000001OB000001 /* OnboardingView.swift */,
+			);
+			path = Onboarding;
 			sourceTree = "<group>";
 		};
 		DD44000F2F5D98BA002AE473 /* MentalHealth */ = {
@@ -618,6 +629,7 @@
 				FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */,
 				PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */,
 				PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */,
+				OB000002OB000002OB000002 /* OnboardingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

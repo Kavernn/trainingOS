@@ -3092,7 +3092,7 @@ struct AddHIITSheet: View {
 
         private func logSession() {
             Task {
-                try? await APIService.shared.logSession(exos: [sessionType], rpe: rpe, comment: comment)
+                try? await APIService.shared.logSession(exos: [sessionType], rpe: rpe, comment: comment, sessionName: sessionType)
                 loggedDate = DateFormatter.isoDate.string(from: Date())
                 await vm.load()
                 await APIService.shared.fetchDashboard()

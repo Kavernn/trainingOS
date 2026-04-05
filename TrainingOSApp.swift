@@ -5,6 +5,7 @@ import UserNotifications
 @main
 struct TrainingOSApp: App {
     @State private var showSplash = true
+    @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
     private let modelContainer: ModelContainer = {
         let schema = Schema([PendingMutation.self])
@@ -32,6 +33,8 @@ struct TrainingOSApp: App {
             Group {
                 if showSplash {
                     SplashView { showSplash = false }
+                } else if !onboardingCompleted {
+                    OnboardingView { onboardingCompleted = true }
                 } else {
                     ContentView()
                 }

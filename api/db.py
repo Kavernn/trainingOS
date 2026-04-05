@@ -565,7 +565,15 @@ def delete_exercise_logs_for_session(session_id: str) -> bool:
         return False
 
 
-def upsert_exercise_log_direct(session_id: str, exercise_name: str, weight: float, reps: str, sets_json: list | None = None) -> bool:
+def upsert_exercise_log_direct(
+    session_id: str,
+    exercise_name: str,
+    weight: float,
+    reps: str,
+    sets_json: list | None = None,
+    rpe: float | None = None,
+    pain_zone: str | None = None,
+) -> bool:
     """Insert/update an exercise_log row using session_id directly (bypasses date lookup)."""
     if _client is None or MODE == "OFFLINE":
         return False
@@ -582,6 +590,10 @@ def upsert_exercise_log_direct(session_id: str, exercise_name: str, weight: floa
         }
         if sets_json is not None:
             payload["sets_json"] = sets_json
+        if rpe is not None:
+            payload["rpe"] = round(float(rpe), 1)
+        if pain_zone:
+            payload["pain_zone"] = pain_zone
         resp = (
             _client.table("exercise_logs")
             .upsert(payload, on_conflict="session_id,exercise_id")
@@ -590,6 +602,18 @@ def upsert_exercise_log_direct(session_id: str, exercise_name: str, weight: floa
         return bool(resp.data)
     except Exception as e:
         logger.error("upsert_exercise_log_direct error: %s", e)
+        return False
+
+
+def update_exercise_current_weight(exercise_name: str, weight: float) -> bool:
+    """Update exercises.current_weight for the given exercise name."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("exercises").update({"current_weight": round(weight, 1)}).eq("name", exercise_name).execute()
+        return True
+    except Exception as e:
+        logger.error("update_exercise_current_weight error: %s", e)
         return False
 
 

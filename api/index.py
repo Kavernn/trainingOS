@@ -671,7 +671,12 @@ def api_log():
             _db.upsert_exercise_log_direct(
                 sid, exercise, round(weight, 1), reps,
                 sets_json=sets_data or None,
+                rpe=rpe,
+                pain_zone=pain_zone or None,
             )
+        # Keep exercises.current_weight in sync (bodyweight skipped — weight=0)
+        if not (equipment_type == "bodyweight" and weight == 0):
+            _db.update_exercise_current_weight(exercise, round(new_w, 1))
         achieved = check_goals_achieved(weights)
 
         return jsonify({

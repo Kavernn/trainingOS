@@ -8,6 +8,7 @@ enum NotificationService {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
             scheduleFridayFullBody()
+            scheduleSelfCareReminder()
         }
     }
 
@@ -36,6 +37,26 @@ enum NotificationService {
         dc.weekday = 6
         dc.hour    = 9
         dc.minute  = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+        center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
+
+    // MARK: - Self-Care Daily Reminder (every day at 9pm)
+
+    private static func scheduleSelfCareReminder() {
+        let center = UNUserNotificationCenter.current()
+        let id = "selfcare.daily.reminder"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        let content = UNMutableNotificationContent()
+        content.title = "Habitudes du soir 🌙"
+        content.body  = "Tes habitudes de self-care t'attendent — coche tes actions du jour."
+        content.sound = .default
+
+        var dc = DateComponents()
+        dc.hour   = 21
+        dc.minute = 0
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
