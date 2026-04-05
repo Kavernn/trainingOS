@@ -47,6 +47,7 @@ struct InventaireView: View {
     @State private var editTarget: InventoryItem?
     @State private var showAdd = false
     @State private var errorMsg: String?
+    @State private var pendingDelete: String?
 
     let types      = ["Tous", "barbell", "ez-bar", "dumbbell", "cable", "machine", "bodyweight"]
     let categories = ["Tous", "push", "pull", "legs", "core", "mobility"]
@@ -104,6 +105,21 @@ struct InventaireView: View {
             }
         }
         .task { await loadData() }
+        .confirmationDialog(
+            inProgram.contains(pendingDelete ?? "")
+                ? "Cet exercice est dans ton programme — le supprimer le retirera de toutes tes séances."
+                : "Supprimer \(pendingDelete ?? "") de l'inventaire ?",
+            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Supprimer", role: .destructive) {
+                if let name = pendingDelete {
+                    Task { await deleteItem(name) }
+                    pendingDelete = nil
+                }
+            }
+            Button("Annuler", role: .cancel) { pendingDelete = nil }
+        }
     }
 
     // MARK: – Subviews
@@ -188,7 +204,7 @@ struct InventaireView: View {
                     .onTapGesture { editTarget = item }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
-                            Task { await deleteItem(item.name) }
+                            pendingDelete = item.name
                         } label: {
                             Label("Supprimer", systemImage: "trash")
                         }

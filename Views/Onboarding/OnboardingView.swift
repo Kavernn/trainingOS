@@ -189,6 +189,13 @@ struct OnboardingView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
+            .overlay(alignment: .topTrailing) {
+                Button("Passer") { onComplete() }
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.gray)
+                    .padding(.trailing, 20)
+                    .padding(.top, 56)
+            }
         }
     }
 

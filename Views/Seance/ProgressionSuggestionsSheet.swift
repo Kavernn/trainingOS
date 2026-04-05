@@ -10,6 +10,11 @@ struct ProgressionSuggestionsSheet: View {
     @State private var applying: String? = nil
     @State private var errorMsg: String? = nil
     @State private var showMaintain = false
+    @State private var undoPrev: (name: String, weight: Double)? = nil
+    @State private var undoVisible = false
+    @State private var undoTimerTask: Task<Void, Never>? = nil
+
+    private var ignoredKey: String { "prog_ignored_\(sessionName)" }
 
     private var actionable: [ProgressionSuggestion] {
         suggestions.filter { $0.suggestionType != "maintain" }
@@ -62,7 +67,7 @@ struct ProgressionSuggestionsSheet: View {
                                     isIgnored: ignored.contains(s.exerciseName),
                                     isApplying: applying == s.exerciseName,
                                     onApply: { apply(s) },
-                                    onIgnore: { ignored.insert(s.exerciseName) }
+                                    onIgnore: { ignore(s.exerciseName) }
                                 )
                             }
                         }
@@ -107,14 +112,37 @@ struct ProgressionSuggestionsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    // F9 — "Passer" tant que non traité, "Terminer" quand tout est fait
                     Button(allHandled ? "Terminer" : "Passer") { onDone() }
                         .foregroundColor(allHandled ? .cyan : .gray)
                         .fontWeight(allHandled ? .semibold : .regular)
                 }
             }
+            .overlay(alignment: .bottom) {
+                if undoVisible, let info = undoPrev {
+                    HStack(spacing: 12) {
+                        Text("Progression appliquée ↑")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Button("Annuler") { undoApply(info) }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.cyan)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color(hex: "1c1c2e"))
+                    .cornerRadius(12)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: undoVisible)
+            .onAppear {
+                let stored = UserDefaults.standard.stringArray(forKey: ignoredKey) ?? []
+                ignored = Set(stored)
+            }
         }
-        // F14
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
@@ -122,7 +150,6 @@ struct ProgressionSuggestionsSheet: View {
     private func apply(_ s: ProgressionSuggestion) {
         guard let weight = s.suggestedWeight else { return }
         applying = s.exerciseName
-        // F15 — haptic feedback
         triggerImpact(style: .medium)
         Task {
             do {
@@ -134,6 +161,14 @@ struct ProgressionSuggestionsSheet: View {
                 await MainActor.run {
                     applied.insert(s.exerciseName)
                     applying = nil
+                    // Show undo toast for 5 seconds
+                    undoPrev = (name: s.exerciseName, weight: s.currentWeight ?? weight)
+                    undoVisible = true
+                    undoTimerTask?.cancel()
+                    undoTimerTask = Task {
+                        try? await Task.sleep(nanoseconds: 5_000_000_000)
+                        await MainActor.run { undoVisible = false }
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -141,6 +176,24 @@ struct ProgressionSuggestionsSheet: View {
                     applying = nil
                 }
             }
+        }
+    }
+
+    private func ignore(_ name: String) {
+        ignored.insert(name)
+        UserDefaults.standard.set(Array(ignored), forKey: ignoredKey)
+    }
+
+    private func undoApply(_ info: (name: String, weight: Double)) {
+        undoTimerTask?.cancel()
+        undoVisible = false
+        applied.remove(info.name)
+        Task {
+            try? await APIService.shared.applyProgression(
+                exerciseName: info.name,
+                suggestedWeight: info.weight,
+                suggestedScheme: nil
+            )
         }
     }
 }

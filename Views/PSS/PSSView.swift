@@ -377,17 +377,38 @@ struct PSSQuestionnaireSheet: View {
     // ── Questionnaire page ────────────────────────────────────────────────────
 
     private var questionnaireBody: some View {
-        ScrollView(showsIndicators: false) {
+        let answeredCount = questions.filter { responses[$0.id] != nil }.count
+        let total = max(questions.count, 1)
+        return ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
+                // Progress bar
+                VStack(spacing: 6) {
+                    HStack {
+                        Text("\(answeredCount) / \(questions.count)")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.purple)
+                        Spacer()
+                        Text(answeredCount == questions.count ? "Prêt ✓" : "\(Int(Double(answeredCount) / Double(total) * 100))%")
+                            .font(.system(size: 12))
+                            .foregroundColor(answeredCount == questions.count ? .green : .gray)
+                    }
+                    ProgressView(value: Double(answeredCount), total: Double(total))
+                        .tint(.purple)
+                        .animation(.easeInOut(duration: 0.2), value: answeredCount)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 4)
+
                 // Intro
                 VStack(spacing: 6) {
                     Text("Au cours du **dernier mois**…")
                         .font(.system(size: 14)).foregroundColor(.gray)
                         .multilineTextAlignment(.center)
-                    Text("\(questions.count) questions · Échelle 0 à 4")
+                    Text("Échelle 0 à 4")
                         .font(.system(size: 12)).foregroundColor(.gray.opacity(0.6))
                 }
-                .padding(.vertical, 16)
+                .padding(.vertical, 12)
 
                 // Questions
                 ForEach(Array(questions.enumerated()), id: \.1.id) { idx, q in

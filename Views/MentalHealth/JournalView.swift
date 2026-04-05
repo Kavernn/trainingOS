@@ -163,6 +163,7 @@ struct JournalEntrySheet: View {
     let prompt: String
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("journal_draft") private var draftContent = ""
     @State private var content = ""
     @State private var moodEnabled = false
     @State private var moodValue: Double = 5
@@ -191,6 +192,7 @@ struct JournalEntrySheet: View {
                 Section("Ton entrée") {
                     TextField("Commence à écrire…", text: $content, axis: .vertical)
                         .lineLimit(6...20)
+                        .onChange(of: content) { draftContent = $0 }
                 }
                 Section {
                     Toggle(isOn: $moodEnabled.animation(.easeInOut(duration: 0.2))) {
@@ -233,6 +235,7 @@ struct JournalEntrySheet: View {
             .navigationTitle("Nouvelle entrée")
             .navigationBarTitleDisplayMode(.inline)
             .keyboardOkButton()
+            .onAppear { if content.isEmpty && !draftContent.isEmpty { content = draftContent } }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }
@@ -254,7 +257,7 @@ struct JournalEntrySheet: View {
                     content: content,
                     moodScore: moodEnabled ? moodInt : nil
                 )
-                await MainActor.run { dismiss() }
+                await MainActor.run { draftContent = ""; dismiss() }
             } catch {
                 await MainActor.run {
                     errorMsg = error.localizedDescription
