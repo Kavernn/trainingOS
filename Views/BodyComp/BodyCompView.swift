@@ -109,12 +109,12 @@ struct BodyCompView: View {
                     Text("POIDS ACTUEL")
                         .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                     if let w = latest?.weight {
-                        Text(units.format(w))
+                        Text(String(format: "%.1f lbs", w))
                             .font(.system(size: 44, weight: .black))
                             .foregroundColor(.orange).glow(.orange)
                             .contentTransition(.numericText())
                     } else {
-                        Text("— \(units.label)")
+                        Text("— lbs")
                             .font(.system(size: 44, weight: .black)).foregroundColor(.gray)
                     }
                 }
@@ -127,7 +127,7 @@ struct BodyCompView: View {
                         HStack(spacing: 4) {
                             Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down")
                                 .font(.system(size: 11, weight: .bold))
-                            Text("\(diff >= 0 ? "+" : "")\(units.format(diff))")
+                            Text("\(diff >= 0 ? "+" : "")\(String(format: "%.1f lbs", diff))")
                                 .font(.system(size: 12, weight: .semibold))
                         }
                         .foregroundColor(diff >= 0 ? .orange.opacity(0.8) : .green.opacity(0.8))
@@ -140,8 +140,8 @@ struct BodyCompView: View {
                 let lean = w * (1 - bf / 100)
                 let fat  = w * bf / 100
                 HStack(spacing: 8) {
-                    CompChip(label: "MASSE MAIGRE", value: units.format(lean), color: .green)
-                    CompChip(label: "MASSE GRASSE", value: "\(units.format(fat)) · \(String(format: "%.1f", bf))%", color: .blue)
+                    CompChip(label: "MASSE MAIGRE", value: String(format: "%.1f lbs", lean), color: .green)
+                    CompChip(label: "MASSE GRASSE", value: "\(String(format: "%.1f lbs", fat)) · \(String(format: "%.1f", bf))%", color: .blue)
                 }
             }
         }
@@ -292,10 +292,10 @@ struct CompositionChartCard: View {
             if let last = entries.last, let bf = last.bodyFat {
                 HStack {
                     Spacer()
-                    Text("Maigre \(units.format(last.weight * (1 - bf/100)))")
+                    Text("Maigre \(String(format: "%.1f lbs", last.weight * (1 - bf/100)))")
                         .font(.system(size: 12, weight: .semibold)).foregroundColor(.green)
                     Text("·").foregroundColor(.gray)
-                    Text("Gras \(units.format(last.weight * bf/100))")
+                    Text("Gras \(String(format: "%.1f lbs", last.weight * bf/100))")
                         .font(.system(size: 12, weight: .semibold)).foregroundColor(.blue)
                     Spacer()
                 }
@@ -507,13 +507,13 @@ struct ComparisonTableCard: View {
 
     private var rows: [Row] {
         guard let n = newest, let o = oldest else { return [] }
-        let nw = units.display(n.weight); let ow = units.display(o.weight)
+        let nw = n.weight; let ow = o.weight
         let nLean = n.bodyFat.map { n.weight * (1 - $0 / 100) }
         let oLean = o.bodyFat.map { o.weight * (1 - $0 / 100) }
         return [
-            Row(id: "poids",    label: "Poids (\(units.label))",  old: fmt(ow),                         new: fmt(nw),                         delta: nw - ow,              higherIsBetter: false),
+            Row(id: "poids",    label: "Poids (lbs)",              old: fmt(ow),                         new: fmt(nw),                         delta: nw - ow,              higherIsBetter: false),
             Row(id: "bf",       label: "Masse grasse %",          old: fmt(o.bodyFat),                  new: fmt(n.bodyFat),                  delta: d(n.bodyFat, o.bodyFat),  higherIsBetter: false),
-            Row(id: "lean",     label: "Masse maigre (kg)",       old: fmt(oLean),                      new: fmt(nLean),                      delta: d(nLean, oLean),          higherIsBetter: true),
+            Row(id: "lean",     label: "Masse maigre (lbs)",       old: fmt(oLean),                      new: fmt(nLean),                      delta: d(nLean, oLean),          higherIsBetter: true),
             Row(id: "taille",   label: "Taille (cm)",             old: fmt(o.waistCm,  decimals: 0),    new: fmt(n.waistCm,  decimals: 0),    delta: d(n.waistCm,  o.waistCm),  higherIsBetter: false),
             Row(id: "bras",     label: "Bras (cm)",               old: fmt(o.armsCm,   decimals: 0),    new: fmt(n.armsCm,   decimals: 0),    delta: d(n.armsCm,   o.armsCm),   higherIsBetter: true),
             Row(id: "poitrine", label: "Poitrine (cm)",           old: fmt(o.chestCm,  decimals: 0),    new: fmt(n.chestCm,  decimals: 0),    delta: d(n.chestCm,  o.chestCm),  higherIsBetter: false),
@@ -604,7 +604,7 @@ struct BodyWeightRow: View {
                 }
             }
             Spacer()
-            Text(UnitSettings.shared.format(entry.weight))
+            Text(String(format: "%.1f lbs", entry.weight))
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(.white)
 
@@ -697,7 +697,7 @@ struct BodyWeightSheet: View {
                         // Poids + % gras — champs principaux
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("POIDS (\(units.label.uppercased()))")
+                                Text("POIDS (LBS)")
                                     .font(.system(size: 10, weight: .bold))
                                     .tracking(2)
                                     .foregroundColor(.gray)
@@ -784,7 +784,7 @@ struct BodyWeightSheet: View {
         .presentationDragIndicator(.visible)
         .onAppear {
             if let e = editEntry {
-                weightStr  = units.inputStr(e.weight)
+                weightStr  = String(format: "%.1f", e.weight)
                 bodyFatStr = e.bodyFat.map  { String(format: "%.1f", $0) } ?? ""
                 waistStr   = e.waistCm.map  { String(format: "%.0f", $0) } ?? ""
                 armsStr    = e.armsCm.map   { String(format: "%.0f", $0) } ?? ""
@@ -810,14 +810,14 @@ struct BodyWeightSheet: View {
             async let bodyFat = hk.fetchLatestBodyFat()
             let (w, bf) = await (weight, bodyFat)
             // HealthKit returns kg; convert to storage unit (lbs) then to display unit
-            if let w  { weightStr  = units.inputStr(w / 0.453592) }
+            if let w  { weightStr  = String(format: "%.1f", w / 0.453592) }
             if let bf { bodyFatStr = String(format: "%.1f", bf) }
             isLoadingHK = false
         }
     }
 
     private func save() {
-        guard let w = parse(weightStr).map({ units.toStorage($0) }) else {
+        guard let w = parse(weightStr) else {
             saveError = "Valeur de poids invalide: '\(weightStr)'"
             return
         }
