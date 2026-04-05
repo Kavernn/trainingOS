@@ -114,8 +114,38 @@ def save_sleep_entry(
     return entry
 
 
+def _recovery_to_sleep(entry: dict) -> dict:
+    """Convert a recovery_log entry to a sleep-compatible record (HealthKit fallback)."""
+    h = entry.get("sleep_hours") or 0.0
+    return {
+        "id":               entry.get("id", ""),
+        "date":             entry["date"],
+        "bedtime":          "—",
+        "wake_time":        "—",
+        "duration_hours":   h,
+        "quality":          0,
+        "quality_label":    "Auto (HealthKit)",
+        "quality_emoji":    "⌚",
+        "duration_category": _duration_category(h),
+        "duration_color":   _duration_color(h),
+        "notes":            entry.get("notes") or None,
+        "insights":         _insights(h, 3, []),
+        "source":           "healthkit",
+        "logged_at":        entry.get("date"),
+    }
+
+
+def _get_all_records() -> list:
+    """Return sleep_records, falling back to recovery_log when empty."""
+    records = db.get_sleep_records()
+    if records:
+        return records
+    recovery = db.get_recovery_logs(limit=60)
+    return [_recovery_to_sleep(r) for r in recovery if r.get("sleep_hours")]
+
+
 def get_history(limit: int = 20, offset: int = 0) -> dict:
-    all_records = db.get_sleep_records()
+    all_records = _get_all_records()
     total = len(all_records)
     page  = all_records[offset: offset + limit]
     return {
@@ -133,11 +163,15 @@ def get_today() -> dict | None:
     records = db.get_sleep_records(limit=1)
     if records and records[0].get("date") == today:
         return records[0]
+    # Fallback: check recovery_log for today
+    recovery = db.get_recovery_logs(limit=1)
+    if recovery and recovery[0].get("date") == today and recovery[0].get("sleep_hours"):
+        return _recovery_to_sleep(recovery[0])
     return None
 
 
 def get_stats() -> dict:
-    records = db.get_sleep_records()
+    records = _get_all_records()
     if not records:
         return {"avg_duration": None, "avg_quality": None, "total": 0, "streak": 0}
 
