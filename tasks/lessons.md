@@ -285,3 +285,80 @@ private func formatDur(_ s: Int) -> String {
 // 60 → "1min", 90 → "1min30s", 120 → "2min"
 ```
 Ne jamais écrire `s < 60 ? "\(s)s" : "\(s / 60)min"` pour des durées potentiellement non multiples de 60.
+
+---
+
+## Python — `dict.get(key, default)` ne protège pas contre les valeurs null explicites
+
+`info.get("type", "machine")` retourne **`None`** si la clé existe avec la valeur `None` en DB. Le default n'est utilisé que si la clé est **absente**.
+
+**Règle :** Pour les champs qui peuvent être `None` en DB, toujours utiliser `or` :
+```python
+# ❌ Mauvais — retourne None si type=NULL en DB
+info.get("type", "machine")
+
+# ✅ Correct — retourne "machine" si type est None ou absent
+info.get("type") or "machine"
+```
+**Contexte :** Causait un crash silencieux dans Swift `[String: String]` quand `inventory_types` contenait des nulls.
+
+---
+
+## PostgreSQL — `smallint` rejette les floats Python
+
+`round(float(5), 1)` = `5.0` (float Python) est rejeté par une colonne PostgreSQL `smallint`. Supabase / PostgREST retourne une erreur 400 qui peut être silencieusement catchée.
+
+**Règle :** Pour toute colonne `smallint` (RPE, rating, etc.), toujours caster en `int` :
+```python
+# ❌ Mauvais
+payload["rpe"] = round(float(rpe), 1)  # → 5.0, rejeté par smallint
+
+# ✅ Correct
+payload["rpe"] = int(round(float(rpe)))  # → 5, accepté
+```
+**Contexte :** Causait l'échec silencieux de **toutes** les créations de séances (exception catchée, `{}` retourné).
+
+---
+
+## iOS — `@AppStorage` ne doit pas être source de vérité pour l'état serveur
+
+`@AppStorage` persiste localement. Si le serveur n'a pas reçu la mutation (erreur réseau, bug silencieux), l'état local et l'état serveur divergent.
+
+**Règle :** Pour les flags qui reflètent un état serveur (ex: `alreadyLoggedToday`), toujours cross-checker avec la réponse API :
+```swift
+// ❌ Mauvais — si create_workout_session a échoué silencieusement
+private var alreadyLoggedToday: Bool {
+    loggedDate == DateFormatter.isoDate.string(from: Date())
+}
+
+// ✅ Correct — serveur est source de vérité
+private var alreadyLoggedToday: Bool {
+    let localSaysLogged = loggedDate == DateFormatter.isoDate.string(from: Date())
+    let serverSaysLogged = vm.seanceData?.alreadyLogged ?? false
+    return localSaysLogged && serverSaysLogged
+}
+```
+
+---
+
+## Backend — Vercel tourne en UTC, pas en heure locale
+
+`datetime.date.today()` sur Vercel retourne la date UTC. Si l'utilisateur est à Montréal (UTC-4/UTC-5), la "date du jour" côté serveur peut différer de celle du device après 20h-21h.
+
+**Règle :** Pour toute logique de "aujourd'hui" côté serveur, utiliser `ZoneInfo("America/Montreal")` :
+```python
+from zoneinfo import ZoneInfo
+from datetime import datetime
+today = datetime.now(ZoneInfo("America/Montreal")).date().isoformat()
+```
+Ne jamais utiliser `datetime.date.today()` pour des comparaisons de date liées au comportement utilisateur.
+
+---
+
+## DB — Les migrations KV→relational peuvent créer des doublons
+
+Lors de la migration d'une table KV (clé/valeur) vers des tables relationnelles, si le script de migration est relancé sans guard `ON CONFLICT`, il insère des doublons.
+
+**Règle :** Toujours utiliser `ON CONFLICT DO NOTHING` ou vérifier l'existence avant insert dans les scripts de migration. Auditer les comptes après migration.
+
+**Contexte :** 14 doublons dans `cardio_logs` découverts lors de l'audit (tous avec `logged_at` identique à la milliseconde).

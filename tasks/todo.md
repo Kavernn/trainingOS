@@ -1,6 +1,6 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-03-31.
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-04.
 
 ---
 
@@ -12,6 +12,11 @@
 - [x] **ChecklistCardView invisible au matin** : `isHiddenToday` lu avant `load()` → reset de date inefficace si app gardée en mémoire la nuit. Fix : swap ordre dans `onAppear` (2026-03-30).
 - [x] **TodayCard affiche "Commencer" malgré séance loggée** : `if isLoggedToday, let session` échouait quand `alreadyLoggedToday=true` mais `sessions[todayDate]=nil` (désync cache). Séparé en deux conditions indépendantes (2026-03-29).
 - [x] **Schema Supabase manquant `session_type`** : colonne `session_type` absente de `workout_sessions` bloquait le pipeline Séance du Soir. Migration 003 créée (2026-03-29).
+- [x] **`/api/ai/coach/history` → 500 NameError** : `_db` non importé dans la route. Fix : `import db as _db` ajouté (2026-04-04).
+- [x] **`inventory_types` nulls cassait décode Swift** : `info.get("type", "machine")` retourne `None` si la clé existe avec valeur null. Fix : `info.get("type") or "machine"` (2026-04-04).
+- [x] **`create_workout_session` smallint error** : `round(float(rpe), 1)` = float Python rejeté par PostgreSQL `smallint`. Fix : `int(round(float(rpe)))` dans `db.py` (2026-04-04).
+- [x] **`SpecialSeanceView.alreadyLoggedToday` stale** : `@AppStorage` local pris comme source de vérité même si le serveur n'a pas reçu la séance. Fix : cross-check `vm.seanceData?.alreadyLogged` (code iOS prêt, rebuild Xcode requis).
+- [x] **Tendance body_weight ↓ -72 kg** : 3 entrées en livres (180/176/188.6) mélangées avec des kg. Converties en DB + `get_tendance()` filtre >150 (2026-04-04).
 
 ---
 
@@ -24,6 +29,7 @@
 - [x] **Recovery modifiable** : bouton crayon + `LogRecoverySheet(prefillEntry:)` + FAB adaptatif (2026-03-29).
 - [x] **Deload recommandé mais pas auto-appliqué** : bouton "Appliquer le déload (−15%)" dans `DeloadBannerView` → POST `/api/apply_deload` (2026-03-29).
 - [x] **Validation photo profil** : limite 500KB, alert `photoError`, compression JPEG 0.7 (2026-03-29).
+- [ ] **Rebuild iOS Xcode** : compiler le fix `SpecialSeanceView.alreadyLoggedToday` (cross-check server state) pour le déployer sur device.
 
 ---
 
@@ -42,6 +48,9 @@
 - [x] **HIIT : pas de templates favoris** : `HIITTemplate` (Codable), `@AppStorage("hiit_templates")`, chips de templates + alert "Sauvegarder" dans `AddHIITSheet` (2026-03-29).
 - [x] **HealthKit auto-import cardio/recovery** : `WatchSyncService.syncIfNeeded()` appelé au lancement dans `TrainingOSApp.onAppear` (2026-03-29).
 - [x] **Pas d'export données** : bouton "Exporter mes données" dans `ProfileView`, endpoint `/api/export_data`, ShareSheet (2026-03-29).
+- [x] **SleepView vide** : `sleep_records` jamais peuplé. Bridge `recovery_log → sleep_records` : fallback sur HealthKit (15 entrées visibles, sleep/today retourne 7.1h) (2026-04-04).
+- [x] **14 doublons cardio** : artefact migration KV (logged_at identique). Nettoyés en DB, 5 entrées uniques conservées (2026-04-04).
+- [x] **Breathwork session 0 durée** : session fantôme supprimée en DB (2026-04-04).
 
 ---
 
@@ -54,6 +63,9 @@
 - [ ] **Heatmap HIIT distinct de muscu** : la heatmap 30 jours traite identiquement une séance HIIT et une séance muscu. Utiliser une couleur différente (ex: bleu pour HIIT, orange pour muscu). (Note: HeatmapView retirée du Dashboard → considérer dans StatsView.)
 - [x] **Injury tracking** : champ "Zone douloureuse" optionnel dans `ExerciseCard`, transmis via `pain_zone` dans payload `/api/log`, stocké dans `history_entry` (2026-03-29).
 - [x] **Pas de badge achèvement objectif** : sections Active/Atteints/Archivés dans `ObjectifsView`, bouton "Archiver" sur goals atteints, endpoint `/api/archive_objectif` + KV `goals_archived` (2026-03-29).
+- [ ] **Profile non rempli** : name, age, goal, height, level, sex, weight tous null. UX : forcer l'onboarding ou afficher un prompt "Complète ton profil".
+- [ ] **Objectifs vides** : aucun objectif créé — ajouter une CTA ou un prompt dans ObjectifsView.
+- [ ] **Nutrition : cibles glucides/lipides = 0** : saisir les objectifs macro dans les settings.
 
 ---
 
@@ -62,6 +74,7 @@
 - [ ] **Pas de suite de tests E2E** : les tests pytest couvrent le backend mais pas les chemins critiques iOS (log + cache + sync). Considérer XCUITest pour les flows principaux.
 - [ ] **API sans documentation** : aucun Swagger/OpenAPI. Documenter les endpoints principaux dans `api/README.md`.
 - [x] **Migration 003 appliquée sur Supabase** : `session_type` + backfill + contrainte UNIQUE(date, session_type) (2026-03-29).
+- [x] **Migration KV → relational complète** : table `kv` supprimée, toutes les données migrées vers tables relationnelles. Migration 011 appliquée. (2026-04-04).
 
 ---
 

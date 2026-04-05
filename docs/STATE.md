@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-03-31
+Dernière mise à jour : 2026-04-04
 
 ---
 
@@ -32,7 +32,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - Progression automatique des charges (1RM Epley, algorithme RPE gradué 5 niveaux)
 - Déload automatique (détection stagnation + fatigue RPE + chute de performance) + bouton "Appliquer le déload (−15%)"
 - Séances HIIT avec timer dédié (beeps, flash, presets, notifications background)
-- Séance du soir (second slot quotidien) — pipeline complet, migration Supabase en attente
+- Séance du soir (second slot quotidien) — pipeline complet
 - Historique séances muscu + HIIT avec édition et pagination (limit/offset)
 - Programme hebdomadaire (planificateur par jour, placeholder si séance vide)
 - Inventaire des exercices (CRUD complet, temps de repos, tracking type)
@@ -50,6 +50,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - Insights hebdomadaires
 - Récit narratif de la semaine (NarrativeCard, cache par semaine ISO)
 - Contexte athlete enrichi : LSS, ACWR, poids, groupes musculaires, sessions (~1400 chars terse)
+- Historique conversations persisté (`@AppStorage`, Codable `ChatMessage`)
 
 ### Dashboard & UX
 - TodayCard en position #1 (action principale en haut de page)
@@ -74,6 +75,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - Life Stress Score (LSS) : 5 composantes (sommeil, HRV, FC repos, stress, fatigue)
 - ACWR (Acute:Chronic Workload Ratio)
 - RecoveryView, BodyCompView, CardioView, SleepView
+- SleepView : bridge `recovery_log → sleep` quand `sleep_records` vide (fallback HealthKit, `source: "healthkit"`, `bedtime: "—"`, `quality: 0`)
 - MentalHealth suite (mood, journal, breathwork, PSS, self-care)
 - HealthDashboard agrégé
 
@@ -124,15 +126,32 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 | 007_exercise_classification_1 | `docs/migrations/007_exercise_classification_1.sql` | ✅ Appliquée (2026-03-31) |
 | 008_exercise_classification_2 | `docs/migrations/008_exercise_classification_2.sql` | ✅ Appliquée (2026-03-31) |
 | 009_fix_categories_2 | `docs/migrations/009_fix_categories_2.sql` | ✅ Appliquée (2026-03-31) |
-| 010_session_name | `docs/migrations/010_session_name.sql` | ⚠️ À appliquer manuellement |
+| 010_session_name | `docs/migrations/010_session_name.sql` | ✅ Appliquée (2026-04-04) |
+| 011_kv_migration | `docs/migrations/011_kv_migration.sql` | ✅ Appliquée + table kv supprimée (2026-04-04) |
 
 ---
 
 ## En cours / Prochaines étapes
 
-1. Appliquer migration 010 sur Supabase : `ALTER TABLE public.workout_sessions ADD COLUMN IF NOT EXISTS session_name TEXT; CREATE INDEX IF NOT EXISTS idx_workout_sessions_name ON public.workout_sessions (session_name, date DESC);`
+1. **Rebuild iOS Xcode** : compiler `SpecialSeanceView.alreadyLoggedToday` fix (cross-check `vm.seanceData?.alreadyLogged`)
 2. Tests E2E iOS (XCUITest flows critiques)
 3. Heatmap HIIT distinct de muscu dans StatsView
+4. Remplir le profil utilisateur (name, age, height, etc.)
+5. Créer des objectifs dans ObjectifsView
+6. Configurer les cibles macro glucides/lipides dans NutritionView
+
+## Complété récemment (2026-04-04)
+
+- **Migration KV → relational** : migration 011 appliquée, table `kv` supprimée. Toutes les données dans tables relationnelles (mood_logs, habits, coach_messages, pss_records, sleep_records, goals_archived, breathwork_sessions).
+- **Fix `inventory_types` nulls** : `info.get("type") or "machine"` remplace `info.get("type", "machine")` — évite les nulls qui cassaient le décode Swift `[String: String]` (4 emplacements dans index.py).
+- **Fix smallint RPE** : `int(round(float(rpe)))` dans `db.create_workout_session` — float Python rejeté par colonne PostgreSQL `smallint`. Causait échec silencieux de toutes les créations de séances.
+- **Fix `/api/ai/coach/history`** : `import db as _db` manquant → NameError 500. Corrigé.
+- **Fix `SpecialSeanceView.alreadyLoggedToday`** : cross-check server state pour éviter le stale `@AppStorage` qui bloquait le re-log après échec réseau (iOS, rebuild requis).
+- **Fix tendance body_weight** : 3 entrées lbs (180/176/188.6) converties en kg en DB. `get_tendance()` filtre >150 comme garde-fou. Tendance correcte : `↓ -5.1 kg`.
+- **Nettoyage DB cardio** : 14 doublons supprimés (artefact migration KV, logged_at identique). 5 entrées uniques conservées.
+- **Nettoyage DB breathwork** : session fantôme (0 min, 0 cycles) supprimée.
+- **SleepView bridge HealthKit** : `sleep.py` bridgée sur `recovery_log` quand `sleep_records` vide. 15 entrées visibles dans SleepView (7.1h aujourd'hui). Fix timezone `ZoneInfo("America/Montreal")` pour `sleep/today`.
+- **Audit complet runtime** : tous les ~75 endpoints testés en prod, rapport livré par écran.
 
 ## Complété récemment (2026-03-31)
 
@@ -177,6 +196,8 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - `SECRET_KEY` avec valeur par défaut dans `index.py` — doit être forcé en prod
 - Pas de tests E2E iOS (XCUITest)
 - Pas de documentation Swagger/OpenAPI des routes backend
+- Profil utilisateur vide (name, age, height, etc. — non saisi)
+- `sleep_records` vide : SleepView affiche des données HealthKit bridgées sans bedtime/wake_time/quality
 
 ---
 
