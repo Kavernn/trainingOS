@@ -291,11 +291,14 @@ struct BreathworkTimerView: View {
                     timer = nil
                     isRunning = false
                     isFinished = true
+                    triggerImpact(style: .heavy)
                     return
                 }
             }
             secondsLeft = currentPhase.seconds
             updateCircle()
+            // Haptic cue on every phase transition
+            triggerImpact(style: currentPhase.phase == "inhale" ? .light : .medium)
         }
     }
 

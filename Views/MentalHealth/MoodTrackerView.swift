@@ -202,11 +202,11 @@ struct MoodLogSheet: View {
                     Slider(value: $score, in: 1...10, step: 1)
                         .tint(sliderColor)
                     HStack {
-                        Text("😞 1")
+                        Text("😞 Très bas")
                             .font(.caption)
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text("10 😄")
+                        Text("Excellent 😄")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

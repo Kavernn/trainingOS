@@ -67,7 +67,7 @@ struct InventaireView: View {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
                 if isLoading {
-                    ProgressView().tint(.orange)
+                    InventaireSkeletonView()
                 } else {
                     VStack(spacing: 0) {
                         searchBar
@@ -919,6 +919,40 @@ struct InventoryFormSheet: View {
         case "rotators": return "Rotateurs"; case "abductors": return "Abducteurs"
         default: return m.capitalized
         }
+    }
+}
+
+// MARK: - Skeleton
+
+private struct InventaireSkeletonView: View {
+    @State private var shimmer = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<12, id: \.self) { i in
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.white.opacity(0.07))
+                        .frame(width: 32, height: 32)
+                    VStack(alignment: .leading, spacing: 6) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.07))
+                            .frame(width: CGFloat([140, 110, 160, 90, 130][i % 5]), height: 12)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white.opacity(0.05))
+                            .frame(width: CGFloat([80, 60, 100, 70, 90][i % 5]), height: 9)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .opacity(shimmer ? 0.5 : 1.0)
+                .animation(.easeInOut(duration: 0.9).repeatForever().delay(Double(i) * 0.05), value: shimmer)
+                Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
+            }
+            Spacer()
+        }
+        .onAppear { shimmer = true }
     }
 }
 

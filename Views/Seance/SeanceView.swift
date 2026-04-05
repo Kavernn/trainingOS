@@ -1748,10 +1748,11 @@ struct AddHIITSheet: View {
         // Set synchronously before any async call to prevent race conditions
         @State private var isLogged = false
         @State private var isEditing = false
+        @State private var isSkipped = false
 
         enum LogStatus { case success(Double), stagné, loading, error(String) }
 
-        private var alreadyLogged: Bool { isLogged || logResult != nil }
+        private var alreadyLogged: Bool { isLogged || logResult != nil || isSkipped }
 
         var currentWeight: Double { weightData?.currentWeight ?? 0 }
         var lastReps: String { weightData?.lastReps ?? "—" }
@@ -2128,8 +2129,28 @@ struct AddHIITSheet: View {
                 }
 
                 if alreadyLogged && !isEditing {
+                    // ── Sauté ──
+                    if isSkipped {
+                        HStack(spacing: 8) {
+                            Image(systemName: "forward.fill")
+                                .font(.system(size: 13))
+                                .foregroundColor(.gray)
+                            Text("Sauté")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Button(action: { isSkipped = false }) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.gray.opacity(0.5))
+                            }
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color.white.opacity(0.04))
+                        .cornerRadius(8)
                     // ── Résumé loggé ──
-                    if let r = logResult {
+                    } else if let r = logResult {
                         HStack(spacing: 12) {
                             if isTimeBased {
                                 HStack(spacing: 4) {
@@ -2345,6 +2366,16 @@ struct AddHIITSheet: View {
                                 Text("Annuler")
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(.gray)
+                            }
+                        } else {
+                            Button(action: { isSkipped = true; triggerImpact(style: .light) }) {
+                                Text("Sauter")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.gray)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.white.opacity(0.06))
+                                    .cornerRadius(8)
                             }
                         }
                         Spacer()

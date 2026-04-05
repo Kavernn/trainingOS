@@ -433,6 +433,10 @@ struct TimerView: View {
                 phase = .done
                 running = false
                 timerTask?.cancel()
+                // Done feedback
+                triggerImpact(style: .heavy)
+                beepPlayer = makeBeep(hz: 660, duration: 0.4)
+                beepPlayer?.play()
             } else {
                 phase = .rest
                 remaining = restSecs

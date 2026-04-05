@@ -9,6 +9,7 @@ enum NotificationService {
             guard settings.authorizationStatus == .authorized else { return }
             scheduleFridayFullBody()
             scheduleSelfCareReminder()
+            schedulePSSWeeklyReminder()
         }
     }
 
@@ -57,6 +58,27 @@ enum NotificationService {
         var dc = DateComponents()
         dc.hour   = 21
         dc.minute = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+        center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
+
+    // MARK: - PSS Weekly Reminder (every Monday at 10am)
+
+    private static func schedulePSSWeeklyReminder() {
+        let center = UNUserNotificationCenter.current()
+        let id = "pss.weekly.test"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        let content = UNMutableNotificationContent()
+        content.title = "Test PSS hebdo 🧠"
+        content.body  = "Comment ton stress évolue cette semaine ? 2 minutes pour le mesurer."
+        content.sound = .default
+
+        var dc = DateComponents()
+        dc.weekday = 2   // Monday
+        dc.hour    = 10
+        dc.minute  = 0
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))

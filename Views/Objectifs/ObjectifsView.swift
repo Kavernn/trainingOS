@@ -261,6 +261,20 @@ struct AddGoalSheet: View {
                         TextField("Poids objectif (\(units.label))", text: $goalWeight)
                             .keyboardType(.decimalPad)
                             .foregroundColor(.white)
+                        HStack(spacing: 8) {
+                            ForEach([1, 3, 6], id: \.self) { months in
+                                Button("\(months) mois") {
+                                    deadline = Calendar.current.date(byAdding: .month, value: months, to: Date()) ?? Date()
+                                }
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.orange.opacity(0.12))
+                                .cornerRadius(8)
+                            }
+                            Spacer()
+                        }
                         DatePicker("Deadline", selection: $deadline, displayedComponents: .date)
                             .foregroundColor(.white)
                             .tint(.orange)

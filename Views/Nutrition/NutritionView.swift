@@ -710,8 +710,10 @@ struct AddNutritionSheet: View {
                                     ForEach(catalog) { item in
                                         let isSel = selected?.id == item.id
                                         Button {
-                                            selected = item
-                                            quantity = ""
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                selected = item
+                                                quantity = ""
+                                            }
                                         } label: {
                                             Text(item.name)
                                                 .font(.system(size: 13, weight: .medium))
@@ -729,38 +731,40 @@ struct AddNutritionSheet: View {
                                 .padding(.vertical, 4)
                             }
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+
+                            // ── Quantité inline (apparaît dès la sélection) ──
+                            if let item = selected {
+                                VStack(spacing: 8) {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "scalemass.fill")
+                                            .font(.system(size: 13))
+                                            .foregroundColor(.blue.opacity(0.7))
+                                        TextField("Quantité", text: $quantity)
+                                            .keyboardType(.decimalPad)
+                                            .foregroundColor(.white)
+                                            .font(.system(size: 15, weight: .semibold))
+                                        Text(item.refUnit)
+                                            .foregroundColor(.gray)
+                                            .font(.system(size: 14))
+                                    }
+                                    Text("Réf : \(fmtN(item.refQty)) \(item.refUnit) = \(Int(item.calories)) kcal")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.gray)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    if let m = preview {
+                                        HStack(spacing: 0) {
+                                            MacroPreviewPill(value: m.cal,  label: "kcal",    color: .orange)
+                                            MacroPreviewPill(value: m.prot, label: "g prot",  color: .blue)
+                                            MacroPreviewPill(value: m.gluc, label: "g carbs", color: .yellow)
+                                            MacroPreviewPill(value: m.lip,  label: "g lip",   color: .pink)
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 8)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                            }
                         }
                         .listRowBackground(Color(hex: "11111c"))
-
-                        // ── Quantité + aperçu ───────────────────────────
-                        if let item = selected {
-                            Section {
-                                HStack {
-                                    TextField("Quantité consommée", text: $quantity)
-                                        .keyboardType(.decimalPad)
-                                        .foregroundColor(.white)
-                                    Text(item.refUnit)
-                                        .foregroundColor(.gray).font(.system(size: 14))
-                                }
-                                Text("Référence : \(fmtN(item.refQty)) \(item.refUnit) = \(Int(item.calories)) kcal")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.gray)
-                            }
-                            .listRowBackground(Color(hex: "11111c"))
-
-                            if let m = preview {
-                                Section("APERÇU") {
-                                    HStack(spacing: 0) {
-                                        MacroPreviewPill(value: m.cal,  label: "kcal",   color: .orange)
-                                        MacroPreviewPill(value: m.prot, label: "g prot", color: .blue)
-                                        MacroPreviewPill(value: m.gluc, label: "g carbs", color: .yellow)
-                                        MacroPreviewPill(value: m.lip,  label: "g lip",  color: .pink)
-                                    }
-                                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
-                                }
-                                .listRowBackground(Color(hex: "11111c"))
-                            }
-                        }
 
                         // ── Switch mode manuel ─────────────────────────
                         Section {

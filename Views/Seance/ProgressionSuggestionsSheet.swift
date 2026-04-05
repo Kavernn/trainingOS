@@ -235,6 +235,16 @@ private struct SuggestionRow: View {
                     Text(sug.fmtLbs())
                         .font(.system(size: 22, weight: .black))
                         .foregroundColor(typeColor)
+                    let delta = sug - cur
+                    if delta != 0 {
+                        Text(delta > 0 ? "+\(delta.fmtLbs())" : delta.fmtLbs())
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(delta > 0 ? typeColor.opacity(0.7) : .red.opacity(0.7))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background((delta > 0 ? typeColor : Color.red).opacity(0.1))
+                            .cornerRadius(6)
+                    }
                 }
             }
 
