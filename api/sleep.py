@@ -158,15 +158,31 @@ def get_history(limit: int = 20, offset: int = 0) -> dict:
     }
 
 
+def _today_local() -> str:
+    """Return today's date in Montreal timezone (handles UTC offset on Vercel)."""
+    try:
+        from zoneinfo import ZoneInfo
+        from datetime import datetime as _dt
+        return _dt.now(ZoneInfo("America/Montreal")).date().isoformat()
+    except Exception:
+        return date_cls.today().isoformat()
+
+
 def get_today() -> dict | None:
-    today   = date_cls.today().isoformat()
+    today   = _today_local()
     records = db.get_sleep_records(limit=1)
     if records and records[0].get("date") == today:
         return records[0]
-    # Fallback: check recovery_log for today
+    # Fallback: check recovery_log for today (or yesterday to handle late-night logging)
     recovery = db.get_recovery_logs(limit=1)
-    if recovery and recovery[0].get("date") == today and recovery[0].get("sleep_hours"):
-        return _recovery_to_sleep(recovery[0])
+    if not recovery:
+        return None
+    entry = recovery[0]
+    entry_date = entry.get("date", "")
+    if entry.get("sleep_hours") and entry_date >= (
+        date_cls.fromisoformat(today) - timedelta(days=1)
+    ).isoformat():
+        return _recovery_to_sleep(entry)
     return None
 
 
