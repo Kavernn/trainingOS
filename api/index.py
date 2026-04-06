@@ -99,6 +99,17 @@ if os.getenv("VERCEL") and _secret_key == _SECRET_KEY_DEFAULT:
     raise RuntimeError("SECRET_KEY must be set to a secure value in production (Vercel env vars)")
 app.secret_key = _secret_key
 
+# ── Global error handler ─────────────────────────────────────
+import traceback as _tb
+
+@app.errorhandler(Exception)
+def _handle_exception(e):
+    _tb.print_exc()  # log serveur uniquement, jamais envoyé au client
+    code = getattr(e, "code", 500)
+    if isinstance(code, int) and 400 <= code < 500:
+        return jsonify({"error": str(e)}), code
+    return jsonify({"error": "Erreur interne — réessaie"}), 500
+
 # ── Wearable / Apple Watch routes ───────────────────────────
 wearable.register_routes(app)
 
@@ -248,8 +259,8 @@ def api_nutrition_edit():
                  if k in data}
         ok = _db.update_nutrition_entry(entry_id, patch)
         return jsonify({"success": ok, "totals": get_today_totals()})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/nutrition/settings", methods=["POST"])
@@ -688,8 +699,8 @@ def api_log():
             "is_pr":      is_pr,
             "achieved":   achieved
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/session/edit", methods=["POST"])
@@ -760,8 +771,8 @@ def api_session_edit():
                         break
 
         return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/session/delete", methods=["POST"])
@@ -800,8 +811,8 @@ def api_session_delete():
             )
 
         return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/update_session", methods=["POST"])
@@ -822,8 +833,8 @@ def api_update_session():
         else:
             ok = _db.update_workout_session(date, patch)
         return jsonify({"success": ok})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/log_session", methods=["POST"])
@@ -867,8 +878,8 @@ def api_log_session():
             _db.complete_workout_session(today)
 
         return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/log_hiit", methods=["POST"])
@@ -955,8 +966,8 @@ def api_hiit_edit():
 
         _db.update_hiit_log(entry.get("id"), patch)
         return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/save_exercise", methods=["POST"])
@@ -1314,8 +1325,8 @@ def api_body_weight():
             return jsonify({"error": "Poids invalide"}), 400
         log_body_weight(poids, note, body_fat, waist_cm, arms_cm, chest_cm, thighs_cm, hips_cm)
         return jsonify({"success": True, "poids": poids})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/body_weight/update", methods=["POST"])
@@ -1340,8 +1351,8 @@ def api_update_body_weight():
         if not ok:
             return jsonify({"success": False, "error": "Entrée introuvable"}), 404
         return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/smart_goals", methods=["GET"])
@@ -1411,8 +1422,8 @@ def api_delete_body_weight():
         if not ok:
             return jsonify({"success": False, "error": "Entrée introuvable"}), 404
         return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/ai/propose", methods=["POST"])
@@ -1458,8 +1469,8 @@ def api_ai_propose():
             return jsonify({"error": "Réponse non structurée", "raw": raw}), 500
         proposals = _json.loads(raw[start:end])
         return jsonify({"proposals": proposals})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/ai/narrative", methods=["POST"])
@@ -1494,8 +1505,8 @@ def api_ai_narrative():
         )
         narrative = message.content[0].text.strip()
         return jsonify({"narrative": narrative, "week": week})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/ai/coach", methods=["POST"])
@@ -1633,8 +1644,8 @@ def api_apply_deload():
                 updated.append(exercise)
         save_weights(weights)
         return jsonify({"success": True, "updated": updated})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 @app.route("/api/acwr")
@@ -2699,8 +2710,8 @@ def api_pss_delete():
     try:
         _db_pss._client.table("pss_records").delete().eq("id", record_id).execute()
         return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 
 # ── Sommeil ──────────────────────────────────────────────────
@@ -2727,8 +2738,8 @@ def api_sleep_log():
             notes     = data.get("notes"),
         )
         return jsonify(entry)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        raise
 
 @app.route("/api/sleep/history")
 def api_sleep_history():

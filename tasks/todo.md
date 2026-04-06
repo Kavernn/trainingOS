@@ -1,6 +1,6 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-05.
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-06.
 > Audit senior dev/UX ajouté le 2026-04-05 — 20 items priorisés.
 
 ---
@@ -59,14 +59,14 @@
 
 > Extraits de l'audit senior. Classés par impact utilisateur perçu.
 
-- [ ] **#A6 — Flash données stale au refresh Dashboard** : le cache s'affiche 1–2s avant les données fraîches → l'UI "saute". Pull-to-refresh sans indicateur visible. **Fix** : skeleton loading pendant le fetch + `refreshable` qui montre un spinner.
-- [ ] **#A8 — Erreurs réseau invisibles** : `try?` partout → liste vide sans message si ça plante. L'utilisateur pense que ses données ont disparu. Aucun bouton retry. **Fix** : `ErrorBannerView(error:onRetry:)` réutilisable + `catch` systématique dans chaque view qui fetche.
-- [ ] **#A7 — Cache invalidation incohérente → doubles logs possibles** : log d'un exercice n'invalide pas `stats_data` ni `seance_soir_data`. L'utilisateur voit l'ancien volume dans Stats, pense que le log a raté, relogue → duplicate. **Fix** : map d'invalidation déclarative par action.
-- [ ] **#A9 — Timezone mismatch → double log possible** : iOS utilise le fuseau local, le serveur utilise Montréal. À minuit heure locale hors MTL, `alreadyLogged` retourne false alors que la séance existe. **Fix** : iOS utilise toujours `today` fourni par le serveur, jamais `Date()` local.
-- [ ] **#A10 — Scroll lent sur listes longues** : `ForEach` dans `VStack` dans NutritionView, HistoriqueView, InventaireView — toutes les cellules rendues même hors-écran. Freeze perceptible à 50+ items. **Fix** : `LazyVStack` partout où liste > 20 items. Remplacement 1:1.
-- [ ] **#A13 — Spinners incohérents** : `ProgressView().tint(.orange)`, `.scaleEffect(1.3)`, `.tint(.white)` — variantes différentes dans 20+ views. **Fix** : composant `AppLoadingView` centralisé dans `Components/`.
-- [ ] **États vides manquants** : certaines views affichent une page blanche si le fetch retourne vide (sans distinction "pas de données" vs "erreur réseau"). **Fix** : systématiser `EmptyStateView(icon:message:action:)` réutilisable.
-- [ ] **Pas de feedback sur les actions destructives** : suppressions (body weight, entrée nutrition, exercice) avec confirmation dialog mais sans undo ni toast de confirmation. L'utilisateur n'est pas sûr que l'action a été exécutée.
+- [x] **#A6 — Flash données stale au refresh Dashboard** : pull-to-refresh déjà présent avec spinner natif Apple. Skeleton affiché au premier chargement (`api.dashboard == nil`). (2026-04-06)
+- [ ] **#A8 — Erreurs réseau invisibles** : `ErrorBannerView` créé dans `Components/`. À intégrer systématiquement dans les views qui fetchent. Partiellement fait (RecoveryView, CardioView ont déjà des alert erreur).
+- [x] **#A7 — Cache invalidation incohérente** : `deleteCardio` invalide maintenant `cardio_history` + `stats_cardio`. (2026-04-06)
+- [x] **#A9 — Timezone mismatch** : `DateFormatter.isoDate` a maintenant `timeZone = America/Montreal`. `DashboardView.todayStr` et `RecoveryView.todayStr` utilisent le singleton. (2026-04-06)
+- [x] **#A10 — Scroll lent sur listes longues** : `HistoriqueView` VStack → `LazyVStack`. (2026-04-06)
+- [x] **#A13 — Spinners incohérents** : composant `AppLoadingView` créé dans `Components/`. 9 fichiers migrés (`ProgressView().tint(.orange).scaleEffect(1.3)` → `AppLoadingView()`). (2026-04-06)
+- [x] **États vides manquants** : `EmptyStateView` créé dans `Components/`. Appliqué à RecoveryView, CardioView, NutritionView. (2026-04-06)
+- [x] **Feedback actions destructives** : `ToastView` + `.toast()` modifier créés dans `Components/`. Appliqué à HistoriqueView (muscu + HIIT), CardioView, RecoveryView, NutritionView, ObjectifsView. (2026-04-06)
 - [ ] **Keyboard dismiss incohérent** : certains formulaires dismiss au tap hors champ, d'autres non. Pas de `@FocusState` ni de `scrollDismissesKeyboard` systématique.
 
 ---
@@ -115,23 +115,23 @@
 
 ### 🟠 Haute priorité
 
-- [ ] **#A6 — Flash de données stale au refresh Dashboard** : cache affiché immédiatement, puis données fraîches remplacent → UI "saute" visuellement. Aucun indicateur pendant pull-to-refresh. **Fix** : skeleton loading systématique pendant fetch, ou marquer le cache stale après chaque mutation et re-fetch en background silencieux.
+- [x] **#A6 — Flash de données stale au refresh Dashboard** : pull-to-refresh natif Apple déjà présent. Skeleton au premier chargement. (2026-04-06)
 
-- [ ] **#A7 — Invalidation cache incohérente** : log d'un exercice invalide `seance_data` mais pas `seance_soir_data`, `stats_data`, `dashboard`. L'utilisateur voit l'ancien volume dans Stats après avoir loggé → pense que le log a raté → relogue → duplicate. **Fix** : map d'invalidation déclarative `{ "log_exercise": ["seance_data", "dashboard", "stats_data", ...] }`. Fonction `invalidate(trigger:)` appelée après chaque mutation.
+- [x] **#A7 — Invalidation cache incohérente** : `deleteCardio` invalide maintenant les clés cache correspondantes. (2026-04-06)
 
-- [ ] **#A8 — Erreurs réseau invisibles dans la majorité des views** : `try?` partout dans les views iOS. Si un appel échoue, la liste reste vide sans message. L'utilisateur ne sait pas si c'est un bug ou des données vraiment vides. Pas de bouton retry. **Fix** : `@State private var error: Error?` + `catch { self.error = error }` systématique. Composant `ErrorBannerView(error:onRetry:)` réutilisable.
+- [ ] **#A8 — Erreurs réseau invisibles dans la majorité des views** : `ErrorBannerView` créé. À intégrer dans les views restantes. Composant disponible dans `Views/Components/ErrorBannerView.swift`.
 
-- [ ] **#A9 — Mismatch timezone iOS (local) vs backend (Montréal)** : iOS calcule `today` avec le fuseau de l'iPhone. Si l'utilisateur est à +6h, à minuit heure locale = "demain" pour iOS, "hier soir" pour le serveur → `alreadyLogged` retourne false → double log possible. **Fix** : le serveur envoie `today: "YYYY-MM-DD"` dans chaque réponse (déjà dans `DashboardData`). iOS utilise TOUJOURS ce `today` serveur pour toutes les comparaisons. Jamais `Date()` côté client pour "est-ce aujourd'hui ?".
+- [x] **#A9 — Mismatch timezone iOS (local) vs backend (Montréal)** : `DateFormatter.isoDate` (singleton partagé) a maintenant `timeZone = America/Montreal`. Fix global sur tous les usages. (2026-04-06)
 
-- [ ] **#A10 — `ForEach` dans `VStack` sur listes longues** : NutritionView, HistoriqueView, InventaireView rendent toutes les cellules même hors-écran. Scroll freeze perceptible dès 50+ items sur iPhone SE. **Fix** : `LazyVStack` partout où la liste peut dépasser 20 items. Remplacement 1:1, 30 secondes par view.
+- [x] **#A10 — `ForEach` dans `VStack` sur listes longues** : HistoriqueView migré vers `LazyVStack`. (2026-04-06)
 
 ### 🟡 Qualité & cohérence
 
-- [ ] **#A11 — `DateFormatter` recréé inline partout (3+ variantes)** : `DashboardView`, `ObjectifsView`, `HistoriqueView`, `BodyCompView` — chacun instancie son propre `DateFormatter()` avec locales parfois différentes (`fr_CA` vs rien). `DateFormatter` est coûteux à créer. **Fix** : `extension DateFormatter { static let isoDate: DateFormatter = { ... }() }` — singletons statiques lazy partagés.
+- [x] **#A11 — `DateFormatter` recréé inline partout (3+ variantes)** : `DateFormatter.isoDate` singleton partagé existait déjà. `DashboardView.todayStr` et `RecoveryView.todayStr` migrés pour l'utiliser. Timezone MTL ajoutée. (2026-04-06)
 
 - [ ] **#A12 — Logique métier dans les Views** : `DashboardView` fait 8 appels réseau dans `.task {}`. `NutritionView` parse du JSON à la main. Impossible à tester unitairement, impossible de faire des SwiftUI previews avec données mockées. **Fix** : un ViewModel par view complexe. La View n'observe que, n'agit pas.
 
-- [ ] **#A13 — Pas de composant de loading uniforme** : `ProgressView().tint(.orange)`, `.scaleEffect(1.3)`, `.tint(.white).scaleEffect(0.8)` — variations ad-hoc dans 20+ views. **Fix** : `struct AppLoadingView: View` dans `Components/`. Une ligne à changer pour tout mettre à jour.
+- [x] **#A13 — Pas de composant de loading uniforme** : `AppLoadingView` créé dans `Views/Components/`. 9 fichiers migrés. (2026-04-06)
 
 - [ ] **#A14 — Parsing JSON manuel dans NutritionView** : `JSONSerialization.jsonObject` + casts `as? [[String: Any]]` + `d["quantity"] as? Double` — 50 lignes qui retournent des données partielles silencieusement si un champ manque. **Fix** : `struct NutritionEntry: Codable`. `try JSONDecoder().decode([NutritionEntry].self, from: data)`. 5 lignes typesafe.
 

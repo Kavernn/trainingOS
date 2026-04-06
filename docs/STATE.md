@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-05
+Dernière mise à jour : 2026-04-06
 
 ---
 
@@ -139,12 +139,25 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 ## En cours / Prochaines étapes
 
-1. **Rebuild iOS Xcode** : compiler tous les changements 2026-04-05 (smart goals, UX fixes, body comp lbs)
+1. **Rebuild iOS Xcode** : compiler tous les changements 2026-04-06 (composants UI, timezone, cache fix)
 2. Tests E2E iOS (XCUITest flows critiques)
 3. Heatmap HIIT distinct de muscu dans StatsView
 4. Remplir le profil utilisateur (name, age, height, etc.)
 5. Configurer les cibles macro glucides/lipides dans NutritionView
 6. Smart Goals — prochains types : 1RM estimé, pace cardio, distance mensuelle, FC repos, PSS, streak sommeil
+7. `ErrorBannerView` à intégrer dans les views qui fetchent (actuellement créé mais non utilisé)
+
+## Complété récemment (2026-04-06)
+
+- **Composants UI partagés** : 4 composants dans `Views/Components/` ajoutés au projet Xcode :
+  - `AppLoadingView` — spinner standardisé orange (9 fichiers migrés)
+  - `EmptyStateView(icon:title:subtitle:action:)` — état vide réutilisable (RecoveryView, CardioView, NutritionView)
+  - `ToastView` + `.toast()` modifier — feedback toast 2.5s auto-dismiss (HistoriqueView, CardioView, RecoveryView, NutritionView, ObjectifsView)
+  - `ErrorBannerView(error:onRetry:onDismiss:)` — bannière erreur réseau réutilisable
+- **Timezone fix global** : `DateFormatter.isoDate` a maintenant `timeZone = America/Montreal`. `DashboardView.todayStr` et `RecoveryView.todayStr` utilisent le singleton (suppression instances locales).
+- **Cache invalidation** : `deleteCardio` invalide `cardio_history` + `stats_cardio` après suppression.
+- **LazyVStack** : `HistoriqueView` — `VStack` → `LazyVStack` pour les 3 listes (muscu, HIIT, timeline).
+- **Toast feedback destructif** : toasts de confirmation après suppression dans 5 views principales.
 
 ## Complété récemment (2026-04-05)
 
