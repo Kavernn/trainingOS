@@ -1,6 +1,6 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-04.
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-05.
 
 ---
 
@@ -29,7 +29,7 @@
 - [x] **Recovery modifiable** : bouton crayon + `LogRecoverySheet(prefillEntry:)` + FAB adaptatif (2026-03-29).
 - [x] **Deload recommandé mais pas auto-appliqué** : bouton "Appliquer le déload (−15%)" dans `DeloadBannerView` → POST `/api/apply_deload` (2026-03-29).
 - [x] **Validation photo profil** : limite 500KB, alert `photoError`, compression JPEG 0.7 (2026-03-29).
-- [ ] **Rebuild iOS Xcode** : compiler le fix `SpecialSeanceView.alreadyLoggedToday` (cross-check server state) pour le déployer sur device.
+- [ ] **Rebuild iOS Xcode** : compiler tous les changements 2026-04-05 (smart goals, UX fixes, body comp lbs, set_goal fix).
 
 ---
 
@@ -64,8 +64,9 @@
 - [x] **Injury tracking** : champ "Zone douloureuse" optionnel dans `ExerciseCard`, transmis via `pain_zone` dans payload `/api/log`, stocké dans `history_entry` (2026-03-29).
 - [x] **Pas de badge achèvement objectif** : sections Active/Atteints/Archivés dans `ObjectifsView`, bouton "Archiver" sur goals atteints, endpoint `/api/archive_objectif` + KV `goals_archived` (2026-03-29).
 - [ ] **Profile non rempli** : name, age, goal, height, level, sex, weight tous null. UX : forcer l'onboarding ou afficher un prompt "Complète ton profil".
-- [ ] **Objectifs vides** : aucun objectif créé — ajouter une CTA ou un prompt dans ObjectifsView.
+- [x] **Objectifs vides** : Smart Goals system implémenté — 7 types calculés automatiquement (2026-04-05).
 - [ ] **Nutrition : cibles glucides/lipides = 0** : saisir les objectifs macro dans les settings.
+- [ ] **Smart Goals — types avancés** : 1RM estimé, pace cardio, distance mensuelle, FC repos, PSS moyen, streak sommeil.
 
 ---
 

@@ -2,15 +2,19 @@ import SwiftUI
 import UserNotifications
 
 struct ObjectifsView: View {
-    @State private var objectifs: [ObjectifEntry] = []
-    @State private var isLoading = true
-    @State private var showAddGoal = false
+    @State private var objectifs:   [ObjectifEntry]   = []
+    @State private var smartGoals:  [SmartGoalEntry]  = []
+    @State private var isLoading    = true
+    @State private var showAddGoal  = false
     @State private var showArchived = false
     @State private var selectedObjectif: ObjectifEntry? = nil
+    @State private var selectedSmart:    SmartGoalEntry? = nil
 
     private var active:   [ObjectifEntry] { objectifs.filter { !$0.achieved && !$0.archived } }
     private var achieved: [ObjectifEntry] { objectifs.filter { $0.achieved && !$0.archived } }
     private var archived: [ObjectifEntry] { objectifs.filter { $0.archived } }
+    private var smartActive:   [SmartGoalEntry] { smartGoals.filter { !$0.achieved } }
+    private var smartAchieved: [SmartGoalEntry] { smartGoals.filter {  $0.achieved } }
 
     var body: some View {
         NavigationStack {
@@ -19,26 +23,42 @@ struct ObjectifsView: View {
 
                 if isLoading {
                     ProgressView().tint(.orange).scaleEffect(1.3)
-                } else if objectifs.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "target").font(.system(size: 48)).foregroundColor(.gray)
-                        Text("Aucun objectif").foregroundColor(.gray)
-                        Button("Ajouter un objectif") { showAddGoal = true }.foregroundColor(.orange)
-                    }
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 16) {
-                            // Active
+
+                            // ── Smart Goals (Santé & Performance) ──
+                            if !smartGoals.isEmpty {
+                                SectionHeader(title: "SANTÉ & PERFORMANCE")
+                                ForEach(Array(smartActive.enumerated()), id: \.1.id) { i, sg in
+                                    SmartGoalCard(goal: sg, onDelete: {
+                                        Task { try? await APIService.shared.deleteSmartGoal(id: sg.id); await loadData() }
+                                    })
+                                    .appearAnimation(delay: Double(i) * 0.05)
+                                }
+                                if !smartAchieved.isEmpty {
+                                    SectionHeader(title: "ATTEINTS (\(smartAchieved.count))")
+                                    ForEach(Array(smartAchieved.enumerated()), id: \.1.id) { i, sg in
+                                        SmartGoalCard(goal: sg, onDelete: {
+                                            Task { try? await APIService.shared.deleteSmartGoal(id: sg.id); await loadData() }
+                                        })
+                                        .opacity(0.7)
+                                        .appearAnimation(delay: Double(i) * 0.05)
+                                    }
+                                }
+                            }
+
+                            // ── Exercise Goals ──
+                            if !objectifs.isEmpty {
+                                SectionHeader(title: "EXERCICES")
+                            }
                             if !active.isEmpty {
-                                SectionHeader(title: "EN COURS")
                                 ForEach(Array(active.enumerated()), id: \.1.id) { i, obj in
                                     ObjectifCard(obj: obj, onArchive: nil)
                                         .onTapGesture { selectedObjectif = obj }
                                         .appearAnimation(delay: Double(i) * 0.06)
                                 }
                             }
-
-                            // Achieved
                             if !achieved.isEmpty {
                                 SectionHeader(title: "ATTEINTS (\(achieved.count))")
                                 ForEach(Array(achieved.enumerated()), id: \.1.id) { i, obj in
@@ -48,12 +68,8 @@ struct ObjectifsView: View {
                                     .appearAnimation(delay: Double(i) * 0.06)
                                 }
                             }
-
-                            // Archived (collapsible)
                             if !archived.isEmpty {
-                                Button {
-                                    withAnimation { showArchived.toggle() }
-                                } label: {
+                                Button { withAnimation { showArchived.toggle() } } label: {
                                     HStack {
                                         SectionHeader(title: "ARCHIVÉS (\(archived.count))")
                                         Spacer()
@@ -69,6 +85,15 @@ struct ObjectifsView: View {
                                             .appearAnimation(delay: Double(i) * 0.04)
                                     }
                                 }
+                            }
+
+                            if objectifs.isEmpty && smartGoals.isEmpty {
+                                VStack(spacing: 16) {
+                                    Image(systemName: "target").font(.system(size: 48)).foregroundColor(.gray)
+                                    Text("Aucun objectif").foregroundColor(.gray)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 60)
                             }
 
                             Spacer(minLength: 80)
@@ -97,8 +122,11 @@ struct ObjectifsView: View {
 
     private func loadData() async {
         isLoading = true
-        objectifs = (try? await APIService.shared.fetchObjectifsData()) ?? []
-        isLoading = false
+        async let obj  = APIService.shared.fetchObjectifsData()
+        async let sgs  = APIService.shared.fetchSmartGoals()
+        objectifs  = (try? await obj) ?? []
+        smartGoals = (try? await sgs) ?? []
+        isLoading  = false
     }
 
     private func archiveGoal(_ obj: ObjectifEntry) async {
@@ -236,52 +264,188 @@ struct ObjectifCard: View {
     }
 }
 
+// MARK: - Smart Goal Card
+
+struct SmartGoalCard: View {
+    let goal: SmartGoalCard.GoalVM
+    let onDelete: () -> Void
+
+    init(goal: SmartGoalEntry, onDelete: @escaping () -> Void) {
+        self.goal     = SmartGoalCard.GoalVM(goal)
+        self.onDelete = onDelete
+    }
+
+    struct GoalVM {
+        let id: String; let label: String; let icon: String
+        let color: Color; let current: String; let target: String
+        let progress: Double; let achieved: Bool
+        let daysLeft: Int?; let lowerIsBetter: Bool
+
+        init(_ g: SmartGoalEntry) {
+            id            = g.id
+            label         = g.label
+            icon          = g.icon
+            color         = Color(hex: g.accentColor)
+            current       = g.currentValue.map { g.formatValue($0) } ?? "—"
+            target        = g.formatValue(g.targetValue)
+            progress      = g.progress / 100
+            achieved      = g.achieved
+            lowerIsBetter = g.lowerIsBetter
+            if !g.targetDate.isEmpty {
+                let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+                daysLeft = df.date(from: g.targetDate).map { Int($0.timeIntervalSinceNow / 86400) }
+            } else { daysLeft = nil }
+        }
+    }
+
+    @State private var confirmDelete = false
+    @State private var celebrate     = false
+
+    var body: some View {
+        ZStack {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: goal.icon)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(goal.color)
+                        .frame(width: 32, height: 32)
+                        .background(goal.color.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(goal.label)
+                            .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                        if let d = goal.daysLeft {
+                            Text(d > 0 ? "\(d) jours restants" : "Deadline dépassée")
+                                .font(.system(size: 11)).foregroundColor(d > 0 ? .gray : .red)
+                        }
+                    }
+                    Spacer()
+                    if goal.achieved {
+                        Label("Atteint", systemImage: "checkmark.seal.fill")
+                            .font(.system(size: 11, weight: .semibold)).foregroundColor(.green)
+                            .scaleEffect(celebrate ? 1.0 : 0.4).opacity(celebrate ? 1 : 0)
+                    }
+                    Button { confirmDelete = true } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12)).foregroundColor(.red.opacity(0.5))
+                            .padding(6).background(Color.red.opacity(0.08)).clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("ACTUEL").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(goal.current)
+                            .font(.system(size: 22, weight: .black))
+                            .foregroundColor(goal.achieved ? .green : goal.color)
+                    }
+                    Spacer()
+                    Image(systemName: goal.lowerIsBetter ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
+                        .font(.system(size: 14)).foregroundColor(.gray.opacity(0.4))
+                    Spacer()
+                    VStack(alignment: .trailing, spacing: 1) {
+                        Text("OBJECTIF").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(goal.target).font(.system(size: 22, weight: .black)).foregroundColor(.white)
+                    }
+                }
+
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4).fill(Color(hex: "191926")).frame(height: 8)
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(goal.achieved ? Color.green : goal.color)
+                            .frame(width: geo.size.width * CGFloat(min(goal.progress, 1.0)), height: 8)
+                            .animation(.easeOut(duration: 0.6), value: goal.progress)
+                    }
+                }
+                .frame(height: 8)
+
+                Text("\(Int(min(goal.progress, 1.0) * 100))% complété")
+                    .font(.system(size: 12)).foregroundColor(.gray)
+            }
+            .padding(16)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color(hex: "11111c")))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(goal.color.opacity(0.18), lineWidth: 1))
+
+            if celebrate {
+                ForEach(0..<6, id: \.self) { i in
+                    Image(systemName: "sparkle")
+                        .font(.system(size: CGFloat([10, 14, 8, 12, 10, 8][i])))
+                        .foregroundColor(goal.color.opacity(0.7))
+                        .offset(x: CGFloat([-40, 40, -60, 60, 0, -20][i]),
+                                y: CGFloat([-20, -15, 5, 10, -30, 20][i]))
+                        .opacity(celebrate ? 1 : 0)
+                        .animation(.easeOut(duration: 0.6).delay(Double(i) * 0.05), value: celebrate)
+                }
+            }
+        }
+        .confirmationDialog("Supprimer cet objectif ?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Supprimer", role: .destructive) { onDelete() }
+            Button("Annuler", role: .cancel) {}
+        }
+        .onAppear {
+            if goal.achieved {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.6).delay(0.1)) { celebrate = true }
+            }
+        }
+    }
+}
+
+// MARK: - Add Goal Sheet
+
 struct AddGoalSheet: View {
     var onSaved: () async -> Void
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var units = UnitSettings.shared
 
-    @State private var exercise = ""
-    @State private var goalWeight = ""
+    enum GoalMode { case exercise, health }
+
+    // shared
+    @State private var mode: GoalMode = .health
     @State private var deadline = Date()
     @State private var apiError: String? = nil
+
+    // exercise mode
+    @State private var exercise   = ""
+    @State private var goalWeight = ""
+
+    // health mode
+    @State private var smartType  = SmartGoalOption.allCases.first!
+    @State private var targetStr  = ""
 
     private static let isoFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
     }()
 
+    private var canSave: Bool {
+        mode == .exercise ? !exercise.isEmpty && !goalWeight.isEmpty
+                          : !targetStr.isEmpty && Double(targetStr.replacingOccurrences(of: ",", with: ".")) != nil
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
-                Form {
-                    Section {
-                        TextField("Nom de l'exercice", text: $exercise)
-                            .foregroundColor(.white)
-                        TextField("Poids objectif (\(units.label))", text: $goalWeight)
-                            .keyboardType(.decimalPad)
-                            .foregroundColor(.white)
-                        HStack(spacing: 8) {
-                            ForEach([1, 3, 6], id: \.self) { months in
-                                Button("\(months) mois") {
-                                    deadline = Calendar.current.date(byAdding: .month, value: months, to: Date()) ?? Date()
-                                }
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.orange)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.orange.opacity(0.12))
-                                .cornerRadius(8)
-                            }
-                            Spacer()
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Mode picker
+                        Picker("", selection: $mode) {
+                            Text("Santé / Perf").tag(GoalMode.health)
+                            Text("Exercice").tag(GoalMode.exercise)
                         }
-                        DatePicker("Deadline", selection: $deadline, displayedComponents: .date)
-                            .foregroundColor(.white)
-                            .tint(.orange)
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 16)
+
+                        if mode == .health {
+                            healthForm
+                        } else {
+                            exerciseForm
+                        }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
                 }
-                .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
             }
             .navigationTitle("Nouvel objectif")
             .navigationBarTitleDisplayMode(.inline)
@@ -291,29 +455,208 @@ struct AddGoalSheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Sauvegarder") {
-                        guard !exercise.isEmpty, let gw = Double(goalWeight).map({ units.toStorage($0) }) else { return }
-                        let deadlineStr = Self.isoFormatter.string(from: deadline)
-                        Task {
-                            do {
-                                try await APIService.shared.setGoal(exercise: exercise, goalWeight: gw, deadline: deadlineStr)
-                                scheduleGoalDeadlineNotifications(exercise: exercise, deadlineStr: deadlineStr)
-                                await onSaved()
-                                dismiss()
-                            } catch {
-                                apiError = "Erreur réseau — réessaie"
-                            }
-                        }
-                    }
-                    .foregroundColor(.orange)
-                    .fontWeight(.semibold)
+                    Button("Sauvegarder") { save() }
+                        .foregroundColor(canSave ? .orange : .gray)
+                        .fontWeight(.semibold)
+                        .disabled(!canSave)
                 }
             }
             .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(apiError ?? "") }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
+    }
+
+    // ── Health form ──
+    private var healthForm: some View {
+        VStack(spacing: 16) {
+            // Type picker
+            VStack(alignment: .leading, spacing: 8) {
+                Text("TYPE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                    ForEach(SmartGoalOption.allCases) { opt in
+                        Button {
+                            smartType = opt
+                            targetStr = ""
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: opt.icon)
+                                    .font(.system(size: 13)).foregroundColor(opt.color)
+                                Text(opt.label)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                Spacer()
+                            }
+                            .padding(10)
+                            .background(smartType == opt ? opt.color.opacity(0.15) : Color(hex: "191926"))
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10)
+                                .stroke(smartType == opt ? opt.color.opacity(0.5) : Color.clear, lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+
+            // Target value
+            VStack(alignment: .leading, spacing: 6) {
+                Text("CIBLE (\(smartType.unit.uppercased()))")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                TextField(smartType.placeholder, text: $targetStr)
+                    .keyboardType(.decimalPad)
+                    .foregroundColor(.white)
+                    .font(.system(size: 22, weight: .bold))
+                    .padding(12)
+                    .background(Color(hex: "191926"))
+                    .cornerRadius(10)
+            }
+            .padding(.horizontal, 20)
+
+            deadlineSection
+        }
+    }
+
+    // ── Exercise form ──
+    private var exerciseForm: some View {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("EXERCICE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                TextField("ex: Squat", text: $exercise)
+                    .foregroundColor(.white).padding(12)
+                    .background(Color(hex: "191926")).cornerRadius(10)
+            }
+            .padding(.horizontal, 20)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text("POIDS OBJECTIF (\(units.label.uppercased()))")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                TextField("0.0", text: $goalWeight)
+                    .keyboardType(.decimalPad).foregroundColor(.white)
+                    .font(.system(size: 22, weight: .bold))
+                    .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+            }
+            .padding(.horizontal, 20)
+
+            deadlineSection
+        }
+    }
+
+    private var deadlineSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("DEADLINE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack(spacing: 8) {
+                ForEach([1, 3, 6], id: \.self) { months in
+                    Button("\(months) mois") {
+                        deadline = Calendar.current.date(byAdding: .month, value: months, to: Date()) ?? Date()
+                    }
+                    .font(.system(size: 12, weight: .medium)).foregroundColor(.orange)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Color.orange.opacity(0.12)).cornerRadius(8)
+                }
+                Spacer()
+            }
+            DatePicker("", selection: $deadline, displayedComponents: .date)
+                .labelsHidden().tint(.orange)
+        }
+        .padding(.horizontal, 20)
+    }
+
+    private func save() {
+        let deadlineStr = Self.isoFormatter.string(from: deadline)
+        Task {
+            do {
+                if mode == .health {
+                    guard let val = Double(targetStr.replacingOccurrences(of: ",", with: ".")) else { return }
+                    try await APIService.shared.saveSmartGoal(type: smartType.rawValue, targetValue: val, targetDate: deadlineStr)
+                } else {
+                    guard !exercise.isEmpty, let gw = Double(goalWeight).map({ units.toStorage($0) }) else { return }
+                    try await APIService.shared.setGoal(exercise: exercise, goalWeight: gw, deadline: deadlineStr)
+                    scheduleGoalDeadlineNotifications(exercise: exercise, deadlineStr: deadlineStr)
+                }
+                await onSaved()
+                dismiss()
+            } catch {
+                apiError = "Erreur réseau — réessaie"
+            }
+        }
+    }
+}
+
+// MARK: - Smart Goal Option enum
+
+enum SmartGoalOption: String, CaseIterable, Identifiable {
+    case bodyFat           = "body_fat"
+    case leanMass          = "lean_mass"
+    case waistCm           = "waist_cm"
+    case weeklyVolume      = "weekly_volume"
+    case trainingFrequency = "training_frequency"
+    case proteinDaily      = "protein_daily"
+    case nutritionStreak   = "nutrition_streak"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .bodyFat:           return "% Masse grasse"
+        case .leanMass:          return "Masse maigre"
+        case .waistCm:           return "Tour de taille"
+        case .weeklyVolume:      return "Volume hebdo"
+        case .trainingFrequency: return "Séances / sem."
+        case .proteinDaily:      return "Protéines / jour"
+        case .nutritionStreak:   return "Streak nutrition"
+        }
+    }
+
+    var unit: String {
+        switch self {
+        case .bodyFat:           return "%"
+        case .leanMass:          return "lbs"
+        case .waistCm:           return "cm"
+        case .weeklyVolume:      return "lbs"
+        case .trainingFrequency: return "séances"
+        case .proteinDaily:      return "g"
+        case .nutritionStreak:   return "jours"
+        }
+    }
+
+    var placeholder: String {
+        switch self {
+        case .bodyFat:           return "15.0"
+        case .leanMass:          return "150.0"
+        case .waistCm:           return "80.0"
+        case .weeklyVolume:      return "80000"
+        case .trainingFrequency: return "4"
+        case .proteinDaily:      return "160"
+        case .nutritionStreak:   return "30"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .bodyFat:           return "flame.fill"
+        case .leanMass:          return "figure.strengthtraining.traditional"
+        case .waistCm:           return "arrow.left.and.right"
+        case .weeklyVolume:      return "chart.bar.fill"
+        case .trainingFrequency: return "calendar.badge.checkmark"
+        case .proteinDaily:      return "fork.knife"
+        case .nutritionStreak:   return "checkmark.circle"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .bodyFat:           return Color(hex: "FF6B35")
+        case .leanMass:          return Color(hex: "2ECC71")
+        case .waistCm:           return Color(hex: "9B59B6")
+        case .weeklyVolume:      return Color(hex: "3498DB")
+        case .trainingFrequency: return Color(hex: "1ABC9C")
+        case .proteinDaily:      return Color(hex: "F1C40F")
+        case .nutritionStreak:   return Color(hex: "E74C3C")
+        }
     }
 }
 

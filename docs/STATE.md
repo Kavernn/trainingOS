@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-04
+Dernière mise à jour : 2026-04-05
 
 ---
 
@@ -80,9 +80,15 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - HealthDashboard agrégé
 
 ### Objectifs
-- CRUD objectifs avec deadline
+- CRUD objectifs exercice avec deadline
 - Animation achievement (sparkles + scale spring)
 - Notifications locales J-7 et J-1 avant deadline
+- **Smart Goals** (2026-04-05) : 7 objectifs calculés automatiquement (% masse grasse, masse maigre, tour de taille, volume hebdo, séances/semaine, protéines/jour, streak nutrition)
+  - Table Supabase `smart_goals` (id, type, target_value, initial_value, target_date, created_at)
+  - `GET /api/smart_goals` — calcule `current_value` + `progress` en temps réel
+  - `POST /api/smart_goals/save` — capture `initial_value` automatiquement à la création
+  - `POST /api/smart_goals/delete`
+  - iOS : section "SANTÉ & PERFORMANCE" dans ObjectifsView, `SmartGoalCard`, `AddGoalSheet` avec picker segmenté "Santé / Perf | Exercice"
 
 ### Feedback proactif (`api/alerts.py` + `AlertService.swift`)
 - 5 détecteurs read-only : protéines basses 2j, calories insuffisantes 2j, aucun log après 18h, même groupe musculaire 2j consécutifs, RPE > 8.5 sur 3 séances
@@ -133,12 +139,22 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 ## En cours / Prochaines étapes
 
-1. **Rebuild iOS Xcode** : compiler `SpecialSeanceView.alreadyLoggedToday` fix (cross-check `vm.seanceData?.alreadyLogged`)
+1. **Rebuild iOS Xcode** : compiler tous les changements 2026-04-05 (smart goals, UX fixes, body comp lbs)
 2. Tests E2E iOS (XCUITest flows critiques)
 3. Heatmap HIIT distinct de muscu dans StatsView
 4. Remplir le profil utilisateur (name, age, height, etc.)
-5. Créer des objectifs dans ObjectifsView
-6. Configurer les cibles macro glucides/lipides dans NutritionView
+5. Configurer les cibles macro glucides/lipides dans NutritionView
+6. Smart Goals — prochains types : 1RM estimé, pace cardio, distance mensuelle, FC repos, PSS, streak sommeil
+
+## Complété récemment (2026-04-05)
+
+- **15 UX friction fixes** : labels slider mood, haptic/beep fin timer, notif PSS hebdo, presets deadline objectifs, delta badge progression, haptics breathwork, bouton "Sauter" exercice, skeleton inventaire, quantity inline nutrition
+- **Dashboard volume total** : enrichissement depuis `v_session_volume` dans `api_dashboard()`
+- **Body comp toujours en lbs** : 13 remplacements UnitSettings → formatters directs lbs dans BodyCompView
+- **Data body comp Styku** : 2 entrées mises à jour (poids + 5 mensurations calculées depuis deltas PDF) ; poids DB convertis kg→lbs (189.3 / 179.3)
+- **Fix `/api/set_goal`** : lisait `"weight"` mais iOS envoyait `"goal_weight"` → goals jamais sauvegardés
+- **Profil poids** : mis à jour à 179.3 lbs (dernier scan Styku mars 2026)
+- **Smart Goals** : table `smart_goals` Supabase (+ RLS), 3 endpoints backend, 7 types calculés en temps réel, iOS complet (`SmartGoalCard`, `AddGoalSheet` dual-mode, `SmartGoalEntry` model + extension)
 
 ## Complété récemment (2026-04-04)
 

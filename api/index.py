@@ -1276,7 +1276,7 @@ def api_update_profile_photo():
 def api_set_goal():
     data     = request.json
     exercise = data.get("exercise")
-    weight   = float(data.get("weight", 0))
+    weight   = float(data.get("goal_weight") or data.get("weight") or 0)
     deadline = data.get("deadline")
     note     = data.get("note", "")
 
@@ -1342,6 +1342,64 @@ def api_update_body_weight():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/smart_goals", methods=["GET"])
+def api_get_smart_goals():
+    import db as _db
+    goals  = _db.get_smart_goals()
+    result = []
+    for g in goals:
+        gtype   = g.get("type", "")
+        target  = g.get("target_value") or 0
+        initial = g.get("initial_value")
+        meta    = _db.SMART_GOAL_META.get(gtype, {})
+        lower   = meta.get("lower_is_better", False)
+        current = _db.compute_smart_goal_current(gtype)
+        progress = _db.compute_smart_goal_progress(current, target, initial, lower)
+        achieved = (current is not None) and (current <= target if lower else current >= target)
+        result.append({
+            "id":              g.get("id"),
+            "type":            gtype,
+            "target_value":    target,
+            "initial_value":   initial,
+            "current_value":   current,
+            "target_date":     str(g.get("target_date") or ""),
+            "label":           meta.get("label", gtype),
+            "unit":            meta.get("unit", ""),
+            "lower_is_better": lower,
+            "progress":        progress,
+            "achieved":        achieved,
+        })
+    return jsonify({"smart_goals": result})
+
+
+@app.route("/api/smart_goals/save", methods=["POST"])
+def api_save_smart_goal():
+    import db as _db
+    data        = request.get_json()
+    goal_type   = data.get("type", "")
+    target      = float(data.get("target_value", 0))
+    target_date = data.get("target_date") or None
+    goal_id     = data.get("id")
+    if not goal_type or not target:
+        return jsonify({"error": "type et target_value requis"}), 400
+    initial = None if goal_id else _db.compute_smart_goal_current(goal_type)
+    row = _db.upsert_smart_goal(goal_type, target, initial_value=initial,
+                                target_date=target_date, goal_id=goal_id)
+    if row:
+        return jsonify({"success": True, "id": row.get("id")})
+    return jsonify({"error": "Erreur sauvegarde"}), 500
+
+
+@app.route("/api/smart_goals/delete", methods=["POST"])
+def api_delete_smart_goal():
+    import db as _db
+    data    = request.get_json()
+    goal_id = data.get("id", "")
+    if not goal_id:
+        return jsonify({"error": "id requis"}), 400
+    return jsonify({"success": _db.delete_smart_goal(goal_id)})
 
 
 @app.route("/api/body_weight/delete", methods=["POST"])

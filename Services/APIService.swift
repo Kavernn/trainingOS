@@ -346,6 +346,24 @@ class APIService: ObservableObject {
         ])
     }
 
+    // MARK: - Smart Goals
+    func fetchSmartGoals() async throws -> [SmartGoalEntry] {
+        let url = URL(string: "\(baseURL)/api/smart_goals")!
+        let data = try await fetchWithCache(url: url, key: "smart_goals")
+        struct R: Codable { let smart_goals: [SmartGoalEntry] }
+        return try JSONDecoder().decode(R.self, from: data).smart_goals
+    }
+
+    func saveSmartGoal(type: String, targetValue: Double, targetDate: String, id: String? = nil) async throws {
+        var payload: [String: Any] = ["type": type, "target_value": targetValue, "target_date": targetDate]
+        if let id { payload["id"] = id }
+        _ = try await offlinePost(endpoint: "/api/smart_goals/save", payload: payload)
+    }
+
+    func deleteSmartGoal(id: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/smart_goals/delete", payload: ["id": id])
+    }
+
     // MARK: - Health Dashboard
     func fetchDailyHealthSummary(date: String? = nil) async throws -> DailyHealthSummary {
         var urlStr = "\(baseURL)/api/health/daily_summary"

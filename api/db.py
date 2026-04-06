@@ -2522,3 +2522,133 @@ def get_sessions_for_correlations(days: int = 60) -> Dict[str, dict]:
         logger.error("get_sessions_for_correlations (volume) error: %s", e)
 
     return result
+
+
+# ---------------------------------------------------------------------------
+# Smart Goals
+# ---------------------------------------------------------------------------
+
+SMART_GOAL_META: dict = {
+    "body_fat":           {"label": "% Masse grasse",        "unit": "%",       "lower_is_better": True},
+    "lean_mass":          {"label": "Masse maigre",           "unit": "lbs",     "lower_is_better": False},
+    "waist_cm":           {"label": "Tour de taille",         "unit": "cm",      "lower_is_better": True},
+    "weekly_volume":      {"label": "Volume hebdo",           "unit": "lbs",     "lower_is_better": False},
+    "training_frequency": {"label": "Séances / semaine",      "unit": "séances", "lower_is_better": False},
+    "protein_daily":      {"label": "Protéines / jour",       "unit": "g",       "lower_is_better": False},
+    "nutrition_streak":   {"label": "Streak nutrition",       "unit": "jours",   "lower_is_better": False},
+}
+
+
+def get_smart_goals() -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        resp = _client.table("smart_goals").select("*").order("created_at").execute()
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_smart_goals error: %s", e)
+        return []
+
+
+def upsert_smart_goal(
+    goal_type: str,
+    target_value: float,
+    initial_value: Optional[float] = None,
+    target_date: Optional[str] = None,
+    goal_id: Optional[str] = None,
+) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        payload: dict = {"type": goal_type, "target_value": target_value}
+        if goal_id:
+            payload["id"] = goal_id
+        if initial_value is not None:
+            payload["initial_value"] = round(initial_value, 2)
+        if target_date:
+            payload["target_date"] = target_date
+        resp = _client.table("smart_goals").upsert(payload, on_conflict="id").execute()
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("upsert_smart_goal error: %s", e)
+        return None
+
+
+def delete_smart_goal(goal_id: str) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("smart_goals").delete().eq("id", goal_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_smart_goal error: %s", e)
+        return False
+
+
+def compute_smart_goal_current(goal_type: str) -> Optional[float]:
+    """Compute the current metric value for a smart goal type."""
+    try:
+        if goal_type == "body_fat":
+            bw = get_body_weight_logs(limit=1)
+            return bw[0].get("body_fat") if bw else None
+
+        if goal_type == "lean_mass":
+            bw = get_body_weight_logs(limit=1)
+            if bw:
+                w  = bw[0].get("weight") or 0
+                bf = bw[0].get("body_fat") or 0
+                return round(w * (1 - bf / 100), 1)
+            return None
+
+        if goal_type == "waist_cm":
+            bw = get_body_weight_logs(limit=1)
+            return bw[0].get("waist_cm") if bw else None
+
+        if goal_type == "weekly_volume":
+            vol = get_sessions_for_correlations(days=7)
+            return round(sum(v.get("session_volume") or 0 for v in vol.values()), 0)
+
+        if goal_type == "training_frequency":
+            from datetime import date as _date, timedelta
+            cutoff   = (_date.today() - timedelta(days=7)).isoformat()
+            sessions = get_workout_sessions(limit=50)
+            return float(sum(1 for s in sessions if (s.get("date") or "") >= cutoff))
+
+        if goal_type == "protein_daily":
+            entries = get_nutrition_entries_recent(7)
+            if not entries:
+                return 0.0
+            return round(sum(e.get("proteines") or 0 for e in entries) / len(entries), 1)
+
+        if goal_type == "nutrition_streak":
+            from datetime import date as _date, timedelta
+            entries = get_nutrition_entries_recent(365)
+            dates   = {e["date"] for e in entries if e.get("date")}
+            streak, d = 0, _date.today()
+            while d.isoformat() in dates:
+                streak += 1
+                d -= timedelta(days=1)
+            return float(streak)
+
+    except Exception as e:
+        logger.error("compute_smart_goal_current(%s) error: %s", goal_type, e)
+    return None
+
+
+def compute_smart_goal_progress(
+    current: Optional[float],
+    target: float,
+    initial: Optional[float],
+    lower_is_better: bool,
+) -> float:
+    """Return progress percentage 0–100."""
+    if current is None or target == 0:
+        return 0.0
+    if lower_is_better:
+        if initial and initial > target:
+            p = (initial - current) / (initial - target) * 100
+        else:
+            p = 100.0 if current <= target else 0.0
+    else:
+        p = current / target * 100
+    return round(min(max(p, 0), 100), 1)
