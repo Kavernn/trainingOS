@@ -32,7 +32,10 @@ struct TrainingOSApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if showSplash {
+                if ProcessInfo.processInfo.environment["UITEST_MODE"] == "1" {
+                    // Skip splash + onboarding in UITest mode — go straight to ContentView
+                    ContentView()
+                } else if showSplash {
                     SplashView { showSplash = false }
                 } else if !onboardingCompleted {
                     OnboardingView { onboardingCompleted = true }
