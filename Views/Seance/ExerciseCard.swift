@@ -21,6 +21,7 @@ struct ExerciseCard: View {
     @StateObject private var evm: ExerciseViewModel
     @ObservedObject private var units = UnitSettings.shared
     @AppStorage("exo_notes_data") private var exoNotesData: String = "{}"
+    @State private var confirmSkip = false
 
     init(name: String, scheme: String, weightData: WeightData?,
          equipmentType: String = "machine", trackingType: String = "reps",
@@ -116,18 +117,26 @@ struct ExerciseCard: View {
                 Text("REPS")
                     .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                     .frame(width: 56, alignment: .center)
-                Text("RIR")
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
-                    .frame(width: 70, alignment: .center)
+                VStack(spacing: 1) {
+                    Text("RIR")
+                        .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
+                    Text("avant échec")
+                        .font(.system(size: 7)).foregroundColor(.gray.opacity(0.45))
+                }
+                .frame(width: 70, alignment: .center)
                 Button {
                     withAnimation {
                         evm.setBySetMode.toggle()
                         if evm.setBySetMode { evm.currentSetIndex = 0 }
                     }
                 } label: {
-                    Image(systemName: evm.setBySetMode ? "list.number" : "arrow.forward.circle")
-                        .font(.system(size: 14))
-                        .foregroundColor(evm.setBySetMode ? .orange : .gray.opacity(0.6))
+                    HStack(spacing: 3) {
+                        Image(systemName: evm.setBySetMode ? "list.number" : "arrow.forward.circle")
+                            .font(.system(size: 12))
+                        Text("Set à set")
+                            .font(.system(size: 9, weight: .semibold))
+                    }
+                    .foregroundColor(evm.setBySetMode ? .orange : .gray.opacity(0.6))
                 }
                 .buttonStyle(.plain)
                 .padding(.leading, 4)
@@ -413,6 +422,29 @@ struct ExerciseCard: View {
                     }
                 }
             } else {
+                // Reprendre la dernière séance — en premier pour la découvrabilité
+                if !isTimeBased, evm.lastReps != "—", !evm.lastReps.isEmpty {
+                    Button {
+                        for i in evm.sets.indices {
+                            evm.sets[i].weight = evm.perSetHint(for: i)
+                            let parts = evm.lastRepsParts
+                            evm.sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "arrow.counterclockwise").font(.system(size: 11))
+                            Text("Reprendre la dernière séance")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.orange.opacity(0.85))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(Color.orange.opacity(0.08))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 // Prescription chip
                 if let p = prescription {
                     HStack(spacing: 6) {
@@ -440,28 +472,6 @@ struct ExerciseCard: View {
                         Text(units.format(evm.currentWeight))
                             .font(.system(size: 13, weight: .bold)).foregroundColor(.orange.opacity(0.7))
                     }
-                }
-
-                if !isTimeBased, evm.lastReps != "—", !evm.lastReps.isEmpty {
-                    Button {
-                        for i in evm.sets.indices {
-                            evm.sets[i].weight = evm.perSetHint(for: i)
-                            let parts = evm.lastRepsParts
-                            evm.sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
-                        }
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "arrow.counterclockwise").font(.system(size: 11))
-                            Text("Reprendre la dernière séance")
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundColor(.orange.opacity(0.85))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .background(Color.orange.opacity(0.08))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
                 }
 
                 if !isTimeBased && !evm.warmupSets.isEmpty {
@@ -524,24 +534,27 @@ struct ExerciseCard: View {
                     avgTotalRow
                 }
 
-                HStack(spacing: 6) {
-                    Text("RPE")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("RPE (1–10)")
                         .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                    Spacer()
-                    ForEach([6, 7, 8, 9, 10], id: \.self) { val in
-                        let selected = Int(evm.exerciseRPE) == val
-                        Button {
-                            evm.exerciseRPE = Double(val)
-                            triggerImpact(style: .light)
-                        } label: {
-                            Text("\(val)")
-                                .font(.system(size: 13, weight: selected ? .black : .medium))
-                                .foregroundColor(selected ? .black : .gray)
-                                .frame(width: 32, height: 26)
-                                .background(selected ? rpeColor(Double(val)) : Color(hex: "1a1a2e"))
-                                .clipShape(Capsule())
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 4) {
+                            ForEach(Array(1...10), id: \.self) { val in
+                                let selected = Int(evm.exerciseRPE) == val
+                                Button {
+                                    evm.exerciseRPE = Double(val)
+                                    triggerImpact(style: .light)
+                                } label: {
+                                    Text("\(val)")
+                                        .font(.system(size: 13, weight: selected ? .black : .medium))
+                                        .foregroundColor(selected ? .black : .gray)
+                                        .frame(width: 30, height: 26)
+                                        .background(selected ? rpeColor(Double(val)) : Color(hex: "1a1a2e"))
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.top, 4)
@@ -574,7 +587,7 @@ struct ExerciseCard: View {
                                 .foregroundColor(.gray)
                         }
                     } else {
-                        Button(action: { evm.isSkipped = true; triggerImpact(style: .light) }) {
+                        Button(action: { confirmSkip = true }) {
                             Text("Sauter")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.gray)
@@ -588,11 +601,9 @@ struct ExerciseCard: View {
                     Button(action: doLog) {
                         HStack(spacing: 6) {
                             Image(systemName: evm.isEditing ? "arrow.triangle.2.circlepath.circle.fill" : "arrow.up.circle.fill")
-                                .font(.system(size: 38))
-                            if evm.isEditing {
-                                Text("Mettre à jour")
-                                    .font(.system(size: 13, weight: .semibold))
-                            }
+                                .font(.system(size: 32))
+                            Text(evm.isEditing ? "Mettre à jour" : "Logger")
+                                .font(.system(size: 13, weight: .semibold))
                         }
                         .foregroundColor(evm.canLog ? .orange : .gray)
                     }
@@ -649,54 +660,44 @@ struct ExerciseCard: View {
                         .chartYAxis(.hidden)
                         .frame(height: 32)
                     }
-                    HStack(spacing: 6) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 10))
-                            .foregroundColor(.gray.opacity(0.5))
-                        Text(history[0].date ?? "—")
-                            .font(.system(size: 10))
-                            .foregroundColor(.gray)
-                        Text("·").foregroundColor(.gray.opacity(0.3)).font(.system(size: 10))
-                        Text(units.format(history[0].weight ?? 0))
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.65))
-                        Text(history[0].reps ?? "—")
-                            .font(.system(size: 10))
-                            .foregroundColor(.gray)
-                        if let note = history[0].note, !note.isEmpty {
-                            Text(note)
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundColor(note.hasPrefix("+") ? .green : .yellow)
-                        }
-                        Spacer()
-                        if history.count > 1 {
-                            Button(action: { evm.showHistory.toggle() }) {
-                                HStack(spacing: 2) {
-                                    Text(evm.showHistory ? "Moins" : "+\(history.count - 1)")
-                                        .font(.system(size: 9))
-                                    Image(systemName: evm.showHistory ? "chevron.up" : "chevron.down")
-                                        .font(.system(size: 9))
+                    let defaultCount = min(3, history.count)
+                    let visibleEntries = evm.showHistory ? history : Array(history.prefix(defaultCount))
+                    VStack(spacing: 3) {
+                        ForEach(Array(visibleEntries.enumerated()), id: \.offset) { i, entry in
+                            HStack(spacing: 6) {
+                                Image(systemName: i == 0 ? "clock.arrow.circlepath" : "circle.fill")
+                                    .font(.system(size: i == 0 ? 10 : 5))
+                                    .foregroundColor(.gray.opacity(i == 0 ? 0.5 : 0.25))
+                                Text(entry.date ?? "—")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(i == 0 ? .gray : .gray.opacity(0.7))
+                                Text("·").foregroundColor(.gray.opacity(0.3)).font(.system(size: 10))
+                                Text(units.format(entry.weight ?? 0))
+                                    .font(.system(size: 10, weight: i == 0 ? .semibold : .regular))
+                                    .foregroundColor(i == 0 ? .white.opacity(0.65) : .white.opacity(0.5))
+                                Text(entry.reps ?? "—")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(i == 0 ? .gray : .gray.opacity(0.6))
+                                if let note = entry.note, !note.isEmpty {
+                                    Text(note)
+                                        .font(.system(size: 9, weight: .medium))
+                                        .foregroundColor(note.hasPrefix("+") ? (i == 0 ? .green : .green.opacity(0.7)) : (i == 0 ? .yellow : .yellow.opacity(0.7)))
                                 }
-                                .foregroundColor(.gray.opacity(0.5))
+                                Spacer()
                             }
-                            .buttonStyle(.plain)
                         }
                     }
-                    if evm.showHistory && history.count > 1 {
-                        VStack(spacing: 3) {
-                            ForEach(Array(history.dropFirst().prefix(4)), id: \.date) { entry in
-                                HStack {
-                                    Text(entry.date ?? "—").font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
-                                    Spacer()
-                                    Text(units.format(entry.weight ?? 0)).font(.system(size: 10, weight: .semibold)).foregroundColor(.white.opacity(0.5))
-                                    Text(entry.reps ?? "—").font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
-                                    if let note = entry.note, !note.isEmpty {
-                                        Text(note).font(.system(size: 9)).foregroundColor(note.hasPrefix("+") ? .green.opacity(0.7) : .yellow.opacity(0.7))
-                                    }
-                                }
+                    if history.count > defaultCount {
+                        Button(action: { evm.showHistory.toggle() }) {
+                            HStack(spacing: 2) {
+                                Text(evm.showHistory ? "Moins" : "+\(history.count - defaultCount) sessions")
+                                    .font(.system(size: 9))
+                                Image(systemName: evm.showHistory ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 9))
                             }
+                            .foregroundColor(.gray.opacity(0.5))
                         }
-                        .padding(8).background(Color(hex: "0d0d1a")).cornerRadius(8)
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -713,6 +714,13 @@ struct ExerciseCard: View {
         }
         .onChange(of: logResult == nil) { _, isNil in
             if isNil { evm.resetAfterClear() }
+        }
+        .confirmationDialog("Sauter \(name) ?", isPresented: $confirmSkip, titleVisibility: .visible) {
+            Button("Sauter cet exercice", role: .destructive) {
+                evm.isSkipped = true
+                triggerImpact(style: .light)
+            }
+            Button("Continuer", role: .cancel) {}
         }
         .sheet(isPresented: $evm.showRestTimer) {
             RestTimerSheet(autoStartSeconds: restSeconds)

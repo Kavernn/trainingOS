@@ -649,6 +649,11 @@ struct WorkoutSeanceView: View {
     @State private var progressionSuggestions: [ProgressionSuggestion] = []
     @State private var didLoadPreCoaching = false
 
+    // Energy pre-session
+    @State private var energyPre: Int = 3
+    @State private var showEnergyPreSheet = false
+    @AppStorage("energy_pre_date") private var energyPreDate = ""
+
     // Optional add-ons
     @State private var showAddCardio = false
     @State private var showAddHIIT   = false
@@ -1080,9 +1085,10 @@ struct WorkoutSeanceView: View {
                 elapsedMin: Date().timeIntervalSince(vm.sessionStart) / 60,
                 rpe: $rpe,
                 comment: $comment,
-                onSubmit: { energy in
+                preEnergy: energyPre,
+                onSubmit: { _ in
                     let dur = Date().timeIntervalSince(vm.sessionStart) / 60
-                    Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energy, sessionName: data.today) }
+                    Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energyPre, sessionName: data.today) }
                 }
             )
             .presentationDetents([.medium, .large])
@@ -1090,6 +1096,7 @@ struct WorkoutSeanceView: View {
         }
         .onChange(of: vm.showSuccess) { success in
             guard success else { return }
+            triggerNotificationFeedback(.success)
             vm.showSuccess = false
             Task {
                 let sType = isSecondSession ? "evening" : "morning"
@@ -1146,7 +1153,20 @@ struct WorkoutSeanceView: View {
             AddHIITSheet { hiitLogged = true }
                 .presentationDetents([.large])
         }
+        .sheet(isPresented: $showEnergyPreSheet) {
+            EnergyPreWorkoutSheet(energy: $energyPre) {
+                energyPreDate = data.todayDate
+            }
+            .presentationDetents([.height(300)])
+            .presentationDragIndicator(.visible)
+        }
         .onAppear {
+            // Ask energy level once per day before the workout starts
+            if energyPreDate != data.todayDate {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    showEnergyPreSheet = true
+                }
+            }
             Task { await loadInventory() }
             computeGhost()
             guard !didLoadPreCoaching else { return }
@@ -1826,10 +1846,11 @@ struct AddHIITSheet: View {
         let elapsedMin: Double
         @Binding var rpe: Double
         @Binding var comment: String
-        var onSubmit: (Int?) -> Void   // (energyPre)
+        var preEnergy: Int? = nil          // pre-filled from EnergyPreWorkoutSheet (nil = show picker)
+        var onSubmit: (Int?) -> Void
         @Environment(\.dismiss) private var dismiss
 
-        @State private var energyPre: Int = 3   // 1–5
+        @State private var energyPre: Int = 3   // 1–5, used only when preEnergy == nil
         @State private var confirmDiscard = false
         @State private var aiAnalysis: String? = nil
         @State private var isLoadingAI = false
@@ -1866,30 +1887,48 @@ struct AddHIITSheet: View {
                             }
                             .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             
-                            // Énergie pré-séance
-                            VStack(alignment: .leading, spacing: 10) {
-                                HStack {
-                                    Text("ÉNERGIE AVANT LA SÉANCE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            // Énergie pré-séance — affichage si pré-rempli, saisie sinon
+                            if let pre = preEnergy {
+                                HStack(spacing: 10) {
+                                    Text("ÉNERGIE AVANT").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
                                     Spacer()
-                                    Text(energyLabel(energyPre))
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(energyColor(energyPre))
-                                }
-                                HStack(spacing: 8) {
-                                    ForEach(1...5, id: \.self) { i in
-                                        Button(action: { energyPre = i }) {
-                                            VStack(spacing: 4) {
-                                                Image(systemName: i <= energyPre ? "bolt.fill" : "bolt")
-                                                    .font(.system(size: 20))
-                                                    .foregroundColor(i <= energyPre ? energyColor(energyPre) : .gray.opacity(0.3))
-                                                Text("\(i)").font(.system(size: 9)).foregroundColor(.gray)
-                                            }
+                                    HStack(spacing: 3) {
+                                        ForEach(1...5, id: \.self) { i in
+                                            Image(systemName: i <= pre ? "bolt.fill" : "bolt")
+                                                .font(.system(size: 16))
+                                                .foregroundColor(i <= pre ? energyColor(pre) : .gray.opacity(0.25))
                                         }
-                                        .frame(maxWidth: .infinity)
+                                    }
+                                    Text(energyLabel(pre))
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(energyColor(pre))
+                                }
+                                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+                            } else {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    HStack {
+                                        Text("ÉNERGIE AVANT LA SÉANCE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Spacer()
+                                        Text(energyLabel(energyPre))
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundColor(energyColor(energyPre))
+                                    }
+                                    HStack(spacing: 8) {
+                                        ForEach(1...5, id: \.self) { i in
+                                            Button(action: { energyPre = i }) {
+                                                VStack(spacing: 4) {
+                                                    Image(systemName: i <= energyPre ? "bolt.fill" : "bolt")
+                                                        .font(.system(size: 20))
+                                                        .foregroundColor(i <= energyPre ? energyColor(energyPre) : .gray.opacity(0.3))
+                                                    Text("\(i)").font(.system(size: 9)).foregroundColor(.gray)
+                                                }
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                        }
                                     }
                                 }
+                                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             }
-                            .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             
                             // RPE — pré-rempli depuis la moyenne des RPE par exercice
                             VStack(alignment: .leading, spacing: 8) {
@@ -1927,7 +1966,7 @@ struct AddHIITSheet: View {
                                         } else {
                                             Image(systemName: "brain.head.profile").font(.system(size: 13))
                                         }
-                                        Text(isLoadingAI ? "Analyse en cours…" : "Analyse IA post-séance")
+                                        Text(isLoadingAI ? "Analyse en cours…" : aiAnalysis == nil ? "Analyse IA post-séance" : "Relancer l'analyse")
                                             .font(.system(size: 13, weight: .medium))
                                     }
                                     .frame(maxWidth: .infinity).padding(.vertical, 10)
@@ -1947,7 +1986,7 @@ struct AddHIITSheet: View {
                             .padding(.horizontal, 20)
 
                             Button(action: {
-                                onSubmit(energyPre)
+                                onSubmit(preEnergy ?? energyPre)
                                 dismiss()
                             }) {
                                 Text("Enregistrer la séance")
@@ -1973,6 +2012,7 @@ struct AddHIITSheet: View {
                     Button("Continuer", role: .cancel) {}
                 }
                 .keyboardOkButton()
+                .onAppear { loadAIAnalysis() }
             }
         }
 
@@ -2020,6 +2060,78 @@ struct AddHIITSheet: View {
         }
     }
     
+    // MARK: - Energy Pre-Workout Sheet
+    struct EnergyPreWorkoutSheet: View {
+        @Binding var energy: Int
+        var onConfirm: () -> Void
+        @Environment(\.dismiss) private var dismiss
+
+        var body: some View {
+            VStack(spacing: 24) {
+                VStack(spacing: 6) {
+                    Text("Avant de commencer")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("Comment te sens-tu aujourd'hui ?")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
+                .padding(.top, 16)
+
+                HStack(spacing: 0) {
+                    ForEach(1...5, id: \.self) { i in
+                        Button(action: { energy = i; triggerImpact(style: .light) }) {
+                            VStack(spacing: 6) {
+                                Image(systemName: i <= energy ? "bolt.fill" : "bolt")
+                                    .font(.system(size: 32))
+                                    .foregroundColor(i <= energy ? energyColor(i) : .gray.opacity(0.25))
+                                    .animation(.spring(response: 0.2), value: energy)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                }
+
+                Text(energyLabel(energy))
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(energyColor(energy))
+
+                Button("C'est parti ! 💪") {
+                    onConfirm()
+                    dismiss()
+                }
+                .font(.system(size: 16, weight: .bold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(Color.orange)
+                .foregroundColor(.white)
+                .cornerRadius(14)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
+            }
+            .padding(.horizontal, 16)
+            .background(Color(hex: "080810"))
+        }
+
+        private func energyColor(_ v: Int) -> Color {
+            switch v {
+            case 1, 2: return .red
+            case 3: return .yellow
+            default: return .green
+            }
+        }
+
+        private func energyLabel(_ v: Int) -> String {
+            switch v {
+            case 1: return "Épuisé 😴"
+            case 2: return "Fatigué 😕"
+            case 3: return "Normal 😐"
+            case 4: return "En forme 💪"
+            default: return "Excellent ⚡"
+            }
+        }
+    }
+
     // MARK: - HIIT Seance
     struct HIITSeanceView: View {
         let sessionType: String
