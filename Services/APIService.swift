@@ -2,6 +2,17 @@ import Foundation
 import Combine
 import UserNotifications
 
+// MARK: - Authenticated URLSession
+extension URLSession {
+    /// Injects Authorization header on every request. Use instead of URLSession.shared.
+    static let authed: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.httpAdditionalHeaders = ["Authorization": "Bearer \(APIConfig.apiKey)"]
+        config.timeoutIntervalForRequest = 15
+        return URLSession(configuration: config)
+    }()
+}
+
 // MARK: - API Errors
 enum APIError: LocalizedError {
     case serverError(Int, String)
