@@ -8,6 +8,7 @@ struct DashboardView: View {
     @ObservedObject private var api = APIService.shared
     @ObservedObject private var alertService = AlertService.shared
     @State private var showMoodSheet = false
+    @State private var showChecklist = false
     @State private var lastRefresh: Date = .distantPast
     @State private var sleepPromptDismissedThisSession = false
     @Environment(\.scenePhase) private var scenePhase
@@ -42,32 +43,46 @@ struct DashboardView: View {
                                 .appearAnimation(delay: 0)
                             }
 
-                            GreetingHeaderView(dash: dash)
+                            GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
                                 .appearAnimation(delay: 0)
 
-                            // Fix #1: TodayCard at top — primary action every session
+                            // UX#1: Readiness strip before TodayCard — premium apps (Whoop/Oura) pattern
+                            ReadinessStripView(brief: vm.brief, recovery: vm.todayRecovery)
+                                .appearAnimation(delay: 0.01)
+
+                            // TodayCard: primary action every session
                             TodayCardView(
                                 dash: dash,
                                 showGreatDayBadge: vm.brief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil
                             )
-                            .appearAnimation(delay: 0.01)
+                            .appearAnimation(delay: 0.02)
 
                             if let soir = vm.soirData, soir.hasEveningSession {
                                 SoirCardView(data: soir)
-                                    .appearAnimation(delay: 0.02)
+                                    .appearAnimation(delay: 0.03)
                             }
 
-                            // Fix #3: tappable recovery strip; Fix #15: indigo accent
+                            // UX#4: Week progress strip right under TodayCard
+                            WeekProgressStripView(dash: dash)
+                                .appearAnimation(delay: 0.04)
+
+                            // UX#5: Compact nutrition strip in position 4 (not last)
+                            NavigationLink(destination: NutritionView()) {
+                                NutritionStripView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
+                            }
+                            .buttonStyle(.plain)
+                            .appearAnimation(delay: 0.05)
+
+                            // Recovery snapshot
                             if let rec = vm.todayRecovery,
                                rec.sleepHours != nil || rec.restingHr != nil || rec.hrv != nil || rec.steps != nil {
                                 NavigationLink(destination: RecoveryView()) {
                                     RecoverySnapshotView(recovery: rec)
                                 }
                                 .buttonStyle(.plain)
-                                .appearAnimation(delay: 0.03)
+                                .appearAnimation(delay: 0.06)
                             }
 
-                            // Fix #2: remove inline re-show button; keep SleepPromptCard only
                             if shouldShowSleepPrompt {
                                 SleepPromptCard(onDone: {
                                     UserDefaults.standard.set(todayStr, forKey: "sleepPromptDate")
@@ -75,11 +90,14 @@ struct DashboardView: View {
                                         sleepPromptDismissedThisSession = true
                                     }
                                 })
-                                .appearAnimation(delay: 0.04)
+                                .appearAnimation(delay: 0.07)
                             }
 
-                            ChecklistCardView()
-                                .appearAnimation(delay: 0.05)
+                            // UX#mood moved up — log while biometrics are fresh
+                            if vm.moodDue?.isDue == true {
+                                MoodCardView { showMoodSheet = true }
+                                    .appearAnimation(delay: 0.08)
+                            }
 
                             // Fix #7: full banner only for level 2; compact chip for level 1
                             if let report = vm.deload, report.fatigueLevel > 0 {
@@ -87,56 +105,47 @@ struct DashboardView: View {
                                     DeloadBannerView(report: report) {
                                         Task { await applyDeload(report: report) }
                                     }
-                                    .appearAnimation(delay: 0.06)
+                                    .appearAnimation(delay: 0.09)
                                 } else {
                                     DeloadChipView(report: report)
-                                        .appearAnimation(delay: 0.06)
+                                        .appearAnimation(delay: 0.09)
                                 }
                             }
 
-                            if let b = vm.brief,
-                               b.recommendation != "go" ||
-                               b.flags.hrvDrop || b.flags.sleepDeprivation || b.flags.trainingOverload {
-                                MorningBriefCardView(
-                                    data: b,
-                                    lssTrend: vm.lssTrend,
-                                    lastSessionDate: api.dashboard?.sessions.keys.max()
-                                )
-                                .appearAnimation(delay: 0.07)
+                            // UX#3: Morning Brief always shown — compact green strip when "go"
+                            if let b = vm.brief {
+                                if b.recommendation != "go" || b.flags.hrvDrop || b.flags.sleepDeprivation || b.flags.trainingOverload {
+                                    MorningBriefCardView(
+                                        data: b,
+                                        lssTrend: vm.lssTrend,
+                                        lastSessionDate: api.dashboard?.sessions.keys.max()
+                                    )
+                                    .appearAnimation(delay: 0.10)
+                                } else {
+                                    MorningBriefCompactView(data: b)
+                                        .appearAnimation(delay: 0.10)
+                                }
                             }
 
                             if let peak = vm.peakPrediction, !peak.days.isEmpty {
                                 PeakPredictionCard(prediction: peak)
-                                    .appearAnimation(delay: 0.08)
-                            }
-
-                            // Fix #8: mood button redesigned as proper card
-                            if vm.moodDue?.isDue == true {
-                                MoodCardView { showMoodSheet = true }
-                                    .appearAnimation(delay: 0.09)
+                                    .appearAnimation(delay: 0.11)
                             }
 
                             if !vm.insights.isEmpty {
                                 DashboardInsightsCard(insights: vm.insights)
-                                    .appearAnimation(delay: 0.10)
+                                    .appearAnimation(delay: 0.12)
                             }
 
-                            // Fix #3: tappable stats row
+                            // Full stats grid + heatmap stay at the bottom for deeper review
                             NavigationLink(destination: StatsView()) {
                                 StatsRowView(dash: dash)
                             }
                             .buttonStyle(.plain)
-                            .appearAnimation(delay: 0.11)
+                            .appearAnimation(delay: 0.13)
 
                             WeekGridView(schedule: dash.schedule, sessions: dash.sessions)
-                                .appearAnimation(delay: 0.13)
-
-                            // Fix #3: tappable nutrition summary; Fix #9: HeatmapView removed (redundant)
-                            NavigationLink(destination: NutritionView()) {
-                                NutritionSummaryView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
-                            }
-                            .buttonStyle(.plain)
-                            .appearAnimation(delay: 0.15)
+                                .appearAnimation(delay: 0.14)
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
@@ -187,6 +196,23 @@ struct DashboardView: View {
             Task { await vm.refreshMoodDue() }
         }) {
             MoodLogSheet()
+        }
+        .sheet(isPresented: $showChecklist) {
+            NavigationStack {
+                ScrollView {
+                    ChecklistCardView()
+                        .padding(16)
+                }
+                .navigationTitle("Avant de partir")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Fermer") { showChecklist = false }
+                    }
+                }
+                .background(Color(hex: "0D0D14").ignoresSafeArea())
+            }
+            .presentationDetents([.medium, .large])
         }
     }
 
@@ -650,6 +676,7 @@ struct FatigueScoreGauge: View {
 // MARK: - Greeting Header
 struct GreetingHeaderView: View {
     let dash: DashboardData
+    @Binding var showChecklist: Bool
 
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -727,17 +754,6 @@ struct GreetingHeaderView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text("VINCE")
-                            .font(.system(size: 11, weight: .black))
-                            .tracking(4)
-                            .foregroundColor(.gray.opacity(0.7))
-                        +
-                        Text("SEVEN")
-                            .font(.system(size: 11, weight: .black))
-                            .tracking(4)
-                            .foregroundColor(.orange)
-                    }
                     Text(greeting + (dash.profile.name.map { ", \($0.components(separatedBy: " ").first ?? $0)" } ?? "") + " 👋")
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(.white)
@@ -749,14 +765,29 @@ struct GreetingHeaderView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 6) {
-                    Text("S\(dash.week)")
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(1)
-                        .foregroundColor(.gray)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(Color.white.opacity(0.06))
-                        .clipShape(Capsule())
+                    HStack(spacing: 6) {
+                        // UX#2: Checklist button in header — out of main scroll
+                        Button {
+                            showChecklist = true
+                        } label: {
+                            Image(systemName: "checklist")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.orange)
+                                .padding(8)
+                                .background(Color.orange.opacity(0.12))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+
+                        Text("Sem. \(dash.week)")
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(1)
+                            .foregroundColor(.gray)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(Capsule())
+                    }
 
                     if streak > 1 {
                         StreakBadge(count: streak)
@@ -1451,6 +1482,236 @@ struct NutriBadge: View {
         .padding(.vertical, 10)
         .background(color.opacity(0.08))
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(color.opacity(0.15), lineWidth: 0.5))
+        .cornerRadius(10)
+    }
+}
+
+// MARK: - UX#1 — Readiness Strip (before TodayCard)
+
+struct ReadinessStripView: View {
+    let brief: MorningBriefData?
+    let recovery: RecoveryEntry?
+
+    private var accent: Color {
+        switch brief?.recommendation {
+        case "defer":      return .red
+        case "reduce":     return .orange
+        case "go_caution": return .yellow
+        default:           return .green
+        }
+    }
+
+    private var label: String {
+        switch brief?.recommendation {
+        case "defer":      return "Repos recommandé"
+        case "reduce":     return "Volume réduit aujourd'hui"
+        case "go_caution": return "Entraîne-toi avec prudence"
+        default:           return "Prêt à performer"
+        }
+    }
+
+    private var icon: String {
+        switch brief?.recommendation {
+        case "defer":      return "exclamationmark.triangle.fill"
+        case "reduce":     return "arrow.down.circle.fill"
+        case "go_caution": return "exclamationmark.circle.fill"
+        default:           return "bolt.circle.fill"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(accent.opacity(0.15)).frame(width: 36, height: 36)
+                Image(systemName: icon)
+                    .font(.system(size: 15))
+                    .foregroundColor(accent)
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                Text("READINESS")
+                    .font(.system(size: 9, weight: .bold)).tracking(2)
+                    .foregroundColor(.gray)
+                Text(label)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(accent)
+            }
+            Spacer()
+            if let rec = recovery {
+                HStack(spacing: 14) {
+                    if let hrv = rec.hrv {
+                        VStack(spacing: 0) {
+                            Text("\(Int(hrv))")
+                                .font(.system(size: 14, weight: .black))
+                                .foregroundColor(.green)
+                            Text("HRV")
+                                .font(.system(size: 8)).foregroundColor(.gray)
+                        }
+                    }
+                    if let rhr = rec.restingHr {
+                        VStack(spacing: 0) {
+                            Text("\(Int(rhr))")
+                                .font(.system(size: 14, weight: .black))
+                                .foregroundColor(.red.opacity(0.85))
+                            Text("FC")
+                                .font(.system(size: 8)).foregroundColor(.gray)
+                        }
+                    }
+                    if let sleep = rec.sleepHours {
+                        VStack(spacing: 0) {
+                            Text(String(format: "%.1fh", sleep))
+                                .font(.system(size: 14, weight: .black))
+                                .foregroundColor(.indigo)
+                            Text("Sommeil")
+                                .font(.system(size: 8)).foregroundColor(.gray)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(accent.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accent.opacity(0.2), lineWidth: 1))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - UX#4 — Week Progress Strip (right under TodayCard)
+
+struct WeekProgressStripView: View {
+    let dash: DashboardData
+
+    var weekSessions: Int {
+        let fmt = DateFormatter.isoDate
+        let todayStr = fmt.string(from: Date())
+        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
+        let base = todayMidnight.timeIntervalSince1970
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        let daysSinceMonday = (weekday + 5) % 7
+        var count = 0
+        for i in 0...daysSinceMonday {
+            let d = Date(timeIntervalSince1970: base - Double(i) * 86400.0)
+            if dash.sessions[fmt.string(from: d)] != nil { count += 1 }
+        }
+        return count
+    }
+
+    var weekTarget: Int {
+        let restWords = ["repos", "rest", "off", "récupération"]
+        let active = dash.schedule.values.filter { val in
+            let lower = val.lowercased()
+            return !lower.isEmpty && !restWords.contains(where: { lower.contains($0) })
+        }.count
+        return max(active, 1)
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "calendar.badge.checkmark")
+                .font(.system(size: 14))
+                .foregroundColor(.cyan)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(weekSessions) / \(weekTarget) séances cette semaine")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.07)).frame(height: 4)
+                        Capsule()
+                            .fill(weekSessions >= weekTarget ? Color.green : Color.cyan)
+                            .frame(width: max(4, geo.size.width * min(Double(weekSessions) / Double(weekTarget), 1.0)), height: 4)
+                            .animation(.easeOut(duration: 0.5), value: weekSessions)
+                    }
+                }
+                .frame(height: 4)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .glassCard(color: .cyan, intensity: 0.04)
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - UX#5 — Nutrition Strip (compact, position 4)
+
+struct NutritionStripView: View {
+    let totals: NutritionTotals
+    let settings: NutritionSettings?
+
+    private var calTarget: Double { settings?.calories ?? 0 }
+    private var calCurrent: Double { totals.calories ?? 0 }
+    private var calPct: Double { calTarget > 0 ? min(calCurrent / calTarget, 1.0) : 0 }
+    private var overCal: Bool { calTarget > 0 && calCurrent > calTarget }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 11))
+                    .foregroundColor(.orange)
+                Text("NUTRITION")
+                    .font(.system(size: 9, weight: .bold)).tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                Text("\(Int(calCurrent))\(calTarget > 0 ? " / \(Int(calTarget))" : "") kcal")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(overCal ? .red : .orange)
+            }
+
+            HStack(spacing: 6) {
+                NutriBadge(value: "\(Int(totals.proteines ?? 0))", unit: "prot", color: .blue)
+                NutriBadge(value: "\(Int(totals.glucides ?? 0))", unit: "carbs", color: .yellow)
+                NutriBadge(value: "\(Int(totals.lipides ?? 0))", unit: "lipides", color: .pink)
+                if calTarget > 0 {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.white.opacity(0.06)).frame(height: 4)
+                            Capsule()
+                                .fill(overCal ? Color.red : Color.orange)
+                                .frame(width: max(4, geo.size.width * calPct), height: 4)
+                        }
+                    }
+                    .frame(height: 4)
+                    .frame(maxWidth: 80)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .glassCard(color: .orange, intensity: 0.04)
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - UX#3 — Morning Brief Compact (always shown when "go" + no flags)
+
+struct MorningBriefCompactView: View {
+    let data: MorningBriefData
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color.green.opacity(0.15)).frame(width: 30, height: 30)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(.green)
+            }
+            Text("Brief du matin")
+                .font(.system(size: 9, weight: .bold)).tracking(2)
+                .foregroundColor(.gray)
+            Text("Tout est vert — vas-y.")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.green)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.gray.opacity(0.5))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color.green.opacity(0.06))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.15), lineWidth: 1))
         .cornerRadius(10)
     }
 }
