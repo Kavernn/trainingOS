@@ -61,3 +61,4 @@ docs/Seance_Bonus_Samedi_V1.pdf
 
 # iOS API key (never commit)
 Utilities/APIConfig.swift
+xcschememanagement.plist
