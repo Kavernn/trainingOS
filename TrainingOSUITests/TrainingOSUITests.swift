@@ -34,8 +34,7 @@ final class TrainingOSUITests: XCTestCase {
         // Find first exercise's weight field and enter a value
         let weightField = app.textFields.firstMatch
         if weightField.waitForExistence(timeout: 5) {
-            weightField.scrollToElement()
-            weightField.tap()
+            weightField.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
             weightField.clearAndEnterText("135")
         }
 
@@ -63,7 +62,7 @@ final class TrainingOSUITests: XCTestCase {
         // Find "Terminer la séance" button
         let finishButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Terminer'")).firstMatch
         if finishButton.waitForExistence(timeout: 3) {
-            finishButton.tap()
+            finishButton.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
 
             // Confirm sheet appeared
             let sheet = app.sheets.firstMatch
