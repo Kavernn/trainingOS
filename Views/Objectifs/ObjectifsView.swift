@@ -2,9 +2,11 @@ import SwiftUI
 import UserNotifications
 
 struct ObjectifsView: View {
+    @EnvironmentObject private var appState: AppState
     @State private var objectifs:   [ObjectifEntry]   = []
     @State private var smartGoals:  [SmartGoalEntry]  = []
     @State private var isLoading    = true
+    @State private var networkError: String? = nil
     @State private var showAddGoal  = false
     @State private var showArchived = false
     @State private var selectedObjectif: ObjectifEntry? = nil
@@ -27,6 +29,11 @@ struct ObjectifsView: View {
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 16) {
+                            if let err = networkError {
+                                ErrorBannerView(error: err,
+                                    onRetry: { Task { await loadData() } },
+                                    onDismiss: { networkError = nil })
+                            }
 
                             // ── Smart Goals (Santé & Performance) ──
                             if !smartGoals.isEmpty {
@@ -124,11 +131,16 @@ struct ObjectifsView: View {
 
     private func loadData() async {
         isLoading = true
-        async let obj  = APIService.shared.fetchObjectifsData()
-        async let sgs  = APIService.shared.fetchSmartGoals()
-        objectifs  = (try? await obj) ?? []
-        smartGoals = (try? await sgs) ?? []
-        isLoading  = false
+        do {
+            async let obj = APIService.shared.fetchObjectifsData()
+            async let sgs = APIService.shared.fetchSmartGoals()
+            objectifs  = try await obj
+            smartGoals = try await sgs
+            networkError = nil
+        } catch {
+            if objectifs.isEmpty { networkError = "Impossible de charger les objectifs" }
+        }
+        isLoading = false
     }
 
     private func archiveGoal(_ obj: ObjectifEntry) async {

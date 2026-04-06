@@ -129,7 +129,7 @@ CREATE TABLE IF NOT EXISTS exercise_logs (
     id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id  UUID    NOT NULL REFERENCES workout_sessions (id) ON DELETE CASCADE,
     exercise_id UUID    NOT NULL REFERENCES exercises (id) ON DELETE CASCADE,
-    weight      NUMERIC,            -- NULL = bodyweight (volume = 0); average across sets
+    weight      NUMERIC,            -- NULL = bodyweight; stored in user-selected unit (kg or lbs via UnitSettings)
     reps        TEXT,               -- comma-separated per-set reps: "7,6,6,5"
     sets_json   JSONB   DEFAULT '[]'::jsonb,  -- per-set [{weight, reps, total_weight, set_volume}]
     UNIQUE (session_id, exercise_id)
@@ -167,7 +167,7 @@ CREATE INDEX IF NOT EXISTS idx_hiit_logs_date ON hiit_logs (date DESC);
 CREATE TABLE IF NOT EXISTS body_weight_logs (
     id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
     date        DATE    NOT NULL UNIQUE,
-    weight      NUMERIC NOT NULL,
+    weight      NUMERIC NOT NULL,    -- unit: lbs (not kg)
     note        TEXT    DEFAULT '',
     body_fat    NUMERIC,
     waist_cm    NUMERIC,

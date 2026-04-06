@@ -4,6 +4,7 @@ import UserNotifications
 
 @main
 struct TrainingOSApp: App {
+    @StateObject private var appState = AppState.shared
     @State private var showSplash = true
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
@@ -39,6 +40,7 @@ struct TrainingOSApp: App {
                     ContentView()
                 }
             }
+            .environmentObject(appState)
             .preferredColorScheme(.dark)
             .onAppear {
                 SyncManager.shared.setup(container: modelContainer)

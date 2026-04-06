@@ -3,20 +3,13 @@ import SwiftUI
 import Charts
 
 struct DashboardView: View {
+    @EnvironmentObject private var appState: AppState
+    @StateObject private var vm = DashboardViewModel()
     @ObservedObject private var api = APIService.shared
     @ObservedObject private var alertService = AlertService.shared
-    @State private var insights: [InsightEntry] = []
-    @State private var deload: DeloadReport?
-    @State private var moodDue: MoodDueStatus?
-    @State private var brief: MorningBriefData?
-    @State private var soirData: SeanceSoirData?
     @State private var showMoodSheet = false
     @State private var lastRefresh: Date = .distantPast
     @State private var sleepPromptDismissedThisSession = false
-    @State private var todaySleepLogged = false
-    @State private var todayRecovery: RecoveryEntry?
-    @State private var lssTrend: [LifeStressScore] = []
-    @State private var peakPrediction: PeakPredictionResponse? = nil
     @Environment(\.scenePhase) private var scenePhase
 
     private var todayStr: String {
@@ -27,7 +20,7 @@ struct DashboardView: View {
         // UserDefaults = cache local pour éviter un flash après dismissal
         // sleepPromptDismissedThisSession = disparition animée dans la session courante
         !sleepPromptDismissedThisSession &&
-        !todaySleepLogged &&
+        !vm.todaySleepLogged &&
         UserDefaults.standard.string(forKey: "sleepPromptDate") != todayStr
     }
 
@@ -55,17 +48,17 @@ struct DashboardView: View {
                             // Fix #1: TodayCard at top — primary action every session
                             TodayCardView(
                                 dash: dash,
-                                showGreatDayBadge: brief?.recommendation == "go" && (deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil
+                                showGreatDayBadge: vm.brief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil
                             )
                             .appearAnimation(delay: 0.01)
 
-                            if let soir = soirData, soir.hasEveningSession {
+                            if let soir = vm.soirData, soir.hasEveningSession {
                                 SoirCardView(data: soir)
                                     .appearAnimation(delay: 0.02)
                             }
 
                             // Fix #3: tappable recovery strip; Fix #15: indigo accent
-                            if let rec = todayRecovery,
+                            if let rec = vm.todayRecovery,
                                rec.sleepHours != nil || rec.restingHr != nil || rec.hrv != nil || rec.steps != nil {
                                 NavigationLink(destination: RecoveryView()) {
                                     RecoverySnapshotView(recovery: rec)
@@ -89,7 +82,7 @@ struct DashboardView: View {
                                 .appearAnimation(delay: 0.05)
 
                             // Fix #7: full banner only for level 2; compact chip for level 1
-                            if let report = deload, report.fatigueLevel > 0 {
+                            if let report = vm.deload, report.fatigueLevel > 0 {
                                 if report.fatigueLevel == 2 {
                                     DeloadBannerView(report: report) {
                                         Task { await applyDeload(report: report) }
@@ -101,30 +94,30 @@ struct DashboardView: View {
                                 }
                             }
 
-                            if let b = brief,
+                            if let b = vm.brief,
                                b.recommendation != "go" ||
                                b.flags.hrvDrop || b.flags.sleepDeprivation || b.flags.trainingOverload {
                                 MorningBriefCardView(
                                     data: b,
-                                    lssTrend: lssTrend,
+                                    lssTrend: vm.lssTrend,
                                     lastSessionDate: api.dashboard?.sessions.keys.max()
                                 )
                                 .appearAnimation(delay: 0.07)
                             }
 
-                            if let peak = peakPrediction, !peak.days.isEmpty {
+                            if let peak = vm.peakPrediction, !peak.days.isEmpty {
                                 PeakPredictionCard(prediction: peak)
                                     .appearAnimation(delay: 0.08)
                             }
 
                             // Fix #8: mood button redesigned as proper card
-                            if moodDue?.isDue == true {
+                            if vm.moodDue?.isDue == true {
                                 MoodCardView { showMoodSheet = true }
                                     .appearAnimation(delay: 0.09)
                             }
 
-                            if !insights.isEmpty {
-                                DashboardInsightsCard(insights: insights)
+                            if !vm.insights.isEmpty {
+                                DashboardInsightsCard(insights: vm.insights)
                                     .appearAnimation(delay: 0.10)
                             }
 
@@ -155,10 +148,10 @@ struct DashboardView: View {
                         async let m  = APIService.shared.checkMoodDue()
                         async let b  = APIService.shared.fetchMorningBrief()
                         async let s  = APIService.shared.fetchSeanceSoirData()
-                        deload   = try? await d
-                        moodDue  = try? await m
-                        brief    = try? await b
-                        soirData = try? await s
+                        vm.deload   = try? await d
+                        vm.moodDue  = try? await m
+                        vm.brief    = try? await b
+                        vm.soirData = try? await s
                     }
                 } else if let err = api.error {
                     VStack(spacing: 16) {
@@ -182,63 +175,16 @@ struct DashboardView: View {
             }
             .navigationBarHidden(true)
         }
-        .task {
-            await api.fetchDashboard()
-            async let d = APIService.shared.fetchDeloadData()
-            async let m = APIService.shared.checkMoodDue()
-            async let b = APIService.shared.fetchMorningBrief()
-            async let s = APIService.shared.fetchSeanceSoirData()
-            async let i = APIService.shared.fetchInsights()
-            async let r = APIService.shared.fetchRecoveryData()
-            async let t = APIService.shared.fetchLifeStressTrend(days: 7)
-            async let p = APIService.shared.fetchPeakPrediction()
-            deload         = try? await d
-            moodDue        = try? await m
-            brief          = try? await b
-            soirData       = try? await s
-            insights       = (try? await i) ?? []
-            lssTrend       = (try? await t) ?? []
-            peakPrediction = try? await p
-            if let log = try? await r {
-                let entry = log.first(where: { $0.date == todayStr })
-                todaySleepLogged = entry?.sleepHours != nil
-                todayRecovery = entry
-            }
-            await alertService.fetch()
-            lastRefresh = Date()
-        }
+        .task { await vm.loadAll(); lastRefresh = Date() }
         .onChange(of: scenePhase) {
-            // Ne refetch que si la dernière mise à jour date de plus de 5 min et qu'aucun fetch n'est en cours
             if scenePhase == .active,
                !api.isLoading,
                Date().timeIntervalSince(lastRefresh) > 300 {
-                Task {
-                    await api.fetchDashboard()
-                    async let d = APIService.shared.fetchDeloadData()
-                    async let m = APIService.shared.checkMoodDue()
-                    async let b = APIService.shared.fetchMorningBrief()
-                    async let s = APIService.shared.fetchSeanceSoirData()
-                    async let r = APIService.shared.fetchRecoveryData()
-                    async let t = APIService.shared.fetchLifeStressTrend(days: 7)
-                    async let p = APIService.shared.fetchPeakPrediction()
-                    deload         = try? await d
-                    moodDue        = try? await m
-                    brief          = try? await b
-                    soirData       = try? await s
-                    lssTrend       = (try? await t) ?? []
-                    peakPrediction = try? await p
-                    if let log = try? await r {
-                        let entry = log.first(where: { $0.date == todayStr })
-                        todaySleepLogged = entry?.sleepHours != nil
-                        todayRecovery = entry
-                    }
-                    await alertService.fetch()
-                    lastRefresh = Date()
-                }
+                Task { await vm.loadAll(); lastRefresh = Date() }
             }
         }
         .sheet(isPresented: $showMoodSheet, onDismiss: {
-            Task { moodDue = try? await APIService.shared.checkMoodDue() }
+            Task { await vm.refreshMoodDue() }
         }) {
             MoodLogSheet()
         }
@@ -266,7 +212,7 @@ struct DashboardView: View {
         CacheService.shared.clear(for: "seance_data")
         CacheService.shared.clear(for: "dashboard")
         await api.fetchDashboard()
-        deload = nil   // Masquer la bannière après application
+        vm.deload = nil   // Masquer la bannière après application
     }
 }
 

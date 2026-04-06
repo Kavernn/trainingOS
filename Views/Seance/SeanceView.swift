@@ -2089,7 +2089,7 @@ struct AddHIITSheet: View {
     
     // MARK: - Inline Coaching Chip
 
-    private struct CoachingChip: View {
+     struct CoachingChip: View {
         let suggestion: ProgressionSuggestion
 
         @State private var applied = false

@@ -1055,7 +1055,9 @@ def delete_session_exercise_logs(session_date: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def get_body_weight_logs(limit: int = 100) -> List[dict]:
-    """Return body weight log entries, newest first."""
+    """Return body weight log entries, newest first.
+    weight field is in lbs (not kg).
+    """
     if _client is None or MODE == "OFFLINE":
         return []
     try:
@@ -1074,7 +1076,7 @@ def get_body_weight_logs(limit: int = 100) -> List[dict]:
 
 def upsert_body_weight(
     date: str,
-    weight: float,
+    weight: float,   # unit: lbs (not kg)
     note: str = "",
     body_fat: Optional[float] = None,
     waist_cm: Optional[float] = None,

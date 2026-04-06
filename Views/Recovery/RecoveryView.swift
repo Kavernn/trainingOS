@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct RecoveryView: View {
+    @EnvironmentObject private var appState: AppState
     @State private var log: [RecoveryEntry] = []
     @State private var isLoading = true
     @State private var showSheet = false

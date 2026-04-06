@@ -2,11 +2,8 @@ import SwiftUI
 import Combine
 
 struct NutritionView: View {
-    @State private var settings: NutritionSettings? = nil
-    @State private var entries: [NutritionEntry] = []
-    @State private var totals: NutritionTotals? = nil
-    @State private var history: [NutritionDayHistory] = []
-    @State private var isLoading = true
+    @EnvironmentObject private var appState: AppState
+    @StateObject private var vm = NutritionViewModel()
     @State private var showAdd = false
     @State private var editTarget: NutritionEntry? = nil
     @State private var showSettings = false
@@ -18,7 +15,7 @@ struct NutritionView: View {
     }
 
     private var effectiveSettings: NutritionSettings? {
-        guard let s = settings else { return nil }
+        guard let s = vm.settings else { return nil }
         guard workoutBonusActive else { return s }
         return NutritionSettings(calories: (s.calories ?? 2200) + 300,
                                  proteines: s.proteines,
@@ -30,15 +27,21 @@ struct NutritionView: View {
         NavigationStack {
             ZStack {
                 AmbientBackground(color: .orange)
-                if isLoading {
+                if vm.isLoading {
                     AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
+                            if let err = vm.networkError {
+                                ErrorBannerView(error: err,
+                                    onRetry: { Task { await vm.loadData() } },
+                                    onDismiss: { vm.networkError = nil })
+                                    .padding(.horizontal, 16)
+                            }
                             // Hero protéines
                             ProteinProgressCard(
-                                current: totals?.proteines ?? 0,
-                                target: settings?.proteines ?? 160
+                                current: vm.totals?.proteines ?? 0,
+                                target: vm.settings?.proteines ?? 160
                             )
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.05)
@@ -50,30 +53,30 @@ struct NutritionView: View {
                             }
 
                             // Résumé calories + macros
-                            MacroSummaryCard(totals: totals, settings: effectiveSettings)
+                            MacroSummaryCard(vm.totals: vm.totals, vm.settings: effectiveSettings)
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.1)
 
-                            DailyRemainingCard(totals: totals, settings: effectiveSettings)
+                            DailyRemainingCard(vm.totals: vm.totals, vm.settings: effectiveSettings)
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.13)
 
                             // Historique protéines 7j
-                            if !history.isEmpty {
-                                WeeklyProteinChart(history: history, target: settings?.proteines ?? 160)
+                            if !vm.history.isEmpty {
+                                WeeklyProteinChart(vm.history: vm.history, target: vm.settings?.proteines ?? 160)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.15)
                             }
 
                             // Historique calories 7j
-                            if !history.isEmpty {
-                                WeeklyCalorieChart(history: history, target: settings?.calories)
+                            if !vm.history.isEmpty {
+                                WeeklyCalorieChart(vm.history: vm.history, target: vm.settings?.calories)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.2)
                             }
 
-                            if !history.isEmpty {
-                                AdherenceScoreCard(history: history, settings: settings)
+                            if !vm.history.isEmpty {
+                                AdherenceScoreCard(vm.history: vm.history, vm.settings: vm.settings)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.22)
                             }
@@ -86,15 +89,15 @@ struct NutritionView: View {
                                     .foregroundColor(.gray)
                                     .padding(.horizontal, 16)
 
-                                if entries.isEmpty {
+                                if vm.entries.isEmpty {
                                     EmptyStateView(icon: "fork.knife", title: "Aucun aliment enregistré")
                                         .padding(.horizontal, 16)
                                 } else {
-                                    ForEach(entries) { entry in
+                                    ForEach(vm.entries) { entry in
                                         NutritionEntryRow(
                                             entry: entry,
                                             onEdit: { editTarget = entry },
-                                            onDelete: { Task { await deleteEntry(entry) } }
+                                            onDelete: { Task { await vm.deleteEntry(entry); toast = ToastMessage(message: "Aliment supprimé", style: .success) } }
                                         )
                                         .padding(.horizontal, 16)
                                     }
@@ -117,7 +120,7 @@ struct NutritionView: View {
                         Button { showSettings = true } label: {
                             Image(systemName: "gearshape").foregroundColor(.orange)
                         }
-                        Button(action: { Task { await loadData() } }) {
+                        Button(action: { Task { await vm.loadData() } }) {
                             Image(systemName: "arrow.clockwise").foregroundColor(.orange)
                         }
                     }
@@ -125,15 +128,15 @@ struct NutritionView: View {
             }
             .sheet(isPresented: $showAdd) {
                 AddNutritionSheet {
-                    await loadData()
+                    await vm.loadData()
                     await AlertService.shared.fetch()
                 }
             }
             .sheet(item: $editTarget) { entry in
-                EditNutritionSheet(entry: entry) { await loadData() }
+                EditNutritionSheet(entry: entry) { await vm.loadData() }
             }
             .sheet(isPresented: $showSettings) {
-                NutritionSettingsSheet(settings: settings) { await loadData(silent: true) }
+                NutritionSettingsSheet(settings: vm.settings) { await vm.loadData(silent: true) }
             }
             .overlay(alignment: .bottomTrailing) {
                 FAB(icon: "plus") { showAdd = true }
@@ -141,73 +144,10 @@ struct NutritionView: View {
                     .padding(.bottom, fabBottomPadding)
             }
         }
-        .task { await loadData() }
+        .task { await vm.loadData() }
         .toast($toast)
     }
 
-    private func loadData(silent: Bool = false) async {
-        if !silent { isLoading = true }
-        let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition_data")!
-        var req = URLRequest(url: url)
-        req.cachePolicy = .reloadIgnoringLocalCacheData
-        req.timeoutInterval = 15
-        if let (data, _) = try? await URLSession.shared.data(for: req),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            if let s = json["settings"] as? [String: Any] {
-                settings = NutritionSettings(
-                    calories: s["limite_calories"] as? Double ?? (s["calories"] as? Double),
-                    proteines: s["objectif_proteines"] as? Double ?? (s["proteines"] as? Double),
-                    glucides: s["glucides"] as? Double,
-                    lipides: s["lipides"] as? Double
-                )
-            }
-            if let t = json["totals"] as? [String: Any] {
-                totals = NutritionTotals(
-                    calories: t["calories"] as? Double,
-                    proteines: t["proteines"] as? Double,
-                    glucides: t["glucides"] as? Double,
-                    lipides: t["lipides"] as? Double
-                )
-            }
-            if let e = json["entries"] as? [[String: Any]] {
-                entries = e.map { d in
-                    NutritionEntry(
-                        entryId: d["id"] as? String,
-                        name: (d["nom"] as? String) ?? (d["name"] as? String),
-                        calories: (d["calories"] as? Double) ?? (d["calories"] as? Int).map(Double.init),
-                        proteines: d["proteines"] as? Double,
-                        glucides: d["glucides"] as? Double,
-                        lipides: d["lipides"] as? Double,
-                        quantity: d["quantity"] as? Double,
-                        unit: d["unit"] as? String,
-                        time: (d["heure"] as? String) ?? (d["time"] as? String),
-                        mealType: d["meal_type"] as? String
-                    )
-                }
-            }
-            if let h = json["history"] as? [[String: Any]] {
-                history = h.compactMap { d in
-                    guard let date = d["date"] as? String,
-                          let cal = d["calories"] as? Double else { return nil }
-                    let prot = (d["proteines"] as? Double) ?? 0
-                    return NutritionDayHistory(date: date, calories: cal, proteines: prot)
-                }
-            }
-        }
-        isLoading = false
-    }
-
-    private func deleteEntry(_ entry: NutritionEntry) async {
-        guard let eid = entry.entryId else { return }
-        let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition/delete")!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["id": eid])
-        _ = try? await URLSession.shared.data(for: req)
-        toast = ToastMessage(message: "Aliment supprimé", style: .success)
-        await loadData()
-    }
 }
 
 // MARK: - Protein Progress Card
@@ -371,13 +311,6 @@ struct WeeklyProteinChart: View {
 }
 
 // MARK: - Weekly Calorie Chart
-
-struct NutritionDayHistory: Identifiable {
-    var id: String { date }
-    let date: String
-    let calories: Double
-    let proteines: Double
-}
 
 struct WeeklyCalorieChart: View {
     let history: [NutritionDayHistory]
