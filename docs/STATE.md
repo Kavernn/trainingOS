@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-06 (audit A2–A16 complété)
+Dernière mise à jour : 2026-04-06 (workout UX + régression B1–B4)
 
 ---
 
@@ -139,13 +139,31 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 ## En cours / Prochaines étapes
 
-1. **Rebuild iOS Xcode** : vérifier 0 erreurs de compilation après A2–A16
-2. **#A1 — Authentification API** : API key statique en header `Authorization: Bearer <token>` côté Flask + `xcconfig` côté iOS. Seul item critique restant.
-3. Tests E2E iOS (XCUITest flows critiques)
-4. Heatmap HIIT distinct de muscu dans StatsView
-5. Remplir le profil utilisateur (name, age, height, etc.)
-6. Configurer les cibles macro glucides/lipides dans NutritionView
-7. Smart Goals — prochains types : 1RM estimé, pace cardio, distance mensuelle, FC repos, PSS, streak sommeil
+1. **#A1 — Authentification API** : API key statique en header `Authorization: Bearer <token>` côté Flask + `xcconfig` côté iOS. Seul item critique restant.
+2. Tests E2E iOS (XCUITest flows critiques)
+3. Heatmap HIIT distinct de muscu dans StatsView
+4. Remplir le profil utilisateur (name, age, height, etc.)
+5. Configurer les cibles macro glucides/lipides dans NutritionView
+6. Smart Goals — prochains types : 1RM estimé, pace cardio, distance mensuelle, FC repos, PSS, streak sommeil
+
+## Complété récemment (2026-04-06 — Workout UX + tests de régression)
+
+- **15 frictions workout UX corrigées** (`ExerciseCard.swift` + `SeanceView.swift`) :
+  - RPE chips élargies 6-10 → 1-10 (ScrollView horizontal)
+  - RIR header : sous-titre "avant échec" ajouté
+  - Toggle set-by-set : label "Set à set" visible (plus icon seul)
+  - "Reprendre la dernière séance" monté en première position dans la card
+  - Bouton log : label "Logger" toujours visible
+  - Historique : 3 sessions visibles par défaut (était 1)
+  - "Sauter" : `confirmationDialog` avant de skipper l'exercice
+  - `EnergyPreWorkoutSheet` : demande l'énergie **avant** la séance (1×/jour), plus dans FinishSessionSheet
+  - `FinishSessionSheet` : énergie pré-remplie en lecture seule si déjà saisie au départ
+  - Analyse IA post-séance : auto-déclenchée à l'ouverture (plus besoin de taper le bouton)
+  - Haptic `.success` au commit de séance
+- **B1 — `session_name` perdu sur CREATE** : `create_workout_session()` accepte maintenant `session_name` ; `log_session()` le propage — données non perdues sur les premières sessions du jour
+- **B2 — Route `/api/progression_suggestions` inexistante** : route ajoutée dans `routes/workout.py`, appelle `smart_progression.generate_suggestions()` — `ProgressionSuggestionsSheet` fonctionne désormais pré- et post-séance
+- **B3 — Schema doc stale** : `session_name TEXT` ajouté à `workout_sessions` dans `docs/schema.sql`
+- **B4 — Race condition EnergyPreSheet / ProgressionSheet** : si energy sheet va s'afficher, progression check différé à `onChange(showEnergyPreSheet=false)` — les deux sheets ne se disputent plus le slot de présentation
 
 ## Complété récemment (2026-04-06 — Audit A2–A16)
 

@@ -1,6 +1,6 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-06 (audit A2–A16 complété).
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-06 (workout UX + régression B1–B4).
 > Audit senior dev/UX ajouté le 2026-04-05 — 20 items priorisés.
 
 ---
@@ -30,8 +30,6 @@
 - [x] **Recovery modifiable** : bouton crayon + `LogRecoverySheet(prefillEntry:)` + FAB adaptatif (2026-03-29).
 - [x] **Deload recommandé mais pas auto-appliqué** : bouton "Appliquer le déload (−15%)" dans `DeloadBannerView` → POST `/api/apply_deload` (2026-03-29).
 - [x] **Validation photo profil** : limite 500KB, alert `photoError`, compression JPEG 0.7 (2026-03-29).
-- [ ] **Rebuild iOS Xcode** : compiler tous les changements 2026-04-05 (smart goals, UX fixes, body comp lbs, set_goal fix).
-
 ---
 
 ## 🟡 MOYENNE PRIORITÉ — Qualité & cohérence
@@ -52,6 +50,21 @@
 - [x] **SleepView vide** : `sleep_records` jamais peuplé. Bridge `recovery_log → sleep_records` : fallback sur HealthKit (15 entrées visibles, sleep/today retourne 7.1h) (2026-04-04).
 - [x] **14 doublons cardio** : artefact migration KV (logged_at identique). Nettoyés en DB, 5 entrées uniques conservées (2026-04-04).
 - [x] **Breathwork session 0 durée** : session fantôme supprimée en DB (2026-04-04).
+
+---
+
+## 🎨 UI/UX — Workout & flux utilisateur (2026-04-06)
+
+- [x] **RPE chips 1–10** : élargies depuis 6-10, ScrollView horizontal dans ExerciseCard (2026-04-06)
+- [x] **RIR découvrabilité** : sous-titre "avant échec" sous le header RIR (2026-04-06)
+- [x] **Set-by-set label** : texte "Set à set" visible sur le toggle (plus icon seul) (2026-04-06)
+- [x] **"Reprendre" monté en haut** : bouton "Reprendre la dernière séance" en première position dans la card (2026-04-06)
+- [x] **Bouton logger labellisé** : "Logger" toujours visible, plus icon orange seul (2026-04-06)
+- [x] **Historique : 3 sessions par défaut** : était 1 + expand requis (2026-04-06)
+- [x] **"Sauter" : confirmation obligatoire** : `confirmationDialog` avant de skipper (2026-04-06)
+- [x] **Énergie pré-séance au lancement** : `EnergyPreWorkoutSheet` s'affiche une fois/jour avant le workout ; plus posée rétroactivement dans FinishSessionSheet (2026-04-06)
+- [x] **Analyse IA auto** : `loadAIAnalysis()` déclenché à l'ouverture de FinishSessionSheet (2026-04-06)
+- [x] **Haptic commit séance** : `.success` haptic au moment de l'enregistrement (2026-04-06)
 
 ---
 
@@ -93,6 +106,19 @@
 - [ ] **API sans documentation** : aucun Swagger/OpenAPI. Documenter les endpoints principaux dans `api/README.md`.
 - [x] **Migration 003 appliquée sur Supabase** : `session_type` + backfill + contrainte UNIQUE(date, session_type) (2026-03-29).
 - [x] **Migration KV → relational complète** : table `kv` supprimée, toutes les données migrées vers tables relationnelles. Migration 011 appliquée. (2026-04-04).
+
+---
+
+## 🐛 Régression — Tests 2026-04-06
+
+- [x] **B1 — `session_name` perdu sur CREATE** : `create_workout_session()` accepte maintenant le param ; `log_session()` le propage sur insert (2026-04-06)
+- [x] **B2 — `/api/progression_suggestions` inexistant** : route ajoutée dans `routes/workout.py`, appelle `smart_progression.generate_suggestions()` (2026-04-06)
+- [x] **B3 — Schema doc stale** : `session_name TEXT` ajouté à `workout_sessions` dans `docs/schema.sql` (2026-04-06)
+- [x] **B4 — Race condition EnergyPreSheet / ProgressionSheet** : progression check différé à `onChange(showEnergyPreSheet=false)` quand energy sheet va s'afficher (2026-04-06)
+- [x] **RPE + pain_zone** : OK — écriture confirmée dans `exercise_logs.rpe` / `exercise_logs.pain_zone`
+- [x] **PSS 10 réponses + score** : OK — toutes les réponses soumises, score + catégorie stockés dans `pss_records`
+- [x] **Objectif nutrition** : OK — `calorie_limit` / `protein_target` dans `nutrition_settings`, re-fetch après save
+- [x] **user_profile 7 champs** : OK — même route `/api/update_profile` pour onboarding et édition
 
 ---
 
