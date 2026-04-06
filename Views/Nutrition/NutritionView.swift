@@ -1100,19 +1100,29 @@ struct NutritionSettingsSheet: View {
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
-                    Section("OBJECTIFS MACROS (g / jour)") {
+                    Section {
                         HStack {
                             TextField("160", text: $proteines).keyboardType(.numberPad).foregroundColor(.white)
                             Text("g protéines").foregroundColor(.gray).font(.system(size: 13))
                         }
                         HStack {
-                            TextField("0", text: $glucides).keyboardType(.numberPad).foregroundColor(.white)
-                            Text("g glucides").foregroundColor(.gray).font(.system(size: 13))
+                            TextField("250", text: $glucides).keyboardType(.numberPad).foregroundColor(.white)
+                            Text("g glucides").foregroundColor(.yellow).font(.system(size: 13))
                         }
                         HStack {
-                            TextField("0", text: $lipides).keyboardType(.numberPad).foregroundColor(.white)
-                            Text("g lipides").foregroundColor(.gray).font(.system(size: 13))
+                            TextField("65", text: $lipides).keyboardType(.numberPad).foregroundColor(.white)
+                            Text("g lipides").foregroundColor(.pink).font(.system(size: 13))
                         }
+                        if (Int(glucides) ?? 0) == 0 || (Int(lipides) ?? 0) == 0,
+                           let kcal = Double(calories) {
+                            Button(action: { autoFillMacros(kcal: kcal) }) {
+                                Label("Calculer auto (prot 30 / glucides 45 / lip 25)", systemImage: "wand.and.stars")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    } header: {
+                        Text("OBJECTIFS MACROS (g / jour)")
                     }
                     .listRowBackground(Color(hex: "11111c"))
                 }
@@ -1143,6 +1153,16 @@ struct NutritionSettingsSheet: View {
         }
     }
 
+    private func autoFillMacros(kcal: Double) {
+        // 30% protein (4 kcal/g), 45% carbs (4 kcal/g), 25% fat (9 kcal/g)
+        let protG  = Int((kcal * 0.30) / 4)
+        let carbG  = Int((kcal * 0.45) / 4)
+        let fatG   = Int((kcal * 0.25) / 9)
+        if (Int(proteines) ?? 0) == 0 { proteines = "\(protG)" }
+        glucides = "\(carbG)"
+        lipides  = "\(fatG)"
+    }
+
     private func save() async {
         guard let cal  = Double(calories),
               let prot = Double(proteines) else { return }
@@ -1161,4 +1181,9 @@ struct NutritionSettingsSheet: View {
         }
         isSaving = false
     }
+}
+
+#Preview {
+    NutritionView()
+        .environmentObject(AppState.shared)
 }

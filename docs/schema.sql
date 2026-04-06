@@ -431,7 +431,9 @@ CREATE TABLE IF NOT EXISTS user_profile (
     level       TEXT,              -- beginner | intermediate | advanced
     goal        TEXT,              -- bulk | cut | maintain | recomp
     units       TEXT    DEFAULT 'kg',
-    photo_b64   TEXT,
+    photo_b64   TEXT,           -- legacy: base64 data URL (deprecated in favour of photo_url)
+    photo_url   TEXT,           -- Supabase Storage public URL (profile-photos bucket)
+    created_at  TIMESTAMPTZ DEFAULT NOW(),
     updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -632,3 +634,11 @@ BEGIN
     END IF;
   END LOOP;
 END $$;
+
+
+-- ── AI Rate Limiting (cross-worker, Vercel-safe) ─────────────────────────────
+-- Migration: run once on Supabase
+CREATE TABLE IF NOT EXISTS ai_rate_limit (
+    hour_key TEXT PRIMARY KEY,          -- e.g. "2026-04-06T14" (UTC hour)
+    count    INTEGER NOT NULL DEFAULT 0
+);

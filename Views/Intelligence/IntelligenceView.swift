@@ -186,6 +186,7 @@ struct IntelligenceView: View {
                                 withAnimation { proxy.scrollTo("loading", anchor: .bottom) }
                             }
                         }
+                        .scrollDismissesKeyboard(.interactively)
                     }
 
                     // Input bar

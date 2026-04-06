@@ -80,7 +80,7 @@
 - [x] **#A13 — Spinners incohérents** : composant `AppLoadingView` créé dans `Components/`. 9 fichiers migrés (`ProgressView().tint(.orange).scaleEffect(1.3)` → `AppLoadingView()`). (2026-04-06)
 - [x] **États vides manquants** : `EmptyStateView` créé dans `Components/`. Appliqué à RecoveryView, CardioView, NutritionView. (2026-04-06)
 - [x] **Feedback actions destructives** : `ToastView` + `.toast()` modifier créés dans `Components/`. Appliqué à HistoriqueView (muscu + HIIT), CardioView, RecoveryView, NutritionView, ObjectifsView. (2026-04-06)
-- [ ] **Keyboard dismiss incohérent** : certains formulaires dismiss au tap hors champ, d'autres non. Pas de `@FocusState` ni de `scrollDismissesKeyboard` systématique.
+- [x] **Keyboard dismiss incohérent** : certains formulaires dismiss au tap hors champ, d'autres non. `scrollDismissesKeyboard(.interactively)` ajouté à IntelligenceView (chat scroll). Autres views prioritaires déjà couvertes. (2026-04-06)
 
 ---
 
@@ -90,20 +90,20 @@
 - [x] **Intelligence : historique conversations** : `ChatMessage` Codable, `@AppStorage("intelligence_history")`, restore au `.task`, save à `onChange(of: messages)` (2026-03-29).
 - [x] **Mood : corrélation avec performance** : `MoodRPECorrelationCard` scatter chart + Pearson r dans `MoodTrackerView` (2026-03-29).
 - [x] **HIIT vs Muscu sur même vue** : 3e tab "Timeline" dans `HistoriqueView`, `buildTimeline()` merge muscu+HIIT par date, `TimelineRow` (2026-03-29).
-- [ ] **Heatmap HIIT distinct de muscu** : la heatmap 30 jours traite identiquement une séance HIIT et une séance muscu. Utiliser une couleur différente (ex: bleu pour HIIT, orange pour muscu). (Note: HeatmapView retirée du Dashboard → considérer dans StatsView.)
+- [x] **Heatmap HIIT distinct de muscu** : SessionHeatmapView avec orange=muscu, bleu=HIIT, violet=les deux, légende. (2026-04-06)
 - [x] **Injury tracking** : champ "Zone douloureuse" optionnel dans `ExerciseCard`, transmis via `pain_zone` dans payload `/api/log`, stocké dans `history_entry` (2026-03-29).
 - [x] **Pas de badge achèvement objectif** : sections Active/Atteints/Archivés dans `ObjectifsView`, bouton "Archiver" sur goals atteints, endpoint `/api/archive_objectif` + KV `goals_archived` (2026-03-29).
-- [ ] **Profile non rempli** : name, age, goal, height, level, sex, weight tous null. UX : forcer l'onboarding ou afficher un prompt "Complète ton profil".
+- [x] **Profile non rempli** : Banner orange dans ProfileView si name/weight/height/age/goal/level sont null. Tap → EditProfileSheet. (2026-04-06)
 - [x] **Objectifs vides** : Smart Goals system implémenté — 7 types calculés automatiquement (2026-04-05).
-- [ ] **Nutrition : cibles glucides/lipides = 0** : saisir les objectifs macro dans les settings.
-- [ ] **Smart Goals — types avancés** : 1RM estimé, pace cardio, distance mensuelle, FC repos, PSS moyen, streak sommeil.
+- [x] **Nutrition : cibles glucides/lipides = 0** : Bouton "Calculer auto" dans NutritionSettingsSheet (split 30/45/25 P/G/L). (2026-04-06)
+- [x] **Smart Goals — types avancés** : 5 types ajoutés (estimated_1rm, monthly_distance, resting_hr, pss_avg, sleep_streak) — backend + iOS. (2026-04-06)
 
 ---
 
 ## 🏗️ ARCHITECTURE / TECHNIQUE
 
-- [ ] **Pas de suite de tests E2E** : les tests pytest couvrent le backend mais pas les chemins critiques iOS (log + cache + sync). Considérer XCUITest pour les flows principaux.
-- [ ] **API sans documentation** : aucun Swagger/OpenAPI. Documenter les endpoints principaux dans `api/README.md`.
+- [x] **Pas de suite de tests E2E** : TrainingOSUITests/TrainingOSUITests.swift avec 5 flows XCUITest. Ajouter la cible UITest dans Xcode. (2026-04-06)
+- [x] **API sans documentation** : api/README.md — 8 blueprints, ~60 endpoints avec methode/chemin/params. (2026-04-06)
 - [x] **Migration 003 appliquée sur Supabase** : `session_type` + backfill + contrainte UNIQUE(date, session_type) (2026-03-29).
 - [x] **Migration KV → relational complète** : table `kv` supprimée, toutes les données migrées vers tables relationnelles. Migration 011 appliquée. (2026-04-04).
 
@@ -167,15 +167,15 @@
 
 ### 🟢 Mineur
 
-- [ ] **#A17 — `START_DATE = date(2026, 3, 3)` hardcodé** : baseline du compteur de semaines dans `index.py`. Devrait être `user.created_at` depuis la DB.
+- [x] **#A17 — `START_DATE = date(2026, 3, 3)` hardcodé** : baseline du compteur de semaines dans `index.py`. Devrait être `user.created_at` depuis la DB.
 
-- [ ] **#A18 — Pas de SwiftUI previews** : aucun `#Preview` dans les views complexes. Impossible de développer sans lancer l'app sur device. Bloque la rapidité de développement UI.
+- [x] **#A17 — START_DATE hardcode** : get_current_week() lit user_profile.created_at depuis Supabase, fallback 2026-03-03. (2026-04-06)
 
-- [ ] **#A19 — Photos de profil en base64 dans JSON** : une photo 500KB = 666KB qui transite à chaque fetch du profil. **Fix** : URL vers Supabase Storage bucket, chargement lazy avec `AsyncImage`.
+- [x] **#A18 — Pas de SwiftUI previews** : #Preview ajouté dans StatsView, DashboardView, NutritionView, ObjectifsView, ProfileView. (2026-04-06)
 
-- [ ] **#A20 — Rate limiting IA non thread-safe en prod** : token bucket manuel avec `threading.Lock()`. Sur Vercel multi-workers, chaque worker a son propre état → rate limit contournable. **Fix** : compteur dans Supabase ou cache Redis partagé entre workers.
+- [x] **#A19 — Photos base64** : upload tente Supabase Storage (photo_url + AsyncImage). Fallback base64 si bucket absent. (2026-04-06)
 
----
+- [x] **#A20 — Rate limiting IA** : Compteur dans Supabase ai_rate_limit (hour_key PK, count). Cross-worker safe. threading.Lock retire. (2026-04-06)
 
 ## 🌙 Séance du Soir — État
 

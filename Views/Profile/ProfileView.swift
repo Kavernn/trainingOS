@@ -85,11 +85,44 @@ struct ProfileView: View {
         .task { await loadData() }
     }
 
+    private var isProfileIncomplete: Bool {
+        let p = profile
+        return p?.name == nil || p?.weight == nil || p?.height == nil
+            || p?.age == nil || p?.goal == nil || p?.level == nil
+    }
+
     private var profileScrollContent: some View {
         ScrollView {
             VStack(spacing: 16) {
+                if isProfileIncomplete {
+                    Button(action: { showEdit = true }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "person.crop.circle.badge.exclamationmark.fill")
+                                .font(.system(size: 22))
+                                .foregroundColor(.orange)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Complète ton profil")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Text("Poids, taille, niveau requis pour les suggestions IA")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12))
+                                .foregroundColor(.gray)
+                        }
+                        .padding(14)
+                        .background(Color.orange.opacity(0.12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                }
                 avatarSection
-                    .padding(.top, 20)
+                    .padding(.top, isProfileIncomplete ? 4 : 20)
                 statsGrid
                     .padding(.horizontal, 16)
                 bodyWeightSection
@@ -130,19 +163,40 @@ struct ProfileView: View {
     @ViewBuilder
     private var profilePhoto: some View {
         if let img = profileImage {
+            // Freshly picked / taken photo (before upload)
             Image(uiImage: img).resizable().scaledToFill()
                 .frame(width: 96, height: 96).clipShape(Circle())
+        } else if let urlStr = profile?.photoUrl, let url = URL(string: urlStr) {
+            // Supabase Storage URL — lazy load with AsyncImage
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let img):
+                    img.resizable().scaledToFill()
+                        .frame(width: 96, height: 96).clipShape(Circle())
+                case .failure:
+                    photoPlaceholder
+                default:
+                    Circle().fill(Color.orange.opacity(0.08))
+                        .frame(width: 96, height: 96)
+                        .overlay(ProgressView().tint(.orange).scaleEffect(0.7))
+                }
+            }
         } else if let b64 = profile?.photoB64,
                   let data = Data(base64Encoded: b64.components(separatedBy: ",").last ?? ""),
                   let img = UIImage(data: data) {
+            // Legacy base64 photo
             Image(uiImage: img).resizable().scaledToFill()
                 .frame(width: 96, height: 96).clipShape(Circle())
         } else {
-            ZStack {
-                Circle().fill(Color.orange.opacity(0.15)).frame(width: 96, height: 96)
-                Text(profile?.name?.prefix(1).uppercased() ?? "?")
-                    .font(.system(size: 44, weight: .black)).foregroundColor(.orange)
-            }
+            photoPlaceholder
+        }
+    }
+
+    private var photoPlaceholder: some View {
+        ZStack {
+            Circle().fill(Color.orange.opacity(0.15)).frame(width: 96, height: 96)
+            Text(profile?.name?.prefix(1).uppercased() ?? "?")
+                .font(.system(size: 44, weight: .black)).foregroundColor(.orange)
         }
     }
 
@@ -531,4 +585,9 @@ struct EditProfileSheet: View {
             }
         }
     }
+}
+
+#Preview {
+    ProfileView()
+        .environmentObject(AppState.shared)
 }

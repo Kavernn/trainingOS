@@ -2430,3 +2430,8 @@ struct SmartInsightsBanner: View {
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.25), lineWidth: 1))
     }
 }
+
+#Preview {
+    StatsView()
+        .environmentObject(AppState.shared)
+}

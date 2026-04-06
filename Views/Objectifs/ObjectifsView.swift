@@ -610,6 +610,12 @@ enum SmartGoalOption: String, CaseIterable, Identifiable {
     case trainingFrequency = "training_frequency"
     case proteinDaily      = "protein_daily"
     case nutritionStreak   = "nutrition_streak"
+    // ── Types avancés ─────────────────────────────────────────────────────────
+    case estimated1RM      = "estimated_1rm"
+    case monthlyDistance   = "monthly_distance"
+    case restingHR         = "resting_hr"
+    case pssAvg            = "pss_avg"
+    case sleepStreak       = "sleep_streak"
 
     var id: String { rawValue }
 
@@ -622,6 +628,11 @@ enum SmartGoalOption: String, CaseIterable, Identifiable {
         case .trainingFrequency: return "Séances / sem."
         case .proteinDaily:      return "Protéines / jour"
         case .nutritionStreak:   return "Streak nutrition"
+        case .estimated1RM:      return "1RM estimé"
+        case .monthlyDistance:   return "Distance mensuelle"
+        case .restingHR:         return "FC au repos"
+        case .pssAvg:            return "Stress PSS moyen"
+        case .sleepStreak:       return "Streak sommeil"
         }
     }
 
@@ -634,6 +645,11 @@ enum SmartGoalOption: String, CaseIterable, Identifiable {
         case .trainingFrequency: return "séances"
         case .proteinDaily:      return "g"
         case .nutritionStreak:   return "jours"
+        case .estimated1RM:      return "lbs"
+        case .monthlyDistance:   return "km"
+        case .restingHR:         return "bpm"
+        case .pssAvg:            return "pts"
+        case .sleepStreak:       return "jours"
         }
     }
 
@@ -646,6 +662,11 @@ enum SmartGoalOption: String, CaseIterable, Identifiable {
         case .trainingFrequency: return "4"
         case .proteinDaily:      return "160"
         case .nutritionStreak:   return "30"
+        case .estimated1RM:      return "200"
+        case .monthlyDistance:   return "50"
+        case .restingHR:         return "55"
+        case .pssAvg:            return "10"
+        case .sleepStreak:       return "14"
         }
     }
 
@@ -658,6 +679,11 @@ enum SmartGoalOption: String, CaseIterable, Identifiable {
         case .trainingFrequency: return "calendar.badge.checkmark"
         case .proteinDaily:      return "fork.knife"
         case .nutritionStreak:   return "checkmark.circle"
+        case .estimated1RM:      return "trophy.fill"
+        case .monthlyDistance:   return "figure.run"
+        case .restingHR:         return "heart.fill"
+        case .pssAvg:            return "brain.head.profile"
+        case .sleepStreak:       return "moon.stars.fill"
         }
     }
 
@@ -670,6 +696,11 @@ enum SmartGoalOption: String, CaseIterable, Identifiable {
         case .trainingFrequency: return Color(hex: "1ABC9C")
         case .proteinDaily:      return Color(hex: "F1C40F")
         case .nutritionStreak:   return Color(hex: "E74C3C")
+        case .estimated1RM:      return Color(hex: "FFD700")
+        case .monthlyDistance:   return Color(hex: "00B4D8")
+        case .restingHR:         return Color(hex: "E63946")
+        case .pssAvg:            return Color(hex: "7209B7")
+        case .sleepStreak:       return Color(hex: "4361EE")
         }
     }
 }
@@ -815,4 +846,9 @@ private func scheduleGoalDeadlineNotifications(exercise: String, deadlineStr: St
             center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
     }
+}
+
+#Preview {
+    ObjectifsView()
+        .environmentObject(AppState.shared)
 }

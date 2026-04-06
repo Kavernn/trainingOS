@@ -2111,3 +2111,8 @@ struct GreatDayCard: View {
         .glassCard(color: .green, intensity: 0.06)
     }
 }
+
+#Preview {
+    DashboardView()
+        .environmentObject(AppState.shared)
+}

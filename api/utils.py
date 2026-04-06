@@ -2,7 +2,6 @@
 from __future__ import annotations
 import os, re as _re
 from datetime import datetime, date, timedelta
-from threading import Lock
 
 
 # ── Timezone Montréal (gère l'heure d'été) ───────────────────
@@ -36,34 +35,48 @@ def _today_mtl() -> str:
 
 
 # ── Rate limiting for Anthropic AI routes ─────────────────────────────────────
-# Token bucket: refills at 1 token/6 min → max 10 calls/hour
-_AI_RATE_LOCK      = Lock()
-_AI_TOKENS         = 10        # current bucket level
-_AI_MAX_TOKENS     = 10
-_AI_REFILL_SECONDS = 360       # 1 token per 6 minutes
-_AI_LAST_REFILL    = datetime.utcnow()
+# Stored in Supabase so the limit is shared across all Vercel workers.
+# Table: ai_rate_limit (hour_key TEXT PRIMARY KEY, count INTEGER DEFAULT 0)
+# Schema: CREATE TABLE IF NOT EXISTS ai_rate_limit (hour_key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0);
+_AI_MAX_TOKENS = 10  # calls per hour
 
 def _ai_rate_check() -> bool:
-    """Return True if the request is allowed, False if rate limited."""
-    global _AI_TOKENS, _AI_LAST_REFILL
-    with _AI_RATE_LOCK:
-        now     = datetime.utcnow()
-        elapsed = (now - _AI_LAST_REFILL).total_seconds()
-        refill  = int(elapsed / _AI_REFILL_SECONDS)
-        if refill > 0:
-            _AI_TOKENS      = min(_AI_MAX_TOKENS, _AI_TOKENS + refill)
-            _AI_LAST_REFILL = now
-        if _AI_TOKENS <= 0:
+    """Return True if the request is allowed, False if rate limited.
+    Uses Supabase for cross-worker consistency on Vercel."""
+    from datetime import timezone
+    hour_key = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H")
+    try:
+        import db as _db
+        client = _db._client
+        if client is None:
+            return True  # offline mode — allow
+        # Read current count for this hour
+        resp = client.table("ai_rate_limit").select("count").eq("hour_key", hour_key).limit(1).execute()
+        current = resp.data[0]["count"] if resp.data else 0
+        if current >= _AI_MAX_TOKENS:
             return False
-        _AI_TOKENS -= 1
+        # Increment (slight race window acceptable at this scale)
+        client.table("ai_rate_limit").upsert(
+            {"hour_key": hour_key, "count": current + 1},
+            on_conflict="hour_key",
+        ).execute()
         return True
+    except Exception:
+        return True  # fail open — better to allow than block on infra error
 
 
 # ── Helpers ─────────────────────────────────────────────────
 
 def get_current_week() -> int:
-    START_DATE = date(2026, 3, 3)
-    delta      = date.today() - START_DATE
+    """Week number since user creation. Reads created_at from user_profile; falls back to 2026-03-03."""
+    try:
+        import db as _db
+        profile     = _db.get_profile()
+        created_str = (profile.get("created_at") or "2026-03-03T00:00:00")[:10]
+        start       = date.fromisoformat(created_str)
+    except Exception:
+        start = date(2026, 3, 3)
+    delta = date.today() - start
     return max(1, (delta.days // 7) + 1)
 
 

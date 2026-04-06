@@ -2534,13 +2534,19 @@ def get_sessions_for_correlations(days: int = 60) -> Dict[str, dict]:
 # ---------------------------------------------------------------------------
 
 SMART_GOAL_META: dict = {
-    "body_fat":           {"label": "% Masse grasse",        "unit": "%",       "lower_is_better": True},
-    "lean_mass":          {"label": "Masse maigre",           "unit": "lbs",     "lower_is_better": False},
-    "waist_cm":           {"label": "Tour de taille",         "unit": "cm",      "lower_is_better": True},
-    "weekly_volume":      {"label": "Volume hebdo",           "unit": "lbs",     "lower_is_better": False},
-    "training_frequency": {"label": "Séances / semaine",      "unit": "séances", "lower_is_better": False},
-    "protein_daily":      {"label": "Protéines / jour",       "unit": "g",       "lower_is_better": False},
-    "nutrition_streak":   {"label": "Streak nutrition",       "unit": "jours",   "lower_is_better": False},
+    "body_fat":           {"label": "% Masse grasse",          "unit": "%",       "lower_is_better": True},
+    "lean_mass":          {"label": "Masse maigre",             "unit": "lbs",     "lower_is_better": False},
+    "waist_cm":           {"label": "Tour de taille",           "unit": "cm",      "lower_is_better": True},
+    "weekly_volume":      {"label": "Volume hebdo",             "unit": "lbs",     "lower_is_better": False},
+    "training_frequency": {"label": "Séances / semaine",        "unit": "séances", "lower_is_better": False},
+    "protein_daily":      {"label": "Protéines / jour",         "unit": "g",       "lower_is_better": False},
+    "nutrition_streak":   {"label": "Streak nutrition",         "unit": "jours",   "lower_is_better": False},
+    # ── Types avancés ───────────────────────────────────────────────────────────
+    "estimated_1rm":      {"label": "1RM estimé (meilleur exo)", "unit": "lbs",   "lower_is_better": False},
+    "monthly_distance":   {"label": "Distance mensuelle cardio", "unit": "km",    "lower_is_better": False},
+    "resting_hr":         {"label": "FC au repos",               "unit": "bpm",   "lower_is_better": True},
+    "pss_avg":            {"label": "Stress PSS moyen",          "unit": "pts",   "lower_is_better": True},
+    "sleep_streak":       {"label": "Streak sommeil",            "unit": "jours", "lower_is_better": False},
 }
 
 
@@ -2634,6 +2640,60 @@ def compute_smart_goal_current(goal_type: str) -> Optional[float]:
                 streak += 1
                 d -= timedelta(days=1)
             return float(streak)
+
+        # ── Types avancés ─────────────────────────────────────────────────────
+
+        if goal_type == "estimated_1rm":
+            # Best estimated 1RM across all exercises: weight * (1 + reps/30)
+            history = get_all_exercise_history()
+            best = 0.0
+            for logs in history.values():
+                for entry in logs[:10]:  # check last 10 sessions per exercise
+                    w = entry.get("weight") or 0
+                    r = entry.get("reps") or ""
+                    if not w:
+                        continue
+                    # Parse reps: "3x8", "8,8,6", "8"
+                    import re as _re2
+                    nums = [float(x) for x in _re2.findall(r"\d+(?:\.\d+)?", str(r))]
+                    avg_reps = (sum(nums) / len(nums)) if nums else 0
+                    if avg_reps > 0:
+                        orm = w * (1 + avg_reps / 30.0)
+                        if orm > best:
+                            best = orm
+            return round(best, 1) if best > 0 else None
+
+        if goal_type == "monthly_distance":
+            from datetime import date as _date, timedelta
+            cutoff  = (_date.today() - timedelta(days=30)).isoformat()
+            logs    = get_cardio_logs(limit=200)
+            total   = sum(float(e.get("distance_km") or 0) for e in logs
+                          if (e.get("date") or "") >= cutoff)
+            return round(total, 1) if total > 0 else None
+
+        if goal_type == "resting_hr":
+            # Use most recent recovery log hr_rest, fallback to wearable snapshot
+            recs = get_recovery_logs(limit=7)
+            for r in recs:
+                hr = r.get("hr_rest")
+                if hr:
+                    return float(hr)
+            return None
+
+        if goal_type == "pss_avg":
+            recs   = get_pss_records(limit=5)
+            scores = [r.get("score") for r in recs if r.get("score") is not None]
+            return round(sum(scores) / len(scores), 1) if scores else None
+
+        if goal_type == "sleep_streak":
+            from datetime import date as _date, timedelta
+            recs  = get_sleep_records(limit=365)
+            dates = {r["date"][:10] for r in recs if r.get("date")}
+            streak, d = 0, _date.today()
+            while d.isoformat() in dates:
+                streak += 1
+                d -= timedelta(days=1)
+            return float(streak) if streak > 0 else None
 
     except Exception as e:
         logger.error("compute_smart_goal_current(%s) error: %s", goal_type, e)
