@@ -43,7 +43,7 @@ struct XPView: View {
             ZStack {
                 AmbientBackground(color: .yellow)
                 if isLoading {
-                    ProgressView().tint(.orange).scaleEffect(1.3)
+                    AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 20) {

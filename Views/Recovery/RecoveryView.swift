@@ -6,12 +6,10 @@ struct RecoveryView: View {
     @State private var showSheet = false
     @State private var editTarget: RecoveryEntry? = nil
     @State private var apiError: String? = nil
+    @State private var toast: ToastMessage? = nil
     @StateObject private var watchSync = WatchSyncService.shared
 
-    private var todayStr: String {
-        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
-        return fmt.string(from: Date())
-    }
+    private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
     private var alreadyLoggedToday: Bool {
         log.contains { $0.date == todayStr }
@@ -39,7 +37,7 @@ struct RecoveryView: View {
             ZStack {
                 AmbientBackground(color: .indigo)
                 if isLoading {
-                    ProgressView().tint(.orange).scaleEffect(1.3)
+                    AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
@@ -106,6 +104,7 @@ struct RecoveryView: View {
                                                 Task {
                                                     do {
                                                         try await APIService.shared.deleteRecovery(date: entry.date ?? "")
+                                                        await MainActor.run { toast = ToastMessage(message: "Entrée supprimée", style: .success) }
                                                     } catch {
                                                         await MainActor.run { apiError = "Erreur réseau — réessaie" }
                                                     }
@@ -152,6 +151,7 @@ struct RecoveryView: View {
         .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(apiError ?? "") }
+        .toast($toast)
     }
 
     private func loadData() async {
@@ -347,16 +347,7 @@ struct StepsChart: View {
 // MARK: - Empty State
 struct RecoveryEmptyState: View {
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "moon.zzz.fill")
-                .font(.system(size: 40)).foregroundColor(.indigo.opacity(0.4))
-            Text("Aucune donnée de récupération")
-                .font(.system(size: 15, weight: .medium)).foregroundColor(.gray)
-            Text("Appuie sur + pour en ajouter une")
-                .font(.system(size: 13)).foregroundColor(.gray.opacity(0.7))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(40)
+        EmptyStateView(icon: "moon.zzz.fill", title: "Aucune donnée de récupération", subtitle: "Appuie sur + pour en ajouter une")
     }
 }
 

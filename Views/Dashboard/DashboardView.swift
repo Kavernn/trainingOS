@@ -20,7 +20,7 @@ struct DashboardView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     private var todayStr: String {
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.string(from: Date())
+        DateFormatter.isoDate.string(from: Date())
     }
     private var shouldShowSleepPrompt: Bool {
         // todaySleepLogged = vérité serveur (fonctionne cross-appareils)

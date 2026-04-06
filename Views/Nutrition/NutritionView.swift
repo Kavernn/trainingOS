@@ -10,6 +10,7 @@ struct NutritionView: View {
     @State private var showAdd = false
     @State private var editTarget: NutritionEntry? = nil
     @State private var showSettings = false
+    @State private var toast: ToastMessage? = nil
     @AppStorage("special_session_logged_date") private var specialSessionDate: String = ""
 
     private var workoutBonusActive: Bool {
@@ -30,7 +31,7 @@ struct NutritionView: View {
             ZStack {
                 AmbientBackground(color: .orange)
                 if isLoading {
-                    ProgressView().tint(.orange).scaleEffect(1.3)
+                    AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
@@ -86,10 +87,7 @@ struct NutritionView: View {
                                     .padding(.horizontal, 16)
 
                                 if entries.isEmpty {
-                                    Text("Aucun aliment enregistré")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.gray)
-                                        .italic()
+                                    EmptyStateView(icon: "fork.knife", title: "Aucun aliment enregistré")
                                         .padding(.horizontal, 16)
                                 } else {
                                     ForEach(entries) { entry in
@@ -144,6 +142,7 @@ struct NutritionView: View {
             }
         }
         .task { await loadData() }
+        .toast($toast)
     }
 
     private func loadData(silent: Bool = false) async {
@@ -206,6 +205,7 @@ struct NutritionView: View {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["id": eid])
         _ = try? await URLSession.shared.data(for: req)
+        toast = ToastMessage(message: "Aliment supprimé", style: .success)
         await loadData()
     }
 }

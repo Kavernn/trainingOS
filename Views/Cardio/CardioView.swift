@@ -10,6 +10,7 @@ struct CardioView: View {
     @State private var showSheet = false
     @State private var isImportingHK = false
     @State private var apiError: String? = nil
+    @State private var toast: ToastMessage? = nil
     @ObservedObject private var hk = HealthKitService.shared
     @AppStorage("cardio_max_hr") private var maxHR: Int = 190
 
@@ -26,7 +27,7 @@ struct CardioView: View {
             ZStack {
                 AmbientBackground(color: .teal)
                 if isLoading {
-                    ProgressView().tint(.orange).scaleEffect(1.3)
+                    AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
@@ -77,6 +78,7 @@ struct CardioView: View {
                                                     try await APIService.shared.deleteCardio(
                                                         date: entry.date ?? "", type: entry.type ?? ""
                                                     )
+                                                    await MainActor.run { toast = ToastMessage(message: "Séance supprimée", style: .success) }
                                                 } catch {
                                                     await MainActor.run { apiError = "Erreur réseau — réessaie" }
                                                 }
@@ -128,6 +130,7 @@ struct CardioView: View {
         .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(apiError ?? "") }
+        .toast($toast)
     }
 
     private func loadData() async {
@@ -440,16 +443,7 @@ struct CardioDistanceChart: View {
 // MARK: - Empty State
 struct CardioEmptyState: View {
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "figure.run")
-                .font(.system(size: 40)).foregroundColor(.teal.opacity(0.4))
-            Text("Aucune séance cardio")
-                .font(.system(size: 15, weight: .medium)).foregroundColor(.gray)
-            Text("Appuie sur + pour en ajouter une")
-                .font(.system(size: 13)).foregroundColor(.gray.opacity(0.7))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(40)
+        EmptyStateView(icon: "figure.run", title: "Aucune séance cardio", subtitle: "Appuie sur + pour en ajouter une")
     }
 }
 

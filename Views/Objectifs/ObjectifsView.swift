@@ -9,6 +9,7 @@ struct ObjectifsView: View {
     @State private var showArchived = false
     @State private var selectedObjectif: ObjectifEntry? = nil
     @State private var selectedSmart:    SmartGoalEntry? = nil
+    @State private var toast: ToastMessage? = nil
 
     private var active:   [ObjectifEntry] { objectifs.filter { !$0.achieved && !$0.archived } }
     private var achieved: [ObjectifEntry] { objectifs.filter { $0.achieved && !$0.archived } }
@@ -22,7 +23,7 @@ struct ObjectifsView: View {
                 AmbientBackground(color: .orange)
 
                 if isLoading {
-                    ProgressView().tint(.orange).scaleEffect(1.3)
+                    AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(alignment: .leading, spacing: 16) {
@@ -32,7 +33,7 @@ struct ObjectifsView: View {
                                 SectionHeader(title: "SANTÉ & PERFORMANCE")
                                 ForEach(Array(smartActive.enumerated()), id: \.1.id) { i, sg in
                                     SmartGoalCard(goal: sg, onDelete: {
-                                        Task { try? await APIService.shared.deleteSmartGoal(id: sg.id); await loadData() }
+                                        Task { try? await APIService.shared.deleteSmartGoal(id: sg.id); await loadData(); toast = ToastMessage(message: "Objectif supprimé", style: .success) }
                                     })
                                     .appearAnimation(delay: Double(i) * 0.05)
                                 }
@@ -40,7 +41,7 @@ struct ObjectifsView: View {
                                     SectionHeader(title: "ATTEINTS (\(smartAchieved.count))")
                                     ForEach(Array(smartAchieved.enumerated()), id: \.1.id) { i, sg in
                                         SmartGoalCard(goal: sg, onDelete: {
-                                            Task { try? await APIService.shared.deleteSmartGoal(id: sg.id); await loadData() }
+                                            Task { try? await APIService.shared.deleteSmartGoal(id: sg.id); await loadData(); toast = ToastMessage(message: "Objectif supprimé", style: .success) }
                                         })
                                         .opacity(0.7)
                                         .appearAnimation(delay: Double(i) * 0.05)
@@ -118,6 +119,7 @@ struct ObjectifsView: View {
             }
         }
         .task { await loadData() }
+        .toast($toast)
     }
 
     private func loadData() async {

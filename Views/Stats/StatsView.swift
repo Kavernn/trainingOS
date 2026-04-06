@@ -378,7 +378,7 @@ struct StatsView: View {
             ZStack {
                 AmbientBackground(color: tabAmbientColor)
                 if isLoading {
-                    ProgressView().tint(.orange).scaleEffect(1.3)
+                    AppLoadingView()
                 } else if fetchError {
                     VStack(spacing: 12) {
                         Image(systemName: "wifi.slash").font(.system(size: 40)).foregroundColor(.gray)

@@ -28,7 +28,7 @@ struct BodyCompView: View {
             ZStack {
                 AmbientBackground(color: .green)
                 if isLoading {
-                    ProgressView().tint(.orange).scaleEffect(1.3)
+                    AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {

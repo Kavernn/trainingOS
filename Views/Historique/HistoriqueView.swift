@@ -37,6 +37,7 @@ struct HistoriqueView: View {
     @State private var editTarget: HistoriqueMuscu? = nil
     @State private var editHIITTarget: HIITEntry? = nil
     @State private var apiError: String? = nil
+    @State private var toast: ToastMessage? = nil
     @State private var monthFilter: String? = nil   // "YYYY-MM"
     @State private var showMonthPicker = false
     @State private var pickerDate = Date()
@@ -47,7 +48,7 @@ struct HistoriqueView: View {
                 AmbientBackground(color: .orange)
 
                 if isLoading {
-                    ProgressView().tint(.orange).scaleEffect(1.3)
+                    AppLoadingView()
                 } else {
                     VStack(spacing: 0) {
                         // Tabs
@@ -84,7 +85,7 @@ struct HistoriqueView: View {
                         .padding(.bottom, 4)
 
                         ScrollView {
-                            VStack(spacing: 10) {
+                            LazyVStack(spacing: 10) {
                                 if selectedTab == 0 {
                                     if muscuSessions.isEmpty {
                                         EmptyHistoriqueView(label: "Aucune séance loggée")
@@ -176,6 +177,7 @@ struct HistoriqueView: View {
         .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(apiError ?? "") }
+        .toast($toast)
     }
 
     private func toggle(_ id: String) {
@@ -271,6 +273,7 @@ struct HistoriqueView: View {
         do {
             try await APIService.shared.deleteSession(date: session.date, sessionType: session.sessionType)
             muscuSessions.removeAll { $0.id == session.id }
+            toast = ToastMessage(message: "Séance supprimée", style: .success)
         } catch {
             apiError = "Erreur réseau — réessaie"
         }
@@ -308,6 +311,7 @@ struct HistoriqueView: View {
                 try await APIService.shared.deleteHIIT(date: date, sessionType: type)
                 hiitSessions.removeAll { $0.id == session.id }
                 CacheService.shared.clear(for: "historique_data")
+                toast = ToastMessage(message: "Séance HIIT supprimée", style: .success)
             } catch {
                 apiError = "Erreur réseau — réessaie"
             }
