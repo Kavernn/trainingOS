@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 // MARK: - Main View
 
@@ -8,6 +9,9 @@ struct PSSView: View {
     @State private var isLoading = true
     @State private var showSheet = false
     @State private var isShortMode = false  // false = PSS-10, true = PSS-4
+    @State private var lssToday: LifeStressScore? = nil
+    @State private var lssTrend: [LifeStressScore] = []
+    @State private var showBreathworkAfter = false  // shown after moderate/high PSS result
 
     var body: some View {
         ZStack {
@@ -29,11 +33,49 @@ struct PSSView: View {
                                 .appearAnimation(delay: 0.03)
                             }
 
+                            // Breathwork suggestion after moderate/high result
+                            if showBreathworkAfter {
+                                NavigationLink { BreathworkView() } label: {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "lungs.fill").font(.system(size: 16)).foregroundColor(.green)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Décompresser — cohérence cardiaque")
+                                                .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                                            Text("5 min recommandées après un score élevé")
+                                                .font(.system(size: 11)).foregroundColor(.gray)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(.gray)
+                                    }
+                                    .padding(14)
+                                    .glassCard(color: .green, intensity: 0.07)
+                                    .cornerRadius(14)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.02)
+                            }
+
+                            // LSS compact card
+                            if let lss = lssToday {
+                                LSSCompactCard(lss: lss, trend: lssTrend)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.04)
+                            }
+
                             // KPIs
                             if !history.isEmpty {
                                 PSSKPIRow(history: history)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.05)
+                            }
+
+                            // PSS trend chart (only if >= 3 full records)
+                            let fullRecords = history.filter { $0.type == "full" }
+                            if fullRecords.count >= 3 {
+                                PSSTrendChart(records: fullRecords)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.07)
                             }
 
                             // Historique
@@ -62,17 +104,14 @@ struct PSSView: View {
                     .refreshable { await loadData() }
                 }
             }
-            .navigationTitle("Stress (PSS)")
+            .navigationTitle("Stress")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button("PSS-10 complet (3 min)") {
-                            isShortMode = false; showSheet = true
-                        }
-                        Button("PSS-4 rapide (1 min)") {
-                            isShortMode = true; showSheet = true
-                        }
+                    Button {
+                        // PSS-10 dû (>28j) → full ; sinon → check-in rapide
+                        isShortMode = !(dueStatus?.isDue == true)
+                        showSheet = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 20))
@@ -81,9 +120,10 @@ struct PSSView: View {
                 }
             }
             .sheet(isPresented: $showSheet) {
-                PSSQuestionnaireSheet(isShort: isShortMode) {
+                PSSQuestionnaireSheet(isShort: isShortMode, onSaved: { record in
+                    showBreathworkAfter = (record?.category == "moderate" || record?.category == "high")
                     await loadData()
-                }
+                })
             }
         .task { await loadData() }
     }
@@ -92,8 +132,12 @@ struct PSSView: View {
         isLoading = true
         async let histTask = APIService.shared.fetchPSSHistory()
         async let dueTask  = APIService.shared.checkPSSDue(type: "full")
+        async let lssTask  = APIService.shared.fetchLifeStressScore()
+        async let trendTask = APIService.shared.fetchLifeStressTrend(days: 14)
         history    = (try? await histTask) ?? []
         dueStatus  = try? await dueTask
+        lssToday   = try? await lssTask
+        lssTrend   = (try? await trendTask) ?? []
         isLoading  = false
     }
 }
@@ -130,33 +174,46 @@ struct PSSdueBanner: View {
 struct PSSKPIRow: View {
     let history: [PSSRecord]
 
-    private var latest: PSSRecord? { history.first(where: { $0.type == "full" }) }
+    private var fullRecords: [PSSRecord] { history.filter { $0.type == "full" } }
+    private var latest: PSSRecord? { fullRecords.first }
+    private var previous: PSSRecord? { fullRecords.dropFirst().first }
     private var latestShort: PSSRecord? { history.first(where: { $0.type == "short" }) }
     private var streak: Int { history.first?.streak ?? 0 }
+
+    private var delta: Int? {
+        guard let l = latest, let p = previous else { return nil }
+        return l.score - p.score
+    }
 
     var body: some View {
         HStack(spacing: 10) {
             if let r = latest {
+                let deltaStr: String = {
+                    guard let d = delta else { return r.categoryLabel }
+                    if d > 0 { return "↑ +\(d) vs mois passé" }
+                    if d < 0 { return "↓ \(d) vs mois passé" }
+                    return "─ stable"
+                }()
                 PSSKPICell(
                     value: "\(r.score)/40",
-                    label: "Dernier PSS-10",
-                    sublabel: r.categoryLabel,
+                    label: "PSS-10",
+                    sublabel: deltaStr,
                     color: r.categoryColor
                 )
             }
             if let r = latestShort {
                 PSSKPICell(
                     value: "\(r.score)/16",
-                    label: "Dernier PSS-4",
-                    sublabel: r.date,
+                    label: "PSS-4",
+                    sublabel: r.categoryLabel,
                     color: r.categoryColor
                 )
             }
             if streak >= 2 {
                 PSSKPICell(
                     value: "×\(streak)",
-                    label: "Streak",
-                    sublabel: streak >= 3 ? "Tracker régulier" : "Bonne régularité",
+                    label: "Régularité",
+                    sublabel: streak >= 3 ? "Tracker régulier" : "Bonne cadence",
                     color: .yellow
                 )
             }
@@ -329,7 +386,7 @@ struct PSSEmptyState: View {
 
 struct PSSQuestionnaireSheet: View {
     let isShort: Bool
-    let onSaved: () async -> Void
+    let onSaved: (PSSRecord?) async -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var questions: [PSSQuestion] = []
@@ -468,7 +525,7 @@ struct PSSQuestionnaireSheet: View {
         Group {
             if let record = submittedRecord {
                 PSSResultsContent(record: record, notes: $notes, onFinish: {
-                    Task { await onSaved(); dismiss() }
+                    Task { await onSaved(submittedRecord); dismiss() }
                 })
             } else {
                 ProgressView().tint(.purple)
@@ -526,6 +583,30 @@ struct PSSResultsContent: View {
                     .appearAnimation(delay: 0.05)
 
                 insightsSection
+
+                // Breathwork CTA for non-low scores
+                if record.category != "low" {
+                    NavigationLink { BreathworkView() } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "lungs.fill").font(.system(size: 16)).foregroundColor(.green)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Décompresser maintenant")
+                                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                                Text("Cohérence cardiaque · 5 min recommandées")
+                                    .font(.system(size: 12)).foregroundColor(.gray)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(.gray)
+                        }
+                        .padding(14)
+                        .background(Color.green.opacity(0.08))
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.green.opacity(0.15), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .appearAnimation(delay: 0.13)
+                }
 
                 notesSection
 
@@ -759,5 +840,168 @@ struct PSSScoreRing: View {
         .padding(24)
         .glassCard(color: record.categoryColor, intensity: 0.06)
         .cornerRadius(20)
+    }
+}
+
+// MARK: - LSS Compact Card
+
+struct LSSCompactCard: View {
+    let lss: LifeStressScore
+    let trend: [LifeStressScore]
+
+    private var scoreColor: Color {
+        switch lss.score {
+        case 80...: return .green
+        case 60..<80: return .yellow
+        case 40..<60: return .orange
+        default:      return .red
+        }
+    }
+
+    private var scoreLabel: String {
+        switch lss.score {
+        case 80...: return "Faible"
+        case 60..<80: return "Modéré"
+        case 40..<60: return "Élevé"
+        default:      return "Critique"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 0) {
+                // Score
+                HStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .stroke(scoreColor.opacity(0.15), lineWidth: 4)
+                            .frame(width: 44, height: 44)
+                        Circle()
+                            .trim(from: 0, to: CGFloat(lss.score) / 100)
+                            .stroke(scoreColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 44, height: 44)
+                        Text("\(Int(lss.score))")
+                            .font(.system(size: 13, weight: .black))
+                            .foregroundColor(scoreColor)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Stress \(scoreLabel)")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(scoreColor)
+                        Text("Score de stress LSS · automatique")
+                            .font(.system(size: 10)).foregroundColor(.gray)
+                    }
+                }
+                Spacer()
+            }
+
+            // Components row
+            HStack(spacing: 12) {
+                if let sleep = lss.components.sleepQuality {
+                    LSSComponentPill(icon: "moon.fill", color: .indigo, label: "Sommeil", value: Int(sleep))
+                }
+                if let hrv = lss.components.hrvTrend {
+                    LSSComponentPill(icon: "waveform.path.ecg", color: .green, label: "HRV", value: Int(hrv))
+                }
+                if let fat = lss.components.trainingFatigue {
+                    LSSComponentPill(icon: "bolt.fill", color: .orange, label: "Fatigue", value: Int(fat))
+                }
+            }
+
+            if !lss.recommendations.isEmpty {
+                Text(lss.recommendations[0])
+                    .font(.system(size: 12)).foregroundColor(.gray)
+                    .lineLimit(2)
+            }
+        }
+        .padding(14)
+        .glassCard(color: scoreColor, intensity: 0.05)
+        .cornerRadius(14)
+    }
+}
+
+struct LSSComponentPill: View {
+    let icon: String
+    let color: Color
+    let label: String
+    let value: Int
+
+    private var pillColor: Color {
+        switch value {
+        case 70...: return .green
+        case 45..<70: return .orange
+        default: return .red
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon).font(.system(size: 9)).foregroundColor(color)
+            Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(.gray)
+            Text("\(value)").font(.system(size: 9, weight: .bold)).foregroundColor(pillColor)
+        }
+        .padding(.horizontal, 7).padding(.vertical, 4)
+        .background(color.opacity(0.08))
+        .cornerRadius(6)
+    }
+}
+
+// MARK: - PSS Trend Chart
+
+struct PSSTrendChart: View {
+    let records: [PSSRecord]  // filtered full records, most-recent first
+
+    // Reverse so oldest is left, newest is right
+    private var sorted: [PSSRecord] {
+        records.prefix(8).reversed().map { $0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("TENDANCE")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            Chart {
+                ForEach(sorted) { record in
+                    LineMark(
+                        x: .value("Date", record.date),
+                        y: .value("Score", record.score)
+                    )
+                    .foregroundStyle(Color.purple.opacity(0.7))
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+
+                    PointMark(
+                        x: .value("Date", record.date),
+                        y: .value("Score", record.score)
+                    )
+                    .foregroundStyle(record.categoryColor)
+                    .symbolSize(40)
+                }
+            }
+            .chartYScale(domain: 0...40)
+            .chartXAxis(.hidden)
+            .chartYAxis {
+                AxisMarks(values: [0, 13, 26, 40]) { value in
+                    AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                    AxisValueLabel()
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.gray)
+                }
+            }
+            .frame(height: 80)
+
+            // Zone labels
+            HStack {
+                Text("Faible ≤13").font(.system(size: 9)).foregroundColor(.green)
+                Spacer()
+                Text("Modéré ≤26").font(.system(size: 9)).foregroundColor(.orange)
+                Spacer()
+                Text("Élevé ≤40").font(.system(size: 9)).foregroundColor(.red)
+            }
+        }
+        .padding(14)
+        .glassCard(color: .purple, intensity: 0.04)
+        .cornerRadius(14)
     }
 }

@@ -1656,6 +1656,20 @@ struct MorningBriefCardView: View {
                     }
                 }
             }
+
+            // Lien vers la vue Stress détaillée
+            Divider().background(Color.white.opacity(0.06))
+            NavigationLink { PSSView() } label: {
+                HStack {
+                    Text("Voir le détail Stress")
+                        .font(.system(size: 12, weight: .medium)).foregroundColor(.gray)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10)).foregroundColor(.gray.opacity(0.5))
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+            }
+            .buttonStyle(.plain)
         }
         .padding(16)
         .background(accentColor.opacity(0.07))

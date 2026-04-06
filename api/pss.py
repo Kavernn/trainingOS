@@ -21,16 +21,16 @@ import db
 # ── Questions PSS-10 (version française validée) ──────────────────────────────
 
 PSS10_QUESTIONS = [
-    {"id": 1,  "text": "À quelle fréquence avez-vous été contrarié(e) parce qu'un événement inattendu s'est produit ?",                        "positive": False},
-    {"id": 2,  "text": "À quelle fréquence avez-vous eu l'impression de ne pas pouvoir contrôler les choses importantes de votre vie ?",        "positive": False},
-    {"id": 3,  "text": "À quelle fréquence vous êtes-vous senti(e) nerveux(se) et stressé(e) ?",                                               "positive": False},
-    {"id": 4,  "text": "À quelle fréquence avez-vous eu l'impression de bien gérer les choses importantes de votre vie ?",                      "positive": True},
-    {"id": 5,  "text": "À quelle fréquence avez-vous eu l'impression de ne pas arriver à bout de ce que vous deviez faire ?",                   "positive": False},
-    {"id": 6,  "text": "À quelle fréquence avez-vous pu faire face efficacement aux difficultés ?",                                             "positive": True},
-    {"id": 7,  "text": "À quelle fréquence avez-vous eu l'impression que tout était sous contrôle ?",                                           "positive": True},
-    {"id": 8,  "text": "À quelle fréquence vous êtes-vous senti(e) énervé(e) au point de ne pas pouvoir vous contrôler ?",                      "positive": False},
-    {"id": 9,  "text": "À quelle fréquence avez-vous eu l'impression d'être au sommet de vos capacités ?",                                      "positive": True},
-    {"id": 10, "text": "À quelle fréquence avez-vous eu l'impression que les difficultés s'accumulaient au point de ne plus pouvoir les surmonter ?", "positive": False},
+    {"id": 1,  "text": "Ce mois-ci, un événement inattendu t'a souvent pris de court ?",                        "positive": False},
+    {"id": 2,  "text": "T'es-tu souvent senti(e) hors de contrôle de ta vie ?",                                 "positive": False},
+    {"id": 3,  "text": "T'es-tu souvent senti(e) nerveux(se) ou stressé(e) ?",                                  "positive": False},
+    {"id": 4,  "text": "T'as souvent eu l'impression de bien gérer les choses importantes ?",                   "positive": True},
+    {"id": 5,  "text": "T'es-tu souvent senti(e) débordé(e) par tout ce que tu devais faire ?",                "positive": False},
+    {"id": 6,  "text": "T'as souvent réussi à faire face efficacement aux difficultés ?",                       "positive": True},
+    {"id": 7,  "text": "T'as souvent eu l'impression d'avoir les choses sous contrôle ?",                       "positive": True},
+    {"id": 8,  "text": "T'es-tu souvent senti(e) tellement à bout de nerfs que tu ne te contrôlais plus ?",    "positive": False},
+    {"id": 9,  "text": "T'as souvent eu l'impression d'être au sommet de ta forme ?",                          "positive": True},
+    {"id": 10, "text": "T'as souvent eu l'impression que les difficultés s'accumulaient trop pour t'en sortir ?", "positive": False},
 ]
 
 # Indices 0-based des items positifs dans PSS-10 (inversés au scoring)

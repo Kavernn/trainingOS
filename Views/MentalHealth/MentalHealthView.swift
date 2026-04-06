@@ -5,6 +5,7 @@ struct MentalHealthView: View {
     @State private var summary: MentalHealthSummary?
     @State private var isLoading = true
     @State private var showMoodSheet = false
+    @AppStorage("mh_disclaimer_dismissed") private var disclaimerDismissed = false
 
     var body: some View {
         NavigationStack {
@@ -15,8 +16,10 @@ struct MentalHealthView: View {
                     VStack(spacing: 18) {
 
                         // Avertissement médical
-                        DisclaimerBanner()
-                            .appearAnimation(delay: 0)
+                        if !disclaimerDismissed {
+                            DisclaimerBanner(onDismiss: { disclaimerDismissed = true })
+                                .appearAnimation(delay: 0)
+                        }
 
                         // Nudge mood si non loggué
                         if moodDue?.isDue == true {
@@ -41,6 +44,26 @@ struct MentalHealthView: View {
                         }
                         .padding(.horizontal)
                         .appearAnimation(delay: 0.06)
+
+                        // Stress card full-width
+                        NavigationLink { PSSView() } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "brain.head.profile")
+                                    .font(.title2).foregroundColor(.purple)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Stress")
+                                        .font(.headline).foregroundColor(.white)
+                                    Text(stressSubtitle)
+                                        .font(.caption).foregroundColor(.white.opacity(0.6))
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right").foregroundColor(.white.opacity(0.4))
+                            }
+                            .padding(14)
+                            .glassCardAccent(.purple)
+                            .padding(.horizontal)
+                        }
+                        .appearAnimation(delay: 0.075)
 
                         // Dashboard résumé
                         NavigationLink { MentalHealthDashboardView() } label: {
@@ -127,18 +150,29 @@ struct MentalHealthView: View {
         }
         return "Habitudes"
     }
+
+    private var stressSubtitle: String {
+        if let score = summary?.pssScore, let cat = summary?.pssCategory {
+            let label = cat == "low" ? "Stress faible" : cat == "moderate" ? "Stress modéré" : "Stress élevé"
+            return "Dernier PSS : \(score)/40 · \(label)"
+        }
+        return "Bilan mensuel + score automatique"
+    }
 }
 
 // MARK: - Composants
 
 private struct DisclaimerBanner: View {
+    let onDismiss: () -> Void
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "info.circle.fill")
-                .foregroundColor(.blue)
+            Image(systemName: "info.circle.fill").foregroundColor(.blue)
             Text("Cette section est un outil d'auto-suivi. Elle ne remplace pas un professionnel de santé mentale.")
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.7))
+                .font(.caption).foregroundColor(.white.opacity(0.7))
+            Spacer()
+            Button(action: onDismiss) {
+                Image(systemName: "xmark").font(.system(size: 11, weight: .medium)).foregroundColor(.gray)
+            }
         }
         .padding(12)
         .glassCard(color: .blue, intensity: 0.06)
