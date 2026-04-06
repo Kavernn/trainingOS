@@ -1161,15 +1161,33 @@ struct WorkoutSeanceView: View {
             .presentationDragIndicator(.visible)
         }
         .onAppear {
-            // Ask energy level once per day before the workout starts
-            if energyPreDate != data.todayDate {
+            Task { await loadInventory() }
+            computeGhost()
+            let energyWillShow = energyPreDate != data.todayDate
+            if energyWillShow {
+                // Energy sheet takes the presentation slot — progression check
+                // is deferred to onChange(showEnergyPreSheet) to avoid collision.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                     showEnergyPreSheet = true
                 }
+            } else {
+                // No energy sheet: run pre-coaching check immediately.
+                guard !didLoadPreCoaching else { return }
+                didLoadPreCoaching = true
+                Task {
+                    let sType = isSecondSession ? "evening" : "morning"
+                    if let sug = try? await APIService.shared.fetchProgressionSuggestions(
+                        date: data.todayDate, sessionType: sType, sessionName: data.today
+                    ), !sug.filter({ $0.suggestionType != "maintain" }).isEmpty {
+                        progressionSuggestions = sug
+                        showProgressionSheet = true
+                    }
+                }
             }
-            Task { await loadInventory() }
-            computeGhost()
-            guard !didLoadPreCoaching else { return }
+        }
+        // When energy sheet is dismissed, run the pre-coaching check that was deferred.
+        .onChange(of: showEnergyPreSheet) { isShowing in
+            guard !isShowing, !didLoadPreCoaching else { return }
             didLoadPreCoaching = true
             Task {
                 let sType = isSecondSession ? "evening" : "morning"

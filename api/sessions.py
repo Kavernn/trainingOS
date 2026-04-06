@@ -90,6 +90,7 @@ def log_session(
                 comment=comment,
                 duration_min=duration_min,
                 energy_pre=energy_pre,
+                session_name=session_name,
             )
     except Exception as e:
         logger.error("log_session failed for %s: %s", date, e)

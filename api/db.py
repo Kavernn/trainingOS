@@ -459,6 +459,7 @@ def create_workout_session(
     energy_pre=None,
     is_second: bool = False,
     session_type: str = "morning",
+    session_name: str | None = None,
 ) -> dict:
     """Insert a new workout session row. Returns the created record."""
     payload: dict = {"date": date, "is_second": is_second, "session_type": session_type}
@@ -470,6 +471,8 @@ def create_workout_session(
         payload["duration_min"] = int(duration_min)
     if energy_pre is not None:
         payload["energy_pre"] = int(energy_pre)
+    if session_name is not None:
+        payload["session_name"] = session_name
 
     if _client is None or MODE == "OFFLINE":
         return {}

@@ -889,6 +889,40 @@ def api_morning_schedule():
     return jsonify({"success": ok})
 
 
+@workout_bp.route("/api/progression_suggestions")
+def api_progression_suggestions():
+    """Return per-exercise progression suggestions for a given session.
+
+    Query params:
+        date          – ISO date (defaults to today MTL)
+        session_type  – "morning" | "evening"  (default "morning")
+        session_name  – e.g. "Push A" (optional, improves matching)
+    Response: {"suggestions": [...]}  — shape matches ProgressionSuggestionsResponse on iOS.
+    """
+    import smart_progression as _sp
+    from utils import _today_mtl
+    from planner import load_program
+
+    date         = request.args.get("date") or _today_mtl()
+    session_type = request.args.get("session_type", "morning")
+    session_name = request.args.get("session_name", "")
+
+    # Resolve exercise list for this session (improves session matching in _sp)
+    try:
+        program   = load_program()
+        exercises = list(program.get(session_name, {}).keys()) if session_name else []
+    except Exception:
+        exercises = []
+
+    suggestions = _sp.generate_suggestions(
+        session_date=date,
+        session_type=session_type,
+        session_name=session_name,
+        session_exercises=exercises,
+    )
+    return jsonify({"suggestions": suggestions})
+
+
 @workout_bp.route("/api/hiit_data")
 def api_hiit_data():
     from utils import load_hiit_log_local

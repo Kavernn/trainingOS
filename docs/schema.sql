@@ -106,6 +106,7 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
     comment         TEXT,
     duration_min    INT,
     energy_pre      INT         CHECK (energy_pre BETWEEN 1 AND 10),
+    session_name    TEXT,                          -- e.g. "Push A", "Pull B", "Recovery"
     is_second       BOOLEAN     DEFAULT FALSE,
     session_type    TEXT        NOT NULL DEFAULT 'morning',
     logged_at       TIMESTAMPTZ DEFAULT NOW(),
