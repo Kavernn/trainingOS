@@ -129,7 +129,7 @@
 
 ### 🔴 Critique
 
-- [ ] **#A1 — Zéro authentification API** : 124 routes Flask accessibles sans token. N'importe qui connaissant l'URL Vercel peut lire/écrire/supprimer toutes les données. **Fix** : API key statique en header `Authorization: Bearer <token>` côté Flask (middleware) + `xcconfig` côté iOS. 1 journée de travail.
+- [x] **#A1 — Zéro authentification API** : `before_request` Flask + `URLSession.authed` iOS. 34 call sites couverts. Clé deployée sur Vercel. (2026-04-06)
 
 - [x] **#A2 — `index.py` fichier dieu (3 060 lignes)** : splitté en 8 Flask Blueprints (`api/routes/`) + `api/utils.py` helpers partagés. `index.py` → ~100 lignes d'app factory. (2026-04-06)
 
