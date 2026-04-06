@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-06 (workout UX + régression B1–B4)
+Dernière mise à jour : 2026-04-06 (audit complet — A1–A20 + smart goals + docs + UITests)
 
 ---
 
@@ -83,12 +83,11 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - CRUD objectifs exercice avec deadline
 - Animation achievement (sparkles + scale spring)
 - Notifications locales J-7 et J-1 avant deadline
-- **Smart Goals** (2026-04-05) : 7 objectifs calculés automatiquement (% masse grasse, masse maigre, tour de taille, volume hebdo, séances/semaine, protéines/jour, streak nutrition)
+- **Smart Goals** (2026-04-05) : 12 types total
+  - Types originaux : body_fat, lean_mass, waist_cm, weekly_volume, training_frequency, protein_daily, nutrition_streak
+  - **Types avancés** (2026-04-06) : estimated_1rm (1RM estimé meilleur exo), monthly_distance (cardio km), resting_hr (FC repos), pss_avg (stress PSS moyen), sleep_streak (streak sommeil)
   - Table Supabase `smart_goals` (id, type, target_value, initial_value, target_date, created_at)
-  - `GET /api/smart_goals` — calcule `current_value` + `progress` en temps réel
-  - `POST /api/smart_goals/save` — capture `initial_value` automatiquement à la création
-  - `POST /api/smart_goals/delete`
-  - iOS : section "SANTÉ & PERFORMANCE" dans ObjectifsView, `SmartGoalCard`, `AddGoalSheet` avec picker segmenté "Santé / Perf | Exercice"
+  - iOS : section "SANTÉ & PERFORMANCE" dans ObjectifsView, `SmartGoalCard`, `AddGoalSheet`
 
 ### Feedback proactif (`api/alerts.py` + `AlertService.swift`)
 - 5 détecteurs read-only : protéines basses 2j, calories insuffisantes 2j, aucun log après 18h, même groupe musculaire 2j consécutifs, RPE > 8.5 sur 3 séances
@@ -140,11 +139,22 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 ## En cours / Prochaines étapes
 
 1. **#A1 — Authentification API** : API key statique en header `Authorization: Bearer <token>` côté Flask + `xcconfig` côté iOS. Seul item critique restant.
-2. Tests E2E iOS (XCUITest flows critiques)
-3. Heatmap HIIT distinct de muscu dans StatsView
-4. Remplir le profil utilisateur (name, age, height, etc.)
-5. Configurer les cibles macro glucides/lipides dans NutritionView
-6. Smart Goals — prochains types : 1RM estimé, pace cardio, distance mensuelle, FC repos, PSS, streak sommeil
+2. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
+3. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
+
+## Complété récemment (2026-04-06 — Audit complet items restants)
+
+- **#A17** — `get_current_week()` lit `user_profile.created_at` depuis Supabase (fallback `2026-03-03`)
+- **#A18** — `#Preview` ajouté dans StatsView, DashboardView, NutritionView, ObjectifsView, ProfileView
+- **#A19** — `api/update_profile_photo` tente upload vers Supabase Storage (`profile-photos` bucket) → stocke `photo_url`. ProfileView utilise `AsyncImage`. Fallback base64 si bucket absent.
+- **#A20** — Rate limiting IA migré vers table Supabase `ai_rate_limit` (hour_key TEXT PK, count INT) — cross-worker safe, `threading.Lock` retiré
+- **Smart Goals types avancés** — 5 nouveaux types : `estimated_1rm`, `monthly_distance`, `resting_hr`, `pss_avg`, `sleep_streak` (backend `db.py` + iOS `SmartGoalOption`)
+- **Profile non rempli** — Banner orange dans `ProfileView` quand champs essentiels absents. Tap → `EditProfileSheet`.
+- **Nutrition macros** — Bouton "Calculer auto" dans `NutritionSettingsSheet` (split 30/45/25 P/G/L depuis kcal)
+- **API README** — `api/README.md` : ~60 endpoints documentés, 8 blueprints, méthodes/params/notes
+- **E2E UITests** — `TrainingOSUITests/TrainingOSUITests.swift` : 5 flows XCUITest (dashboard, log exo, finish session, nutrition, profil)
+- **Keyboard dismiss** — `scrollDismissesKeyboard(.interactively)` ajouté à `IntelligenceView` chat scroll
+- **Heatmap** — Confirmé déjà implémenté avec SessionHeatmapView (orange/bleu/violet)
 
 ## Complété récemment (2026-04-06 — Workout UX + tests de régression)
 
