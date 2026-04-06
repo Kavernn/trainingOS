@@ -53,30 +53,30 @@ struct NutritionView: View {
                             }
 
                             // Résumé calories + macros
-                            MacroSummaryCard(vm.totals: vm.totals, vm.settings: effectiveSettings)
+                            MacroSummaryCard(totals: vm.totals, settings: effectiveSettings)
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.1)
 
-                            DailyRemainingCard(vm.totals: vm.totals, vm.settings: effectiveSettings)
+                            DailyRemainingCard(totals: vm.totals, settings: effectiveSettings)
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.13)
 
                             // Historique protéines 7j
                             if !vm.history.isEmpty {
-                                WeeklyProteinChart(vm.history: vm.history, target: vm.settings?.proteines ?? 160)
+                                WeeklyProteinChart(history: vm.history, target: vm.settings?.proteines ?? 160)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.15)
                             }
 
                             // Historique calories 7j
                             if !vm.history.isEmpty {
-                                WeeklyCalorieChart(vm.history: vm.history, target: vm.settings?.calories)
+                                WeeklyCalorieChart(history: vm.history, target: vm.settings?.calories)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.2)
                             }
 
                             if !vm.history.isEmpty {
-                                AdherenceScoreCard(vm.history: vm.history, vm.settings: vm.settings)
+                                AdherenceScoreCard(history: vm.history, settings: vm.settings)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.22)
                             }
