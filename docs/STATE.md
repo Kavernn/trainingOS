@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-06 (audit complet — A1–A20 + smart goals + docs + UITests)
+Dernière mise à jour : 2026-04-06 (A1 auth + UX Dashboard + UX Nutrition)
 
 ---
 
@@ -138,9 +138,26 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 ## En cours / Prochaines étapes
 
-1. **#A1 — Authentification API** : API key statique en header `Authorization: Bearer <token>` côté Flask + `xcconfig` côté iOS. Seul item critique restant.
-2. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
-3. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
+1. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
+2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
+3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
+
+## Complété récemment (2026-04-06 — A1 auth + UX Dashboard + UX Nutrition)
+
+- **#A1 — Auth API** : `before_request` Flask vérifie `Authorization: Bearer <key>` sur les 124 routes (401 si absent). `URLSession.authed` côté iOS (extension dans `APIService.swift`) — 34 call sites couverts. Clé deployée sur Vercel.
+- **UX Dashboard** — 5 frictions fixées :
+  - `ReadinessStripView` (Whoop/Oura pattern) avant TodayCard
+  - `ChecklistCardView` déplacée en sheet derrière bouton checklist dans le header
+  - `MorningBriefCompactView` : toujours affiché (compact vert quand "go")
+  - `WeekProgressStripView` sous TodayCard
+  - `NutritionStripView` compact en position 4
+  - Header : "VINCE SEVEN" retiré, `S7` → `Sem. 7`
+- **UX Nutrition** — 5 frictions fixées :
+  - `GroupedEntryList` : aliments groupés par repas avec subtotals kcal+prot
+  - Journal en haut du scroll, graphes en bas
+  - `WeeklyNutritionChart` fusionné (Calories/Protéines toggle, barres tappables avec détail)
+  - Recherche texte dans `AddNutritionSheet` + "Manuel" visible dans header
+  - "Recalculer" toujours visible dans Settings (plus conditionnel)
 
 ## Complété récemment (2026-04-06 — Audit complet items restants)
 
