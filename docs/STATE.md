@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-06
+Dernière mise à jour : 2026-04-06 (audit A2–A16 complété)
 
 ---
 
@@ -111,7 +111,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 |---|---|---|
 | Double progression (reps → poids) | ✅ | `progression.py` |
 | RPE gradué (5 niveaux) | ✅ (2026-03-26) | `progression.py` |
-| RIR capture + API | ✅ (2026-03-26) | `index.py`, `SeanceView.swift` |
+| RIR capture + API | ✅ (2026-03-26) | `routes/workout.py`, `SeanceView.swift` |
 | Trend analysis 4 semaines | ✅ (2026-03-26) | `progression.py` |
 | Détection chute de performance (1RM) | ✅ (2026-03-26) | `deload.py` |
 | Détection stagnation | ✅ | `deload.py` |
@@ -139,13 +139,24 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 
 ## En cours / Prochaines étapes
 
-1. **Rebuild iOS Xcode** : compiler tous les changements 2026-04-06 (composants UI, timezone, cache fix)
-2. Tests E2E iOS (XCUITest flows critiques)
-3. Heatmap HIIT distinct de muscu dans StatsView
-4. Remplir le profil utilisateur (name, age, height, etc.)
-5. Configurer les cibles macro glucides/lipides dans NutritionView
-6. Smart Goals — prochains types : 1RM estimé, pace cardio, distance mensuelle, FC repos, PSS, streak sommeil
-7. `ErrorBannerView` à intégrer dans les views qui fetchent (actuellement créé mais non utilisé)
+1. **Rebuild iOS Xcode** : vérifier 0 erreurs de compilation après A2–A16
+2. **#A1 — Authentification API** : API key statique en header `Authorization: Bearer <token>` côté Flask + `xcconfig` côté iOS. Seul item critique restant.
+3. Tests E2E iOS (XCUITest flows critiques)
+4. Heatmap HIIT distinct de muscu dans StatsView
+5. Remplir le profil utilisateur (name, age, height, etc.)
+6. Configurer les cibles macro glucides/lipides dans NutritionView
+7. Smart Goals — prochains types : 1RM estimé, pace cardio, distance mensuelle, FC repos, PSS, streak sommeil
+
+## Complété récemment (2026-04-06 — Audit A2–A16)
+
+- **A2 — Flask Blueprints** : `index.py` 3 071 lignes → ~100 lignes d'app factory. 8 blueprints dans `api/routes/` (profile, nutrition, ai_coach, goals, analytics, workout, data_views, wellness) + `api/utils.py` (helpers partagés : timezone, rate limiter, muscle analytics).
+- **A4 — ExerciseViewModel** : extrait dans `Views/Seance/ExerciseViewModel.swift` (~880 lignes). `ExerciseCard` + `ExerciseLogResult` supprimés de `SeanceView.swift`.
+- **A5 — AppState** : `Services/AppState.swift` — singleton `@MainActor ObservableObject` avec `api`, `alerts`, `units`, `userProfile`, `todayStr`. Injecté via `.environmentObject` dans `TrainingOSApp`. Connecté à Dashboard, Nutrition, Objectifs, Recovery, Cardio.
+- **A8 — ErrorBannerView** : intégré dans DashboardView, NutritionView, ObjectifsView (via `networkError: String?` + retry handler).
+- **A12 — ViewModels** : `DashboardViewModel` + `NutritionViewModel` extraits. 9 `@State` retirés de DashboardView, 6 de NutritionView.
+- **A14 — Codable NutritionView** : `NutritionEntry`, `NutritionSettings`, `NutritionTotals`, `NutritionDayHistory` tous `Decodable`. `NutritionDataResponse` top-level. `AnyCodingKey` pour fallbacks de clés (nom/name, heure/time). JSONDecoder 3 lignes dans NutritionViewModel.
+- **A15 — Split APIModels.swift** : 1 252 lignes → 6 fichiers domaine (`WorkoutModels`, `NutritionModels`, `WellnessModels`, `GoalsModels`, `AnalyticsModels`, `ProfileModels`). `APIModels.swift` ne garde que `PagedResponse<T>` + `SafeString`.
+- **A16 — Annotations unités** : `-- unit: lbs` dans `docs/schema.sql`, `# unit: lbs (not kg)` dans `db.py` (`get_body_weight_logs`, `upsert_body_weight`).
 
 ## Complété récemment (2026-04-06)
 

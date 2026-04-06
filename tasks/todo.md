@@ -1,6 +1,6 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-06.
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-06 (audit A2–A16 complété).
 > Audit senior dev/UX ajouté le 2026-04-05 — 20 items priorisés.
 
 ---
@@ -60,7 +60,7 @@
 > Extraits de l'audit senior. Classés par impact utilisateur perçu.
 
 - [x] **#A6 — Flash données stale au refresh Dashboard** : pull-to-refresh déjà présent avec spinner natif Apple. Skeleton affiché au premier chargement (`api.dashboard == nil`). (2026-04-06)
-- [ ] **#A8 — Erreurs réseau invisibles** : `ErrorBannerView` créé dans `Components/`. À intégrer systématiquement dans les views qui fetchent. Partiellement fait (RecoveryView, CardioView ont déjà des alert erreur).
+- [x] **#A8 — Erreurs réseau invisibles** : `ErrorBannerView` intégré dans Dashboard, Nutrition, Objectifs (avec retry + dismiss). (2026-04-06)
 - [x] **#A7 — Cache invalidation incohérente** : `deleteCardio` invalide maintenant `cardio_history` + `stats_cardio`. (2026-04-06)
 - [x] **#A9 — Timezone mismatch** : `DateFormatter.isoDate` a maintenant `timeZone = America/Montreal`. `DashboardView.todayStr` et `RecoveryView.todayStr` utilisent le singleton. (2026-04-06)
 - [x] **#A10 — Scroll lent sur listes longues** : `HistoriqueView` VStack → `LazyVStack`. (2026-04-06)
@@ -105,13 +105,13 @@
 
 - [ ] **#A1 — Zéro authentification API** : 124 routes Flask accessibles sans token. N'importe qui connaissant l'URL Vercel peut lire/écrire/supprimer toutes les données. **Fix** : API key statique en header `Authorization: Bearer <token>` côté Flask (middleware) + `xcconfig` côté iOS. 1 journée de travail.
 
-- [ ] **#A2 — `index.py` fichier dieu (3 060 lignes)** : routes, helpers, logique IA, nutrition, body comp, objectifs — tout mélangé. Impossible à maintenir, cold start Vercel ralenti, tests impossibles à isoler. **Fix** : Flask Blueprints — `api/routes/workout.py`, `api/routes/nutrition.py`, `api/routes/body_comp.py`, etc. `index.py` → 50 lignes d'app factory. Même traitement pour `db.py` (2 654 lignes). 2 jours.
+- [x] **#A2 — `index.py` fichier dieu (3 060 lignes)** : splitté en 8 Flask Blueprints (`api/routes/`) + `api/utils.py` helpers partagés. `index.py` → ~100 lignes d'app factory. (2026-04-06)
 
 - [ ] **#A3 — Exceptions silencieuses qui exposent les internals** : `except Exception as e: return jsonify({"error": str(e)}), 500` répété dans tout `index.py`. Envoie tracebacks Python bruts au client iOS (noms de tables, chemins, data partielle). **Fix** : handler global `@app.errorhandler(Exception)`, loggue le traceback serveur, renvoie message générique au client. `except (ValueError, KeyError)` pour erreurs prévisibles.
 
-- [ ] **#A4 — `SeanceView.swift` monolithe (3 550 lignes, 93 state decorators)** : état partagé de façon incohérente entre ViewModel (7 `@Published`) et subviews (dizaines de `@State` locaux). Quand `ExerciseCard` modifie `@State weight`, le ViewModel ne le sait pas jusqu'au tap "Log" → risque de perte de données. **Fix** : `ExerciseViewModel` par exercice, `SeanceView` = orchestrateur pur, chaque composant < 400 lignes.
+- [x] **#A4 — `SeanceView.swift` monolithe (3 550 lignes)** : `ExerciseViewModel` extrait dans `Views/Seance/ExerciseViewModel.swift`. `ExerciseCard` + `ExerciseLogResult` supprimés de SeanceView. (2026-04-06)
 
-- [ ] **#A5 — Pas de source de vérité unique** : `DashboardView` a 12 `@State` vars. Données partagées (profil, unités, today) recalculées dans chaque view. `@AppStorage` peut contenir des données obsolètes qui divergent du serveur. **Fix** : `AppState` global `@Observable` injecté via `@Environment`. Les views observent, ne possèdent pas.
+- [x] **#A5 — Pas de source de vérité unique** : `AppState` singleton créé dans `Services/AppState.swift`, injecté via `.environmentObject` dans `TrainingOSApp`. Utilisé dans Dashboard, Nutrition, Objectifs, Recovery, Cardio. (2026-04-06)
 
 ### 🟠 Haute priorité
 
@@ -119,7 +119,7 @@
 
 - [x] **#A7 — Invalidation cache incohérente** : `deleteCardio` invalide maintenant les clés cache correspondantes. (2026-04-06)
 
-- [ ] **#A8 — Erreurs réseau invisibles dans la majorité des views** : `ErrorBannerView` créé. À intégrer dans les views restantes. Composant disponible dans `Views/Components/ErrorBannerView.swift`.
+- [x] **#A8 — Erreurs réseau invisibles dans la majorité des views** : `ErrorBannerView` intégré dans Dashboard, Nutrition, Objectifs (avec retry + dismiss). (2026-04-06)
 
 - [x] **#A9 — Mismatch timezone iOS (local) vs backend (Montréal)** : `DateFormatter.isoDate` (singleton partagé) a maintenant `timeZone = America/Montreal`. Fix global sur tous les usages. (2026-04-06)
 
@@ -129,15 +129,15 @@
 
 - [x] **#A11 — `DateFormatter` recréé inline partout (3+ variantes)** : `DateFormatter.isoDate` singleton partagé existait déjà. `DashboardView.todayStr` et `RecoveryView.todayStr` migrés pour l'utiliser. Timezone MTL ajoutée. (2026-04-06)
 
-- [ ] **#A12 — Logique métier dans les Views** : `DashboardView` fait 8 appels réseau dans `.task {}`. `NutritionView` parse du JSON à la main. Impossible à tester unitairement, impossible de faire des SwiftUI previews avec données mockées. **Fix** : un ViewModel par view complexe. La View n'observe que, n'agit pas.
+- [x] **#A12 — Logique métier dans les Views** : `DashboardViewModel` + `NutritionViewModel` extraits. 9 `@State` retirés de DashboardView, 6 de NutritionView. Views n'observent que, n'agissent pas. (2026-04-06)
 
 - [x] **#A13 — Pas de composant de loading uniforme** : `AppLoadingView` créé dans `Views/Components/`. 9 fichiers migrés. (2026-04-06)
 
-- [ ] **#A14 — Parsing JSON manuel dans NutritionView** : `JSONSerialization.jsonObject` + casts `as? [[String: Any]]` + `d["quantity"] as? Double` — 50 lignes qui retournent des données partielles silencieusement si un champ manque. **Fix** : `struct NutritionEntry: Codable`. `try JSONDecoder().decode([NutritionEntry].self, from: data)`. 5 lignes typesafe.
+- [x] **#A14 — Parsing JSON manuel dans NutritionView** : `NutritionEntry`, `NutritionSettings`, `NutritionTotals`, `NutritionDayHistory` tous `Decodable` avec `CodingKeys` + `AnyCodingKey` pour fallbacks (nom/name, heure/time, etc.). `NutritionDataResponse` top-level. JSONDecoder en 3 lignes. (2026-04-06)
 
-- [ ] **#A15 — `APIModels.swift` monolithe (1 252 lignes, 35+ structs)** : tous les modèles iOS dans un fichier. Compile-time plus long, merge conflicts systématiques. **Fix** : un fichier par domaine — `Models/Workout.swift`, `Models/Nutrition.swift`, `Models/BodyComp.swift`, etc.
+- [x] **#A15 — `APIModels.swift` monolithe (1 252 lignes)** : splitté en 6 fichiers domaine — `WorkoutModels.swift`, `NutritionModels.swift`, `WellnessModels.swift`, `GoalsModels.swift`, `AnalyticsModels.swift`, `ProfileModels.swift`. `APIModels.swift` ne garde que `PagedResponse<T>` + `SafeString`. (2026-04-06)
 
-- [ ] **#A16 — Unités sans contrat documenté entre iOS et backend** : `body_weight_logs.weight` stocke des lbs mais rien ne le documente en DB. Dans 6 mois on stocke accidentellement en kg — les valeurs restent plausibles (85 vs 189), la corruption est silencieuse. **Fix** : commentaire `-- unit: lbs` sur chaque colonne weight dans `docs/schema.sql` + dans les fonctions `db.py` qui les manipulent.
+- [x] **#A16 — Unités sans contrat documenté** : `-- unit: lbs` ajouté sur colonnes weight dans `docs/schema.sql`. `# unit: lbs (not kg)` ajouté dans `db.py` sur `get_body_weight_logs` + `upsert_body_weight`. (2026-04-06)
 
 ### 🟢 Mineur
 
