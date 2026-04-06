@@ -3,11 +3,13 @@ import Combine
 import UserNotifications
 
 // MARK: - Authenticated URLSession
+private let _trainingOSApiKey = "581aa10a0002c21d32a1a0eb68cfaef8d3fbd4b0ef403354bde56121f300f7b9"
+
 extension URLSession {
     /// Injects Authorization header on every request. Use instead of URLSession.shared.
     static let authed: URLSession = {
         let config = URLSessionConfiguration.default
-        config.httpAdditionalHeaders = ["Authorization": "Bearer \(APIConfig.apiKey)"]
+        config.httpAdditionalHeaders = ["Authorization": "Bearer \(_trainingOSApiKey)"]
         config.timeoutIntervalForRequest = 15
         return URLSession(configuration: config)
     }()
