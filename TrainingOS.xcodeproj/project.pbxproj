@@ -813,9 +813,11 @@
 				INFOPLIST_FILE = TrainingOSUITests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kavernntrainingos.app.TrainingOSUITests;
+				PRODUCT_NAME = TrainingOSUITests;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "";
+				TEST_TARGET_NAME = TrainingOS;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -1076,9 +1078,11 @@
 				INFOPLIST_FILE = TrainingOSUITests/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.kavernntrainingos.app.TrainingOSUITests;
+				PRODUCT_NAME = TrainingOSUITests;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "";
+				TEST_TARGET_NAME = TrainingOS;
 			};
 			name = Debug;
 		};

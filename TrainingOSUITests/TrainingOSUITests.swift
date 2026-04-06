@@ -24,6 +24,7 @@ final class TrainingOSUITests: XCTestCase {
     func testLogExerciseSet() throws {
         // Navigate to Séance tab
         let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.waitForExistence(timeout: 15), "Tab bar did not appear")
         tabs.buttons["Séance"].tap()
 
         // Wait for content to load
@@ -51,6 +52,7 @@ final class TrainingOSUITests: XCTestCase {
 
     func testFinishSession() throws {
         let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.waitForExistence(timeout: 15), "Tab bar did not appear")
         tabs.buttons["Séance"].tap()
 
         // Wait for session to load
@@ -73,6 +75,7 @@ final class TrainingOSUITests: XCTestCase {
 
     func testDashboardLoads() throws {
         let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.waitForExistence(timeout: 15), "Tab bar did not appear")
         tabs.buttons["Dashboard"].tap()
 
         // Expect no error banner
@@ -90,6 +93,7 @@ final class TrainingOSUITests: XCTestCase {
 
     func testNutritionAddAndDelete() throws {
         let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.waitForExistence(timeout: 15), "Tab bar did not appear")
         tabs.buttons["Nutrition"].tap()
 
         // Tap "+" to add entry
@@ -126,6 +130,7 @@ final class TrainingOSUITests: XCTestCase {
 
     func testProfileIncompleteBannerVisible() throws {
         let tabs = app.tabBars.firstMatch
+        XCTAssertTrue(tabs.waitForExistence(timeout: 15), "Tab bar did not appear")
         tabs.buttons.matching(NSPredicate(format: "label CONTAINS 'Profil'")).firstMatch.tap()
 
         // If profile is incomplete the banner should show
