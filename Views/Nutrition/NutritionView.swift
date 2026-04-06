@@ -38,41 +38,40 @@ struct NutritionView: View {
                                     onDismiss: { vm.networkError = nil })
                                     .padding(.horizontal, 16)
                             }
-                            // Hero protéines
-                            ProteinProgressCard(
-                                current: vm.totals?.proteines ?? 0,
-                                target: vm.settings?.proteines ?? 160
-                            )
-                            .padding(.horizontal, 16)
-                            .appearAnimation(delay: 0.05)
+
+                            // Hero calories + macros
+                            MacroSummaryCard(totals: vm.totals, settings: effectiveSettings)
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.05)
+
+                            DailyRemainingCard(totals: vm.totals, settings: effectiveSettings)
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.08)
 
                             if workoutBonusActive {
                                 WorkoutBonusBadge()
                                     .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.08)
+                                    .appearAnimation(delay: 0.1)
                             }
 
-                            // Résumé calories + macros
-                            MacroSummaryCard(totals: vm.totals, settings: effectiveSettings)
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.1)
+                            // Entrées du jour groupées
+                            GroupedEntryList(
+                                entries: vm.entries,
+                                onEdit: { editTarget = $0 },
+                                onDelete: { entry in Task { await vm.deleteEntry(entry); toast = ToastMessage(message: "Aliment supprimé", style: .success) } }
+                            )
+                            .padding(.horizontal, 16)
+                            .appearAnimation(delay: 0.15)
 
-                            DailyRemainingCard(totals: vm.totals, settings: effectiveSettings)
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.13)
-
-                            // Historique protéines 7j
+                            // Historique 7j (calories + protéines)
                             if !vm.history.isEmpty {
-                                WeeklyProteinChart(history: vm.history, target: vm.settings?.proteines ?? 160)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.15)
-                            }
-
-                            // Historique calories 7j
-                            if !vm.history.isEmpty {
-                                WeeklyCalorieChart(history: vm.history, target: vm.settings?.calories)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.2)
+                                WeeklyNutritionChart(
+                                    history: vm.history,
+                                    protTarget: vm.settings?.proteines ?? 160,
+                                    calTarget: vm.settings?.calories
+                                )
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.2)
                             }
 
                             if !vm.history.isEmpty {
@@ -80,30 +79,6 @@ struct NutritionView: View {
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.22)
                             }
-
-                            // Entrées du jour
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("AUJOURD'HUI")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .tracking(2)
-                                    .foregroundColor(.gray)
-                                    .padding(.horizontal, 16)
-
-                                if vm.entries.isEmpty {
-                                    EmptyStateView(icon: "fork.knife", title: "Aucun aliment enregistré")
-                                        .padding(.horizontal, 16)
-                                } else {
-                                    ForEach(vm.entries) { entry in
-                                        NutritionEntryRow(
-                                            entry: entry,
-                                            onEdit: { editTarget = entry },
-                                            onDelete: { Task { await vm.deleteEntry(entry); toast = ToastMessage(message: "Aliment supprimé", style: .success) } }
-                                        )
-                                        .padding(.horizontal, 16)
-                                    }
-                                }
-                            }
-                            .appearAnimation(delay: 0.25)
 
                             Spacer(minLength: 80)
                         }
@@ -371,6 +346,145 @@ struct WeeklyCalorieChart: View {
     }
 }
 
+// MARK: - Weekly Nutrition Chart (merged, tappable)
+struct WeeklyNutritionChart: View {
+    let history: [NutritionDayHistory]
+    let protTarget: Double
+    let calTarget: Double?
+
+    enum Metric: String, CaseIterable {
+        case calories = "Calories"
+        case proteines = "Protéines"
+    }
+
+    @State private var metric: Metric = .calories
+    @State private var selectedDay: NutritionDayHistory? = nil
+
+    private var maxValue: Double {
+        switch metric {
+        case .calories:  return max(history.map(\.calories).max() ?? 0, calTarget ?? 0, 1)
+        case .proteines: return max(history.map(\.proteines).max() ?? 0, protTarget, 1)
+        }
+    }
+
+    private var target: Double? {
+        switch metric {
+        case .calories:  return calTarget
+        case .proteines: return protTarget
+        }
+    }
+
+    private var accentColor: Color { metric == .calories ? .orange : .blue }
+
+    private func value(for day: NutritionDayHistory) -> Double {
+        metric == .calories ? day.calories : day.proteines
+    }
+
+    private func shortDay(_ date: String) -> String {
+        let f = DateFormatter(); f.locale = Locale(identifier: "fr_CA"); f.dateFormat = "yyyy-MM-dd"
+        if let d = f.date(from: date) { f.dateFormat = "EEE"; return f.string(from: d).prefix(2).uppercased() }
+        return date
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("7 DERNIERS JOURS")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                Picker("", selection: $metric) {
+                    ForEach(Metric.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 180)
+            }
+
+            HStack(alignment: .bottom, spacing: 6) {
+                ForEach(history) { day in
+                    let pct = value(for: day) / maxValue
+                    let isToday = day.date == DateFormatter.isoDate.string(from: Date())
+                    let isSelected = selectedDay?.date == day.date
+                    VStack(spacing: 4) {
+                        GeometryReader { geo in
+                            VStack(spacing: 0) {
+                                Spacer()
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(isSelected ? accentColor : (isToday ? accentColor : accentColor.opacity(0.35)))
+                                    .frame(height: max(geo.size.height * pct, 4))
+                                    .overlay(
+                                        isSelected ? RoundedRectangle(cornerRadius: 4).stroke(Color.white.opacity(0.4), lineWidth: 1.5) : nil
+                                    )
+                            }
+                        }
+                        .frame(height: 60)
+                        Text(shortDay(day.date))
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(isToday ? .white : .gray)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedDay = selectedDay?.date == day.date ? nil : day
+                        }
+                    }
+                }
+            }
+
+            // Tapped day detail
+            if let day = selectedDay {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(day.date)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Text("\(Int(day.calories)) kcal · \(Int(day.proteines))g prot")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
+                    if let t = target {
+                        let v = value(for: day)
+                        let pct = v / t
+                        let ok = metric == .calories ? v <= t * 1.1 : v >= t * 0.9
+                        Label(ok ? "Dans l'objectif" : "Hors objectif",
+                              systemImage: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(ok ? .green : .red)
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Capsule().fill(Color.white.opacity(0.06)).frame(height: 4)
+                                Capsule()
+                                    .fill(ok ? Color.green : Color.red)
+                                    .frame(width: max(4, geo.size.width * min(pct, 1.0)), height: 4)
+                            }
+                        }
+                        .frame(height: 4)
+                    }
+                }
+                .padding(10)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+
+            if let t = target {
+                HStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 2).fill(accentColor.opacity(0.3)).frame(width: 20, height: 2)
+                    Text("Objectif \(Int(t))\(metric == .calories ? " kcal" : "g prot")")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
 // MARK: - Macro Summary Card
 
 struct MacroSummaryCard: View {
@@ -481,6 +595,93 @@ struct MacroBar: View {
     }
 }
 
+// MARK: - Grouped Entry List
+struct GroupedEntryList: View {
+    let entries: [NutritionEntry]
+    let onEdit: (NutritionEntry) -> Void
+    let onDelete: (NutritionEntry) -> Void
+
+    private let mealOrder = ["matin", "midi", "soir", "collation"]
+    private let mealLabels: [String: String] = [
+        "matin": "Matin", "midi": "Midi", "soir": "Soir", "collation": "Collation"
+    ]
+    private let mealIcons: [String: String] = [
+        "matin": "sunrise.fill", "midi": "sun.max.fill", "soir": "moon.fill", "collation": "leaf.fill"
+    ]
+    private let mealColors: [String: Color] = [
+        "matin": .yellow, "midi": .orange, "soir": .purple, "collation": .green
+    ]
+
+    private var grouped: [(key: String, items: [NutritionEntry])] {
+        var dict: [String: [NutritionEntry]] = [:]
+        for e in entries { dict[e.mealType ?? "collation", default: []].append(e) }
+        return mealOrder.compactMap { key in
+            guard let items = dict[key], !items.isEmpty else { return nil }
+            return (key: key, items: items)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("AUJOURD'HUI")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                Text("\(entries.count) aliment\(entries.count != 1 ? "s" : "")")
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+            }
+
+            if entries.isEmpty {
+                EmptyStateView(icon: "fork.knife", title: "Aucun aliment enregistré")
+            } else {
+                ForEach(grouped, id: \.key) { group in
+                    let totalKcal = group.items.compactMap(\.calories).reduce(0, +)
+                    let totalProt = group.items.compactMap(\.proteines).reduce(0, +)
+                    let color = mealColors[group.key] ?? .gray
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Section header with subtotal
+                        HStack(spacing: 8) {
+                            Image(systemName: mealIcons[group.key] ?? "fork.knife")
+                                .font(.system(size: 11))
+                                .foregroundColor(color)
+                            Text(mealLabels[group.key] ?? group.key.capitalized)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(color)
+                            Spacer()
+                            Text("\(Int(totalKcal)) kcal")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.orange)
+                            Text("·")
+                                .foregroundColor(.gray)
+                                .font(.system(size: 11))
+                            Text("\(Int(totalProt))g prot")
+                                .font(.system(size: 11))
+                                .foregroundColor(.blue)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(color.opacity(0.07))
+
+                        ForEach(group.items) { entry in
+                            NutritionEntryRow(
+                                entry: entry,
+                                onEdit: { onEdit(entry) },
+                                onDelete: { onDelete(entry) }
+                            )
+                        }
+                    }
+                    .background(Color(hex: "11111c"))
+                    .cornerRadius(10)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Entry Row
 
 struct NutritionEntryRow: View {
@@ -572,6 +773,11 @@ struct AddNutritionSheet: View {
     @State private var manualMode = false
     @State private var showCatalog = false
     @State private var isSaving = false
+    @State private var searchText = ""
+
+    private var filteredCatalog: [FoodItem] {
+        searchText.isEmpty ? catalog : catalog.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
 
     @State private var mealType: String = {
         let h = Calendar.current.component(.hour, from: Date())
@@ -628,6 +834,13 @@ struct AddNutritionSheet: View {
                         Section(header: HStack {
                             Text("CATALOGUE")
                             Spacer()
+                            Button { withAnimation { manualMode = true } } label: {
+                                Label("Manuel", systemImage: "pencil")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.gray)
+                            }
+                            .buttonStyle(.plain)
+                            .textCase(nil)
                             Button {
                                 showCatalog = true
                             } label: {
@@ -638,9 +851,18 @@ struct AddNutritionSheet: View {
                             .buttonStyle(.plain)
                             .textCase(nil)
                         }) {
+                            TextField("Rechercher…", text: $searchText)
+                                .font(.system(size: 14))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 6)
+                                .background(Color.white.opacity(0.06))
+                                .cornerRadius(8)
+                                .listRowBackground(Color(hex: "11111c"))
+
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    ForEach(catalog) { item in
+                                    ForEach(filteredCatalog) { item in
                                         let isSel = selected?.id == item.id
                                         Button {
                                             withAnimation(.easeInOut(duration: 0.2)) {
@@ -696,19 +918,6 @@ struct AddNutritionSheet: View {
                                 .padding(.vertical, 8)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
-                        }
-                        .listRowBackground(Color(hex: "11111c"))
-
-                        // ── Switch mode manuel ─────────────────────────
-                        Section {
-                            Button {
-                                withAnimation { manualMode = true }
-                            } label: {
-                                Label("Entrée manuelle", systemImage: "pencil")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.gray)
-                            }
-                            .buttonStyle(.plain)
                         }
                         .listRowBackground(Color(hex: "11111c"))
 
@@ -1113,14 +1322,12 @@ struct NutritionSettingsSheet: View {
                             TextField("65", text: $lipides).keyboardType(.numberPad).foregroundColor(.white)
                             Text("g lipides").foregroundColor(.pink).font(.system(size: 13))
                         }
-                        if (Int(glucides) ?? 0) == 0 || (Int(lipides) ?? 0) == 0,
-                           let kcal = Double(calories) {
-                            Button(action: { autoFillMacros(kcal: kcal) }) {
-                                Label("Calculer auto (prot 30 / glucides 45 / lip 25)", systemImage: "wand.and.stars")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.orange)
-                            }
+                        Button(action: { if let kcal = Double(calories) { autoFillMacros(kcal: kcal) } }) {
+                            Label("Recalculer (30% prot · 45% glucides · 25% lip)", systemImage: "wand.and.stars")
+                                .font(.system(size: 12))
+                                .foregroundColor(Double(calories) != nil ? .orange : .gray)
                         }
+                        .disabled(Double(calories) == nil)
                     } header: {
                         Text("OBJECTIFS MACROS (g / jour)")
                     }
