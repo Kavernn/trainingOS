@@ -234,7 +234,7 @@ struct DashboardView: View {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body: [String: Any] = ["poids_deload": report.poidsDeload]
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "seance_data")
         CacheService.shared.clear(for: "dashboard")
         await api.fetchDashboard()

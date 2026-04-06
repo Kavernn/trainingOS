@@ -675,7 +675,7 @@ struct StatsView: View {
         var req = URLRequest(url: URL(string: "\(APIService.shared.baseURL)/api/stats_data")!)
         req.timeoutInterval = 15
         async let acwrTask = APIService.shared.fetchACWR()
-        if let (data, _) = try? await URLSession.shared.data(for: req),
+        if let (data, _) = try? await URLSession.authed.data(for: req),
            let decoded = try? JSONDecoder().decode(StatsAPIResponse.self, from: data) {
             CacheService.shared.save(data, for: "stats_data")
             applyStats(decoded)

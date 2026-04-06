@@ -1080,7 +1080,7 @@ struct EditNutritionSheet: View {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         await onSaved()
         isSaving = false
         dismiss()

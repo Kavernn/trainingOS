@@ -444,7 +444,7 @@ struct IntelligenceView: View {
                     "context":  context,
                     "messages": history
                 ])
-                let (data, _) = try await URLSession.shared.data(for: req)
+                let (data, _) = try await URLSession.authed.data(for: req)
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                     let reply = json["response"] as? String ?? json["error"] as? String ?? "Erreur inconnue"
                     await MainActor.run {
@@ -520,7 +520,7 @@ struct IntelligenceView: View {
                 req.httpMethod = "POST"
                 req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 req.httpBody = try JSONSerialization.data(withJSONObject: ["context": context])
-                let (data, _) = try await URLSession.shared.data(for: req)
+                let (data, _) = try await URLSession.authed.data(for: req)
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let raw = json["proposals"] as? [[String: Any]] {
                     let parsed = raw.compactMap { d -> AIProposal? in

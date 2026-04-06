@@ -220,7 +220,7 @@ struct InventaireView: View {
     private func loadData() async {
         isLoading = true
         let url = URL(string: "\(kBaseURL)/api/inventaire_data")!
-        if let (data, _) = try? await URLSession.shared.data(from: url),
+        if let (data, _) = try? await URLSession.authed.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let inv  = json["inventory"] as? [String: [String: Any]] {
             let loaded   = inv.map { InventoryItem(name: $0.key, $0.value) }
@@ -253,7 +253,7 @@ struct InventaireView: View {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "inventaire_data")
         CacheService.shared.clear(for: "programme_data")
         await loadData()
@@ -265,7 +265,7 @@ struct InventaireView: View {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["name": name])
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         await MainActor.run { items.removeAll { $0.name == name } }
         CacheService.shared.clear(for: "inventaire_data")
         CacheService.shared.clear(for: "programme_data")

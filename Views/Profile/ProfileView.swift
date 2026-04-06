@@ -286,7 +286,7 @@ struct ProfileView: View {
         isExporting = true
         defer { isExporting = false }
         guard let url = URL(string: "https://training-os-rho.vercel.app/api/export_data"),
-              let (data, _) = try? await URLSession.shared.data(from: url) else { return }
+              let (data, _) = try? await URLSession.authed.data(from: url) else { return }
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("trainingos_export_\(DateFormatter.isoDate.string(from: Date())).json")
         try? data.write(to: tmp)
@@ -332,7 +332,7 @@ struct ProfileView: View {
             req.httpMethod = "POST"
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = try JSONSerialization.data(withJSONObject: ["photo_b64": b64])
-            let (_, _) = try await URLSession.shared.data(for: req)
+            let (_, _) = try await URLSession.authed.data(for: req)
             profileImage = resized
             await api.fetchDashboard()
         } catch {}

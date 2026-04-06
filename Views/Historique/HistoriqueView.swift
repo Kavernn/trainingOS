@@ -199,7 +199,7 @@ struct HistoriqueView: View {
         if let m = monthFilter { urlStr += "&month=\(m)" }
         var req = URLRequest(url: URL(string: urlStr)!)
         req.timeoutInterval = 15
-        if let (data, _) = try? await URLSession.shared.data(for: req),
+        if let (data, _) = try? await URLSession.authed.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             if monthFilter == nil { CacheService.shared.save(data, for: "historique_data") }
             applyJSON(json, append: false)
@@ -215,7 +215,7 @@ struct HistoriqueView: View {
         let urlStr = "https://training-os-rho.vercel.app/api/historique_data?limit=\(pageSize)&offset=\(newOffset)"
         var req = URLRequest(url: URL(string: urlStr)!)
         req.timeoutInterval = 15
-        if let (data, _) = try? await URLSession.shared.data(for: req),
+        if let (data, _) = try? await URLSession.authed.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             applyJSON(json, append: true)
             hasMore = json["has_more"] as? Bool ?? false

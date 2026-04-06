@@ -18,7 +18,7 @@ final class NutritionViewModel: ObservableObject {
         req.cachePolicy = .reloadIgnoringLocalCacheData
         req.timeoutInterval = 15
         do {
-            let (data, _) = try await URLSession.shared.data(for: req)
+            let (data, _) = try await URLSession.authed.data(for: req)
             let decoded   = try JSONDecoder().decode(NutritionDataResponse.self, from: data)
             settings = decoded.settings
             totals   = decoded.totals
@@ -38,7 +38,7 @@ final class NutritionViewModel: ObservableObject {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["id": eid])
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         await loadData(silent: true)
     }
 }

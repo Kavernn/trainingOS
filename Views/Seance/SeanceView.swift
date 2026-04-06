@@ -1247,7 +1247,7 @@ struct WorkoutSeanceView: View {
 
         // Fetch fresh programme + inventory types from network
         guard let url = URL(string: "\(APIService.shared.baseURL)/api/programme_data"),
-              let (networkData, _) = try? await URLSession.shared.data(from: url),
+              let (networkData, _) = try? await URLSession.authed.data(from: url),
               let json = try? JSONSerialization.jsonObject(with: networkData) as? [String: Any]
         else { return }
 
@@ -1277,7 +1277,7 @@ struct WorkoutSeanceView: View {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.httpBody = try? JSONSerialization.data(withJSONObject: body)
             do {
-                let (_, resp) = try await URLSession.shared.data(for: req)
+                let (_, resp) = try await URLSession.authed.data(for: req)
                 return (resp as? HTTPURLResponse)?.statusCode == 200
             } catch {
                 return false
@@ -2051,7 +2051,7 @@ struct AddHIITSheet: View {
                         "context": "Post-session analysis",
                         "messages": [["role": "user", "content": prompt]]
                     ])
-                    let (data, _) = try await URLSession.shared.data(for: req)
+                    let (data, _) = try await URLSession.authed.data(for: req)
                     if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                        let reply = json["response"] as? String {
                         await MainActor.run { aiAnalysis = reply; isLoadingAI = false }

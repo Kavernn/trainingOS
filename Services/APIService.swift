@@ -24,7 +24,7 @@ private func offlinePost(endpoint: String, payload: [String: Any]) async throws 
     req.httpBody = try JSONSerialization.data(withJSONObject: payload)
     req.timeoutInterval = 15
     do {
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await URLSession.authed.data(for: req)
         if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
             // Extract error message from response if available
             let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
@@ -61,7 +61,7 @@ class APIService: ObservableObject {
         req.timeoutInterval = 15
         req.cachePolicy = .reloadIgnoringLocalCacheData
         do {
-            let (data, _) = try await URLSession.shared.data(for: req)
+            let (data, _) = try await URLSession.authed.data(for: req)
             CacheService.shared.save(data, for: key)
             return data
         } catch {
@@ -87,7 +87,7 @@ class APIService: ObservableObject {
         do {
             let data: Data
             do {
-                let (d, _) = try await URLSession.shared.data(for: req)
+                let (d, _) = try await URLSession.authed.data(for: req)
                 CacheService.shared.save(d, for: "dashboard")
                 data = d
             } catch {
@@ -447,7 +447,7 @@ class APIService: ObservableObject {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["context": context, "week": weekKey])
-        let (data, _) = try await URLSession.shared.data(for: req)
+        let (data, _) = try await URLSession.authed.data(for: req)
         guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let narrative = json["narrative"] as? String else {
             throw URLError(.badServerResponse)
@@ -498,7 +498,7 @@ class APIService: ObservableObject {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = body
         req.timeoutInterval = 15
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "food_catalog")
     }
 
@@ -809,7 +809,7 @@ class APIService: ObservableObject {
     func fetchStatsData() async throws {
         let url = URL(string: "\(baseURL)/api/stats_data")!
         var req = URLRequest(url: url); req.timeoutInterval = 15
-        let (data, _) = try await URLSession.shared.data(for: req)
+        let (data, _) = try await URLSession.authed.data(for: req)
         CacheService.shared.save(data, for: "stats_data")
     }
 
@@ -836,7 +836,7 @@ class APIService: ObservableObject {
         let url = URL(string: urlStr)!
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
-        let (data, _) = try await URLSession.shared.data(for: req)
+        let (data, _) = try await URLSession.authed.data(for: req)
         let decoded = try JSONDecoder().decode(ProgressionSuggestionsResponse.self, from: data)
         return decoded.suggestions
     }

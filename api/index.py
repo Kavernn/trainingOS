@@ -61,6 +61,19 @@ def _handle_exception(e):
         return jsonify({"error": str(e)}), code
     return jsonify({"error": "Erreur interne — réessaie"}), 500
 
+# ── API Key auth middleware ───────────────────────────────────
+_API_KEY = os.getenv("TRAININGOS_API_KEY", "")
+
+@app.before_request
+def _require_api_key():
+    from flask import request
+    # Skip auth when key not configured (local dev without env var)
+    if not _API_KEY:
+        return
+    auth = request.headers.get("Authorization", "")
+    if auth != f"Bearer {_API_KEY}":
+        return jsonify({"error": "Unauthorized"}), 401
+
 # ── Wearable / Apple Watch routes ───────────────────────────
 wearable.register_routes(app)
 

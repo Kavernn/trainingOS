@@ -58,3 +58,6 @@ node_modules/
 xcuserdata/
 docs/Seance_Bonus_Samedi_V1.pdf
 .vercel
+
+# iOS API key (never commit)
+Utilities/APIConfig.swift

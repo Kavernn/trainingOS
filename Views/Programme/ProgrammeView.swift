@@ -317,8 +317,8 @@ struct ProgrammeView: View {
             await MainActor.run { applyJSON(json); isLoading = false }
         }
         // Fetch programme + evening schedule en parallèle
-        async let progFetch = URLSession.shared.data(from: url)
-        async let eveningFetch = URLSession.shared.data(from: URL(string: "\(kBaseURL)/api/evening_schedule")!)
+        async let progFetch = URLSession.authed.data(from: url)
+        async let eveningFetch = URLSession.authed.data(from: URL(string: "\(kBaseURL)/api/evening_schedule")!)
         if let (data, _) = try? await progFetch,
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             CacheService.shared.save(data, for: "programme_data")
@@ -338,7 +338,7 @@ struct ProgrammeView: View {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: eveningSchedule)
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "seance_soir_data")
     }
 
@@ -354,7 +354,7 @@ struct ProgrammeView: View {
             enrichedBody["program_id"] = selectedProgramId
         }
         req.httpBody = try? JSONSerialization.data(withJSONObject: enrichedBody)
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         // Invalide les deux caches pour que la séance recharge dans le bon ordre
         CacheService.shared.clear(for: "programme_data")
         CacheService.shared.clear(for: "seance_data")
@@ -390,7 +390,7 @@ struct ProgrammeView: View {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["schedule": schedule])
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "seance_data")
         CacheService.shared.clear(for: "programme_data")
     }
@@ -413,7 +413,7 @@ struct ProgrammeView: View {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "create", "name": name])
-        guard let (data, _) = try? await URLSession.shared.data(for: req),
+        guard let (data, _) = try? await URLSession.authed.data(for: req),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let pid  = json["id"] as? String else { return }
         CacheService.shared.clear(for: "programme_data")
@@ -432,7 +432,7 @@ struct ProgrammeView: View {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "rename", "program_id": id, "name": name])
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "programme_data")
         await MainActor.run {
             if let idx = programs.firstIndex(where: { $0.id == id }) {
@@ -447,7 +447,7 @@ struct ProgrammeView: View {
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "delete", "program_id": id])
-        _ = try? await URLSession.shared.data(for: req)
+        _ = try? await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "programme_data")
         await MainActor.run {
             programs.removeAll { $0.id == id }
