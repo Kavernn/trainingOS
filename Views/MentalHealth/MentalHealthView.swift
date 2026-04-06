@@ -1,8 +1,11 @@
 import SwiftUI
+import Charts
 
 struct MentalHealthView: View {
     @State private var moodDue: MoodDueStatus?
     @State private var summary: MentalHealthSummary?
+    @State private var recentMoods: [MoodEntry] = []
+    @State private var cachedEmotions: [MoodEmotion] = []
     @State private var isLoading = true
     @State private var showMoodSheet = false
     @AppStorage("mh_disclaimer_dismissed") private var disclaimerDismissed = false
@@ -21,10 +24,19 @@ struct MentalHealthView: View {
                                 .appearAnimation(delay: 0)
                         }
 
-                        // Nudge mood si non loggué
-                        if moodDue?.isDue == true {
-                            MoodNudgeBanner { showMoodSheet = true }
-                                .appearAnimation(delay: 0.03)
+                        // Fix 3 — Mood logger permanent (1-tap, toujours visible)
+                        MoodQuickLogCard(
+                            moodDue: moodDue,
+                            recentMoods: recentMoods,
+                            cachedEmotions: cachedEmotions,
+                            onLog: { showMoodSheet = true }
+                        )
+                        .appearAnimation(delay: 0.03)
+
+                        // Fix 4 — Sparkline 7 jours (visible seulement si données)
+                        if recentMoods.count >= 2 {
+                            MoodSparklineCard(entries: recentMoods)
+                                .appearAnimation(delay: 0.05)
                         }
 
                         // Cartes de navigation
@@ -106,20 +118,24 @@ struct MentalHealthView: View {
             .navigationTitle("Santé Mentale")
             .navigationBarTitleDisplayMode(.large)
             .sheet(isPresented: $showMoodSheet, onDismiss: { Task { await loadData() } }) {
-                MoodLogSheet()
+                MoodLogSheet(emotions: cachedEmotions)
             }
             .task { await loadData() }
         }
     }
 
     private func loadData() async {
-        async let due     = try? APIService.shared.checkMoodDue()
-        async let summary = try? APIService.shared.fetchMentalHealthSummary(days: 7)
-        let (d, s) = await (due, summary)
+        async let due      = try? APIService.shared.checkMoodDue()
+        async let summary  = try? APIService.shared.fetchMentalHealthSummary(days: 7)
+        async let moods    = try? APIService.shared.fetchMoodHistory(days: 14, limit: 7)
+        async let emotions = try? APIService.shared.fetchMoodEmotions()
+        let (d, s, m, e) = await (due, summary, moods, emotions)
         await MainActor.run {
-            moodDue       = d
-            self.summary  = s
-            isLoading     = false
+            moodDue          = d
+            self.summary     = s
+            if let items = m?.items { recentMoods = items }
+            if let list  = e, !list.isEmpty { cachedEmotions = list }
+            isLoading        = false
         }
     }
 
@@ -180,24 +196,135 @@ private struct DisclaimerBanner: View {
     }
 }
 
-private struct MoodNudgeBanner: View {
-    let onTap: () -> Void
+// MARK: - Fix 3: Mood Quick-Log Card (permanent, 1-tap)
+
+private struct MoodQuickLogCard: View {
+    let moodDue: MoodDueStatus?
+    let recentMoods: [MoodEntry]
+    let cachedEmotions: [MoodEmotion]
+    let onLog: () -> Void
+
+    private var todayEntry: MoodEntry? {
+        let today = String(Date().ISO8601Format().prefix(10))
+        return recentMoods.first { $0.date.hasPrefix(today) }
+    }
+
+    private var scoreColor: Color {
+        guard let s = todayEntry?.score else { return .yellow }
+        if s >= 8 { return .green }
+        if s >= 5 { return .yellow }
+        return .red
+    }
+
     var body: some View {
-        Button(action: onTap) {
-            HStack {
-                Image(systemName: "face.smiling")
-                    .foregroundColor(.yellow)
-                Text("Prends 30 secondes pour noter ton humeur")
-                    .font(.subheadline)
-                    .foregroundColor(.white)
+        Button(action: onLog) {
+            HStack(spacing: 14) {
+                // Score ring ou icône
+                ZStack {
+                    Circle().fill(scoreColor.opacity(0.15)).frame(width: 48, height: 48)
+                    if let entry = todayEntry {
+                        Text("\(entry.score)")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(scoreColor)
+                    } else {
+                        Image(systemName: "face.smiling")
+                            .font(.system(size: 22))
+                            .foregroundColor(.yellow)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    if let entry = todayEntry {
+                        Text("Humeur loggée")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                        if !entry.emotions.isEmpty {
+                            Text(entry.emotions.prefix(3).joined(separator: " · "))
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.6))
+                                .lineLimit(1)
+                        } else {
+                            Text("Appuie pour modifier")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.4))
+                        }
+                    } else {
+                        Text(moodDue?.isDue == true ? "Note ton humeur" : "Comment tu te sens ?")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                        Text("30 secondes · émotions + score")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                }
+
                 Spacer()
-                Image(systemName: "plus.circle.fill")
-                    .foregroundColor(.yellow)
+
+                Image(systemName: todayEntry == nil ? "plus.circle.fill" : "pencil.circle")
+                    .font(.system(size: 22))
+                    .foregroundColor(todayEntry == nil ? .yellow : .white.opacity(0.4))
             }
-            .padding(12)
-            .glassCard(color: .yellow, intensity: 0.08)
+            .padding(14)
+            .glassCard(color: todayEntry != nil ? scoreColor : .yellow, intensity: 0.08)
         }
         .buttonStyle(SpringButtonStyle())
+        .padding(.horizontal)
+    }
+}
+
+// MARK: - Fix 4: Mood Sparkline 7 jours
+
+private struct MoodSparklineCard: View {
+    let entries: [MoodEntry]
+
+    private var last7: [MoodEntry] {
+        Array(entries.prefix(7).reversed())
+    }
+
+    private func color(for score: Int) -> Color {
+        if score >= 8 { return .green }
+        if score >= 5 { return .yellow }
+        return .red
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Humeur — 7 derniers jours")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.5))
+                .padding(.horizontal, 16)
+
+            Chart(last7) { entry in
+                LineMark(
+                    x: .value("Date", entry.date),
+                    y: .value("Score", entry.score)
+                )
+                .foregroundStyle(Color.yellow.opacity(0.7))
+                .interpolationMethod(.catmullRom)
+
+                PointMark(
+                    x: .value("Date", entry.date),
+                    y: .value("Score", entry.score)
+                )
+                .foregroundStyle(color(for: entry.score))
+                .symbolSize(60)
+            }
+            .chartYScale(domain: 1...10)
+            .chartXAxis(.hidden)
+            .chartYAxis {
+                AxisMarks(values: [1, 5, 10]) { v in
+                    AxisValueLabel {
+                        Text("\(v.as(Int.self) ?? 0)")
+                            .font(.system(size: 9))
+                            .foregroundColor(.white.opacity(0.35))
+                    }
+                }
+            }
+            .frame(height: 72)
+            .padding(.horizontal, 16)
+        }
+        .padding(.vertical, 12)
+        .glassCard(color: .yellow, intensity: 0.05)
         .padding(.horizontal)
     }
 }
