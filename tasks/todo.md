@@ -133,7 +133,7 @@
 
 - [x] **#A2 — `index.py` fichier dieu (3 060 lignes)** : splitté en 8 Flask Blueprints (`api/routes/`) + `api/utils.py` helpers partagés. `index.py` → ~100 lignes d'app factory. (2026-04-06)
 
-- [ ] **#A3 — Exceptions silencieuses qui exposent les internals** : `except Exception as e: return jsonify({"error": str(e)}), 500` répété dans tout `index.py`. Envoie tracebacks Python bruts au client iOS (noms de tables, chemins, data partielle). **Fix** : handler global `@app.errorhandler(Exception)`, loggue le traceback serveur, renvoie message générique au client. `except (ValueError, KeyError)` pour erreurs prévisibles.
+- [x] **#A3 — Exceptions silencieuses** : `@app.errorhandler(Exception)` global dans `index.py` — traceback loggué serveur, message générique renvoyé au client. (2026-04-06)
 
 - [x] **#A4 — `SeanceView.swift` monolithe (3 550 lignes)** : `ExerciseViewModel` extrait dans `Views/Seance/ExerciseViewModel.swift`. `ExerciseCard` + `ExerciseLogResult` supprimés de SeanceView. (2026-04-06)
 
