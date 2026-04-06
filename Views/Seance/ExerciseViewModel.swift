@@ -25,6 +25,13 @@ struct ExerciseLogResult {
     var painZone: String = ""
 }
 
+private struct DraftSet: Codable {
+    var weight: String
+    var reps: String
+    var rir: Int
+    var duration: Int
+}
+
 // MARK: - ExerciseViewModel
 
 @MainActor
@@ -57,6 +64,8 @@ final class ExerciseViewModel: ObservableObject {
     @Published var isEditing = false
     @Published var isSkipped = false
 
+    private var cancellables = Set<AnyCancellable>()
+
     init(name: String, scheme: String, weightData: WeightData?, equipmentType: String = "machine",
          trackingType: String = "reps", bodyWeight: Double = 0,
          isSecondSession: Bool = false, isBonusSession: Bool = false,
@@ -73,6 +82,12 @@ final class ExerciseViewModel: ObservableObject {
         self.restSeconds     = restSeconds
         self.prescription    = prescription
         self.suggestion      = suggestion
+
+        $sets
+            .dropFirst()
+            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
+            .sink { [weak self] _ in self?.saveDraft() }
+            .store(in: &cancellables)
     }
 
     // MARK: - Computed
@@ -129,6 +144,26 @@ final class ExerciseViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Draft persistence
+
+    private var draftKey: String { "exo_draft_\(name)" }
+
+    private func saveDraft() {
+        let draft = sets.map { DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration) }
+        if let data = try? JSONEncoder().encode(draft) {
+            UserDefaults.standard.set(data, forKey: draftKey)
+        }
+    }
+
+    private func loadDraft() -> [DraftSet]? {
+        guard let data = UserDefaults.standard.data(forKey: draftKey) else { return nil }
+        return try? JSONDecoder().decode([DraftSet].self, from: data)
+    }
+
+    func clearDraft() {
+        UserDefaults.standard.removeObject(forKey: draftKey)
+    }
+
     // MARK: - Methods
 
     func totalWeight(for input: Double) -> Double {
@@ -163,7 +198,12 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     func initializeSets() {
-        if sets.isEmpty { sets = Array(repeating: SetInput(), count: setsCount) }
+        guard sets.isEmpty else { return }
+        if let draft = loadDraft(), !draft.isEmpty {
+            sets = draft.map { SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration, rir: $0.rir) }
+        } else {
+            sets = Array(repeating: SetInput(), count: setsCount)
+        }
     }
 
     func syncSetsCount() {
@@ -178,6 +218,7 @@ final class ExerciseViewModel: ObservableObject {
         isLogged  = false
         logStatus = nil
         isEditing = false
+        clearDraft()
     }
 
     // Returns ExerciseLogResult to assign to the binding, or nil if can't log.
@@ -190,6 +231,7 @@ final class ExerciseViewModel: ObservableObject {
         if isEditing { isLogged = false }
         isLogged  = true
         isEditing = false
+        clearDraft()
 
         if isTimeBased {
             let setsPayload: [[String: Any]] = sets.map { ["weight": 0, "reps": String($0.duration)] }

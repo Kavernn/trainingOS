@@ -22,6 +22,7 @@ struct ExerciseCard: View {
     @ObservedObject private var units = UnitSettings.shared
     @AppStorage("exo_notes_data") private var exoNotesData: String = "{}"
     @State private var confirmSkip = false
+    @State private var showAdvanced = false
 
     init(name: String, scheme: String, weightData: WeightData?,
          equipmentType: String = "machine", trackingType: String = "reps",
@@ -559,57 +560,76 @@ struct ExerciseCard: View {
                 }
                 .padding(.top, 4)
 
-                HStack(spacing: 6) {
-                    Image(systemName: "bandage").font(.system(size: 11)).foregroundColor(.red.opacity(0.6))
-                    TextField("Zone douloureuse (optionnel)", text: $evm.painZone)
-                        .font(.system(size: 12)).foregroundColor(evm.painZone.isEmpty ? .gray : .red)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { showAdvanced.toggle() }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: showAdvanced ? "chevron.up.circle" : "chevron.down.circle")
+                            .font(.system(size: 10))
+                        Text(showAdvanced ? "Masquer" : "Zone douleur · Notes")
+                            .font(.system(size: 10))
+                        if !evm.painZone.isEmpty || !exoNote.isEmpty {
+                            Circle().fill(Color.orange).frame(width: 5, height: 5)
+                        }
+                    }
+                    .foregroundColor(.gray.opacity(0.4))
                 }
+                .buttonStyle(.plain)
                 .padding(.top, 2)
 
-                HStack(spacing: 6) {
-                    Image(systemName: "note.text").font(.system(size: 11)).foregroundColor(.cyan.opacity(0.6))
-                    let noteBinding = Binding<String>(
-                        get: { exoNote },
-                        set: { saveExoNote($0) }
-                    )
-                    TextField("Notes techniques (persistent)", text: noteBinding, axis: .vertical)
-                        .font(.system(size: 12))
-                        .foregroundColor(exoNote.isEmpty ? .gray : .cyan)
-                        .lineLimit(1...3)
+                if showAdvanced {
+                    VStack(spacing: 8) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bandage").font(.system(size: 11)).foregroundColor(.red.opacity(0.6))
+                            TextField("Zone douloureuse (optionnel)", text: $evm.painZone)
+                                .font(.system(size: 12)).foregroundColor(evm.painZone.isEmpty ? .gray : .red)
+                        }
+                        HStack(spacing: 6) {
+                            Image(systemName: "note.text").font(.system(size: 11)).foregroundColor(.cyan.opacity(0.6))
+                            let noteBinding = Binding<String>(
+                                get: { exoNote },
+                                set: { saveExoNote($0) }
+                            )
+                            TextField("Notes techniques (persistent)", text: noteBinding, axis: .vertical)
+                                .font(.system(size: 12))
+                                .foregroundColor(exoNote.isEmpty ? .gray : .cyan)
+                                .lineLimit(1...3)
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-                .padding(.top, 2)
 
-                HStack {
+                VStack(spacing: 8) {
+                    Button(action: doLog) {
+                        HStack(spacing: 8) {
+                            Image(systemName: evm.isEditing ? "arrow.triangle.2.circlepath.circle.fill" : "checkmark.circle.fill")
+                                .font(.system(size: 20))
+                            Text(evm.isEditing ? "Mettre à jour" : "Logger")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(evm.canLog ? Color.orange : Color(hex: "1a1a2e"))
+                        .foregroundColor(evm.canLog ? .white : .gray)
+                        .cornerRadius(12)
+                    }
+                    .disabled(!evm.canLog)
+
                     if evm.isEditing {
                         Button(action: { evm.isEditing = false }) {
                             Text("Annuler")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.gray)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.gray.opacity(0.5))
                         }
                     } else {
                         Button(action: { confirmSkip = true }) {
-                            Text("Sauter")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.gray)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.white.opacity(0.06))
-                                .cornerRadius(8)
+                            Text("Sauter cet exercice")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.gray.opacity(0.4))
                         }
                     }
-                    Spacer()
-                    Button(action: doLog) {
-                        HStack(spacing: 6) {
-                            Image(systemName: evm.isEditing ? "arrow.triangle.2.circlepath.circle.fill" : "arrow.up.circle.fill")
-                                .font(.system(size: 32))
-                            Text(evm.isEditing ? "Mettre à jour" : "Logger")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .foregroundColor(evm.canLog ? .orange : .gray)
-                    }
-                    .disabled(!evm.canLog)
-                    .padding(.top, 8)
                 }
+                .padding(.top, 8)
 
                 if let status = evm.logStatus {
                     HStack(spacing: 6) {
@@ -708,6 +728,7 @@ struct ExerciseCard: View {
         .cornerRadius(14)
         .onAppear {
             evm.initializeSets()
+            if !evm.painZone.isEmpty || !exoNote.isEmpty { showAdvanced = true }
         }
         .onChange(of: evm.setsCount) {
             evm.syncSetsCount()

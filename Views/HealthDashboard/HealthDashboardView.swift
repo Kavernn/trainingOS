@@ -11,6 +11,7 @@ struct HealthDashboardView: View {
     @ObservedObject private var units = UnitSettings.shared
 
     private var today: DailyHealthSummary? { week.first }
+    private var yesterday: DailyHealthSummary? { week.dropFirst().first }
 
     var body: some View {
         NavigationStack {
@@ -46,30 +47,23 @@ struct HealthDashboardView: View {
                                 .appearAnimation(delay: 0.02)
                             }
 
-                            // Life Stress Score
-                            if let lss = lifeStress {
-                                LifeStressCard(score: lss, trend: lifeStressTrend)
+                            // État du jour — Recovery + LSS fusionnés
+                            if let t = today {
+                                DayStatusHeaderView(summary: t, lifeStress: lifeStress)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.03)
                             }
 
-                            // Recovery score ring
+                            // KPI grid: steps, sleep, HR, HRV + deltas vs hier
                             if let t = today {
-                                RecoveryScoreRing(summary: t)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.05)
-                            }
-
-                            // Sources badge row
-                            if let sources = today?.dataSources, !sources.isEmpty {
-                                DataSourcesRow(sources: sources)
+                                HealthKPIGrid(summary: t, yesterday: yesterday)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.08)
                             }
 
-                            // KPI grid: steps, sleep, HR, HRV
-                            if let t = today {
-                                HealthKPIGrid(summary: t)
+                            // Life Stress — détail contexte (après KPI)
+                            if let lss = lifeStress {
+                                LifeStressCard(score: lss, trend: lifeStressTrend)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.1)
                             }
@@ -246,26 +240,71 @@ struct DataSourcesRow: View {
     }
 }
 
-// MARK: - KPI Grid
+// MARK: - KPI Grid with deltas
 
 struct HealthKPIGrid: View {
     let summary: DailyHealthSummary
+    let yesterday: DailyHealthSummary?
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             if let steps = summary.steps {
-                KPICard(value: "\(steps)", label: "Pas", color: .green)
+                let delta = yesterday?.steps.map { steps - $0 }
+                HealthKPICard(value: "\(steps)", label: "Pas", color: .green,
+                              delta: delta.map { deltaInt($0, invertGood: false) })
             }
             if let sleep = summary.sleepDuration {
-                KPICard(value: String(format: "%.1fh", sleep), label: "Sommeil", color: .indigo)
+                let delta = yesterday?.sleepDuration.map { sleep - $0 }
+                HealthKPICard(value: String(format: "%.1fh", sleep), label: "Sommeil", color: .indigo,
+                              delta: delta.map { deltaDouble($0, unit: "h", invertGood: false) })
             }
             if let hr = summary.restingHeartRate {
-                KPICard(value: String(format: "%.0f bpm", hr), label: "FC repos", color: .red)
+                let delta = yesterday?.restingHeartRate.map { hr - $0 }
+                HealthKPICard(value: String(format: "%.0f bpm", hr), label: "FC repos", color: .red,
+                              delta: delta.map { deltaDouble($0, unit: "", invertGood: true) })
             }
             if let hrv = summary.hrv {
-                KPICard(value: String(format: "%.0f ms", hrv), label: "HRV", color: .cyan)
+                let delta = yesterday?.hrv.map { hrv - $0 }
+                HealthKPICard(value: String(format: "%.0f ms", hrv), label: "HRV", color: .cyan,
+                              delta: delta.map { deltaDouble($0, unit: " ms", invertGood: false) })
             }
         }
+    }
+
+    private func deltaInt(_ val: Int, invertGood: Bool) -> (String, Color) {
+        let isGood = invertGood ? val < 0 : val >= 0
+        let sign = val >= 0 ? "↑+" : "↓"
+        return ("\(sign)\(val)", isGood ? .green : .red)
+    }
+
+    private func deltaDouble(_ val: Double, unit: String, invertGood: Bool) -> (String, Color) {
+        let isGood = invertGood ? val < 0 : val >= 0
+        let sign = val >= 0 ? "↑+" : "↓"
+        return ("\(sign)\(String(format: "%.1f", val))\(unit)", isGood ? .green : .red)
+    }
+}
+
+struct HealthKPICard: View {
+    let value: String
+    let label: String
+    let color: Color
+    let delta: (String, Color)?
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 20, weight: .black)).foregroundColor(color)
+                .contentTransition(.numericText()).minimumScaleFactor(0.6).lineLimit(1)
+            if let (str, col) = delta {
+                Text(str)
+                    .font(.system(size: 10, weight: .semibold)).foregroundColor(col)
+            }
+            Text(label)
+                .font(.system(size: 9, weight: .medium)).tracking(1).foregroundColor(.gray).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .glassCard(color: color, intensity: 0.05).cornerRadius(12)
     }
 }
 
@@ -423,16 +462,16 @@ struct NutritionSummaryHealthCard: View {
     }
 }
 
-// MARK: - Weekly Sleep Chart
+// MARK: - Weekly Sleep Chart (interactive)
 
 struct WeeklySleepChart: View {
     let week: [DailyHealthSummary]
+    @State private var selectedDay: DailyHealthSummary?
 
-    private var data: [(String, Double)] {
+    private var data: [(String, Double, DailyHealthSummary)] {
         week.compactMap { d in
             guard let h = d.sleepDuration else { return nil }
-            let label = String(d.date.suffix(5))
-            return (label, h)
+            return (String(d.date.suffix(5)), h, d)
         }.reversed()
     }
 
@@ -440,8 +479,13 @@ struct WeeklySleepChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("SOMMEIL — 7 DERNIERS JOURS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack {
+                Text("SOMMEIL — 7 DERNIERS JOURS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text("Tap pour détails")
+                    .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+            }
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
                     let pct = maxH > 0 ? item.1 / maxH : 0
@@ -453,26 +497,35 @@ struct WeeklySleepChart: View {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(color.opacity(isLast ? 1 : 0.5))
                             .frame(height: max(CGFloat(pct) * 60, 4))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(color, lineWidth: selectedDay?.date == item.2.date ? 2 : 0)
+                            )
                         Text(item.0).font(.system(size: 8)).foregroundColor(.gray).lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 80, alignment: .bottom)
+                    .onTapGesture { selectedDay = item.2 }
                 }
             }
             .frame(height: 80)
         }
         .padding(14).glassCard(color: .indigo, intensity: 0.05).cornerRadius(14)
+        .sheet(item: $selectedDay) { day in
+            HealthDayDetailSheet(day: day)
+        }
     }
 }
 
-// MARK: - Weekly Steps Chart
+// MARK: - Weekly Steps Chart (interactive)
 
 struct WeeklyStepsChart: View {
     let week: [DailyHealthSummary]
+    @State private var selectedDay: DailyHealthSummary?
 
-    private var data: [(String, Int)] {
+    private var data: [(String, Int, DailyHealthSummary)] {
         week.compactMap { d in
             guard let s = d.steps else { return nil }
-            return (String(d.date.suffix(5)), s)
+            return (String(d.date.suffix(5)), s, d)
         }.reversed()
     }
 
@@ -480,8 +533,13 @@ struct WeeklyStepsChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("PAS — 7 DERNIERS JOURS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack {
+                Text("PAS — 7 DERNIERS JOURS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text("Tap pour détails")
+                    .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+            }
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
                     let pct = Double(item.1) / Double(maxSteps)
@@ -493,14 +551,22 @@ struct WeeklyStepsChart: View {
                         RoundedRectangle(cornerRadius: 4)
                             .fill(color.opacity(isLast ? 1 : 0.5))
                             .frame(height: max(CGFloat(pct) * 60, 4))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .stroke(color, lineWidth: selectedDay?.date == item.2.date ? 2 : 0)
+                            )
                         Text(item.0).font(.system(size: 8)).foregroundColor(.gray).lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, maxHeight: 80, alignment: .bottom)
+                    .onTapGesture { selectedDay = item.2 }
                 }
             }
             .frame(height: 80)
         }
         .padding(14).glassCard(color: .green, intensity: 0.05).cornerRadius(14)
+        .sheet(item: $selectedDay) { day in
+            HealthDayDetailSheet(day: day)
+        }
     }
 }
 
@@ -678,6 +744,205 @@ struct LifeStressTrendChart: View {
                 }
             }
             .frame(height: 64)
+        }
+    }
+}
+
+// MARK: - Day Status Header (Fix 1: Recovery hero + LSS secondary)
+
+struct DayStatusHeaderView: View {
+    let summary: DailyHealthSummary
+    let lifeStress: LifeStressScore?
+
+    private var recoveryScore: Double { summary.recoveryScore ?? 0 }
+    private var recoveryColor: Color {
+        if recoveryScore >= 7 { return .green }
+        if recoveryScore >= 5 { return .yellow }
+        return .red
+    }
+    private var recoveryLabel: String {
+        guard summary.recoveryScore != nil else { return "Aucune donnée" }
+        if recoveryScore >= 8 { return "Excellente" }
+        if recoveryScore >= 6 { return "Bonne" }
+        if recoveryScore >= 4 { return "Moyenne" }
+        return "Faible"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 20) {
+                // Recovery ring — hero
+                ZStack {
+                    Circle()
+                        .stroke(recoveryColor.opacity(0.15), lineWidth: 12)
+                        .frame(width: 90, height: 90)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(recoveryScore / 10))
+                        .stroke(recoveryColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .frame(width: 90, height: 90)
+                        .animation(.easeOut(duration: 0.8), value: recoveryScore)
+                    VStack(spacing: 1) {
+                        if let s = summary.recoveryScore {
+                            Text(String(format: "%.1f", s))
+                                .font(.system(size: 22, weight: .black)).foregroundColor(recoveryColor)
+                        } else {
+                            Text("—").font(.system(size: 22, weight: .black)).foregroundColor(.gray)
+                        }
+                        Text("/ 10").font(.system(size: 9)).foregroundColor(.gray)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("ÉTAT DU JOUR")
+                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Text(recoveryLabel)
+                        .font(.system(size: 20, weight: .bold)).foregroundColor(recoveryColor)
+
+                    // LSS — indicateur secondaire
+                    if let lss = lifeStress {
+                        let lssColor: Color = lss.score >= 80 ? .green : lss.score >= 60 ? .yellow : lss.score >= 40 ? .orange : .red
+                        let lssLabel: String = lss.score >= 80 ? "Récup. optimale" : lss.score >= 60 ? "Bonne forme" : lss.score >= 40 ? "Fatigue modérée" : "Surmenage"
+                        HStack(spacing: 4) {
+                            Text("Life Stress")
+                                .font(.system(size: 11)).foregroundColor(.gray)
+                            Text(String(format: "%.0f", lss.score))
+                                .font(.system(size: 11, weight: .bold)).foregroundColor(lssColor)
+                            Text("·").font(.system(size: 11)).foregroundColor(.gray)
+                            Text(lssLabel)
+                                .font(.system(size: 11)).foregroundColor(lssColor)
+                        }
+                    }
+
+                    if let soreness = summary.soreness {
+                        HStack(spacing: 4) {
+                            Image(systemName: "bolt.fill").font(.system(size: 10)).foregroundColor(.orange)
+                            Text("Courbatures \(Int(soreness))/10")
+                                .font(.system(size: 11)).foregroundColor(.gray)
+                        }
+                    }
+                }
+                Spacer()
+            }
+
+            // Flags LSS actifs
+            if let lss = lifeStress {
+                let active = [("Chute HRV", lss.flags.hrvDrop),
+                              ("Manque sommeil", lss.flags.sleepDeprivation),
+                              ("Surcharge entraîn.", lss.flags.trainingOverload)]
+                    .filter(\.1)
+                if !active.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(active, id: \.0) { label, _ in
+                            Text(label)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 7).padding(.vertical, 3)
+                                .background(Color.red.opacity(0.12))
+                                .cornerRadius(5)
+                        }
+                        Spacer()
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .glassCard(color: recoveryColor, intensity: 0.07)
+        .cornerRadius(16)
+    }
+}
+
+// MARK: - Health Day Detail Sheet (Fix 5: tap on bar)
+
+struct HealthDayDetailSheet: View {
+    let day: DailyHealthSummary
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var units = UnitSettings.shared
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let sleep = day.sleepDuration {
+                    Section("Sommeil") {
+                        DetailMetricRow(icon: "moon.fill", color: .indigo, label: "Durée",
+                                        value: String(format: "%.1fh", sleep))
+                        if let q = day.sleepQuality {
+                            DetailMetricRow(icon: "star.fill", color: .yellow, label: "Qualité",
+                                            value: String(format: "%.0f%%", q))
+                        }
+                    }
+                }
+                Section("Activité") {
+                    if let steps = day.steps {
+                        DetailMetricRow(icon: "figure.walk", color: .green, label: "Pas",
+                                        value: "\(steps)" + (steps >= 10000 ? " ✓" : ""))
+                    }
+                    if let active = day.activeMinutes {
+                        DetailMetricRow(icon: "timer", color: .orange, label: "Minutes actives",
+                                        value: String(format: "%.0f min", active))
+                    }
+                }
+                Section("Cardio") {
+                    if let hr = day.restingHeartRate {
+                        DetailMetricRow(icon: "heart.fill", color: .red, label: "FC repos",
+                                        value: String(format: "%.0f bpm", hr))
+                    }
+                    if let hrv = day.hrv {
+                        DetailMetricRow(icon: "waveform.path.ecg", color: .cyan, label: "HRV",
+                                        value: String(format: "%.0f ms", hrv))
+                    }
+                }
+                if day.recoveryScore != nil || day.soreness != nil {
+                    Section("Récupération") {
+                        if let rec = day.recoveryScore {
+                            DetailMetricRow(icon: "bolt.fill", color: .orange, label: "Score",
+                                            value: String(format: "%.1f / 10", rec))
+                        }
+                        if let soreness = day.soreness {
+                            DetailMetricRow(icon: "figure.strengthtraining.traditional", color: .orange,
+                                            label: "Courbatures", value: "\(Int(soreness)) / 10")
+                        }
+                    }
+                }
+                if let w = day.bodyWeight {
+                    Section("Corps") {
+                        DetailMetricRow(icon: "scalemass.fill", color: .orange, label: "Poids",
+                                        value: units.format(w))
+                        if let bf = day.bodyFatPct {
+                            DetailMetricRow(icon: "chart.pie.fill", color: .blue, label: "Masse grasse",
+                                            value: String(format: "%.1f%%", bf))
+                        }
+                    }
+                }
+            }
+            .navigationTitle(day.date)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fermer") { dismiss() }
+                }
+            }
+        }
+    }
+}
+
+private struct DetailMetricRow: View {
+    let icon: String
+    let color: Color
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .frame(width: 24)
+            Text(label)
+                .foregroundColor(.primary)
+            Spacer()
+            Text(value)
+                .fontWeight(.semibold)
+                .foregroundColor(color)
         }
     }
 }

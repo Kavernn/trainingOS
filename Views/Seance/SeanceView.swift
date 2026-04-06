@@ -993,6 +993,31 @@ struct WorkoutSeanceView: View {
                             },
                             alignment: .leading
                         )
+
+                    // Énergie inline — remplace la modal bloquante
+                    HStack(spacing: 6) {
+                        Text("ÉNERGIE")
+                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        ForEach(1...5, id: \.self) { val in
+                            Button {
+                                withAnimation { energyPre = val }
+                                energyPreDate = data.todayDate
+                            } label: {
+                                Image(systemName: val <= energyPre ? "bolt.fill" : "bolt")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(val <= energyPre ? .yellow : .gray.opacity(0.25))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer()
+                        if energyPreDate == data.todayDate {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 10)).foregroundColor(.green.opacity(0.6))
+                        }
+                    }
+                    .padding(.horizontal, 10).padding(.vertical, 7)
+                    .background(Color.yellow.opacity(0.04))
+                    .cornerRadius(8)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -1058,7 +1083,7 @@ struct WorkoutSeanceView: View {
                     .padding(.horizontal, 16)
                 }
 
-                Button(action: { showSummary = true }) {
+                Button(action: { showFinish = true }) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                         Text("Terminer la séance").font(.system(size: 15, weight: .semibold))
@@ -1070,14 +1095,6 @@ struct WorkoutSeanceView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .sheet(isPresented: $showSummary) {
-            WorkoutSummarySheet(
-                exercises: exercises.map(\.0),
-                logResults: vm.logResults,
-                onConfirm: { showFinish = true }
-            )
-            .presentationDetents([.medium, .large])
-        }
         .sheet(isPresented: $showFinish) {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
@@ -1153,41 +1170,10 @@ struct WorkoutSeanceView: View {
             AddHIITSheet { hiitLogged = true }
                 .presentationDetents([.large])
         }
-        .sheet(isPresented: $showEnergyPreSheet) {
-            EnergyPreWorkoutSheet(energy: $energyPre) {
-                energyPreDate = data.todayDate
-            }
-            .presentationDetents([.height(300)])
-            .presentationDragIndicator(.visible)
-        }
         .onAppear {
             Task { await loadInventory() }
             computeGhost()
-            let energyWillShow = energyPreDate != data.todayDate
-            if energyWillShow {
-                // Energy sheet takes the presentation slot — progression check
-                // is deferred to onChange(showEnergyPreSheet) to avoid collision.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    showEnergyPreSheet = true
-                }
-            } else {
-                // No energy sheet: run pre-coaching check immediately.
-                guard !didLoadPreCoaching else { return }
-                didLoadPreCoaching = true
-                Task {
-                    let sType = isSecondSession ? "evening" : "morning"
-                    if let sug = try? await APIService.shared.fetchProgressionSuggestions(
-                        date: data.todayDate, sessionType: sType, sessionName: data.today
-                    ), !sug.filter({ $0.suggestionType != "maintain" }).isEmpty {
-                        progressionSuggestions = sug
-                        showProgressionSheet = true
-                    }
-                }
-            }
-        }
-        // When energy sheet is dismissed, run the pre-coaching check that was deferred.
-        .onChange(of: showEnergyPreSheet) { isShowing in
-            guard !isShowing, !didLoadPreCoaching else { return }
+            guard !didLoadPreCoaching else { return }
             didLoadPreCoaching = true
             Task {
                 let sType = isSecondSession ? "evening" : "morning"
@@ -1904,7 +1890,46 @@ struct AddHIITSheet: View {
                                 Spacer()
                             }
                             .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
-                            
+
+                            // Récap exercices — compact
+                            VStack(alignment: .leading, spacing: 0) {
+                                HStack {
+                                    Text("EXERCICES")
+                                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    Spacer()
+                                    Text("\(loggedCount)/\(exercises.count)")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(loggedCount == exercises.count ? .green : .orange)
+                                }
+                                .padding(.horizontal, 16).padding(.bottom, 6)
+                                ForEach(Array(exercises.enumerated()), id: \.0) { idx, name in
+                                    let result = logResults[name]
+                                    HStack(spacing: 10) {
+                                        Image(systemName: result != nil ? "checkmark.circle.fill" : "minus.circle")
+                                            .font(.system(size: 13))
+                                            .foregroundColor(result != nil ? .green : .orange.opacity(0.6))
+                                        Text(name)
+                                            .font(.system(size: 13))
+                                            .foregroundColor(result != nil ? .white : .gray)
+                                        Spacer()
+                                        if let r = result {
+                                            Text("\(UnitSettings.shared.format(r.weight)) · \(r.reps)")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.gray)
+                                        } else {
+                                            Text("Non loggué")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.orange.opacity(0.5))
+                                        }
+                                    }
+                                    .padding(.horizontal, 16).padding(.vertical, 8)
+                                    if idx < exercises.count - 1 {
+                                        Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
+                                    }
+                                }
+                            }
+                            .background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+
                             // Énergie pré-séance — affichage si pré-rempli, saisie sinon
                             if let pre = preEnergy {
                                 HStack(spacing: 10) {
