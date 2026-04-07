@@ -24,7 +24,7 @@ private struct iOSContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            DashboardView()
+            DashboardView(onOpenSession: { selectedTab = 1 })
                 .tag(0)
                 .tabItem { Label("Accueil", systemImage: "house.fill") }
             SeanceView()

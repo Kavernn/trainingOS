@@ -2655,7 +2655,7 @@ struct AddHIITSheet: View {
         @Published var isResuming = false
         @Published var commitWarning: String?
 
-        let sessionStart = Date()
+        var sessionStart = Date()
         var draftSessionType: String
 
         var cacheService: CacheService = .shared
@@ -2710,6 +2710,11 @@ struct AddHIITSheet: View {
                 )
             }
             logResults = restored
+            if let restoredStart = SessionDraftStore.loadStartedAt(date: data.todayDate, sessionType: draftSessionType) {
+                sessionStart = restoredStart
+            } else {
+                sessionStart = Date()
+            }
             isResuming = !restored.isEmpty
             if data.alreadyLogged {
                 SessionDraftStore.clear(date: data.todayDate, sessionType: draftSessionType)
@@ -2794,6 +2799,7 @@ struct AddHIITSheet: View {
             guard let date = seanceData?.todayDate else { return }
             if logResults.isEmpty {
                 SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+                sessionStart = Date()
                 return
             }
             let values = logResults.values.map {
@@ -2809,6 +2815,7 @@ struct AddHIITSheet: View {
                 )
             }
             SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values)
+            SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
         }
     }
 

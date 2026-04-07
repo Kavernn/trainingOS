@@ -187,6 +187,7 @@ struct HistoriqueView: View {
 
     private func loadData() async {
         currentOffset = 0
+        apiError = nil
         // Only use unfiltered cache when no month filter active
         if monthFilter == nil,
            let cached = CacheService.shared.load(for: "historique_data"),
@@ -204,6 +205,8 @@ struct HistoriqueView: View {
             if monthFilter == nil { CacheService.shared.save(data, for: "historique_data") }
             applyJSON(json, append: false)
             hasMore = json["has_more"] as? Bool ?? false
+        } else if muscuSessions.isEmpty && hiitSessions.isEmpty {
+            apiError = "Impossible de charger l'historique — vérifie ta connexion."
         }
         isLoading = false
     }

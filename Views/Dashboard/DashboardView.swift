@@ -11,7 +11,9 @@ struct DashboardView: View {
     @State private var showChecklist = false
     @State private var lastRefresh: Date = .distantPast
     @State private var sleepPromptDismissedThisSession = false
+    @State private var actionErrorMessage: String? = nil
     @Environment(\.scenePhase) private var scenePhase
+    var onOpenSession: (() -> Void)? = nil
 
     private var todayStr: String {
         DateFormatter.isoDate.string(from: Date())
@@ -53,7 +55,8 @@ struct DashboardView: View {
                             // TodayCard: primary action every session
                             TodayCardView(
                                 dash: dash,
-                                showGreatDayBadge: vm.brief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil
+                                showGreatDayBadge: vm.brief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
+                                onOpenSession: onOpenSession
                             )
                             .appearAnimation(delay: 0.02)
 
@@ -89,6 +92,8 @@ struct DashboardView: View {
                                     withAnimation(.easeOut(duration: 0.25)) {
                                         sleepPromptDismissedThisSession = true
                                     }
+                                }, onError: { message in
+                                    actionErrorMessage = message
                                 })
                                 .appearAnimation(delay: 0.07)
                             }
@@ -103,7 +108,7 @@ struct DashboardView: View {
                             if let report = vm.deload, report.fatigueLevel > 0 {
                                 if report.fatigueLevel == 2 {
                                     DeloadBannerView(report: report) {
-                                        Task { await applyDeload(report: report) }
+                                        await applyDeload(report: report)
                                     }
                                     .appearAnimation(delay: 0.09)
                                 } else {
@@ -214,6 +219,14 @@ struct DashboardView: View {
             }
             .presentationDetents([.medium, .large])
         }
+        .alert("Erreur", isPresented: Binding(
+            get: { actionErrorMessage != nil },
+            set: { if !$0 { actionErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { actionErrorMessage = nil }
+        } message: {
+            Text(actionErrorMessage ?? "")
+        }
     }
 
     var todayAccentColor: Color {
@@ -227,18 +240,28 @@ struct DashboardView: View {
         }
     }
 
-    private func applyDeload(report: DeloadReport) async {
+    private func applyDeload(report: DeloadReport) async -> Bool {
         let url = URL(string: "https://training-os-rho.vercel.app/api/apply_deload")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body: [String: Any] = ["poids_deload": report.poidsDeload]
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        _ = try? await URLSession.authed.data(for: req)
+        do {
+            req.httpBody = try JSONSerialization.data(withJSONObject: body)
+            let (_, resp) = try await URLSession.authed.data(for: req)
+            if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
+                actionErrorMessage = "Impossible d'appliquer le déload pour le moment."
+                return false
+            }
+        } catch {
+            actionErrorMessage = "Erreur réseau — réessaie."
+            return false
+        }
         CacheService.shared.clear(for: "seance_data")
         CacheService.shared.clear(for: "dashboard")
         await api.fetchDashboard()
         vm.deload = nil   // Masquer la bannière après application
+        return true
     }
 }
 
@@ -382,6 +405,7 @@ struct MoodCardView: View {
 
 struct SleepPromptCard: View {
     let onDone: () -> Void
+    var onError: (String) -> Void = { _ in }
 
     @State private var bedtime  = Calendar.current.date(bySettingHour: 23, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var wakeTime = Calendar.current.date(bySettingHour: 7,  minute: 0, second: 0, of: Date()) ?? Date()
@@ -511,18 +535,25 @@ struct SleepPromptCard: View {
 
     private func save() async {
         isSaving = true
-        try? await APIService.shared.logRecovery(
-            sleepHours:   durationHours,
-            sleepQuality: nil,
-            restingHr:    nil,
-            hrv:          nil,
-            steps:        nil,
-            soreness:     nil,
-            notes:        ""
-        )
-        await MainActor.run {
-            isSaving = false
-            onDone()
+        do {
+            try await APIService.shared.logRecovery(
+                sleepHours:   durationHours,
+                sleepQuality: nil,
+                restingHr:    nil,
+                hrv:          nil,
+                steps:        nil,
+                soreness:     nil,
+                notes:        ""
+            )
+            await MainActor.run {
+                isSaving = false
+                onDone()
+            }
+        } catch {
+            await MainActor.run {
+                isSaving = false
+                onError("Impossible d'enregistrer le sommeil pour le moment.")
+            }
         }
     }
 }
@@ -530,7 +561,7 @@ struct SleepPromptCard: View {
 // MARK: - Deload Banner
 struct DeloadBannerView: View {
     let report: DeloadReport
-    var onApplyDeload: (() -> Void)? = nil
+    var onApplyDeload: (() async -> Bool)? = nil
     @ObservedObject private var units = UnitSettings.shared
     @State private var isApplying = false
 
@@ -602,7 +633,10 @@ struct DeloadBannerView: View {
                     if let onApplyDeload {
                         Button {
                             isApplying = true
-                            onApplyDeload()
+                            Task {
+                                let success = await onApplyDeload()
+                                if !success { isApplying = false }
+                            }
                         } label: {
                             HStack(spacing: 6) {
                                 if isApplying {
@@ -832,6 +866,7 @@ struct GreetingHeaderView: View {
 struct TodayCardView: View {
     let dash: DashboardData
     var showGreatDayBadge: Bool = false
+    var onOpenSession: (() -> Void)? = nil
 
     /// Source de vérité : alreadyLoggedToday OU session présente dans le dict.
     /// Double-check côté client pour absorber les désync API/cache.
@@ -1001,23 +1036,46 @@ struct TodayCardView: View {
                     .padding([.horizontal, .bottom], 16)
                     .padding(.top, 12)
                 } else {
-                    NavigationLink(destination: SeanceView()) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.fill")
-                            Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
-                                .font(.system(size: 15, weight: .bold))
+                    Group {
+                        if let onOpenSession {
+                            Button(action: onOpenSession) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "play.fill")
+                                    Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
+                                        .font(.system(size: 15, weight: .bold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    LinearGradient(
+                                        colors: [todayColor, todayColor.opacity(0.75)],
+                                        startPoint: .leading, endPoint: .trailing
+                                    )
+                                )
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                                .shadow(color: todayColor.opacity(0.4), radius: 10, y: 4)
+                            }
+                        } else {
+                            NavigationLink(destination: SeanceView()) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "play.fill")
+                                    Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
+                                        .font(.system(size: 15, weight: .bold))
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .background(
+                                    LinearGradient(
+                                        colors: [todayColor, todayColor.opacity(0.75)],
+                                        startPoint: .leading, endPoint: .trailing
+                                    )
+                                )
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                                .shadow(color: todayColor.opacity(0.4), radius: 10, y: 4)
+                            }
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(
-                            LinearGradient(
-                                colors: [todayColor, todayColor.opacity(0.75)],
-                                startPoint: .leading, endPoint: .trailing
-                            )
-                        )
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                        .shadow(color: todayColor.opacity(0.4), radius: 10, y: 4)
                     }
                     .buttonStyle(SpringButtonStyle())
                     .padding([.horizontal, .bottom], 16)
