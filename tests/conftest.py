@@ -301,6 +301,24 @@ def make_store():
         store["weights"] = weights
         return True
 
+    def upsert_exercise_log_by_type(session_date, session_type, exercise_name, weight, reps, sets_json=None):
+        return upsert_exercise_log(session_date, exercise_name, weight, reps)
+
+    def delete_exercise_log_entry(session_date, exercise_name):
+        weights = store.get("weights", {})
+        if exercise_name not in weights:
+            return False
+        before = len(weights[exercise_name].get("history", []))
+        weights[exercise_name]["history"] = [
+            e for e in weights[exercise_name].get("history", [])
+            if e.get("date") != session_date
+        ]
+        store["weights"] = weights
+        return len(weights[exercise_name]["history"]) < before
+
+    def delete_exercise_log_entry_by_type(session_date, session_type, exercise_name):
+        return delete_exercise_log_entry(session_date, exercise_name)
+
     def delete_session_exercise_logs(session_date):
         weights = store.get("weights", {})
         for ex_data in weights.values():
@@ -566,6 +584,9 @@ def make_store():
         get_exercise_history=get_exercise_history,
         get_session_exercise_logs=get_session_exercise_logs,
         upsert_exercise_log=upsert_exercise_log,
+        upsert_exercise_log_by_type=upsert_exercise_log_by_type,
+        delete_exercise_log_entry=delete_exercise_log_entry,
+        delete_exercise_log_entry_by_type=delete_exercise_log_entry_by_type,
         delete_session_exercise_logs=delete_session_exercise_logs,
         get_body_weight_logs=get_body_weight_logs,
         upsert_body_weight=upsert_body_weight,

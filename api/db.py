@@ -1058,6 +1058,45 @@ def upsert_exercise_log(
         return False
 
 
+def upsert_exercise_log_by_type(
+    session_date: str,
+    session_type: str,
+    exercise_name: str,
+    weight: float,
+    reps: str,
+    sets_json: list | None = None,
+) -> bool:
+    """Insert/update an exercise log entry by date + session_type."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        exercise_id = get_exercise_id(exercise_name)
+        if not exercise_id:
+            logger.warning("upsert_exercise_log_by_type: exercise '%s' not found", exercise_name)
+            return False
+        session = get_workout_session_by_type(session_date, session_type)
+        if not session:
+            logger.warning("upsert_exercise_log_by_type: no session for date=%s type=%s", session_date, session_type)
+            return False
+        payload = {
+            "session_id": session["id"],
+            "exercise_id": exercise_id,
+            "weight": weight,
+            "reps": reps,
+        }
+        if sets_json is not None:
+            payload["sets_json"] = sets_json
+        resp = (
+            _client.table("exercise_logs")
+            .upsert(payload, on_conflict="session_id,exercise_id")
+            .execute()
+        )
+        return bool(resp.data)
+    except Exception as e:
+        logger.error("upsert_exercise_log_by_type error: %s", e)
+        return False
+
+
 def delete_exercise_log_entry(session_date: str, exercise_name: str) -> bool:
     """Delete a single exercise_log entry by date + exercise name."""
     if _client is None or MODE == "OFFLINE":
@@ -1077,6 +1116,28 @@ def delete_exercise_log_entry(session_date: str, exercise_name: str) -> bool:
         return True
     except Exception as e:
         logger.error("delete_exercise_log_entry error: %s", e)
+        return False
+
+
+def delete_exercise_log_entry_by_type(session_date: str, session_type: str, exercise_name: str) -> bool:
+    """Delete one exercise_log entry by date + session_type + exercise name."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        session = get_workout_session_by_type(session_date, session_type)
+        if not session:
+            return False
+        exercise_id = get_exercise_id(exercise_name)
+        if not exercise_id:
+            return False
+        _client.table("exercise_logs") \
+            .delete() \
+            .eq("session_id", session["id"]) \
+            .eq("exercise_id", exercise_id) \
+            .execute()
+        return True
+    except Exception as e:
+        logger.error("delete_exercise_log_entry_by_type error: %s", e)
         return False
 
 

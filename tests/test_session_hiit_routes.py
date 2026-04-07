@@ -141,6 +141,76 @@ class TestLogSession(BaseRouteTest):
         self.assertEqual(200, r.status_code)
 
 
+# ── /api/update_session (metadata + exercise mutations) ──────────────────────
+
+class TestUpdateSession(BaseRouteTest):
+
+    def test_update_session_adds_exercise_log(self):
+        r = self.post("/api/update_session", {
+            "date": "2026-03-10",
+            "comment": "updated",
+            "exercises": [{
+                "action": "add",
+                "exercise": "Back Squat",
+                "weight": 230.0,
+                "reps": "5,5,5,5",
+            }],
+        })
+        self.assertEqual(200, r.status_code)
+        entry = next(
+            e for e in self.store["weights"]["Back Squat"]["history"]
+            if e["date"] == "2026-03-10"
+        )
+        self.assertEqual(230.0, entry["weight"])
+        self.assertEqual("5,5,5,5", entry["reps"])
+
+    def test_update_session_updates_exercise_log(self):
+        r = self.post("/api/update_session", {
+            "date": "2026-03-10",
+            "exercises": [{
+                "action": "update",
+                "exercise": "Bench Press",
+                "weight": 192.5,
+                "reps": "6,6,6,5",
+            }],
+        })
+        self.assertEqual(200, r.status_code)
+        entry = next(
+            e for e in self.store["weights"]["Bench Press"]["history"]
+            if e["date"] == "2026-03-10"
+        )
+        self.assertEqual(192.5, entry["weight"])
+        self.assertEqual("6,6,6,5", entry["reps"])
+
+    def test_update_session_deletes_exercise_log(self):
+        r = self.post("/api/update_session", {
+            "date": "2026-03-10",
+            "exercises": [{
+                "action": "delete",
+                "exercise": "Bench Press",
+            }],
+        })
+        self.assertEqual(200, r.status_code)
+        remaining = [
+            e for e in self.store["weights"]["Bench Press"]["history"]
+            if e["date"] == "2026-03-10"
+        ]
+        self.assertEqual([], remaining)
+
+    def test_update_session_rejects_missing_weight_or_reps(self):
+        r = self.post("/api/update_session", {
+            "date": "2026-03-10",
+            "exercises": [{
+                "action": "update",
+                "exercise": "Bench Press",
+                "weight": 190.0,
+            }],
+        })
+        self.assertEqual(400, r.status_code)
+        data = self.json(r)
+        self.assertFalse(data.get("success", True))
+
+
 # ── /api/log_hiit ────────────────────────────────────────────────────────────
 
 class TestLogHiit(BaseRouteTest):

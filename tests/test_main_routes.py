@@ -220,6 +220,12 @@ def make_db_store():
         store["weights"] = weights
         return True
 
+    def upsert_exercise_log_by_type(session_date, session_type, exercise_name, weight, reps, sets_json=None):
+        return upsert_exercise_log(session_date, exercise_name, weight, reps)
+
+    def delete_exercise_log_entry_by_type(session_date, session_type, exercise_name):
+        return delete_exercise_log_entry(session_date, exercise_name)
+
     def get_full_program(program_id=None):
         return copy.deepcopy(store.get("program", {}))
 
@@ -289,11 +295,11 @@ def make_db_store():
     return store, get_json, set_json, update_json, append_json_list, \
         get_all_exercise_history, get_workout_sessions, get_workout_session, \
         get_or_create_workout_session, create_workout_session, update_workout_session, \
-        upsert_exercise_log, get_full_program, save_full_program, \
+        upsert_exercise_log, upsert_exercise_log_by_type, get_full_program, save_full_program, \
         get_relational_week_schedule, get_evening_week_schedule, \
         get_exercise_history_grouped_by_session, get_hiit_logs, \
         get_all_programs, get_default_program_id, get_all_session_names, \
-        delete_exercise_by_name, delete_exercise_log_entry, \
+        delete_exercise_by_name, delete_exercise_log_entry, delete_exercise_log_entry_by_type, \
         get_nutrition_settings, delete_program_session
 
 
@@ -309,12 +315,12 @@ class BaseRouteTest(unittest.TestCase):
          get_json, set_json, update_json, append_json_list,
          get_all_exercise_history, get_workout_sessions, get_workout_session,
          get_or_create_workout_session, create_workout_session,
-         update_workout_session, upsert_exercise_log,
+         update_workout_session, upsert_exercise_log, upsert_exercise_log_by_type,
          get_full_program, save_full_program,
          get_relational_week_schedule, get_evening_week_schedule,
          get_exercise_history_grouped_by_session, get_hiit_logs,
          get_all_programs, get_default_program_id, get_all_session_names,
-         delete_exercise_by_name, delete_exercise_log_entry,
+         delete_exercise_by_name, delete_exercise_log_entry, delete_exercise_log_entry_by_type,
          get_nutrition_settings, delete_program_session) = make_db_store()
 
         store = self.store   # capture local ref for closures
@@ -363,6 +369,7 @@ class BaseRouteTest(unittest.TestCase):
             create_workout_session=create_workout_session,
             update_workout_session=update_workout_session,
             upsert_exercise_log=upsert_exercise_log,
+            upsert_exercise_log_by_type=upsert_exercise_log_by_type,
             get_full_program=get_full_program,
             save_full_program=save_full_program,
             get_relational_week_schedule=get_relational_week_schedule,
@@ -374,6 +381,7 @@ class BaseRouteTest(unittest.TestCase):
             get_all_session_names=get_all_session_names,
             delete_exercise_by_name=delete_exercise_by_name,
             delete_exercise_log_entry=delete_exercise_log_entry,
+            delete_exercise_log_entry_by_type=delete_exercise_log_entry_by_type,
             get_nutrition_settings=get_nutrition_settings,
             delete_program_session=delete_program_session,
             get_deload_state=get_deload_state,

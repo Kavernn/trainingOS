@@ -290,7 +290,7 @@ def api_session_delete():
 
 @workout_bp.route("/api/update_session", methods=["POST"])
 def api_update_session():
-    """Patch RPE and/or comment on an existing workout session."""
+    """Patch session metadata and optionally add/update/delete exercise logs."""
     try:
         data = request.get_json() or {}
         date = data.get("date")
@@ -301,10 +301,45 @@ def api_update_session():
         if "rpe" in data:     patch["rpe"] = data["rpe"]
         if "comment" in data: patch["comment"] = data["comment"]
         import db as _db
+        exercises = data.get("exercises") or []
+        ex_errors = []
+
+        # Exercise-level mutations (optional)
+        for ex_patch in exercises:
+            ex_name = (ex_patch.get("exercise") or "").strip()
+            if not ex_name:
+                ex_errors.append("exercise missing")
+                continue
+            action = (ex_patch.get("action") or "update").lower()
+
+            if action == "delete":
+                if hasattr(_db, "delete_exercise_log_entry_by_type"):
+                    ok_ex = _db.delete_exercise_log_entry_by_type(date, session_type, ex_name)
+                else:
+                    ok_ex = _db.delete_exercise_log_entry(date, ex_name)
+            else:
+                if "weight" not in ex_patch or "reps" not in ex_patch:
+                    ex_errors.append(f"{ex_name}: weight/reps required for {action}")
+                    continue
+                weight = float(ex_patch.get("weight") or 0)
+                reps = str(ex_patch.get("reps") or "")
+                sets_json = ex_patch.get("sets")
+                if hasattr(_db, "upsert_exercise_log_by_type"):
+                    ok_ex = _db.upsert_exercise_log_by_type(
+                        date, session_type, ex_name, weight, reps, sets_json=sets_json
+                    )
+                else:
+                    ok_ex = _db.upsert_exercise_log(date, ex_name, weight, reps, sets_json=sets_json)
+
+            if not ok_ex:
+                ex_errors.append(f"{ex_name}: {action} failed")
+
         if session_type == "bonus":
             ok = _db.update_workout_session_bonus(date, patch)
         else:
             ok = _db.update_workout_session(date, patch)
+        if ex_errors:
+            return jsonify({"success": False, "metadata_updated": ok, "exercise_errors": ex_errors}), 400
         return jsonify({"success": ok})
     except Exception:
         raise
