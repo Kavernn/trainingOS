@@ -239,7 +239,6 @@ final class ExerciseViewModel: ObservableObject {
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
                 equipmentType: "bodyweight", painZone: painZone)
             logStatus = .success(0)
-            if let r = restSeconds { RestTimerManager.shared.applyAutoStart(r); showRestTimer = true }
             return result
         }
 
@@ -262,7 +261,6 @@ final class ExerciseViewModel: ObservableObject {
             sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
             equipmentType: equipmentType, painZone: painZone)
         logStatus = .success(total)
-        if let r = restSeconds { RestTimerManager.shared.applyAutoStart(r); showRestTimer = true }
         return result
     }
 }
