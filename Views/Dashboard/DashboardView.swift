@@ -843,6 +843,10 @@ struct TodayCardView: View {
         dash.sessions[dash.todayDate]
     }
 
+    private var hasPartialLogs: Bool {
+        dash.hasPartialLogs || SessionDraftStore.hasDraft(date: dash.todayDate, sessionType: "morning")
+    }
+
     var todayColor: Color {
         switch dash.today {
         case "Push A", "Push B":             return .orange
@@ -977,8 +981,8 @@ struct TodayCardView: View {
                 if dash.today == "Repos" {
                     NavigationLink(destination: BonusSeanceView()) {
                         HStack(spacing: 8) {
-                            Image(systemName: dash.hasPartialLogs ? "play.fill" : "plus.circle.fill")
-                            Text(dash.hasPartialLogs ? "Continuer la séance" : "Faire une séance")
+                            Image(systemName: hasPartialLogs ? "play.fill" : "plus.circle.fill")
+                            Text(hasPartialLogs ? "Continuer la séance" : "Faire une séance")
                                 .font(.system(size: 15, weight: .bold))
                         }
                         .frame(maxWidth: .infinity)
@@ -1000,7 +1004,7 @@ struct TodayCardView: View {
                     NavigationLink(destination: SeanceView()) {
                         HStack(spacing: 8) {
                             Image(systemName: "play.fill")
-                            Text(dash.hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
+                            Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
                                 .font(.system(size: 15, weight: .bold))
                         }
                         .frame(maxWidth: .infinity)

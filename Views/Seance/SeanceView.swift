@@ -2640,7 +2640,9 @@ struct AddHIITSheet: View {
         @Published var seanceData: SeanceData?
         @Published var isLoading = false
         @Published var error: String?
-        @Published var logResults: [String: ExerciseLogResult] = [:]
+        @Published var logResults: [String: ExerciseLogResult] = [:] {
+            didSet { persistDraftIfNeeded() }
+        }
         @Published var showSuccess = false
         @Published var submitError: String?
         @Published var isResuming = false
@@ -2682,8 +2684,24 @@ struct AddHIITSheet: View {
                     restored[exerciseName] = ExerciseLogResult(name: exerciseName, weight: w, reps: r)
                 }
             }
+            for pending in SessionDraftStore.load(date: data.todayDate, sessionType: "morning") {
+                restored[pending.name] = ExerciseLogResult(
+                    name: pending.name,
+                    weight: pending.weight,
+                    reps: pending.reps,
+                    rpe: pending.rpe,
+                    sets: [],
+                    isSecond: pending.isSecond,
+                    isBonus: pending.isBonus,
+                    equipmentType: pending.equipmentType,
+                    painZone: pending.painZone
+                )
+            }
             logResults = restored
-            if !restored.isEmpty { isResuming = true }
+            isResuming = !restored.isEmpty
+            if data.alreadyLogged {
+                SessionDraftStore.clear(date: data.todayDate, sessionType: "morning")
+            }
         }
         
         func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil) async {
@@ -2747,13 +2765,39 @@ struct AddHIITSheet: View {
             if !verified {
                 submitError = "Séance non confirmée en base — vérifie ta connexion et réessaie."
             } else if !failedExercises.isEmpty {
+                if let date = seanceData?.todayDate {
+                    SessionDraftStore.clear(date: date, sessionType: "morning")
+                }
                 commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
                 showSuccess = true
             } else {
+                if let date = seanceData?.todayDate {
+                    SessionDraftStore.clear(date: date, sessionType: "morning")
+                }
                 showSuccess = true
             }
         }
-        
+
+        private func persistDraftIfNeeded() {
+            guard let date = seanceData?.todayDate else { return }
+            if logResults.isEmpty {
+                SessionDraftStore.clear(date: date, sessionType: "morning")
+                return
+            }
+            let values = logResults.values.map {
+                PersistedExerciseLogResult(
+                    name: $0.name,
+                    weight: $0.weight,
+                    reps: $0.reps,
+                    rpe: $0.rpe,
+                    isSecond: $0.isSecond,
+                    isBonus: $0.isBonus,
+                    equipmentType: $0.equipmentType,
+                    painZone: $0.painZone
+                )
+            }
+            SessionDraftStore.save(date: date, sessionType: "morning", values: values)
+        }
     }
 
 
