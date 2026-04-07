@@ -225,6 +225,13 @@ struct HistoriqueView: View {
     }
 
     private func applyJSON(_ json: [String: Any], append: Bool) {
+        func decodeRPE(_ raw: Any?) -> Double? {
+            if let v = raw as? Double { return v }
+            if let v = raw as? Int { return Double(v) }
+            if let s = raw as? String { return Double(s) }
+            return nil
+        }
+
         if let list = json["session_list"] as? [[String: Any]] {
             let parsed = list.compactMap { d -> HistoriqueMuscu? in
                 guard let date = d["date"] as? String else { return nil }
@@ -238,7 +245,7 @@ struct HistoriqueView: View {
                 return HistoriqueMuscu(
                     date: date,
                     sessionType: d["session_type"] as? String ?? "morning",
-                    rpe: d["rpe"] as? Double,
+                    rpe: decodeRPE(d["rpe"]),
                     comment: d["comment"] as? String ?? "",
                     exos: exos
                 )
@@ -299,6 +306,7 @@ struct HistoriqueView: View {
                     exos: updatedExos.isEmpty ? muscuSessions[idx].exos : updatedExos
                 )
             }
+            CacheService.shared.clear(for: "historique_data")
             editTarget = nil
         } catch {
             apiError = "Erreur réseau — réessaie"
