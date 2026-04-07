@@ -27,6 +27,10 @@ def api_log():
         force          = bool(data.get("force", False))
         is_second      = bool(data.get("is_second", False))
         is_bonus       = bool(data.get("is_bonus", False))
+        # Allow client to explicitly route logs to a specific date/session type.
+        session_date   = data.get("session_date")
+        session_type   = (data.get("session_type") or "").strip().lower()
+        session_name   = data.get("session_name")
         equipment_type = data.get("equipment_type", "")
         pain_zone      = data.get("pain_zone", "")
 
@@ -140,10 +144,12 @@ def api_log():
         weights[exercise]["last_logged"]    = datetime.now().strftime("%Y-%m-%d %H:%M")
 
         # Ensure session stub exists; write exercise log directly by session_id
-        today = _today_mtl()
-        if is_bonus:
+        today = session_date or _today_mtl()
+        is_evening = is_second or session_type == "evening"
+        is_bonus_session = is_bonus or session_type == "bonus"
+        if is_bonus_session:
             stub = _db.get_or_create_workout_session_bonus(today)
-        elif is_second:
+        elif is_evening:
             stub = _db.get_or_create_workout_session_second(today)
         else:
             stub = _db.get_or_create_workout_session(today)
@@ -156,6 +162,14 @@ def api_log():
                 rpe=rpe,
                 pain_zone=pain_zone or None,
             )
+            # Keep the session label aligned with the logged exercise stream.
+            if session_name:
+                if is_bonus_session:
+                    _db.update_workout_session_by_type(today, "bonus", {"session_name": session_name})
+                elif is_evening:
+                    _db.update_workout_session_by_type(today, "evening", {"session_name": session_name})
+                else:
+                    _db.update_workout_session_by_type(today, "morning", {"session_name": session_name})
         # Keep exercises.current_weight in sync (bodyweight skipped — weight=0)
         if not (equipment_type == "bodyweight" and weight == 0):
             _db.update_exercise_current_weight(exercise, round(new_w, 1))
