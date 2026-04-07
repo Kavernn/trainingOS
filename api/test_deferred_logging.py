@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import db as _db            # picks up OFFLINE + TEMP_DB before any connect
 from weights import load_weights, save_weights
+from sessions import load_sessions, save_sessions
 
 # ── Flask test client ──────────────────────────────────────────────────────
 import index as _idx        # noqa: E402  (side-effects: registers routes)
@@ -58,9 +59,9 @@ def _reset_kv(exercises: list[str]):
             w[ex]["history"] = [h for h in w[ex].get("history", []) if h.get("date") != TODAY]
     save_weights(w)
     # Also reset session state so each scenario gets a clean slate
-    sessions = _db.get_json("sessions", {})
+    sessions = load_sessions()
     sessions.pop(TODAY, None)
-    _db.set_json("sessions", sessions)
+    save_sessions(sessions)
 
 
 def _post_log(exercise: str, weight: float = 100.0, reps: str = "3,3,3",

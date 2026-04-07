@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
     session_name    TEXT,                          -- e.g. "Push A", "Pull B", "Recovery"
     is_second       BOOLEAN     DEFAULT FALSE,
     session_type    TEXT        NOT NULL DEFAULT 'morning',
+    completed       BOOLEAN     NOT NULL DEFAULT FALSE,
     logged_at       TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE (date, session_type)
 );

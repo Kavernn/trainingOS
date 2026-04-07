@@ -379,11 +379,11 @@ def get_workout_session(date: str) -> Optional[dict]:
             _client.table("workout_sessions")
             .select("*")
             .eq("date", date)
-            .eq("is_second", False)
-            .single()
+            .eq("session_type", "morning")
+            .limit(1)
             .execute()
         )
-        return resp.data
+        return resp.data[0] if resp.data else None
     except Exception as e:
         logger.debug("get_workout_session(%s) error: %s", date, e)
         return None
@@ -464,7 +464,8 @@ def create_workout_session(
     """Insert a new workout session row. Returns the created record."""
     payload: dict = {"date": date, "is_second": is_second, "session_type": session_type}
     if rpe is not None:
-        payload["rpe"] = int(float(rpe))
+        # Keep decimal precision (NUMERIC(4,1) in DB schema).
+        payload["rpe"] = round(float(rpe), 1)
     if duration_min is not None:
         payload["duration_min"] = int(float(duration_min))
     if energy_pre is not None:
@@ -494,7 +495,7 @@ def complete_workout_session(date: str) -> bool:
             _client.table("workout_sessions")
             .update({"completed": True})
             .eq("date", date)
-            .eq("is_second", False)
+            .eq("session_type", "morning")
             .execute()
         )
         return bool(resp.data)
@@ -693,11 +694,8 @@ def normalize_patch(patch: dict) -> dict:
     return cleaned
 
 
-INT_FIELDS = {
-    "rpe",
-    "duration_min",
-    "energy_pre",
-}
+INT_FIELDS = {"duration_min", "energy_pre"}
+DECIMAL_FIELDS = {"rpe"}
 
 def update_workout_session(date: str, patch: dict) -> bool:
     """Update fields on a workout session by date. Returns True on success."""
@@ -712,6 +710,8 @@ def update_workout_session(date: str, patch: dict) -> bool:
                 cleaned[k] = None
             elif k in INT_FIELDS:
                 cleaned[k] = int(float(v))
+            elif k in DECIMAL_FIELDS:
+                cleaned[k] = round(float(v), 1)
             else:
                 cleaned[k] = v
 
@@ -719,7 +719,7 @@ def update_workout_session(date: str, patch: dict) -> bool:
             _client.table("workout_sessions")
             .update(cleaned)
             .eq("date", date)
-            .eq("is_second", False)
+            .eq("session_type", "morning")
             .execute()
         )
 

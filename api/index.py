@@ -67,6 +67,9 @@ _API_KEY = os.getenv("TRAININGOS_API_KEY", "")
 @app.before_request
 def _require_api_key():
     from flask import request
+    # Explicit local/test bypass to keep unit tests independent from env secrets.
+    if app.config.get("TESTING"):
+        return
     # Skip auth when key not configured (local dev without env var)
     if not _API_KEY:
         return

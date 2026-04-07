@@ -171,10 +171,23 @@ def make_db_store():
         store["sessions"] = sessions
         return {**entry, "date": date}
 
-    def create_workout_session(date, rpe=None, comment=None, duration_min=None, energy_pre=None, is_second=False):
+    def create_workout_session(
+        date,
+        rpe=None,
+        comment=None,
+        duration_min=None,
+        energy_pre=None,
+        is_second=False,
+        session_type="morning",
+        session_name=None,
+    ):
         sessions = store.get("sessions", {})
         key = date if not is_second else f"{date}_2"
         entry = {"rpe": rpe, "comment": comment or "", "exos": [], "id": key}
+        if session_type is not None:
+            entry["session_type"] = session_type
+        if session_name is not None:
+            entry["session_name"] = session_name
         sessions[key] = entry
         store["sessions"] = sessions
         return {**entry, "date": date}
@@ -506,8 +519,7 @@ class TestApiLog(BaseRouteTest):
         """Logging the same exercise twice the same day returns already_logged."""
         # The guard checks _today_mtl() against history[0]["date"].
         # Bench Press history[0] is "2026-03-10", so mock _today_mtl to that date.
-        import index as idx
-        with patch.object(idx, "_today_mtl", return_value="2026-03-10"):
+        with patch("utils._today_mtl", return_value="2026-03-10"):
             r = self.post("/api/log", self._log_payload())
             data = json.loads(r.data)
             self.assertEqual(409, r.status_code)

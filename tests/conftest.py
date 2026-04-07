@@ -198,10 +198,23 @@ def make_store():
             return entry
         return None
 
-    def create_workout_session(date, rpe=None, comment=None, duration_min=None, energy_pre=None, is_second=False):
+    def create_workout_session(
+        date,
+        rpe=None,
+        comment=None,
+        duration_min=None,
+        energy_pre=None,
+        is_second=False,
+        session_type="morning",
+        session_name=None,
+    ):
         sessions = store.get("sessions", {})
         key = date if not is_second else f"{date}_2"
         entry = {"rpe": rpe, "comment": comment or "", "exos": []}
+        if session_type is not None:
+            entry["session_type"] = session_type
+        if session_name is not None:
+            entry["session_name"] = session_name
         if duration_min is not None:
             entry["duration_min"] = duration_min
         sessions[key] = entry
