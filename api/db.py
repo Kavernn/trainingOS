@@ -813,6 +813,59 @@ def get_all_exercise_history() -> dict:
         return {}
 
 
+def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) -> dict:
+    """Return {exercise_name: [{date, weight, reps, sets_json}]} for a subset of exercises.
+
+    This is a performance-critical helper for /api/seance_data: we only need
+    today's exercises, not the full training history for every exercise.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return {}
+    names = [n for n in exercise_names if isinstance(n, str) and n.strip()]
+    if not names:
+        return {}
+    try:
+        ex_rows = (
+            _client.table("exercises")
+            .select("id,name")
+            .in_("name", names)
+            .execute()
+        ).data or []
+        id_to_name = {r["id"]: r["name"] for r in ex_rows if r.get("id") and r.get("name")}
+        ex_ids = list(id_to_name.keys())
+        if not ex_ids:
+            return {}
+
+        resp = (
+            _client.table("exercise_logs")
+            .select("exercise_id, weight, reps, sets_json, workout_sessions(date)")
+            .in_("exercise_id", ex_ids)
+            .order("workout_sessions(date)", desc=True)
+            .execute()
+        )
+        rows = resp.data or []
+        result: dict[str, list[dict]] = {id_to_name[i]: [] for i in ex_ids if i in id_to_name}
+        for r in rows:
+            ex_id = r.get("exercise_id")
+            name = id_to_name.get(ex_id)
+            if not name:
+                continue
+            d = (r.get("workout_sessions") or {}).get("date")
+            if not d:
+                continue
+            lst = result.setdefault(name, [])
+            if len(lst) >= limit_per:
+                continue
+            entry = {"date": d, "weight": r.get("weight"), "reps": r.get("reps")}
+            if r.get("sets_json"):
+                entry["sets"] = r.get("sets_json")
+            lst.append(entry)
+        return result
+    except Exception as e:
+        logger.error("get_exercise_history_bulk error: %s", e)
+        return {}
+
+
 def get_session_exercise_logs(session_date: str) -> List[dict]:
     """Return [{exercise_name, weight, reps}] for a given session date."""
     if _client is None or MODE == "OFFLINE":

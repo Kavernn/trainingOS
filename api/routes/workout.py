@@ -783,7 +783,6 @@ def api_seance_data():
     from deload import get_cached_fatigue_score
     from utils import _parse_scheme, get_current_week, load_hiit_log_local
 
-    weights      = load_weights()
     sessions     = load_sessions()
     full_program = load_program()
     hiit_log     = load_hiit_log_local()
@@ -791,7 +790,6 @@ def api_seance_data():
     today_str  = get_today()
     today_date = get_today_date()
     schedule   = get_week_schedule()
-    suggestions = get_suggested_weights_for_today(weights, full_program)
 
     already_logged = today_date in sessions
 
@@ -800,6 +798,11 @@ def api_seance_data():
         seance: get_strength_exercises(session_def)
         for seance, session_def in full_program.items()
     }
+
+    # PERF: load weights only for today's exercises (payload + query time)
+    today_exercises = list((flat_program.get(today_str) or {}).keys())
+    weights = load_weights(today_exercises, limit_per=20)
+    suggestions = get_suggested_weights_for_today(weights, full_program)
 
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
@@ -828,7 +831,6 @@ def api_seance_data():
     import smart_progression as _sp
     exercise_suggestions = {}
     if not already_logged:
-        today_exercises = flat_program.get(today_str, {})
         for ex_name in today_exercises:
             s = _sp.generate_exercise_suggestion(ex_name)
             if s:

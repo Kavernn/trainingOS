@@ -1,9 +1,11 @@
 import json, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-os.environ["SUPABASE_URL"]      = "https://ltlvnkawosvqyrsxbecp.supabase.co"
-os.environ["SUPABASE_ANON_KEY"] = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0bHZua2F3b3N2cXlyc3hiZWNwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MzI4NDksImV4cCI6MjA4ODMwODg0OX0.mJo8ZJPQnDD1NYHFNgFSD_Y3uC_Q8vexRP8b0iBsfRM"
-os.environ["APP_DATA_MODE"]     = "ONLINE"
+# Requires env vars:
+#   SUPABASE_URL
+#   SUPABASE_ANON_KEY
+#   APP_DATA_MODE=ONLINE
+# Never hardcode keys in the repo.
 
 from db import set_json
 

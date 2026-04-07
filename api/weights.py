@@ -38,13 +38,16 @@ def _calc_1rm(weight, reps_str):
         return 0
 
 
-def load_weights() -> dict:
+def load_weights(exercise_names: list[str] | None = None, limit_per: int = 20) -> dict:
     """
     Build the old weights dict from exercise_logs in a single bulk query.
     Returns {} if no history found (new user or empty DB).
     """
     try:
-        all_history = db.get_all_exercise_history()
+        if exercise_names:
+            all_history = db.get_exercise_history_bulk(exercise_names, limit_per=limit_per)
+        else:
+            all_history = db.get_all_exercise_history()
         if not isinstance(all_history, dict):
             return {}
 
