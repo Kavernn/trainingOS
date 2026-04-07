@@ -28,7 +28,7 @@ def api_log():
         is_second      = bool(data.get("is_second", False))
         is_bonus       = bool(data.get("is_bonus", False))
         # Allow client to explicitly route logs to a specific date/session type.
-        session_date   = data.get("session_date")
+        session_date   = data.get("session_date") or data.get("date")
         session_type   = (data.get("session_type") or "").strip().lower()
         session_name   = data.get("session_name")
         equipment_type = data.get("equipment_type", "")

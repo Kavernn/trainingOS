@@ -297,6 +297,24 @@ def get_exercise_id(name: str) -> Optional[str]:
         return None  # fallback to KV during migration
 
 
+def get_or_create_exercise_id(name: str) -> Optional[str]:
+    """Return exercise UUID; create a minimal exercise row when missing."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    clean_name = (name or "").strip()
+    if not clean_name:
+        return None
+    existing_id = get_exercise_id(clean_name)
+    if existing_id:
+        return existing_id
+    try:
+        created = upsert_exercise({"name": clean_name})
+        return created.get("id") if isinstance(created, dict) else None
+    except Exception as e:
+        logger.error("get_or_create_exercise_id(%s) error: %s", clean_name, e)
+        return None
+
+
 def upsert_exercise(data: dict) -> dict:
     """Insert or update an exercise by name. data must include 'name'. Returns saved record."""
     if _client is None or MODE == "OFFLINE":
@@ -583,9 +601,9 @@ def upsert_exercise_log_direct(
     if _client is None or MODE == "OFFLINE":
         return False
     try:
-        exercise_id = get_exercise_id(exercise_name)
+        exercise_id = get_or_create_exercise_id(exercise_name)
         if not exercise_id:
-            logger.warning("upsert_exercise_log_direct: exercise '%s' not found", exercise_name)
+            logger.warning("upsert_exercise_log_direct: exercise '%s' unavailable", exercise_name)
             return False
         payload = {
             "session_id": session_id,
@@ -1083,9 +1101,9 @@ def upsert_exercise_log(
     if _client is None or MODE == "OFFLINE":
         return False
     try:
-        exercise_id = get_exercise_id(exercise_name)
+        exercise_id = get_or_create_exercise_id(exercise_name)
         if not exercise_id:
-            logger.warning("upsert_exercise_log: exercise '%s' not found", exercise_name)
+            logger.warning("upsert_exercise_log: exercise '%s' unavailable", exercise_name)
             return False
         session = get_workout_session(session_date)
         if not session:
@@ -1123,9 +1141,9 @@ def upsert_exercise_log_by_type(
     if _client is None or MODE == "OFFLINE":
         return False
     try:
-        exercise_id = get_exercise_id(exercise_name)
+        exercise_id = get_or_create_exercise_id(exercise_name)
         if not exercise_id:
-            logger.warning("upsert_exercise_log_by_type: exercise '%s' not found", exercise_name)
+            logger.warning("upsert_exercise_log_by_type: exercise '%s' unavailable", exercise_name)
             return False
         session = get_workout_session_by_type(session_date, session_type)
         if not session:
