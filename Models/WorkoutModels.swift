@@ -326,6 +326,27 @@ struct WeightHistoryEntry: Codable {
             case totalWeight = "total_weight"
             case setVolume   = "set_volume"
         }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            weight = (try? c.decode(Double.self, forKey: .weight))
+                ?? Double(try c.decode(Int.self, forKey: .weight))
+            if let r = try? c.decode(String.self, forKey: .reps) {
+                reps = r
+            } else if let r = try? c.decode(Int.self, forKey: .reps) {
+                reps = String(r)
+            } else if let r = try? c.decode(Double.self, forKey: .reps) {
+                reps = String(Int(r))
+            } else {
+                reps = ""
+            }
+            totalWeight = (try? c.decode(Double.self, forKey: .totalWeight))
+                ?? (try? c.decode(Int.self, forKey: .totalWeight)).map(Double.init)
+            setVolume = (try? c.decode(Double.self, forKey: .setVolume))
+                ?? (try? c.decode(Int.self, forKey: .setVolume)).map(Double.init)
+            rir = (try? c.decode(Int.self, forKey: .rir))
+                ?? (try? c.decode(Double.self, forKey: .rir)).map(Int.init)
+        }
     }
 
     enum CodingKeys: String, CodingKey {
