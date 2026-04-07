@@ -99,7 +99,7 @@ struct SessionEntry: Codable {
         func decodeInt(_ key: CodingKeys) -> Int? {
             if let v = try? c.decode(Int.self, forKey: key) { return v }
             if let v = try? c.decode(Double.self, forKey: key) { return Int(v) }
-            if let s = try? c.decode(String.self, forKey: key), let v = Int(Double(s)) { return v }
+            if let s = try? c.decode(String.self, forKey: key), let d = Double(s) { return Int(d) }
             return nil
         }
 
