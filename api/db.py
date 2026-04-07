@@ -464,13 +464,14 @@ def create_workout_session(
     """Insert a new workout session row. Returns the created record."""
     payload: dict = {"date": date, "is_second": is_second, "session_type": session_type}
     if rpe is not None:
-        payload["rpe"] = int(round(float(rpe)))
+        payload["rpe"] = int(float(rpe))
+    if duration_min is not None:
+        payload["duration_min"] = int(float(duration_min))
+    if energy_pre is not None:
+         payload["energy_pre"] = int(float(energy_pre))
+    
     if comment is not None:
         payload["comment"] = comment
-    if duration_min is not None:
-        payload["duration_min"] = int(duration_min)
-    if energy_pre is not None:
-        payload["energy_pre"] = int(energy_pre)
     if session_name is not None:
         payload["session_name"] = session_name
 
@@ -667,21 +668,63 @@ def update_workout_session_by_type(date: str, session_type: str, patch: dict) ->
     except Exception as e:
         logger.error("update_workout_session_by_type(%s,%s) error: %s", date, session_type, e)
         return False
+def normalize_patch(patch: dict) -> dict:
+    cleaned = {}
+    for k, v in patch.items():
+        if v is None:
+            cleaned[k] = None
+        elif isinstance(v, bool):
+            cleaned[k] = v
+        elif isinstance(v, (int,)):
+            cleaned[k] = v
+        elif isinstance(v, float):
+            cleaned[k] = int(v)  # ou round(v)
+        elif isinstance(v, str):
+            # tente conversion si c'est un nombre
+            try:
+                if "." in v:
+                    cleaned[k] = int(float(v))
+                else:
+                    cleaned[k] = int(v)
+            except:
+                cleaned[k] = v
+        else:
+            cleaned[k] = v
+    return cleaned
 
+
+INT_FIELDS = {
+    "rpe",
+    "duration_min",
+    "energy_pre",
+}
 
 def update_workout_session(date: str, patch: dict) -> bool:
     """Update fields on a workout session by date. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
+
     try:
+        cleaned = {}
+
+        for k, v in patch.items():
+            if v is None:
+                cleaned[k] = None
+            elif k in INT_FIELDS:
+                cleaned[k] = int(float(v))
+            else:
+                cleaned[k] = v
+
         resp = (
             _client.table("workout_sessions")
-            .update(patch)
+            .update(cleaned)
             .eq("date", date)
             .eq("is_second", False)
             .execute()
         )
+
         return bool(resp.data)
+
     except Exception as e:
         logger.error("update_workout_session error: %s", e)
         return False
