@@ -2688,6 +2688,13 @@ struct AddHIITSheet: View {
         
         func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil) async {
             let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
+            let exerciseLogs: [[String: Any]] = logResults.values.map {
+                [
+                    "exercise": $0.name,
+                    "weight": $0.weight,
+                    "reps": $0.reps,
+                ]
+            }
             var failedExercises: [String] = []
 
             // 1. Batch-commit all exercise logs
@@ -2718,7 +2725,8 @@ struct AddHIITSheet: View {
             do {
                 try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
                                                        durationMin: durationMin, energyPre: energyPre,
-                                                       sessionName: sessionName)
+                                                       sessionName: sessionName,
+                                                       exerciseLogs: exerciseLogs)
             } catch {
                 submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
                 await APIService.shared.fetchDashboard()

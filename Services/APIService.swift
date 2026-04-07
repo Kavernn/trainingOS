@@ -191,13 +191,15 @@ class APIService: ObservableObject {
     func logSession(exos: [String], rpe: Double, comment: String,
                     durationMin: Double? = nil, energyPre: Int? = nil,
                     secondSession: Bool = false, bonusSession: Bool = false,
-                    sessionName: String? = nil) async throws {
+                    sessionName: String? = nil,
+                    exerciseLogs: [[String: Any]] = []) async throws {
         var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment]
         if let d = durationMin  { body["duration_min"] = d }
         if let e = energyPre    { body["energy_pre"] = e }
         if secondSession        { body["second_session"] = true }
         if bonusSession         { body["bonus_session"] = true }
         if let n = sessionName, !n.isEmpty { body["session_name"] = n }
+        if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
         let sessionData = try await offlinePost(endpoint: "/api/log_session", payload: body)
         if !sessionData.isEmpty {  // data vide = queued offline, conserver le cache existant
             CacheService.shared.clear(for: "dashboard")

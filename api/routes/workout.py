@@ -375,6 +375,7 @@ def api_log_session():
         rpe            = data.get("rpe")
         comment        = data.get("comment", "")
         exos           = data.get("exos", [])
+        exercise_logs  = data.get("exercise_logs", [])
         blocks         = data.get("blocks")
         second_session = data.get("second_session", False)
         bonus_session  = data.get("bonus_session", False)
@@ -433,7 +434,22 @@ def api_log_session():
         else:
             sid = (_db.get_or_create_workout_session(today) or {}).get("id")
 
-        if sid and isinstance(exos, list):
+        if sid and isinstance(exercise_logs, list) and exercise_logs:
+            for row in exercise_logs:
+                if not isinstance(row, dict):
+                    continue
+                ex_name = str(row.get("exercise", "")).strip()
+                ex_reps = str(row.get("reps", "")).strip()
+                try:
+                    ex_weight = float(row.get("weight", 0) or 0)
+                except Exception:
+                    ex_weight = 0.0
+                if not ex_name or not ex_reps:
+                    continue
+                _db.upsert_exercise_log_direct(
+                    sid, ex_name, ex_weight, ex_reps
+                )
+        elif sid and isinstance(exos, list):
             for raw_exo in exos:
                 parsed = _parse_exo_summary(str(raw_exo))
                 if not parsed:
