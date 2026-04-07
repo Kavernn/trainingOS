@@ -83,6 +83,33 @@ struct SessionEntry: Codable {
         case totalReps     = "total_reps"
         case totalSets     = "total_sets"
     }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        exos = try? c.decode([String].self, forKey: .exos)
+        comment = try? c.decode(String.self, forKey: .comment)
+        loggedAt = try? c.decode(String.self, forKey: .loggedAt)
+
+        func decodeDouble(_ key: CodingKeys) -> Double? {
+            if let v = try? c.decode(Double.self, forKey: key) { return v }
+            if let v = try? c.decode(Int.self, forKey: key) { return Double(v) }
+            if let s = try? c.decode(String.self, forKey: key) { return Double(s) }
+            return nil
+        }
+        func decodeInt(_ key: CodingKeys) -> Int? {
+            if let v = try? c.decode(Int.self, forKey: key) { return v }
+            if let v = try? c.decode(Double.self, forKey: key) { return Int(v) }
+            if let s = try? c.decode(String.self, forKey: key), let v = Int(Double(s)) { return v }
+            return nil
+        }
+
+        rpe = decodeDouble(.rpe)
+        durationMin = decodeDouble(.durationMin)
+        sessionVolume = decodeDouble(.sessionVolume)
+        energyPre = decodeInt(.energyPre)
+        totalReps = decodeInt(.totalReps)
+        totalSets = decodeInt(.totalSets)
+    }
 }
 
 struct GoalProgress: Codable {
