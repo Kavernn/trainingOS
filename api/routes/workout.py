@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime
+import re
 
 workout_bp = Blueprint("workout", __name__)
 
@@ -403,6 +404,44 @@ def api_log_session():
             log_session(today, rpe, comment, exos, duration_min, energy_pre,
                         blocks=blocks, **vol_stats, session_name=session_name)
             _db.complete_workout_session(today)
+
+        # Fallback persistence path:
+        # iOS sends `exos` as summary strings (e.g. "Bench Press 185.0lbs 5,5,5").
+        # If per-exercise /api/log calls were skipped or failed, persist those rows now
+        # so Historique still shows exercises for the session.
+        def _parse_exo_summary(raw: str):
+            text = (raw or "").strip()
+            if not text:
+                return None
+            m = re.match(r"^(?P<name>.+?)\s+(?P<weight>-?\d+(?:\.\d+)?)lbs\s+(?P<reps>.+)$", text)
+            if not m:
+                return None
+            try:
+                return (
+                    m.group("name").strip(),
+                    float(m.group("weight")),
+                    m.group("reps").strip(),
+                )
+            except Exception:
+                return None
+
+        sid = None
+        if bonus_session:
+            sid = (_db.get_or_create_workout_session_bonus(today) or {}).get("id")
+        elif second_session:
+            sid = (_db.get_or_create_workout_session_second(today) or {}).get("id")
+        else:
+            sid = (_db.get_or_create_workout_session(today) or {}).get("id")
+
+        if sid and isinstance(exos, list):
+            for raw_exo in exos:
+                parsed = _parse_exo_summary(str(raw_exo))
+                if not parsed:
+                    continue
+                ex_name, ex_weight, ex_reps = parsed
+                _db.upsert_exercise_log_direct(
+                    sid, ex_name, ex_weight, ex_reps
+                )
 
         return jsonify({"success": True})
     except Exception:
