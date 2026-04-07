@@ -330,7 +330,8 @@ struct WeightHistoryEntry: Codable {
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             weight = (try? c.decode(Double.self, forKey: .weight))
-                ?? Double(try c.decode(Int.self, forKey: .weight))
+                ?? (try? c.decode(Int.self, forKey: .weight)).map(Double.init)
+                ?? 0
             if let r = try? c.decode(String.self, forKey: .reps) {
                 reps = r
             } else if let r = try? c.decode(Int.self, forKey: .reps) {
