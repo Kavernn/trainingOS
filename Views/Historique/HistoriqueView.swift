@@ -160,12 +160,12 @@ struct HistoriqueView: View {
         .task { await loadData() }
         .sheet(item: $editTarget) { session in
             EditSessionSheet(session: session) { date, rpe, comment, exos in
-                Task { await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType, exos: exos) }
+                await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType, exos: exos)
             }
         }
         .sheet(item: $editHIITTarget) { session in
             EditHIITSheet(session: session) { rpe, rounds, notes in
-                Task { await saveHIITEdit(session: session, rpe: rpe, rounds: rounds, notes: notes) }
+                await saveHIITEdit(session: session, rpe: rpe, rounds: rounds, notes: notes)
             }
         }
         .sheet(isPresented: $showMonthPicker) {
@@ -212,7 +212,8 @@ struct HistoriqueView: View {
         guard hasMore, !isLoadingMore else { return }
         isLoadingMore = true
         let newOffset = currentOffset + pageSize
-        let urlStr = "https://training-os-rho.vercel.app/api/historique_data?limit=\(pageSize)&offset=\(newOffset)"
+        var urlStr = "https://training-os-rho.vercel.app/api/historique_data?limit=\(pageSize)&offset=\(newOffset)"
+        if let m = monthFilter { urlStr += "&month=\(m)" }
         var req = URLRequest(url: URL(string: urlStr)!)
         req.timeoutInterval = 15
         if let (data, _) = try? await URLSession.authed.data(for: req),
@@ -286,7 +287,7 @@ struct HistoriqueView: View {
         }
     }
 
-    private func saveEdit(date: String, rpe: Double?, comment: String, sessionType: String = "morning", exos: [EditableExo]) async {
+    private func saveEdit(date: String, rpe: Double?, comment: String, sessionType: String = "morning", exos: [EditableExo]) async -> Bool {
         let exoPayload: [[String: Any]] = exos.compactMap { e in
             guard let w = Double(e.weightStr.replacingOccurrences(of: ",", with: ".")) else { return nil }
             return ["exercise": e.exercise, "weight": UnitSettings.shared.toStorage(w), "reps": e.reps]
@@ -308,8 +309,10 @@ struct HistoriqueView: View {
             }
             CacheService.shared.clear(for: "historique_data")
             editTarget = nil
+            return true
         } catch {
             apiError = "Erreur réseau — réessaie"
+            return false
         }
     }
 
@@ -326,8 +329,8 @@ struct HistoriqueView: View {
         }
     }
 
-    private func saveHIITEdit(session: HIITEntry, rpe: Double, rounds: Int, notes: String) async {
-        guard let date = session.date, let type = session.sessionType else { return }
+    private func saveHIITEdit(session: HIITEntry, rpe: Double, rounds: Int, notes: String) async -> Bool {
+        guard let date = session.date, let type = session.sessionType else { return false }
         do {
             let body: [String: Any] = ["date": date, "session_type": type,
                                        "rpe": rpe, "rounds": rounds, "notes": notes]
@@ -341,8 +344,10 @@ struct HistoriqueView: View {
             }
             editHIITTarget = nil
             CacheService.shared.clear(for: "historique_data")
+            return true
         } catch {
             apiError = "Erreur réseau — réessaie"
+            return false
         }
     }
 
@@ -743,14 +748,14 @@ struct EditSessionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var units = UnitSettings.shared
     let session: HistoriqueMuscu
-    let onSave: (String, Double?, String, [EditableExo]) -> Void
+    let onSave: (String, Double?, String, [EditableExo]) async -> Bool
 
     @State private var rpe: Double
     @State private var comment: String
     @State private var exos: [EditableExo]
     @State private var isSaving = false
 
-    init(session: HistoriqueMuscu, onSave: @escaping (String, Double?, String, [EditableExo]) -> Void) {
+    init(session: HistoriqueMuscu, onSave: @escaping (String, Double?, String, [EditableExo]) async -> Bool) {
         self.session = session
         self.onSave = onSave
         _rpe = State(initialValue: session.rpe ?? 7.0)
@@ -845,7 +850,10 @@ struct EditSessionSheet: View {
 
                         Button {
                             isSaving = true
-                            onSave(session.date, rpe, comment, exos)
+                            Task {
+                                let ok = await onSave(session.date, rpe, comment, exos)
+                                if !ok { isSaving = false }
+                            }
                         } label: {
                             HStack {
                                 if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
@@ -879,14 +887,14 @@ struct EditSessionSheet: View {
 // MARK: - Edit HIIT Sheet
 struct EditHIITSheet: View {
     let session: HIITEntry
-    let onSave: (Double, Int, String) -> Void
+    let onSave: (Double, Int, String) async -> Bool
     @Environment(\.dismiss) private var dismiss
     @State private var rpe: Double
     @State private var rounds: Int
     @State private var notes: String
     @State private var isSaving = false
 
-    init(session: HIITEntry, onSave: @escaping (Double, Int, String) -> Void) {
+    init(session: HIITEntry, onSave: @escaping (Double, Int, String) async -> Bool) {
         self.session = session
         self.onSave = onSave
         _rpe = State(initialValue: session.rpe ?? 7)
@@ -925,7 +933,10 @@ struct EditHIITSheet: View {
 
                         Button {
                             isSaving = true
-                            onSave(rpe, rounds, notes)
+                            Task {
+                                let ok = await onSave(rpe, rounds, notes)
+                                if !ok { isSaving = false }
+                            }
                         } label: {
                             HStack {
                                 if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }

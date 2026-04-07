@@ -2,7 +2,11 @@ import SwiftUI
 
 // MARK: - ViewModel
 class BonusSeanceViewModel: SeanceViewModel {
-    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil) async {
+    override init(draftSessionType: String = "bonus") {
+        super.init(draftSessionType: draftSessionType)
+    }
+
+    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = true) async {
         let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
         do {
             try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
@@ -179,7 +183,10 @@ struct BonusSeanceView: View {
         .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
             Button("OK") { Task { await vm.load() } }
         }
-        .alert("Erreur", isPresented: .constant(vm.submitError != nil)) {
+        .alert("Erreur", isPresented: Binding(
+            get: { vm.submitError != nil },
+            set: { if !$0 { vm.submitError = nil } }
+        )) {
             Button("OK") { vm.submitError = nil }
         } message: {
             Text(vm.submitError ?? "")

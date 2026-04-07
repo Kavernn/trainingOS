@@ -372,7 +372,7 @@ struct AlreadyLoggedSeanceView: View {
 // MARK: - Extra Session Sheet
 struct ExtraSessionSheet: View {
     let data: SeanceData
-    @StateObject private var extraVM = SeanceViewModel()
+    @StateObject private var extraVM = SeanceViewModel(draftSessionType: "bonus")
     @Environment(\.dismiss) private var dismiss
     @State private var showExitAlert = false
     @State private var showFinishFromExit = false
@@ -387,7 +387,7 @@ struct ExtraSessionSheet: View {
                     if data.today == "Yoga / Tai Chi" || data.today == "Recovery" {
                         SpecialSeanceView(sessionType: data.today, vm: extraVM)
                     } else {
-                        WorkoutSeanceView(data: data, vm: extraVM)
+                        WorkoutSeanceView(data: data, vm: extraVM, isBonusSession: true)
                     }
                 }
             }
@@ -424,7 +424,7 @@ struct ExtraSessionSheet: View {
                     comment: $exitComment,
                     onSubmit: { energy in
                         let dur = Date().timeIntervalSince(extraVM.sessionStart) / 60
-                        Task { await extraVM.finish(rpe: exitRpe, comment: exitComment, durationMin: dur, energyPre: energy) }
+                        Task { await extraVM.finish(rpe: exitRpe, comment: exitComment, durationMin: dur, energyPre: energy, bonusSession: true) }
                     }
                 )
             }
@@ -619,6 +619,7 @@ struct WorkoutSeanceView: View {
     let data: SeanceData
     @ObservedObject var vm: SeanceViewModel
     var isSecondSession: Bool = false
+    var isBonusSession: Bool = false
     @State private var rpe: Double = 7
     @State private var comment = ""
     @State private var showFinish = false
@@ -806,7 +807,7 @@ struct WorkoutSeanceView: View {
             trackingType: trackingType(for: name),
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             isSecondSession: isSecondSession,
-            isBonusSession: false,
+            isBonusSession: isBonusSession,
             restSeconds: restSeconds(for: name),
             prescription: data.prescriptions?[name],
             suggestion: data.exerciseSuggestions?[name],
@@ -1105,7 +1106,7 @@ struct WorkoutSeanceView: View {
                 preEnergy: energyPre,
                 onSubmit: { _ in
                     let dur = Date().timeIntervalSince(vm.sessionStart) / 60
-                    Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energyPre, sessionName: data.today) }
+                    Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energyPre, sessionName: data.today, bonusSession: isBonusSession) }
                 }
             )
             .presentationDetents([.medium, .large])
@@ -1137,12 +1138,18 @@ struct WorkoutSeanceView: View {
                 Task { await vm.load() }
             }
         }
-        .alert("Erreur", isPresented: .constant(vm.submitError != nil)) {
+        .alert("Erreur", isPresented: Binding(
+            get: { vm.submitError != nil },
+            set: { if !$0 { vm.submitError = nil } }
+        )) {
             Button("OK") { vm.submitError = nil }
         } message: {
             Text(vm.submitError ?? "")
         }
-        .alert("Séance enregistrée ⚠️", isPresented: .constant(vm.commitWarning != nil)) {
+        .alert("Séance enregistrée ⚠️", isPresented: Binding(
+            get: { vm.commitWarning != nil },
+            set: { if !$0 { vm.commitWarning = nil } }
+        )) {
             Button("OK") { vm.commitWarning = nil }
         } message: {
             Text(vm.commitWarning ?? "")
@@ -2649,8 +2656,13 @@ struct AddHIITSheet: View {
         @Published var commitWarning: String?
 
         let sessionStart = Date()
+        var draftSessionType: String
 
         var cacheService: CacheService = .shared
+
+        init(draftSessionType: String = "morning") {
+            self.draftSessionType = draftSessionType
+        }
 
         func load() async {
             // Show cached data immediately so the view is usable before network
@@ -2684,7 +2696,7 @@ struct AddHIITSheet: View {
                     restored[exerciseName] = ExerciseLogResult(name: exerciseName, weight: w, reps: r)
                 }
             }
-            for pending in SessionDraftStore.load(date: data.todayDate, sessionType: "morning") {
+            for pending in SessionDraftStore.load(date: data.todayDate, sessionType: draftSessionType) {
                 restored[pending.name] = ExerciseLogResult(
                     name: pending.name,
                     weight: pending.weight,
@@ -2700,11 +2712,11 @@ struct AddHIITSheet: View {
             logResults = restored
             isResuming = !restored.isEmpty
             if data.alreadyLogged {
-                SessionDraftStore.clear(date: data.todayDate, sessionType: "morning")
+                SessionDraftStore.clear(date: data.todayDate, sessionType: draftSessionType)
             }
         }
         
-        func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil) async {
+        func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false) async {
             let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
             let exerciseLogs: [[String: Any]] = logResults.values.map {
                 [
@@ -2743,7 +2755,7 @@ struct AddHIITSheet: View {
             do {
                 try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
                                                        durationMin: durationMin, energyPre: energyPre,
-                                                       sessionName: sessionName,
+                                                       bonusSession: bonusSession, sessionName: sessionName,
                                                        exerciseLogs: exerciseLogs)
             } catch {
                 submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
@@ -2766,13 +2778,13 @@ struct AddHIITSheet: View {
                 submitError = "Séance non confirmée en base — vérifie ta connexion et réessaie."
             } else if !failedExercises.isEmpty {
                 if let date = seanceData?.todayDate {
-                    SessionDraftStore.clear(date: date, sessionType: "morning")
+                    SessionDraftStore.clear(date: date, sessionType: draftSessionType)
                 }
                 commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
                 showSuccess = true
             } else {
                 if let date = seanceData?.todayDate {
-                    SessionDraftStore.clear(date: date, sessionType: "morning")
+                    SessionDraftStore.clear(date: date, sessionType: draftSessionType)
                 }
                 showSuccess = true
             }
@@ -2781,7 +2793,7 @@ struct AddHIITSheet: View {
         private func persistDraftIfNeeded() {
             guard let date = seanceData?.todayDate else { return }
             if logResults.isEmpty {
-                SessionDraftStore.clear(date: date, sessionType: "morning")
+                SessionDraftStore.clear(date: date, sessionType: draftSessionType)
                 return
             }
             let values = logResults.values.map {
@@ -2796,7 +2808,7 @@ struct AddHIITSheet: View {
                     painZone: $0.painZone
                 )
             }
-            SessionDraftStore.save(date: date, sessionType: "morning", values: values)
+            SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values)
         }
     }
 

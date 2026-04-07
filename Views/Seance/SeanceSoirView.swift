@@ -3,6 +3,9 @@ import SwiftUI
 // MARK: - ViewModel
 
 class SeanceSoirViewModel: SeanceViewModel {
+    override init(draftSessionType: String = "evening") {
+        super.init(draftSessionType: draftSessionType)
+    }
 
     override func load() async {
         // Show cached data immediately
@@ -30,7 +33,7 @@ class SeanceSoirViewModel: SeanceViewModel {
         isLoading = false
     }
 
-    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil) async {
+    override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false) async {
         let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
         do {
             try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
