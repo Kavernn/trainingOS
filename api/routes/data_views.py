@@ -616,7 +616,12 @@ def api_historique_data():
     ex_by_session = _db.get_exercise_history_grouped_by_session()
     hiit_log = _db.get_hiit_logs(limit=500)
 
-    session_list = []
+    # Deduplicate rows by (date, session_type).
+    # In some environments old duplicates can exist (missing/late unique constraint),
+    # and iOS uses date+session_type as row identity in HistoriqueView.
+    # Keep the richest row so exercises are not hidden by an empty duplicate.
+    best_by_key = {}
+
     for s in sessions:
         d   = s.get("date")
         sid = s.get("id")
@@ -625,16 +630,43 @@ def api_historique_data():
             continue
         if month and not d.startswith(month):
             continue
-        has_exos = bool(ex_by_session.get(sid))
+        exos = ex_by_session.get(sid, [])
+        has_exos = bool(exos)
         if not s.get("completed") and s.get("rpe") is None and not has_exos:
             continue
-        session_list.append({
+        candidate = {
             "date":         d,
             "session_type": stype,
             "rpe":          s.get("rpe"),
             "comment":      s.get("comment", ""),
-            "exos":         ex_by_session.get(sid, []),
-        })
+            "exos":         exos,
+        }
+        key = (d, stype)
+
+        current = best_by_key.get(key)
+        if current is None:
+            best_by_key[key] = candidate
+            continue
+
+        # Prefer rows with exercises, then with explicit RPE/comment.
+        current_score = (
+            (1 if current.get("exos") else 0) * 100
+            + (1 if current.get("rpe") is not None else 0) * 10
+            + (1 if current.get("comment") else 0)
+        )
+        candidate_score = (
+            (1 if candidate.get("exos") else 0) * 100
+            + (1 if candidate.get("rpe") is not None else 0) * 10
+            + (1 if candidate.get("comment") else 0)
+        )
+        if candidate_score > current_score:
+            best_by_key[key] = candidate
+
+    session_list = sorted(
+        best_by_key.values(),
+        key=lambda x: (x.get("date", ""), x.get("session_type", "")),
+        reverse=True,
+    )
 
     if month:
         filtered_hiit = [h for h in hiit_log if h.get("date", "").startswith(month)]
