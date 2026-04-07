@@ -607,6 +607,7 @@ def api_inventaire_data():
 @data_views_bp.route("/api/historique_data")
 def api_historique_data():
     import db as _db
+    from weights import load_weights
 
     limit  = min(int(request.args.get("limit",  90)),  200)
     offset = int(request.args.get("offset", 0))
@@ -667,6 +668,27 @@ def api_historique_data():
         key=lambda x: (x.get("date", ""), x.get("session_type", "")),
         reverse=True,
     )
+
+    # Fallback: if a session has no exos (legacy/duplicate linkage issues),
+    # rebuild exercise rows from per-exercise history by date.
+    try:
+        weights = load_weights()
+        ex_by_date: dict[str, list[dict]] = {}
+        for ex_name, ex_data in (weights or {}).items():
+            for entry in ex_data.get("history", []):
+                d = entry.get("date")
+                if not d:
+                    continue
+                ex_by_date.setdefault(d, []).append({
+                    "exercise": ex_name,
+                    "weight": entry.get("weight", 0),
+                    "reps": entry.get("reps", ""),
+                })
+        for row in session_list:
+            if not row.get("exos"):
+                row["exos"] = ex_by_date.get(row.get("date"), [])
+    except Exception:
+        pass
 
     if month:
         filtered_hiit = [h for h in hiit_log if h.get("date", "").startswith(month)]
