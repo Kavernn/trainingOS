@@ -95,12 +95,12 @@ EXERCISES = {
     # Legs
     "Back Squat": {
         "type": "barbell", "category": "strength", "pattern": "squat",
-        "level": "intermediate", "muscles": ["quadriceps", "glutes", "hamstrings", "calves"],
+        "level": "intermediate", "muscles": ["quadriceps", "fessiers", "hamstrings", "calves"],
         "increment": 5.0, "bar_weight": 45.0, "default_scheme": "4x5-7",
     },
     "Leg Press": {
         "type": "machine", "category": "strength", "pattern": "squat",
-        "level": "beginner", "muscles": ["quadriceps", "glutes", "hamstrings"],
+        "level": "beginner", "muscles": ["quadriceps", "fessiers", "hamstrings"],
         "increment": 5.0, "bar_weight": 0.0, "default_scheme": "3x10-12",
     },
     "Leg Curl": {
@@ -110,7 +110,7 @@ EXERCISES = {
     },
     "Romanian Deadlift": {
         "type": "barbell", "category": "strength", "pattern": "hinge",
-        "level": "intermediate", "muscles": ["hamstrings", "glutes", "lower back"],
+        "level": "intermediate", "muscles": ["hamstrings", "fessiers", "lower back"],
         "increment": 5.0, "bar_weight": 45.0, "default_scheme": "3x8-10",
     },
     "Calf Raise": {
@@ -132,7 +132,7 @@ EXERCISES = {
     # Pull B + Full Body
     "Deadlift": {
         "type": "barbell", "category": "strength", "pattern": "hinge",
-        "level": "intermediate", "muscles": ["glutes", "hamstrings", "lower back", "traps"],
+        "level": "intermediate", "muscles": ["fessiers", "hamstrings", "lower back", "traps"],
         "increment": 5.0, "bar_weight": 45.0, "default_scheme": "3x5",
     },
     "T-Bar Row": {

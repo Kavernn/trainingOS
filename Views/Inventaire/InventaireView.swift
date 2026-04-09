@@ -408,7 +408,7 @@ private let kMuscleGroups = [
     "chest", "shoulders", "rear delts", "triceps", "biceps",
     "lats", "traps", "rhomboids", "lower back",
     "abs", "obliques",
-    "glutes", "hamstrings", "quads", "calves",
+    "fessiers", "hamstrings", "quads", "calves",
     "forearms", "rotators", "abductors"
 ]
 
@@ -913,7 +913,7 @@ struct InventoryFormSheet: View {
         case "biceps": return "Biceps"; case "lats": return "Dorsaux"
         case "traps": return "Trapèzes"; case "rhomboids": return "Rhomboïdes"
         case "lower back": return "Lombaires"; case "abs": return "Abdos"
-        case "obliques": return "Obliques"; case "glutes": return "Fessiers"
+        case "obliques": return "Obliques"; case "fessiers": return "Fessiers"
         case "hamstrings": return "Ischio"; case "quads": return "Quadriceps"
         case "calves": return "Mollets"; case "forearms": return "Avant-bras"
         case "rotators": return "Rotateurs"; case "abductors": return "Abducteurs"

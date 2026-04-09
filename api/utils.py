@@ -153,7 +153,7 @@ MUSCLE_LANDMARKS: dict[str, dict] = {
     "triceps":    {"mev": 6,  "mav": 14, "mrv": 18},
     "quadriceps": {"mev": 8,  "mav": 16, "mrv": 22},
     "hamstrings": {"mev": 6,  "mav": 12, "mrv": 16},
-    "glutes":     {"mev": 4,  "mav": 12, "mrv": 16},
+    "fessiers":     {"mev": 4,  "mav": 12, "mrv": 16},
     "calves":     {"mev": 8,  "mav": 16, "mrv": 20},
     "abs":        {"mev": 4,  "mav": 16, "mrv": 25},
     "forearms":   {"mev": 4,  "mav": 10, "mrv": 14},

@@ -64,7 +64,7 @@ PATTERN_MAP = {
     "traps":              "horizontal_pull",
     "upper back":         "horizontal_pull",
     "spine":              "hinge",
-    "glutes":             "hinge",
+    "fessiers":             "hinge",
     "hamstrings":         "hinge",
     "quads":              "squat",
     "quadriceps":         "squat",

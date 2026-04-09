@@ -136,10 +136,10 @@ def detect_no_log_today(recent_days: list[dict]) -> dict | None:
 # Detector 4 — Consecutive muscle group (same primary group, 2 days in a row)
 # ---------------------------------------------------------------------------
 
-_COMPOUND_GROUPS = {"chest", "lats", "quads", "hamstrings", "glutes", "shoulders"}
+_COMPOUND_GROUPS = {"chest", "lats", "quads", "hamstrings", "fessiers", "shoulders"}
 _MUSCLE_LABELS = {
     "chest": "Pectoraux", "lats": "Dorsaux", "quads": "Quadriceps",
-    "hamstrings": "Ischio", "glutes": "Fessiers", "shoulders": "Épaules",
+    "hamstrings": "Ischio", "fessiers": "Fessiers", "shoulders": "Épaules",
 }
 
 
