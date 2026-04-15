@@ -160,6 +160,19 @@ def api_nutrition_settings():
     return jsonify({"success": True})
 
 
+@nutrition_bp.route("/api/food_catalog", methods=["GET", "POST"])
+def api_food_catalog():
+    import db as _db
+    if request.method == "GET":
+        items = _db.get_food_catalog()
+        return jsonify({"items": items})
+    # POST — save catalog
+    data  = request.get_json()
+    items = data.get("items", [])
+    ok    = _db.save_food_catalog(items)
+    return jsonify({"success": ok})
+
+
 @nutrition_bp.route("/api/nutrition_data")
 def api_nutrition_data():
     from nutrition import (load_settings as load_nutrition_settings,
