@@ -101,6 +101,9 @@ struct ExerciseCard: View {
             logResult = result
             onLogged?()
             triggerNotificationFeedback(.success)
+            if let secs = restSeconds, secs > 0 {
+                RestTimerManager.shared.requestAutoStart(secs, exerciseName: name)
+            }
         }
     }
 
@@ -192,6 +195,31 @@ struct ExerciseCard: View {
                     .padding(.vertical, 0).padding(.horizontal, 0)
                     .background(Color(hex: "191926")).cornerRadius(8)
                     .disabled(evm.setBySetMode && !isActive && !isDone)
+
+                    // Indicateur target vs réalisé
+                    if let p = prescription, !evm.sets[i].reps.isEmpty, let entered = Int(evm.sets[i].reps) {
+                        Image(systemName: entered >= p.repMin ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(entered >= p.repMin ? .green : .orange)
+                            .transition(.opacity)
+                    }
+
+                    // Badge RPE par set
+                    if !evm.setBySetMode || isDone {
+                        Button {
+                            let current = evm.sets[i].rpe ?? 5
+                            evm.sets[i].rpe = current >= 10 ? nil : current + 1
+                            triggerImpact(style: .light)
+                        } label: {
+                            Text(evm.sets[i].rpe.map { "R\(Int($0))" } ?? "RPE")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(evm.sets[i].rpe != nil ? rpeColor(evm.sets[i].rpe!) : .gray.opacity(0.3))
+                                .padding(.horizontal, 5).padding(.vertical, 3)
+                                .background(Color(hex: "191926"))
+                                .cornerRadius(4)
+                        }
+                        .buttonStyle(.plain)
+                    }
 
                     if isActive {
                         Button {
@@ -380,6 +408,7 @@ struct ExerciseCard: View {
                     .background(Color.white.opacity(0.04))
                     .cornerRadius(8)
                 } else if let r = logResult {
+                    VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 12) {
                         if isTimeBased {
                             HStack(spacing: 4) {
@@ -405,6 +434,23 @@ struct ExerciseCard: View {
                                 .foregroundColor(rpeColor(rpe))
                         }
                         Spacer()
+                    }
+                    // Badge PR
+                    if !isTimeBased, let previousBest = evm.weightData?.currentWeight, previousBest > 0, r.weight > previousBest {
+                        HStack(spacing: 6) {
+                            Text("🏆 PR!")
+                                .font(.system(size: 11, weight: .black))
+                                .foregroundColor(.yellow)
+                            Text("Nouveau record → \(units.format(r.weight))")
+                                .font(.system(size: 10))
+                                .foregroundColor(.yellow.opacity(0.75))
+                            Spacer()
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Color.yellow.opacity(0.08))
+                        .cornerRadius(6)
+                        .transition(.scale.combined(with: .opacity))
+                    }
                     }
                     .padding(.vertical, 8)
                     .padding(.horizontal, 12)
@@ -519,13 +565,13 @@ struct ExerciseCard: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.gray)
                     Button {
-                        if evm.sets.count < 8 { evm.sets.append(SetInput()) }
+                        if evm.sets.count < 12 { evm.sets.append(SetInput()) }
                     } label: {
                         Image(systemName: "plus.circle")
                             .font(.system(size: 20))
-                            .foregroundColor(evm.sets.count < 8 ? .green.opacity(0.55) : .gray.opacity(0.2))
+                            .foregroundColor(evm.sets.count < 12 ? .green.opacity(0.55) : .gray.opacity(0.2))
                     }
-                    .disabled(evm.sets.count >= 8)
+                    .disabled(evm.sets.count >= 12)
                     .buttonStyle(.plain)
                     Spacer()
                 }
@@ -568,7 +614,7 @@ struct ExerciseCard: View {
                             .font(.system(size: 10))
                         Text(showAdvanced ? "Masquer" : "Zone douleur · Notes")
                             .font(.system(size: 10))
-                        if !evm.painZone.isEmpty || !exoNote.isEmpty {
+                        if !evm.painZone.isEmpty || !exoNote.isEmpty || !evm.sessionNote.isEmpty {
                             Circle().fill(Color.orange).frame(width: 5, height: 5)
                         }
                     }
@@ -583,6 +629,13 @@ struct ExerciseCard: View {
                             Image(systemName: "bandage").font(.system(size: 11)).foregroundColor(.red.opacity(0.6))
                             TextField("Zone douloureuse (optionnel)", text: $evm.painZone)
                                 .font(.system(size: 12)).foregroundColor(evm.painZone.isEmpty ? .gray : .red)
+                        }
+                        HStack(spacing: 6) {
+                            Image(systemName: "note").font(.system(size: 11)).foregroundColor(.orange.opacity(0.6))
+                            TextField("Note de séance (effacée après)", text: $evm.sessionNote, axis: .vertical)
+                                .font(.system(size: 12))
+                                .foregroundColor(evm.sessionNote.isEmpty ? .gray : .orange)
+                                .lineLimit(1...2)
                         }
                         HStack(spacing: 6) {
                             Image(systemName: "note.text").font(.system(size: 11)).foregroundColor(.cyan.opacity(0.6))

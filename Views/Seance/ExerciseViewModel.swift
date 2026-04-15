@@ -9,6 +9,7 @@ struct SetInput: Identifiable {
     var reps: String = ""
     var duration: Int = 30   // seconds, used when isTimeBased
     var rir: Int = 3         // Reps In Reserve
+    var rpe: Double? = nil   // Per-set RPE (optionnel)
 }
 
 enum LogStatus { case success(Double), stagné, loading, error(String) }
@@ -30,6 +31,7 @@ private struct DraftSet: Codable {
     var reps: String
     var rir: Int
     var duration: Int
+    var rpe: Double? = nil
 }
 
 // MARK: - ExerciseViewModel
@@ -63,6 +65,7 @@ final class ExerciseViewModel: ObservableObject {
     @Published var isLogged = false
     @Published var isEditing = false
     @Published var isSkipped = false
+    @Published var sessionNote: String = ""
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -97,11 +100,11 @@ final class ExerciseViewModel: ObservableObject {
     var lastReps: String { weightData?.lastReps ?? "—" }
 
     var setsCount: Int {
-        if let p = prescription { return max(1, min(p.sets, 8)) }
+        if let p = prescription { return max(1, min(p.sets, 12)) }
         let s = scheme.lowercased()
         if let x = s.firstIndex(of: "x") {
             let before = String(s[s.startIndex..<x])
-            if let n = Int(before) { return max(1, min(n, 8)) }
+            if let n = Int(before) { return max(1, min(n, 12)) }
         }
         return 3
     }
@@ -149,7 +152,7 @@ final class ExerciseViewModel: ObservableObject {
     private var draftKey: String { "exo_draft_\(name)" }
 
     private func saveDraft() {
-        let draft = sets.map { DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration) }
+        let draft = sets.map { DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe) }
         if let data = try? JSONEncoder().encode(draft) {
             UserDefaults.standard.set(data, forKey: draftKey)
         }
@@ -162,6 +165,7 @@ final class ExerciseViewModel: ObservableObject {
 
     func clearDraft() {
         UserDefaults.standard.removeObject(forKey: draftKey)
+        sessionNote = ""
     }
 
     // MARK: - Methods
@@ -200,7 +204,7 @@ final class ExerciseViewModel: ObservableObject {
     func initializeSets() {
         guard sets.isEmpty else { return }
         if let draft = loadDraft(), !draft.isEmpty {
-            sets = draft.map { SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration, rir: $0.rir) }
+            sets = draft.map { SetInput(weight: $0.weight, reps: $0.reps, duration: $0.duration, rir: $0.rir, rpe: $0.rpe) }
         } else {
             sets = Array(repeating: SetInput(), count: setsCount)
         }
@@ -251,11 +255,15 @@ final class ExerciseViewModel: ObservableObject {
             guard !s.reps.isEmpty else { return nil }
             if equipmentType == "bodyweight" {
                 let lest = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
-                return ["weight": units.toStorage(lest), "reps": s.reps, "rir": s.rir]
+                var entry: [String: Any] = ["weight": units.toStorage(lest), "reps": s.reps, "rir": s.rir]
+                if let r = s.rpe { entry["rpe"] = r }
+                return entry
             }
             guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")), sw > 0 else { return nil }
             let setTotal = totalWeight(for: units.toStorage(sw))
-            return ["weight": setTotal, "reps": s.reps, "rir": s.rir]
+            var entry: [String: Any] = ["weight": setTotal, "reps": s.reps, "rir": s.rir]
+            if let r = s.rpe { entry["rpe"] = r }
+            return entry
         }
         let result = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE,
             sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,

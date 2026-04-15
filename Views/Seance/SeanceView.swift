@@ -44,6 +44,7 @@ struct AlreadyLoggedSeanceView: View {
     let data: SeanceData
     @ObservedObject var vm: SeanceViewModel
     @State private var showExtra = false
+    @State private var showEditSheet = false
     @State private var confirmReset = false
     @State private var animateHeader = false
     @State private var showConfetti = false
@@ -290,6 +291,21 @@ struct AlreadyLoggedSeanceView: View {
                 .buttonStyle(SpringButtonStyle())
                 .padding(.horizontal, 16)
 
+                // ── Modifier la séance ─────────────────────────────────
+                Button(action: { showEditSheet = true }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "pencil.circle.fill").font(.system(size: 18))
+                        Text("Modifier la séance").font(.system(size: 15, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(Color.blue.opacity(0.12))
+                    .foregroundColor(.blue)
+                    .cornerRadius(14)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.blue.opacity(0.3), lineWidth: 1))
+                }
+                .buttonStyle(SpringButtonStyle())
+                .padding(.horizontal, 16)
+
                 // ── Reset aujourd'hui ───────────────────────────────────
                 Button(action: { confirmReset = true }) {
                     HStack(spacing: 10) {
@@ -336,6 +352,9 @@ struct AlreadyLoggedSeanceView: View {
         .sheet(isPresented: $showExtra) {
             ExtraSessionSheet(data: data)
         }
+        .sheet(isPresented: $showEditSheet) {
+            PostSessionEditSheet(data: data, vm: vm)
+        }
         .confirmationDialog("Réinitialiser la séance d'aujourd'hui ?", isPresented: $confirmReset, titleVisibility: .visible) {
             Button("Réinitialiser", role: .destructive) { Task { await resetToday() } }
             Button("Annuler", role: .cancel) {}
@@ -366,6 +385,134 @@ struct AlreadyLoggedSeanceView: View {
         if v <= 6 { return .yellow }
         if v <= 8 { return .orange }
         return .red
+    }
+}
+
+// MARK: - Post Session Edit Sheet
+struct PostSessionEditSheet: View {
+    let data: SeanceData
+    @ObservedObject var vm: SeanceViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    struct ExerciseEdit {
+        let name: String
+        var weight: String
+        var reps: String
+        var rpe: Double
+    }
+
+    @State private var edits: [ExerciseEdit] = []
+    @State private var isSaving = false
+    @State private var saveError: String? = nil
+
+    private var exoNames: [String] {
+        let session = APIService.shared.dashboard?.sessions[data.todayDate]
+        return session?.exos ?? []
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 12) {
+                        if let err = saveError {
+                            Text(err)
+                                .font(.system(size: 12)).foregroundColor(.red)
+                                .padding(.horizontal, 20)
+                        }
+                        ForEach(edits.indices, id: \.self) { i in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(edits[i].name)
+                                    .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                                HStack(spacing: 10) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("POIDS (\(UnitSettings.shared.label.uppercased()))")
+                                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                        TextField("0.0", text: $edits[i].weight)
+                                            .keyboardType(.decimalPad)
+                                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                                            .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                                    }
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("REPS")
+                                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                        TextField("0", text: $edits[i].reps)
+                                            .keyboardType(.numberPad)
+                                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                                            .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                                    }
+                                }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text("RPE").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                        Spacer()
+                                        Text(String(format: "%.1f", edits[i].rpe))
+                                            .font(.system(size: 13, weight: .black)).foregroundColor(.orange)
+                                    }
+                                    Slider(value: $edits[i].rpe, in: 1...10, step: 0.5).tint(.orange)
+                                }
+                            }
+                            .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+                            .padding(.horizontal, 16)
+                        }
+
+                        Button(action: save) {
+                            HStack {
+                                if isSaving { ProgressView().tint(.white).scaleEffect(0.8) }
+                                Text(isSaving ? "Enregistrement…" : "Sauvegarder les modifications")
+                                    .font(.system(size: 15, weight: .bold))
+                            }
+                            .frame(maxWidth: .infinity).padding(.vertical, 14)
+                            .background(Color.blue).foregroundColor(.white).cornerRadius(14)
+                        }
+                        .disabled(isSaving)
+                        .padding(.horizontal, 16).padding(.bottom, 24)
+                    }
+                    .padding(.top, 12)
+                }
+                .scrollDismissesKeyboard(.interactively)
+            }
+            .navigationTitle("Modifier la séance")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+            }
+            .keyboardOkButton()
+        }
+        .onAppear { buildEdits() }
+    }
+
+    private func buildEdits() {
+        edits = exoNames.map { name in
+            let entry = data.weights[name]?.history?.first
+            let w = entry?.weight.map { UnitSettings.shared.display($0) } ?? 0.0
+            let r = entry?.reps ?? ""
+            return ExerciseEdit(name: name, weight: w > 0 ? String(format: "%.1f", w) : "", reps: r, rpe: 7.0)
+        }
+    }
+
+    private func save() {
+        isSaving = true
+        saveError = nil
+        Task {
+            for edit in edits {
+                guard !edit.weight.isEmpty || !edit.reps.isEmpty else { continue }
+                let w = Double(edit.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
+                do {
+                    try await APIService.shared.logExercise(
+                        exercise: edit.name, weight: UnitSettings.shared.toStorage(w),
+                        reps: edit.reps, rpe: edit.rpe, force: true)
+                } catch {
+                    await MainActor.run { saveError = "Erreur: \(error.localizedDescription)"; isSaving = false }
+                    return
+                }
+            }
+            await vm.load()
+            await MainActor.run { isSaving = false; dismiss() }
+        }
     }
 }
 
@@ -454,6 +601,8 @@ final class RestTimerManager: ObservableObject {
     @Published var totalSeconds = 120
     @Published var remaining    = 120
     @Published var isRunning    = false
+    @Published var currentExerciseName: String? = nil
+    @Published var pendingStart: (seconds: Int, name: String)? = nil
 
     private var timerTask: Task<Void, Never>?
     private var beepPlayer: AVAudioPlayer?
@@ -511,13 +660,32 @@ final class RestTimerManager: ObservableObject {
         if wasRunning { start() }
     }
 
-    /// Called when an exercise is logged. Always restarts with the new exercise's rest time.
-    func applyAutoStart(_ seconds: Int) {
+    /// Called when an exercise is logged. If another exercise's timer is running, ask for confirmation.
+    func requestAutoStart(_ seconds: Int, exerciseName: String) {
+        if isRunning, let current = currentExerciseName, current != exerciseName {
+            pendingStart = (seconds, exerciseName)
+        } else {
+            applyAutoStart(seconds, exerciseName: exerciseName)
+        }
+    }
+
+    func applyAutoStart(_ seconds: Int, exerciseName: String? = nil) {
         stop()
+        currentExerciseName = exerciseName
         totalSeconds = seconds
         remaining    = seconds
         UserDefaults.standard.set(seconds, forKey: Self.presetKey)
         start()
+    }
+
+    func confirmReplace() {
+        guard let p = pendingStart else { return }
+        applyAutoStart(p.seconds, exerciseName: p.name)
+        pendingStart = nil
+    }
+
+    func cancelReplace() {
+        pendingStart = nil
     }
 
     /// Restore state on sheet appear. If already running (singleton), just sync time.
@@ -658,8 +826,8 @@ struct WorkoutSeanceView: View {
     // Optional add-ons
     @State private var showAddCardio = false
     @State private var showAddHIIT   = false
-    @State private var cardioLogged  = false
-    @State private var hiitLogged    = false
+    @State private var cardioCount   = 0
+    @State private var hiitCount     = 0
     
     /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
     private var computedSessionRPE: Double {
@@ -723,8 +891,52 @@ struct WorkoutSeanceView: View {
         }
     }
 
+    @ViewBuilder private var sessionSummaryTable: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("VUE RÉSUMÉ")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text("\(vm.logResults.count)/\(exercises.count)")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(vm.logResults.count == exercises.count ? .green : .orange)
+            }
+            .padding(.horizontal, 16).padding(.bottom, 8)
+            ForEach(exercises, id: \.0) { name, scheme in
+                let r = vm.logResults[name]
+                HStack(spacing: 10) {
+                    Image(systemName: r != nil ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 14))
+                        .foregroundColor(r != nil ? .green : .gray.opacity(0.3))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(name).font(.system(size: 13, weight: r != nil ? .semibold : .regular))
+                            .foregroundColor(r != nil ? .white : .gray)
+                        Text(scheme).font(.system(size: 10)).foregroundColor(.gray)
+                    }
+                    Spacer()
+                    if let r = r {
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text(UnitSettings.shared.format(r.weight))
+                                .font(.system(size: 12, weight: .bold)).foregroundColor(.orange)
+                            Text(r.reps).font(.system(size: 10)).foregroundColor(.gray)
+                        }
+                    } else {
+                        Text("—").font(.system(size: 12)).foregroundColor(.gray.opacity(0.3))
+                    }
+                }
+                .padding(.horizontal, 16).padding(.vertical, 9)
+                Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
+            }
+        }
+        .background(Color(hex: "11111c")).cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
+        .padding(.horizontal, 16)
+    }
+
     @ViewBuilder private var exerciseSection: some View {
-        if isEditMode {
+        if showSummary {
+            sessionSummaryTable
+        } else if isEditMode {
             VStack(spacing: 0) {
                 ForEach(exercises, id: \.0) { name, scheme in
                     editModeRow(name: name, scheme: scheme)
@@ -897,37 +1109,35 @@ struct WorkoutSeanceView: View {
             HStack(spacing: 10) {
                 Button(action: { showAddCardio = true }) {
                     HStack(spacing: 6) {
-                        Image(systemName: cardioLogged ? "checkmark.circle.fill" : "figure.run")
+                        Image(systemName: cardioCount > 0 ? "plus.circle.fill" : "figure.run")
                             .font(.system(size: 14))
-                        Text(cardioLogged ? "Cardio ajouté" : "Ajouter Cardio")
+                        Text(cardioCount > 0 ? "Cardio ×\(cardioCount) — Ajouter +" : "Ajouter Cardio")
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
-                    .background(cardioLogged ? Color.green.opacity(0.12) : Color(hex: "11111c"))
-                    .foregroundColor(cardioLogged ? .green : .blue)
+                    .background(cardioCount > 0 ? Color.green.opacity(0.12) : Color(hex: "11111c"))
+                    .foregroundColor(cardioCount > 0 ? .green : .blue)
                     .cornerRadius(12)
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(
-                        cardioLogged ? Color.green.opacity(0.3) : Color.blue.opacity(0.2), lineWidth: 1))
+                        cardioCount > 0 ? Color.green.opacity(0.3) : Color.blue.opacity(0.2), lineWidth: 1))
                 }
-                .disabled(cardioLogged)
 
                 Button(action: { showAddHIIT = true }) {
                     HStack(spacing: 6) {
-                        Image(systemName: hiitLogged ? "checkmark.circle.fill" : "bolt.fill")
+                        Image(systemName: hiitCount > 0 ? "plus.circle.fill" : "bolt.fill")
                             .font(.system(size: 14))
-                        Text(hiitLogged ? "HIIT ajouté" : "Ajouter HIIT")
+                        Text(hiitCount > 0 ? "HIIT ×\(hiitCount) — Ajouter +" : "Ajouter HIIT")
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
-                    .background(hiitLogged ? Color.green.opacity(0.12) : Color(hex: "11111c"))
-                    .foregroundColor(hiitLogged ? .green : .red)
+                    .background(hiitCount > 0 ? Color.green.opacity(0.12) : Color(hex: "11111c"))
+                    .foregroundColor(hiitCount > 0 ? .green : .red)
                     .cornerRadius(12)
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(
-                        hiitLogged ? Color.green.opacity(0.3) : Color.red.opacity(0.2), lineWidth: 1))
+                        hiitCount > 0 ? Color.green.opacity(0.3) : Color.red.opacity(0.2), lineWidth: 1))
                 }
-                .disabled(hiitLogged)
             }
         }
         .padding(.horizontal, 16)
@@ -961,6 +1171,14 @@ struct WorkoutSeanceView: View {
                             .background(Color.cyan.opacity(0.08))
                             .cornerRadius(6)
                         }
+                        Button {
+                            withAnimation { showSummary.toggle() }
+                        } label: {
+                            Image(systemName: showSummary ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
+                                .font(.system(size: 20))
+                                .foregroundColor(showSummary ? .cyan : .cyan.opacity(0.5))
+                        }
+                        .padding(.leading, 8)
                         Button {
                             withAnimation { isEditMode.toggle() }
                         } label: {
@@ -1055,6 +1273,24 @@ struct WorkoutSeanceView: View {
                             ghostBeaten = true
                         }
                     }
+                }
+
+                // Volume cumulé temps réel
+                if !vm.logResults.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "scalemass.fill")
+                            .font(.system(size: 12)).foregroundColor(.orange)
+                        Text("Volume total")
+                            .font(.system(size: 11, weight: .semibold)).foregroundColor(.gray)
+                        Spacer()
+                        Text("\(Int(currentVolume)) \(UnitSettings.shared.label)")
+                            .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Color.orange.opacity(0.07))
+                    .cornerRadius(10)
+                    .padding(.horizontal, 16)
+                    .animation(.spring(response: 0.4), value: currentVolume)
                 }
 
                 exerciseSection
@@ -1170,11 +1406,11 @@ struct WorkoutSeanceView: View {
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showAddCardio) {
-            AddCardioSheet { cardioLogged = true }
+            AddCardioSheet { cardioCount += 1 }
                 .presentationDetents([.large])
         }
         .sheet(isPresented: $showAddHIIT) {
-            AddHIITSheet { hiitLogged = true }
+            AddHIITSheet { hiitCount += 1 }
                 .presentationDetents([.large])
         }
         .onAppear {
@@ -1200,6 +1436,20 @@ struct WorkoutSeanceView: View {
         }
         .onChange(of: data.inventoryRest) { fresh in
             inventoryRest = fresh
+        }
+        .alert(
+            "Remplacer le timer ?",
+            isPresented: Binding(
+                get: { RestTimerManager.shared.pendingStart != nil },
+                set: { if !$0 { RestTimerManager.shared.cancelReplace() } }
+            )
+        ) {
+            Button("Remplacer") { RestTimerManager.shared.confirmReplace() }
+            Button("Garder en cours", role: .cancel) { RestTimerManager.shared.cancelReplace() }
+        } message: {
+            if let p = RestTimerManager.shared.pendingStart {
+                Text("Timer actif : \(RestTimerManager.shared.currentExerciseName ?? "?"). Remplacer par \(p.name) ?")
+            }
         }
     }
     
@@ -2035,11 +2285,31 @@ struct AddHIITSheet: View {
                             }
                             .padding(.horizontal, 20)
 
+                            // Soumission partielle — visible si des exercices ne sont pas loggués
+                            if loggedCount < exercises.count && loggedCount > 0 {
+                                Button(action: {
+                                    onSubmit(preEnergy ?? energyPre)
+                                    dismiss()
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "checkmark.circle")
+                                        Text("Soumettre \(loggedCount) exercice\(loggedCount > 1 ? "s" : "") seulement")
+                                            .font(.system(size: 14, weight: .semibold))
+                                    }
+                                    .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                    .background(Color.orange.opacity(0.15))
+                                    .foregroundColor(.orange)
+                                    .cornerRadius(14)
+                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                                }
+                                .padding(.horizontal, 20)
+                            }
+
                             Button(action: {
                                 onSubmit(preEnergy ?? energyPre)
                                 dismiss()
                             }) {
-                                Text("Enregistrer la séance")
+                                Text(loggedCount == exercises.count ? "Enregistrer la séance" : "Enregistrer quand même tout")
                                     .font(.system(size: 16, weight: .bold)).frame(maxWidth: .infinity).padding(.vertical, 14)
                                     .background(Color.orange).foregroundColor(.white).cornerRadius(14)
                             }
@@ -2564,9 +2834,11 @@ struct AddHIITSheet: View {
                     }
 
                     // Adjust buttons
-                    HStack(spacing: 16) {
+                    HStack(spacing: 10) {
+                        adjustButton(label: "−30s") { timer.adjustTime(by: -30) }
                         adjustButton(label: "−10s") { timer.adjustTime(by: -10) }
                         adjustButton(label: "+10s") { timer.adjustTime(by: +10) }
+                        adjustButton(label: "+30s") { timer.adjustTime(by: +30) }
                     }
 
                     // Play/Pause + Reset + Close (✕ keeps timer running in background)
