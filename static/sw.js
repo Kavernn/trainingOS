@@ -1,6 +1,6 @@
 // ── TrainingOS Service Worker ──────────────────────────
 // ⚠️  CHANGE CE NUMÉRO À CHAQUE DÉPLOIEMENT pour forcer le refresh sur mobile
-const CACHE_NAME = 'trainingos-v3';
+const CACHE_NAME = 'trainingos-v4';
 
 const STATIC_ASSETS = [
   '/static/icons/icon-192.png',
