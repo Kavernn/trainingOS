@@ -1,6 +1,6 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-06 (workout UX + régression B1–B4).
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-15 (séance + stats audit & fixes).
 > Audit senior dev/UX ajouté le 2026-04-05 — 20 items priorisés.
 
 ---
@@ -204,6 +204,41 @@
 - [x] **`Views/Seance/ProgressionSuggestionsSheet.swift`** : sheet post-séance, sections COACHING / MAINTENIR, boutons Appliquer/Ignorer, toolbar Passer→Terminer (2026-03-31)
 - [x] **SeanceView intégration** : `onChange(vm.showSuccess)` → fetch suggestions → show sheet si actionable, sinon reload direct (2026-03-31)
 - [x] **Migrations 006–010** : classification exercices (006–009) + session_name colonne (010) — 009 et 010 à appliquer manuellement si pas encore fait (2026-03-31)
+
+---
+
+---
+
+## 🏋️ Séance du jour — Audit & fixes (2026-04-15) · commit `6295785`
+
+- [x] **RPE par série** : badge RPE tap-to-cycle (R5→R6→…→R10→nil) dans chaque ligne de set
+- [x] **Target vs réalisé** : indicateur vert ✓ / orange ! comparant reps saisies vs prescription.repMin
+- [x] **Max séries 8→12** : setsCount, ExerciseCard bouton/couleur/disabled tous portés à 12
+- [x] **Badge PR** : affiché après log si loggedWeight > previousBest (historique Firestore)
+- [x] **Note de séance** : champ éphémère dans showAdvanced, réinitialisé à clearDraft()
+- [x] **Auto rest timer** : `RestTimerManager.shared.requestAutoStart()` déclenché après chaque log
+- [x] **Edit post-séance** : AlreadyLoggedSeanceView — bouton "Modifier la séance" + PostSessionEditSheet (form pré-rempli, force-log via APIService)
+- [x] **Cardio/HIIT multi-log** : `cardioCount`/`hiitCount` Int (était Bool) → "Cardio ×N — Ajouter +"
+- [x] **Bandeau volume temps réel** : bannière orange `Int(currentVolume) lbs/kg` dès le 1er log
+- [x] **Soumission partielle** : FinishSessionSheet — bouton "Soumettre N exercice(s) seulement" si tous non loggés
+- [x] **Tableau récap séance** : toggle icône `list.bullet.rectangle` → `sessionSummaryTable` compact
+- [x] **RestTimer ±30s** : 4 boutons (−30s, −10s, +10s, +30s) dans RestTimerSheet
+- [x] **Alerte multi-timer** : confirmation dialog si timer actif sur autre exercice avant remplacement
+
+---
+
+## 📊 Stats — Audit & fixes (2026-04-15) · commit `5cd6a7b`
+
+- [x] **avgReps() guard AMRAP** : early return sur formats non-numériques → 1RM ne crash plus
+- [x] **weeklyVolume source primaire** : `sessions.sessionVolume` (calculé serveur) > calcul local
+- [x] **+2 KPI cards** : Sets totaux (.teal) + Reps totaux (.indigo) ajoutés à vueGlobaleTab
+- [x] **Pull-to-refresh** : `.refreshable { await loadData() }` sur ScrollView principal
+- [x] **ACWR fallback** : placeholder "Données insuffisantes" si `acwr == nil`
+- [x] **Recovery score HRV + FC** : RecoveryScoreChart.score() intègre HRV normalisé (0–100ms→0–10) et FC repos (40–85bpm→0–10)
+- [x] **BodyFatChartView** : courbe % body fat + delta + valeur courante dans corpsTab si ≥2 entrées
+- [x] **NutritionComplianceChart 30j** : suffix(7)→suffix(30) + titre dynamique "COMPLIANCE CALORIES (N JOURS)"
+- [x] **MacrosBreakdownView** : barres glucides/lipides/protéines vs cibles avec couleur compliance dans nutritionTab
+- [x] **Dédoublonnage Top5Volume** : supprimé de exercicesTab (reste dans vueGlobaleTab)
 
 ---
 
