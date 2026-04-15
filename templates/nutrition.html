@@ -419,6 +419,61 @@
     margin-bottom: 12px;
     display: block;
   }
+
+  /* ── SCAN ── */
+  .scan-upload-zone {
+    display: block;
+    background: rgba(255,255,255,0.04);
+    border: 1.5px dashed rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.88rem;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .scan-upload-zone:hover {
+    border-color: var(--orange);
+    background: rgba(249,115,22,0.04);
+    color: var(--text);
+  }
+  .scan-preview-img {
+    width: 100%;
+    border-radius: 10px;
+    margin-top: 10px;
+    max-height: 180px;
+    object-fit: contain;
+    display: none;
+  }
+  .scan-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(249,115,22,0.2);
+    border-top-color: var(--orange);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .scan-info-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .scan-info-cell {
+    flex: 1;
+    text-align: center;
+  }
+  .scan-info-val {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+  }
 </style>
 {% endblock %}
 
@@ -477,8 +532,11 @@
   </div>
 </div>
 
-<!-- ③ BOUTON AJOUTER -->
-<button class="btn btn-primary btn-block mb-14" onclick="openAdd()">+ Ajouter un aliment</button>
+<!-- ③ BOUTONS AJOUTER / SCAN -->
+<div style="display:flex; gap:8px; margin-bottom:14px;">
+  <button class="btn btn-primary" style="flex:2;" onclick="openAdd()">+ Ajouter un aliment</button>
+  <button class="btn btn-secondary" style="flex:1;" onclick="openScan()">📷 Scan</button>
+</div>
 
 <!-- ④ ENTRÉES DU JOUR -->
 <div class="card mb-14">
@@ -575,6 +633,91 @@
     </div>
 
     <button class="btn btn-primary btn-block" onclick="submitAdd()">Ajouter</button>
+  </div>
+</div>
+
+<!-- ─── MODAL SCAN ─── -->
+<div class="modal-overlay" id="modal-scan">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeScan()">×</button>
+    <div class="modal-title">Scan étiquette</div>
+
+    <!-- Étape 1 : Capture + quantité -->
+    <div id="scan-step-capture">
+      <div class="form-group">
+        <label class="form-label">Photo de l'étiquette</label>
+        <label class="scan-upload-zone">
+          <input type="file" id="scan-file" accept="image/*" capture="environment"
+                 onchange="onScanFileChange(this)" style="display:none;">
+          <span id="scan-upload-label">📷 Prendre une photo ou choisir un fichier</span>
+        </label>
+        <img id="scan-preview" class="scan-preview-img" alt="Aperçu étiquette">
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <div style="flex:1;">
+          <label class="form-label">Quantité</label>
+          <input type="number" class="form-input" id="scan-qty" value="1" min="0.1" step="0.1">
+        </div>
+        <div style="flex:1;">
+          <label class="form-label">Unité</label>
+          <select class="form-input" id="scan-unit">
+            <option value="serving">Portion(s)</option>
+            <option value="g">Grammes (g)</option>
+            <option value="ml">Millilitres (ml)</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onclick="submitScan()">Analyser</button>
+    </div>
+
+    <!-- Étape 2 : Chargement -->
+    <div id="scan-step-loading" style="display:none; text-align:center; padding:36px 0;">
+      <div class="scan-spinner"></div>
+      <div style="color:var(--muted); font-size:0.85rem; margin-top:14px;">Analyse en cours...</div>
+    </div>
+
+    <!-- Étape 3 : Révision -->
+    <div id="scan-step-review" style="display:none;">
+      <div style="font-size:0.78rem; color:var(--muted); margin-bottom:14px;">Vérifie les valeurs avant de confirmer</div>
+      <div class="form-group">
+        <label class="form-label">Aliment</label>
+        <input type="text" class="form-input" id="scan-nom">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Calories (kcal)</label>
+        <input type="number" class="form-input" id="scan-cal" min="0">
+      </div>
+      <div class="macros-grid">
+        <div>
+          <label class="form-label">Protéines (g)</label>
+          <input type="number" class="form-input" id="scan-prot" min="0" step="0.1">
+        </div>
+        <div>
+          <label class="form-label">Glucides (g)</label>
+          <input type="number" class="form-input" id="scan-gluc" min="0" step="0.1">
+        </div>
+        <div>
+          <label class="form-label">Lipides (g)</label>
+          <input type="number" class="form-input" id="scan-lip" min="0" step="0.1">
+        </div>
+      </div>
+      <!-- Fibres + sodium : informatifs, non sauvegardés -->
+      <div class="scan-info-row">
+        <div class="scan-info-cell">
+          <div class="macro-lbl">Fibres</div>
+          <div class="scan-info-val" id="scan-fibre">—</div>
+        </div>
+        <div class="scan-info-cell">
+          <div class="macro-lbl">Sodium</div>
+          <div class="scan-info-val" id="scan-sodium">—</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-secondary" style="flex:1;" onclick="showScanStep('capture')">← Refaire</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="confirmScan()">Confirmer</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -801,6 +944,115 @@
     el.textContent = _entryCount + ' aliment' + (_entryCount > 1 ? 's' : '');
     if (_entryCount === 0) {
       document.getElementById('entries-list').innerHTML = '<div class="empty-state" id="empty-msg">Aucun aliment enregistré aujourd\'hui</div>';
+    }
+  }
+
+  // ── Scan Label ──
+  let _scanImageB64  = null;
+  let _scanMediaType = 'image/jpeg';
+
+  function openScan() {
+    if (!navigator.onLine) {
+      showToast('Connexion requise pour analyser une étiquette', 'error');
+      return;
+    }
+    document.getElementById('modal-scan').classList.add('open');
+    showScanStep('capture');
+  }
+
+  function closeScan() {
+    document.getElementById('modal-scan').classList.remove('open');
+    resetScan();
+  }
+
+  function showScanStep(step) {
+    ['capture', 'loading', 'review'].forEach(s => {
+      document.getElementById('scan-step-' + s).style.display = s === step ? 'block' : 'none';
+    });
+  }
+
+  function resetScan() {
+    _scanImageB64  = null;
+    _scanMediaType = 'image/jpeg';
+    const fileEl = document.getElementById('scan-file');
+    if (fileEl) fileEl.value = '';
+    document.getElementById('scan-qty').value  = '1';
+    document.getElementById('scan-unit').value = 'serving';
+    const preview = document.getElementById('scan-preview');
+    preview.style.display = 'none';
+    preview.src = '';
+    document.getElementById('scan-upload-label').textContent = '📷 Prendre une photo ou choisir un fichier';
+    showScanStep('capture');
+  }
+
+  function onScanFileChange(input) {
+    const file = input.files[0];
+    if (!file) return;
+    _scanMediaType = file.type || 'image/jpeg';
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      _scanImageB64 = dataUrl.split(',')[1];
+      const preview = document.getElementById('scan-preview');
+      preview.src = dataUrl;
+      preview.style.display = 'block';
+      document.getElementById('scan-upload-label').textContent = '✓ ' + file.name;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function submitScan() {
+    if (!_scanImageB64) { showToast('Sélectionne une image d\'abord', 'error'); return; }
+    const qty  = parseFloat(document.getElementById('scan-qty').value) || 1;
+    const unit = document.getElementById('scan-unit').value;
+
+    showScanStep('loading');
+    try {
+      const r = await fetch('/api/nutrition/scan-label', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: _scanImageB64, media_type: _scanMediaType, quantity: qty, unit })
+      });
+      const d = await r.json();
+      if (!r.ok || d.error) {
+        showToast(d.error || 'Erreur lors de l\'analyse', 'error');
+        showScanStep('capture');
+        return;
+      }
+      document.getElementById('scan-nom').value  = d.nom || 'Aliment scanné';
+      document.getElementById('scan-cal').value  = d.calories  || 0;
+      document.getElementById('scan-prot').value = d.proteines || 0;
+      document.getElementById('scan-gluc').value = d.glucides  || 0;
+      document.getElementById('scan-lip').value  = d.lipides   || 0;
+      document.getElementById('scan-fibre').textContent  = (d.fibres    || 0) + 'g';
+      document.getElementById('scan-sodium').textContent = (d.sodium_mg || 0) + 'mg';
+      showScanStep('review');
+    } catch(e) {
+      showToast('Erreur réseau', 'error');
+      showScanStep('capture');
+    }
+  }
+
+  async function confirmScan() {
+    const nom = document.getElementById('scan-nom').value.trim();
+    const cal = parseFloat(document.getElementById('scan-cal').value) || 0;
+    if (!nom || cal <= 0) { showToast('Remplis le nom et les calories', 'error'); return; }
+    const body = {
+      nom,
+      calories:  cal,
+      proteines: parseFloat(document.getElementById('scan-prot').value) || 0,
+      glucides:  parseFloat(document.getElementById('scan-gluc').value) || 0,
+      lipides:   parseFloat(document.getElementById('scan-lip').value)  || 0,
+      source:    'scan',
+    };
+    const r = await fetch('/api/nutrition/add', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (d.success) {
+      closeScan();
+      addEntryToDOM(d.entry);
+      updateTotals(d.totals);
+      haptic('light');
+      showToast('Aliment ajouté via scan');
     }
   }
 

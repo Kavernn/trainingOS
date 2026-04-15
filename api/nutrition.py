@@ -71,7 +71,8 @@ def get_today_totals() -> dict:
 
 
 def add_entry(nom: str, calories: float, proteines: float = 0,
-              glucides: float = 0, lipides: float = 0, meal_type: str = None) -> dict:
+              glucides: float = 0, lipides: float = 0, meal_type: str = None,
+              source: str = "manual") -> dict:
     now_mtl = datetime.now(timezone.utc)
     try:
         from zoneinfo import ZoneInfo
@@ -87,6 +88,7 @@ def add_entry(nom: str, calories: float, proteines: float = 0,
         "glucides":  round(glucides,  1),
         "lipides":   round(lipides,   1),
         "heure":     now_mtl.strftime("%H:%M"),
+        "source":    source,
     }
     if meal_type:
         entry["meal_type"] = meal_type
