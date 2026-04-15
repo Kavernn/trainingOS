@@ -531,13 +531,36 @@ class APIService: ObservableObject {
     }
 
     func addNutritionEntry(name: String, calories: Double, proteines: Double, glucides: Double,
-                           lipides: Double, mealType: String? = nil) async throws {
+                           lipides: Double, mealType: String? = nil, source: String = "manual") async throws {
         var payload: [String: Any] = [
             "nom": name, "calories": calories,
-            "proteines": proteines, "glucides": glucides, "lipides": lipides
+            "proteines": proteines, "glucides": glucides, "lipides": lipides,
+            "source": source
         ]
         if let mt = mealType { payload["meal_type"] = mt }
         _ = try await offlinePost(endpoint: "/api/nutrition/add", payload: payload)
+    }
+
+    func scanNutritionLabel(imageBase64: String, quantity: Double, unit: String) async throws -> ScanResult {
+        let url = URL(string: "\(baseURL)/api/nutrition/scan-label")!
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 30
+        let payload: [String: Any] = [
+            "image_base64": imageBase64,
+            "media_type":   "image/jpeg",
+            "quantity":     quantity,
+            "unit":         unit
+        ]
+        req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+        let (data, resp) = try await URLSession.authed.data(for: req)
+        if let http = resp as? HTTPURLResponse, http.statusCode != 200 {
+            let msg = (try? JSONDecoder().decode([String: String].self, from: data))?["error"]
+                      ?? "Erreur serveur (\(http.statusCode))"
+            throw ScanLabelError(message: msg)
+        }
+        return try JSONDecoder().decode(ScanResult.self, from: data)
     }
 
     func updateNutritionSettings(calories: Double, proteines: Double, glucides: Double, lipides: Double) async throws {
@@ -866,4 +889,24 @@ class APIService: ObservableObject {
         }
         _ = try await offlinePost(endpoint: "/api/apply_progression", payload: payload)
     }
+}
+
+// MARK: - Scan Label models
+
+struct ScanResult: Decodable {
+    let nom:       String
+    let calories:  Int
+    let proteines: Double
+    let glucides:  Double
+    let lipides:   Double
+    let fibres:    Double
+    let sodiumMg:  Double
+    enum CodingKeys: String, CodingKey {
+        case nom, calories, proteines, glucides, lipides, fibres
+        case sodiumMg = "sodium_mg"
+    }
+}
+
+struct ScanLabelError: Error {
+    let message: String
 }
