@@ -783,6 +783,16 @@ struct GhostData {
     let sets: Int?
 }
 
+struct SessionRecapSnapshot {
+    let sessionName: String
+    let durationMin: Double
+    let logResults: [String: ExerciseLogResult]
+    let exercises: [String]
+    let rpe: Double
+    let comment: String
+    let energyPre: Int
+}
+
 struct WorkoutSeanceView: View {
     let data: SeanceData
     @ObservedObject var vm: SeanceViewModel
@@ -816,6 +826,10 @@ struct WorkoutSeanceView: View {
     // Progression
     @State private var showProgressionSheet = false
     @State private var progressionSuggestions: [ProgressionSuggestion] = []
+
+    // Session recap
+    @State private var showRecap = false
+    @State private var recapSnapshot: SessionRecapSnapshot? = nil
     @State private var didLoadPreCoaching = false
 
     // Energy pre-session
@@ -1342,6 +1356,15 @@ struct WorkoutSeanceView: View {
                 preEnergy: energyPre,
                 onSubmit: { _ in
                     let dur = Date().timeIntervalSince(vm.sessionStart) / 60
+                    recapSnapshot = SessionRecapSnapshot(
+                        sessionName: data.today,
+                        durationMin: dur,
+                        logResults: vm.logResults,
+                        exercises: exercises.map(\.0),
+                        rpe: rpe,
+                        comment: comment,
+                        energyPre: energyPre
+                    )
                     Task { await vm.finish(rpe: rpe, comment: comment, durationMin: dur, energyPre: energyPre, sessionName: data.today, bonusSession: isBonusSession) }
                 }
             )
@@ -1352,6 +1375,9 @@ struct WorkoutSeanceView: View {
             guard success else { return }
             triggerNotificationFeedback(.success)
             vm.showSuccess = false
+            showRecap = true
+        }
+        .sheet(isPresented: $showRecap, onDismiss: {
             Task {
                 let sType = isSecondSession ? "evening" : "morning"
                 let todayStr = data.todayDate
@@ -1363,6 +1389,10 @@ struct WorkoutSeanceView: View {
                 } else {
                     await vm.load()
                 }
+            }
+        }) {
+            if let snap = recapSnapshot {
+                SessionRecapSheet(snapshot: snap)
             }
         }
         .sheet(isPresented: $showProgressionSheet) {
@@ -2380,6 +2410,229 @@ struct AddHIITSheet: View {
         }
     }
     
+    // MARK: - Session Recap Sheet
+
+    struct SessionRecapSheet: View {
+        let snapshot: SessionRecapSnapshot
+        @Environment(\.dismiss) private var dismiss
+
+        private var totalSets: Int {
+            snapshot.logResults.values.reduce(0) { $0 + $1.sets.count }
+        }
+
+        private var totalVolume: Double {
+            snapshot.logResults.values.reduce(0.0) { total, result in
+                total + result.sets.reduce(0.0) { s, set in
+                    let w = (set["weight"] as? Double) ?? 0
+                    let r = Double((set["reps"] as? String) ?? "0") ?? 0
+                    return s + w * r
+                }
+            }
+        }
+
+        var body: some View {
+            NavigationStack {
+                ZStack {
+                    Color(hex: "080810").ignoresSafeArea()
+                    ScrollView {
+                        VStack(spacing: 20) {
+
+                            // Header
+                            VStack(spacing: 10) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color.orange.opacity(0.12))
+                                        .frame(width: 96, height: 96)
+                                    Image(systemName: "trophy.fill")
+                                        .font(.system(size: 46))
+                                        .foregroundColor(.orange)
+                                }
+                                Text("Séance complète !")
+                                    .font(.system(size: 24, weight: .black))
+                                    .foregroundColor(.white)
+                                Text(snapshot.sessionName)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 14).padding(.vertical, 5)
+                                    .background(Color.orange.opacity(0.1))
+                                    .cornerRadius(20)
+                            }
+                            .padding(.top, 24)
+
+                            // Stats row
+                            HStack(spacing: 10) {
+                                statPill("\(Int(snapshot.durationMin)) min", label: "DURÉE", color: .cyan)
+                                statPill("\(snapshot.logResults.count)", label: "EXERCICES", color: .orange)
+                                statPill("\(totalSets)", label: "SÉRIES", color: .green)
+                            }
+                            .padding(.horizontal, 20)
+
+                            // Volume total
+                            if totalVolume > 0 {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("VOLUME TOTAL")
+                                            .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Text(UnitSettings.shared.format(totalVolume))
+                                            .font(.system(size: 28, weight: .black)).foregroundColor(.white)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chart.bar.fill")
+                                        .font(.system(size: 28))
+                                        .foregroundColor(.purple.opacity(0.5))
+                                }
+                                .padding(16)
+                                .background(Color(hex: "11111c")).cornerRadius(14)
+                                .padding(.horizontal, 20)
+                            }
+
+                            // Exercise list
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text("EXERCICES")
+                                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    .padding(.horizontal, 16).padding(.bottom, 8)
+                                ForEach(Array(snapshot.exercises.enumerated()), id: \.0) { idx, name in
+                                    let r = snapshot.logResults[name]
+                                    HStack(spacing: 10) {
+                                        Image(systemName: r != nil ? "checkmark.circle.fill" : "minus.circle")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(r != nil ? .green : .orange.opacity(0.5))
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(name)
+                                                .font(.system(size: 13, weight: r != nil ? .semibold : .regular))
+                                                .foregroundColor(r != nil ? .white : .gray)
+                                            if let r, !r.reps.isEmpty {
+                                                Text(r.reps)
+                                                    .font(.system(size: 11))
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                        Spacer()
+                                        if let r {
+                                            Text(UnitSettings.shared.format(r.weight))
+                                                .font(.system(size: 13, weight: .bold))
+                                                .foregroundColor(.orange)
+                                        } else {
+                                            Text("Ignoré")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.gray.opacity(0.5))
+                                        }
+                                    }
+                                    .padding(.horizontal, 16).padding(.vertical, 10)
+                                    if idx < snapshot.exercises.count - 1 {
+                                        Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
+                                    }
+                                }
+                            }
+                            .background(Color(hex: "11111c")).cornerRadius(14)
+                            .padding(.horizontal, 20)
+
+                            // RPE + Energy
+                            HStack(spacing: 10) {
+                                VStack(spacing: 6) {
+                                    Text("RPE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    Text(String(format: "%.1f", snapshot.rpe))
+                                        .font(.system(size: 26, weight: .black))
+                                        .foregroundColor(rpeColor(snapshot.rpe))
+                                    Text("/10").font(.system(size: 11)).foregroundColor(.gray)
+                                }
+                                .frame(maxWidth: .infinity).padding(16)
+                                .background(Color(hex: "11111c")).cornerRadius(14)
+
+                                VStack(spacing: 6) {
+                                    Text("ÉNERGIE AVANT").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    HStack(spacing: 3) {
+                                        ForEach(1...5, id: \.self) { i in
+                                            Image(systemName: i <= snapshot.energyPre ? "bolt.fill" : "bolt")
+                                                .font(.system(size: 14))
+                                                .foregroundColor(i <= snapshot.energyPre ? energyColor(snapshot.energyPre) : .gray.opacity(0.25))
+                                        }
+                                    }
+                                    Text(energyLabel(snapshot.energyPre))
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(energyColor(snapshot.energyPre))
+                                }
+                                .frame(maxWidth: .infinity).padding(16)
+                                .background(Color(hex: "11111c")).cornerRadius(14)
+                            }
+                            .padding(.horizontal, 20)
+
+                            // Notes
+                            if !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty {
+                                HStack(alignment: .top, spacing: 10) {
+                                    Image(systemName: "note.text")
+                                        .font(.system(size: 15))
+                                        .foregroundColor(.gray)
+                                        .padding(.top, 1)
+                                    Text(snapshot.comment)
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.white.opacity(0.85))
+                                        .multilineTextAlignment(.leading)
+                                    Spacer()
+                                }
+                                .padding(14)
+                                .background(Color(hex: "11111c")).cornerRadius(14)
+                                .padding(.horizontal, 20)
+                            }
+
+                            Button(action: { dismiss() }) {
+                                Text("Continuer")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                                    .background(Color.orange).foregroundColor(.white).cornerRadius(14)
+                            }
+                            .padding(.horizontal, 20).padding(.bottom, 32)
+                        }
+                    }
+                }
+                .navigationTitle("Récapitulatif")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+        }
+
+        private func statPill(_ value: String, label: String, color: Color) -> some View {
+            VStack(spacing: 4) {
+                Text(value)
+                    .font(.system(size: 20, weight: .black))
+                    .foregroundColor(.white)
+                Text(label)
+                    .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                    .foregroundColor(.gray)
+            }
+            .frame(maxWidth: .infinity).padding(.vertical, 14)
+            .background(color.opacity(0.08))
+            .cornerRadius(14)
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
+        }
+
+        private func rpeColor(_ v: Double) -> Color {
+            switch v {
+            case ..<5: return .green
+            case ..<7: return .yellow
+            case ..<9: return .orange
+            default:   return .red
+            }
+        }
+
+        private func energyColor(_ v: Int) -> Color {
+            switch v {
+            case 1, 2: return .red
+            case 3:    return .yellow
+            default:   return .green
+            }
+        }
+
+        private func energyLabel(_ v: Int) -> String {
+            switch v {
+            case 1: return "Épuisé"
+            case 2: return "Fatigué"
+            case 3: return "Normal"
+            case 4: return "En forme"
+            default: return "Excellent"
+            }
+        }
+    }
+
     // MARK: - Energy Pre-Workout Sheet
     struct EnergyPreWorkoutSheet: View {
         @Binding var energy: Int
