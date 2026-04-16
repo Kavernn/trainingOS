@@ -133,6 +133,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 | 009_fix_categories_2 | `docs/migrations/009_fix_categories_2.sql` | ✅ Appliquée (2026-03-31) |
 | 010_session_name | `docs/migrations/010_session_name.sql` | ✅ Appliquée (2026-04-04) |
 | 011_kv_migration | `docs/migrations/011_kv_migration.sql` | ✅ Appliquée + table kv supprimée (2026-04-04) |
+| 012_workout_sessions_completed | `docs/migrations/012_workout_sessions_completed.sql` | ✅ Appliquée (2026-04-16) + backfill rpe IS NOT NULL |
 
 ---
 
