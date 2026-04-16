@@ -200,6 +200,8 @@ struct IntelligenceView: View {
                             .cornerRadius(22)
                             .lineLimit(1...4)
                             .focused($inputFocused)
+                            .submitLabel(.send)
+                            .onSubmit { if !input.isEmpty && !isLoading { sendMessage() } }
 
                         Button(action: sendMessage) {
                             Image(systemName: "arrow.up.circle.fill")

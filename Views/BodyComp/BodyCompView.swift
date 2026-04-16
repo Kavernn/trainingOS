@@ -659,7 +659,8 @@ struct BodyWeightSheet: View {
     @State private var isSaving = false
     @State private var isLoadingHK = false
     @State private var saveError: String? = nil
-    @FocusState private var weightFocused: Bool
+    private enum BodyFocus: Hashable { case weight, bodyFat }
+    @FocusState private var bodyFocus: BodyFocus?
 
     var isEdit: Bool { editEntry != nil }
 
@@ -703,7 +704,7 @@ struct BodyWeightSheet: View {
                                     .foregroundColor(.gray)
                                 TextField("0.0", text: $weightStr)
                                     .keyboardType(.decimalPad)
-                                    .focused($weightFocused)
+                                    .focused($bodyFocus, equals: .weight)
                                     .foregroundColor(.white)
                                     .font(.system(size: 22, weight: .bold))
                                     .padding(12)
@@ -715,13 +716,26 @@ struct BodyWeightSheet: View {
                                     .font(.system(size: 10, weight: .bold))
                                     .tracking(2)
                                     .foregroundColor(.gray)
+                                let fatInvalid = !bodyFatStr.isEmpty && {
+                                    let v = Double(bodyFatStr.replacingOccurrences(of: ",", with: ".")) ?? -1
+                                    return v < 3 || v > 60
+                                }()
                                 TextField("—", text: $bodyFatStr)
                                     .keyboardType(.decimalPad)
-                                    .foregroundColor(.white)
+                                    .focused($bodyFocus, equals: .bodyFat)
+                                    .foregroundColor(fatInvalid ? .red : .white)
                                     .font(.system(size: 22, weight: .bold))
                                     .padding(12)
                                     .background(Color(hex: "191926"))
                                     .cornerRadius(10)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.red.opacity(fatInvalid ? 0.7 : 0), lineWidth: 1.5)
+                                    )
+                                if fatInvalid {
+                                    Text("Valeur entre 3% et 60%")
+                                        .font(.system(size: 11)).foregroundColor(.red.opacity(0.8))
+                                }
                             }
                         }
 
@@ -768,10 +782,19 @@ struct BodyWeightSheet: View {
             }
             .navigationTitle(isEdit ? "Modifier" : "Ajouter poids")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    if bodyFocus == .weight {
+                        Button("% Gras →") { bodyFocus = .bodyFat }
+                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                    } else {
+                        Button("Ok") { bodyFocus = nil }
+                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                    }
                 }
             }
             .alert("Erreur", isPresented: .constant(saveError != nil)) {
@@ -793,7 +816,7 @@ struct BodyWeightSheet: View {
                 hipsStr    = e.hipsCm.map   { String(format: "%.0f", $0) } ?? ""
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    weightFocused = true
+                    bodyFocus = .weight
                 }
             }
         }

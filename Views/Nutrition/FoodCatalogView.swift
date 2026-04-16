@@ -139,6 +139,9 @@ struct FoodItemFormView: View {
     @State private var glucides: String
     @State private var lipides: String
 
+    private enum FoodField: Int, Hashable { case name, qty, calories, proteines, glucides, lipides }
+    @FocusState private var foodFocus: FoodField?
+
     private let units = ["g", "ml", "unité(s)", "portion(s)"]
 
     init(existing: FoodItem?, onSave: @escaping (FoodItem) -> Void) {
@@ -169,7 +172,11 @@ struct FoodItemFormView: View {
                 Color(hex: "080810").ignoresSafeArea()
                 Form {
                     Section("ALIMENT") {
-                        TextField("Nom", text: $name).foregroundColor(.white)
+                        TextField("Nom", text: $name)
+                            .foregroundColor(.white)
+                            .focused($foodFocus, equals: .name)
+                            .submitLabel(.next)
+                            .onSubmit { foodFocus = .qty }
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
@@ -177,6 +184,7 @@ struct FoodItemFormView: View {
                         HStack {
                             TextField("Quantité", text: $refQty)
                                 .keyboardType(.decimalPad)
+                                .focused($foodFocus, equals: .qty)
                                 .foregroundColor(.white)
                             Picker("", selection: $refUnit) {
                                 ForEach(units, id: \.self) { Text($0) }
@@ -189,19 +197,23 @@ struct FoodItemFormView: View {
 
                     Section("MACROS POUR CETTE QUANTITÉ") {
                         HStack {
-                            TextField("Calories", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
+                            TextField("Calories", text: $calories)
+                                .keyboardType(.decimalPad).focused($foodFocus, equals: .calories).foregroundColor(.white)
                             Text("kcal").foregroundColor(.gray).font(.system(size: 13))
                         }
                         HStack {
-                            TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.white)
+                            TextField("Protéines", text: $proteines)
+                                .keyboardType(.decimalPad).focused($foodFocus, equals: .proteines).foregroundColor(.white)
                             Text("g").foregroundColor(.gray).font(.system(size: 13))
                         }
                         HStack {
-                            TextField("Glucides", text: $glucides).keyboardType(.decimalPad).foregroundColor(.white)
+                            TextField("Glucides", text: $glucides)
+                                .keyboardType(.decimalPad).focused($foodFocus, equals: .glucides).foregroundColor(.white)
                             Text("g").foregroundColor(.gray).font(.system(size: 13))
                         }
                         HStack {
-                            TextField("Lipides", text: $lipides).keyboardType(.decimalPad).foregroundColor(.white)
+                            TextField("Lipides", text: $lipides)
+                                .keyboardType(.decimalPad).focused($foodFocus, equals: .lipides).foregroundColor(.white)
                             Text("g").foregroundColor(.gray).font(.system(size: 13))
                         }
                     }
@@ -220,6 +232,30 @@ struct FoodItemFormView: View {
                     Button("Sauvegarder") { save() }
                         .foregroundColor(.orange).fontWeight(.semibold)
                         .disabled(!canSave)
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    if let f = foodFocus {
+                        let next: FoodField? = {
+                            switch f {
+                            case .qty: return .calories
+                            case .calories: return .proteines
+                            case .proteines: return .glucides
+                            case .glucides: return .lipides
+                            default: return nil
+                            }
+                        }()
+                        if let next {
+                            Button("Suivant →") { foodFocus = next }
+                                .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                        } else {
+                            Button("Ok") { foodFocus = nil }
+                                .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                        }
+                    } else {
+                        Button("Ok") { foodFocus = nil }
+                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                    }
                 }
             }
         }

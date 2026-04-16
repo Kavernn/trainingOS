@@ -24,6 +24,9 @@ struct ExerciseCard: View {
     @State private var confirmSkip = false
     @State private var showAdvanced = false
 
+    private enum SetFocus: Hashable { case weight(Int); case reps(Int) }
+    @FocusState private var setFocus: SetFocus?
+
     init(name: String, scheme: String, weightData: WeightData?,
          equipmentType: String = "machine", trackingType: String = "reps",
          bodyWeight: Double = 0, isSecondSession: Bool = false, isBonusSession: Bool = false,
@@ -113,19 +116,19 @@ struct ExerciseCard: View {
         VStack(spacing: 6) {
             HStack {
                 Text("SET")
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.gray)
                     .frame(width: 28, alignment: .leading)
                 Text(weightColumnLabel)
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.gray)
                 Spacer()
                 Text("REPS")
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.gray)
                     .frame(width: 56, alignment: .center)
                 VStack(spacing: 1) {
                     Text("RIR")
-                        .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
+                        .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
                     Text("avant échec")
-                        .font(.system(size: 7)).foregroundColor(.gray.opacity(0.45))
+                        .font(.system(size: 9)).foregroundColor(.gray.opacity(0.45))
                 }
                 .frame(width: 70, alignment: .center)
                 Button {
@@ -155,6 +158,7 @@ struct ExerciseCard: View {
                         .frame(width: 28)
                     TextField(evm.perSetHint(for: i), text: $evm.sets[i].weight)
                         .keyboardType(.decimalPad)
+                        .focused($setFocus, equals: .weight(i))
                         .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                         .padding(8).background(Color(hex: "191926")).cornerRadius(8)
                         .disabled(evm.setBySetMode && !isActive && !isDone)
@@ -162,6 +166,7 @@ struct ExerciseCard: View {
                     TextField(evm.lastRepsParts.indices.contains(i) ? evm.lastRepsParts[i] : "0",
                               text: $evm.sets[i].reps)
                         .keyboardType(.numberPad)
+                        .focused($setFocus, equals: .reps(i))
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(repsInvalid ? .red : .white)
                         .multilineTextAlignment(.center)
@@ -225,6 +230,7 @@ struct ExerciseCard: View {
                         Button {
                             withAnimation {
                                 triggerImpact(style: .medium)
+                                setFocus = nil
                                 if evm.currentSetIndex < evm.sets.count - 1 {
                                     evm.currentSetIndex += 1
                                 } else {
@@ -237,7 +243,7 @@ struct ExerciseCard: View {
                                 .font(.system(size: 24))
                                 .foregroundColor(.orange)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(SpringButtonStyle(scale: 0.88))
                     } else if isDone {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 18)).foregroundColor(.green.opacity(0.6))
@@ -664,9 +670,11 @@ struct ExerciseCard: View {
                         .padding(.vertical, 14)
                         .background(evm.canLog ? Color.orange : Color(hex: "1a1a2e"))
                         .foregroundColor(evm.canLog ? .white : .gray)
+                        .opacity(evm.canLog ? 1 : 0.6)
                         .cornerRadius(12)
                     }
                     .disabled(!evm.canLog)
+                    .buttonStyle(SpringButtonStyle())
 
                     if evm.isEditing {
                         Button(action: { evm.isEditing = false }) {
@@ -779,6 +787,29 @@ struct ExerciseCard: View {
         .background(Color(hex: "11111c"))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(logResult != nil ? Color.green.opacity(0.3) : Color.white.opacity(0.06), lineWidth: 1))
         .cornerRadius(14)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                if let focus = setFocus {
+                    switch focus {
+                    case .weight(let i):
+                        Button("Reps →") { setFocus = .reps(i) }
+                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                    case .reps(let i):
+                        if i < evm.sets.count - 1 {
+                            Button("Set \(i + 2) →") { setFocus = .weight(i + 1) }
+                                .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                        } else {
+                            Button("Ok") { setFocus = nil }
+                                .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                        }
+                    }
+                } else {
+                    Button("Ok") { setFocus = nil }
+                        .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                }
+            }
+        }
         .onAppear {
             evm.initializeSets()
             if !evm.painZone.isEmpty || !exoNote.isEmpty { showAdvanced = true }

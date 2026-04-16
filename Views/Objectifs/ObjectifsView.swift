@@ -428,6 +428,9 @@ struct AddGoalSheet: View {
     @State private var smartType  = SmartGoalOption.allCases.first!
     @State private var targetStr  = ""
 
+    private enum GoalFocus: Hashable { case exercise, goalWeight, target }
+    @FocusState private var goalFocus: GoalFocus?
+
     private static let isoFormatter: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
     }()
@@ -522,6 +525,7 @@ struct AddGoalSheet: View {
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 TextField(smartType.placeholder, text: $targetStr)
                     .keyboardType(.decimalPad)
+                    .focused($goalFocus, equals: .target)
                     .foregroundColor(.white)
                     .font(.system(size: 22, weight: .bold))
                     .padding(12)
@@ -542,6 +546,9 @@ struct AddGoalSheet: View {
                 TextField("ex: Squat", text: $exercise)
                     .foregroundColor(.white).padding(12)
                     .background(Color(hex: "191926")).cornerRadius(10)
+                    .focused($goalFocus, equals: .exercise)
+                    .submitLabel(.next)
+                    .onSubmit { goalFocus = .goalWeight }
             }
             .padding(.horizontal, 20)
 
@@ -552,6 +559,7 @@ struct AddGoalSheet: View {
                     .keyboardType(.decimalPad).foregroundColor(.white)
                     .font(.system(size: 22, weight: .bold))
                     .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                    .focused($goalFocus, equals: .goalWeight)
             }
             .padding(.horizontal, 20)
 
