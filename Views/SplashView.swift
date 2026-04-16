@@ -1,59 +1,82 @@
 import SwiftUI
 
+// MARK: - Shattered character
+
+private struct ShardChar: View {
+    let char: String
+    let index: Int
+    let triggered: Bool
+
+    // Deterministic "random" per character index
+    private var offsetX: CGFloat { CGFloat((index * 73 + 11) % 160) - 80 }
+    private var offsetY: CGFloat { CGFloat((index * 47 + 29) % 120) - 60 }
+    private var rotation: Double { Double((index * 61 + 17) % 120) - 60 }
+
+    var body: some View {
+        Text(char)
+            .font(.system(size: 42, weight: .black, design: .rounded))
+            .foregroundColor(.orange)
+            .tracking(4)
+            .offset(x: triggered ? 0 : offsetX,
+                    y: triggered ? 0 : offsetY)
+            .rotationEffect(.degrees(triggered ? 0 : rotation))
+            .opacity(triggered ? 1 : 0)
+            .blur(radius: triggered ? 0 : 6)
+            .animation(
+                .spring(response: 0.45, dampingFraction: 0.62, blendDuration: 0)
+                .delay(Double(index) * 0.04),
+                value: triggered
+            )
+    }
+}
+
+// MARK: - SplashView
+
 struct SplashView: View {
     @State private var logoOpacity: Double = 0
-    @State private var logoScale: Double = 0.85
-    @State private var nameOpacity: Double = 0
-    @State private var taglineOpacity: Double = 0
+    @State private var logoScale: Double  = 0.92
+    @State private var shatterTriggered   = false
     @State private var allOpacity: Double = 1
 
     var onFinish: () -> Void
+
+    private let tagline = Array("DO MORE").map(String.init)
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
 
-                // Logo plein écran en fond
+                // Logo — scaledToFit pour rester dans l'écran
                 Image("SplashImage")
                     .resizable()
-                    .scaledToFill()
+                    .scaledToFit()
                     .frame(width: geo.size.width, height: geo.size.height)
-                    .clipped()
                     .ignoresSafeArea()
                     .opacity(logoOpacity)
                     .scaleEffect(logoScale)
 
-                // Gradient sombre sur le bas pour lisibilité du texte
+                // Gradient bas pour lisibilité
                 VStack {
                     Spacer()
                     LinearGradient(
-                        colors: [.clear, Color(hex: "080810").opacity(0.85)],
+                        colors: [.clear, Color(hex: "080810").opacity(0.9)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .frame(height: geo.size.height * 0.45)
+                    .frame(height: geo.size.height * 0.38)
                     .ignoresSafeArea()
                 }
 
-                // Texte en bas
-                VStack(spacing: 0) {
+                // DO MORE — shatter
+                VStack {
                     Spacer()
-                    Text("VINCESEVEN")
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundColor(.white)
-                        .tracking(2)
-                        .opacity(nameOpacity)
-
-                    Spacer().frame(height: 8)
-
-                    Text("Do More")
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundColor(.orange)
-                        .tracking(4)
-                        .opacity(taglineOpacity)
-
-                    Spacer().frame(height: 52)
+                    HStack(spacing: 0) {
+                        ForEach(tagline.indices, id: \.self) { i in
+                            ShardChar(char: tagline[i], index: i, triggered: shatterTriggered)
+                        }
+                    }
+                    Spacer().frame(height: 60)
                 }
             }
         }
@@ -63,23 +86,20 @@ struct SplashView: View {
     }
 
     private func animate() {
-        // Logo fade in + scale up
+        // Logo pulse
         withAnimation(.easeOut(duration: 0.5)) {
             logoOpacity = 1
-            logoScale   = 1.05
+            logoScale   = 1.04
         }
-        // Logo pulse back
-        withAnimation(.easeInOut(duration: 0.3).delay(0.45)) {
+        withAnimation(.easeInOut(duration: 0.25).delay(0.45)) {
             logoScale = 1.0
         }
-        // Name fade in
-        withAnimation(.easeOut(duration: 0.4).delay(0.45)) {
-            nameOpacity = 1
+
+        // Shatter DO MORE
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.1) {
+            shatterTriggered = true
         }
-        // Tagline fade in — arrive nettement après le nom
-        withAnimation(.easeOut(duration: 0.5).delay(1.1)) {
-            taglineOpacity = 1
-        }
+
         // Fade out → finish après 3.5s total
         withAnimation(.easeIn(duration: 0.35).delay(3.15)) {
             allOpacity = 0
