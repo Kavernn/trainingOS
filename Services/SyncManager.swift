@@ -31,6 +31,11 @@ final class SyncManager: ObservableObject {
         self.container = container
         refreshPendingCount()
 
+        // Flush immediately on startup if already online
+        if isOnlineProvider() {
+            Task { await flushQueue() }
+        }
+
         // Auto-sync when coming back online
         NetworkMonitor.shared.$isOnline
             .filter { $0 }                         // only when transitioning to online
@@ -73,8 +78,9 @@ final class SyncManager: ObservableObject {
         defer { isSyncing = false }
 
         let context = ModelContext(container)
+        let cap = maxRetries
         let descriptor = FetchDescriptor<PendingMutation>(
-            predicate: #Predicate { !$0.isSynced && $0.retryCount < 5 },
+            predicate: #Predicate { !$0.isSynced && $0.retryCount < cap },
             sortBy: [SortDescriptor(\.createdAt)]
         )
 
@@ -94,13 +100,22 @@ final class SyncManager: ObservableObject {
             try? context.save()
         }
 
-        // Purge synced mutations older than 7 days to keep storage clean
+        // Purge synced mutations older than 7 days
         let cutoff = Date().addingTimeInterval(-7 * 86_400)
         let purgeDescriptor = FetchDescriptor<PendingMutation>(
             predicate: #Predicate { $0.isSynced && $0.createdAt < cutoff }
         )
         if let toDelete = try? context.fetch(purgeDescriptor) {
             toDelete.forEach { context.delete($0) }
+            try? context.save()
+        }
+
+        // Purge zombie mutations (exhausted retries) — never synced, never will be
+        let zombieDescriptor = FetchDescriptor<PendingMutation>(
+            predicate: #Predicate { !$0.isSynced && $0.retryCount >= cap }
+        )
+        if let zombies = try? context.fetch(zombieDescriptor), !zombies.isEmpty {
+            zombies.forEach { context.delete($0) }
             try? context.save()
         }
 
@@ -117,9 +132,13 @@ final class SyncManager: ObservableObject {
         req.timeoutInterval = 15
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         do {
-            let (_, response) = try await urlSession.data(for: req)
+            let (_, response) = try await URLSession.authed.data(for: req)
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-            // 2xx = success; 409 (already_logged) = treat as success (idempotent)
+            // 4xx client errors (except 429 rate-limit) = non-recoverable, discard cleanly
+            if (400...499).contains(code) && code != 429 {
+                return true
+            }
+            // 2xx = success; 409 (already_logged) = idempotent success
             return (200...299).contains(code) || code == 409
         } catch {
             return false
@@ -129,8 +148,9 @@ final class SyncManager: ObservableObject {
     private func refreshPendingCount() {
         guard let container else { return }
         let context = ModelContext(container)
+        let cap = maxRetries
         let descriptor = FetchDescriptor<PendingMutation>(
-            predicate: #Predicate { !$0.isSynced && $0.retryCount < 5 }
+            predicate: #Predicate { !$0.isSynced && $0.retryCount < cap }
         )
         pendingCount = (try? context.fetchCount(descriptor)) ?? 0
     }

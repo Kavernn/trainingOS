@@ -1494,9 +1494,9 @@ def set_goal(
     if _client is None or MODE == "OFFLINE":
         return False
     try:
-        exercise_id = get_exercise_id(exercise_name)
+        exercise_id = get_or_create_exercise_id(exercise_name)
         if not exercise_id:
-            logger.warning("set_goal: exercise '%s' not found", exercise_name)
+            logger.warning("set_goal: exercise '%s' not found/created", exercise_name)
             return False
         payload: dict = {"exercise_id": exercise_id, "target_weight": target_weight}
         if target_date:

@@ -163,21 +163,34 @@ def api_archive_objectif():
 @goals_bp.route("/api/objectifs_data")
 def api_objectifs_data():
     import db as _db
-    from weights import load_weights
-    from goals import load_goals, get_progress_bar
-    weights  = load_weights()
-    goals    = load_goals()
+    goals    = _db.get_goals()   # {ex_name: {id, target_weight, target_date}}
     archived = set(_db.get_goals_archived())
+
+    # Fetch current_weight for all goal exercises in one query
+    ex_names = list(goals.keys())
+    current_weights: dict = {}
+    if ex_names:
+        try:
+            rows = (_db._client.table("exercises")
+                    .select("name, current_weight")
+                    .in_("name", ex_names)
+                    .execute().data or [])
+            current_weights = {r["name"]: (r.get("current_weight") or 0) for r in rows}
+        except Exception:
+            pass
+
     goals_progress = {}
     for ex, goal in goals.items():
-        current = weights.get(ex, {}).get("current_weight", 0) or 0
+        current = current_weights.get(ex, 0) or 0
+        target  = goal.get("target_weight", 0) or 0
+        bar     = min(round(current / target * 100) if target else 0, 100)
         goals_progress[ex] = {
             "current":  current,
-            "goal":     goal.get("goal_weight") or goal.get("target_weight", 0),
-            "bar":      get_progress_bar(current, goal.get("goal_weight") or goal.get("target_weight", 0)),
-            "achieved": goal.get("achieved", False),
-            "deadline": goal.get("deadline", "") or goal.get("target_date", ""),
-            "note":     goal.get("note", ""),
+            "goal":     target,
+            "bar":      bar,
+            "achieved": bool(target and current >= target),
+            "deadline": str(goal.get("target_date") or ""),
+            "note":     "",
             "archived": ex in archived,
         }
     return jsonify({"goals": goals_progress})
