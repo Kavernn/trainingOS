@@ -48,10 +48,8 @@ struct DashboardView: View {
                             GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
                                 .appearAnimation(delay: 0)
 
-                            if let tip = vm.coachTip {
-                                CoachTipCard(tip: tip)
-                                    .appearAnimation(delay: 0.01)
-                            }
+                            DataGapSection(dash: dash, recovery: vm.todayRecovery)
+                                .appearAnimation(delay: 0.01)
 
                             // TodayCard: primary action every session
                             TodayCardView(
@@ -131,11 +129,6 @@ struct DashboardView: View {
                                     MorningBriefCompactView(data: b)
                                         .appearAnimation(delay: 0.10)
                                 }
-                            }
-
-                            if let peak = vm.peakPrediction, !peak.days.isEmpty {
-                                PeakPredictionCard(prediction: peak)
-                                    .appearAnimation(delay: 0.11)
                             }
 
                             if !vm.insights.isEmpty {
@@ -2415,6 +2408,116 @@ struct DashboardInsightsCard: View {
             Spacer(minLength: 4)
         }
         .glassCard(color: .purple, intensity: 0.05)
+    }
+}
+
+// MARK: - Data Gap Section
+
+struct DataGapSection: View {
+    let dash: DashboardData
+    let recovery: RecoveryEntry?
+
+    private var missingRecovery: Bool {
+        recovery == nil ||
+        (recovery?.sleepHours == nil && recovery?.hrv == nil && recovery?.restingHr == nil)
+    }
+    private var missingNutrition: Bool { (dash.nutritionTotals.calories ?? 0) < 1 }
+    private var missingWeight: Bool    { (dash.profile.weight ?? 0) == 0 }
+    private var missingGoals: Bool     { dash.goals.isEmpty }
+
+    var body: some View {
+        let gaps = [missingRecovery, missingNutrition, missingWeight, missingGoals]
+        if gaps.contains(true) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("À COMPLÉTER")
+                    .font(.system(size: 10, weight: .bold)).tracking(2)
+                    .foregroundColor(.gray)
+                    .padding(.leading, 2)
+
+                VStack(spacing: 6) {
+                    if missingRecovery {
+                        NavigationLink(destination: RecoveryView()) {
+                            DataGapCard(
+                                icon: "moon.zzz.fill",
+                                color: .indigo,
+                                title: "Récupération du jour",
+                                subtitle: "Sommeil, FC repos, HRV, courbatures"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if missingNutrition {
+                        NavigationLink(destination: NutritionView()) {
+                            DataGapCard(
+                                icon: "fork.knife",
+                                color: .green,
+                                title: "Nutrition du jour",
+                                subtitle: "Aucun repas enregistré aujourd'hui"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if missingWeight {
+                        NavigationLink(destination: BodyCompView()) {
+                            DataGapCard(
+                                icon: "scalemass.fill",
+                                color: .orange,
+                                title: "Poids corporel",
+                                subtitle: "Ajoute ton poids pour un suivi précis"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if missingGoals {
+                        NavigationLink(destination: ObjectifsView()) {
+                            DataGapCard(
+                                icon: "target",
+                                color: .blue,
+                                title: "Objectifs",
+                                subtitle: "Aucun objectif défini pour le moment"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct DataGapCard: View {
+    let icon: String
+    let color: Color
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(color.opacity(0.15))
+                    .frame(width: 40, height: 40)
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray)
+            }
+            Spacer()
+            Image(systemName: "plus.circle.fill")
+                .font(.system(size: 20))
+                .foregroundColor(color.opacity(0.6))
+        }
+        .padding(12)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
     }
 }
 
