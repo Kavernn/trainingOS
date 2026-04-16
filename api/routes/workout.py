@@ -872,7 +872,8 @@ def api_seance_data():
     today_date = get_today_date()
     schedule   = get_week_schedule()
 
-    already_logged = sessions.get(today_date, {}).get("completed", False)
+    _s = sessions.get(today_date, {})
+    already_logged = bool(_s.get("completed") or _s.get("rpe") is not None)
 
     # Aplatit la structure bloc → {exercice: scheme} pour le client iOS
     flat_program = {

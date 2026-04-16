@@ -441,14 +441,25 @@ def api_dashboard():
     suggestions  = get_suggested_weights_for_today(weights, full_program)
 
     _today_session = _db.get_workout_session(today_date)
-    already_logged_today = bool(_today_session and _today_session.get("completed", False))
+    # Séance terminée si : completed=True OU rpe set OU au moins 1 exercice loggué
+    _today_logged_names = set()
+    try:
+        _today_logged_names = {e["exercise_name"] for e in _db.get_session_exercise_logs(today_date)}
+    except Exception:
+        pass
+    already_logged_today = bool(
+        _today_session and (
+            _today_session.get("completed") or
+            _today_session.get("rpe") is not None or
+            bool(_today_logged_names)
+        )
+    )
 
     has_partial_logs = False
     if not already_logged_today:
         try:
-            logged_names = {e["exercise_name"] for e in _db.get_session_exercise_logs(today_date)}
             program_names = set(get_strength_exercises(full_program.get(today_str, {})).keys())
-            has_partial_logs = bool(logged_names & program_names)
+            has_partial_logs = bool(_today_logged_names & program_names)
         except Exception:
             has_partial_logs = False
 
@@ -462,12 +473,12 @@ def api_dashboard():
         }
 
     # Merge HIIT sessions into sessions dict so the heatmap shows them too.
-    # Include if completed=True (new sessions) OR rpe is not None (historical sessions
-    # logged before the completed field existed). Stubs have completed=False AND rpe=None.
+    # Include if completed=True, rpe set, OR c'est aujourd'hui et already_logged_today.
     merged_sessions = {
         date: entry
         for date, entry in sessions.items()
         if entry.get("completed") or entry.get("rpe") is not None
+           or (date == today_date and already_logged_today)
     }
     for entry in hiit_log:
         d = entry.get("date")
