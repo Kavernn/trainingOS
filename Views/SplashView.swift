@@ -76,8 +76,8 @@ struct SplashView: View {
         withAnimation(.easeOut(duration: 0.4).delay(0.45)) {
             nameOpacity = 1
         }
-        // Tagline fade in
-        withAnimation(.easeOut(duration: 0.4).delay(0.65)) {
+        // Tagline fade in — arrive nettement après le nom
+        withAnimation(.easeOut(duration: 0.5).delay(1.1)) {
             taglineOpacity = 1
         }
         // Fade out → finish après 3.5s total
