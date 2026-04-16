@@ -60,6 +60,7 @@ def api_log_recovery():
         "steps":         data.get("steps"),
         "soreness":      data.get("soreness"),
         "notes":         data.get("notes", ""),
+        "source":        "manual",
     }
     _db.upsert_recovery_log(entry)
     return jsonify({"ok": True})

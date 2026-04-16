@@ -35,8 +35,9 @@ def register_routes(app):
 
     @app.route("/api/wearable/sync", methods=["POST"])
     def api_wearable_sync():
+        from utils import _today_mtl
         data        = request.get_json() or {}
-        target_date = data.get("date", date_cls.today().isoformat())
+        target_date = data.get("date", _today_mtl())
         synced      = []
 
         # ── Recovery metrics ─────────────────────────────────────────────────
