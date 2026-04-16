@@ -53,6 +53,7 @@ struct TrainingOSApp: App {
                 Task {
                     await HealthKitService.shared.requestAuthorization()
                     await WatchSyncService.shared.syncIfNeeded()
+                    await WatchSyncService.shared.enableBackgroundDelivery()
                 }
             }
         }
