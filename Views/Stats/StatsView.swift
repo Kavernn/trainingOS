@@ -1365,25 +1365,32 @@ struct ExerciseStatRow: View {
     @ObservedObject private var units = UnitSettings.shared
     let data: WeightData
 
+    private var isBodyweight: Bool { (data.currentWeight ?? 0) == 0 }
+
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name).font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
-                if let reps = data.lastReps {
+                if let reps = data.lastReps, !reps.isEmpty {
                     Text(reps).font(.system(size: 12)).foregroundColor(.gray)
                 }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                if let w = data.currentWeight {
+                if let w = data.currentWeight, w > 0 {
                     Text(units.format(w))
                         .font(.system(size: 16, weight: .black)).foregroundColor(.orange)
-                }
-                if let history = data.history, history.count > 1,
-                   let first = history.last?.weight, let last = history.first?.weight {
-                    let diff = last - first
-                    Text(diff >= 0 ? "+\(diff, specifier: "%.1f")" : "\(diff, specifier: "%.1f")")
-                        .font(.system(size: 11)).foregroundColor(diff >= 0 ? .green : .red)
+                    if let history = data.history, history.count > 1,
+                       let first = history.last?.weight, let last = history.first?.weight,
+                       first > 0, last > 0 {
+                        let diff = last - first
+                        Text(diff >= 0 ? "+\(diff, specifier: "%.1f")" : "\(diff, specifier: "%.1f")")
+                            .font(.system(size: 11)).foregroundColor(diff >= 0 ? .green : .red)
+                    }
+                } else {
+                    Text("Poids corps")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.cyan.opacity(0.7))
                 }
             }
             Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray)

@@ -75,8 +75,8 @@ def load_weights(exercise_names: list[str] | None = None, limit_per: int = 20) -
 
             latest = history[0]
             weights[name] = {
-                "current_weight": latest.get("weight", 0),
-                "last_reps":      latest.get("reps", ""),
+                "current_weight": latest.get("weight") or 0,
+                "last_reps":      latest.get("reps") or "",
                 "history":        history,
             }
 
