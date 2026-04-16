@@ -10,69 +10,81 @@ struct SplashView: View {
     var onFinish: () -> Void
 
     var body: some View {
-        ZStack {
-            Color(hex: "080810").ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                Spacer()
-
-                // Logo
+                // Logo plein écran en fond
                 Image("SplashImage")
                     .resizable()
-                    .scaledToFit()
-                    .frame(width: 160, height: 160)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .scaledToFill()
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+                    .ignoresSafeArea()
                     .opacity(logoOpacity)
                     .scaleEffect(logoScale)
 
-                Spacer().frame(height: 32)
+                // Gradient sombre sur le bas pour lisibilité du texte
+                VStack {
+                    Spacer()
+                    LinearGradient(
+                        colors: [.clear, Color(hex: "080810").opacity(0.85)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: geo.size.height * 0.45)
+                    .ignoresSafeArea()
+                }
 
-                // Name
-                Text("VINCESEVEN")
-                    .font(.system(size: 28, weight: .bold, design: .default))
-                    .foregroundColor(.white)
-                    .tracking(1.5)
-                    .opacity(nameOpacity)
+                // Texte en bas
+                VStack(spacing: 0) {
+                    Spacer()
+                    Text("VINCESEVEN")
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundColor(.white)
+                        .tracking(2)
+                        .opacity(nameOpacity)
 
-                Spacer().frame(height: 8)
+                    Spacer().frame(height: 8)
 
-                // Tagline
-                Text("Do More")
-                    .font(.system(size: 15, weight: .regular, design: .default))
-                    .foregroundColor(.orange)
-                    .tracking(3)
-                    .opacity(taglineOpacity)
+                    Text("Do More")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(.orange)
+                        .tracking(4)
+                        .opacity(taglineOpacity)
 
-                Spacer()
+                    Spacer().frame(height: 52)
+                }
             }
         }
         .opacity(allOpacity)
+        .ignoresSafeArea()
         .onAppear { animate() }
     }
 
     private func animate() {
         // Logo fade in + scale up
-        withAnimation(.easeOut(duration: 0.4)) {
+        withAnimation(.easeOut(duration: 0.5)) {
             logoOpacity = 1
             logoScale   = 1.05
         }
         // Logo pulse back
-        withAnimation(.easeInOut(duration: 0.25).delay(0.35)) {
+        withAnimation(.easeInOut(duration: 0.3).delay(0.45)) {
             logoScale = 1.0
         }
         // Name fade in
-        withAnimation(.easeOut(duration: 0.35).delay(0.35)) {
+        withAnimation(.easeOut(duration: 0.4).delay(0.45)) {
             nameOpacity = 1
         }
         // Tagline fade in
-        withAnimation(.easeOut(duration: 0.35).delay(0.55)) {
+        withAnimation(.easeOut(duration: 0.4).delay(0.65)) {
             taglineOpacity = 1
         }
-        // Fade out everything → finish
-        withAnimation(.easeIn(duration: 0.3).delay(1.2)) {
+        // Fade out → finish après 3.5s total
+        withAnimation(.easeIn(duration: 0.35).delay(3.15)) {
             allOpacity = 0
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) {
             onFinish()
         }
     }
