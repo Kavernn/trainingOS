@@ -504,14 +504,19 @@ def create_workout_session(
         return {}
 
 
-def complete_workout_session(date: str) -> bool:
-    """Mark a workout session as completed (user tapped Terminer)."""
+def complete_workout_session(date: str, patch: Optional[dict] = None) -> bool:
+    """Mark a workout session as completed and persist session metadata."""
     if _client is None or MODE == "OFFLINE":
         return False
     try:
+        data = {"completed": True}
+        if patch:
+            for k in ("rpe", "comment", "duration_min", "energy_pre", "session_name"):
+                if patch.get(k) is not None:
+                    data[k] = patch[k]
         resp = (
             _client.table("workout_sessions")
-            .update({"completed": True})
+            .update(data)
             .eq("date", date)
             .eq("session_type", "morning")
             .execute()
@@ -522,14 +527,19 @@ def complete_workout_session(date: str) -> bool:
         return False
 
 
-def complete_workout_session_bonus(date: str) -> bool:
-    """Mark a bonus session as completed."""
+def complete_workout_session_bonus(date: str, patch: Optional[dict] = None) -> bool:
+    """Mark a bonus session as completed and persist session metadata."""
     if _client is None or MODE == "OFFLINE":
         return False
     try:
+        data = {"completed": True}
+        if patch:
+            for k in ("rpe", "comment", "duration_min", "energy_pre", "session_name"):
+                if patch.get(k) is not None:
+                    data[k] = patch[k]
         resp = (
             _client.table("workout_sessions")
-            .update({"completed": True})
+            .update(data)
             .eq("date", date)
             .eq("session_type", "bonus")
             .execute()

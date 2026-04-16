@@ -392,19 +392,28 @@ def api_log_session():
         weights   = load_weights()
         vol_stats = _calc_session_volume_legacy(exos, weights, today)
 
+        session_patch = {
+            "rpe":          rpe,
+            "comment":      comment,
+            "duration_min": duration_min,
+            "energy_pre":   energy_pre,
+            "session_name": session_name,
+        }
         if bonus_session:
             log_bonus_session(today, rpe, comment, exos, duration_min, energy_pre,
                               blocks=blocks, **vol_stats)
-            _db.complete_workout_session_bonus(today)
+            _db.complete_workout_session_bonus(today, patch=session_patch)
         elif second_session:
             log_second_session(today, rpe, comment, exos, duration_min, energy_pre,
                                blocks=blocks, **vol_stats, session_name=session_name)
-            if session_name:
-                _db.update_workout_session_by_type(today, "evening", {"session_name": session_name})
+            _db.update_workout_session_by_type(today, "evening", {
+                **{k: v for k, v in session_patch.items() if v is not None},
+                "completed": True,
+            })
         else:
             log_session(today, rpe, comment, exos, duration_min, energy_pre,
                         blocks=blocks, **vol_stats, session_name=session_name)
-            _db.complete_workout_session(today)
+            _db.complete_workout_session(today, patch=session_patch)
 
         # Fallback persistence path:
         # iOS sends `exos` as summary strings (e.g. "Bench Press 185.0lbs 5,5,5").
