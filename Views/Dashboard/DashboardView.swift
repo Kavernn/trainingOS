@@ -853,10 +853,9 @@ struct TodayCardView: View {
     var showGreatDayBadge: Bool = false
     var onOpenSession: (() -> Void)? = nil
 
-    /// Source de vérité : alreadyLoggedToday, session présente dans le dict, OU partial logs.
-    /// Les partial logs (exercices loggués sans soumettre) comptent comme séance faite.
+    /// Source de vérité : alreadyLoggedToday OU session présente dans le dict (completed=true).
     private var isLoggedToday: Bool {
-        dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil || hasPartialLogs
+        dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
     }
 
     private var todaySession: SessionEntry? {
@@ -1001,8 +1000,8 @@ struct TodayCardView: View {
                 if dash.today == "Repos" {
                     NavigationLink(destination: BonusSeanceView()) {
                         HStack(spacing: 8) {
-                            Image(systemName: "plus.circle.fill")
-                            Text("Faire une séance")
+                            Image(systemName: hasPartialLogs ? "play.fill" : "plus.circle.fill")
+                            Text(hasPartialLogs ? "Continuer la séance" : "Faire une séance")
                                 .font(.system(size: 15, weight: .bold))
                         }
                         .frame(maxWidth: .infinity)
@@ -1026,7 +1025,7 @@ struct TodayCardView: View {
                             Button(action: onOpenSession) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
-                                    Text("Commencer la séance")
+                                    Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
                                         .font(.system(size: 15, weight: .bold))
                                 }
                                 .frame(maxWidth: .infinity)
@@ -1045,7 +1044,7 @@ struct TodayCardView: View {
                             NavigationLink(destination: SeanceView()) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
-                                    Text("Commencer la séance")
+                                    Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
                                         .font(.system(size: 15, weight: .bold))
                                 }
                                 .frame(maxWidth: .infinity)
@@ -1639,12 +1638,11 @@ struct WeekProgressStripView: View {
         for i in 0...daysSinceMonday {
             let d = Date(timeIntervalSince1970: base - Double(i) * 86400.0)
             let dateStr = fmt.string(from: d)
-            let inSessions = dash.sessions[dateStr] != nil
-            // Aujourd'hui : compter aussi si séance soumise ou partial logs
-            let isToday = dateStr == dash.todayDate
-            let todayDone = isToday && (dash.alreadyLoggedToday || dash.hasPartialLogs
-                || SessionDraftStore.hasDraft(date: dash.todayDate, sessionType: "morning"))
-            if inSessions || todayDone { count += 1 }
+            // sessions dict = completed sessions (completed=true en DB)
+            // Pour aujourd'hui, alreadyLoggedToday est la source la plus fraîche
+            let counted = dash.sessions[dateStr] != nil
+                || (dateStr == dash.todayDate && dash.alreadyLoggedToday)
+            if counted { count += 1 }
         }
         return count
     }
