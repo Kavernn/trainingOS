@@ -14,9 +14,9 @@ private struct ShardChar: View {
 
     var body: some View {
         Text(char)
-            .font(.system(size: 42, weight: .black, design: .rounded))
+            .font(.system(size: 46, weight: .heavy, design: .default))
             .foregroundColor(.orange)
-            .tracking(4)
+            .tracking(8)
             .offset(x: triggered ? 0 : offsetX,
                     y: triggered ? 0 : offsetY)
             .rotationEffect(.degrees(triggered ? 0 : rotation))
