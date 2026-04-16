@@ -48,8 +48,13 @@ struct DashboardView: View {
                             GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
                                 .appearAnimation(delay: 0)
 
+                            if let tip = vm.coachTip {
+                                CoachTipCard(tip: tip)
+                                    .appearAnimation(delay: 0.01)
+                            }
+
                             DataGapSection(dash: dash, recovery: vm.todayRecovery)
-                                .appearAnimation(delay: 0.01)
+                                .appearAnimation(delay: 0.02)
 
                             // TodayCard: primary action every session
                             TodayCardView(
@@ -116,20 +121,6 @@ struct DashboardView: View {
                                 }
                             }
 
-                            // UX#3: Morning Brief always shown — compact green strip when "go"
-                            if let b = vm.brief {
-                                if b.recommendation != "go" || b.flags.hrvDrop || b.flags.sleepDeprivation || b.flags.trainingOverload {
-                                    MorningBriefCardView(
-                                        data: b,
-                                        lssTrend: vm.lssTrend,
-                                        lastSessionDate: api.dashboard?.sessions.keys.max()
-                                    )
-                                    .appearAnimation(delay: 0.10)
-                                } else {
-                                    MorningBriefCompactView(data: b)
-                                        .appearAnimation(delay: 0.10)
-                                }
-                            }
 
                             if !vm.insights.isEmpty {
                                 DashboardInsightsCard(insights: vm.insights)

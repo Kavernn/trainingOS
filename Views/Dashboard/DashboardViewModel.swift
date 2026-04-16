@@ -12,6 +12,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var todaySleepLogged = false
     @Published var todayRecovery: RecoveryEntry?
     @Published var lssTrend: [LifeStressScore] = []
+    @Published var coachTip: CoachTip?
 
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
@@ -24,6 +25,7 @@ final class DashboardViewModel: ObservableObject {
         async let i = APIService.shared.fetchInsights()
         async let r = APIService.shared.fetchRecoveryData()
         async let t = APIService.shared.fetchLifeStressTrend(days: 7)
+        async let c = APIService.shared.fetchDailyCoachTip()
 
         deload   = try? await d
         moodDue  = try? await m
@@ -31,6 +33,7 @@ final class DashboardViewModel: ObservableObject {
         soirData = try? await s
         insights = (try? await i) ?? []
         lssTrend = (try? await t) ?? []
+        coachTip = try? await c
         if let log = try? await r {
             let entry = log.first(where: { $0.date == todayStr })
             todaySleepLogged = entry?.sleepHours != nil
