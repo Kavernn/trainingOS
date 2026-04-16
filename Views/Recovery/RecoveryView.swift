@@ -365,7 +365,7 @@ struct LogRecoverySheet: View {
     @State private var restingHrStr = ""
     @State private var hrvStr = ""
     @State private var stepsStr = ""
-    @State private var soreness: Double = 3
+    @State private var soreness: Double = 0
     @State private var notes = ""
     @State private var isSaving = false
     @State private var isLoadingHK = false
