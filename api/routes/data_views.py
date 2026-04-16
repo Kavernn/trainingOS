@@ -40,7 +40,7 @@ def index():
     today_date = _today_mtl()
     hiit_log   = load_hiit_log_local()
 
-    already_logged_today = today_date in sessions
+    already_logged_today = sessions.get(today_date, {}).get("completed", False)
 
     return render_template("index.html",
         today        = today_str,
