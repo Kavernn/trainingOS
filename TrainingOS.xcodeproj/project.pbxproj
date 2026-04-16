@@ -69,6 +69,7 @@
 		DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */; };
 		DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */; };
 		E3BB78033EEA4FB1AE6D7812 /* ProactiveBannerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */; };
+		F3A1C0AC417B1DAB71004002 /* CoachTipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */; };
 		E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */; };
 		EBD686A12DC32EF0A13FD632 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A937EBC71FB17046EDA80FA1 /* NutritionModels.swift */; };
 		EE40EFBE12129A661F672B0A /* ExerciseCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15EBCC3B6A4B2F3CDA11F3EF /* ExerciseCard.swift */; };
@@ -145,6 +146,7 @@
 		BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonusSeanceView.swift; sourceTree = "<group>"; };
 		C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveBannerCard.swift; sourceTree = "<group>"; };
+		F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachTipCard.swift; sourceTree = "<group>"; };
 		CC3300012F5D98BA002AE472 /* PSSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PSSView.swift; sourceTree = "<group>"; };
 		CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardView.swift; sourceTree = "<group>"; };
 		D0FE1CA8525F46319027AD6D /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
@@ -451,6 +453,7 @@
 				D665E43C2F5D98B8002AE470 /* DashboardView.swift */,
 				CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */,
 				C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */,
+				F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */,
 				F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */,
 				A8115703CA371513172F372F /* DashboardViewModel.swift */,
 			);
@@ -725,6 +728,7 @@
 				329ACD1942044D42B9EE63F3 /* AlertService.swift in Sources */,
 				15AFE1BFA7B8487CBEECB98C /* ProactiveAlert.swift in Sources */,
 				E3BB78033EEA4FB1AE6D7812 /* ProactiveBannerCard.swift in Sources */,
+				F3A1C0AC417B1DAB71004002 /* CoachTipCard.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* InfoButton.swift in Sources */,
 				AA00200A2F5D98BA002AE470 /* InventaireView.swift in Sources */,
 				AA00200B2F5D98BA002AE470 /* IntelligenceView.swift in Sources */,
