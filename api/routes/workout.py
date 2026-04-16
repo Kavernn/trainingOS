@@ -198,7 +198,7 @@ def api_session_edit():
         if not date:
             return jsonify({"error": "date manquante"}), 400
 
-        # Update sessions store (RPE / comment)
+        # Update sessions store (RPE / comment) — KV legacy
         from sessions import load_sessions, save_sessions
         from weights import load_weights
         sessions = load_sessions()
@@ -209,6 +209,17 @@ def api_session_edit():
         if "comment" in data:
             sessions[date]["comment"] = data["comment"]
         save_sessions(sessions)
+
+        # Persist RPE / comment to Supabase
+        import db as _db
+        session_type = data.get("session_type", "morning")
+        supabase_patch = {}
+        if "rpe" in data:
+            supabase_patch["rpe"] = data["rpe"]
+        if "comment" in data:
+            supabase_patch["comment"] = data["comment"]
+        if supabase_patch:
+            _db.update_workout_session_by_type(date, session_type, supabase_patch)
 
         # Update weights store for each exercise edit
         exercise_edits = data.get("exercises", [])

@@ -1,7 +1,7 @@
 import SwiftUI
 
 // MARK: - Models
-struct EditableExo {
+struct EditableExo: Equatable {
     let exercise: String
     var weightStr: String
     var reps: String
@@ -758,16 +758,20 @@ struct EditSessionSheet: View {
     @State private var exos: [EditableExo]
     @State private var isSaving = false
 
+    private let originalExos: [EditableExo]
+
     init(session: HistoriqueMuscu, onSave: @escaping (String, Double?, String, [EditableExo]) async -> Bool) {
         self.session = session
         self.onSave = onSave
         _rpe = State(initialValue: session.rpe ?? 7.0)
         _comment = State(initialValue: session.comment)
-        _exos = State(initialValue: session.exos.map {
+        let mapped = session.exos.map {
             EditableExo(exercise: $0.exercise,
                         weightStr: UnitSettings.shared.inputStr($0.weight),
                         reps: $0.reps)
-        })
+        }
+        _exos = State(initialValue: mapped)
+        originalExos = mapped
     }
 
     var body: some View {
@@ -854,7 +858,12 @@ struct EditSessionSheet: View {
                         Button {
                             isSaving = true
                             Task {
-                                let ok = await onSave(session.date, rpe, comment, exos)
+                                // Only send exos that were actually modified
+                                let changedExos = exos.filter { exo in
+                                    guard let orig = originalExos.first(where: { $0.exercise == exo.exercise }) else { return true }
+                                    return exo != orig
+                                }
+                                let ok = await onSave(session.date, rpe, comment, changedExos)
                                 if !ok { isSaving = false }
                             }
                         } label: {
