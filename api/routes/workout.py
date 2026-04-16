@@ -765,15 +765,7 @@ def api_programme():
         elif action == "remove":
             exercise_to_remove = data.get("exercise", "")
             exercises.pop(exercise_to_remove, None)
-            # Cascade delete from inventory if exercise no longer appears in any other session
-            if exercise_to_remove:
-                is_in_other = any(
-                    exercise_to_remove in get_strength_exercises(sdef)
-                    for sname, sdef in session_data.items()
-                    if sname != jour
-                )
-                if not is_in_other:
-                    _db.delete_exercise_by_name(exercise_to_remove)
+            # Do NOT delete from inventory — removing from a program only removes the reference
 
         elif action == "scheme":
             exercise   = data.get("exercise")
