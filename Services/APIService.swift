@@ -476,6 +476,15 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode(PeakPredictionResponse.self, from: data)
     }
 
+    // MARK: - Coach du jour
+    func fetchDailyCoachTip() async throws -> CoachTip {
+        let today = DateFormatter.isoDate.string(from: Date())
+        let cacheKey = "coach_tip_\(today)"
+        let url = URL(string: "\(baseURL)/api/coach/daily_tip")!
+        let data = try await fetchWithCache(url: url, key: cacheKey)
+        return try JSONDecoder().decode(CoachTip.self, from: data)
+    }
+
     // MARK: - ACWR
     func fetchACWR() async throws -> ACWRData {
         let url = URL(string: "\(baseURL)/api/acwr")!

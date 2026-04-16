@@ -132,6 +132,11 @@ struct DashboardView: View {
                                 }
                             }
 
+                            if let tip = vm.coachTip {
+                                CoachTipCard(tip: tip)
+                                    .appearAnimation(delay: 0.105)
+                            }
+
                             if let peak = vm.peakPrediction, !peak.days.isEmpty {
                                 PeakPredictionCard(prediction: peak)
                                     .appearAnimation(delay: 0.11)

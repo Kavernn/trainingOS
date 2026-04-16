@@ -162,6 +162,13 @@ struct PeakPredictionResponse: Codable {
     let baseline: Double
 }
 
+// MARK: - Coach du jour
+struct CoachTip: Codable {
+    let title: String
+    let body: String
+    let domain: String  // "nutrition" | "training" | "recovery" | "sleep"
+}
+
 // MARK: - Morning Brief
 struct MorningBriefData: Codable {
     let date: String

@@ -16,6 +16,8 @@ final class CacheService {
         "cardio_data":     10 * 60,
         "nutrition_data":  5 * 60,
         "profil_data":     30 * 60,
+        // coach tip: valid all day — keyed by date so auto-rotates at midnight
+        "coach_tip":       24 * 3600,
     ]
 
     init(directory: URL? = nil) {
@@ -39,9 +41,18 @@ final class CacheService {
         return directory.appendingPathComponent("\(safe).expiry")
     }
 
+    private func ttl(for key: String) -> TimeInterval {
+        if let exact = Self.ttls[key] { return exact }
+        // Prefix match: "coach_tip_2026-04-16" → "coach_tip"
+        for (prefix, value) in Self.ttls where key.hasPrefix(prefix + "_") {
+            return value
+        }
+        return 3600
+    }
+
     func save(_ data: Data, for key: String) {
         try? data.write(to: fileURL(for: key), options: .atomic)
-        let ttl = Self.ttls[key] ?? 3600
+        let ttl = ttl(for: key)
         let expiry = Date().addingTimeInterval(ttl).timeIntervalSince1970
         let expiryData = withUnsafeBytes(of: expiry) { Data($0) }
         try? expiryData.write(to: expiryURL(for: key), options: .atomic)

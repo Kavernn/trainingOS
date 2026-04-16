@@ -85,14 +85,15 @@ import db as _db_startup
 _db_startup.ensure_schema_migrations()
 
 # ── Register blueprints ──────────────────────────────────────
-from routes.profile   import profile_bp
-from routes.nutrition import nutrition_bp
-from routes.ai_coach  import ai_coach_bp
-from routes.goals     import goals_bp
-from routes.analytics import analytics_bp
-from routes.workout   import workout_bp
+from routes.profile    import profile_bp
+from routes.nutrition  import nutrition_bp
+from routes.ai_coach   import ai_coach_bp
+from routes.goals      import goals_bp
+from routes.analytics  import analytics_bp
+from routes.workout    import workout_bp
 from routes.data_views import data_views_bp
-from routes.wellness  import wellness_bp
+from routes.wellness   import wellness_bp
+from routes.coach_tip  import coach_tip_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -102,6 +103,7 @@ app.register_blueprint(analytics_bp)
 app.register_blueprint(workout_bp)
 app.register_blueprint(data_views_bp)
 app.register_blueprint(wellness_bp)
+app.register_blueprint(coach_tip_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────
