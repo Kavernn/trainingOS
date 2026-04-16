@@ -115,7 +115,10 @@ final class SyncManager: ObservableObject {
             predicate: #Predicate { !$0.isSynced && $0.retryCount >= cap }
         )
         if let zombies = try? context.fetch(zombieDescriptor), !zombies.isEmpty {
-            zombies.forEach { context.delete($0) }
+            zombies.forEach {
+                print("[SyncManager] Dropping zombie mutation — \($0.method) \($0.endpoint) (retries: \($0.retryCount))")
+                context.delete($0)
+            }
             try? context.save()
         }
 
@@ -136,6 +139,7 @@ final class SyncManager: ObservableObject {
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             // 4xx client errors (except 429 rate-limit) = non-recoverable, discard cleanly
             if (400...499).contains(code) && code != 429 {
+                print("[SyncManager] Discarding non-recoverable mutation — \(mutation.method) \(mutation.endpoint) status \(code)")
                 return true
             }
             // 2xx = success; 409 (already_logged) = idempotent success

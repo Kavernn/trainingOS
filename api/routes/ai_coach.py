@@ -48,7 +48,11 @@ def api_ai_propose():
         end   = raw.rfind(']') + 1
         if start == -1 or end == 0:
             return jsonify({"error": "Réponse non structurée", "raw": raw}), 500
-        proposals = _json.loads(raw[start:end])
+        try:
+            proposals = _json.loads(raw[start:end])
+        except _json.JSONDecodeError as e:
+            logger.error("ai/propose JSON decode error: %s — raw=%s", e, raw[:200])
+            return jsonify({"error": "Réponse non structurée du modèle"}), 500
         return jsonify({"proposals": proposals})
     except Exception:
         raise

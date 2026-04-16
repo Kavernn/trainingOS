@@ -6,10 +6,15 @@ nutrition_bp = Blueprint("nutrition", __name__)
 @nutrition_bp.route("/api/nutrition/add", methods=["POST"])
 def api_nutrition_add():
     from nutrition import (add_entry as nutrition_add_entry, get_today_totals)
-    data  = request.get_json()
+    data  = request.get_json() or {}
+    if not data.get("nom", "").strip():
+        return jsonify({"error": "nom requis"}), 422
+    calories_val = float(data.get("calories", 0))
+    if calories_val < 0:
+        return jsonify({"error": "calories ne peut pas être négatif"}), 422
     entry = nutrition_add_entry(
         nom       = data.get("nom", ""),
-        calories  = float(data.get("calories", 0)),
+        calories  = calories_val,
         proteines = float(data.get("proteines", 0)),
         glucides  = float(data.get("glucides", 0)),
         lipides   = float(data.get("lipides", 0)),
@@ -100,10 +105,11 @@ def api_nutrition_scan_label():
 
         if unit == "serving":
             scale = quantity
-        elif unit in ("g", "ml") and serving_unit == unit and serving_size > 0:
+        elif unit in ("g", "ml") and serving_unit in ("g", "ml") and serving_size > 0:
+            # g and ml are treated as equivalent mass/volume units for scaling purposes
             scale = quantity / serving_size
         else:
-            scale = quantity  # fallback: traiter comme des portions
+            scale = quantity / serving_size if serving_size > 0 else quantity
 
         return jsonify({
             "nom":       result.get("product_name") or "Aliment scanné",

@@ -2857,10 +2857,10 @@ def compute_smart_goal_current(goal_type: str) -> Optional[float]:
             return round(total, 1) if total > 0 else None
 
         if goal_type == "resting_hr":
-            # Use most recent recovery log hr_rest, fallback to wearable snapshot
+            # Use most recent recovery log resting_hr, fallback to wearable snapshot
             recs = get_recovery_logs(limit=7)
             for r in recs:
-                hr = r.get("hr_rest")
+                hr = r.get("resting_hr")
                 if hr:
                     return float(hr)
             return None

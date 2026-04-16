@@ -196,8 +196,11 @@ def api_pss_submit():
         return jsonify({"error": "responses requis"}), 400
 
     try:
+        parsed = [int(r) for r in responses]
+        if any(v < 0 or v > 4 for v in parsed):
+            return jsonify({"error": "Chaque réponse doit être entre 0 et 4"}), 422
         record = save_pss_record(
-            responses       = [int(r) for r in responses],
+            responses       = parsed,
             is_short        = bool(data.get("is_short", False)),
             notes           = data.get("notes"),
             triggers        = data.get("triggers"),
@@ -265,11 +268,14 @@ def api_sleep_log():
     quality   = data.get("quality")
     if not bedtime or not wake_time or quality is None:
         return jsonify({"error": "bedtime, wake_time et quality requis"}), 400
+    quality_int = int(quality)
+    if not (1 <= quality_int <= 5):
+        return jsonify({"error": "quality doit être entre 1 et 5"}), 422
     try:
         entry = save_sleep_entry(
             bedtime   = bedtime,
             wake_time = wake_time,
-            quality   = int(quality),
+            quality   = quality_int,
             notes     = data.get("notes"),
         )
         return jsonify(entry)

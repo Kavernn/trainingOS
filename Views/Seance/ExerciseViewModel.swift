@@ -111,7 +111,7 @@ final class ExerciseViewModel: ObservableObject {
 
     var avgWeight: Double? {
         let vals = sets
-            .compactMap { Double($0.weight.replacingOccurrences(of: ",", with: ".")) }
+            .compactMap { Double($0.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")) }
             .filter { $0 > 0 }
         guard !vals.isEmpty else { return nil }
         return vals.reduce(0, +) / Double(vals.count)
@@ -119,8 +119,11 @@ final class ExerciseViewModel: ObservableObject {
 
     var canLog: Bool {
         if isTimeBased     { return sets.contains { $0.duration > 0 } }
-        if equipmentType == "bodyweight" { return sets.contains { !$0.reps.isEmpty } }
-        return sets.contains { !$0.weight.isEmpty && !$0.reps.isEmpty }
+        if equipmentType == "bodyweight" { return sets.contains { Int($0.reps) != nil } }
+        return sets.contains {
+            Int($0.reps) != nil &&
+            Double($0.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")) != nil
+        }
     }
 
     var repsStr: String {
@@ -140,7 +143,7 @@ final class ExerciseViewModel: ObservableObject {
     var inputHint: Double {
         guard currentWeight > 0 else { return 0 }
         switch equipmentType {
-        case "barbell":    return (currentWeight - 45) / 2
+        case "barbell":    return max(0, (currentWeight - 45) / 2)
         case "dumbbell":   return currentWeight / 2
         case "bodyweight": return 0
         default:           return currentWeight

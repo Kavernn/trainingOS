@@ -109,7 +109,14 @@ def api_daily_tip():
         end = raw.rfind("}") + 1
         if start == -1 or end == 0:
             return jsonify({"error": "Réponse non structurée", "raw": raw}), 500
-        tip = _json.loads(raw[start:end])
+        try:
+            tip = _json.loads(raw[start:end])
+        except _json.JSONDecodeError as e:
+            logger.error("coach_tip JSON decode error: %s — raw=%s", e, raw[:200])
+            return jsonify({"error": "Réponse non structurée du modèle"}), 500
         return jsonify(tip)
-    except Exception:
-        raise
+    except _anthropic.AuthenticationError:
+        return jsonify({"error": "Clé ANTHROPIC_API_KEY invalide"}), 500
+    except Exception as e:
+        logger.error("coach_tip error: %s", e)
+        return jsonify({"error": "Erreur lors de la génération du conseil"}), 500
