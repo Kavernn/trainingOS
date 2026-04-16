@@ -48,9 +48,10 @@ struct DashboardView: View {
                             GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
                                 .appearAnimation(delay: 0)
 
-                            // UX#1: Readiness strip before TodayCard — premium apps (Whoop/Oura) pattern
-                            ReadinessStripView(brief: vm.brief, recovery: vm.todayRecovery)
-                                .appearAnimation(delay: 0.01)
+                            if let tip = vm.coachTip {
+                                CoachTipCard(tip: tip)
+                                    .appearAnimation(delay: 0.01)
+                            }
 
                             // TodayCard: primary action every session
                             TodayCardView(
@@ -130,11 +131,6 @@ struct DashboardView: View {
                                     MorningBriefCompactView(data: b)
                                         .appearAnimation(delay: 0.10)
                                 }
-                            }
-
-                            if let tip = vm.coachTip {
-                                CoachTipCard(tip: tip)
-                                    .appearAnimation(delay: 0.105)
                             }
 
                             if let peak = vm.peakPrediction, !peak.days.isEmpty {
