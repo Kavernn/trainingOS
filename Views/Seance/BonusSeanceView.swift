@@ -33,6 +33,35 @@ struct BonusSeanceView: View {
     @State private var isLoading = true
     @ObservedObject private var timer = RestTimerManager.shared
     @State private var sessionStart = Date()
+    @State private var expandedExercise: String? = nil
+
+    private var orderedExercises: [String] {
+        exerciseOrder.filter { localExercises[$0] != nil }
+    }
+
+    @ViewBuilder private func exerciseCard(for name: String) -> some View {
+        let idx = orderedExercises.firstIndex(of: name)
+        let next = idx.flatMap { $0 + 1 < orderedExercises.count ? orderedExercises[$0 + 1] : nil }
+        ExerciseCard(
+            name: name,
+            scheme: localExercises[name] ?? "3x8-12",
+            weightData: vm.seanceData?.weights[name],
+            equipmentType: inventoryTypes[name] ?? "machine",
+            trackingType: inventoryTracking[name] ?? "reps",
+            bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
+            isSecondSession: false,
+            isBonusSession: true,
+            logResult: $vm.logResults[name],
+            isExpanded: expandedExercise == name,
+            onToggle: {
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
+                    expandedExercise = expandedExercise == name ? nil : name
+                }
+            },
+            nextExerciseName: next
+        )
+        .padding(.horizontal, 16)
+    }
 
     @ViewBuilder private var addExerciseButton: some View {
         let label = HStack(spacing: 8) {
@@ -94,19 +123,10 @@ struct BonusSeanceView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
                         } else {
-                            ForEach(exerciseOrder.filter { localExercises[$0] != nil }, id: \.self) { name in
-                                ExerciseCard(
-                                    name: name,
-                                    scheme: localExercises[name] ?? "3x8-12",
-                                    weightData: vm.seanceData?.weights[name],
-                                    equipmentType: inventoryTypes[name] ?? "machine",
-                                    trackingType: inventoryTracking[name] ?? "reps",
-                                    bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
-                                    isSecondSession: false,
-                                    isBonusSession: true,
-                                    logResult: $vm.logResults[name]
-                                )
-                                .padding(.horizontal, 16)
+                            VStack(spacing: 8) {
+                                ForEach(orderedExercises, id: \.self) { name in
+                                    exerciseCard(for: name)
+                                }
                             }
                         }
 
@@ -135,9 +155,11 @@ struct BonusSeanceView: View {
                 .scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     if timer.currentExerciseName != nil {
-                        WorkoutSeanceView.FloatingRestTimerBar()
+                        FloatingRestTimerBar()
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
+                .animation(.spring(response: 0.35, dampingFraction: 0.85), value: timer.currentExerciseName != nil)
             }
         }
         .navigationTitle("Séance Bonus")
