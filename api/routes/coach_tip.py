@@ -95,6 +95,7 @@ def api_daily_tip():
             system=(
                 "Tu es un coach sportif expert. "
                 "À partir des données d'un athlète, génère UN conseil du jour personnalisé, court et actionnable. "
+                "Rappel : la surcharge progressive inclut l'augmentation des reps ET du poids — 8×15 lbs après 6×15 lbs est un vrai progrès. "
                 "Réponds UNIQUEMENT avec un objet JSON valide (pas de texte autour) au format exact :\n"
                 '{"title": "titre court (max 6 mots)", "body": "conseil en 1-2 phrases max", '
                 '"domain": "nutrition|training|recovery|sleep"}\n'

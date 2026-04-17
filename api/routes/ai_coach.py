@@ -38,7 +38,9 @@ def api_ai_propose():
                 '"new_exercise": "nom (pour replace)", "scheme": "ex: 3x8-10", '
                 '"reason": "explication courte en français"}\n'
                 "Propose 3 à 6 modifications pertinentes basées sur les données. "
-                "Ne compare jamais le volume brut entre muscles — utilise les sets."
+                "Ne compare jamais le volume brut entre muscles — utilise les sets. "
+                "La surcharge progressive inclut l'augmentation des reps ET du poids : "
+                "8×15 lbs > 6×15 lbs est du vrai progrès — tiens-en compte dans tes recommandations."
             ),
             messages=[{"role": "user", "content": context}]
         )
@@ -84,6 +86,7 @@ def api_ai_narrative():
                 "Tu es un journaliste sportif qui rédige le bilan hebdomadaire d'un athlète. "
                 "À partir des données d'entraînement fournies, écris un récit de 100-150 mots. "
                 "Style : direct, vivant, motivant. Mentionne les faits marquants : volume, RPE, récupération, progrès. "
+                "Le progrès inclut l'augmentation des reps ET du poids — 8×15 lbs après 6×15 lbs est une victoire à souligner. "
                 "Écris à la deuxième personne (tu/ton). Pas de bullet points, seulement du texte narratif. "
                 "Termine sur une note d'anticipation pour la semaine suivante. Réponds uniquement en français."
             ),
@@ -133,6 +136,9 @@ def api_ai_coach():
             "- Ne compare JAMAIS le volume brut (lbs×reps) entre groupes musculaires — les jambes "
             "utilisent toujours des charges plus lourdes, ça ne veut pas dire qu'elles sont sur-entraînées.\n"
             "- Utilise le NOMBRE DE SETS par groupe musculaire comme indicateur de volume réel.\n"
+            "- La surcharge progressive a DEUX dimensions : augmentation du POIDS et augmentation des REPS. "
+            "  8 reps × 15 lbs > 6 reps × 15 lbs : c'est une progression réelle, même sans augmenter le poids. "
+            "  Recommande d'augmenter les reps jusqu'au haut de la plage cible AVANT d'augmenter le poids.\n"
             "- Pour les suggestions de programme, sois précis: nomme les exercices à ajouter/retirer/modifier "
             "avec les schemes (ex: 3x8-10, 4x5-7).\n"
             "- Pour le HIIT, analyse la fréquence, les types et la récupération entre sessions.\n"

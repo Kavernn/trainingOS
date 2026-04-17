@@ -5,7 +5,7 @@ struct ProgressionSuggestion: Codable, Identifiable {
 
     let exerciseName: String
     let loadProfile: String?
-    let suggestionType: String   // "increase_weight" | "increase_sets" | "deload" | "maintain" | "regression"
+    let suggestionType: String   // "increase_weight" | "increase_sets" | "deload" | "maintain" | "regression" | "rep_progress"
     let currentWeight: Double?
     let suggestedWeight: Double?
     let currentScheme: String?

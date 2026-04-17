@@ -92,6 +92,13 @@ def _max_weight(sets: list[dict]) -> Optional[float]:
     return max(vals) if vals else None
 
 
+def _avg_reps(sets: list[dict]) -> float:
+    """Average reps across sets (0.0 when empty)."""
+    if not sets:
+        return 0.0
+    return sum(_to_int(s.get("reps")) for s in sets) / len(sets)
+
+
 def _hit_rate(sets: list[dict], top_reps: int) -> float:
     """Fraction of sets where reps >= top_reps."""
     if not sets:
@@ -149,7 +156,10 @@ def _suggest_for_exercise(
     prev_all_sets = _sets_from_log(prev_log)
     prev_max_w    = _max_weight(prev_all_sets)
 
-    # Anti-regression
+    cur_avg  = _avg_reps(_working_sets(all_sets))
+    prev_avg = _avg_reps(_working_sets(prev_all_sets))
+
+    # Anti-regression — poids
     if cur_max_w is not None and prev_max_w is not None and cur_max_w < prev_max_w:
         lbs = int(prev_max_w) if prev_max_w == int(prev_max_w) else prev_max_w
         return {
@@ -161,6 +171,22 @@ def _suggest_for_exercise(
             "current_scheme":  default_scheme,
             "suggested_scheme": None,
             "reason":          f"↓ vs dernière session ({lbs} lbs). Récupère avant d'augmenter.",
+            "fatigue_warning": False,
+        }
+
+    # Anti-regression — reps au même poids (chute > 1 rep)
+    if (cur_max_w is not None and prev_max_w is not None
+            and cur_max_w == prev_max_w
+            and prev_avg > 0 and cur_avg < prev_avg - 0.9):
+        return {
+            "exercise_name":   name,
+            "load_profile":    load_profile,
+            "suggestion_type": "regression",
+            "current_weight":  cur_max_w,
+            "suggested_weight": cur_max_w,
+            "current_scheme":  default_scheme,
+            "suggested_scheme": None,
+            "reason":          f"↓ reps ({int(round(cur_avg))} vs {int(round(prev_avg))} dernière séance) — même poids. Récupère.",
             "fatigue_warning": False,
         }
 
@@ -225,6 +251,22 @@ def _suggest_for_exercise(
                 "fatigue_warning": False,
             }
     else:
+        # Progression en reps au même poids (surcharge progressive sans augmenter le poids)
+        if (prev_max_w is not None and cur_max_w == prev_max_w
+                and cur_avg > prev_avg + 0.9):
+            delta = max(1, int(round(cur_avg - prev_avg)))
+            w_str = str(int(cur_max_w)) if cur_max_w == int(cur_max_w) else str(cur_max_w)
+            return {
+                "exercise_name":   name,
+                "load_profile":    load_profile,
+                "suggestion_type": "rep_progress",
+                "current_weight":  cur_max_w,
+                "suggested_weight": cur_max_w,
+                "current_scheme":  default_scheme,
+                "suggested_scheme": default_scheme,
+                "reason":          f"↑ +{delta} rep{'s' if delta > 1 else ''} à {w_str} lbs — objectif {top_reps} reps.",
+                "fatigue_warning": False,
+            }
         return {
             "exercise_name":   name,
             "load_profile":    load_profile,

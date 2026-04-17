@@ -222,9 +222,10 @@ private struct SuggestionRow: View {
                     .foregroundColor(.white)
             }
 
-            // Ligne 2 : poids current → suggested (F3 — avant la raison)
+            // Ligne 2 : poids current → suggested (masqué pour rep_progress et maintain)
             if let cur = suggestion.currentWeight, let sug = suggestion.suggestedWeight,
-               suggestion.suggestionType != "maintain" {
+               suggestion.suggestionType != "maintain",
+               suggestion.suggestionType != "rep_progress" {
                 HStack(spacing: 6) {
                     Text(cur.fmtLbs())
                         .font(.system(size: 13, weight: .medium))
@@ -254,7 +255,7 @@ private struct SuggestionRow: View {
                 .foregroundColor(Color.white.opacity(0.45))
                 .fixedSize(horizontal: false, vertical: true)
 
-            // Ligne 4 : actions
+            // Ligne 4 : actions (rep_progress → pas de bouton Appliquer, juste OK)
             if !isApplied && !isIgnored {
                 HStack(spacing: 10) {
                     // F8 — bouton Ignorer
@@ -268,28 +269,30 @@ private struct SuggestionRow: View {
                             .cornerRadius(10)   // F11
                     }
 
-                    // F7 — "Appliquer" avec poids cible
-                    if isApplying {
-                        ProgressView().tint(.cyan)
-                            .padding(.horizontal, 14)
-                    } else {
-                        Button(action: onApply) {
-                            HStack(spacing: 5) {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 11, weight: .bold))
-                                if let sug = suggestion.suggestedWeight {
-                                    Text("Appliquer · \(sug.fmtLbs())")
-                                        .font(.system(size: 13, weight: .semibold))
-                                } else {
-                                    Text("Appliquer")
-                                        .font(.system(size: 13, weight: .semibold))
+                    // F7 — "Appliquer" (masqué pour rep_progress — rien à appliquer)
+                    if suggestion.suggestionType != "rep_progress" {
+                        if isApplying {
+                            ProgressView().tint(.cyan)
+                                .padding(.horizontal, 14)
+                        } else {
+                            Button(action: onApply) {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 11, weight: .bold))
+                                    if let sug = suggestion.suggestedWeight {
+                                        Text("Appliquer · \(sug.fmtLbs())")
+                                            .font(.system(size: 13, weight: .semibold))
+                                    } else {
+                                        Text("Appliquer")
+                                            .font(.system(size: 13, weight: .semibold))
+                                    }
                                 }
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 7)
+                                .background(typeColor)
+                                .cornerRadius(10)
                             }
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .background(typeColor)
-                            .cornerRadius(10)   // F11
                         }
                     }
                 }
@@ -319,6 +322,7 @@ private struct SuggestionRow: View {
         case "increase_sets":   return "plus.circle.fill"
         case "deload":          return "arrow.down.circle.fill"
         case "regression":      return "exclamationmark.circle.fill"
+        case "rep_progress":    return "arrow.up.right.circle.fill"
         default:                return "minus.circle"
         }
     }
@@ -329,6 +333,7 @@ private struct SuggestionRow: View {
         case "increase_sets":   return .green
         case "deload":          return .orange
         case "regression":      return .red
+        case "rep_progress":    return .green
         default:                return .gray
         }
     }
