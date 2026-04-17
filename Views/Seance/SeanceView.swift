@@ -821,8 +821,9 @@ struct WorkoutSeanceView: View {
     @State private var addTarget: SeanceName?
     @State private var editTarget: ExerciseTarget?
     @State private var isEditMode = false
-    @State private var showRestTimer = false
     @State private var orderSaveError = false
+    @ObservedObject private var timer = RestTimerManager.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     // Progression
     @State private var showProgressionSheet = false
@@ -1202,8 +1203,6 @@ struct WorkoutSeanceView: View {
                                 .foregroundColor(isEditMode ? .green : .orange)
                         }
                         .padding(.leading, 8)
-                        TimerHeaderButton(onTap: { showRestTimer = true })
-                            .padding(.leading, 4)
                     }
                     // Progress
                     let done = vm.logResults.count
@@ -1347,6 +1346,13 @@ struct WorkoutSeanceView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if timer.totalSeconds > 0 {
+                FloatingRestTimerBar()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.spring(response: 0.3), value: timer.totalSeconds > 0)
+            }
+        }
         .sheet(isPresented: $showFinish) {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
@@ -1431,11 +1437,6 @@ struct WorkoutSeanceView: View {
                 Task { await editExercise(oldName: target.exercise, newName: newName, scheme: newScheme) }
             }
         }
-        .sheet(isPresented: $showRestTimer) {
-            RestTimerSheet()
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-        }
         .sheet(isPresented: $showAddCardio) {
             AddCardioSheet { cardioCount += 1 }
                 .presentationDetents([.large])
@@ -1444,7 +1445,11 @@ struct WorkoutSeanceView: View {
             AddHIITSheet { hiitCount += 1 }
                 .presentationDetents([.large])
         }
+        .onChange(of: scenePhase) { phase in
+            if phase == .active { timer.syncFromEndDate() }
+        }
         .onAppear {
+            timer.restoreIfNeeded()
             Task { await loadInventory() }
             computeGhost()
             guard !didLoadPreCoaching else { return }
@@ -2961,6 +2966,100 @@ struct AddHIITSheet: View {
         }
     }
     
+    // MARK: - Floating rest timer bar (always-visible bottom bar, replaces the sheet)
+    struct FloatingRestTimerBar: View {
+        @ObservedObject private var timer = RestTimerManager.shared
+
+        private let presets = [60, 90, 120, 180]
+
+        var body: some View {
+            VStack(spacing: 0) {
+                Divider().opacity(0.15)
+                HStack(spacing: 12) {
+                    // Mini progress ring + countdown
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white.opacity(0.1), lineWidth: 3)
+                        Circle()
+                            .trim(from: 0, to: timer.progress)
+                            .stroke(timer.timerColor,
+                                    style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .animation(.linear(duration: 0.5), value: timer.progress)
+                        Text(formatTime(timer.remaining))
+                            .font(.system(size: 11, weight: .black, design: .monospaced))
+                            .foregroundColor(timer.timerColor)
+                            .monospacedDigit()
+                    }
+                    .frame(width: 44, height: 44)
+
+                    // Preset chips — hidden while running
+                    if !timer.isRunning {
+                        HStack(spacing: 6) {
+                            ForEach(presets, id: \.self) { p in
+                                Button { timer.applyPreset(p) } label: {
+                                    Text(p % 60 == 0 ? "\(p/60)m" : "\(p)s")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(timer.totalSeconds == p ? .black : timer.timerColor)
+                                        .padding(.horizontal, 9).padding(.vertical, 5)
+                                        .background(timer.totalSeconds == p
+                                                    ? timer.timerColor
+                                                    : timer.timerColor.opacity(0.12))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    } else {
+                        // Adjust buttons while running
+                        HStack(spacing: 6) {
+                            ForEach([-30, -10, 10, 30], id: \.self) { delta in
+                                Button { timer.adjustTime(by: delta) } label: {
+                                    Text(delta > 0 ? "+\(delta)" : "\(delta)")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(timer.timerColor)
+                                        .padding(.horizontal, 8).padding(.vertical, 5)
+                                        .background(timer.timerColor.opacity(0.1))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer()
+
+                    // Reset
+                    Button { timer.reset() } label: {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.5))
+                            .frame(width: 36, height: 36)
+                            .background(Color.white.opacity(0.07))
+                            .clipShape(Circle())
+                    }
+
+                    // Play / Pause
+                    Button {
+                        if timer.isRunning { timer.stop() } else { timer.start() }
+                    } label: {
+                        Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.black)
+                            .frame(width: 44, height: 44)
+                            .background(timer.timerColor)
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color(hex: "0d0d1a"))
+            }
+        }
+
+        private func formatTime(_ s: Int) -> String {
+            "\(s / 60):\(String(format: "%02d", s % 60))"
+        }
+    }
+
     // MARK: - Rest Timer live indicator (used in ExerciseCard and WorkoutSeanceView header)
 
     /// Shows a live countdown when the timer is running, or the configured rest time when idle.
