@@ -659,27 +659,29 @@ final class RestTimerManager: ObservableObject {
         if wasRunning { start() }
     }
 
-    /// Called when an exercise is logged. If another exercise's timer is running, ask for confirmation.
+    /// Called when an exercise is logged. Sets the preset but never starts automatically.
+    /// If a timer is already running for a different exercise, ask before replacing.
     func requestAutoStart(_ seconds: Int, exerciseName: String) {
         if isRunning, let current = currentExerciseName, current != exerciseName {
             pendingStart = (seconds, exerciseName)
-        } else {
-            applyAutoStart(seconds, exerciseName: exerciseName)
+        } else if !isRunning {
+            currentExerciseName = exerciseName
+            totalSeconds = seconds
+            remaining    = seconds
+            UserDefaults.standard.set(seconds, forKey: Self.presetKey)
+            // No auto-start — user presses play manually
         }
-    }
-
-    func applyAutoStart(_ seconds: Int, exerciseName: String? = nil) {
-        stop()
-        currentExerciseName = exerciseName
-        totalSeconds = seconds
-        remaining    = seconds
-        UserDefaults.standard.set(seconds, forKey: Self.presetKey)
-        start()
+        // Same exercise running: don't interrupt
     }
 
     func confirmReplace() {
         guard let p = pendingStart else { return }
-        applyAutoStart(p.seconds, exerciseName: p.name)
+        stop()
+        currentExerciseName = p.name
+        totalSeconds = p.seconds
+        remaining    = p.seconds
+        UserDefaults.standard.set(p.seconds, forKey: Self.presetKey)
+        start()  // User explicitly confirmed the replacement → start
         pendingStart = nil
     }
 
@@ -723,10 +725,10 @@ final class RestTimerManager: ObservableObject {
     }
 
     private func applyInitial(autoStartSeconds: Int?) {
+        // Set the preset only — never auto-start
         if let auto = autoStartSeconds, auto > 0 {
             totalSeconds = auto; remaining = auto
             UserDefaults.standard.set(auto, forKey: Self.presetKey)
-            start()
         } else {
             let saved = UserDefaults.standard.integer(forKey: Self.presetKey)
             if saved > 0 { totalSeconds = saved; remaining = saved }
