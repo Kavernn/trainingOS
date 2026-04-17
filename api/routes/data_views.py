@@ -487,11 +487,16 @@ def api_dashboard():
 
     # Enrich merged_sessions with session_volume from v_session_volume view
     # (session_volume was removed from workout_sessions schema — lives in the view)
+    # Also recover sessions that have exercise logs but no rpe/completed (missed by initial filter).
     try:
         vol_by_date = _db.get_sessions_for_correlations(days=500)
         for date, vol_data in vol_by_date.items():
-            if date in merged_sessions and vol_data.get("session_volume") is not None:
-                merged_sessions[date]["session_volume"] = vol_data["session_volume"]
+            sv = vol_data.get("session_volume")
+            # Session has exercise logs → count it even if rpe/completed absent
+            if sv and date not in merged_sessions and date in sessions:
+                merged_sessions[date] = sessions[date]
+            if date in merged_sessions and sv is not None:
+                merged_sessions[date]["session_volume"] = sv
     except Exception:
         pass
 
