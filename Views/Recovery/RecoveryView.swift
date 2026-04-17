@@ -548,7 +548,7 @@ struct LogRecoverySheet: View {
                     sleepQuality: sleepQuality,
                     restingHr:    Double(restingHrStr),
                     hrv:          Double(hrvStr),
-                    steps:        Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0),
+                    steps:        stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
                     soreness:     soreness,
                     notes:        notes,
                     date:         dateStr
