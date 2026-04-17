@@ -1364,7 +1364,6 @@ struct WorkoutSeanceView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: timer.currentExerciseName != nil)
         .sheet(isPresented: $showFinish) {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
@@ -3399,6 +3398,7 @@ struct FloatingRestTimerBar: View {
     var body: some View {
         VStack(spacing: 0) {
             // Colored progress line at top — scaleEffect évite GeometryReader dans safeAreaInset
+            // fixedSize + maxWidth: .infinity garantit hauteur stable dans safeAreaInset
             ZStack(alignment: .leading) {
                 Rectangle().fill(Color.white.opacity(0.06))
                 Rectangle()
@@ -3506,6 +3506,8 @@ struct FloatingRestTimerBar: View {
                 )
             )
         }
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity)
     }
 
     private func formatTime(_ s: Int) -> String {

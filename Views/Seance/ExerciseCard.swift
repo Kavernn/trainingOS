@@ -114,7 +114,9 @@ struct ExerciseCard: View {
             onLogged?()
             triggerNotificationFeedback(.success)
             if let secs = restSeconds, secs > 0 {
-                RestTimerManager.shared.requestAutoStart(secs, exerciseName: name)
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                    RestTimerManager.shared.requestAutoStart(secs, exerciseName: name)
+                }
             }
             // Auto-close after brief feedback delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
@@ -669,7 +671,9 @@ struct ExerciseCard: View {
                         RestTimerBadge(restSeconds: restSeconds, onTap: {
                             let t = RestTimerManager.shared
                             guard !t.isRunning else { return }
-                            t.requestAutoStart(restSeconds ?? 120, exerciseName: name)
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                t.requestAutoStart(restSeconds ?? 120, exerciseName: name)
+                            }
                             t.start()
                         })
                         .padding(.top, 4)
