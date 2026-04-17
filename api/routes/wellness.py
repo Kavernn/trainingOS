@@ -51,6 +51,7 @@ def api_recovery_data():
 def api_log_recovery():
     import db as _db
     data  = request.get_json()
+    soreness_val = data.get("soreness")
     entry = {
         "date":          data.get("date", date.today().isoformat()),
         "sleep_hours":   data.get("sleep_hours"),
@@ -58,11 +59,13 @@ def api_log_recovery():
         "resting_hr":    data.get("resting_hr"),
         "hrv":           data.get("hrv"),
         "steps":         data.get("steps"),
-        "soreness":      data.get("soreness"),
+        "soreness":      soreness_val if soreness_val else None,  # 0 → NULL (constraint: 1-10)
         "notes":         data.get("notes", ""),
         "source":        "manual",
     }
-    _db.upsert_recovery_log(entry)
+    ok = _db.upsert_recovery_log(entry)
+    if not ok:
+        return jsonify({"error": "Erreur base de données"}), 500
     return jsonify({"ok": True})
 
 @wellness_bp.route("/api/delete_recovery", methods=["POST"])
