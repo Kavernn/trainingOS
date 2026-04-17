@@ -6,6 +6,7 @@ import Charts
 
 struct SeanceView: View {
     @StateObject private var vm = SeanceViewModel()
+    @ObservedObject private var timer = RestTimerManager.shared
 
     var body: some View {
         NavigationStack {
@@ -22,6 +23,12 @@ struct SeanceView: View {
             }
             .navigationTitle("Séance")
             .navigationBarTitleDisplayMode(.inline)
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if timer.currentExerciseName != nil {
+                FloatingRestTimerBar()
+                    .transition(.opacity)
+            }
         }
         .task { await vm.load() }
     }
@@ -1358,12 +1365,6 @@ struct WorkoutSeanceView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if timer.currentExerciseName != nil {
-                FloatingRestTimerBar()
-                    .transition(.opacity)
-            }
-        }
         .sheet(isPresented: $showFinish) {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),

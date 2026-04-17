@@ -153,16 +153,16 @@ struct BonusSeanceView: View {
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    if timer.currentExerciseName != nil {
-                        FloatingRestTimerBar()
-                            .transition(.opacity)
-                    }
-                }
             }
         }
         .navigationTitle("Séance Bonus")
         .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if timer.currentExerciseName != nil {
+                FloatingRestTimerBar()
+                    .transition(.opacity)
+            }
+        }
         .task { await loadInventory() }
         .sheet(isPresented: $showAddExercise) {
             AddExerciseSheet(
