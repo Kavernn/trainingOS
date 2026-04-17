@@ -674,6 +674,30 @@ def api_historique_data():
         if candidate_score > current_score:
             best_by_key[key] = candidate
 
+    # Merge bonus sessions into their morning counterpart.
+    # A bonus session is a complement (RPE/comment added after the fact),
+    # not a separate workout — display them as one unified entry.
+    for d_stype in list(best_by_key.keys()):
+        d, stype = d_stype
+        if stype != "bonus":
+            continue
+        bonus = best_by_key[d_stype]
+        morning_key = (d, "morning")
+        if morning_key in best_by_key:
+            morning = best_by_key[morning_key]
+            # Inherit RPE/comment from bonus if morning is missing them
+            if morning.get("rpe") is None and bonus.get("rpe") is not None:
+                morning["rpe"] = bonus["rpe"]
+            if not morning.get("comment") and bonus.get("comment"):
+                morning["comment"] = bonus["comment"]
+            # Inherit exercises from bonus only if morning has none
+            if not morning.get("exos") and bonus.get("exos"):
+                morning["exos"] = bonus["exos"]
+            del best_by_key[d_stype]
+        else:
+            # No morning session — keep bonus as the sole entry for that day
+            pass
+
     session_list = sorted(
         best_by_key.values(),
         key=lambda x: (x.get("date", ""), x.get("session_type", "")),
