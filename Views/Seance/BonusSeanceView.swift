@@ -156,7 +156,7 @@ struct BonusSeanceView: View {
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     if timer.currentExerciseName != nil {
                         FloatingRestTimerBar()
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .transition(.opacity)
                     }
                 }
             }

@@ -1361,7 +1361,7 @@ struct WorkoutSeanceView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if timer.currentExerciseName != nil {
                 FloatingRestTimerBar()
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(.opacity)
             }
         }
         .sheet(isPresented: $showFinish) {
@@ -3506,7 +3506,6 @@ struct FloatingRestTimerBar: View {
                 )
             )
         }
-        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity)
     }
 
