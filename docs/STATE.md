@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-06 (A1 auth + UX Dashboard + UX Nutrition)
+Dernière mise à jour : 2026-04-17
 
 ---
 
@@ -134,6 +134,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 | 010_session_name | `docs/migrations/010_session_name.sql` | ✅ Appliquée (2026-04-04) |
 | 011_kv_migration | `docs/migrations/011_kv_migration.sql` | ✅ Appliquée + table kv supprimée (2026-04-04) |
 | 012_workout_sessions_completed | `docs/migrations/012_workout_sessions_completed.sql` | ✅ Appliquée (2026-04-16) + backfill rpe IS NOT NULL |
+| 013_nutrition_scan | `docs/migrations/013_nutrition_scan.sql` | ✅ Appliquée |
 
 ---
 
@@ -142,6 +143,19 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 1. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
 2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
 3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
+
+## Complété récemment (2026-04-16/17 — Bugs récupération, historique, dashboard)
+
+- **Migration 012 appliquée** : `completed BOOLEAN DEFAULT FALSE` ajoutée à `workout_sessions` + backfill `SET completed=TRUE WHERE rpe IS NOT NULL`
+- **Détection séance terminée** : triple check robuste (`completed OR rpe IS NOT NULL OR exercices loggués`) dans `api_dashboard()` et `api_seance_data()`
+- **TodayCard 3 états** restaurés : "Commencer la séance" / "Continuer la séance" / carte verte "Complété" — basé sur `hasPartialLogs` + `isLoggedToday`
+- **WeekProgressStripView** : compte aujourd'hui via `dash.alreadyLoggedToday` en fallback quand le dict `sessions` n'est pas encore mis à jour
+- **Plank** ajouté dans l'inventaire des exercices
+- **Recovery — steps ne se sauvegardaient pas** : deux bugs corrigés :
+  1. iOS : `stepsStr.isEmpty ? nil : Int(stepsStr)` — champ vide envoyait `steps=0` écrasant les pas HK existants
+  2. Serveur : `soreness=0 → NULL` — la CHECK constraint `soreness BETWEEN 1 AND 10` faisait échouer silencieusement tout l'upsert quand soreness=0 (défaut du slider)
+- **Recovery — erreur upsert surfacée** : `api_log_recovery` retourne maintenant HTTP 500 si `upsert_recovery_log` échoue (au lieu de `{"ok": true}` silencieux)
+- **Historique — double entrée bonus** : les sessions bonus sont fusionnées dans la session morning du même jour dans `api_historique_data` — RPE/comment hérités du bonus, exercices de la morning → une seule entrée par jour
 
 ## Complété récemment (2026-04-06 — A1 auth + UX Dashboard + UX Nutrition)
 

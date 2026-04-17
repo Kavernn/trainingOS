@@ -355,6 +355,43 @@ Ne jamais utiliser `datetime.date.today()` pour des comparaisons de date liées 
 
 ---
 
+## Backend — CHECK constraint violation cause un upsert silencieux (données non sauvegardées)
+
+La table `recovery_logs` a `soreness SMALLINT CHECK (soreness BETWEEN 1 AND 10)`. Le slider iOS va de 0 à 10. Quand `soreness=0` était envoyé, PostgreSQL rejetait l'upsert entier — **toutes** les colonnes, y compris `steps`, n'étaient pas sauvegardées. Le serveur Python catchait l'exception et retournait `{"ok": true}` quand même.
+
+**Règle :** Pour tout champ avec CHECK constraint qui peut être 0 (falsy), convertir 0 → NULL côté serveur :
+```python
+"soreness": data.get("soreness") or None,  # 0 → NULL (contrainte 1-10)
+```
+Et toujours propager les erreurs d'upsert au client (HTTP 500 si False) plutôt que de masquer l'échec avec `{"ok": true}`.
+
+---
+
+## iOS — Champ texte vide doit envoyer nil, pas une valeur par défaut
+
+`Int(stepsStr) ?? Int(Double(stepsStr) ?? 0)` — quand `stepsStr=""`, retourne `0`, pas `nil`. Comme `steps: Int?`, `0` est non-nil → `body["steps"] = 0` envoyé → écrase les pas existants en DB.
+
+**Règle :** Pour tout champ optionnel qui ne doit pas écraser les données existantes :
+```swift
+steps: stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr) ?? 0))
+```
+Nil n'est pas ajouté au body (`if let v = steps { body["steps"] = v }`), donc les données existantes en DB sont préservées.
+
+---
+
+## Backend — Session bonus ≠ second workout : fusionner dans l'historique
+
+Une session `session_type="bonus"` est généralement un complement (RPE ajouté après coup), pas un deuxième workout distinct. Afficher morning + bonus séparément crée une double entrée déroutante pour l'utilisateur.
+
+**Règle :** Dans `api_historique_data`, fusionner les sessions bonus dans la morning du même jour :
+- RPE/comment bonus → morning si morning n'en a pas
+- Exercices bonus → morning si morning est vide
+- Supprimer la clé bonus de `best_by_key`
+
+Si aucune session morning n'existe pour ce jour, conserver le bonus tel quel.
+
+---
+
 ## DB — Les migrations KV→relational peuvent créer des doublons
 
 Lors de la migration d'une table KV (clé/valeur) vers des tables relationnelles, si le script de migration est relancé sans guard `ON CONFLICT`, il insère des doublons.
