@@ -537,7 +537,6 @@ struct LogCardioSheet: View {
             }
             .navigationTitle("Nouvelle séance cardio")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)

@@ -11,27 +11,6 @@ extension View {
 #endif
     }
 
-    /// Ajoute un bouton "Ok" dans la toolbar du clavier (iOS uniquement).
-    func keyboardOkButton(isEmpty: Bool = false, onEmpty: (() -> Void)? = nil) -> some View {
-#if os(iOS)
-        self.toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button {
-                    if isEmpty, let onEmpty { onEmpty() }
-                    UIApplication.shared.sendAction(
-                        #selector(UIResponder.resignFirstResponder),
-                        to: nil, from: nil, for: nil)
-                } label: {
-                    Text("Ok")
-                        .font(.system(size: 15, weight: .semibold))
-                }
-            }
-        }
-#else
-        self
-#endif
-    }
 }
 
 extension Color {

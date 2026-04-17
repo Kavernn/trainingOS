@@ -27,7 +27,9 @@ struct IntelligenceView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color(hex: "080810")
+                    .ignoresSafeArea()
+                    .onTapGesture { inputFocused = false }
 
                 VStack(spacing: 0) {
                     // Propose button

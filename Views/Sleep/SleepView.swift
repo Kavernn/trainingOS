@@ -520,7 +520,6 @@ struct SleepLogSheet: View {
             }
             .navigationTitle(existing == nil ? "Logger le sommeil" : "Modifier")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }

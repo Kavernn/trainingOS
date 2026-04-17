@@ -213,6 +213,7 @@ struct InventaireView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .scrollDismissesKeyboard(.interactively)
     }
 
     // MARK: – Network
@@ -669,11 +670,11 @@ struct InventoryFormSheet: View {
                     .listRowBackground(Color(hex: "11111c"))
                 }
                 .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
                 .foregroundColor(.white)
             }
             .navigationTitle(isEditing ? "Modifier" : "Nouvel exercice")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }.foregroundColor(.gray)

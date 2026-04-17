@@ -232,9 +232,9 @@ struct JournalEntrySheet: View {
                     }
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Nouvelle entrée")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .onAppear { if content.isEmpty && !draftContent.isEmpty { content = draftContent } }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -427,6 +427,7 @@ struct StatsView: View {
                             .padding(.vertical, 8)
                         }
                         .refreshable { await loadData() }
+                        .scrollDismissesKeyboard(.interactively)
                     }
                 }
             }
@@ -1457,7 +1458,6 @@ struct ExerciseDetailView: View {
                 }
             }
             .navigationTitle(name).navigationBarTitleDisplayMode(.large)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if let w = data?.currentWeight, let reps = data?.lastReps {

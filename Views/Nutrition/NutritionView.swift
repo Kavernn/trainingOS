@@ -966,7 +966,6 @@ struct AddNutritionSheet: View {
             }
             .navigationTitle("Ajouter aliment")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
@@ -1062,7 +1061,6 @@ struct EditNutritionSheet: View {
             }
             .navigationTitle("Modifier")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)

@@ -486,7 +486,6 @@ struct PostSessionEditSheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
             }
-            .keyboardOkButton()
         }
         .onAppear { buildEdits() }
     }
@@ -1799,7 +1798,6 @@ struct AddCardioSheet: View {
                 Button("Abandonner", role: .destructive) { dismiss() }
                 Button("Continuer", role: .cancel) {}
             }
-            .keyboardOkButton()
         }
     }
 
@@ -1977,7 +1975,6 @@ struct AddHIITSheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
             }
-            .keyboardOkButton()
             .alert("Nom du template", isPresented: $showSavePrompt) {
                 TextField("Ex: Tabata 20/10", text: $templateName)
                 Button("Sauvegarder") {
@@ -2380,7 +2377,6 @@ struct AddHIITSheet: View {
                     Button("Abandonner", role: .destructive) { dismiss() }
                     Button("Continuer", role: .cancel) {}
                 }
-                .keyboardOkButton()
                 .onAppear { loadAIAnalysis() }
             }
         }

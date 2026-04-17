@@ -203,9 +203,9 @@ private struct AddHabitSheet: View {
                     .padding(.vertical, 4)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Nouvelle habitude")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }

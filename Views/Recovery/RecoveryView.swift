@@ -487,7 +487,6 @@ struct LogRecoverySheet: View {
             }
             .navigationTitle(isEditing ? "Modifier la récupération" : "Récupération du jour")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)

@@ -72,7 +72,6 @@ struct SeanceSoirView: View {
             }
             .navigationTitle("Séance du Soir")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
         }
         .task { await vm.load() }
     }

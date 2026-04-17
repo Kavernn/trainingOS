@@ -190,11 +190,11 @@ struct ProgrammeView: View {
                         }
                         .padding(.vertical, 16)
                     }
+                    .scrollDismissesKeyboard(.interactively)
                 }
             }
             .navigationTitle("Programme")
             .navigationBarTitleDisplayMode(.large)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showCreateSeance = true } label: {
@@ -993,12 +993,12 @@ struct AddExerciseSheet: View {
                         }
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
+                        .scrollDismissesKeyboard(.interactively)
                     }
                 }
             }
             .navigationTitle("Ajouter à \(seance)")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }.foregroundColor(.gray)
@@ -1033,7 +1033,9 @@ struct EditSchemeSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color(hex: "080810")
+                    .ignoresSafeArea()
+                    .onTapGesture { hideKeyboard() }
                 VStack(spacing: 20) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Nom de l'exercice")
@@ -1089,7 +1091,6 @@ struct EditSchemeSheet: View {
             }
             .navigationTitle("Modifier l'exercice")
             .navigationBarTitleDisplayMode(.inline)
-            .keyboardOkButton()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }.foregroundColor(.gray)
