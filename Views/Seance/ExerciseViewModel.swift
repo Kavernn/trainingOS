@@ -55,7 +55,6 @@ final class ExerciseViewModel: ObservableObject {
     // Published state (was @State in ExerciseCard)
     @Published var sets: [SetInput] = []
     @Published var showHistory = false
-    @Published var showRestTimer = false
     @Published var logStatus: LogStatus? = nil
     @Published var exerciseRPE: Double = 7
     @Published var painZone: String = ""

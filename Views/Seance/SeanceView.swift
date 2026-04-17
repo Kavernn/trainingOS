@@ -1347,10 +1347,10 @@ struct WorkoutSeanceView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if timer.totalSeconds > 0 {
+            if timer.currentExerciseName != nil {
                 FloatingRestTimerBar()
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(response: 0.3), value: timer.totalSeconds > 0)
+                    .animation(.spring(response: 0.3), value: timer.currentExerciseName != nil)
             }
         }
         .sheet(isPresented: $showFinish) {
@@ -3090,31 +3090,6 @@ struct AddHIITSheet: View {
                 .padding(.horizontal, 8).padding(.vertical, 5)
                 .background((timer.isRunning ? timer.timerColor : Color.cyan).opacity(0.12))
                 .cornerRadius(8)
-                .animation(.easeInOut(duration: 0.2), value: timer.isRunning)
-            }
-        }
-
-        private func formatTime(_ s: Int) -> String {
-            "\(s / 60):\(String(format: "%02d", s % 60))"
-        }
-    }
-
-    /// Timer button for the session header — shows live countdown without re-rendering the full view.
-    struct TimerHeaderButton: View {
-        var onTap: () -> Void
-        @ObservedObject private var timer = RestTimerManager.shared
-
-        var body: some View {
-            Button(action: onTap) {
-                HStack(spacing: 4) {
-                    Image(systemName: "timer")
-                        .font(.system(size: 20))
-                    if timer.isRunning {
-                        Text(formatTime(timer.remaining))
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
-                    }
-                }
-                .foregroundColor(timer.isRunning ? timer.timerColor : .cyan)
                 .animation(.easeInOut(duration: 0.2), value: timer.isRunning)
             }
         }

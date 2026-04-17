@@ -363,7 +363,7 @@ struct ExerciseCard: View {
                     Text(scheme).font(.system(size: 12)).foregroundColor(.gray)
                 }
                 Spacer()
-                RestTimerBadge(restSeconds: restSeconds, onTap: { evm.showRestTimer = true })
+                RestTimerBadge(restSeconds: restSeconds, onTap: {})
                     .padding(.trailing, 4)
                 if let r = logResult {
                     HStack(spacing: 10) {
@@ -826,11 +826,6 @@ struct ExerciseCard: View {
                 triggerImpact(style: .light)
             }
             Button("Continuer", role: .cancel) {}
-        }
-        .sheet(isPresented: $evm.showRestTimer) {
-            RestTimerSheet(autoStartSeconds: restSeconds)
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
         }
     }
 }

@@ -30,8 +30,8 @@ struct BonusSeanceView: View {
     @State private var showFinish = false
     @State private var rpe: Double = 7
     @State private var comment = ""
-    @State private var showRestTimer = false
     @State private var isLoading = true
+    @ObservedObject private var timer = RestTimerManager.shared
     @State private var sessionStart = Date()
 
     private var computedRPE: Double {
@@ -60,11 +60,6 @@ struct BonusSeanceView: View {
                                     .foregroundColor(.gray)
                             }
                             Spacer()
-                            Button { showRestTimer = true } label: {
-                                Image(systemName: "timer")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.cyan)
-                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
@@ -136,6 +131,11 @@ struct BonusSeanceView: View {
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    if timer.currentExerciseName != nil {
+                        WorkoutSeanceView.FloatingRestTimerBar()
+                    }
+                }
             }
         }
         .navigationTitle("Séance Bonus")
@@ -174,11 +174,6 @@ struct BonusSeanceView: View {
             )
             .presentationDetents([.medium, .large])
             .onAppear { rpe = computedRPE }
-        }
-        .sheet(isPresented: $showRestTimer) {
-            RestTimerSheet()
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
         }
         .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
             Button("OK") { Task { await vm.load() } }
