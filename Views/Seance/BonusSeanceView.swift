@@ -34,6 +34,23 @@ struct BonusSeanceView: View {
     @ObservedObject private var timer = RestTimerManager.shared
     @State private var sessionStart = Date()
 
+    @ViewBuilder private var addExerciseButton: some View {
+        let label = HStack(spacing: 8) {
+            Image(systemName: "plus.circle.fill").foregroundColor(.orange)
+            Text("Ajouter un exercice")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.orange)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(Color.orange.opacity(0.08))
+        .cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+        Button { showAddExercise = true } label: { label }
+            .buttonStyle(SpringButtonStyle())
+            .padding(.horizontal, 16)
+    }
+
     private var computedRPE: Double {
         let vals = vm.logResults.values.compactMap(\.rpe)
         guard !vals.isEmpty else { return 7.0 }
@@ -94,22 +111,7 @@ struct BonusSeanceView: View {
                         }
 
                         // Add exercise button
-                        Button { showAddExercise = true } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "plus.circle.fill")
-                                    .foregroundColor(.orange)
-                                Text("Ajouter un exercice")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.orange)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.orange.opacity(0.08))
-                            .cornerRadius(12)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.25), lineWidth: 1))
-                        }
-                        .buttonStyle(SpringButtonStyle())
-                        .padding(.horizontal, 16)
+                        addExerciseButton
 
                         // Terminer — visible dès qu'au moins 1 exercice est loggé
                         if !vm.logResults.isEmpty {
