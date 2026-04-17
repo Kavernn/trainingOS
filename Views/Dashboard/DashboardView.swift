@@ -2418,7 +2418,7 @@ struct DataGapSection: View {
     }
     private var missingNutrition: Bool { (dash.nutritionTotals.calories ?? 0) < 1 }
     private var missingWeight: Bool    { (dash.profile.weight ?? 0) == 0 }
-    private var missingGoals: Bool     { dash.goals.isEmpty }
+    private var missingGoals: Bool     { dash.goals.isEmpty && dash.smartGoalsCount == 0 }
 
     var body: some View {
         let gaps = [missingRecovery, missingNutrition, missingWeight, missingGoals]

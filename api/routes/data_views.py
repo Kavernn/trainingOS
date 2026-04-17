@@ -500,6 +500,12 @@ def api_dashboard():
     except Exception:
         pass
 
+    smart_goals_count = 0
+    try:
+        smart_goals_count = len(_db.get_smart_goals())
+    except Exception:
+        pass
+
     return jsonify({
         "today":               today_str,
         "week":                get_current_week(),
@@ -510,6 +516,7 @@ def api_dashboard():
         "sessions":            merged_sessions,
         "suggestions":         suggestions,
         "goals":               goals_progress,
+        "smart_goals_count":   smart_goals_count,
         "full_program":        {s: get_strength_exercises(sd) for s, sd in full_program.items()},
         "nutrition_totals":    nutrition_totals,
         "nutrition_settings":  load_nutrition_settings(),
