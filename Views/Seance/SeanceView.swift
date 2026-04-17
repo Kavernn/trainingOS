@@ -1363,6 +1363,7 @@ struct WorkoutSeanceView: View {
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
+            .padding(.bottom, timer.currentExerciseName != nil ? 90 : 0)
         }
         .scrollDismissesKeyboard(.interactively)
         .sheet(isPresented: $showFinish) {

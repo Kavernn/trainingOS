@@ -152,6 +152,7 @@ struct BonusSeanceView: View {
                         }
                     }
                 }
+                .padding(.bottom, timer.currentExerciseName != nil ? 90 : 0)
                 .scrollDismissesKeyboard(.interactively)
             }
         }
