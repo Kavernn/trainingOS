@@ -454,7 +454,7 @@ struct LogRecoverySheet: View {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("ACTIVITÉ QUOTIDIENNE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                             HStack(spacing: 12) {
-                                RecoveryField(label: "PAS", placeholder: "8500", text: $stepsStr)
+                                RecoveryField(label: "PAS", placeholder: "8500", text: $stepsStr, keyboardType: .numberPad)
                                 RecoveryField(label: "HRV (ms)", placeholder: "45", text: $hrvStr)
                             }
                         }
@@ -548,7 +548,7 @@ struct LogRecoverySheet: View {
                     sleepQuality: sleepQuality,
                     restingHr:    Double(restingHrStr),
                     hrv:          Double(hrvStr),
-                    steps:        Int(stepsStr),
+                    steps:        Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0),
                     soreness:     soreness,
                     notes:        notes,
                     date:         dateStr
@@ -568,12 +568,13 @@ struct RecoveryField: View {
     let label: String
     let placeholder: String
     @Binding var text: String
+    var keyboardType: UIKeyboardType = .decimalPad
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
             TextField(placeholder, text: $text)
-                .keyboardType(.decimalPad)
+                .keyboardType(keyboardType)
                 .foregroundColor(.white)
                 .padding(10)
                 .background(Color(hex: "191926"))
