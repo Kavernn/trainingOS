@@ -16,9 +16,12 @@ extension URLSession {
 // MARK: - API Errors
 enum APIError: LocalizedError {
     case serverError(Int, String)
+    case queuedOffline  // mutation enqueued — not a failure, just deferred
     var errorDescription: String? {
-        if case .serverError(_, let msg) = self { return msg }
-        return nil
+        switch self {
+        case .serverError(_, let msg): return msg
+        case .queuedOffline: return "Enregistré hors-ligne — sera synchronisé à la reconnexion."
+        }
     }
 }
 
@@ -26,7 +29,10 @@ enum APIError: LocalizedError {
 // Every mutation goes through this. If the network call fails (offline),
 // the payload is saved as a PendingMutation and replayed by SyncManager
 // when connectivity returns. Returns true if sent live, false if queued.
-private func offlinePost(endpoint: String, payload: [String: Any]) async throws -> Data {
+// Returns nil when the mutation was queued offline (not an error).
+// Returns non-nil Data on a successful server response.
+// Throws APIError.serverError on 4xx/5xx, or URLError on bad config.
+private func offlinePost(endpoint: String, payload: [String: Any]) async throws -> Data? {
     guard let url = URL(string: APIConfig.base + endpoint) else { throw URLError(.badURL) }
     var req = URLRequest(url: url)
     req.httpMethod = "POST"
@@ -36,7 +42,6 @@ private func offlinePost(endpoint: String, payload: [String: Any]) async throws 
     do {
         let (data, response) = try await URLSession.authed.data(for: req)
         if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
-            // Extract error message from response if available
             let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
             throw APIError.serverError(http.statusCode, msg ?? "HTTP \(http.statusCode)")
         }
@@ -44,12 +49,8 @@ private func offlinePost(endpoint: String, payload: [String: Any]) async throws 
     } catch let err as APIError {
         throw err
     } catch {
-        // Network unavailable → queue for later
-        await MainActor.run {
-            SyncManager.shared.enqueue(endpoint: endpoint, payload: payload)
-        }
-        // Return empty data so callers don't crash
-        return Data()
+        await MainActor.run { SyncManager.shared.enqueue(endpoint: endpoint, payload: payload) }
+        return nil  // nil = queued offline, distinct from any server response
     }
 }
 
@@ -179,14 +180,12 @@ class APIService: ObservableObject {
         if isBonus  { body["is_bonus"] = true }
         if !equipmentType.isEmpty { body["equipment_type"] = equipmentType }
         if !painZone.isEmpty { body["pain_zone"] = painZone }
-        let data = try await offlinePost(endpoint: "/api/log", payload: body)
-        if !data.isEmpty {  // data vide = queued offline, conserver le cache existant
-            if !isBonus {
-                CacheService.shared.clear(for: isSecond ? "seance_soir_data" : "seance_data")
-            }
-            CacheService.shared.clear(for: "dashboard")
-            CacheService.shared.clear(for: "stats_data")
+        guard let data = try await offlinePost(endpoint: "/api/log", payload: body) else {
+            return LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
         }
+        if !isBonus { CacheService.shared.clear(for: isSecond ? "seance_soir_data" : "seance_data") }
+        CacheService.shared.clear(for: "dashboard")
+        CacheService.shared.clear(for: "stats_data")
         return (try? JSONDecoder().decode(LogExerciseResponse.self, from: data))
             ?? LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
     }
@@ -203,8 +202,7 @@ class APIService: ObservableObject {
         if bonusSession         { body["bonus_session"] = true }
         if let n = sessionName, !n.isEmpty { body["session_name"] = n }
         if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
-        let sessionData = try await offlinePost(endpoint: "/api/log_session", payload: body)
-        if !sessionData.isEmpty {  // data vide = queued offline, conserver le cache existant
+        if try await offlinePost(endpoint: "/api/log_session", payload: body) != nil {
             CacheService.shared.clear(for: "dashboard")
             CacheService.shared.clear(for: "historique_data")
             if !bonusSession {
@@ -221,9 +219,8 @@ class APIService: ObservableObject {
     }
 
     func deleteSession(date: String, sessionType: String = "morning") async throws {
-        let data = try await offlinePost(endpoint: "/api/session/delete",
-                                         payload: ["date": date, "session_type": sessionType])
-        if !data.isEmpty {
+        if try await offlinePost(endpoint: "/api/session/delete",
+                                 payload: ["date": date, "session_type": sessionType]) != nil {
             CacheService.shared.clear(for: "historique_data")
             CacheService.shared.clear(for: "dashboard")
         }
@@ -232,8 +229,7 @@ class APIService: ObservableObject {
     func updateSession(date: String, rpe: Double?, comment: String, sessionType: String = "morning") async throws {
         var body: [String: Any] = ["date": date, "comment": comment, "session_type": sessionType]
         if let rpe { body["rpe"] = rpe }
-        let data = try await offlinePost(endpoint: "/api/update_session", payload: body)
-        if !data.isEmpty {
+        if try await offlinePost(endpoint: "/api/update_session", payload: body) != nil {
             CacheService.shared.clear(for: "historique_data")
             CacheService.shared.clear(for: "dashboard")
         }
@@ -244,8 +240,7 @@ class APIService: ObservableObject {
         var body: [String: Any] = ["date": date, "comment": comment, "session_type": sessionType]
         if let rpe { body["rpe"] = rpe }
         if let exercises { body["exercises"] = exercises }
-        let data = try await offlinePost(endpoint: "/api/session/edit", payload: body)
-        if !data.isEmpty {
+        if try await offlinePost(endpoint: "/api/session/edit", payload: body) != nil {
             CacheService.shared.clear(for: "historique_data")
             CacheService.shared.clear(for: "dashboard")
         }
@@ -416,10 +411,8 @@ class APIService: ObservableObject {
         if let notes { body["notes"] = notes }
         if !triggers.isEmpty { body["triggers"] = triggers }
         if !triggerRatings.isEmpty { body["trigger_ratings"] = triggerRatings }
-        let data = try await offlinePost(endpoint: "/api/pss/submit", payload: body)
-        guard !data.isEmpty else {
-            throw NSError(domain: "Offline", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Réponse enregistrée, sera synchronisée quand le réseau sera disponible."])
+        guard let data = try await offlinePost(endpoint: "/api/pss/submit", payload: body) else {
+            throw APIError.queuedOffline
         }
         CacheService.shared.clear(for: "pss_history")
         CacheService.shared.clear(for: "pss_check_due_full")
@@ -684,10 +677,8 @@ class APIService: ObservableObject {
     func submitMood(score: Int, emotions: [String], notes: String?, triggers: [String]) async throws -> MoodEntry {
         var body: [String: Any] = ["score": score, "emotions": emotions, "triggers": triggers]
         if let notes { body["notes"] = notes }
-        let data = try await offlinePost(endpoint: "/api/mood/log", payload: body)
-        guard !data.isEmpty else {
-            throw NSError(domain: "Offline", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Humeur enregistrée, sera synchronisée quand le réseau sera disponible."])
+        guard let data = try await offlinePost(endpoint: "/api/mood/log", payload: body) else {
+            throw APIError.queuedOffline
         }
         CacheService.shared.clear(for: "mood_history")
         CacheService.shared.clear(for: "mood_check_due")
@@ -719,10 +710,8 @@ class APIService: ObservableObject {
     func submitJournalEntry(prompt: String, content: String, moodScore: Int? = nil) async throws -> JournalEntry {
         var body: [String: Any] = ["prompt": prompt, "content": content]
         if let m = moodScore { body["mood_score"] = m }
-        let data = try await offlinePost(endpoint: "/api/journal/save", payload: body)
-        guard !data.isEmpty else {
-            throw NSError(domain: "Offline", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Journal enregistré, sera synchronisé quand le réseau sera disponible."])
+        guard let data = try await offlinePost(endpoint: "/api/journal/save", payload: body) else {
+            throw APIError.queuedOffline
         }
         CacheService.shared.clear(for: "journal_entries")
         return try JSONDecoder().decode(JournalEntry.self, from: data)
@@ -744,15 +733,11 @@ class APIService: ObservableObject {
     }
 
     func submitBreathworkSession(techniqueId: String, durationSec: Int, cycles: Int) async throws -> BreathworkSession {
-        let data = try await offlinePost(endpoint: "/api/breathwork/log", payload: [
+        guard let data = try await offlinePost(endpoint: "/api/breathwork/log", payload: [
             "technique_id": techniqueId,
             "duration_sec": durationSec,
             "cycles": cycles,
-        ])
-        guard !data.isEmpty else {
-            throw NSError(domain: "Offline", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Session enregistrée, sera synchronisée quand le réseau sera disponible."])
-        }
+        ]) else { throw APIError.queuedOffline }
         CacheService.shared.clear(for: "breathwork_stats")
         return try JSONDecoder().decode(BreathworkSession.self, from: data)
     }
@@ -778,11 +763,8 @@ class APIService: ObservableObject {
     }
 
     func submitSelfCareLog(habitIds: [String]) async throws -> SelfCareToday {
-        let data = try await offlinePost(endpoint: "/api/self_care/log", payload: ["habit_ids": habitIds])
-        guard !data.isEmpty else {
-            throw NSError(domain: "Offline", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Habitudes enregistrées, seront synchronisées quand le réseau sera disponible."])
-        }
+        guard let data = try await offlinePost(endpoint: "/api/self_care/log", payload: ["habit_ids": habitIds])
+        else { throw APIError.queuedOffline }
         CacheService.shared.clear(for: "self_care_today")
         CacheService.shared.clear(for: "self_care_streaks")
         return try JSONDecoder().decode(SelfCareToday.self, from: data)
@@ -795,11 +777,8 @@ class APIService: ObservableObject {
     }
 
     func addSelfCareHabit(name: String, icon: String, category: String) async throws -> SelfCareHabit {
-        let data = try await offlinePost(endpoint: "/api/self_care/habits", payload: ["name": name, "icon": icon, "category": category])
-        guard !data.isEmpty else {
-            throw NSError(domain: "Offline", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Habitude enregistrée, sera synchronisée quand le réseau sera disponible."])
-        }
+        guard let data = try await offlinePost(endpoint: "/api/self_care/habits", payload: ["name": name, "icon": icon, "category": category])
+        else { throw APIError.queuedOffline }
         CacheService.shared.clear(for: "self_care_habits")
         CacheService.shared.clear(for: "self_care_today")
         return try JSONDecoder().decode(SelfCareHabit.self, from: data)

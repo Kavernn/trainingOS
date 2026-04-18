@@ -36,6 +36,8 @@ class HealthKitService: ObservableObject {
         return types
     }()
 
+    private var backgroundObservers: [HKObserverQuery] = []  // ROB-6: retained to prevent leak
+
     private init() {}
 
     // MARK: - Authorization
@@ -77,11 +79,28 @@ class HealthKitService: ObservableObject {
         }
     }
 
-    /// Snapshot for a past date (steps + resting HR only — enough for backfill).
+    /// Resting HR for a specific date (within that calendar day).
+    func fetchRestingHR(for date: Date) async -> Double? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else { return nil }
+        let cal   = Calendar.current
+        let start = cal.startOfDay(for: date)
+        let end   = cal.date(byAdding: .day, value: 1, to: start)!
+        let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
+        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        return await withCheckedContinuation { cont in
+            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
+                let val = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: HKUnit(from: "count/min"))
+                cont.resume(returning: val)
+            }
+            store.execute(q)
+        }
+    }
+
+    /// Snapshot for a past date (steps + resting HR scoped to that date — accurate backfill).
     func fetchSnapshotForDate(_ date: Date) async -> (date: String, steps: Int?, restingHr: Double?) {
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
         async let s  = fetchSteps(for: date)
-        async let hr = fetchLatestRestingHR()   // HR is always latest, acceptable for backfill
+        async let hr = fetchRestingHR(for: date)   // ROB-8: date-scoped HR, not "latest overall"
         let (steps, rhr) = await (s, hr)
         return (fmt.string(from: date), steps, rhr)
     }
@@ -218,6 +237,7 @@ class HealthKitService: ObservableObject {
 
     // MARK: - Background Delivery
     func enableBackgroundDelivery(onChange: @escaping () -> Void) async {
+        guard backgroundObservers.isEmpty else { return }  // already registered
         let ids: [HKQuantityTypeIdentifier] = [
             .stepCount, .restingHeartRate, .heartRateVariabilitySDNN, .activeEnergyBurned
         ]
@@ -230,6 +250,7 @@ class HealthKitService: ObservableObject {
                 completion()
             }
             store.execute(q)
+            backgroundObservers.append(q)  // ROB-6: retain query to prevent deallocation
         }
     }
 

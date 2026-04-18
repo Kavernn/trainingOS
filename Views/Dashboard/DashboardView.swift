@@ -59,12 +59,12 @@ struct DashboardView: View {
                             // TodayCard: primary action every session
                             TodayCardView(
                                 dash: dash,
-                                showGreatDayBadge: vm.brief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
+                                showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
                                 onOpenSession: onOpenSession
                             )
                             .appearAnimation(delay: 0.02)
 
-                            if let soir = vm.soirData, soir.hasEveningSession {
+                            if let soir = vm.eveningSession, soir.hasEveningSession {
                                 SoirCardView(data: soir)
                                     .appearAnimation(delay: 0.03)
                             }
@@ -149,8 +149,8 @@ struct DashboardView: View {
                         async let s  = APIService.shared.fetchSeanceSoirData()
                         vm.deload   = try? await d
                         vm.moodDue  = try? await m
-                        vm.brief    = try? await b
-                        vm.soirData = try? await s
+                        vm.morningBrief    = try? await b
+                        vm.eveningSession = try? await s
                     }
                 } else if let err = api.error {
                     VStack(spacing: 16) {

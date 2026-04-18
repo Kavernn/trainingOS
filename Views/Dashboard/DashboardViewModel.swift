@@ -7,8 +7,8 @@ final class DashboardViewModel: ObservableObject {
     @Published var insights: [InsightEntry] = []
     @Published var deload: DeloadReport?
     @Published var moodDue: MoodDueStatus?
-    @Published var brief: MorningBriefData?
-    @Published var soirData: SeanceSoirData?
+    @Published var morningBrief: MorningBriefData?
+    @Published var eveningSession: SeanceSoirData?
     @Published var todaySleepLogged = false
     @Published var todayRecovery: RecoveryEntry?
     @Published var lssTrend: [LifeStressScore] = []
@@ -42,8 +42,8 @@ final class DashboardViewModel: ObservableObject {
         _ = try? await dash
         deload   = try? await d
         moodDue  = try? await m
-        brief    = try? await b
-        soirData = try? await s
+        morningBrief   = try? await b
+        eveningSession = try? await s
         if let log = try? await r {
             let entry = log.first(where: { $0.date == today })
             todaySleepLogged = entry?.sleepHours != nil

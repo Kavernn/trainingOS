@@ -202,11 +202,11 @@
 - [x] **ROB-1 — `except Exception: pass` généralisé dans `db.py`** : exceptions silencieuses → état local/remote diverge sans signal. Ajout de `logger` sur tous les blocs muets + suppression doublon `update_exercise_current_weight`. *(2026-04-18)*
 - [ ] **ROB-2 — `try?` sur 9 résultats dans DashboardViewModel** : dashboard vide sans feedback ni log. Remplacer par gestion explicite.
 - [x] **ROB-3 — `SyncManager` — `ModelContext` recréé à chaque appel** : contexte partagé `mainContext` réutilisé pour enqueue/refreshPendingCount. *(2026-04-18)*
-- [ ] **ROB-4 — `offlinePost` renvoie `Data()` vide pour signaler offline** : ambigu avec réponse serveur vide légitime. Utiliser un type dédié (`OfflineResult`).
-- [ ] **ROB-5 — `PendingMutation` sans TTL** : mutation qui échoue systématiquement retryée 5× et abandonnée sans alerte user.
-- [ ] **ROB-6 — `HealthKitService.enableBackgroundDelivery` ne stocke pas les observers** : fuite mémoire, callbacks perdus si rappelée.
+- [x] **ROB-4 — `offlinePost` renvoie `Data()` vide pour signaler offline** : retourne `Data?` — `nil` = queué, non-nil = réponse serveur. `APIError.queuedOffline` ajouté pour callers qui throwent. Tous les call sites mis à jour (`guard let data`, `if data != nil`). *(2026-04-18)*
+- [x] **ROB-5 — `PendingMutation` sans alerte** : `zombieDropCount: Int` publié sur SyncManager ; toast 5s affiché quand mutations abandonnées. *(2026-04-18)*
+- [x] **ROB-6 — `enableBackgroundDelivery` ne stocke pas les observers** : `backgroundObservers: [HKObserverQuery]` retient les queries + guard "already registered". *(2026-04-18)*
 - [x] **ROB-7 — `fetchDashboard` planifie notif même si fetch a échoué** : `scheduleMorningNotification` n'est appelée qu'après decode réussi — déjà correct. *(2026-04-18)*
-- [ ] **ROB-8 — `HealthKitService.fetchSnapshotForDate` mélange HR "latest" + steps par date** : snapshot incohérent.
+- [x] **ROB-8 — `fetchSnapshotForDate` mélange HR "latest" + steps par date** : `fetchRestingHR(for: Date)` ajouté — query filtrée dans le jour cible. *(2026-04-18)*
 - [x] **ROB-9 — `TrainingOSApp.onAppear` réenregistre observers HealthKit** : guard `hkSetupDone: Bool` — enregistrement une seule fois. *(2026-04-18)*
 
 ### 🔴 Haute priorité — Performance
@@ -218,8 +218,8 @@
 
 ### 🟡 Moyenne priorité — Qualité code
 - [x] **CODE-1 — `WellnessModels.swift` importe SwiftUI pour `Color`** : `categoryColor` extrait dans `Extensions.swift`; `import SwiftUI` retiré de `WellnessModels.swift`. *(2026-04-18)*
-- [ ] **CODE-2 — `switch MacPage` triplé** : couleur/icône par page définis dans 3 vues. Centraliser dans `MacPage` enum.
-- [ ] **CODE-3 — Nommage mixte FR/EN dans DashboardViewModel** : `soirData` vs `brief`, `insights`. Uniformiser en anglais.
+- [x] **CODE-2 — `switch MacPage` triplé** : déjà centralisé — `label`, `icon`, `color` définis une seule fois dans l'enum `MacPage` (ContentView.swift). *(2026-04-18)*
+- [x] **CODE-3 — Nommage mixte FR/EN dans DashboardViewModel** : `soirData` → `eveningSession`, `brief` → `morningBrief`. Mis à jour dans DashboardViewModel + DashboardView. *(2026-04-18)*
 - [ ] **CODE-4 — Fichiers de vue >2000 l.** : `SeanceView` 3521, `StatsView` 2639, `DashboardView` 2540, `NutritionView` 1727. Splitter en subviews séparées.
 - [ ] **CODE-5 — `RestTimerManager` défini dans `SeanceView`** : extraire dans `Services/RestTimerManager.swift`.
 - [x] **CODE-6 — `normalize_patch` dead code** : supprimé de `db.py`. *(2026-04-18)*

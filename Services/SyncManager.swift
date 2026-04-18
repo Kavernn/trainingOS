@@ -18,6 +18,7 @@ final class SyncManager: ObservableObject {
     @Published private(set) var pendingCount: Int = 0
     @Published private(set) var isSyncing = false
     @Published var offlineToast: String? = nil
+    @Published private(set) var zombieDropCount: Int = 0  // ROB-5: mutations permanently dropped
 
     private var container: ModelContainer?
     private var mainContext: ModelContext?
@@ -64,6 +65,15 @@ final class SyncManager: ObservableObject {
         offlineToast = "Enregistré — sera synchronisé quand le réseau sera disponible"
         Task {
             try? await Task.sleep(nanoseconds: 3_500_000_000)
+            offlineToast = nil
+        }
+    }
+
+    private func showZombieToast(count: Int) {
+        let n = count == 1 ? "1 action" : "\(count) actions"
+        offlineToast = "⚠️ \(n) non synchronisée(s) après \(maxRetries) tentatives — supprimée(s)."
+        Task {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
             offlineToast = nil
         }
     }
@@ -121,6 +131,8 @@ final class SyncManager: ObservableObject {
                 context.delete($0)
             }
             try? context.save()
+            zombieDropCount += zombies.count
+            showZombieToast(count: zombies.count)
         }
 
         refreshPendingCount()
