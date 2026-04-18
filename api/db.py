@@ -76,6 +76,7 @@ def _sqlite_get(key: str) -> Tuple[Optional[Any], Optional[str], int]:
         try:
             val = json.loads(row[0])
         except Exception:
+            logger.warning("_sqlite_get: corrupt JSON for key, returning None")
             val = None
         return val, row[1], int(row[2])
 
@@ -104,6 +105,7 @@ def _sqlite_all_dirty() -> Dict[str, Dict[str, Any]]:
             try:
                 out[key] = {"value": json.loads(val), "updated_at": ts}
             except Exception:
+                logger.warning("_sqlite_all_dirty: corrupt JSON for key=%s, skipping", key)
                 out[key] = {"value": None, "updated_at": ts}
         return out
 
@@ -227,7 +229,8 @@ def sync_now(verbose: bool = True) -> Dict[str, str]:
                 # Remote plus récent → pull
                 _sqlite_upsert_clean(key, remote_val, updated_at_iso=remote_ts)
                 actions[key] = "pulled"
-        except Exception:
+        except Exception as e:
+            logger.error("[sync] %s: exception during sync: %s", key, e)
             actions[key] = "error"
 
     if verbose:
@@ -635,18 +638,6 @@ def upsert_exercise_log_direct(
         return bool(resp.data)
     except Exception as e:
         logger.error("upsert_exercise_log_direct error: %s", e)
-        return False
-
-
-def update_exercise_current_weight(exercise_name: str, weight: float) -> bool:
-    """Update exercises.current_weight for the given exercise name."""
-    if _client is None or MODE == "OFFLINE":
-        return False
-    try:
-        _client.table("exercises").update({"current_weight": round(weight, 1)}).eq("name", exercise_name).execute()
-        return True
-    except Exception as e:
-        logger.error("update_exercise_current_weight error: %s", e)
         return False
 
 
@@ -1090,6 +1081,29 @@ def get_exercise_info(exercise_name: str) -> Optional[dict]:
     except Exception as e:
         logger.error("get_exercise_info(%s) error: %s", exercise_name, e)
         return None
+
+
+def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
+    """Batch fetch exercise info (category, load_profile, default_scheme) for multiple exercises.
+
+    Returns: {exercise_name: {category, load_profile, default_scheme}}
+    """
+    if _client is None or MODE == "OFFLINE":
+        return {}
+    names = [n for n in exercise_names if isinstance(n, str) and n.strip()]
+    if not names:
+        return {}
+    try:
+        resp = (
+            _client.table("exercises")
+            .select("name, category, load_profile, default_scheme")
+            .in_("name", names)
+            .execute()
+        )
+        return {row["name"]: row for row in (resp.data or []) if row.get("name")}
+    except Exception as e:
+        logger.error("get_exercises_info_bulk error: %s", e)
+        return {}
 
 
 def update_exercise_default_scheme(exercise_name: str, default_scheme: str) -> bool:
@@ -2564,7 +2578,8 @@ def get_life_stress_score_db(date: str) -> Optional[dict]:
     try:
         resp = _client.table("life_stress_scores").select("*").eq("date", date).single().execute()
         return resp.data
-    except Exception:
+    except Exception as e:
+        logger.debug("get_life_stress_score_for_date(%s): %s", date, e)
         return None
 
 

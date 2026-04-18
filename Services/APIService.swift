@@ -29,8 +29,7 @@ enum APIError: LocalizedError {
 // the payload is saved as a PendingMutation and replayed by SyncManager
 // when connectivity returns. Returns true if sent live, false if queued.
 private func offlinePost(endpoint: String, payload: [String: Any]) async throws -> Data {
-    let baseURL = "https://training-os-rho.vercel.app"
-    guard let url = URL(string: baseURL + endpoint) else { throw URLError(.badURL) }
+    guard let url = URL(string: APIConfig.base + endpoint) else { throw URLError(.badURL) }
     var req = URLRequest(url: url)
     req.httpMethod = "POST"
     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -59,7 +58,7 @@ private func offlinePost(endpoint: String, payload: [String: Any]) async throws 
 class APIService: ObservableObject {
     static let shared = APIService()
 
-    let baseURL = "https://training-os-rho.vercel.app"
+    let baseURL = APIConfig.base
 
     @Published var dashboard: DashboardData?
     @Published var isLoading = false
@@ -897,6 +896,22 @@ class APIService: ObservableObject {
             payload["suggested_scheme"] = scheme
         }
         _ = try await offlinePost(endpoint: "/api/apply_progression", payload: payload)
+    }
+
+    // MARK: - Deload
+    func applyDeload(poidsDeload: Double) async throws {
+        let url = URL(string: "\(baseURL)/api/apply_deload")!
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["poids_deload": poidsDeload])
+        req.timeoutInterval = 15
+        let (_, resp) = try await URLSession.authed.data(for: req)
+        if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
+            throw APIError.serverError(http.statusCode, "Impossible d'appliquer le déload pour le moment.")
+        }
+        CacheService.shared.clear(for: "seance_data")
+        CacheService.shared.clear(for: "dashboard")
     }
 }
 

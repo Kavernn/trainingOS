@@ -226,26 +226,14 @@ struct DashboardView: View {
     }
 
     private func applyDeload(report: DeloadReport) async -> Bool {
-        let url = URL(string: "https://training-os-rho.vercel.app/api/apply_deload")!
-        var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = ["poids_deload": report.poidsDeload]
         do {
-            req.httpBody = try JSONSerialization.data(withJSONObject: body)
-            let (_, resp) = try await URLSession.authed.data(for: req)
-            if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-                actionErrorMessage = "Impossible d'appliquer le déload pour le moment."
-                return false
-            }
+            try await api.applyDeload(poidsDeload: report.poidsDeload)
         } catch {
-            actionErrorMessage = "Erreur réseau — réessaie."
+            actionErrorMessage = "Erreur lors du déload — réessaie."
             return false
         }
-        CacheService.shared.clear(for: "seance_data")
-        CacheService.shared.clear(for: "dashboard")
         await api.fetchDashboard()
-        vm.deload = nil   // Masquer la bannière après application
+        vm.deload = nil
         return true
     }
 }

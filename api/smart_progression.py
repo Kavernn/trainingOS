@@ -379,18 +379,23 @@ def generate_suggestions(
 
     prev_by_name: dict[str, dict] = {l["exercise_name"]: l for l in prev_logs_raw}
 
+    # Batch-load info and history for all exercises in one round-trip each
+    all_names = [log["exercise_name"] for log in current_logs]
+    info_bulk = db.get_exercises_info_bulk(all_names)
+    history_bulk = db.get_exercise_history_bulk(all_names, limit_per=6)
+
     suggestions: list[dict] = []
     regression_count = 0
 
     for log in current_logs:
         name     = log["exercise_name"]
-        info     = db.get_exercise_info(name)
+        info     = info_bulk.get(name)
         if not info:
             continue
         prev_log = prev_by_name.get(name)
         if not prev_log:
             continue
-        history  = db.get_exercise_history(name, limit=5)
+        history  = history_bulk.get(name, [])
         s = _suggest_for_exercise(name, log, prev_log, info, history)
         if s is None:
             continue

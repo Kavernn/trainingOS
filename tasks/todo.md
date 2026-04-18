@@ -177,6 +177,59 @@
 
 - [x] **#A20 — Rate limiting IA** : Compteur dans Supabase ai_rate_limit (hour_key PK, count). Cross-worker safe. threading.Lock retire. (2026-04-06)
 
+## 🔍 AUDIT CODEBASE 2026-04-18 — Rapport complet
+
+> Audit externe "regard sans filtre" — 4 axes. Approuver chaque fix avant implémentation.
+
+### 🔴 Haute priorité — Sécurité
+- [ ] **SEC-1 — Clé API embarquée dans le binaire** : `_trainingOSApiKey` en clair dans `Services/APIService.swift:6`. Extractible depuis l'IPA. Déplacer en env var Xcode ou keychain.
+- [ ] **SEC-2 — Auth Bearer unique comme seul garde-fou** : clé statique = compromission triviale. Évoluer vers JWT ou clé rotative par user.
+- [ ] **SEC-3 — Stacktrace Flask exposée en prod** : `errorhandler` appelle `traceback.print_exc()`. Remplacer par log serveur uniquement, message générique client.
+- [ ] **SEC-4 — Validation inputs absente** : `request.json` consommé sans schéma dans tous les blueprints. Ajouter validation/sanitisation.
+- [ ] **SEC-5 — `_SECRET_KEY_DEFAULT` Flask codé en dur** : fallback prévisible si env var absente. Forcer exception si manquant.
+
+### 🔴 Haute priorité — Architecture & dette
+- [x] **ARCH-1 — `applyDeload` contourne `APIService`** : construit sa propre `URLRequest` avec URL hardcodée. Migré vers `APIService.applyDeload()`. *(2026-04-18)*
+- [x] **ARCH-2 — Base URL dupliquée dans 3 fichiers** : `APIConfig.base` centralisé dans `Extensions.swift`, utilisé par `APIService` et `SyncManager`. *(2026-04-18)*
+- [ ] **ARCH-3 — `APIService` god-class (921 l.)** : 80+ endpoints + offline queue + cache + auth + notifs dans un seul fichier. Splitter par domaine (WorkoutAPI, NutritionAPI, WellnessAPI, etc.).
+- [ ] **ARCH-4 — `flask_app.py` code mort (600 l.)** : jamais référencé par `index.py` ni `vercel.json`. Supprimer.
+- [ ] **ARCH-5 — Scripts migration livrés en prod Vercel** : `migrate_to_relational.py` (1050 l.) + `migrate_program_relational.py` (266 l.) gonfent le cold-start. Déplacer hors du bundle.
+- [ ] **ARCH-6 — MVVM incohérent** : Dashboard/Nutrition ont un ViewModel, Séance/Stats/Historique ont la logique en `@State` dans la vue.
+- [ ] **ARCH-7 — `schema.sql` vide** : schéma Supabase non versionné. Regénérer depuis prod.
+- [ ] **ARCH-8 — `AppState.loadProfile()` jamais appelée** : profil jamais chargé au démarrage ou dead code.
+
+### 🔴 Haute priorité — Robustesse
+- [x] **ROB-1 — `except Exception: pass` généralisé dans `db.py`** : exceptions silencieuses → état local/remote diverge sans signal. Ajout de `logger` sur tous les blocs muets + suppression doublon `update_exercise_current_weight`. *(2026-04-18)*
+- [ ] **ROB-2 — `try?` sur 9 résultats dans DashboardViewModel** : dashboard vide sans feedback ni log. Remplacer par gestion explicite.
+- [x] **ROB-3 — `SyncManager` — `ModelContext` recréé à chaque appel** : contexte partagé `mainContext` réutilisé pour enqueue/refreshPendingCount. *(2026-04-18)*
+- [ ] **ROB-4 — `offlinePost` renvoie `Data()` vide pour signaler offline** : ambigu avec réponse serveur vide légitime. Utiliser un type dédié (`OfflineResult`).
+- [ ] **ROB-5 — `PendingMutation` sans TTL** : mutation qui échoue systématiquement retryée 5× et abandonnée sans alerte user.
+- [ ] **ROB-6 — `HealthKitService.enableBackgroundDelivery` ne stocke pas les observers** : fuite mémoire, callbacks perdus si rappelée.
+- [ ] **ROB-7 — `fetchDashboard` planifie notif même si fetch a échoué** : notif sur données vides.
+- [ ] **ROB-8 — `HealthKitService.fetchSnapshotForDate` mélange HR "latest" + steps par date** : snapshot incohérent.
+- [ ] **ROB-9 — `TrainingOSApp.onAppear` réenregistre observers HealthKit** : peut refire à chaque push/pop.
+
+### 🔴 Haute priorité — Performance
+- [x] **PERF-1 — N+1 Supabase dans `generate_suggestions`** : 2 queries par exercice (info + history). Batchés en 2 appels total. *(2026-04-18)*
+- [ ] **PERF-2 — `loadAll` attend `fetchDashboard` en série** : ajouter en parallèle avec les autres `async let`.
+- [ ] **PERF-3 — Dashboard recharge tout à chaque `onAppear`** : vérifier TTL avant de refetch.
+- [ ] **PERF-4 — `backfillRecentDaysIfNeeded` : 7 syncs séquentiels** : passer en `async let` parallèle.
+- [ ] **PERF-5 — Insights/LSS/CoachTip à chaque `loadAll` sans condition** : gâchis Supabase. Ajouter TTL ou flag "loaded today".
+
+### 🟡 Moyenne priorité — Qualité code
+- [ ] **CODE-1 — `WellnessModels.swift` importe SwiftUI pour `Color`** : couplage modèle → UI. Extraire couleurs dans une extension UI séparée.
+- [ ] **CODE-2 — `switch MacPage` triplé** : couleur/icône par page définis dans 3 vues. Centraliser dans `MacPage` enum.
+- [ ] **CODE-3 — Nommage mixte FR/EN dans DashboardViewModel** : `soirData` vs `brief`, `insights`. Uniformiser en anglais.
+- [ ] **CODE-4 — Fichiers de vue >2000 l.** : `SeanceView` 3521, `StatsView` 2639, `DashboardView` 2540, `NutritionView` 1727. Splitter en subviews séparées.
+- [ ] **CODE-5 — `RestTimerManager` défini dans `SeanceView`** : extraire dans `Services/RestTimerManager.swift`.
+- [ ] **CODE-6 — `normalize_patch` dead code** : supprimer de `db.py`.
+- [ ] **CODE-7 — `scheduleMorningNotification` replanifié à chaque `fetchDashboard`** : ajouter guard "déjà planifiée aujourd'hui".
+- [ ] **CODE-8 — `_parse_scheme` retourne `(0,0)` silencieusement** : logger un warning quand scheme malformé.
+- [ ] **CODE-9 — `_to_int` retourne 0 silencieusement** : idem, logger.
+- [ ] **CODE-10 — `apply_suggestion` ignore le retour de `update_exercise_current_weight`** : propager le `bool` au caller.
+
+---
+
 ## 🌙 Séance du Soir — État
 
 - [x] **Étape 4** — index.py : `/api/seance_soir_data`, `session_type` dans pipeline

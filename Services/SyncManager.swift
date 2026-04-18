@@ -9,7 +9,7 @@ final class SyncManager: ObservableObject {
 
     static let shared = SyncManager()
 
-    private let baseURL = "https://training-os-rho.vercel.app"
+    private let baseURL = APIConfig.base
     private let maxRetries = 5
 
     var urlSession: URLSession = .shared
@@ -20,6 +20,7 @@ final class SyncManager: ObservableObject {
     @Published var offlineToast: String? = nil
 
     private var container: ModelContainer?
+    private var mainContext: ModelContext?
     private var cancellables = Set<AnyCancellable>()
 
     init() {}
@@ -29,6 +30,7 @@ final class SyncManager: ObservableObject {
     /// Call once from TrainingOSApp with the shared ModelContainer.
     func setup(container: ModelContainer) {
         self.container = container
+        mainContext = ModelContext(container)
         refreshPendingCount()
 
         // Flush immediately on startup if already online
@@ -50,8 +52,7 @@ final class SyncManager: ObservableObject {
 
     /// Persist a mutation for later delivery.
     func enqueue(endpoint: String, payload: [String: Any]) {
-        guard let container else { return }
-        let context = ModelContext(container)
+        guard let context = mainContext else { return }
         let mutation = PendingMutation(endpoint: endpoint, payload: payload)
         context.insert(mutation)
         try? context.save()
@@ -150,8 +151,7 @@ final class SyncManager: ObservableObject {
     }
 
     private func refreshPendingCount() {
-        guard let container else { return }
-        let context = ModelContext(container)
+        guard let context = mainContext else { return }
         let cap = maxRetries
         let descriptor = FetchDescriptor<PendingMutation>(
             predicate: #Predicate { !$0.isSynced && $0.retryCount < cap }

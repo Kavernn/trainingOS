@@ -1,6 +1,11 @@
 import SwiftUI
 import AVFoundation
 
+// MARK: - API Config (single source of truth for base URL)
+enum APIConfig {
+    static let base = "https://training-os-rho.vercel.app"
+}
+
 // MARK: - Keyboard dismiss
 
 extension View {
