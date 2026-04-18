@@ -137,6 +137,12 @@ class APIService: ObservableObject {
 
     // MARK: - Morning Notification
     private func scheduleMorningNotification(for data: DashboardData) {
+        // CODE-7: schedule at most once per calendar day — repeating trigger doesn't need re-registration
+        let today = DateFormatter.isoDate.string(from: Date())
+        let lastKey = "notif_morning_scheduled_date"
+        guard UserDefaults.standard.string(forKey: lastKey) != today else { return }
+        UserDefaults.standard.set(today, forKey: lastKey)
+
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: ["morning-coaching"])
 

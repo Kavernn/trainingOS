@@ -14,28 +14,38 @@ final class DashboardViewModel: ObservableObject {
     @Published var lssTrend: [LifeStressScore] = []
     @Published var coachTip: CoachTip?
 
+    // PERF-5: skip expensive analytics if already loaded today
+    private var analyticsLoadedDate = ""
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
     func loadAll() async {
-        await APIService.shared.fetchDashboard()
+        let today = todayStr
+        // PERF-2: fetchDashboard runs in parallel with the other calls
+        async let dash: Void = APIService.shared.fetchDashboard()
         async let d = APIService.shared.fetchDeloadData()
         async let m = APIService.shared.checkMoodDue()
         async let b = APIService.shared.fetchMorningBrief()
         async let s = APIService.shared.fetchSeanceSoirData()
-        async let i = APIService.shared.fetchInsights()
         async let r = APIService.shared.fetchRecoveryData()
-        async let t = APIService.shared.fetchLifeStressTrend(days: 7)
-        async let c = APIService.shared.fetchDailyCoachTip()
 
+        // PERF-5: insights / LSS / coach tip — once per day only
+        if analyticsLoadedDate != today {
+            async let i = APIService.shared.fetchInsights()
+            async let t = APIService.shared.fetchLifeStressTrend(days: 7)
+            async let c = APIService.shared.fetchDailyCoachTip()
+            insights = (try? await i) ?? []
+            lssTrend = (try? await t) ?? []
+            coachTip = try? await c
+            analyticsLoadedDate = today
+        }
+
+        _ = try? await dash
         deload   = try? await d
         moodDue  = try? await m
         brief    = try? await b
         soirData = try? await s
-        insights = (try? await i) ?? []
-        lssTrend = (try? await t) ?? []
-        coachTip = try? await c
         if let log = try? await r {
-            let entry = log.first(where: { $0.date == todayStr })
+            let entry = log.first(where: { $0.date == today })
             todaySleepLogged = entry?.sleepHours != nil
             todayRecovery    = entry
         }

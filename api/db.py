@@ -688,30 +688,6 @@ def update_workout_session_by_type(date: str, session_type: str, patch: dict) ->
     except Exception as e:
         logger.error("update_workout_session_by_type(%s,%s) error: %s", date, session_type, e)
         return False
-def normalize_patch(patch: dict) -> dict:
-    cleaned = {}
-    for k, v in patch.items():
-        if v is None:
-            cleaned[k] = None
-        elif isinstance(v, bool):
-            cleaned[k] = v
-        elif isinstance(v, (int,)):
-            cleaned[k] = v
-        elif isinstance(v, float):
-            cleaned[k] = int(v)  # ou round(v)
-        elif isinstance(v, str):
-            # tente conversion si c'est un nombre
-            try:
-                if "." in v:
-                    cleaned[k] = int(float(v))
-                else:
-                    cleaned[k] = int(v)
-            except:
-                cleaned[k] = v
-        else:
-            cleaned[k] = v
-    return cleaned
-
 
 INT_FIELDS = {"duration_min", "energy_pre"}
 DECIMAL_FIELDS = {"rpe"}

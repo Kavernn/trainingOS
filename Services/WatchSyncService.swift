@@ -98,19 +98,30 @@ class WatchSyncService: ObservableObject {
         let cal = Calendar.current
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
 
-        // Fetch once to avoid N API calls
         let existingLog = (try? await APIService.shared.fetchRecoveryData()) ?? []
 
-        for daysAgo in 1...7 {
-            guard let date = cal.date(byAdding: .day, value: -daysAgo, to: Date()) else { continue }
+        // Build list of dates that need backfill
+        let datesToBackfill: [Date] = (1...7).compactMap { daysAgo -> Date? in
+            guard let date = cal.date(byAdding: .day, value: -daysAgo, to: Date()) else { return nil }
             let dateStr = fmt.string(from: date)
+            return existingLog.first(where: { $0.date == dateStr })?.steps != nil ? nil : date
+        }
+        guard !datesToBackfill.isEmpty else { return }
 
-            // Skip if already has steps for this date
-            if existingLog.first(where: { $0.date == dateStr })?.steps != nil { continue }
+        // PERF-4: fetch all HK snapshots in parallel, then sync sequentially
+        let hkService = hk
+        var snapshots: [WearableSnapshot] = []
+        await withTaskGroup(of: WearableSnapshot?.self) { group in
+            for date in datesToBackfill {
+                group.addTask { await hkService.fetchSnapshotForDate(date) }
+            }
+            for await snap in group {
+                if let snap { snapshots.append(snap) }
+            }
+        }
 
-            let snap = await hk.fetchSnapshotForDate(date)
-            guard let steps = snap.steps else { continue }  // No HK data → skip
-
+        for snap in snapshots {
+            guard let steps = snap.steps else { continue }
             let backfill = WearableSnapshot(
                 date: snap.date, steps: steps, sleepHours: nil,
                 restingHr: snap.restingHr, hrv: nil, activeEnergy: nil,

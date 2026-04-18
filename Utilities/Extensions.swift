@@ -90,3 +90,14 @@ func makeBeep(hz: Double, duration: Double) -> AVAudioPlayer? {
     player?.prepareToPlay()
     return player
 }
+
+// MARK: - Model UI extensions (color helpers that need SwiftUI but must not live in Models/)
+extension PSSRecord {
+    var categoryColor: Color {
+        switch category {
+        case "low":      return .green
+        case "moderate": return .orange
+        default:         return .red
+        }
+    }
+}

@@ -46,6 +46,7 @@ def _parse_scheme(scheme: str) -> tuple[int, int]:
         top = int(rep_part.split("-")[1]) if "-" in rep_part else int(rep_part)
         return int(parts[0]), top
     except Exception:
+        logger.warning("_parse_scheme: malformed scheme %r — skipping progression", scheme)
         return 0, 0
 
 
@@ -53,6 +54,7 @@ def _to_int(v) -> int:
     try:
         return int(v)
     except (TypeError, ValueError):
+        logger.debug("_to_int: cannot convert %r to int — returning 0", v)
         return 0
 
 
@@ -422,6 +424,9 @@ def apply_suggestion(exercise_name: str, suggested_weight: float, suggested_sche
     if suggested_scheme:
         ok = db.update_exercise_default_scheme(exercise_name, suggested_scheme) and ok
 
-    db.update_exercise_current_weight(exercise_name, suggested_weight)
+    weight_ok = db.update_exercise_current_weight(exercise_name, suggested_weight)
+    if not weight_ok:
+        logger.warning("apply_suggestion: failed to update current_weight for %r", exercise_name)
+    ok = ok and bool(weight_ok)
 
     return ok

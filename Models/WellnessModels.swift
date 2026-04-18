@@ -1,5 +1,4 @@
 import Foundation
-import SwiftUI
 
 // MARK: - Recovery
 struct RecoveryEntry: Codable, Identifiable {
@@ -345,13 +344,6 @@ struct PSSRecord: Codable, Identifiable {
         case triggerRatings    = "trigger_ratings"
     }
 
-    var categoryColor: Color {
-        switch category {
-        case "low":      return .green
-        case "moderate": return .orange
-        default:         return .red
-        }
-    }
 }
 
 struct PSSDueStatus: Codable {

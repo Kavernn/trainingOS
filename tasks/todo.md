@@ -192,11 +192,11 @@
 - [x] **ARCH-1 — `applyDeload` contourne `APIService`** : construit sa propre `URLRequest` avec URL hardcodée. Migré vers `APIService.applyDeload()`. *(2026-04-18)*
 - [x] **ARCH-2 — Base URL dupliquée dans 3 fichiers** : `APIConfig.base` centralisé dans `Extensions.swift`, utilisé par `APIService` et `SyncManager`. *(2026-04-18)*
 - [ ] **ARCH-3 — `APIService` god-class (921 l.)** : 80+ endpoints + offline queue + cache + auth + notifs dans un seul fichier. Splitter par domaine (WorkoutAPI, NutritionAPI, WellnessAPI, etc.).
-- [ ] **ARCH-4 — `flask_app.py` code mort (600 l.)** : jamais référencé par `index.py` ni `vercel.json`. Supprimer.
-- [ ] **ARCH-5 — Scripts migration livrés en prod Vercel** : `migrate_to_relational.py` (1050 l.) + `migrate_program_relational.py` (266 l.) gonfent le cold-start. Déplacer hors du bundle.
+- [x] **ARCH-4 — `flask_app.py` code mort (600 l.)** : supprimé. *(2026-04-18)*
+- [x] **ARCH-5 — Scripts migration livrés en prod Vercel** : `migrate_*.py` déplacés dans `scripts/` (hors bundle Vercel). *(2026-04-18)*
 - [ ] **ARCH-6 — MVVM incohérent** : Dashboard/Nutrition ont un ViewModel, Séance/Stats/Historique ont la logique en `@State` dans la vue.
-- [ ] **ARCH-7 — `schema.sql` vide** : schéma Supabase non versionné. Regénérer depuis prod.
-- [ ] **ARCH-8 — `AppState.loadProfile()` jamais appelée** : profil jamais chargé au démarrage ou dead code.
+- [ ] **ARCH-7 — `schema.sql` vide** : schéma Supabase non versionné. Regénérer depuis prod via `supabase db dump` ou Supabase Studio → Export.
+- [x] **ARCH-8 — `AppState.loadProfile()` jamais appelée** : appelée dans `TrainingOSApp.onAppear` Task. *(2026-04-18)*
 
 ### 🔴 Haute priorité — Robustesse
 - [x] **ROB-1 — `except Exception: pass` généralisé dans `db.py`** : exceptions silencieuses → état local/remote diverge sans signal. Ajout de `logger` sur tous les blocs muets + suppression doublon `update_exercise_current_weight`. *(2026-04-18)*
@@ -205,28 +205,28 @@
 - [ ] **ROB-4 — `offlinePost` renvoie `Data()` vide pour signaler offline** : ambigu avec réponse serveur vide légitime. Utiliser un type dédié (`OfflineResult`).
 - [ ] **ROB-5 — `PendingMutation` sans TTL** : mutation qui échoue systématiquement retryée 5× et abandonnée sans alerte user.
 - [ ] **ROB-6 — `HealthKitService.enableBackgroundDelivery` ne stocke pas les observers** : fuite mémoire, callbacks perdus si rappelée.
-- [ ] **ROB-7 — `fetchDashboard` planifie notif même si fetch a échoué** : notif sur données vides.
+- [x] **ROB-7 — `fetchDashboard` planifie notif même si fetch a échoué** : `scheduleMorningNotification` n'est appelée qu'après decode réussi — déjà correct. *(2026-04-18)*
 - [ ] **ROB-8 — `HealthKitService.fetchSnapshotForDate` mélange HR "latest" + steps par date** : snapshot incohérent.
-- [ ] **ROB-9 — `TrainingOSApp.onAppear` réenregistre observers HealthKit** : peut refire à chaque push/pop.
+- [x] **ROB-9 — `TrainingOSApp.onAppear` réenregistre observers HealthKit** : guard `hkSetupDone: Bool` — enregistrement une seule fois. *(2026-04-18)*
 
 ### 🔴 Haute priorité — Performance
 - [x] **PERF-1 — N+1 Supabase dans `generate_suggestions`** : 2 queries par exercice (info + history). Batchés en 2 appels total. *(2026-04-18)*
-- [ ] **PERF-2 — `loadAll` attend `fetchDashboard` en série** : ajouter en parallèle avec les autres `async let`.
-- [ ] **PERF-3 — Dashboard recharge tout à chaque `onAppear`** : vérifier TTL avant de refetch.
-- [ ] **PERF-4 — `backfillRecentDaysIfNeeded` : 7 syncs séquentiels** : passer en `async let` parallèle.
-- [ ] **PERF-5 — Insights/LSS/CoachTip à chaque `loadAll` sans condition** : gâchis Supabase. Ajouter TTL ou flag "loaded today".
+- [x] **PERF-2 — `loadAll` attend `fetchDashboard` en série** : `fetchDashboard` mis en `async let` — tourne en parallèle avec deload/mood/brief/soir/recovery. *(2026-04-18)*
+- [ ] **PERF-3 — Dashboard recharge tout à chaque `onAppear`** : vérifier TTL avant de refetch. CacheService a déjà des TTL — refetch actif seulement sur `.task` (une fois par cycle de vie vue).
+- [x] **PERF-4 — `backfillRecentDaysIfNeeded` : 7 syncs séquentiels** : `withTaskGroup` — fetches HK en parallèle, puis sync résultats. *(2026-04-18)*
+- [x] **PERF-5 — Insights/LSS/CoachTip à chaque `loadAll` sans condition** : `analyticsLoadedDate` guard — chargé une seule fois par jour. *(2026-04-18)*
 
 ### 🟡 Moyenne priorité — Qualité code
-- [ ] **CODE-1 — `WellnessModels.swift` importe SwiftUI pour `Color`** : couplage modèle → UI. Extraire couleurs dans une extension UI séparée.
+- [x] **CODE-1 — `WellnessModels.swift` importe SwiftUI pour `Color`** : `categoryColor` extrait dans `Extensions.swift`; `import SwiftUI` retiré de `WellnessModels.swift`. *(2026-04-18)*
 - [ ] **CODE-2 — `switch MacPage` triplé** : couleur/icône par page définis dans 3 vues. Centraliser dans `MacPage` enum.
 - [ ] **CODE-3 — Nommage mixte FR/EN dans DashboardViewModel** : `soirData` vs `brief`, `insights`. Uniformiser en anglais.
 - [ ] **CODE-4 — Fichiers de vue >2000 l.** : `SeanceView` 3521, `StatsView` 2639, `DashboardView` 2540, `NutritionView` 1727. Splitter en subviews séparées.
 - [ ] **CODE-5 — `RestTimerManager` défini dans `SeanceView`** : extraire dans `Services/RestTimerManager.swift`.
-- [ ] **CODE-6 — `normalize_patch` dead code** : supprimer de `db.py`.
-- [ ] **CODE-7 — `scheduleMorningNotification` replanifié à chaque `fetchDashboard`** : ajouter guard "déjà planifiée aujourd'hui".
-- [ ] **CODE-8 — `_parse_scheme` retourne `(0,0)` silencieusement** : logger un warning quand scheme malformé.
-- [ ] **CODE-9 — `_to_int` retourne 0 silencieusement** : idem, logger.
-- [ ] **CODE-10 — `apply_suggestion` ignore le retour de `update_exercise_current_weight`** : propager le `bool` au caller.
+- [x] **CODE-6 — `normalize_patch` dead code** : supprimé de `db.py`. *(2026-04-18)*
+- [x] **CODE-7 — `scheduleMorningNotification` replanifié à chaque `fetchDashboard`** : guard `UserDefaults` — exécutée une seule fois par jour. *(2026-04-18)*
+- [x] **CODE-8 — `_parse_scheme` retourne `(0,0)` silencieusement** : `logger.warning` ajouté. *(2026-04-18)*
+- [x] **CODE-9 — `_to_int` retourne 0 silencieusement** : `logger.debug` ajouté. *(2026-04-18)*
+- [x] **CODE-10 — `apply_suggestion` ignore le retour de `update_exercise_current_weight`** : retour capturé, propagé dans `ok`, warning si False. *(2026-04-18)*
 
 ---
 

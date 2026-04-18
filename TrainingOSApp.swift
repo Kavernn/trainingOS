@@ -6,6 +6,7 @@ import UserNotifications
 struct TrainingOSApp: App {
     @StateObject private var appState = AppState.shared
     @State private var showSplash = true
+    @State private var hkSetupDone = false   // ROB-9: prevent re-registration on every onAppear
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
     private let modelContainer: ModelContainer = {
@@ -51,6 +52,9 @@ struct TrainingOSApp: App {
                     if granted { NotificationService.scheduleAll() }
                 }
                 Task {
+                    await appState.loadProfile()    // ARCH-8: load user profile at startup
+                    guard !hkSetupDone else { return } // ROB-9: register HK observers once only
+                    hkSetupDone = true
                     await HealthKitService.shared.requestAuthorization()
                     await WatchSyncService.shared.syncIfNeeded()
                     await WatchSyncService.shared.enableBackgroundDelivery()
