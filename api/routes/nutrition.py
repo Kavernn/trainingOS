@@ -40,7 +40,7 @@ def api_nutrition_scan_label():
     if not api_key:
         return jsonify({"error": "ANTHROPIC_API_KEY manquant"}), 500
 
-    data       = request.get_json()
+    data       = request.get_json(silent=True) or {}
     image_b64  = data.get("image_base64", "")
     media_type = data.get("media_type", "image/jpeg")
     quantity   = float(data.get("quantity", 1) or 1)
@@ -131,7 +131,7 @@ def api_nutrition_scan_label():
 @nutrition_bp.route("/api/nutrition/delete", methods=["POST"])
 def api_nutrition_delete():
     from nutrition import (delete_entry as nutrition_delete_entry, get_today_totals)
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     ok   = nutrition_delete_entry(data.get("id", ""))
     return jsonify({"success": ok, "totals": get_today_totals()})
 
@@ -141,7 +141,7 @@ def api_nutrition_edit():
     try:
         import db as _db
         from nutrition import get_today_totals
-        data     = request.get_json()
+        data     = request.get_json(silent=True) or {}
         entry_id = data.get("id", "")
         if not entry_id:
             return jsonify({"error": "id manquant"}), 400
@@ -156,7 +156,7 @@ def api_nutrition_edit():
 @nutrition_bp.route("/api/nutrition/settings", methods=["POST"])
 def api_nutrition_settings():
     from nutrition import (save_settings as save_nutrition_settings)
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     save_nutrition_settings(
         int(data.get("limite_calories", 2200)),
         int(data.get("objectif_proteines", 160)),
@@ -173,7 +173,7 @@ def api_food_catalog():
         items = _db.get_food_catalog()
         return jsonify({"items": items})
     # POST — save catalog
-    data  = request.get_json()
+    data  = request.get_json(silent=True) or {}
     items = data.get("items", [])
     ok    = _db.save_food_catalog(items)
     return jsonify({"success": ok})

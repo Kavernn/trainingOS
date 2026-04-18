@@ -40,10 +40,14 @@ app = Flask(
     template_folder = TEMPLATES,
     static_folder   = STATIC,
 )
-_SECRET_KEY_DEFAULT = "trainingos-secret-change-in-prod"
-_secret_key = os.getenv("SECRET_KEY", _SECRET_KEY_DEFAULT)
-if os.getenv("VERCEL") and _secret_key == _SECRET_KEY_DEFAULT:
-    raise RuntimeError("SECRET_KEY must be set to a secure value in production (Vercel env vars)")
+_secret_key = os.getenv("SECRET_KEY", "")
+if not _secret_key:
+    if os.getenv("VERCEL"):
+        raise RuntimeError("SECRET_KEY env var must be set in Vercel dashboard")
+    _secret_key = "trainingos-dev-only-not-for-production"
+    logger.warning("SECRET_KEY not set — using insecure default (dev only)")
+elif _secret_key == "trainingos-secret-change-in-prod" and os.getenv("VERCEL"):
+    raise RuntimeError("SECRET_KEY must not use the placeholder value in production")
 app.secret_key = _secret_key
 
 UPLOAD_FOLDER      = os.path.join(BASE_DIR, "static", "uploads")
@@ -51,14 +55,13 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # ── Global error handler ─────────────────────────────────────
-import traceback as _tb
+from werkzeug.exceptions import HTTPException
 
 @app.errorhandler(Exception)
 def _handle_exception(e):
-    _tb.print_exc()  # log serveur uniquement, jamais envoyé au client
-    code = getattr(e, "code", 500)
-    if isinstance(code, int) and 400 <= code < 500:
-        return jsonify({"error": str(e)}), code
+    if isinstance(e, HTTPException):
+        return jsonify({"error": e.description}), e.code
+    logger.exception("Unhandled exception in route")
     return jsonify({"error": "Erreur interne — réessaie"}), 500
 
 # ── API Key auth middleware ───────────────────────────────────

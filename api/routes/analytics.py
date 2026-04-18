@@ -43,7 +43,7 @@ def api_apply_deload():
     """Override current_weight for each exercise in poids_deload dict."""
     try:
         from weights import load_weights, save_weights
-        data         = request.get_json()
+        data         = request.get_json(silent=True) or {}
         poids_deload = data.get("poids_deload", {})
         if not poids_deload:
             return jsonify({"error": "poids_deload manquant"}), 400

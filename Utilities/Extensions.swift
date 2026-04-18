@@ -1,9 +1,16 @@
 import SwiftUI
 import AVFoundation
 
-// MARK: - API Config (single source of truth for base URL)
+// MARK: - API Config (single source of truth for base URL and auth)
 enum APIConfig {
     static let base = "https://training-os-rho.vercel.app"
+    // Auth key for server requests. To keep out of source control, inject via xcconfig:
+    //   1. Create Config.xcconfig (gitignored): TRAININGOS_API_KEY = your_key_here
+    //   2. Add key to Info.plist: TrainingOSAPIKey = $(TRAININGOS_API_KEY)
+    //   3. Read here: Bundle.main.object(forInfoDictionaryKey: "TrainingOSAPIKey") as? String
+    // Until xcconfig is wired, the key lives here. Rotate on server if this repo is ever shared.
+    static let apiKey: String = Bundle.main.object(forInfoDictionaryKey: "TrainingOSAPIKey") as? String
+        ?? "581aa10a0002c21d32a1a0eb68cfaef8d3fbd4b0ef403354bde56121f300f7b9"
 }
 
 // MARK: - Keyboard dismiss

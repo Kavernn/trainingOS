@@ -18,7 +18,7 @@ def api_ai_propose():
     if not api_key:
         return jsonify({"error": "ANTHROPIC_API_KEY manquant"}), 500
     try:
-        data    = request.get_json()
+        data    = request.get_json(silent=True) or {}
         context = data.get("context", "")
         if not context:
             return jsonify({"error": "Contexte manquant"}), 400
@@ -72,7 +72,7 @@ def api_ai_narrative():
     if not api_key:
         return jsonify({"error": "ANTHROPIC_API_KEY manquant"}), 500
     try:
-        data    = request.get_json()
+        data    = request.get_json(silent=True) or {}
         context = data.get("context", "")
         week    = data.get("week", "")
         if not context:
@@ -110,7 +110,7 @@ def api_ai_coach():
     if not api_key:
         return jsonify({"error": "ANTHROPIC_API_KEY manquant dans .env"}), 500
     try:
-        data         = request.get_json()
+        data         = request.get_json(silent=True) or {}
         prompt       = data.get("prompt", "")       # legacy single-turn
         context      = data.get("context", "")      # rich athlete context (new)
         messages_in  = data.get("messages", [])     # full conversation history (new)

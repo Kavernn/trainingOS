@@ -18,7 +18,7 @@ def api_log():
         from utils import _today_mtl
         import db as _db
 
-        data     = request.get_json()
+        data     = request.get_json(silent=True) or {}
         exercise = data.get("exercise")
         weight   = float(data.get("weight", 0))
         reps_str = data.get("reps", "")
@@ -193,7 +193,7 @@ def api_log():
 def api_session_edit():
     """Edit an existing session: RPE, comment, and/or individual exercise weight/reps."""
     try:
-        data    = request.get_json()
+        data    = request.get_json(silent=True) or {}
         date    = data.get("date")
         if not date:
             return jsonify({"error": "date manquante"}), 400
@@ -277,7 +277,7 @@ def api_session_edit():
 def api_session_delete():
     """Delete an entire session (removes from sessions store + weights history)."""
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         date = data.get("date")
         if not date:
             return jsonify({"error": "date manquante"}), 400
@@ -380,7 +380,7 @@ def api_log_session():
         from utils import _today_mtl
         import db as _db
 
-        data           = request.get_json()
+        data           = request.get_json(silent=True) or {}
         # Utilise la date locale du client si fournie (évite le décalage UTC/EST)
         today          = data.get("date") or _today_mtl()
         rpe            = data.get("rpe")
@@ -488,7 +488,7 @@ def api_log_session():
 def api_log_hiit():
     import db as _db
     from utils import get_current_week, _today_mtl
-    data           = request.json
+    data           = (request.get_json(silent=True) or {})
     week           = get_current_week()
     today          = data.get("date") or _today_mtl()
     session_type   = data.get("session_type", "HIIT")
@@ -522,7 +522,7 @@ def api_log_hiit():
 @workout_bp.route("/api/delete_hiit", methods=["POST"])
 def api_delete_hiit():
     import db as _db
-    data     = request.json
+    data     = (request.get_json(silent=True) or {})
     hiit_log = _db.get_hiit_logs() or []
 
     # Support deletion by index OR by date+session_type
@@ -548,7 +548,7 @@ def api_delete_hiit():
 def api_hiit_edit():
     try:
         import db as _db
-        data         = request.get_json()
+        data         = request.get_json(silent=True) or {}
         date         = data.get("date")
         session_type = data.get("session_type")
         hiit_log     = _db.get_hiit_logs() or []
@@ -578,7 +578,7 @@ def api_save_exercise():
     from inventory import load_inventory, add_exercise, rename_inventory_exercise
     from planner import load_program, save_program
     from blocks import get_block, get_strength_exercises
-    data          = request.json
+    data          = (request.get_json(silent=True) or {})
     original_name = data.get("original_name", "").strip()
     name          = data.get("name", "").strip()
 
@@ -623,7 +623,7 @@ def api_save_exercise():
 
 @workout_bp.route("/api/delete_exercise", methods=["POST"])
 def api_delete_exercise():
-    name = request.json.get("name", "").strip()
+    name = (request.get_json(silent=True) or {}).get("name", "").strip()
     if not name:
         return jsonify({"error": "Nom manquant"}), 400
 
@@ -640,7 +640,7 @@ def api_delete_exercise():
 @workout_bp.route("/api/delete_exercise_log", methods=["POST"])
 def api_delete_exercise_log():
     """Remove a specific exercise history entry by name + date."""
-    data     = request.json or {}
+    data     = (request.get_json(silent=True) or {}) or {}
     exercise = data.get("exercise", "").strip()
     date     = data.get("date", "").strip()
     if not exercise or not date:
@@ -701,7 +701,7 @@ def api_programme():
                         get_block, get_strength_exercises,
                         upsert_block, remove_block, reorder_blocks)
     from inventory import load_inventory, add_exercise, rename_inventory_exercise
-    data       = request.json
+    data       = (request.get_json(silent=True) or {})
     action     = data.get("action")
     jour       = data.get("jour")
     program_id = data.get("program_id") or None  # optional — falls back to default

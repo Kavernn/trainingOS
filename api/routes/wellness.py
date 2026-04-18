@@ -15,7 +15,7 @@ def api_cardio_data():
 @wellness_bp.route("/api/log_cardio", methods=["POST"])
 def api_log_cardio():
     import db as _db
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     entry = {
         "date":         data.get("date", date.today().isoformat()),
         "type":         data.get("type", "course"),
@@ -34,7 +34,7 @@ def api_log_cardio():
 @wellness_bp.route("/api/delete_cardio", methods=["POST"])
 def api_delete_cardio():
     import db as _db
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     _db.delete_cardio_log(data.get("date", ""), data.get("type", ""))
     return jsonify({"ok": True})
 
@@ -50,7 +50,7 @@ def api_recovery_data():
 @wellness_bp.route("/api/log_recovery", methods=["POST"])
 def api_log_recovery():
     import db as _db
-    data  = request.get_json()
+    data  = request.get_json(silent=True) or {}
     soreness_val = data.get("soreness")
     entry = {
         "date":          data.get("date", date.today().isoformat()),
@@ -71,7 +71,7 @@ def api_log_recovery():
 @wellness_bp.route("/api/delete_recovery", methods=["POST"])
 def api_delete_recovery():
     import db as _db
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     _db.delete_recovery_log(data.get("date", ""))
     return jsonify({"ok": True})
 

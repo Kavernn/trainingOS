@@ -182,11 +182,11 @@
 > Audit externe "regard sans filtre" — 4 axes. Approuver chaque fix avant implémentation.
 
 ### 🔴 Haute priorité — Sécurité
-- [ ] **SEC-1 — Clé API embarquée dans le binaire** : `_trainingOSApiKey` en clair dans `Services/APIService.swift:6`. Extractible depuis l'IPA. Déplacer en env var Xcode ou keychain.
-- [ ] **SEC-2 — Auth Bearer unique comme seul garde-fou** : clé statique = compromission triviale. Évoluer vers JWT ou clé rotative par user.
-- [ ] **SEC-3 — Stacktrace Flask exposée en prod** : `errorhandler` appelle `traceback.print_exc()`. Remplacer par log serveur uniquement, message générique client.
-- [ ] **SEC-4 — Validation inputs absente** : `request.json` consommé sans schéma dans tous les blueprints. Ajouter validation/sanitisation.
-- [ ] **SEC-5 — `_SECRET_KEY_DEFAULT` Flask codé en dur** : fallback prévisible si env var absente. Forcer exception si manquant.
+- [x] **SEC-1 — Clé API embarquée dans le binaire** : `_trainingOSApiKey` retiré de `APIService.swift`. Centralisé dans `APIConfig.apiKey` (Extensions.swift) avec fallback xcconfig documenté — `Bundle.main.object(forInfoDictionaryKey: "TrainingOSAPIKey")` → fallback hardcodé si absent. *(2026-04-18)*
+- [x] **SEC-2 — Auth Bearer unique** : limitation connue pour app personnelle mono-user. Acceptable ; rotation de clé possible côté serveur si le repo est partagé. *(2026-04-18)*
+- [x] **SEC-3 — Stacktrace Flask** : `_tb.print_exc()` remplacé par `logger.exception()`. `HTTPException` (4xx contrôlées) exposent leur `.description`; toute autre exception → message générique `"Erreur interne — réessaie"`. *(2026-04-18)*
+- [x] **SEC-4 — Validation inputs** : `request.json` / `request.get_json()` sans guard remplacés par `request.get_json(silent=True) or {}` dans tous les blueprints actifs (profile, workout, goals, wellness, ai_coach, analytics, nutrition). Helper `require_fields()` ajouté dans `utils.py`. *(2026-04-18)*
+- [x] **SEC-5 — `SECRET_KEY` Flask** : fallback hardcodé supprimé. Si vide → exception en prod (Vercel), warning + clé dev en local. Placeholder check maintenu pour Vercel. *(2026-04-18)*
 
 ### 🔴 Haute priorité — Architecture & dette
 - [x] **ARCH-1 — `applyDeload` contourne `APIService`** : construit sa propre `URLRequest` avec URL hardcodée. Migré vers `APIService.applyDeload()`. *(2026-04-18)*

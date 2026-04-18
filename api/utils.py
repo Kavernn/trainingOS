@@ -65,6 +65,22 @@ def _ai_rate_check() -> bool:
         return True  # fail open — better to allow than block on infra error
 
 
+# ── Input validation ─────────────────────────────────────────
+
+def require_fields(data: dict, *fields: str):
+    """Return (data, None) when all fields are present and non-None/empty.
+    Return (None, (response, status)) when any field is missing — caller should
+    immediately return the error tuple:
+        data, err = require_fields(body, "exercise", "reps")
+        if err: return err
+    """
+    from flask import jsonify
+    missing = [f for f in fields if not data.get(f) and data.get(f) != 0]
+    if missing:
+        return None, (jsonify({"error": f"Champs requis manquants : {', '.join(missing)}"}), 400)
+    return data, None
+
+
 # ── Helpers ─────────────────────────────────────────────────
 
 def get_current_week() -> int:

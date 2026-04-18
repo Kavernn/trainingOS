@@ -6,7 +6,7 @@ goals_bp = Blueprint("goals", __name__)
 @goals_bp.route("/api/set_goal", methods=["POST"])
 def api_set_goal():
     from goals import set_goal
-    data     = request.json
+    data     = (request.get_json(silent=True) or {})
     exercise = data.get("exercise")
     weight   = float(data.get("goal_weight") or data.get("weight") or 0)
     deadline = data.get("deadline")
@@ -23,7 +23,7 @@ def api_set_goal():
 def api_body_weight():
     try:
         from body_weight import log_body_weight
-        data     = request.get_json()
+        data     = request.get_json(silent=True) or {}
         poids     = float(data.get("poids", 0))
         note      = data.get("note", "")
         body_fat  = data.get("body_fat")
@@ -55,7 +55,7 @@ def api_body_weight():
 def api_update_body_weight():
     try:
         import db as _db
-        data      = request.get_json()
+        data      = request.get_json(silent=True) or {}
         target_date = data.get("date", "")
         new_poids = float(data.get("poids", 0))
         body_fat  = float(data.get("body_fat")) if data.get("body_fat") is not None else None
@@ -81,7 +81,7 @@ def api_update_body_weight():
 def api_delete_body_weight():
     try:
         import db as _db
-        data  = request.get_json()
+        data  = request.get_json(silent=True) or {}
         ok = _db.delete_body_weight(data.get("date", ""))
         if not ok:
             return jsonify({"success": False, "error": "Entrée introuvable"}), 404
@@ -123,7 +123,7 @@ def api_get_smart_goals():
 @goals_bp.route("/api/smart_goals/save", methods=["POST"])
 def api_save_smart_goal():
     import db as _db
-    data        = request.get_json()
+    data        = request.get_json(silent=True) or {}
     goal_type   = data.get("type", "")
     target      = float(data.get("target_value", 0))
     target_date = data.get("target_date") or None
@@ -141,7 +141,7 @@ def api_save_smart_goal():
 @goals_bp.route("/api/smart_goals/delete", methods=["POST"])
 def api_delete_smart_goal():
     import db as _db
-    data    = request.get_json()
+    data    = request.get_json(silent=True) or {}
     goal_id = data.get("id", "")
     if not goal_id:
         return jsonify({"error": "id requis"}), 400
@@ -152,7 +152,7 @@ def api_delete_smart_goal():
 def api_archive_objectif():
     """Marque un objectif comme archivé (caché de la liste principale)."""
     import db as _db
-    data     = request.get_json() or {}
+    data     = request.get_json(silent=True) or {}
     exercise = data.get("exercise", "")
     if not exercise:
         return jsonify({"error": "missing exercise"}), 400

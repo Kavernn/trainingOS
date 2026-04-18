@@ -22,7 +22,7 @@ def api_profil_data():
 def api_update_profile():
     from user_profile import load_user_profile, save_user_profile
     existing = load_user_profile()
-    existing.update({k: v for k, v in request.json.items() if v is not None})
+    existing.update({k: v for k, v in (request.get_json(silent=True) or {}).items() if v is not None})
     ok = save_user_profile(existing)
     if ok:
         return jsonify({"success": True})
