@@ -144,10 +144,12 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
 3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
 
-## Complété récemment (2026-04-19 — Bugs dashboard + UX scan nutrition)
+## Complété récemment (2026-04-19 — Bugs dashboard + UX + yoga/recovery)
 
 - **Dashboard "Commencer la séance" stale (offline)** : root cause double — (1) `offlinePost` nil → cache dashboard non effacé → fetchDashboard servait l'ancien état ; (2) SyncManager.flushQueue rejoignait les mutations mais ne refreshait jamais le dashboard. Fix : `APIService.sessionLoggedToday` flag optimiste (set dès logSession, reset sur réponse serveur) ; TodayCardView observe ce flag ; SyncManager clear cache + fetchDashboard après toute mutation session rejouée.
 - **Scan nutrition — caméra directe** : suppression de la `confirmationDialog` "Caméra / Bibliothèque photos". Le bouton scan ouvre maintenant directement `ImagePickerView(sourceType: .camera)`. Variables `showSourceChoice` et `showLibraryPicker` supprimées de `NutritionScanSheet`.
+- **Suppression web app** : templates HTML Jinja2 (18 fichiers), static/, www/ (Capacitor), mobile/ (Capacitor iOS), capacitor.config.ts, package.json supprimés. `api/routes/data_views.py` allégé de 18 routes HTML → JSON uniquement. `api/index.py` nettoyé (pas de webbrowser.open, pas de TEMPLATES/STATIC). App = iOS + Mac Catalyst uniquement.
+- **Yoga/Recovery ne s'enregistrent pas** : deux causes racines réglées. (1) Serveur : `api_seance_data()` utilisait `load_sessions()` (dict keyed by date) — si une session evening existait pour le même jour, elle écrasait la session morning yoga dans le dict → `already_logged = false` faux-négatif. Fix : `_db.get_workout_session(today_date)` direct (requête `session_type='morning'` uniquement). (2) iOS : `SpecialSeanceView.logSession()` utilisait `try?` qui swallowait toutes les erreurs et affichait toujours "Séance enregistrée ✅". Fix : `try/catch` + vérification `fresh.alreadyLogged` avant de confirmer le succès, alert erreur si non confirmé (même pattern que `SeanceViewModel.finish()`).
 
 ---
 
