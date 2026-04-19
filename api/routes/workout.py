@@ -855,24 +855,24 @@ def api_programme():
 @workout_bp.route("/api/seance_data")
 def api_seance_data():
     from weights import load_weights
-    from sessions import load_sessions
     from planner import (load_program, get_today, get_today_date, get_week_schedule,
                          get_suggested_weights_for_today)
     from inventory import load_inventory
     from blocks import get_strength_exercises
     from progression import prescribe_volume
     from deload import get_cached_fatigue_score
-    from utils import _parse_scheme, get_current_week, load_hiit_log_local
+    from utils import _parse_scheme, get_current_week
+    import db as _db
 
-    sessions     = load_sessions()
     full_program = load_program()
-    hiit_log     = load_hiit_log_local()
     inventory    = load_inventory()
     today_str  = get_today()
     today_date = get_today_date()
     schedule   = get_week_schedule()
 
-    _s = sessions.get(today_date, {})
+    # Query the morning session directly — avoids the multi-row overwrite bug in
+    # load_sessions() when both morning and evening rows exist for the same date.
+    _s = _db.get_workout_session(today_date) or {}
     already_logged = bool(_s.get("completed") or _s.get("rpe") is not None)
 
     # Aplatit la structure bloc → {exercice: scheme} pour le client iOS

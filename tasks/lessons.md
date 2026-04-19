@@ -436,6 +436,53 @@ Button { showCameraPicker = true }
 
 ---
 
+## iOS — `try?` sur logSession swallows all server errors → fake success
+
+`try? await APIService.shared.logSession(...)` swallowe silencieusement **tous** les échecs (erreur réseau, 409, 500). Le succès est affiché même si la séance n'a pas été sauvegardée.
+
+**Règle :** Pour toute action de log critique, toujours utiliser `try/catch` + vérifier que `fresh.alreadyLogged == true` avant d'afficher la confirmation :
+
+```swift
+// ❌ Mauvais — faux succès garanti
+try? await APIService.shared.logSession(...)
+vm.showSuccess = true
+
+// ✅ Correct — vérification côté serveur
+do {
+    try await APIService.shared.logSession(...)
+} catch {
+    vm.submitError = "Erreur : \(error.localizedDescription)"
+    return
+}
+let fresh = try? await APIService.shared.fetchSeanceData()
+if fresh?.alreadyLogged == true {
+    vm.showSuccess = true
+} else {
+    vm.submitError = "Séance non confirmée — vérifie ta connexion."
+}
+```
+
+Copier le pattern de `SeanceViewModel.finish()` qui fait déjà cette vérification.
+
+---
+
+## Backend — `load_sessions()` dict keyed by date perd les sessions quand plusieurs rows existent pour le même jour
+
+`load_sessions()` → `get_workout_sessions()` retourne toutes les sessions (morning + evening + bonus). Pour la même date, le dernier row traité écrase les précédents. Si evening (completed=False) est retourné après morning yoga (completed=True), `already_logged` devient False.
+
+**Règle :** Pour vérifier `already_logged` d'une session morning, toujours utiliser `_db.get_workout_session(today_date)` (requête directe avec `session_type='morning'`) — jamais `load_sessions().get(date)`.
+
+```python
+# ❌ Mauvais — peut retourner la mauvaise session si plusieurs rows
+_s = sessions.get(today_date, {})
+
+# ✅ Correct — cible explicitement la session morning
+_s = _db.get_workout_session(today_date) or {}
+already_logged = bool(_s.get("completed") or _s.get("rpe") is not None)
+```
+
+---
+
 ## DB — Les migrations KV→relational peuvent créer des doublons
 
 Lors de la migration d'une table KV (clé/valeur) vers des tables relationnelles, si le script de migration est relancé sans guard `ON CONFLICT`, il insère des doublons.

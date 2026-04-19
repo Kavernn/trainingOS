@@ -2742,15 +2742,37 @@ struct AddHIITSheet: View {
             .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
                 Button("OK") { Task { await vm.load() } }
             }
+            .alert("Erreur", isPresented: Binding(
+                get: { vm.submitError != nil },
+                set: { if !$0 { vm.submitError = nil } }
+            )) {
+                Button("OK") {}
+            } message: {
+                if let err = vm.submitError { Text(err) }
+            }
         }
 
         private func logSession() {
             Task {
-                try? await APIService.shared.logSession(exos: [sessionType], rpe: rpe, comment: comment, sessionName: sessionType)
+                do {
+                    try await APIService.shared.logSession(
+                        exos: [sessionType], rpe: rpe, comment: comment, sessionName: sessionType
+                    )
+                } catch {
+                    vm.submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
+                    await APIService.shared.fetchDashboard()
+                    return
+                }
                 loggedDate = DateFormatter.isoDate.string(from: Date())
-                await vm.load()
+                let fresh = try? await APIService.shared.fetchSeanceData()
+                let verified = fresh?.alreadyLogged ?? false
                 await APIService.shared.fetchDashboard()
-                vm.showSuccess = true
+                if verified {
+                    vm.showSuccess = true
+                } else {
+                    loggedDate = ""
+                    vm.submitError = "Séance non confirmée — vérifie ta connexion et réessaie."
+                }
             }
         }
     }
