@@ -1407,9 +1407,7 @@ struct ScanLabelSheet: View {
     enum ScanStep { case capture, analyzing, review }
     @State private var step: ScanStep = .capture
 
-    @State private var showSourceChoice = false
-    @State private var showLibraryPicker = false
-    @State private var showCameraPicker  = false
+    @State private var showCameraPicker = false
     @State private var pickedImage: UIImage? = nil
 
     @State private var quantity = "1"
@@ -1471,7 +1469,7 @@ struct ScanLabelSheet: View {
 
     private var captureView: some View {
         VStack(spacing: 20) {
-            Button { showSourceChoice = true } label: {
+            Button { showCameraPicker = true } label: {
                 ZStack {
                     RoundedRectangle(cornerRadius: 14)
                         .fill(Color.white.opacity(0.04))
@@ -1491,7 +1489,7 @@ struct ScanLabelSheet: View {
                             Image(systemName: "camera.viewfinder")
                                 .font(.system(size: 44))
                                 .foregroundColor(.orange.opacity(0.7))
-                            Text("Prendre une photo ou choisir un fichier")
+                            Text("Prendre une photo de l'étiquette")
                                 .font(.system(size: 14))
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
@@ -1502,13 +1500,6 @@ struct ScanLabelSheet: View {
                 .frame(height: 180)
             }
             .buttonStyle(.plain)
-            .confirmationDialog("Source de l'image", isPresented: $showSourceChoice) {
-                Button("Caméra")             { showCameraPicker  = true }
-                Button("Bibliothèque photos") { showLibraryPicker = true }
-            }
-            .sheet(isPresented: $showLibraryPicker) {
-                ImagePickerView(image: $pickedImage, sourceType: .photoLibrary)
-            }
             .sheet(isPresented: $showCameraPicker) {
                 ImagePickerView(image: $pickedImage, sourceType: .camera)
             }

@@ -74,6 +74,9 @@ class APIService: ObservableObject {
     @Published var dashboard: DashboardData?
     @Published var isLoading = false
     @Published var error: String?
+    /// Optimistic flag — set immediately when logSession is called (online OR offline queued).
+    /// Prevents "Commencer la séance" from reappearing while the fresh dashboard is loading.
+    @Published var sessionLoggedToday = false
 
     private init() {}
 
@@ -121,6 +124,9 @@ class APIService: ObservableObject {
             await MainActor.run {
                 self.dashboard = decoded
                 self.isLoading = false
+                // Sync optimistic flag with server truth
+                if decoded.alreadyLoggedToday { self.sessionLoggedToday = true }
+                else { self.sessionLoggedToday = false }
             }
             scheduleMorningNotification(for: decoded)
         } catch let decodingError as DecodingError {
@@ -214,6 +220,10 @@ class APIService: ObservableObject {
         if bonusSession         { body["bonus_session"] = true }
         if let n = sessionName, !n.isEmpty { body["session_name"] = n }
         if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
+        // Set optimistic flag immediately — works whether online or queued offline.
+        if !secondSession && !bonusSession {
+            await MainActor.run { sessionLoggedToday = true }
+        }
         if try await offlinePost(endpoint: "/api/log_session", payload: body) != nil {
             CacheService.shared.clear(for: "dashboard")
             CacheService.shared.clear(for: "historique_data")
@@ -282,7 +292,10 @@ class APIService: ObservableObject {
     }
 
     func hiitEdit(body: [String: Any]) async throws -> Data {
-        try await offlinePost(endpoint: "/api/hiit/edit", payload: body)
+        guard let data = try await offlinePost(endpoint: "/api/hiit/edit", payload: body) else {
+            throw APIError.queuedOffline
+        }
+        return data
     }
 
     // MARK: - Body Weight / Profil
@@ -828,10 +841,8 @@ class APIService: ObservableObject {
     func logSleep(bedtime: String, wakeTime: String, quality: Int, notes: String?) async throws -> SleepEntry {
         var body: [String: Any] = ["bedtime": bedtime, "wake_time": wakeTime, "quality": quality]
         if let notes = notes, !notes.isEmpty { body["notes"] = notes }
-        let data = try await offlinePost(endpoint: "/api/sleep/log", payload: body)
-        guard !data.isEmpty else {
-            throw NSError(domain: "Offline", code: -1,
-                          userInfo: [NSLocalizedDescriptionKey: "Sommeil enregistré, sera synchronisé quand le réseau sera disponible."])
+        guard let data = try await offlinePost(endpoint: "/api/sleep/log", payload: body) else {
+            throw APIError.queuedOffline
         }
         CacheService.shared.clear(for: "sleep_history")
         CacheService.shared.clear(for: "sleep_today")
@@ -910,7 +921,7 @@ class APIService: ObservableObject {
     }
 
     // MARK: - Deload
-    func applyDeload(poidsDeload: Double) async throws {
+    func applyDeload(poidsDeload: [String: Double]) async throws {
         let url = URL(string: "\(baseURL)/api/apply_deload")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"

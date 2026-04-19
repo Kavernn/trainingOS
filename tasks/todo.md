@@ -1,7 +1,14 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-15 (séance + stats audit & fixes).
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-19.
 > Audit senior dev/UX ajouté le 2026-04-05 — 20 items priorisés.
+
+---
+
+## 🐛 Bugs & UX — 2026-04-19
+
+- [x] **Dashboard "Commencer la séance" malgré séance loggée (offline)** : quand la séance était loggée hors-ligne, `offlinePost` retournait `nil` → cache dashboard non effacé → `fetchDashboard()` servait le cache périmé → TodayCard restait en état "pas loggé". De plus, `SyncManager.flushQueue()` ne refreshait pas le dashboard après avoir rejoué les mutations. Fix : (1) flag optimiste `APIService.sessionLoggedToday` mis à `true` dès `logSession()` (online ou offline), reset sur réponse serveur ; (2) `TodayCardView` observe ce flag ; (3) `SyncManager.flushQueue()` clear cache + `fetchDashboard()` après toute mutation de session. *(2026-04-19)*
+- [x] **Scan nutrition — caméra directe sans dialog** : le bouton scan ouvrait une `confirmationDialog` "Caméra / Bibliothèque photos". L'utilisateur veut toujours la caméra. Supprimé le dialog + la sheet bibliothèque, bouton ouvre directement `ImagePickerView(sourceType: .camera)`. Variables `showSourceChoice` + `showLibraryPicker` supprimées. *(2026-04-19)*
 
 ---
 

@@ -853,10 +853,11 @@ struct TodayCardView: View {
     let dash: DashboardData
     var showGreatDayBadge: Bool = false
     var onOpenSession: (() -> Void)? = nil
+    @ObservedObject private var api = APIService.shared
 
-    /// Source de vérité : alreadyLoggedToday OU session présente dans le dict (completed=true).
+    /// Source de vérité : flag serveur OU session dans le dict OU flag optimiste local.
     private var isLoggedToday: Bool {
-        dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
+        dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil || api.sessionLoggedToday
     }
 
     private var todaySession: SessionEntry? {

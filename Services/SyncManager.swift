@@ -100,15 +100,24 @@ final class SyncManager: ObservableObject {
             return
         }
 
+        let sessionEndpoints: Set<String> = ["/api/log", "/api/log_session", "/api/log_hiit"]
+        var syncedSessionMutation = false
+
         for mutation in pending {
             let success = await send(mutation: mutation)
             if success {
                 mutation.isSynced   = true
                 mutation.retryCount = 0
+                if sessionEndpoints.contains(mutation.endpoint) { syncedSessionMutation = true }
             } else {
                 mutation.retryCount += 1
             }
             try? context.save()
+        }
+
+        if syncedSessionMutation {
+            CacheService.shared.clear(for: "dashboard")
+            await APIService.shared.fetchDashboard()
         }
 
         // Purge synced mutations older than 7 days

@@ -1,9 +1,6 @@
-# api/index.py — app factory (~150 lignes)
+# api/index.py — app factory
 from __future__ import annotations
 import os, sys, socket, logging
-from threading import Timer
-import webbrowser
-from datetime import datetime
 from pathlib import Path
 
 # ── Logging setup ────────────────────────────────────────────
@@ -31,15 +28,7 @@ import wearable
 _API_DIR  = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR  = os.path.dirname(_API_DIR)  # remonte à la racine
 
-# Sur Vercel, templates/static sont à la racine
-TEMPLATES = os.path.join(BASE_DIR, "templates")
-STATIC    = os.path.join(BASE_DIR, "static")
-
-app = Flask(
-    __name__,
-    template_folder = TEMPLATES,
-    static_folder   = STATIC,
-)
+app = Flask(__name__)
 _secret_key = os.getenv("SECRET_KEY", "")
 if not _secret_key:
     if os.getenv("VERCEL"):
@@ -49,10 +38,6 @@ if not _secret_key:
 elif _secret_key == "trainingos-secret-change-in-prod" and os.getenv("VERCEL"):
     raise RuntimeError("SECRET_KEY must not use the placeholder value in production")
 app.secret_key = _secret_key
-
-UPLOAD_FOLDER      = os.path.join(BASE_DIR, "static", "uploads")
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # ── Global error handler ─────────────────────────────────────
 from werkzeug.exceptions import HTTPException
@@ -122,11 +107,6 @@ def find_free_port(start=5000, end=5100):
 
 
 if __name__ == "__main__":
-    # PORT stocké dans l'env pour que le child du reloader utilise le même
     port = int(os.environ.setdefault("PORT", str(find_free_port())))
-    url  = f"http://localhost:{port}"
-    logger.info("TrainingOS → %s", url)
-    # N'ouvre le navigateur que dans le processus principal (pas le child du reloader)
-    if os.environ.get('WERKZEUG_RUN_MAIN') != 'true':
-        Timer(1.0, lambda: webbrowser.open(url)).start()
+    logger.info("TrainingOS API → http://localhost:%d", port)
     app.run(debug=True, use_reloader=True, host="0.0.0.0", port=port)

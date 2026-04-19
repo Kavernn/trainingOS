@@ -392,6 +392,50 @@ Si aucune session morning n'existe pour ce jour, conserver le bonus tel quel.
 
 ---
 
+## iOS — Session loggée offline → dashboard stale sans refresh SyncManager
+
+Quand `offlinePost()` retourne `nil` (mutation en queue), `CacheService.clear("dashboard")` n'est **pas** appelé (guard `if data != nil`). Résultat : `fetchDashboard()` sert le cache périmé qui ne reflète pas la séance. Quand le réseau revient, `SyncManager.flushQueue()` envoie les mutations mais **ne rafraîchit jamais le dashboard**.
+
+**Double fix requis :**
+1. Flag optimiste `@Published var sessionLoggedToday = false` dans `APIService` — mis à `true` dès `logSession()` (online ou offline). Vues qui montrent l'état de la séance peuvent l'observer immédiatement.
+2. `SyncManager.flushQueue()` clear cache dashboard + appelle `fetchDashboard()` dès qu'une mutation `/api/log` ou `/api/log_session` a été rejouée avec succès.
+
+```swift
+// APIService.logSession()
+await MainActor.run { sessionLoggedToday = true }  // avant l'await offlinePost
+
+// SyncManager.flushQueue()
+if syncedSessionMutation {
+    CacheService.shared.clear(for: "dashboard")
+    await APIService.shared.fetchDashboard()
+}
+```
+
+**Règle :** Toute action "je viens de faire X" qui doit se refléter instantanément dans l'UI doit avoir un flag optimiste local, pas seulement un cache invalidé.
+
+---
+
+## iOS — Picker caméra vs bibliothèque : ouvrir la caméra directement
+
+Pour un flux scan (étiquette, document, repas), l'utilisateur veut toujours la caméra. Ne pas afficher de `confirmationDialog` "Caméra / Bibliothèque" — lier le bouton directement à `showCameraPicker = true`.
+
+```swift
+// ❌ Mauvais — dialog inutile
+Button { showSourceChoice = true }
+.confirmationDialog("Source", isPresented: $showSourceChoice) {
+    Button("Caméra")      { showCameraPicker  = true }
+    Button("Bibliothèque") { showLibraryPicker = true }
+}
+
+// ✅ Correct — caméra directe
+Button { showCameraPicker = true }
+.sheet(isPresented: $showCameraPicker) {
+    ImagePickerView(image: $pickedImage, sourceType: .camera)
+}
+```
+
+---
+
 ## DB — Les migrations KV→relational peuvent créer des doublons
 
 Lors de la migration d'une table KV (clé/valeur) vers des tables relationnelles, si le script de migration est relancé sans guard `ON CONFLICT`, il insère des doublons.
