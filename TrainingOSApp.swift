@@ -10,7 +10,7 @@ struct TrainingOSApp: App {
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
     private let modelContainer: ModelContainer = {
-        let schema = Schema([PendingMutation.self])
+        let schema = Schema([PendingMutation.self, BodyCompEntry.self])
         let memConfig  = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let diskConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         // Essaie sur disque + validation par fetch — fallback mémoire si le store est corrompu
