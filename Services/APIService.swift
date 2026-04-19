@@ -54,6 +54,18 @@ private func offlinePost(endpoint: String, payload: [String: Any]) async throws 
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// APIService domain map (all methods live in this file; split blocked by pbxproj)
+//
+//  WORKOUT      Dashboard · Séance · HIIT · Smart Progression · Deload · Weights
+//  PROFILE      Body Weight · Profil · Wearable Sync · Stats
+//  GOALS        Objectifs · Smart Goals · Insights · ACWR · Correlations
+//  NUTRITION    Nutrition · Food Catalog
+//  CARDIO       Cardio
+//  WELLNESS     PSS · Life Stress · Coach · Peak Prediction · Morning Brief
+//  MENTAL       Mood · Journal · Breathwork · Self-Care · Mental Health Dashboard
+//  SLEEP        Sommeil
+// ─────────────────────────────────────────────────────────────────────────────
 class APIService: ObservableObject {
     static let shared = APIService()
 

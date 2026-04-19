@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UserNotifications
 
 // MARK: - Shared models (ex-private types in ExerciseCard)
 
@@ -272,5 +273,173 @@ final class ExerciseViewModel: ObservableObject {
             equipmentType: equipmentType, painZone: painZone)
         logStatus = .success(total)
         return result
+    }
+}
+
+// MARK: - SeanceViewModel
+
+@MainActor
+class SeanceViewModel: ObservableObject {
+    @Published var seanceData: SeanceData?
+    @Published var isLoading = false
+    @Published var error: String?
+    @Published var logResults: [String: ExerciseLogResult] = [:] {
+        didSet { persistDraftIfNeeded() }
+    }
+    @Published var showSuccess = false
+    @Published var submitError: String?
+    @Published var isResuming = false
+    @Published var commitWarning: String?
+
+    var sessionStart = Date()
+    var draftSessionType: String
+
+    var cacheService: CacheService = .shared
+
+    init(draftSessionType: String = "morning") {
+        self.draftSessionType = draftSessionType
+    }
+
+    func load() async {
+        if seanceData == nil,
+           let cached = cacheService.load(for: "seance_data"),
+           let decoded = try? JSONDecoder().decode(SeanceData.self, from: cached) {
+            seanceData = decoded
+            restoreLogResults(from: decoded)
+        }
+
+        if seanceData == nil { isLoading = true }
+        error = nil
+        do {
+            let fresh = try await APIService.shared.fetchSeanceData()
+            seanceData = fresh
+            restoreLogResults(from: fresh)
+        } catch {
+            if seanceData == nil { self.error = error.localizedDescription }
+        }
+        isLoading = false
+    }
+
+    func restoreLogResults(from data: SeanceData) {
+        let program = data.fullProgram[data.today] ?? [:]
+        var restored: [String: ExerciseLogResult] = [:]
+        for exerciseName in program.keys {
+            if let first = data.weights[exerciseName]?.history?.first,
+               first.date == data.todayDate,
+               let w = first.weight, let r = first.reps {
+                restored[exerciseName] = ExerciseLogResult(name: exerciseName, weight: w, reps: r)
+            }
+        }
+        for pending in SessionDraftStore.load(date: data.todayDate, sessionType: draftSessionType) {
+            restored[pending.name] = ExerciseLogResult(
+                name: pending.name,
+                weight: pending.weight,
+                reps: pending.reps,
+                rpe: pending.rpe,
+                sets: [],
+                isSecond: pending.isSecond,
+                isBonus: pending.isBonus,
+                equipmentType: pending.equipmentType,
+                painZone: pending.painZone
+            )
+        }
+        logResults = restored
+        if let restoredStart = SessionDraftStore.loadStartedAt(date: data.todayDate, sessionType: draftSessionType) {
+            sessionStart = restoredStart
+        } else {
+            sessionStart = Date()
+        }
+        isResuming = !restored.isEmpty
+        if data.alreadyLogged {
+            SessionDraftStore.clear(date: data.todayDate, sessionType: draftSessionType)
+        }
+    }
+
+    func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false) async {
+        let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
+        let exerciseLogs: [[String: Any]] = logResults.values.map {
+            ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
+        }
+        var failedExercises: [String] = []
+
+        for result in logResults.values {
+            do {
+                let response = try await APIService.shared.logExercise(
+                    exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
+                    sets: result.sets, force: true,
+                    isSecond: result.isSecond, isBonus: result.isBonus,
+                    equipmentType: result.equipmentType, painZone: result.painZone)
+                if response.isPR == true {
+                    let content = UNMutableNotificationContent()
+                    content.title = "🏆 Nouveau PR !"
+                    content.body  = "\(result.name) — 1RM estimé : \(String(format: "%.1f", response.oneRM ?? 0)) lbs"
+                    content.sound = .default
+                    let request = UNNotificationRequest(
+                        identifier: "pr-\(result.name)-\(Date().timeIntervalSince1970)",
+                        content: content, trigger: nil)
+                    try? await UNUserNotificationCenter.current().add(request)
+                }
+            } catch {
+                failedExercises.append(result.name)
+            }
+        }
+
+        do {
+            try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
+                                                   durationMin: durationMin, energyPre: energyPre,
+                                                   bonusSession: bonusSession, sessionName: sessionName,
+                                                   exerciseLogs: exerciseLogs)
+        } catch {
+            submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
+            await APIService.shared.fetchDashboard()
+            return
+        }
+
+        let verified: Bool
+        do {
+            let fresh = try await APIService.shared.fetchSeanceData()
+            verified = fresh.alreadyLogged
+        } catch {
+            verified = false
+        }
+
+        await APIService.shared.fetchDashboard()
+        if !verified {
+            submitError = "Séance non confirmée en base — vérifie ta connexion et réessaie."
+        } else if !failedExercises.isEmpty {
+            if let date = seanceData?.todayDate {
+                SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+            }
+            commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
+            showSuccess = true
+        } else {
+            if let date = seanceData?.todayDate {
+                SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+            }
+            showSuccess = true
+        }
+    }
+
+    private func persistDraftIfNeeded() {
+        guard let date = seanceData?.todayDate else { return }
+        if logResults.isEmpty {
+            SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+            sessionStart = Date()
+            return
+        }
+        let values = logResults.values.map {
+            PersistedExerciseLogResult(
+                name: $0.name,
+                weight: $0.weight,
+                reps: $0.reps,
+                rpe: $0.rpe,
+                isSecond: $0.isSecond,
+                isBonus: $0.isBonus,
+                equipmentType: $0.equipmentType,
+                painZone: $0.painZone
+            )
+        }
+        SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values)
+        SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
     }
 }

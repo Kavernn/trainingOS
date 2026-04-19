@@ -1,3 +1,6 @@
+import AVFoundation
+import Combine
+import SwiftUI
 import UserNotifications
 
 enum NotificationService {
@@ -142,5 +145,196 @@ enum NotificationService {
             return 86400
         }
         return next.timeIntervalSince(Date())
+    }
+}
+
+// MARK: - Rest Timer Manager
+
+/// Singleton managing rest timer state across all views.
+/// Using a shared instance ensures a single source of truth regardless of
+/// how many ExerciseCards or sheets observe it.
+@MainActor
+final class RestTimerManager: ObservableObject {
+    static let shared = RestTimerManager()
+    private init() {}
+
+    private static let endDateKey = "restTimerEndDate"
+    private static let totalKey   = "restTimerTotal"
+    static  let presetKey         = "restTimerPreset"
+
+    @Published var totalSeconds = 120
+    @Published var remaining    = 120
+    @Published var isRunning    = false
+    @Published var currentExerciseName: String? = nil
+    @Published var pendingStart: (seconds: Int, name: String)? = nil
+
+    private var timerTask: Task<Void, Never>?
+    private var beepPlayer: AVAudioPlayer?
+
+    var progress: Double {
+        totalSeconds > 0 ? min(1.0, Double(remaining) / Double(totalSeconds)) : 0
+    }
+    var timerColor: Color {
+        if progress > 0.5  { return .green }
+        if progress > 0.25 { return .yellow }
+        return .red
+    }
+
+    func start() {
+        guard remaining > 0 else { return }
+        timerTask?.cancel()
+            timerTask = nil
+        isRunning = true
+        let endDate = Date().addingTimeInterval(TimeInterval(remaining))
+        UserDefaults.standard.set(endDate,      forKey: Self.endDateKey)
+        UserDefaults.standard.set(totalSeconds, forKey: Self.totalKey)
+        scheduleNotification(seconds: remaining)
+        timerTask = Task { await runLoop() }
+    }
+
+    func stop() {
+        isRunning = false
+        timerTask?.cancel()
+        timerTask = nil
+        UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+        UserDefaults.standard.removeObject(forKey: Self.totalKey)
+        cancelNotification()
+    }
+
+    func reset() { stop(); remaining = totalSeconds }
+
+    /// +/- adjustment. When running, extends totalSeconds if needed to keep progress ≤ 1.
+    func adjustTime(by delta: Int) {
+        remaining = max(10, remaining + delta)
+        if isRunning {
+            totalSeconds = max(totalSeconds, remaining)
+            rescheduleNotification(seconds: remaining)
+        } else {
+            totalSeconds = remaining
+        }
+    }
+
+    /// Apply a preset chip. Restarts if already running.
+    func applyPreset(_ seconds: Int) {
+        let wasRunning = isRunning
+        if isRunning { stop() }
+        totalSeconds = seconds
+        remaining    = seconds
+        UserDefaults.standard.set(seconds, forKey: Self.presetKey)
+        if wasRunning { start() }
+    }
+
+    /// Called when an exercise is logged. Sets the preset but never starts automatically.
+    /// If a timer is already running for a different exercise, ask before replacing.
+    func requestAutoStart(_ seconds: Int, exerciseName: String) {
+        if isRunning, let current = currentExerciseName, current != exerciseName {
+            pendingStart = (seconds, exerciseName)
+        } else if !isRunning {
+            currentExerciseName = exerciseName
+            totalSeconds = seconds
+            remaining    = seconds
+            UserDefaults.standard.set(seconds, forKey: Self.presetKey)
+            // No auto-start — user presses play manually
+        }
+        // Same exercise running: don't interrupt
+    }
+
+    func confirmReplace() {
+        guard let p = pendingStart else { return }
+        stop()
+        currentExerciseName = p.name
+        totalSeconds = p.seconds
+        remaining    = p.seconds
+        UserDefaults.standard.set(p.seconds, forKey: Self.presetKey)
+        start()  // User explicitly confirmed the replacement → start
+        pendingStart = nil
+    }
+
+    func cancelReplace() {
+        pendingStart = nil
+    }
+
+    /// Restore state on sheet appear. If already running (singleton), just sync time.
+    func restoreIfNeeded(autoStartSeconds: Int? = nil) {
+        if isRunning { syncFromEndDate(); return }
+        if let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date {
+            let left = Int(end.timeIntervalSinceNow.rounded())
+            guard left > 0 else {
+                UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+                applyInitial(autoStartSeconds: autoStartSeconds)
+                return
+            }
+            totalSeconds = UserDefaults.standard.integer(forKey: Self.totalKey)
+            if totalSeconds == 0 { totalSeconds = left }
+            remaining = left
+            timerTask?.cancel()
+            timerTask = Task { await runLoop() }
+            isRunning = true
+        } else {
+            applyInitial(autoStartSeconds: autoStartSeconds)
+        }
+    }
+
+    func syncFromEndDate() {
+        guard let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date else { return }
+        let left = Int(end.timeIntervalSinceNow.rounded())
+        if left <= 0 {
+            remaining = 0; isRunning = false
+            timerTask?.cancel(); timerTask = nil
+            UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+            playBeep(hz: 1200); triggerNotificationFeedback(.success)
+        } else {
+            remaining = left
+        }
+    }
+
+    private func applyInitial(autoStartSeconds: Int?) {
+        if let auto = autoStartSeconds, auto > 0 {
+            totalSeconds = auto; remaining = auto
+            UserDefaults.standard.set(auto, forKey: Self.presetKey)
+        } else {
+            let saved = UserDefaults.standard.integer(forKey: Self.presetKey)
+            if saved > 0 { totalSeconds = saved; remaining = saved }
+        }
+    }
+
+    private func scheduleNotification(seconds: Int) {
+        cancelNotification()
+        let content = UNMutableNotificationContent()
+        content.title = "Repos terminé ✅"; content.body = "C'est reparti !"; content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(seconds), repeats: false)
+        UNUserNotificationCenter.current().add(
+            UNNotificationRequest(identifier: "restTimer", content: content, trigger: trigger))
+    }
+
+    private func rescheduleNotification(seconds: Int) {
+        UserDefaults.standard.set(Date().addingTimeInterval(TimeInterval(seconds)), forKey: Self.endDateKey)
+        scheduleNotification(seconds: seconds)
+    }
+
+    private func cancelNotification() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["restTimer"])
+    }
+
+    private func runLoop() async {
+        while !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            guard !Task.isCancelled else { break }
+            if remaining > 0 {
+                remaining -= 1
+                if remaining <= 3 && remaining > 0 {
+                    playBeep(hz: 880); triggerImpact(style: .rigid)
+                } else if remaining == 0 {
+                    isRunning = false
+                    UserDefaults.standard.removeObject(forKey: Self.endDateKey)
+                    playBeep(hz: 1200); triggerNotificationFeedback(.success)
+                }
+            }
+        }
+    }
+
+    private func playBeep(hz: Double) {
+        beepPlayer = makeBeep(hz: hz, duration: hz > 1000 ? 0.35 : 0.12)
+        beepPlayer?.play()
     }
 }

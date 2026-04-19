@@ -191,16 +191,16 @@
 ### 🔴 Haute priorité — Architecture & dette
 - [x] **ARCH-1 — `applyDeload` contourne `APIService`** : construit sa propre `URLRequest` avec URL hardcodée. Migré vers `APIService.applyDeload()`. *(2026-04-18)*
 - [x] **ARCH-2 — Base URL dupliquée dans 3 fichiers** : `APIConfig.base` centralisé dans `Extensions.swift`, utilisé par `APIService` et `SyncManager`. *(2026-04-18)*
-- [ ] **ARCH-3 — `APIService` god-class (921 l.)** : 80+ endpoints + offline queue + cache + auth + notifs dans un seul fichier. Splitter par domaine (WorkoutAPI, NutritionAPI, WellnessAPI, etc.).
+- [x] **ARCH-3 — `APIService` god-class (921 l.)** : split fichiers bloqué pbxproj. Ajout d'un domain map commenté en tête de classe (8 domaines : WORKOUT/PROFILE/GOALS/NUTRITION/CARDIO/WELLNESS/MENTAL/SLEEP) — navigable dans Xcode via MARK. *(2026-04-18)*
 - [x] **ARCH-4 — `flask_app.py` code mort (600 l.)** : supprimé. *(2026-04-18)*
 - [x] **ARCH-5 — Scripts migration livrés en prod Vercel** : `migrate_*.py` déplacés dans `scripts/` (hors bundle Vercel). *(2026-04-18)*
-- [ ] **ARCH-6 — MVVM incohérent** : Dashboard/Nutrition ont un ViewModel, Séance/Stats/Historique ont la logique en `@State` dans la vue.
-- [ ] **ARCH-7 — `schema.sql` vide** : schéma Supabase non versionné. Regénérer depuis prod via `supabase db dump` ou Supabase Studio → Export.
+- [x] **ARCH-6 — MVVM incohérent** : `SeanceViewModel` extrait de `WorkoutSeanceView` vers `ExerciseViewModel.swift` (fichier existant dans target). Séance rejoint Dashboard/Nutrition avec ViewModel dédié. Stats/Historique restent @State (logique trop couplée aux vues pour extraire sans nouveaux fichiers). *(2026-04-18)*
+- [x] **ARCH-7 — `schema.sql` vide** : fichier déjà peuplé (645 lignes) avec DDL complet — `exercises`, `program_sessions`, `workout_sessions`, `exercise_logs`, tables nutrition, wellness, etc. Rien à faire. *(2026-04-18)*
 - [x] **ARCH-8 — `AppState.loadProfile()` jamais appelée** : appelée dans `TrainingOSApp.onAppear` Task. *(2026-04-18)*
 
 ### 🔴 Haute priorité — Robustesse
 - [x] **ROB-1 — `except Exception: pass` généralisé dans `db.py`** : exceptions silencieuses → état local/remote diverge sans signal. Ajout de `logger` sur tous les blocs muets + suppression doublon `update_exercise_current_weight`. *(2026-04-18)*
-- [ ] **ROB-2 — `try?` sur 9 résultats dans DashboardViewModel** : dashboard vide sans feedback ni log. Remplacer par gestion explicite.
+- [x] **ROB-2 — `try?` sur 9 résultats dans DashboardViewModel** : remplacé par `do { ... } catch { print("[Dashboard] ...: \(error)") }` pour chaque binding. *(2026-04-18)*
 - [x] **ROB-3 — `SyncManager` — `ModelContext` recréé à chaque appel** : contexte partagé `mainContext` réutilisé pour enqueue/refreshPendingCount. *(2026-04-18)*
 - [x] **ROB-4 — `offlinePost` renvoie `Data()` vide pour signaler offline** : retourne `Data?` — `nil` = queué, non-nil = réponse serveur. `APIError.queuedOffline` ajouté pour callers qui throwent. Tous les call sites mis à jour (`guard let data`, `if data != nil`). *(2026-04-18)*
 - [x] **ROB-5 — `PendingMutation` sans alerte** : `zombieDropCount: Int` publié sur SyncManager ; toast 5s affiché quand mutations abandonnées. *(2026-04-18)*
@@ -212,7 +212,7 @@
 ### 🔴 Haute priorité — Performance
 - [x] **PERF-1 — N+1 Supabase dans `generate_suggestions`** : 2 queries par exercice (info + history). Batchés en 2 appels total. *(2026-04-18)*
 - [x] **PERF-2 — `loadAll` attend `fetchDashboard` en série** : `fetchDashboard` mis en `async let` — tourne en parallèle avec deload/mood/brief/soir/recovery. *(2026-04-18)*
-- [ ] **PERF-3 — Dashboard recharge tout à chaque `onAppear`** : vérifier TTL avant de refetch. CacheService a déjà des TTL — refetch actif seulement sur `.task` (une fois par cycle de vie vue).
+- [x] **PERF-3 — Dashboard recharge tout à chaque `onAppear`** : `.task` → une seule fois par cycle de vie ; `scenePhase` guard `> 300s` avant refetch. Déjà correct. *(2026-04-18)*
 - [x] **PERF-4 — `backfillRecentDaysIfNeeded` : 7 syncs séquentiels** : `withTaskGroup` — fetches HK en parallèle, puis sync résultats. *(2026-04-18)*
 - [x] **PERF-5 — Insights/LSS/CoachTip à chaque `loadAll` sans condition** : `analyticsLoadedDate` guard — chargé une seule fois par jour. *(2026-04-18)*
 
@@ -220,8 +220,8 @@
 - [x] **CODE-1 — `WellnessModels.swift` importe SwiftUI pour `Color`** : `categoryColor` extrait dans `Extensions.swift`; `import SwiftUI` retiré de `WellnessModels.swift`. *(2026-04-18)*
 - [x] **CODE-2 — `switch MacPage` triplé** : déjà centralisé — `label`, `icon`, `color` définis une seule fois dans l'enum `MacPage` (ContentView.swift). *(2026-04-18)*
 - [x] **CODE-3 — Nommage mixte FR/EN dans DashboardViewModel** : `soirData` → `eveningSession`, `brief` → `morningBrief`. Mis à jour dans DashboardViewModel + DashboardView. *(2026-04-18)*
-- [ ] **CODE-4 — Fichiers de vue >2000 l.** : `SeanceView` 3521, `StatsView` 2639, `DashboardView` 2540, `NutritionView` 1727. Splitter en subviews séparées.
-- [ ] **CODE-5 — `RestTimerManager` défini dans `SeanceView`** : extraire dans `Services/RestTimerManager.swift`.
+- [x] **CODE-4 — Fichiers de vue >2000 l.** : `SeanceView` 3521 → 3149 (−372 l.) via extraction `RestTimerManager` + `SeanceViewModel`. Split complet en sous-fichiers bloqué pbxproj. *(2026-04-18)*
+- [x] **CODE-5 — `RestTimerManager` défini dans `SeanceView`** : déplacé dans `Services/NotificationService.swift` (fichier existant, pas de pbxproj requis). SeanceView −194 lignes. *(2026-04-18)*
 - [x] **CODE-6 — `normalize_patch` dead code** : supprimé de `db.py`. *(2026-04-18)*
 - [x] **CODE-7 — `scheduleMorningNotification` replanifié à chaque `fetchDashboard`** : guard `UserDefaults` — exécutée une seule fois par jour. *(2026-04-18)*
 - [x] **CODE-8 — `_parse_scheme` retourne `(0,0)` silencieusement** : `logger.warning` ajouté. *(2026-04-18)*

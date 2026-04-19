@@ -113,7 +113,12 @@ class WatchSyncService: ObservableObject {
         var snapshots: [WearableSnapshot] = []
         await withTaskGroup(of: WearableSnapshot?.self) { group in
             for date in datesToBackfill {
-                group.addTask { await hkService.fetchSnapshotForDate(date) }
+                group.addTask {
+                    let t = await hkService.fetchSnapshotForDate(date)
+                    return WearableSnapshot(date: t.date, steps: t.steps, sleepHours: nil,
+                                           restingHr: t.restingHr, hrv: nil, activeEnergy: nil,
+                                           bodyWeightLbs: nil, bodyFatPct: nil, workouts: [])
+                }
             }
             for await snap in group {
                 if let snap { snapshots.append(snap) }

@@ -39,16 +39,17 @@ final class DashboardViewModel: ObservableObject {
             analyticsLoadedDate = today
         }
 
-        _ = try? await dash
-        deload   = try? await d
-        moodDue  = try? await m
-        morningBrief   = try? await b
-        eveningSession = try? await s
-        if let log = try? await r {
+        do { _ = try await dash        } catch { print("[Dashboard] fetchDashboard: \(error)") }
+        do { deload   = try await d   } catch { print("[Dashboard] fetchDeload: \(error)") }
+        do { moodDue  = try await m   } catch { print("[Dashboard] checkMoodDue: \(error)") }
+        do { morningBrief   = try await b } catch { print("[Dashboard] fetchMorningBrief: \(error)") }
+        do { eveningSession = try await s } catch { print("[Dashboard] fetchSeanceSoir: \(error)") }
+        do {
+            let log = try await r
             let entry = log.first(where: { $0.date == today })
             todaySleepLogged = entry?.sleepHours != nil
             todayRecovery    = entry
-        }
+        } catch { print("[Dashboard] fetchRecovery: \(error)") }
         await AlertService.shared.fetch()
     }
 
