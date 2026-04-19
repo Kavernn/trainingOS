@@ -274,3 +274,204 @@ def api_stats_data():
         "inventory_types":  inventory_types,
         "muscle_landmarks": muscle_landmarks,
     })
+
+
+# MARK: - Smart Day Recommendation
+
+@analytics_bp.route("/api/smart_day")
+def api_smart_day():
+    """
+    Returns a session recommendation for today based on:
+    - Recovery score (from today's recovery log)
+    - HRV trend
+    - Days since last session of each type
+    - ACWR load ratio
+    """
+    from health_data import get_daily_health_summary
+    from acwr import calc_acwr
+    import db as _db
+    from datetime import date as date_cls, timedelta
+
+    today = date_cls.today().isoformat()
+    summary      = get_daily_health_summary(today)
+    recovery     = summary.get("recovery_score")      # 0–10
+    hrv          = summary.get("hrv")
+    resting_hr   = summary.get("resting_heart_rate")
+
+    # Recent sessions — determine days since each session type
+    sessions_raw = _db.get_workout_sessions(limit=30)
+    sessions_by_type: dict[str, int] = {}  # session_type → days since last
+    for s in sessions_raw:
+        stype = s.get("session_type") or "morning"
+        sname = s.get("session_name") or stype
+        d = s.get("date")
+        if not d:
+            continue
+        try:
+            delta = (date_cls.today() - date_cls.fromisoformat(str(d))).days
+        except ValueError:
+            continue
+        if sname not in sessions_by_type or delta < sessions_by_type[sname]:
+            sessions_by_type[sname] = delta
+
+    days_rest = min(sessions_by_type.values(), default=7)  # days since any session
+
+    # ACWR — load ratio
+    try:
+        acwr_data = calc_acwr()
+        acwr = acwr_data.get("acwr")
+    except Exception:
+        acwr = None
+
+    # Decision logic
+    if recovery is not None:
+        score = recovery  # 0–10
+    else:
+        score = 5.0  # neutral default
+
+    # Boost/reduce based on HRV if available
+    if hrv is not None:
+        if hrv >= 60:   score = min(10, score + 1)
+        elif hrv < 30:  score = max(0,  score - 1.5)
+
+    # Penalise high ACWR
+    if acwr is not None and acwr > 1.5:
+        score = max(0, score - 2)
+
+    # Build recommendation
+    if score >= 7:
+        intensity  = "normale"
+        confidence = round(min(0.95, 0.70 + score / 100), 2)
+        if days_rest == 0:
+            reason = "Récupération optimale — séance normale recommandée."
+        else:
+            reason = f"Récupération optimale ({score:.1f}/10) — c'est le moment de pousser."
+        cta = "💪 Entraîne-toi"
+    elif score >= 5:
+        intensity  = "réduite"
+        confidence = round(min(0.85, 0.55 + score / 100), 2)
+        reason = f"Récupération modérée ({score:.1f}/10) — privilégie un volume réduit ou technique."
+        cta = "🟡 Volume réduit"
+    elif days_rest >= 3:
+        intensity  = "normale"
+        confidence = 0.60
+        reason = f"Récupération faible ({score:.1f}/10) mais {days_rest} jours sans séance — écoute ton corps."
+        cta = "⚠️ Léger ou repos"
+    else:
+        intensity  = "repos"
+        confidence = round(min(0.90, 0.65 + (10 - score) / 20), 2)
+        reason = f"Récupération insuffisante ({score:.1f}/10) — repos actif ou mobilité."
+        cta = "😴 Repos recommandé"
+
+    # Suggest least-recently-done session type
+    suggested_session: str | None = None
+    if intensity != "repos" and sessions_by_type:
+        suggested_session = max(sessions_by_type, key=lambda k: sessions_by_type[k])
+
+    return jsonify({
+        "intensity":          intensity,
+        "confidence":         confidence,
+        "reason":             reason,
+        "cta":                cta,
+        "recovery_score":     recovery,
+        "hrv":                hrv,
+        "resting_hr":         resting_hr,
+        "acwr":               acwr,
+        "days_since_session": days_rest,
+        "suggested_session":  suggested_session,
+    })
+
+
+# MARK: - Weekly Report
+
+@analytics_bp.route("/api/weekly_report")
+def api_weekly_report():
+    """Aggregated summary for the last 7 days: volume, PRs, recovery, nutrition, sleep."""
+    from health_data import get_weekly_health_summary
+    from weights import load_weights
+    from nutrition import get_recent_days
+    import db as _db
+    from datetime import date as date_cls, timedelta
+
+    today = date_cls.today()
+    week_start = (today - timedelta(days=6)).isoformat()
+
+    # ── Sessions (muscu) ─────────────────────────────────────────────────────
+    sessions_raw = _db.get_workout_sessions(limit=30)
+    week_sessions = [
+        s for s in sessions_raw
+        if s.get("date") and str(s["date"]) >= week_start
+        and (s.get("completed") or s.get("rpe") is not None)
+    ]
+    session_count = len(week_sessions)
+
+    # ── Volume & PRs ─────────────────────────────────────────────────────────
+    weights   = load_weights()
+    total_vol = 0.0
+    pr_count  = 0
+    top_exercise: str | None = None
+    top_vol = 0.0
+    for name, data in weights.items():
+        hist = data.get("history") or []
+        week_logs = [e for e in hist if e.get("date") and str(e["date"]) >= week_start]
+        if not week_logs:
+            continue
+        ex_vol = sum(
+            (e.get("weight") or 0) * len((e.get("reps") or "").split(","))
+            for e in week_logs
+        )
+        total_vol += ex_vol
+        if ex_vol > top_vol:
+            top_vol = ex_vol
+            top_exercise = name
+        # PR: this week's max 1RM > all-time prior max
+        week_ones = [
+            e["weight"] * (1 + len((e.get("reps") or "1").split(",")) / 30)
+            for e in week_logs if e.get("weight")
+        ]
+        all_ones = [
+            e["weight"] * (1 + len((e.get("reps") or "1").split(",")) / 30)
+            for e in hist if e.get("weight") and str(e.get("date", "")) < week_start
+        ]
+        if week_ones and (not all_ones or max(week_ones) > max(all_ones)):
+            pr_count += 1
+
+    # ── Health KPIs ──────────────────────────────────────────────────────────
+    health_week = get_weekly_health_summary(days=7)
+    sleep_vals   = [d["sleep_duration"]    for d in health_week if d.get("sleep_duration")]
+    recovery_vals= [d["recovery_score"]    for d in health_week if d.get("recovery_score")]
+    steps_vals   = [d["steps"]             for d in health_week if d.get("steps")]
+    hrv_vals     = [d["hrv"]               for d in health_week if d.get("hrv")]
+
+    avg_sleep    = round(sum(sleep_vals)    / len(sleep_vals),    1) if sleep_vals    else None
+    avg_recovery = round(sum(recovery_vals) / len(recovery_vals), 1) if recovery_vals else None
+    avg_steps    = int(sum(steps_vals)      / len(steps_vals))        if steps_vals    else None
+    avg_hrv      = round(sum(hrv_vals)      / len(hrv_vals),      1) if hrv_vals      else None
+
+    # ── Nutrition compliance ──────────────────────────────────────────────────
+    nutr_days = get_recent_days(7)
+    from nutrition import load_settings as load_nutrition_settings
+    nutr_settings = load_nutrition_settings() or {}
+    cal_target = nutr_settings.get("calorie_limit") or 0
+    if cal_target > 0 and nutr_days:
+        compliant = sum(
+            1 for d in nutr_days
+            if d.get("total_calories") and abs(d["total_calories"] - cal_target) / cal_target <= 0.10
+        )
+        nutrition_compliance = round(compliant / len(nutr_days) * 100)
+    else:
+        nutrition_compliance = None
+
+    return jsonify({
+        "week_start":            week_start,
+        "week_end":              today.isoformat(),
+        "session_count":         session_count,
+        "total_volume_lbs":      round(total_vol),
+        "pr_count":              pr_count,
+        "top_exercise":          top_exercise,
+        "avg_recovery_score":    avg_recovery,
+        "avg_sleep_hours":       avg_sleep,
+        "avg_steps":             avg_steps,
+        "avg_hrv":               avg_hrv,
+        "nutrition_compliance":  nutrition_compliance,
+    })

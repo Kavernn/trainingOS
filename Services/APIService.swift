@@ -893,6 +893,22 @@ class APIService: ObservableObject {
         _ = try await offlinePost(endpoint: "/api/apply_progression", payload: payload)
     }
 
+    // MARK: - Smart Day Recommendation
+    func fetchSmartDay() async throws -> SmartDayRecommendation {
+        let url = URL(string: "\(baseURL)/api/smart_day")!
+        let data = try await fetchWithCache(url: url, key: "smart_day")
+        return try JSONDecoder().decode(SmartDayRecommendation.self, from: data)
+    }
+
+    // MARK: - Weekly Report
+    func fetchWeeklyReport() async throws -> WeeklyReport {
+        let url = URL(string: "\(baseURL)/api/weekly_report")!
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 20
+        let (data, _) = try await URLSession.authed.data(for: req)
+        return try JSONDecoder().decode(WeeklyReport.self, from: data)
+    }
+
     // MARK: - Deload
     func applyDeload(poidsDeload: Double) async throws {
         let url = URL(string: "\(baseURL)/api/apply_deload")!

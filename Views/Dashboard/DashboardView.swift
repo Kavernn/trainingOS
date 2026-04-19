@@ -53,6 +53,11 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.01)
                             }
 
+                            if let sd = vm.smartDay {
+                                SmartDayBannerView(recommendation: sd)
+                                    .appearAnimation(delay: 0.015)
+                            }
+
                             DataGapSection(dash: dash, recovery: vm.todayRecovery)
                                 .appearAnimation(delay: 0.02)
 
@@ -125,6 +130,14 @@ struct DashboardView: View {
                             if !vm.insights.isEmpty {
                                 DashboardInsightsCard(insights: vm.insights)
                                     .appearAnimation(delay: 0.12)
+                            }
+
+                            if let report = vm.weeklyReport {
+                                NavigationLink(destination: WeeklyReportView(report: report)) {
+                                    WeeklyReportTeaser(report: report)
+                                }
+                                .buttonStyle(.plain)
+                                .appearAnimation(delay: 0.125)
                             }
 
                             // Full stats grid + heatmap stay at the bottom for deeper review
@@ -2519,6 +2532,212 @@ struct GreatDayCard: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .glassCard(color: .green, intensity: 0.06)
+    }
+}
+
+// MARK: - Smart Day Banner
+
+struct SmartDayBannerView: View {
+    let recommendation: SmartDayRecommendation
+
+    private var accentColor: Color {
+        switch recommendation.intensity {
+        case "normale": return .green
+        case "réduite": return .orange
+        default:        return .red
+        }
+    }
+    private var icon: String {
+        switch recommendation.intensity {
+        case "normale": return "bolt.fill"
+        case "réduite": return "tortoise.fill"
+        default:        return "moon.zzz.fill"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(accentColor)
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(recommendation.cta)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(accentColor)
+                Text(recommendation.reason)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white.opacity(0.65))
+                    .lineLimit(2)
+            }
+            Spacer()
+            if let session = recommendation.suggestedSession {
+                Text(session)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(accentColor.opacity(0.8))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(accentColor.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .glassCard(color: accentColor, intensity: 0.07)
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Weekly Report Teaser (tap to open full view)
+
+struct WeeklyReportTeaser: View {
+    let report: WeeklyReport
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "chart.bar.doc.horizontal")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(.purple)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("RAPPORT DE LA SEMAINE")
+                    .font(.system(size: 10, weight: .bold)).tracking(1.5)
+                    .foregroundColor(.gray)
+                HStack(spacing: 16) {
+                    Label("\(report.sessionCount) séances", systemImage: "flame.fill")
+                    if report.prCount > 0 {
+                        Label("\(report.prCount) PR", systemImage: "trophy.fill")
+                            .foregroundColor(.yellow)
+                    }
+                    if report.totalVolumeLbs > 0 {
+                        Label("\(Int(report.totalVolumeLbs / 1000))k lbs", systemImage: "scalemass.fill")
+                            .foregroundColor(.orange)
+                    }
+                }
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.85))
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12)).foregroundColor(.gray)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .glassCard(color: .purple, intensity: 0.06)
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Weekly Report Full View
+
+struct WeeklyReportView: View {
+    let report: WeeklyReport
+    @ObservedObject private var units = UnitSettings.shared
+
+    private var shareText: String {
+        var lines = ["📊 Rapport semaine TrainingOS"]
+        lines.append("Séances : \(report.sessionCount)")
+        if report.prCount > 0 { lines.append("🏆 PRs : \(report.prCount)") }
+        if report.totalVolumeLbs > 0 {
+            lines.append("Volume : \(Int(report.totalVolumeLbs / 1000))k lbs")
+        }
+        if let r = report.avgRecoveryScore { lines.append("Récupération moy. : \(String(format: "%.1f", r))/10") }
+        if let s = report.avgSleepHours   { lines.append("Sommeil moy. : \(String(format: "%.1f", s))h") }
+        if let c = report.nutritionCompliance { lines.append("Compliance nutrition : \(c)%") }
+        return lines.joined(separator: "\n")
+    }
+
+    var body: some View {
+        ZStack {
+            AmbientBackground(color: .purple)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 16) {
+                    // Header
+                    VStack(spacing: 4) {
+                        Text("RAPPORT SEMAINE")
+                            .font(.system(size: 11, weight: .bold)).tracking(2)
+                            .foregroundColor(.gray)
+                        Text("\(report.weekStart) → \(report.weekEnd)")
+                            .font(.system(size: 13)).foregroundColor(.white.opacity(0.5))
+                    }
+                    .padding(.top, 8)
+
+                    // KPI grid
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        WeeklyKPI(value: "\(report.sessionCount)", label: "Séances", icon: "flame.fill", color: .orange)
+                        WeeklyKPI(value: "\(report.prCount)", label: "PRs battus", icon: "trophy.fill", color: .yellow)
+                        if report.totalVolumeLbs > 0 {
+                            WeeklyKPI(value: "\(Int(report.totalVolumeLbs / 1000))k", label: "Volume (lbs)", icon: "scalemass.fill", color: .cyan)
+                        }
+                        if let r = report.avgRecoveryScore {
+                            WeeklyKPI(value: String(format: "%.1f/10", r), label: "Récup. moy.", icon: "heart.fill", color: .green)
+                        }
+                        if let s = report.avgSleepHours {
+                            WeeklyKPI(value: String(format: "%.1fh", s), label: "Sommeil moy.", icon: "moon.fill", color: .indigo)
+                        }
+                        if let steps = report.avgSteps {
+                            WeeklyKPI(value: "\(steps / 1000)k", label: "Pas/jour", icon: "figure.walk", color: .teal)
+                        }
+                        if let hrv = report.avgHrv {
+                            WeeklyKPI(value: String(format: "%.0f ms", hrv), label: "HRV moy.", icon: "waveform.path.ecg", color: .cyan)
+                        }
+                        if let c = report.nutritionCompliance {
+                            WeeklyKPI(value: "\(c)%", label: "Nutrition", icon: "fork.knife", color: .green)
+                        }
+                    }
+
+                    if let top = report.topExercise {
+                        HStack(spacing: 10) {
+                            Image(systemName: "star.fill").foregroundColor(.yellow)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("EXERCICE PHARE").font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                                Text(top).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                            }
+                            Spacer()
+                        }
+                        .padding(14)
+                        .glassCard(color: .yellow, intensity: 0.07)
+                        .cornerRadius(14)
+                    }
+
+                    ShareLink(item: shareText) {
+                        Label("Partager ce rapport", systemImage: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.purple.opacity(0.7))
+                            .cornerRadius(14)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 32)
+            }
+        }
+        .navigationTitle("Semaine")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct WeeklyKPI: View {
+    let value: String
+    let label: String
+    let icon:  String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon).font(.system(size: 18)).foregroundColor(color)
+            Text(value)
+                .font(.system(size: 18, weight: .black)).foregroundColor(color)
+                .minimumScaleFactor(0.7).lineLimit(1)
+            Text(label)
+                .font(.system(size: 9, weight: .medium)).tracking(1).foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .glassCard(color: color, intensity: 0.05)
+        .cornerRadius(14)
     }
 }
 

@@ -255,3 +255,62 @@ struct CorrelationsData: Codable {
         case computedAt = "computed_at"
     }
 }
+
+// MARK: - Smart Day Recommendation
+struct SmartDayRecommendation: Codable {
+    let intensity:        String          // "normale" | "réduite" | "repos"
+    let confidence:       Double          // 0–1
+    let reason:           String
+    let cta:              String
+    let recoveryScore:    Double?
+    let hrv:              Double?
+    let restingHr:        Double?
+    let acwr:             Double?
+    let daysSinceSession: Int
+    let suggestedSession: String?
+
+    enum CodingKeys: String, CodingKey {
+        case intensity, confidence, reason, cta, hrv, acwr
+        case recoveryScore    = "recovery_score"
+        case restingHr        = "resting_hr"
+        case daysSinceSession = "days_since_session"
+        case suggestedSession = "suggested_session"
+    }
+
+    var intensityColor: String {
+        switch intensity {
+        case "normale": return "green"
+        case "réduite": return "orange"
+        default:        return "red"
+        }
+    }
+}
+
+// MARK: - Weekly Report
+struct WeeklyReport: Codable {
+    let weekStart:           String
+    let weekEnd:             String
+    let sessionCount:        Int
+    let totalVolumeLbs:      Double
+    let prCount:             Int
+    let topExercise:         String?
+    let avgRecoveryScore:    Double?
+    let avgSleepHours:       Double?
+    let avgSteps:            Int?
+    let avgHrv:              Double?
+    let nutritionCompliance: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case weekStart           = "week_start"
+        case weekEnd             = "week_end"
+        case sessionCount        = "session_count"
+        case totalVolumeLbs      = "total_volume_lbs"
+        case prCount             = "pr_count"
+        case topExercise         = "top_exercise"
+        case avgRecoveryScore    = "avg_recovery_score"
+        case avgSleepHours       = "avg_sleep_hours"
+        case avgSteps            = "avg_steps"
+        case avgHrv              = "avg_hrv"
+        case nutritionCompliance = "nutrition_compliance"
+    }
+}

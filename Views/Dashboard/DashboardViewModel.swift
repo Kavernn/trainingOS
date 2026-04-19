@@ -13,6 +13,8 @@ final class DashboardViewModel: ObservableObject {
     @Published var todayRecovery: RecoveryEntry?
     @Published var lssTrend: [LifeStressScore] = []
     @Published var coachTip: CoachTip?
+    @Published var smartDay: SmartDayRecommendation?
+    @Published var weeklyReport: WeeklyReport?
 
     // PERF-5: skip expensive analytics if already loaded today
     private var analyticsLoadedDate = ""
@@ -33,9 +35,13 @@ final class DashboardViewModel: ObservableObject {
             async let i = APIService.shared.fetchInsights()
             async let t = APIService.shared.fetchLifeStressTrend(days: 7)
             async let c = APIService.shared.fetchDailyCoachTip()
+            async let sd = APIService.shared.fetchSmartDay()
+            async let wr = APIService.shared.fetchWeeklyReport()
             insights = (try? await i) ?? []
             lssTrend = (try? await t) ?? []
             coachTip = try? await c
+            smartDay = try? await sd
+            weeklyReport = try? await wr
             analyticsLoadedDate = today
         }
 

@@ -9,6 +9,10 @@ struct HealthDashboardView: View {
     @State private var pssDueStatus: PSSDueStatus?
     @State private var isLoading = true
     @ObservedObject private var units = UnitSettings.shared
+    // Live HealthKit values — shown when backend summary has no data for today
+    @StateObject private var hk = HealthKitService.shared
+    @State private var hkRestingHR: Double? = nil
+    @State private var hkHRV: Double? = nil
 
     private var today: DailyHealthSummary? { week.first }
     private var yesterday: DailyHealthSummary? { week.dropFirst().first }
@@ -56,7 +60,8 @@ struct HealthDashboardView: View {
 
                             // KPI grid: steps, sleep, HR, HRV + deltas vs hier
                             if let t = today {
-                                HealthKPIGrid(summary: t, yesterday: yesterday)
+                                HealthKPIGrid(summary: t, yesterday: yesterday,
+                                             hkRestingHR: hkRestingHR, hkHRV: hkHRV)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.08)
                             }
@@ -135,6 +140,17 @@ struct HealthDashboardView: View {
         lifeStressTrend = (try? await trendTask)  ?? []
         pssDueStatus    = try? await pssDueTask
         isLoading = false
+        // Fetch live HK data in parallel — fills gaps when recovery not yet logged
+        await fetchHKLive()
+    }
+
+    private func fetchHKLive() async {
+        guard await hk.requestAuthorization() else { return }
+        async let hr  = hk.fetchLatestRestingHR()
+        async let hrv = hk.fetchLatestHRV()
+        let (h, v) = await (hr, hrv)
+        hkRestingHR = h
+        hkHRV = v
     }
 }
 
@@ -245,6 +261,14 @@ struct DataSourcesRow: View {
 struct HealthKPIGrid: View {
     let summary: DailyHealthSummary
     let yesterday: DailyHealthSummary?
+    var hkRestingHR: Double? = nil
+    var hkHRV: Double? = nil
+
+    // Effective values: backend first, HealthKit as live fallback
+    private var effectiveHR:  Double? { summary.restingHeartRate ?? hkRestingHR }
+    private var effectiveHRV: Double? { summary.hrv ?? hkHRV }
+    private var hrIsLive:  Bool { summary.restingHeartRate == nil && hkRestingHR != nil }
+    private var hrvIsLive: Bool { summary.hrv == nil && hkHRV != nil }
 
     var body: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -258,14 +282,16 @@ struct HealthKPIGrid: View {
                 HealthKPICard(value: String(format: "%.1fh", sleep), label: "Sommeil", color: .indigo,
                               delta: delta.map { deltaDouble($0, unit: "h", invertGood: false) })
             }
-            if let hr = summary.restingHeartRate {
-                let delta = yesterday?.restingHeartRate.map { hr - $0 }
-                HealthKPICard(value: String(format: "%.0f bpm", hr), label: "FC repos", color: .red,
+            if let hr = effectiveHR {
+                let delta = hrIsLive ? nil : yesterday?.restingHeartRate.map { hr - $0 }
+                HealthKPICard(value: String(format: "%.0f bpm", hr),
+                              label: hrIsLive ? "FC repos ◆ live" : "FC repos", color: .red,
                               delta: delta.map { deltaDouble($0, unit: "", invertGood: true) })
             }
-            if let hrv = summary.hrv {
-                let delta = yesterday?.hrv.map { hrv - $0 }
-                HealthKPICard(value: String(format: "%.0f ms", hrv), label: "HRV", color: .cyan,
+            if let hrv = effectiveHRV {
+                let delta = hrvIsLive ? nil : yesterday?.hrv.map { hrv - $0 }
+                HealthKPICard(value: String(format: "%.0f ms", hrv),
+                              label: hrvIsLive ? "HRV ◆ live" : "HRV", color: .cyan,
                               delta: delta.map { deltaDouble($0, unit: " ms", invertGood: false) })
             }
         }
