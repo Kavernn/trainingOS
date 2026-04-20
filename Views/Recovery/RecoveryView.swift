@@ -71,6 +71,28 @@ struct RecoveryView: View {
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.05)
 
+                            // Readiness card
+                            if let today = log.first(where: { $0.date == todayStr }) {
+                                ReadinessCard(entry: today)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.08)
+                            }
+
+                            // HRV chart
+                            let hrvEntries = Array(log.prefix(14).reversed())
+                            if hrvEntries.filter({ $0.hrv != nil }).count >= 2 {
+                                HRVChart(entries: hrvEntries)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.1)
+                            }
+
+                            // RHR chart
+                            if hrvEntries.filter({ $0.restingHr != nil }).count >= 2 {
+                                RHRChart(entries: hrvEntries)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.12)
+                            }
+
                             // Sleep chart
                             if log.filter({ $0.sleepHours != nil }).count >= 2 {
                                 SleepChart(entries: Array(log.prefix(10).reversed()))
@@ -249,6 +271,197 @@ struct RecoveryRow: View {
 
     private func sorenessColor(_ v: Double) -> Color {
         if v >= 7 { return .red }; if v >= 4 { return .orange }; return .green
+    }
+}
+
+// MARK: - Readiness Card
+
+struct ReadinessCard: View {
+    let entry: RecoveryEntry
+
+    private var score: Double? {
+        var total = 0.0; var count = 0
+        if let q  = entry.sleepQuality  { total += q;                              count += 1 }
+        if let s  = entry.soreness      { total += max(0, 10 - s);                 count += 1 }
+        if let h  = entry.sleepHours    { total += min(10, h / 8 * 10);            count += 1 }
+        if let hrv = entry.hrv          { total += min(10, hrv / 80 * 10);         count += 1 }
+        if let hr  = entry.restingHr    { total += min(10, max(0, (85 - hr) / 45 * 10)); count += 1 }
+        return count >= 2 ? round(total / Double(count) * 10) / 10 : nil
+    }
+
+    private var scoreColor: Color {
+        guard let s = score else { return .gray }
+        return s >= 7 ? .green : (s >= 5 ? .orange : .red)
+    }
+
+    private var scoreLabel: String {
+        guard let s = score else { return "—" }
+        return s >= 7 ? "Prêt" : (s >= 5 ? "Modéré" : "Fatigué")
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            // Score ring
+            ZStack {
+                Circle()
+                    .stroke(scoreColor.opacity(0.15), lineWidth: 6)
+                    .frame(width: 62, height: 62)
+                if let s = score {
+                    Circle()
+                        .trim(from: 0, to: CGFloat(s / 10))
+                        .stroke(scoreColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .frame(width: 62, height: 62)
+                        .rotationEffect(.degrees(-90))
+                }
+                VStack(spacing: 1) {
+                    Text(score.map { String(format: "%.1f", $0) } ?? "—")
+                        .font(.system(size: 16, weight: .black))
+                        .foregroundColor(.white)
+                    Text("/10")
+                        .font(.system(size: 8))
+                        .foregroundColor(.gray)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Text("READINESS DU JOUR")
+                        .font(.system(size: 10, weight: .bold)).tracking(2)
+                        .foregroundColor(.gray)
+                    Text(scoreLabel)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(scoreColor)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(scoreColor.opacity(0.15))
+                        .cornerRadius(4)
+                }
+                HStack(spacing: 12) {
+                    if let hrv = entry.hrv {
+                        metricPill("HRV", String(format: "%.0f ms", hrv),
+                                   hrv >= 50 ? .green : (hrv >= 30 ? .orange : .red))
+                    }
+                    if let hr = entry.restingHr {
+                        metricPill("RHR", String(format: "%.0f bpm", hr),
+                                   hr <= 55 ? .green : (hr <= 65 ? .orange : .red))
+                    }
+                    if let s = entry.soreness {
+                        metricPill("Courbatures", String(format: "%.0f/10", s),
+                                   s <= 3 ? .green : (s <= 6 ? .orange : .red))
+                    }
+                }
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .glassCard(color: scoreColor, intensity: 0.06)
+        .cornerRadius(14)
+    }
+
+    private func metricPill(_ label: String, _ value: String, _ color: Color) -> some View {
+        VStack(spacing: 1) {
+            Text(value)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(color)
+            Text(label)
+                .font(.system(size: 8))
+                .foregroundColor(.gray)
+        }
+    }
+}
+
+// MARK: - HRV Chart
+
+struct HRVChart: View {
+    let entries: [RecoveryEntry]
+    var maxHRV: Double { max(entries.compactMap(\.hrv).max() ?? 1, 80) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("HRV — 14 DERNIERS JOURS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
+                    let hrv   = e.hrv ?? 0
+                    let pct   = maxHRV > 0 ? hrv / maxHRV : 0
+                    let color: Color = hrv >= 50 ? .green : (hrv >= 30 ? .orange : .red)
+                    VStack(spacing: 2) {
+                        if hrv > 0 {
+                            Text(String(format: "%.0f", hrv))
+                                .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
+                        }
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(hrv > 0 ? color.opacity(i == entries.count - 1 ? 1 : 0.55) : Color.clear)
+                            .frame(height: max(hrv > 0 ? CGFloat(pct) * 60 : 0, hrv > 0 ? 2 : 0))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
+                }
+            }
+            .frame(height: 70)
+            HStack(spacing: 12) {
+                legendDot(.green,  "≥50 ms")
+                legendDot(.orange, "30-50 ms")
+                legendDot(.red,    "<30 ms")
+            }
+        }
+        .padding(16).glassCard(color: .green, intensity: 0.05).cornerRadius(14)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+        }
+    }
+}
+
+// MARK: - RHR Chart
+
+struct RHRChart: View {
+    let entries: [RecoveryEntry]
+    // Inverted: lower RHR = better. Display as distance from ceiling (85 bpm).
+    private let ceiling: Double = 85
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("FC REPOS — 14 DERNIERS JOURS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
+                    let hr    = e.restingHr ?? 0
+                    // Normalize: bar height = how LOW the HR is (good = tall bar)
+                    let pct   = hr > 0 ? max(0, (ceiling - hr) / (ceiling - 35)) : 0
+                    let color: Color = hr > 0 ? (hr <= 55 ? .green : (hr <= 65 ? .orange : .red)) : .clear
+                    VStack(spacing: 2) {
+                        if hr > 0 {
+                            Text(String(format: "%.0f", hr))
+                                .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
+                        }
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(hr > 0 ? color.opacity(i == entries.count - 1 ? 1 : 0.55) : Color.clear)
+                            .frame(height: max(hr > 0 ? CGFloat(pct) * 60 : 0, hr > 0 ? 2 : 0))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
+                }
+            }
+            .frame(height: 70)
+            HStack(spacing: 12) {
+                legendDot(.green,  "≤55 bpm")
+                legendDot(.orange, "55-65 bpm")
+                legendDot(.red,    ">65 bpm")
+                Spacer()
+                Text("Barre haute = FC basse = mieux")
+                    .font(.system(size: 8)).foregroundColor(.gray.opacity(0.6))
+            }
+        }
+        .padding(16).glassCard(color: .red, intensity: 0.04).cornerRadius(14)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+        }
     }
 }
 
