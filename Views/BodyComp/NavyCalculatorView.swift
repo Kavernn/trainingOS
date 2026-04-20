@@ -320,5 +320,16 @@ struct NavyCalculatorView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             withAnimation { savedAt = nil }
         }
+        // Sync vers Supabase → visible dans BodyCompView
+        let today = DateFormatter.isoDate.string(from: Date())
+        Task {
+            try? await APIService.shared.addBodyWeight(
+                date:     today,
+                weight:   weightLbs,
+                bodyFat:  res.pct,
+                waistCm:  waistCm
+            )
+            CacheService.shared.clear(for: "stats_data")
+        }
     }
 }
