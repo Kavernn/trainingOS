@@ -9,7 +9,7 @@ ai_coach_bp = Blueprint("ai_coach", __name__)
 @ai_coach_bp.route("/api/ai/propose", methods=["POST"])
 def api_ai_propose():
     """Claude returns structured program modification proposals as JSON."""
-    from utils import _ai_rate_check, _AI_TOKENS
+    from utils import _ai_rate_check
     if not _ai_rate_check():
         return jsonify({"error": "Trop de requêtes — réessaie dans quelques minutes."}), 429
     import os, json as _json
