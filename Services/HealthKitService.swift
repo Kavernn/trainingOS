@@ -147,6 +147,22 @@ class HealthKitService: ObservableObject {
         return await fetchLatestQuantity(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))
     }
 
+    func fetchHRV(for date: Date) async -> Double? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else { return nil }
+        let cal   = Calendar.current
+        let start = cal.startOfDay(for: date)
+        let end   = cal.date(byAdding: .day, value: 1, to: start)!
+        let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
+        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
+        return await withCheckedContinuation { cont in
+            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
+                let val = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: .secondUnit(with: .milli))
+                cont.resume(returning: val)
+            }
+            store.execute(q)
+        }
+    }
+
     // MARK: - Body Weight
     func fetchLatestBodyWeight() async -> Double? {
         guard let kg = await fetchLatestQuantity(.bodyMass, unit: .gramUnit(with: .kilo)) else { return nil }

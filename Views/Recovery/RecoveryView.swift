@@ -9,8 +9,14 @@ struct RecoveryView: View {
     @State private var apiError: String? = nil
     @State private var toast: ToastMessage? = nil
     @StateObject private var watchSync = WatchSyncService.shared
+    @State private var isBackfilling = false
+    @State private var backfillDone  = false
 
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
+
+    private var entriesMissingHK: [RecoveryEntry] {
+        log.filter { $0.restingHr == nil || $0.hrv == nil }
+    }
 
     private var alreadyLoggedToday: Bool {
         log.contains { $0.date == todayStr }
@@ -53,6 +59,46 @@ struct RecoveryView: View {
                             }
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0)
+                            #endif
+
+                            // HealthKit backfill banner
+                            #if !targetEnvironment(macCatalyst)
+                            if !entriesMissingHK.isEmpty && !backfillDone {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "heart.text.square.fill")
+                                        .foregroundColor(.red)
+                                        .font(.system(size: 15))
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("\(entriesMissingHK.count) entrée\(entriesMissingHK.count > 1 ? "s" : "") sans FC / HRV")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(.white)
+                                        Text("Synchroniser depuis Apple Santé")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.gray)
+                                    }
+                                    Spacer()
+                                    Button {
+                                        Task { await backfillFromHealthKit() }
+                                    } label: {
+                                        if isBackfilling {
+                                            ProgressView().tint(.white).scaleEffect(0.75)
+                                        } else {
+                                            Text("Sync")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                                .background(Color.red.opacity(0.8))
+                                                .cornerRadius(8)
+                                        }
+                                    }
+                                    .disabled(isBackfilling)
+                                }
+                                .padding(12)
+                                .background(Color.red.opacity(0.08))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                                .cornerRadius(12)
+                                .padding(.horizontal, 16)
+                            }
                             #endif
 
                             // KPI grid
@@ -181,6 +227,53 @@ struct RecoveryView: View {
         isLoading = true
         log = (try? await APIService.shared.fetchRecoveryData()) ?? []
         isLoading = false
+    }
+
+    private func backfillFromHealthKit() async {
+        let hk = HealthKitService.shared
+        let authorized = await hk.requestAuthorization()
+        guard authorized else { return }
+
+        isBackfilling = true
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        var updated = 0
+
+        for entry in entriesMissingHK {
+            guard let dateStr = entry.date,
+                  let date    = fmt.date(from: dateStr) else { continue }
+
+            async let rhr = entry.restingHr == nil ? hk.fetchRestingHR(for: date) : nil
+            async let hrv = entry.hrv       == nil ? hk.fetchHRV(for: date)       : nil
+            let (newRHR, newHRV) = await (rhr, hrv)
+
+            guard newRHR != nil || newHRV != nil else { continue }
+
+            try? await APIService.shared.logRecovery(
+                sleepHours:   entry.sleepHours,
+                sleepQuality: entry.sleepQuality,
+                restingHr:    newRHR ?? entry.restingHr,
+                hrv:          newHRV ?? entry.hrv,
+                steps:        entry.steps,
+                soreness:     entry.soreness,
+                notes:        entry.notes ?? "",
+                date:         dateStr
+            )
+            updated += 1
+        }
+
+        await loadData()
+        await MainActor.run {
+            isBackfilling = false
+            backfillDone  = true
+            if updated > 0 {
+                toast = ToastMessage(
+                    message: "\(updated) entrée\(updated > 1 ? "s" : "") mise\(updated > 1 ? "s" : "") à jour depuis Santé",
+                    style: .success
+                )
+            } else {
+                toast = ToastMessage(message: "Aucune donnée HealthKit trouvée pour ces dates", style: .success)
+            }
+        }
     }
 }
 
