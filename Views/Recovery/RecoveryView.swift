@@ -500,16 +500,20 @@ struct LogRecoverySheet: View {
     }
 
     private func prefill() {
-        guard let e = prefillEntry else { return }
-        if let h  = e.sleepHours    { sleepHoursStr = String(format: "%.1f", h) }
-        if let q  = e.sleepQuality  { sleepQuality  = q }
-        if let hr = e.restingHr     { restingHrStr  = String(format: "%.0f", hr) }
-        if let v  = e.hrv           { hrvStr         = String(format: "%.0f", v) }
-        if let s  = e.steps         { stepsStr       = "\(s)" }
-        if let so = e.soreness      { soreness       = so }
-        notes = e.notes ?? ""
-        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
-        if let d = e.date, let parsed = f.date(from: d) { selectedDate = parsed }
+        if let e = prefillEntry {
+            if let h  = e.sleepHours    { sleepHoursStr = String(format: "%.1f", h) }
+            if let q  = e.sleepQuality  { sleepQuality  = q }
+            if let hr = e.restingHr     { restingHrStr  = String(format: "%.0f", hr) }
+            if let v  = e.hrv           { hrvStr         = String(format: "%.0f", v) }
+            if let s  = e.steps         { stepsStr       = "\(s)" }
+            if let so = e.soreness      { soreness       = so }
+            notes = e.notes ?? ""
+            let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+            if let d = e.date, let parsed = f.date(from: d) { selectedDate = parsed }
+        } else {
+            // Nouvelle entrée → auto-fill depuis HealthKit
+            fillFromHealthKit()
+        }
     }
 
     private func sorenessColor(_ v: Double) -> Color {
