@@ -1307,9 +1307,9 @@ private struct DayCard: View {
                 Divider().background(Color.white.opacity(0.06))
                 VStack(spacing: 0) {
                     ForEach(Array(day.exercises.enumerated()), id: \.offset) { idx, ex in
-                        ExerciseRow(exercise: ex,
-                                    categoryIcons: categoryIcons,
-                                    categoryColors: categoryColors)
+                        ProgramExerciseRow(exercise: ex,
+                                       categoryIcons: categoryIcons,
+                                       categoryColors: categoryColors)
                         if idx < day.exercises.count - 1 {
                             Divider()
                                 .background(Color.white.opacity(0.04))
@@ -1326,7 +1326,7 @@ private struct DayCard: View {
     }
 }
 
-private struct ExerciseRow: View {
+private struct ProgramExerciseRow: View {
     let exercise:       ProgramExercise
     let categoryIcons:  [String: String]
     let categoryColors: [String: Color]
