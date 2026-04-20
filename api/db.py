@@ -2893,3 +2893,56 @@ def compute_smart_goal_progress(
     else:
         p = current / target * 100
     return round(min(max(p, 0), 100), 1)
+
+
+# ---------------------------------------------------------------------------
+# Generated programs (AI programme generator)
+# ---------------------------------------------------------------------------
+
+def save_generated_program(program_json: dict) -> str | None:
+    """Insert a generated program. Returns its UUID or None on error."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = (
+            _client.table("generated_programs")
+            .insert({"program_json": program_json, "status": "pending_approval"})
+            .execute()
+        )
+        return resp.data[0]["id"] if resp.data else None
+    except Exception as e:
+        logger.error("save_generated_program error: %s", e)
+        return None
+
+
+def get_latest_generated_program() -> dict | None:
+    """Return the most recent generated program row (any status), or None."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = (
+            _client.table("generated_programs")
+            .select("*")
+            .order("generated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("get_latest_generated_program error: %s", e)
+        return None
+
+
+def update_generated_program(gp_id: str, status: str, programme_id: str | None = None) -> bool:
+    """Update status and optionally link to an approved programme."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        data: dict = {"status": status}
+        if programme_id:
+            data["programme_id"] = programme_id
+        _client.table("generated_programs").update(data).eq("id", gp_id).execute()
+        return True
+    except Exception as e:
+        logger.error("update_generated_program error: %s", e)
+        return False
