@@ -465,3 +465,84 @@ struct HistoriqueSession: Identifiable {
     let date: String
     let entry: SessionEntry
 }
+
+// MARK: - Generated Program (AI programme generator)
+
+enum ProgramStatus: String, Codable {
+    case pendingApproval = "pending_approval"
+    case active          = "active"
+    case archived        = "archived"
+}
+
+struct GeneratedProgram: Codable, Identifiable {
+    let id: String
+    let generatedAt: String
+    var status: ProgramStatus
+    let programJson: ProgramContent
+
+    enum CodingKeys: String, CodingKey {
+        case id, status
+        case generatedAt = "generated_at"
+        case programJson = "program_json"
+    }
+}
+
+struct ProgramContent: Codable {
+    let name: String
+    let weeks: [ProgramWeek]
+    let schedule: [String: String]
+    let muscleVolume: [String: MuscleVolumeEntry]
+    let globalRationale: String
+
+    enum CodingKeys: String, CodingKey {
+        case name, weeks, schedule
+        case muscleVolume    = "muscle_volume"
+        case globalRationale = "global_rationale"
+    }
+}
+
+struct ProgramWeek: Codable, Identifiable {
+    var id: Int { week }
+    let week: Int
+    let phase: String
+    let days: [ProgramDay]
+}
+
+struct ProgramDay: Codable, Identifiable {
+    var id: Int { day }
+    let day: Int
+    let name: String
+    let muscleFocus: [String]
+    let exercises: [ProgramExercise]
+
+    enum CodingKeys: String, CodingKey {
+        case day, name, exercises
+        case muscleFocus = "muscle_focus"
+    }
+}
+
+struct ProgramExercise: Codable {
+    let name: String
+    let category: String
+    let muscleGroup: String
+    let sets: Int
+    let reps: String
+    let restSec: Int?
+    let rationale: String
+
+    enum CodingKeys: String, CodingKey {
+        case name, category, sets, reps, rationale
+        case muscleGroup = "muscle_group"
+        case restSec     = "rest_sec"
+    }
+}
+
+struct MuscleVolumeEntry: Codable {
+    let setsPerWeek: Int
+    let frequency: Int
+
+    enum CodingKeys: String, CodingKey {
+        case setsPerWeek = "sets_per_week"
+        case frequency
+    }
+}

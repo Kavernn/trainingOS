@@ -477,6 +477,110 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode([LifeStressScore].self, from: data)
     }
 
+    // MARK: - Generated Program
+
+    func generateProgram() async throws -> GeneratedProgram {
+        let url = URL(string: "\(baseURL)/api/ai/generate_program")!
+        var req = URLRequest(url: url)
+        req.httpMethod  = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 90
+        let (data, response) = try await URLSession.authed.data(for: req)
+        if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw NSError(domain: "API", code: http.statusCode,
+                          userInfo: [NSLocalizedDescriptionKey: msg ?? "Erreur \(http.statusCode)"])
+        }
+        return try JSONDecoder().decode(GeneratedProgram.self, from: data)
+    }
+
+    func fetchLatestGeneratedProgram() async throws -> GeneratedProgram? {
+        let url = URL(string: "\(baseURL)/api/ai/generated_program/latest")!
+        let (data, response) = try await URLSession.authed.data(for: URLRequest(url: url))
+        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
+        return try? JSONDecoder().decode(GeneratedProgram.self, from: data)
+    }
+
+    /// Approve a generated program: creates a real Programme + séances + exercices via existing API.
+    /// Returns the new programme_id on success.
+    func approveGeneratedProgram(_ gp: GeneratedProgram) async throws -> String {
+        let content = gp.programJson
+        let week1   = content.weeks.first
+
+        // 1. Create programme
+        let progUrl = URL(string: "\(baseURL)/api/programs")!
+        var progReq = URLRequest(url: progUrl)
+        progReq.httpMethod = "POST"
+        progReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd"
+        let dateStr = formatter.string(from: Date())
+        progReq.httpBody = try JSONSerialization.data(withJSONObject: [
+            "action": "create",
+            "name": "\(content.name) — \(dateStr)"
+        ])
+        let (progData, _) = try await URLSession.authed.data(for: progReq)
+        guard let progJson = try JSONSerialization.jsonObject(with: progData) as? [String: Any],
+              let programmeId = progJson["id"] as? String else {
+            throw NSError(domain: "API", code: 0,
+                          userInfo: [NSLocalizedDescriptionKey: "Impossible de créer le programme"])
+        }
+
+        // 2. Create each unique séance (from week 1 day names)
+        let days = week1?.days ?? []
+        for day in days {
+            var seanceReq = URLRequest(url: URL(string: "\(baseURL)/api/programme")!)
+            seanceReq.httpMethod = "POST"
+            seanceReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            seanceReq.httpBody = try JSONSerialization.data(withJSONObject: [
+                "action":     "create_seance",
+                "jour":       day.name,
+                "program_id": programmeId
+            ])
+            _ = try? await URLSession.authed.data(for: seanceReq)
+        }
+
+        // 3. Add exercises (week 1 schemes)
+        for day in days {
+            for ex in day.exercises {
+                let scheme = "\(ex.sets)x\(ex.reps)"
+                var exReq = URLRequest(url: URL(string: "\(baseURL)/api/programme")!)
+                exReq.httpMethod = "POST"
+                exReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                exReq.httpBody = try JSONSerialization.data(withJSONObject: [
+                    "action":     "add",
+                    "jour":       day.name,
+                    "exercise":   ex.name,
+                    "scheme":     scheme,
+                    "program_id": programmeId
+                ])
+                _ = try? await URLSession.authed.data(for: exReq)
+            }
+        }
+
+        // 4. Apply 5-day schedule
+        if !content.schedule.isEmpty {
+            var schedReq = URLRequest(url: URL(string: "\(baseURL)/api/morning_schedule")!)
+            schedReq.httpMethod = "POST"
+            schedReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            schedReq.httpBody = try JSONSerialization.data(withJSONObject: ["schedule": content.schedule])
+            _ = try? await URLSession.authed.data(for: schedReq)
+        }
+
+        // 5. Mark generated program as active
+        var approveReq = URLRequest(url: URL(string: "\(baseURL)/api/ai/generated_program/approve")!)
+        approveReq.httpMethod = "POST"
+        approveReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        approveReq.httpBody = try JSONSerialization.data(withJSONObject: [
+            "id": gp.id,
+            "programme_id": programmeId
+        ])
+        _ = try? await URLSession.authed.data(for: approveReq)
+
+        CacheService.shared.clear(for: "programme_data")
+        CacheService.shared.clear(for: "stats_data")
+        return programmeId
+    }
+
     func fetchPostWorkoutBrief(sessionType: String, rpe: Double?, exos: [String], comment: String?, date: String) async throws -> String {
         let url = URL(string: "\(baseURL)/api/ai/post_workout")!
         var req = URLRequest(url: url)
