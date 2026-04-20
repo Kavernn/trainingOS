@@ -52,6 +52,8 @@ struct AlreadyLoggedSeanceView: View {
     @State private var confirmReset = false
     @State private var animateHeader = false
     @State private var showConfetti = false
+    @State private var postWorkoutBrief: String? = nil
+    @State private var isLoadingBrief = false
 
     var todaySession: SessionEntry? {
         APIService.shared.dashboard?.sessions[data.todayDate]
@@ -131,6 +133,7 @@ struct AlreadyLoggedSeanceView: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         showConfetti = true
                     }
+                    Task { await loadPostWorkoutBrief() }
                 }
 
                 // ── Recap aujourd'hui ────────────────────────────────────
@@ -218,6 +221,43 @@ struct AlreadyLoggedSeanceView: View {
                 .cornerRadius(16)
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.green.opacity(0.2), lineWidth: 1))
                 .padding(.horizontal, 16)
+
+                // ── Bilan IA ─────────────────────────────────────────────
+                if isLoadingBrief {
+                    HStack(spacing: 10) {
+                        ProgressView().tint(.purple)
+                        Text("Analyse en cours…")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(Color(hex: "11111c"))
+                    .cornerRadius(16)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+                    .padding(.horizontal, 16)
+                } else if let brief = postWorkoutBrief {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.purple)
+                            Text("BILAN IA")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(2)
+                                .foregroundColor(.purple.opacity(0.8))
+                        }
+                        Text(brief)
+                            .font(.system(size: 13))
+                            .foregroundColor(.white.opacity(0.85))
+                            .lineSpacing(4)
+                    }
+                    .padding(16)
+                    .background(Color(hex: "11111c"))
+                    .cornerRadius(16)
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+                    .padding(.horizontal, 16)
+                }
 
                 // ── Aperçu demain ────────────────────────────────────────
                 VStack(alignment: .leading, spacing: 12) {
@@ -377,6 +417,21 @@ struct AlreadyLoggedSeanceView: View {
                 }
         }
         } // end ZStack
+    }
+
+    private func loadPostWorkoutBrief() async {
+        guard postWorkoutBrief == nil, !isLoadingBrief else { return }
+        guard let session = todaySession else { return }
+        isLoadingBrief = true
+        defer { isLoadingBrief = false }
+        let brief = try? await APIService.shared.fetchPostWorkoutBrief(
+            sessionType: data.today,
+            rpe: session.rpe,
+            exos: session.exos ?? [],
+            comment: session.comment,
+            date: data.todayDate
+        )
+        postWorkoutBrief = brief
     }
 
     private func resetToday() async {
@@ -2694,6 +2749,11 @@ struct AddHIITSheet: View {
                         Image(systemName: icon).font(.system(size: 48)).foregroundColor(color)
                         Text(sessionType).font(.system(size: 24, weight: .black)).foregroundColor(.white)
                     }.padding(.top, 24)
+                    .onAppear {
+                        if alreadyLoggedToday {
+                            APIService.shared.sessionLoggedToday = true
+                        }
+                    }
 
                     if alreadyLoggedToday {
                         HStack(spacing: 10) {
@@ -2768,6 +2828,9 @@ struct AddHIITSheet: View {
                 let verified = fresh?.alreadyLogged ?? false
                 await APIService.shared.fetchDashboard()
                 if verified {
+                    // fetchDashboard() peut resetter sessionLoggedToday si le serveur
+                    // retourne alreadyLoggedToday=false (timing DB). On le re-asserte ici.
+                    await MainActor.run { APIService.shared.sessionLoggedToday = true }
                     vm.showSuccess = true
                 } else {
                     loggedDate = ""

@@ -170,6 +170,74 @@ def api_ai_coach():
         return jsonify({"error": str(e)}), 500
 
 
+@ai_coach_bp.route("/api/ai/post_workout", methods=["POST"])
+def api_ai_post_workout():
+    """Génère un bilan post-séance de 3 phrases comparant la séance actuelle à la précédente."""
+    from utils import _ai_rate_check
+    if not _ai_rate_check():
+        return jsonify({"error": "Trop de requêtes — réessaie dans quelques minutes."}), 429
+    import os
+    import anthropic as _anthropic
+    import db as _db
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return jsonify({"error": "ANTHROPIC_API_KEY manquant"}), 500
+    try:
+        data         = request.get_json(silent=True) or {}
+        session_type = data.get("session_type", "")
+        rpe          = data.get("rpe")
+        exos         = data.get("exos", [])
+        comment      = data.get("comment", "")
+        date         = data.get("date", "")
+
+        # Fetch last 5 sessions for context (previous same-type session)
+        recent = _db.get_workout_sessions(limit=10)
+        prev_same = next(
+            (s for s in recent if s.get("session_name") == session_type and s.get("date") != date),
+            None
+        )
+
+        ctx_lines = [f"Séance du jour ({date}) : {session_type}"]
+        if rpe is not None:
+            ctx_lines.append(f"RPE : {rpe}/10")
+        if exos:
+            ctx_lines.append(f"Exercices : {', '.join(exos)}")
+        if comment:
+            ctx_lines.append(f"Commentaire : {comment}")
+
+        if prev_same:
+            ctx_lines.append(f"\nSéance précédente de même type ({prev_same.get('date', '?')}) :")
+            if prev_same.get("rpe") is not None:
+                ctx_lines.append(f"RPE précédent : {prev_same['rpe']}/10")
+            prev_exos = prev_same.get("exos") or []
+            if prev_exos:
+                ctx_lines.append(f"Exercices précédents : {', '.join(prev_exos)}")
+        else:
+            ctx_lines.append("\nAucune séance précédente du même type disponible.")
+
+        context = "\n".join(ctx_lines)
+
+        client = _anthropic.Anthropic(api_key=api_key)
+        message = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=200,
+            system=(
+                "Tu es un coach sportif concis. À partir des données de séance fournies, "
+                "rédige exactement 3 phrases en français : "
+                "1) Évalue la performance de la séance d'aujourd'hui. "
+                "2) Compare avec la séance précédente du même type (si disponible). "
+                "3) Donne une recommandation concrète pour la prochaine séance. "
+                "Style direct, motivant. Pas de bullet points. Uniquement les 3 phrases."
+            ),
+            messages=[{"role": "user", "content": context}]
+        )
+        brief = message.content[0].text.strip()
+        return jsonify({"brief": brief})
+    except Exception as e:
+        logger.error("post_workout error: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+
 @ai_coach_bp.route("/api/ai/coach/history")
 def api_ai_coach_history():
     """Returns the last N coach exchanges."""

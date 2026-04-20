@@ -5,6 +5,13 @@
 
 ---
 
+## ✨ Nouvelles features — 2026-04-19
+
+- [x] **Body Composition Calculator (Navy formula)** : `BodyCompEntry` SwiftData `@Model`, `NavyCalculatorView` (4 steppers, formule Navy, barre compo, catégorie, save → toast), `BodyCompHistoryView` (chart % MG Swift Charts, swipe-to-delete, empty state). Accessible depuis MoreView "Corps & Santé". Enregistré dans pbxproj (3 fichiers). *(2026-04-19)*
+- [x] **Bilan IA post-séance** : `POST /api/ai/post_workout` (3 phrases Claude : évaluation/comparaison/recommandation, rate-limited, contexte session courante + précédente même type). iOS : `fetchPostWorkoutBrief()` dans APIService, card purple "BILAN IA" dans `AlreadyLoggedSeanceView` entre récap et demain. *(2026-04-19)*
+
+---
+
 ## 🐛 Bugs & UX — 2026-04-19
 
 - [x] **Dashboard "Commencer la séance" malgré séance loggée (offline)** : quand la séance était loggée hors-ligne, `offlinePost` retournait `nil` → cache dashboard non effacé → `fetchDashboard()` servait le cache périmé → TodayCard restait en état "pas loggé". De plus, `SyncManager.flushQueue()` ne refreshait pas le dashboard après avoir rejoué les mutations. Fix : (1) flag optimiste `APIService.sessionLoggedToday` mis à `true` dès `logSession()` (online ou offline), reset sur réponse serveur ; (2) `TodayCardView` observe ce flag ; (3) `SyncManager.flushQueue()` clear cache + `fetchDashboard()` après toute mutation de session. *(2026-04-19)*

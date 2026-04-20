@@ -483,6 +483,24 @@ already_logged = bool(_s.get("completed") or _s.get("rpe") is not None)
 
 ---
 
+## iOS — `Calendar.date(byAdding:)` cause un crash 0x8BADF00D sur iOS 26
+
+Sur iOS 26, `Calendar.current.date(byAdding: .day, value: -i, to: date)` et `Calendar.current.startOfDay(for:)` routent via `_CalendarGregorian.dateComponents` qui recurse infiniment → watchdog tue le process (0x8BADF00D).
+
+**Règle :** Ne jamais utiliser `Calendar.date(byAdding:)` pour de l'arithmétique de dates quotidienne. Utiliser l'arithmétique timestamp pure :
+```swift
+// ❌ Mauvais — crash 0x8BADF00D sur iOS 26
+let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+
+// ✅ Correct — arithmétique pure, pas de Calendar
+let todayStr = DateFormatter.isoDate.string(from: Date())
+let todayMidnight = DateFormatter.isoDate.date(from: todayStr)!  // parse propre
+let yesterday = Date(timeIntervalSince1970: todayMidnight.timeIntervalSince1970 - 86400)
+```
+**Contexte :** Calcul du streak dans `GreetingHeaderView` — passage en timestamp pure pour éviter le crash.
+
+---
+
 ## DB — Les migrations KV→relational peuvent créer des doublons
 
 Lors de la migration d'une table KV (clé/valeur) vers des tables relationnelles, si le script de migration est relancé sans guard `ON CONFLICT`, il insère des doublons.

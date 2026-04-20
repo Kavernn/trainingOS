@@ -144,6 +144,15 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
 3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
 
+## Complété récemment (2026-04-19 — Nouvelles features)
+
+- **Body Composition Calculator (Navy formula)** : calculateur SwiftData complet. `BodyCompEntry` (`@Model` : date/weightLbs/bodyFatPct/fatMassLbs/leanMassLbs) ajouté au schema SwiftData dans `TrainingOSApp`. `NavyCalculatorView` : 4 steppers ±0.5/1 cm/lbs, formule Navy US (`495 / (1.0324 - 0.19077 * log10(waist-neck) + 0.15456 * log10(height)) - 450`), 3 result cards, barre de composition GeometryReader (vert lean / orange fat), badge catégorie (Athlète/Très fit/Fitness/Acceptable/Obèse), bouton Enregistrer → toast 2.5s. `BodyCompHistoryView` : `@Query` reverse, chart LineMark+AreaMark+PointMark % MG (Swift Charts), liste swipe-to-delete, empty state. Accessible depuis `MoreView` section "Corps & Santé". Tous les fichiers ajoutés au pbxproj manuellement (3× PBXBuildFile + PBXFileReference + group children + sources build phase).
+- **Bilan IA post-séance** : `POST /api/ai/post_workout` dans `ai_coach.py` — récupère la session précédente du même type via `get_workout_sessions(limit=10)`, construit un contexte comparatif, appelle Claude Sonnet 4.6 (max_tokens=200, system prompt = 3 phrases exactes : évaluation/comparaison/recommandation), rate-limité via `_ai_rate_check()`. iOS : `fetchPostWorkoutBrief()` dans `APIService.swift` (POST avec sessionType/rpe/exos/comment/date). `AlreadyLoggedSeanceView` : `@State postWorkoutBrief` + `isLoadingBrief`, card purple "BILAN IA" affichée entre le récap et la preview demain, déclenchée à `.onAppear` (guarded contre double-fetch).
+- **Streak counter** : déjà implémenté — `StreakBadge` dans `GreetingHeaderView` (calcul par arithmétique timestamp pure, pas Calendar.date(byAdding:) pour éviter crash iOS 26 0x8BADF00D). Affiché si streak > 1.
+- **Volume par groupe musculaire** : déjà implémenté — `MuscleVolumeView` (performanceTab) + `MuscleBreakdownView` + `VolumeLandmarksCard` (vueGlobaleTab) dans `StatsView`, alimentés par `muscle_stats` + `muscle_landmarks` de `/api/stats_data`.
+
+---
+
 ## Complété récemment (2026-04-19 — Bugs dashboard + UX + yoga/recovery)
 
 - **Dashboard "Commencer la séance" stale (offline)** : root cause double — (1) `offlinePost` nil → cache dashboard non effacé → fetchDashboard servait l'ancien état ; (2) SyncManager.flushQueue rejoignait les mutations mais ne refreshait jamais le dashboard. Fix : `APIService.sessionLoggedToday` flag optimiste (set dès logSession, reset sur réponse serveur) ; TodayCardView observe ce flag ; SyncManager clear cache + fetchDashboard après toute mutation session rejouée.

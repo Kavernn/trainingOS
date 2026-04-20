@@ -477,6 +477,24 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode([LifeStressScore].self, from: data)
     }
 
+    func fetchPostWorkoutBrief(sessionType: String, rpe: Double?, exos: [String], comment: String?, date: String) async throws -> String {
+        let url = URL(string: "\(baseURL)/api/ai/post_workout")!
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.timeoutInterval = 30
+        var body: [String: Any] = ["session_type": sessionType, "exos": exos, "date": date]
+        if let rpe { body["rpe"] = rpe }
+        if let comment, !comment.isEmpty { body["comment"] = comment }
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        let (data, _) = try await URLSession.authed.data(for: req)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let brief = json["brief"] as? String else {
+            throw URLError(.badServerResponse)
+        }
+        return brief
+    }
+
     func fetchWeeklyNarrative(context: String, weekKey: String) async throws -> String {
         let url = URL(string: "\(baseURL)/api/ai/narrative")!
         var req = URLRequest(url: url)
