@@ -1,8 +1,8 @@
 """
 Cross-Correlation Insights — api/correlations.py
 
-Charge 4 clés KV en une seule passe (pas 60×4 appels), construit un index
-par date, calcule Pearson r pour 7 paires de métriques, et retourne
+Charge les données en une seule passe par source, construit un index
+par date, calcule Pearson r pour 11 paires de métriques, et retourne
 uniquement les corrélations significatives (|r| >= 0.35, n >= 5).
 
 Paires analysées :
@@ -13,6 +13,10 @@ Paires analysées :
   mood_score     → rpe (même jour)
   soreness       → rpe (même jour)
   protein        → soreness (J+1)
+  resting_hr     → rpe (J+1)         [fatigue → perf]
+  sleep_hours    → hrv (même jour)   [récup nocturne → HRV]
+  resting_hr     → hrv (même jour)   [signal surmenage]
+  active_energy  → soreness (J+1)    [dépense → courbatures]
 """
 
 from __future__ import annotations
@@ -26,13 +30,17 @@ import db
 # ── Catalogue des paires ──────────────────────────────────────────────────────
 # (id, label, x_key, y_key, lag_days, sf_icon, color)
 _PAIRS = [
-    ("sleep_rpe",    "Sommeil → Performance",    "sleep_hours",   "rpe",            1, "moon.zzz.fill",     "blue"),
-    ("sleep_q_rpe",  "Qualité Sommeil → RPE",    "sleep_quality", "rpe",            1, "bed.double.fill",   "indigo"),
-    ("hrv_rpe",      "HRV → Performance",        "hrv",           "rpe",            1, "waveform.path.ecg", "green"),
-    ("hrv_volume",   "HRV → Volume",             "hrv",           "session_volume", 1, "waveform.path.ecg", "teal"),
-    ("mood_rpe",     "Humeur → Performance",     "mood_score",    "rpe",            0, "face.smiling",      "yellow"),
-    ("soreness_rpe", "Courbatures → RPE",        "soreness",      "rpe",            0, "bolt.heart.fill",   "orange"),
-    ("protein_sore", "Protéines → Récupération", "protein",       "soreness",       1, "fork.knife",        "purple"),
+    ("sleep_rpe",    "Sommeil → Performance",       "sleep_hours",   "rpe",            1, "moon.zzz.fill",          "blue"),
+    ("sleep_q_rpe",  "Qualité Sommeil → RPE",       "sleep_quality", "rpe",            1, "bed.double.fill",        "indigo"),
+    ("hrv_rpe",      "HRV → Performance",           "hrv",           "rpe",            1, "waveform.path.ecg",      "green"),
+    ("hrv_volume",   "HRV → Volume",                "hrv",           "session_volume", 1, "waveform.path.ecg",      "teal"),
+    ("mood_rpe",     "Humeur → Performance",        "mood_score",    "rpe",            0, "face.smiling",           "yellow"),
+    ("soreness_rpe", "Courbatures → RPE",           "soreness",      "rpe",            0, "bolt.heart.fill",        "orange"),
+    ("protein_sore", "Protéines → Récupération",    "protein",       "soreness",       1, "fork.knife",             "purple"),
+    ("rhr_rpe",      "FC Repos → Performance",      "resting_hr",    "rpe",            1, "heart.fill",             "red"),
+    ("sleep_hrv",    "Sommeil → HRV",               "sleep_hours",   "hrv",            0, "waveform.path.ecg",      "cyan"),
+    ("rhr_hrv",      "FC Repos ↔ HRV",              "resting_hr",    "hrv",            0, "heart.text.square.fill", "pink"),
+    ("energy_sore",  "Énergie Active → Courbatures","active_energy", "soreness",       1, "flame.fill",             "orange"),
 ]
 
 MIN_R = 0.35   # seuil de signification
@@ -55,7 +63,7 @@ def _load_by_date(days: int) -> dict[str, dict]:
         d = entry.get("date")
         if d not in by_date:
             continue
-        for key in ("sleep_hours", "sleep_quality", "hrv", "soreness"):
+        for key in ("sleep_hours", "sleep_quality", "hrv", "soreness", "resting_hr", "active_energy"):
             val = entry.get(key)
             if val is not None:
                 by_date[d][key] = val
@@ -211,6 +219,37 @@ def _describe(pair_id: str, r: float, xs: list[float], ys: list[float]) -> str:
         sign = "+" if delta > 0 else ""
         return (
             f"< {threshold}g de protéines → courbatures {sign}{delta} pts "
+            f"le lendemain (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "rhr_rpe":
+        threshold = int(round(median_x, 0))
+        delta = round(avg_high - avg_low, 1)  # FC élevée → RPE plus haut
+        sign = "+" if delta > 0 else ""
+        return (
+            f"FC repos > {threshold} bpm → RPE {sign}{delta} pts "
+            f"le lendemain (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "sleep_hrv":
+        threshold = round(median_x, 1)
+        delta = round(avg_high - avg_low, 1)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"Dormir ≥ {threshold}h → HRV {sign}{delta} ms plus élevé "
+            f"(r={r:+.2f}, n={n})"
+        )
+    if pair_id == "rhr_hrv":
+        delta = round(avg_low - avg_high, 1)  # FC basse → HRV haute (inverse)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"FC repos basse → HRV {sign}{delta} ms plus élevé — "
+            f"signal de bonne récupération (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "energy_sore":
+        threshold = int(round(median_x, 0))
+        delta = round(avg_high - avg_low, 1)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"> {threshold} kcal actives → courbatures {sign}{delta} pts "
             f"le lendemain (r={r:+.2f}, n={n})"
         )
     direction = "positive" if r > 0 else "négative"
