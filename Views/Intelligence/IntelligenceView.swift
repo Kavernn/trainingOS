@@ -23,6 +23,7 @@ struct IntelligenceView: View {
     @State private var sessionsData:    [String: SessionEntry]   = [:]
     @State private var acwrData:        ACWRData?                = nil
     @State private var lssData:         LifeStressScore?         = nil
+    @State private var proposalError:   String?                  = nil
 
     var body: some View {
         NavigationStack {
@@ -106,9 +107,24 @@ struct IntelligenceView: View {
 
                     // Proposals sheet
                     if !proposals.isEmpty {
-                        ProposalsCard(proposals: proposals, onDismiss: { proposals = [] })
+                        ProposalsCard(proposals: proposals, onDismiss: { proposals = []; proposalError = nil })
                             .padding(.horizontal, 16)
                             .padding(.bottom, 4)
+                    } else if let err = proposalError {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
+                            Text(err).font(.system(size: 12)).foregroundColor(.gray)
+                            Spacer()
+                            Button { proposalError = nil } label: {
+                                Image(systemName: "xmark").foregroundColor(.gray)
+                            }
+                        }
+                        .padding(12)
+                        .background(Color.orange.opacity(0.08))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                        .cornerRadius(10)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 4)
                     }
 
                     // Narrative card
@@ -514,17 +530,37 @@ struct IntelligenceView: View {
 
     private func loadProposals() {
         guard !isLoadingProposals else { return }
-        let context = buildContext()
         isLoadingProposals = true
         proposals = []
+        proposalError = nil
         Task {
+            // Ensure dashboard is loaded
+            if APIService.shared.dashboard == nil {
+                await APIService.shared.fetchDashboard()
+            }
+            let context = buildContext()
+            guard context != "no data" else {
+                await MainActor.run {
+                    isLoadingProposals = false
+                    proposalError = "Données non disponibles — ouvre le dashboard d'abord."
+                }
+                return
+            }
             do {
                 let url = URL(string: "\(APIService.shared.baseURL)/api/ai/propose")!
                 var req = URLRequest(url: url)
                 req.httpMethod = "POST"
                 req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                 req.httpBody = try JSONSerialization.data(withJSONObject: ["context": context])
-                let (data, _) = try await URLSession.authed.data(for: req)
+                let (data, response) = try await URLSession.authed.data(for: req)
+                if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                    let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+                    await MainActor.run {
+                        isLoadingProposals = false
+                        proposalError = msg ?? "Erreur serveur (\(http.statusCode))"
+                    }
+                    return
+                }
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                    let raw = json["proposals"] as? [[String: Any]] {
                     let parsed = raw.compactMap { d -> AIProposal? in
@@ -537,12 +573,22 @@ struct IntelligenceView: View {
                             reason: reason
                         )
                     }
-                    await MainActor.run { proposals = parsed; isLoadingProposals = false }
+                    await MainActor.run {
+                        proposals = parsed
+                        isLoadingProposals = false
+                        if parsed.isEmpty { proposalError = "Aucune proposition générée." }
+                    }
                 } else {
-                    await MainActor.run { isLoadingProposals = false }
+                    await MainActor.run {
+                        isLoadingProposals = false
+                        proposalError = "Réponse inattendue du serveur."
+                    }
                 }
             } catch {
-                await MainActor.run { isLoadingProposals = false }
+                await MainActor.run {
+                    isLoadingProposals = false
+                    proposalError = "Erreur réseau : \(error.localizedDescription)"
+                }
             }
         }
     }
