@@ -31,10 +31,23 @@ final class HealthKitWearable: WearableDataSource {
     private let hk = HealthKitService.shared
 
     func fetchHeartRate(for date: String) async -> Double? { nil } // via workout avg_hr
-    func fetchRestingHeartRate(for date: String) async -> Double? { await hk.fetchLatestRestingHR() }
-    func fetchHRV(for date: String) async -> Double? { await hk.fetchLatestHRV() }
-    func fetchSteps(for date: String) async -> Int? { await hk.fetchTodaySteps() }
+    func fetchRestingHeartRate(for date: String) async -> Double? {
+        guard let d = isoDate(date) else { return await hk.fetchLatestRestingHR() }
+        return await hk.fetchRestingHR(for: d)
+    }
+    func fetchHRV(for date: String) async -> Double? {
+        guard let d = isoDate(date) else { return await hk.fetchLatestHRV() }
+        return await hk.fetchHRV(for: d)
+    }
+    func fetchSteps(for date: String) async -> Int? {
+        guard let d = isoDate(date) else { return await hk.fetchTodaySteps() }
+        return await hk.fetchSteps(for: d)
+    }
     func fetchSleepHours(for date: String) async -> Double? { await hk.fetchLastNightSleep() }
+
+    private func isoDate(_ s: String) -> Date? {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f.date(from: s)
+    }
     func fetchActiveMinutes(for date: String) async -> Double? { nil }
     func fetchDistanceKm(for date: String) async -> Double? { nil }
     func fetchCalories(for date: String) async -> Double? { nil }

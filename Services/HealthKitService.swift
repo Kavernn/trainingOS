@@ -308,6 +308,8 @@ class HealthKitService: ObservableObject {
     func fetchLastNightSleepWindow() async -> SleepWindow? { nil }
     func fetchLatestRestingHR() async -> Double? { nil }
     func fetchLatestHRV() async -> Double? { nil }
+    func fetchRestingHR(for date: Date) async -> Double? { nil }
+    func fetchHRV(for date: Date) async -> Double? { nil }
     func fetchLatestBodyWeight() async -> Double? { nil }
     func fetchLatestBodyFat() async -> Double? { nil }
     func fetchTodayActiveEnergy() async -> Double? { nil }

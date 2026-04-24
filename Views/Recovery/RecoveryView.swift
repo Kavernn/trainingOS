@@ -828,21 +828,22 @@ struct LogRecoverySheet: View {
 
     private func fillFromHealthKit() {
         isLoadingHK = true
+        let date = selectedDate
         Task {
             let authorized = await hk.requestAuthorization()
             guard authorized else { isLoadingHK = false; return }
 
-            async let sleep    = hk.fetchLastNightSleep()
-            async let hr       = hk.fetchLatestRestingHR()
-            async let hrv      = hk.fetchLatestHRV()
-            async let steps    = hk.fetchTodaySteps()
+            async let sleep = hk.fetchLastNightSleep()
+            async let hr    = hk.fetchRestingHR(for: date)
+            async let hrv   = hk.fetchHRV(for: date)
+            async let steps = hk.fetchSteps(for: date)
 
             let (s, h, v, st) = await (sleep, hr, hrv, steps)
 
-            if let s { sleepHoursStr = String(format: "%.1f", s) }
-            if let h { restingHrStr  = String(format: "%.0f", h) }
-            if let v { hrvStr        = String(format: "%.0f", v) }
-            if let st { stepsStr     = "\(st)" }
+            if let s  { sleepHoursStr = String(format: "%.1f", s) }
+            if let h  { restingHrStr  = String(format: "%.0f", h) }
+            if let v  { hrvStr        = String(format: "%.0f", v) }
+            if let st { stepsStr      = "\(st)" }
 
             isLoadingHK = false
         }
