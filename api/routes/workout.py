@@ -428,6 +428,11 @@ def api_log_session():
                         blocks=blocks, **vol_stats, session_name=session_name)
             completed_ok = _db.complete_workout_session(today, patch=session_patch)
             if not completed_ok:
+                # log_session's create_workout_session may have failed silently;
+                # ensure the row exists then retry once before giving up.
+                _db.get_or_create_workout_session(today)
+                completed_ok = _db.complete_workout_session(today, patch=session_patch)
+            if not completed_ok:
                 return jsonify({"error": "Impossible de marquer la séance comme terminée"}), 500
 
         # Fallback persistence path:
@@ -877,7 +882,10 @@ def api_seance_data():
     # Query the morning session directly — avoids the multi-row overwrite bug in
     # load_sessions() when both morning and evening rows exist for the same date.
     _s = _db.get_workout_session(today_date) or {}
-    already_logged = bool(_s.get("completed") or _s.get("rpe") is not None)
+    # Use only "completed" as source of truth. "rpe is not None" was a legacy
+    # fallback that incorrectly blocks re-logging when a previous attempt set rpe
+    # but failed before complete_workout_session() succeeded (completed=False).
+    already_logged = bool(_s.get("completed"))
 
     # Aplatit la structure bloc → {exercice: scheme} pour le client iOS
     flat_program = {
