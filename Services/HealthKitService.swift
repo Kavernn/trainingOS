@@ -79,12 +79,15 @@ class HealthKitService: ObservableObject {
         }
     }
 
-    /// Resting HR for a specific date (within that calendar day).
+    /// Resting HR for a specific date.
+    /// Uses a 48-hour window (day-1 00:00 → day+1 00:00) because Apple Health
+    /// stores resting HR samples with timestamps from the overnight measurement
+    /// period, which may fall on the previous calendar day.
     func fetchRestingHR(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else { return nil }
         let cal   = Calendar.current
-        let start = cal.startOfDay(for: date)
-        let end   = cal.date(byAdding: .day, value: 1, to: start)!
+        let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: date)!)
+        let end   = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: date))!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
         let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return await withCheckedContinuation { cont in
@@ -172,11 +175,12 @@ class HealthKitService: ObservableObject {
         return await fetchLatestQuantity(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))
     }
 
+    /// HRV for a specific date — same 48-hour window as fetchRestingHR.
     func fetchHRV(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else { return nil }
         let cal   = Calendar.current
-        let start = cal.startOfDay(for: date)
-        let end   = cal.date(byAdding: .day, value: 1, to: start)!
+        let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: date)!)
+        let end   = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: date))!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
         let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return await withCheckedContinuation { cont in
