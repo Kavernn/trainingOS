@@ -485,8 +485,7 @@ def create_workout_session(
     """Insert a new workout session row. Returns the created record."""
     payload: dict = {"date": date, "is_second": is_second, "session_type": session_type}
     if rpe is not None:
-        # Keep decimal precision (NUMERIC(4,1) in DB schema).
-        payload["rpe"] = round(float(rpe), 1)
+        payload["rpe"] = int(round(float(rpe)))
     if duration_min is not None:
         payload["duration_min"] = int(float(duration_min))
     if energy_pre is not None:
@@ -514,9 +513,17 @@ def complete_workout_session(date: str, patch: Optional[dict] = None) -> bool:
     try:
         data = {"completed": True}
         if patch:
-            for k in ("rpe", "comment", "duration_min", "energy_pre", "session_name"):
-                if patch.get(k) is not None:
-                    data[k] = patch[k]
+            for k, v in patch.items():
+                if k not in ("rpe", "comment", "duration_min", "energy_pre", "session_name"):
+                    continue
+                if v is None:
+                    continue
+                if k == "rpe":
+                    data[k] = int(round(float(v)))
+                elif k in ("duration_min", "energy_pre"):
+                    data[k] = int(float(v))
+                else:
+                    data[k] = v
         resp = (
             _client.table("workout_sessions")
             .update(data)
@@ -537,9 +544,17 @@ def complete_workout_session_bonus(date: str, patch: Optional[dict] = None) -> b
     try:
         data = {"completed": True}
         if patch:
-            for k in ("rpe", "comment", "duration_min", "energy_pre", "session_name"):
-                if patch.get(k) is not None:
-                    data[k] = patch[k]
+            for k, v in patch.items():
+                if k not in ("rpe", "comment", "duration_min", "energy_pre", "session_name"):
+                    continue
+                if v is None:
+                    continue
+                if k == "rpe":
+                    data[k] = int(round(float(v)))
+                elif k in ("duration_min", "energy_pre"):
+                    data[k] = int(float(v))
+                else:
+                    data[k] = v
         resp = (
             _client.table("workout_sessions")
             .update(data)
@@ -689,8 +704,8 @@ def update_workout_session_by_type(date: str, session_type: str, patch: dict) ->
         logger.error("update_workout_session_by_type(%s,%s) error: %s", date, session_type, e)
         return False
 
-INT_FIELDS = {"duration_min", "energy_pre"}
-DECIMAL_FIELDS = {"rpe"}
+INT_FIELDS = {"duration_min", "energy_pre", "rpe"}  # rpe is SMALLINT in DB
+DECIMAL_FIELDS: set = set()
 
 def update_workout_session(date: str, patch: dict) -> bool:
     """Update fields on a workout session by date. Returns True on success."""
