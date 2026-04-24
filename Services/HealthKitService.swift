@@ -22,6 +22,7 @@ class HealthKitService: ObservableObject {
         var types = Set<HKObjectType>()
         let ids: [HKQuantityTypeIdentifier] = [
             .stepCount,
+            .heartRate,
             .restingHeartRate,
             .heartRateVariabilitySDNN,
             .bodyMass,
@@ -214,6 +215,54 @@ class HealthKitService: ObservableObject {
         }
     }
 
+    // MARK: - Heart Rate (keyed moments)
+
+    private func fetchAvgHR(start: Date, end: Date) async -> Double? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: .heartRate) else { return nil }
+        let pred = HKQuery.predicateForSamples(withStart: start, end: end)
+        return await withCheckedContinuation { cont in
+            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .discreteAverage) { _, stats, _ in
+                cont.resume(returning: stats?.averageQuantity()?.doubleValue(for: HKUnit(from: "count/min")))
+            }
+            store.execute(q)
+        }
+    }
+
+    /// Average HR 06:00–09:00 (repos matinal).
+    func fetchMorningHR(for date: Date) async -> Double? {
+        let cal   = Calendar.current
+        let start = cal.date(bySettingHour: 6, minute: 0, second: 0, of: date)!
+        let end   = cal.date(bySettingHour: 9, minute: 0, second: 0, of: date)!
+        return await fetchAvgHR(start: start, end: end)
+    }
+
+    /// Average HR in the 30 min following the last workout of the day.
+    func fetchPostWorkoutHR(for date: Date) async -> Double? {
+        let cal      = Calendar.current
+        let dayStart = cal.startOfDay(for: date)
+        let dayEnd   = cal.date(byAdding: .day, value: 1, to: dayStart)!
+        let workouts: [HKWorkout] = await withCheckedContinuation { cont in
+            let pred = HKQuery.predicateForSamples(withStart: dayStart, end: dayEnd)
+            let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+            let q = HKSampleQuery(sampleType: .workoutType(), predicate: pred, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
+                cont.resume(returning: (samples as? [HKWorkout]) ?? [])
+            }
+            store.execute(q)
+        }
+        guard let last = workouts.first else { return nil }
+        let start = last.endDate
+        let end   = last.endDate.addingTimeInterval(30 * 60)
+        return await fetchAvgHR(start: start, end: end)
+    }
+
+    /// Average HR 21:00–23:00 (repos vespéral).
+    func fetchEveningHR(for date: Date) async -> Double? {
+        let cal   = Calendar.current
+        let start = cal.date(bySettingHour: 21, minute: 0, second: 0, of: date)!
+        let end   = cal.date(bySettingHour: 23, minute: 0, second: 0, of: date)!
+        return await fetchAvgHR(start: start, end: end)
+    }
+
     // MARK: - Today Active Energy
     func fetchTodayActiveEnergy() async -> Double? {
         return await fetchActiveEnergy(for: Date())
@@ -344,6 +393,9 @@ class HealthKitService: ObservableObject {
     func fetchHRV(for date: Date) async -> Double? { nil }
     func fetchSleep(for date: Date) async -> Double? { nil }
     func fetchActiveEnergy(for date: Date) async -> Double? { nil }
+    func fetchMorningHR(for date: Date) async -> Double? { nil }
+    func fetchPostWorkoutHR(for date: Date) async -> Double? { nil }
+    func fetchEveningHR(for date: Date) async -> Double? { nil }
     func fetchLatestBodyWeight() async -> Double? { nil }
     func fetchLatestBodyFat() async -> Double? { nil }
     func fetchTodayActiveEnergy() async -> Double? { nil }

@@ -15,7 +15,8 @@ struct RecoveryView: View {
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
     private var entriesMissingHK: [RecoveryEntry] {
-        log.filter { $0.restingHr == nil || $0.hrv == nil || $0.activeEnergy == nil }
+        log.filter { $0.restingHr == nil || $0.hrv == nil || $0.activeEnergy == nil
+                  || $0.hrMorning == nil || $0.hrEvening == nil }
     }
 
     private var alreadyLoggedToday: Bool {
@@ -40,6 +41,15 @@ struct RecoveryView: View {
     }
     var avgHRV: Double {
         let v = log.compactMap(\.hrv); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
+    }
+    var avgHRMorning: Double {
+        let v = log.compactMap(\.hrMorning); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
+    }
+    var avgHRPostWorkout: Double {
+        let v = log.compactMap(\.hrPostWorkout); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
+    }
+    var avgHREvening: Double {
+        let v = log.compactMap(\.hrEvening); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
     }
 
     var body: some View {
@@ -104,7 +114,7 @@ struct RecoveryView: View {
                             }
                             #endif
 
-                            // KPI grid
+                            // KPI grid — récupération
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                                 KPICard(value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
                                         label: "Sommeil moy.", color: .indigo)
@@ -121,6 +131,20 @@ struct RecoveryView: View {
                             }
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.05)
+
+                            // KPI grid — FC journalière
+                            if avgHRMorning > 0 || avgHRPostWorkout > 0 || avgHREvening > 0 {
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                    KPICard(value: avgHRMorning > 0 ? String(format: "%.0f bpm", avgHRMorning) : "—",
+                                            label: "FC matin moy.", color: .cyan)
+                                    KPICard(value: avgHRPostWorkout > 0 ? String(format: "%.0f bpm", avgHRPostWorkout) : "—",
+                                            label: "FC post séance", color: .orange)
+                                    KPICard(value: avgHREvening > 0 ? String(format: "%.0f bpm", avgHREvening) : "—",
+                                            label: "FC soir moy.", color: .blue)
+                                }
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.06)
+                            }
 
                             // Readiness card
                             if let today = log.first(where: { $0.date == todayStr }) {
@@ -142,6 +166,13 @@ struct RecoveryView: View {
                                 RHRChart(entries: hrvEntries)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.12)
+                            }
+
+                            // HR moments chart
+                            if hrvEntries.filter({ $0.hrMorning != nil || $0.hrPostWorkout != nil || $0.hrEvening != nil }).count >= 2 {
+                                HRMomentsChart(entries: hrvEntries)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.13)
                             }
 
                             // Sleep chart
@@ -247,23 +278,30 @@ struct RecoveryView: View {
             guard let dateStr = entry.date,
                   let date    = fmt.date(from: dateStr) else { continue }
 
-            async let rhr = entry.restingHr    == nil ? hk.fetchRestingHR(for: date)    : nil
-            async let hrv = entry.hrv           == nil ? hk.fetchHRV(for: date)           : nil
-            async let ae  = entry.activeEnergy  == nil ? hk.fetchActiveEnergy(for: date)  : nil
-            let (newRHR, newHRV, newAE) = await (rhr, hrv, ae)
+            async let rhr  = entry.restingHr     == nil ? hk.fetchRestingHR(for: date)     : nil
+            async let hrv  = entry.hrv            == nil ? hk.fetchHRV(for: date)            : nil
+            async let ae   = entry.activeEnergy   == nil ? hk.fetchActiveEnergy(for: date)   : nil
+            async let hrM  = entry.hrMorning      == nil ? hk.fetchMorningHR(for: date)      : nil
+            async let hrPW = entry.hrPostWorkout  == nil ? hk.fetchPostWorkoutHR(for: date)  : nil
+            async let hrE  = entry.hrEvening      == nil ? hk.fetchEveningHR(for: date)      : nil
+            let (newRHR, newHRV, newAE, newHRM, newHRPW, newHRE) = await (rhr, hrv, ae, hrM, hrPW, hrE)
 
-            guard newRHR != nil || newHRV != nil || newAE != nil else { continue }
+            guard newRHR != nil || newHRV != nil || newAE != nil
+               || newHRM != nil || newHRPW != nil || newHRE != nil else { continue }
 
             try? await APIService.shared.logRecovery(
-                sleepHours:   entry.sleepHours,
-                sleepQuality: entry.sleepQuality,
-                restingHr:    newRHR ?? entry.restingHr,
-                hrv:          newHRV ?? entry.hrv,
-                steps:        entry.steps,
-                soreness:     entry.soreness,
-                activeEnergy: newAE  ?? entry.activeEnergy,
-                notes:        entry.notes ?? "",
-                date:         dateStr
+                sleepHours:    entry.sleepHours,
+                sleepQuality:  entry.sleepQuality,
+                restingHr:     newRHR  ?? entry.restingHr,
+                hrv:           newHRV  ?? entry.hrv,
+                steps:         entry.steps,
+                soreness:      entry.soreness,
+                activeEnergy:  newAE   ?? entry.activeEnergy,
+                hrMorning:     newHRM  ?? entry.hrMorning,
+                hrPostWorkout: newHRPW ?? entry.hrPostWorkout,
+                hrEvening:     newHRE  ?? entry.hrEvening,
+                notes:         entry.notes ?? "",
+                date:          dateStr
             )
             updated += 1
         }
@@ -565,6 +603,71 @@ struct RHRChart: View {
     }
 }
 
+// MARK: - HR Moments Chart
+
+struct HRMomentsChart: View {
+    let entries: [RecoveryEntry]
+
+    private var maxHR: Double {
+        let all = entries.flatMap { [$0.hrMorning, $0.hrPostWorkout, $0.hrEvening].compactMap { $0 } }
+        return max(all.max() ?? 1, 100)
+    }
+    private var minHR: Double {
+        let all = entries.flatMap { [$0.hrMorning, $0.hrPostWorkout, $0.hrEvening].compactMap { $0 } }
+        return max((all.min() ?? 50) - 10, 40)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("FC JOURNALIÈRE — 14 DERNIERS JOURS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
+                    let isLast = i == entries.count - 1
+                    VStack(spacing: 1) {
+                        if let m = e.hrMorning {
+                            dot(.cyan, m, maxHR, minHR, isLast)
+                        }
+                        if let pw = e.hrPostWorkout {
+                            dot(.orange, pw, maxHR, minHR, isLast)
+                        }
+                        if let ev = e.hrEvening {
+                            dot(.blue, ev, maxHR, minHR, isLast)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
+                }
+            }
+            .frame(height: 70)
+
+            HStack(spacing: 12) {
+                legendDot(.cyan,   "Matin")
+                legendDot(.orange, "Post séance")
+                legendDot(.blue,   "Soir")
+            }
+        }
+        .padding(16).glassCard(color: .cyan, intensity: 0.04).cornerRadius(14)
+    }
+
+    @ViewBuilder
+    private func dot(_ color: Color, _ value: Double, _ maxV: Double, _ minV: Double, _ bright: Bool) -> some View {
+        let range = maxV - minV
+        let pct   = range > 0 ? (value - minV) / range : 0.5
+        let h     = max(CGFloat(pct) * 50, 4)
+        RoundedRectangle(cornerRadius: 2)
+            .fill(color.opacity(bright ? 0.9 : 0.5))
+            .frame(height: h)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+        }
+    }
+}
+
 // MARK: - Sleep Chart
 struct SleepChart: View {
     let entries: [RecoveryEntry]
@@ -679,6 +782,9 @@ struct LogRecoverySheet: View {
     @State private var hrvStr = ""
     @State private var stepsStr = ""
     @State private var activeEnergyStr = ""
+    @State private var hrMorningStr = ""
+    @State private var hrPostWorkoutStr = ""
+    @State private var hrEveningStr = ""
     @State private var soreness: Double = 0
     @State private var notes = ""
     @State private var isSaving = false
@@ -778,6 +884,23 @@ struct LogRecoverySheet: View {
                         }
                         .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
 
+                        // Fréquence cardiaque
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "heart.fill").font(.system(size: 10)).foregroundColor(.red)
+                                Text("FRÉQUENCE CARDIAQUE (bpm)").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            }
+                            HStack(spacing: 12) {
+                                RecoveryField(label: "MATIN (06-09h)", placeholder: "62", text: $hrMorningStr, keyboardType: .numberPad)
+                                RecoveryField(label: "POST SÉANCE (+30min)", placeholder: "88", text: $hrPostWorkoutStr, keyboardType: .numberPad)
+                            }
+                            HStack(spacing: 12) {
+                                RecoveryField(label: "SOIR (21-23h)", placeholder: "58", text: $hrEveningStr, keyboardType: .numberPad)
+                                Spacer().frame(maxWidth: .infinity)
+                            }
+                        }
+                        .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+
                         // Notes
                         VStack(alignment: .leading, spacing: 6) {
                             Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
@@ -819,18 +942,20 @@ struct LogRecoverySheet: View {
 
     private func prefill() {
         if let e = prefillEntry {
-            if let h  = e.sleepHours    { sleepHoursStr    = String(format: "%.1f", h) }
-            if let q  = e.sleepQuality  { sleepQuality     = q }
-            if let hr = e.restingHr     { restingHrStr     = String(format: "%.0f", hr) }
-            if let v  = e.hrv           { hrvStr           = String(format: "%.0f", v) }
-            if let s  = e.steps         { stepsStr         = "\(s)" }
-            if let ae = e.activeEnergy  { activeEnergyStr  = String(format: "%.0f", ae) }
-            if let so = e.soreness      { soreness         = so }
+            if let h   = e.sleepHours    { sleepHoursStr    = String(format: "%.1f", h) }
+            if let q   = e.sleepQuality  { sleepQuality     = q }
+            if let hr  = e.restingHr     { restingHrStr     = String(format: "%.0f", hr) }
+            if let v   = e.hrv           { hrvStr           = String(format: "%.0f", v) }
+            if let s   = e.steps         { stepsStr         = "\(s)" }
+            if let ae  = e.activeEnergy  { activeEnergyStr  = String(format: "%.0f", ae) }
+            if let hrm = e.hrMorning     { hrMorningStr     = String(format: "%.0f", hrm) }
+            if let hrp = e.hrPostWorkout { hrPostWorkoutStr = String(format: "%.0f", hrp) }
+            if let hre = e.hrEvening     { hrEveningStr     = String(format: "%.0f", hre) }
+            if let so  = e.soreness      { soreness         = so }
             notes = e.notes ?? ""
             let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
             if let d = e.date, let parsed = f.date(from: d) { selectedDate = parsed }
         } else {
-            // Nouvelle entrée → auto-fill depuis HealthKit
             fillFromHealthKit()
         }
     }
@@ -851,14 +976,20 @@ struct LogRecoverySheet: View {
             async let hrv   = hk.fetchHRV(for: date)
             async let steps = hk.fetchSteps(for: date)
             async let ae    = hk.fetchActiveEnergy(for: date)
+            async let hrM   = hk.fetchMorningHR(for: date)
+            async let hrPW  = hk.fetchPostWorkoutHR(for: date)
+            async let hrE   = hk.fetchEveningHR(for: date)
 
-            let (s, h, v, st, a) = await (sleep, hr, hrv, steps, ae)
+            let (s, h, v, st, a, m, pw, e) = await (sleep, hr, hrv, steps, ae, hrM, hrPW, hrE)
 
-            if let s  { sleepHoursStr   = String(format: "%.1f", s) }
-            if let h  { restingHrStr    = String(format: "%.0f", h) }
-            if let v  { hrvStr          = String(format: "%.0f", v) }
-            if let st { stepsStr        = "\(st)" }
-            if let a  { activeEnergyStr = String(format: "%.0f", a) }
+            if let s  { sleepHoursStr    = String(format: "%.1f", s) }
+            if let h  { restingHrStr     = String(format: "%.0f", h) }
+            if let v  { hrvStr           = String(format: "%.0f", v) }
+            if let st { stepsStr         = "\(st)" }
+            if let a  { activeEnergyStr  = String(format: "%.0f", a) }
+            if let m  { hrMorningStr     = String(format: "%.0f", m) }
+            if let pw { hrPostWorkoutStr = String(format: "%.0f", pw) }
+            if let e  { hrEveningStr     = String(format: "%.0f", e) }
 
             isLoadingHK = false
         }
@@ -869,15 +1000,18 @@ struct LogRecoverySheet: View {
         Task {
             do {
                 try await APIService.shared.logRecovery(
-                    sleepHours:   Double(sleepHoursStr.replacingOccurrences(of: ",", with: ".")),
-                    sleepQuality: sleepQuality,
-                    restingHr:    Double(restingHrStr),
-                    hrv:          Double(hrvStr),
-                    steps:        stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
-                    soreness:     soreness,
-                    activeEnergy: activeEnergyStr.isEmpty ? nil : Double(activeEnergyStr),
-                    notes:        notes,
-                    date:         dateStr
+                    sleepHours:    Double(sleepHoursStr.replacingOccurrences(of: ",", with: ".")),
+                    sleepQuality:  sleepQuality,
+                    restingHr:     Double(restingHrStr),
+                    hrv:           Double(hrvStr),
+                    steps:         stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
+                    soreness:      soreness,
+                    activeEnergy:  activeEnergyStr.isEmpty ? nil : Double(activeEnergyStr),
+                    hrMorning:     hrMorningStr.isEmpty ? nil : Double(hrMorningStr),
+                    hrPostWorkout: hrPostWorkoutStr.isEmpty ? nil : Double(hrPostWorkoutStr),
+                    hrEvening:     hrEveningStr.isEmpty ? nil : Double(hrEveningStr),
+                    notes:         notes,
+                    date:          dateStr
                 )
                 await onSaved()
                 isSaving = false

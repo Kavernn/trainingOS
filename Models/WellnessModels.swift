@@ -11,17 +11,23 @@ struct RecoveryEntry: Codable, Identifiable {
     let steps: Int?
     let soreness: Double?
     let activeEnergy: Double?
-    let source: String?         // "manual" | "healthkit"
+    let hrMorning: Double?
+    let hrPostWorkout: Double?
+    let hrEvening: Double?
+    let source: String?
     let notes: String?
 
     var isFromWatch: Bool { source == "healthkit" }
 
     enum CodingKeys: String, CodingKey {
         case date, hrv, steps, soreness, notes, source
-        case sleepHours   = "sleep_hours"
-        case sleepQuality = "sleep_quality"
-        case restingHr    = "resting_hr"
-        case activeEnergy = "active_energy"
+        case sleepHours      = "sleep_hours"
+        case sleepQuality    = "sleep_quality"
+        case restingHr       = "resting_hr"
+        case activeEnergy    = "active_energy"
+        case hrMorning       = "hr_morning"
+        case hrPostWorkout   = "hr_post_workout"
+        case hrEvening       = "hr_evening"
     }
 }
 

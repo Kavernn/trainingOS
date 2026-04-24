@@ -53,16 +53,19 @@ def api_log_recovery():
     data  = request.get_json(silent=True) or {}
     soreness_val = data.get("soreness")
     entry = {
-        "date":          data.get("date", date.today().isoformat()),
-        "sleep_hours":   data.get("sleep_hours"),
-        "sleep_quality": data.get("sleep_quality"),
-        "resting_hr":    data.get("resting_hr"),
-        "hrv":           data.get("hrv"),
-        "steps":         data.get("steps"),
-        "active_energy": data.get("active_energy"),
-        "soreness":      soreness_val if soreness_val else None,  # 0 → NULL (constraint: 1-10)
-        "notes":         data.get("notes", ""),
-        "source":        "manual",
+        "date":            data.get("date", date.today().isoformat()),
+        "sleep_hours":     data.get("sleep_hours"),
+        "sleep_quality":   data.get("sleep_quality"),
+        "resting_hr":      data.get("resting_hr"),
+        "hrv":             data.get("hrv"),
+        "steps":           data.get("steps"),
+        "active_energy":   data.get("active_energy"),
+        "soreness":        soreness_val if soreness_val else None,
+        "hr_morning":      data.get("hr_morning"),
+        "hr_post_workout": data.get("hr_post_workout"),
+        "hr_evening":      data.get("hr_evening"),
+        "notes":           data.get("notes", ""),
+        "source":          "manual",
     }
     ok = _db.upsert_recovery_log(entry)
     if not ok:
