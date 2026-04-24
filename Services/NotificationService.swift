@@ -150,23 +150,17 @@ enum NotificationService {
 
 // MARK: - Rest Timer Manager
 
-/// Singleton managing rest timer state across all views.
-/// Using a shared instance ensures a single source of truth regardless of
-/// how many ExerciseCards or sheets observe it.
 @MainActor
 final class RestTimerManager: ObservableObject {
-    static let shared = RestTimerManager()
+    static let shared   = RestTimerManager()
+    static let presetKey = "restTimerPreset"
     private init() {}
 
-    private static let endDateKey = "restTimerEndDate"
-    private static let totalKey   = "restTimerTotal"
-    static  let presetKey         = "restTimerPreset"
-
-    @Published var totalSeconds = 120
-    @Published var remaining    = 120
-    @Published var isRunning    = false
-    @Published var currentExerciseName: String? = nil
-    @Published var pendingStart: (seconds: Int, name: String)? = nil
+    @Published var totalSeconds  = 120
+    @Published var remaining     = 120
+    @Published var isRunning     = false
+    @Published var isVisible     = false
+    @Published var exerciseName: String? = nil
 
     private var timerTask: Task<Void, Never>?
     private var beepPlayer: AVAudioPlayer?
@@ -180,121 +174,55 @@ final class RestTimerManager: ObservableObject {
         return .red
     }
 
-    func start() {
-        guard remaining > 0 else { return }
-        timerTask?.cancel()
-            timerTask = nil
+    /// Start (or restart) the timer. Always replaces any running timer, always auto-starts.
+    func start(seconds: Int, exerciseName: String? = nil) {
+        timerTask?.cancel(); timerTask = nil
+        cancelNotification()
+        let secs        = max(10, seconds)
+        totalSeconds    = secs
+        remaining       = secs
+        isRunning       = true
+        isVisible       = true
+        if let name = exerciseName { self.exerciseName = name }
+        UserDefaults.standard.set(secs, forKey: Self.presetKey)
+        scheduleNotification(seconds: secs)
+        timerTask = Task { await runLoop() }
+    }
+
+    /// Resume a paused timer without changing duration.
+    func resume() {
+        guard !isRunning, remaining > 0 else { return }
         isRunning = true
-        let endDate = Date().addingTimeInterval(TimeInterval(remaining))
-        UserDefaults.standard.set(endDate,      forKey: Self.endDateKey)
-        UserDefaults.standard.set(totalSeconds, forKey: Self.totalKey)
         scheduleNotification(seconds: remaining)
         timerTask = Task { await runLoop() }
     }
 
     func stop() {
         isRunning = false
-        timerTask?.cancel()
-        timerTask = nil
-        UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-        UserDefaults.standard.removeObject(forKey: Self.totalKey)
+        timerTask?.cancel(); timerTask = nil
         cancelNotification()
     }
 
     func reset() { stop(); remaining = totalSeconds }
 
-    /// +/- adjustment. When running, extends totalSeconds if needed to keep progress ≤ 1.
-    func adjustTime(by delta: Int) {
-        remaining = max(10, remaining + delta)
-        if isRunning {
-            totalSeconds = max(totalSeconds, remaining)
-            rescheduleNotification(seconds: remaining)
-        } else {
-            totalSeconds = remaining
-        }
-    }
+    func dismiss() { stop(); isVisible = false; exerciseName = nil }
 
-    /// Apply a preset chip. Restarts if already running.
-    func applyPreset(_ seconds: Int) {
-        let wasRunning = isRunning
-        if isRunning { stop() }
+    /// Change preset without restarting.
+    func setPreset(_ seconds: Int) {
+        stop()
         totalSeconds = seconds
         remaining    = seconds
         UserDefaults.standard.set(seconds, forKey: Self.presetKey)
-        if wasRunning { start() }
     }
 
-    /// Called when an exercise is logged. Sets the preset but never starts automatically.
-    /// If a timer is already running for a different exercise, ask before replacing.
-    func requestAutoStart(_ seconds: Int, exerciseName: String) {
-        if isRunning, let current = currentExerciseName, current != exerciseName {
-            pendingStart = (seconds, exerciseName)
-        } else if !isRunning {
-            currentExerciseName = exerciseName
-            totalSeconds = seconds
-            remaining    = seconds
-            UserDefaults.standard.set(seconds, forKey: Self.presetKey)
-            // No auto-start — user presses play manually
-        }
-        // Same exercise running: don't interrupt
-    }
-
-    func confirmReplace() {
-        guard let p = pendingStart else { return }
-        stop()
-        currentExerciseName = p.name
-        totalSeconds = p.seconds
-        remaining    = p.seconds
-        UserDefaults.standard.set(p.seconds, forKey: Self.presetKey)
-        start()  // User explicitly confirmed the replacement → start
-        pendingStart = nil
-    }
-
-    func cancelReplace() {
-        pendingStart = nil
-    }
-
-    /// Restore state on sheet appear. If already running (singleton), just sync time.
-    func restoreIfNeeded(autoStartSeconds: Int? = nil) {
-        if isRunning { syncFromEndDate(); return }
-        if let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date {
-            let left = Int(end.timeIntervalSinceNow.rounded())
-            guard left > 0 else {
-                UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-                applyInitial(autoStartSeconds: autoStartSeconds)
-                return
-            }
-            totalSeconds = UserDefaults.standard.integer(forKey: Self.totalKey)
-            if totalSeconds == 0 { totalSeconds = left }
-            remaining = left
-            timerTask?.cancel()
-            timerTask = Task { await runLoop() }
-            isRunning = true
+    func adjust(by delta: Int) {
+        remaining = max(10, remaining + delta)
+        if isRunning {
+            totalSeconds = max(totalSeconds, remaining)
+            cancelNotification()
+            scheduleNotification(seconds: remaining)
         } else {
-            applyInitial(autoStartSeconds: autoStartSeconds)
-        }
-    }
-
-    func syncFromEndDate() {
-        guard let end = UserDefaults.standard.object(forKey: Self.endDateKey) as? Date else { return }
-        let left = Int(end.timeIntervalSinceNow.rounded())
-        if left <= 0 {
-            remaining = 0; isRunning = false
-            timerTask?.cancel(); timerTask = nil
-            UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-            playBeep(hz: 1200); triggerNotificationFeedback(.success)
-        } else {
-            remaining = left
-        }
-    }
-
-    private func applyInitial(autoStartSeconds: Int?) {
-        if let auto = autoStartSeconds, auto > 0 {
-            totalSeconds = auto; remaining = auto
-            UserDefaults.standard.set(auto, forKey: Self.presetKey)
-        } else {
-            let saved = UserDefaults.standard.integer(forKey: Self.presetKey)
-            if saved > 0 { totalSeconds = saved; remaining = saved }
+            totalSeconds = remaining
         }
     }
 
@@ -307,11 +235,6 @@ final class RestTimerManager: ObservableObject {
             UNNotificationRequest(identifier: "restTimer", content: content, trigger: trigger))
     }
 
-    private func rescheduleNotification(seconds: Int) {
-        UserDefaults.standard.set(Date().addingTimeInterval(TimeInterval(seconds)), forKey: Self.endDateKey)
-        scheduleNotification(seconds: seconds)
-    }
-
     private func cancelNotification() {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["restTimer"])
     }
@@ -320,17 +243,18 @@ final class RestTimerManager: ObservableObject {
         while !Task.isCancelled {
             try? await Task.sleep(nanoseconds: 1_000_000_000)
             guard !Task.isCancelled else { break }
-            if remaining > 0 {
-                remaining -= 1
-                if remaining <= 3 && remaining > 0 {
-                    playBeep(hz: 880); triggerImpact(style: .rigid)
-                } else if remaining == 0 {
-                    isRunning = false
-                    UserDefaults.standard.removeObject(forKey: Self.endDateKey)
-                    playBeep(hz: 1200); triggerNotificationFeedback(.success)
-                }
+            guard remaining > 0 else { break }
+            remaining -= 1
+            if remaining <= 3 && remaining > 0 {
+                playBeep(hz: 880); triggerImpact(style: .rigid)
+            } else if remaining == 0 {
+                isRunning = false
+                cancelNotification()
+                playBeep(hz: 1200); triggerNotificationFeedback(.success)
+                break
             }
         }
+        timerTask = nil
     }
 
     private func playBeep(hz: Double) {

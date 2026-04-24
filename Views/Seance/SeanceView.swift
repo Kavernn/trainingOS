@@ -23,9 +23,10 @@ struct SeanceView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if timer.currentExerciseName != nil {
+            if timer.isVisible {
                 FloatingRestTimerBar()
-                    .transition(.opacity)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: timer.isVisible)
             }
         }
         .task { await vm.load() }
@@ -1222,7 +1223,7 @@ struct WorkoutSeanceView: View {
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
-            .padding(.bottom, timer.currentExerciseName != nil ? 90 : 0)
+            .padding(.bottom, timer.isVisible ? 90 : 0)
         }
         .scrollDismissesKeyboard(.interactively)
         .sheet(isPresented: $showFinish) {
@@ -1317,11 +1318,7 @@ struct WorkoutSeanceView: View {
             AddHIITSheet { hiitCount += 1 }
                 .presentationDetents([.large])
         }
-        .onChange(of: scenePhase) { phase in
-            if phase == .active { timer.syncFromEndDate() }
-        }
         .onAppear {
-            timer.restoreIfNeeded()
             Task { await loadInventory() }
             computeGhost()
             guard !didLoadPreCoaching else { return }
@@ -1344,20 +1341,6 @@ struct WorkoutSeanceView: View {
         }
         .onChange(of: data.inventoryRest) { fresh in
             inventoryRest = fresh
-        }
-        .alert(
-            "Remplacer le timer ?",
-            isPresented: Binding(
-                get: { RestTimerManager.shared.pendingStart != nil },
-                set: { if !$0 { RestTimerManager.shared.cancelReplace() } }
-            )
-        ) {
-            Button("Remplacer") { RestTimerManager.shared.confirmReplace() }
-            Button("Garder en cours", role: .cancel) { RestTimerManager.shared.cancelReplace() }
-        } message: {
-            if let p = RestTimerManager.shared.pendingStart {
-                Text("Timer actif : \(RestTimerManager.shared.currentExerciseName ?? "?"). Remplacer par \(p.name) ?")
-            }
         }
     }
     
@@ -2904,132 +2887,6 @@ struct AddHIITSheet: View {
         }
     }
 
-    // MARK: - Rest Timer Sheet (thin UI shell — state lives in RestTimerManager.shared)
-    struct RestTimerSheet: View {
-        var autoStartSeconds: Int? = nil
-
-        @ObservedObject private var timer = RestTimerManager.shared
-        @Environment(\.dismiss)    private var dismiss
-        @Environment(\.scenePhase) private var scenePhase
-
-        /// Base presets + exercise-specific value if not already included.
-        private var allPresets: [Int] {
-            let base = [60, 90, 120, 180]
-            guard let auto = autoStartSeconds, auto > 0, !base.contains(auto) else { return base }
-            return (base + [auto]).sorted()
-        }
-
-        var body: some View {
-            ZStack {
-                Color(hex: "080810").ignoresSafeArea()
-                VStack(spacing: 28) {
-                    Text("REPOS")
-                        .font(.system(size: 12, weight: .black))
-                        .tracking(4)
-                        .foregroundColor(.gray)
-                        .padding(.top, 8)
-
-                    // Preset chips
-                    HStack(spacing: 8) {
-                        ForEach(allPresets, id: \.self) { p in
-                            Button { timer.applyPreset(p) } label: {
-                                Text(p < 60 ? "\(p)s" : (p % 60 == 0 ? "\(p / 60) min" : "\(p)s"))
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(timer.totalSeconds == p ? .black : timer.timerColor)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 7)
-                                    .background(timer.totalSeconds == p
-                                                ? timer.timerColor
-                                                : timer.timerColor.opacity(0.12))
-                                    .clipShape(Capsule())
-                            }
-                        }
-                    }
-                    .opacity(timer.isRunning ? 0 : 1)
-
-                    // Ring
-                    ZStack {
-                        Circle()
-                            .stroke(Color.white.opacity(0.07), lineWidth: 14)
-                            .frame(width: 180, height: 180)
-                        Circle()
-                            .trim(from: 0, to: timer.progress)
-                            .stroke(timer.timerColor,
-                                    style: StrokeStyle(lineWidth: 14, lineCap: .round))
-                            .frame(width: 180, height: 180)
-                            .rotationEffect(.degrees(-90))
-                            .animation(.linear(duration: 0.5), value: timer.progress)
-                        Text(formatTime(timer.remaining))
-                            .font(.system(size: 52, weight: .black, design: .rounded))
-                            .foregroundColor(timer.timerColor)
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                    }
-
-                    // Adjust buttons
-                    HStack(spacing: 10) {
-                        adjustButton(label: "−30s") { timer.adjustTime(by: -30) }
-                        adjustButton(label: "−10s") { timer.adjustTime(by: -10) }
-                        adjustButton(label: "+10s") { timer.adjustTime(by: +10) }
-                        adjustButton(label: "+30s") { timer.adjustTime(by: +30) }
-                    }
-
-                    // Play/Pause + Reset + Close (✕ keeps timer running in background)
-                    HStack(spacing: 20) {
-                        Button { timer.reset() } label: {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.7))
-                                .frame(width: 56, height: 56)
-                                .background(Color.white.opacity(0.08))
-                                .clipShape(Circle())
-                        }
-
-                        Button {
-                            if timer.isRunning { timer.stop() } else { timer.start() }
-                        } label: {
-                            Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
-                                .font(.system(size: 26, weight: .bold))
-                                .foregroundColor(.black)
-                                .frame(width: 72, height: 72)
-                                .background(timer.timerColor)
-                                .clipShape(Circle())
-                        }
-
-                        Button { dismiss() } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.7))
-                                .frame(width: 56, height: 56)
-                                .background(Color.white.opacity(0.08))
-                                .clipShape(Circle())
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-            .onAppear { timer.restoreIfNeeded(autoStartSeconds: autoStartSeconds) }
-            .onChange(of: scenePhase) { phase in
-                if phase == .active { timer.syncFromEndDate() }
-            }
-        }
-
-        private func adjustButton(label: String, action: @escaping () -> Void) -> some View {
-            Button(action: action) {
-                Text(label)
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(timer.timerColor)
-                    .frame(width: 80, height: 40)
-                    .background(timer.timerColor.opacity(0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-            }
-        }
-
-        private func formatTime(_ s: Int) -> String {
-            "\(s / 60):\(String(format: "%02d", s % 60))"
-        }
-
-    }
     
     
     // MARK: - Error View
@@ -3101,122 +2958,117 @@ private struct ConfettiView: View {
     }
 }
 
-// MARK: - Floating rest timer bar (always-visible bottom bar, replaces the sheet)
+// MARK: - Floating rest timer card
 struct FloatingRestTimerBar: View {
     @ObservedObject private var timer = RestTimerManager.shared
     private let presets = [60, 90, 120, 180]
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Colored progress line at top — scaleEffect évite GeometryReader dans safeAreaInset
-            // fixedSize + maxWidth: .infinity garantit hauteur stable dans safeAreaInset
-            ZStack(alignment: .leading) {
-                Rectangle().fill(Color.white.opacity(0.06))
-                Rectangle()
-                    .fill(LinearGradient(
-                        colors: [timer.timerColor.opacity(0.5), timer.timerColor],
-                        startPoint: .leading, endPoint: .trailing
-                    ))
-                    .scaleEffect(x: max(0.001, timer.progress), anchor: .leading)
-                    .animation(.linear(duration: 0.5), value: timer.progress)
+        HStack(spacing: 14) {
+            // Ring + countdown
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.1), lineWidth: 3)
+                Circle()
+                    .trim(from: 0, to: timer.progress)
+                    .stroke(timer.timerColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1), value: timer.progress)
+                Text(formatTime(timer.remaining))
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
             }
-            .frame(height: 2)
-            .frame(maxWidth: .infinity)
+            .frame(width: 52, height: 52)
 
-            HStack(spacing: 14) {
-                // Ring + countdown
-                ZStack {
-                    Circle()
-                        .stroke(Color.white.opacity(0.07), lineWidth: 3.5)
-                    Circle()
-                        .trim(from: 0, to: timer.progress)
-                        .stroke(timer.timerColor,
-                                style: StrokeStyle(lineWidth: 3.5, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.5), value: timer.progress)
-                    Text(formatTime(timer.remaining))
-                        .font(.system(size: 13, weight: .black, design: .monospaced))
-                        .foregroundColor(.white)
-                        .monospacedDigit()
+            // Exercise name + controls
+            VStack(alignment: .leading, spacing: 5) {
+                if let name = timer.exerciseName {
+                    Text(name)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.4))
+                        .lineLimit(1)
                 }
-                .frame(width: 52, height: 52)
-
-                // Exercise name + presets or adjust buttons
-                VStack(alignment: .leading, spacing: 6) {
-                    if let exo = timer.currentExerciseName {
-                        Text(exo)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.4))
-                            .lineLimit(1)
-                    }
-                    if !timer.isRunning {
-                        HStack(spacing: 6) {
-                            ForEach(presets, id: \.self) { p in
-                                Button { timer.applyPreset(p) } label: {
-                                    Text(p % 60 == 0 ? "\(p/60)m" : "\(p)s")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(timer.totalSeconds == p ? .black : .white)
-                                        .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(timer.totalSeconds == p
-                                                    ? timer.timerColor
-                                                    : Color.white.opacity(0.1))
-                                        .clipShape(Capsule())
-                                }
+                if timer.isRunning {
+                    HStack(spacing: 4) {
+                        ForEach([-30, -10, +10, +30], id: \.self) { d in
+                            Button { timer.adjust(by: d) } label: {
+                                Text(d > 0 ? "+\(d)s" : "\(d)s")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(d < 0 ? Color(hex: "ff6b6b") : Color(hex: "6bffb8"))
+                                    .padding(.horizontal, 6).padding(.vertical, 4)
+                                    .background((d < 0 ? Color(hex: "ff6b6b") : Color(hex: "6bffb8")).opacity(0.15))
+                                    .clipShape(Capsule())
                             }
                         }
-                    } else {
-                        HStack(spacing: 6) {
-                            ForEach([-30, -10, 10, 30], id: \.self) { delta in
-                                Button { timer.adjustTime(by: delta) } label: {
-                                    Text(delta > 0 ? "+\(delta)s" : "\(delta)s")
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(delta < 0 ? Color(hex: "ff6b6b") : Color(hex: "6bffb8"))
-                                        .padding(.horizontal, 8).padding(.vertical, 5)
-                                        .background(delta < 0
-                                                    ? Color(hex: "ff6b6b").opacity(0.12)
-                                                    : Color(hex: "6bffb8").opacity(0.12))
-                                        .clipShape(Capsule())
-                                }
+                    }
+                } else {
+                    HStack(spacing: 4) {
+                        ForEach(presets, id: \.self) { p in
+                            Button { timer.setPreset(p) } label: {
+                                Text(p % 60 == 0 ? "\(p/60)m" : "\(p)s")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(timer.totalSeconds == p ? .black : .white.opacity(0.8))
+                                    .padding(.horizontal, 7).padding(.vertical, 4)
+                                    .background(timer.totalSeconds == p ? timer.timerColor : Color.white.opacity(0.1))
+                                    .clipShape(Capsule())
                             }
                         }
                     }
                 }
-
-                Spacer()
-
-                // Reset
-                Button { timer.reset() } label: {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.45))
-                        .frame(width: 36, height: 36)
-                        .background(Color.white.opacity(0.06))
-                        .clipShape(Circle())
-                }
-
-                // Play / Pause
-                Button {
-                    if timer.isRunning { timer.stop() } else { timer.start() }
-                } label: {
-                    Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.black)
-                        .frame(width: 46, height: 46)
-                        .background(timer.timerColor)
-                        .clipShape(Circle())
-                        .shadow(color: timer.timerColor.opacity(0.45), radius: 10, y: 4)
-                }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 14)
-            .background(
-                LinearGradient(
-                    colors: [Color(hex: "16162a"), Color(hex: "0e0e1c")],
-                    startPoint: .top, endPoint: .bottom
-                )
-            )
+
+            Spacer(minLength: 0)
+
+            // Reset
+            Button { timer.reset() } label: {
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.4))
+                    .frame(width: 34, height: 34)
+                    .background(Color.white.opacity(0.07))
+                    .clipShape(Circle())
+            }
+
+            // Play / Pause
+            Button {
+                if timer.isRunning { timer.stop() } else { timer.resume() }
+            } label: {
+                Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.black)
+                    .frame(width: 42, height: 42)
+                    .background(timer.timerColor)
+                    .clipShape(Circle())
+                    .shadow(color: timer.timerColor.opacity(0.5), radius: 8, y: 3)
+            }
+
+            // Dismiss
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { timer.dismiss() }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white.opacity(0.35))
+                    .frame(width: 26, height: 26)
+                    .background(Color.white.opacity(0.07))
+                    .clipShape(Circle())
+            }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(Color(hex: "111128").opacity(0.96))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(timer.timerColor.opacity(0.2), lineWidth: 1)
+                )
+        )
+        .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 8)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 10)
         .frame(maxWidth: .infinity)
     }
 

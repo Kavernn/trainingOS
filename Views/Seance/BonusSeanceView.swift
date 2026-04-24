@@ -8,13 +8,39 @@ class BonusSeanceViewModel: SeanceViewModel {
 
     override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = true) async {
         let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
+        let exerciseLogs: [[String: Any]] = logResults.values.map {
+            ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
+        }
+        var failedExercises: [String] = []
+
+        for result in logResults.values {
+            do {
+                _ = try await APIService.shared.logExercise(
+                    exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
+                    sets: result.sets, force: true,
+                    isSecond: false, isBonus: true,
+                    equipmentType: result.equipmentType, painZone: result.painZone)
+            } catch {
+                failedExercises.append(result.name)
+            }
+        }
+
         do {
             try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
                                                    durationMin: durationMin, energyPre: energyPre,
-                                                   bonusSession: true)
-            showSuccess = true
+                                                   bonusSession: true,
+                                                   exerciseLogs: exerciseLogs)
+        } catch {
+            submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
             await APIService.shared.fetchDashboard()
-        } catch { submitError = error.localizedDescription }
+            return
+        }
+
+        await APIService.shared.fetchDashboard()
+        if !failedExercises.isEmpty {
+            commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
+        }
+        showSuccess = true
     }
 }
 
@@ -152,16 +178,17 @@ struct BonusSeanceView: View {
                         }
                     }
                 }
-                .padding(.bottom, timer.currentExerciseName != nil ? 90 : 0)
+                .padding(.bottom, timer.isVisible ? 90 : 0)
                 .scrollDismissesKeyboard(.interactively)
             }
         }
         .navigationTitle("Séance Bonus")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if timer.currentExerciseName != nil {
+            if timer.isVisible {
                 FloatingRestTimerBar()
-                    .transition(.opacity)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: timer.isVisible)
             }
         }
         .task { await loadInventory() }

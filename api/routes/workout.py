@@ -38,7 +38,7 @@ def api_log():
         if not exercise or not reps_str:
             return jsonify({"error": "Données manquantes"}), 400
 
-        weights   = load_weights()
+        weights   = load_weights([exercise], limit_per=10)
 
         # Duplicate-prevention guard (skipped for force overwrite, evening, or bonus session)
         existing_history = weights.get(exercise, {}).get("history", [])
@@ -157,12 +157,14 @@ def api_log():
 
         sid = (stub or {}).get("id")
         if sid:
-            _db.upsert_exercise_log_direct(
+            ok = _db.upsert_exercise_log_direct(
                 sid, exercise, round(weight, 1), reps,
                 sets_json=sets_data or None,
                 rpe=rpe,
                 pain_zone=pain_zone or None,
             )
+            if not ok:
+                return jsonify({"error": "Échec de l'enregistrement en base"}), 500
             # Keep the session label aligned with the logged exercise stream.
             if session_name:
                 if is_bonus_session:
@@ -424,7 +426,9 @@ def api_log_session():
         else:
             log_session(today, rpe, comment, exos, duration_min, energy_pre,
                         blocks=blocks, **vol_stats, session_name=session_name)
-            _db.complete_workout_session(today, patch=session_patch)
+            completed_ok = _db.complete_workout_session(today, patch=session_patch)
+            if not completed_ok:
+                return jsonify({"error": "Impossible de marquer la séance comme terminée"}), 500
 
         # Fallback persistence path:
         # iOS sends `exos` as summary strings (e.g. "Bench Press 185.0lbs 5,5,5").

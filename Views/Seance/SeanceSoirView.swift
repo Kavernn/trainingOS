@@ -35,13 +35,39 @@ class SeanceSoirViewModel: SeanceViewModel {
 
     override func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false) async {
         let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
+        let exerciseLogs: [[String: Any]] = logResults.values.map {
+            ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
+        }
+        var failedExercises: [String] = []
+
+        for result in logResults.values {
+            do {
+                _ = try await APIService.shared.logExercise(
+                    exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
+                    sets: result.sets, force: true,
+                    isSecond: true, isBonus: false,
+                    equipmentType: result.equipmentType, painZone: result.painZone)
+            } catch {
+                failedExercises.append(result.name)
+            }
+        }
+
         do {
             try await APIService.shared.logSession(exos: exos, rpe: rpe, comment: comment,
                                                    durationMin: durationMin, energyPre: energyPre,
-                                                   secondSession: true, sessionName: sessionName)
-            showSuccess = true
+                                                   secondSession: true, sessionName: sessionName,
+                                                   exerciseLogs: exerciseLogs)
+        } catch {
+            submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
             await APIService.shared.fetchDashboard()
-        } catch { submitError = error.localizedDescription }
+            return
+        }
+
+        await APIService.shared.fetchDashboard()
+        if !failedExercises.isEmpty {
+            commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
+        }
+        showSuccess = true
     }
 }
 

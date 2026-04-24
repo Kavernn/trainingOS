@@ -115,7 +115,7 @@ struct ExerciseCard: View {
             triggerNotificationFeedback(.success)
             if let secs = restSeconds, secs > 0 {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    RestTimerManager.shared.requestAutoStart(secs, exerciseName: name)
+                    RestTimerManager.shared.start(seconds: secs, exerciseName: name)
                 }
             }
             // Auto-close after brief feedback delay
@@ -508,9 +508,15 @@ struct ExerciseCard: View {
 
                         if !isTimeBased, evm.lastReps != "—", !evm.lastReps.isEmpty {
                             Button {
+                                let parts = evm.lastRepsParts
+                                let targetCount = max(1, parts.count)
+                                if evm.sets.count < targetCount {
+                                    evm.sets.append(contentsOf: Array(repeating: SetInput(), count: targetCount - evm.sets.count))
+                                } else if evm.sets.count > targetCount {
+                                    evm.sets = Array(evm.sets.prefix(targetCount))
+                                }
                                 for i in evm.sets.indices {
                                     evm.sets[i].weight = evm.perSetHint(for: i)
-                                    let parts = evm.lastRepsParts
                                     evm.sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
                                 }
                             } label: {
@@ -669,12 +675,8 @@ struct ExerciseCard: View {
 
                         // Rest timer — integrated in form
                         RestTimerBadge(restSeconds: restSeconds, onTap: {
-                            let t = RestTimerManager.shared
-                            guard !t.isRunning else { return }
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                t.requestAutoStart(restSeconds ?? 120, exerciseName: name)
-                            }
-                            t.start()
+                            let secs = restSeconds ?? UserDefaults.standard.integer(forKey: RestTimerManager.presetKey)
+                            RestTimerManager.shared.start(seconds: max(secs, 10), exerciseName: name)
                         })
                         .padding(.top, 4)
 
