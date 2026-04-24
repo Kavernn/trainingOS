@@ -110,6 +110,31 @@ class HealthKitService: ObservableObject {
         return await fetchLastNightSleepWindow()?.hours
     }
 
+    /// Sleep hours for the night that precedes `date` (18:00 day-1 → 12:00 day).
+    func fetchSleep(for date: Date) async -> Double? {
+        guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
+        let cal   = Calendar.current
+        let start = cal.date(byAdding: .hour, value: -6, to: cal.startOfDay(for: date))!
+        let end   = cal.date(byAdding: .hour, value: 12, to: cal.startOfDay(for: date))!
+        let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
+        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        return await withCheckedContinuation { cont in
+            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 100, sortDescriptors: [sort]) { _, samples, _ in
+                guard let samples = samples as? [HKCategorySample] else { cont.resume(returning: nil); return }
+                let asleep = samples.filter {
+                    $0.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue ||
+                    $0.value == HKCategoryValueSleepAnalysis.asleepCore.rawValue ||
+                    $0.value == HKCategoryValueSleepAnalysis.asleepDeep.rawValue ||
+                    $0.value == HKCategoryValueSleepAnalysis.asleepREM.rawValue
+                }
+                guard !asleep.isEmpty else { cont.resume(returning: nil); return }
+                let total = asleep.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+                cont.resume(returning: total > 0 ? total / 3600.0 : nil)
+            }
+            store.execute(q)
+        }
+    }
+
     /// Returns the bedtime, wake time, and total sleep duration from HealthKit for the last 18h window.
     func fetchLastNightSleepWindow() async -> SleepWindow? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
@@ -190,9 +215,15 @@ class HealthKitService: ObservableObject {
 
     // MARK: - Today Active Energy
     func fetchTodayActiveEnergy() async -> Double? {
+        return await fetchActiveEnergy(for: Date())
+    }
+
+    func fetchActiveEnergy(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return nil }
-        let start = Calendar.current.startOfDay(for: Date())
-        let pred  = HKQuery.predicateForSamples(withStart: start, end: Date())
+        let cal   = Calendar.current
+        let start = cal.startOfDay(for: date)
+        let end   = cal.date(byAdding: .day, value: 1, to: start)!
+        let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
         return await withCheckedContinuation { cont in
             let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .cumulativeSum) { _, stats, _ in
                 cont.resume(returning: stats?.sumQuantity()?.doubleValue(for: .kilocalorie()))
@@ -310,6 +341,8 @@ class HealthKitService: ObservableObject {
     func fetchLatestHRV() async -> Double? { nil }
     func fetchRestingHR(for date: Date) async -> Double? { nil }
     func fetchHRV(for date: Date) async -> Double? { nil }
+    func fetchSleep(for date: Date) async -> Double? { nil }
+    func fetchActiveEnergy(for date: Date) async -> Double? { nil }
     func fetchLatestBodyWeight() async -> Double? { nil }
     func fetchLatestBodyFat() async -> Double? { nil }
     func fetchTodayActiveEnergy() async -> Double? { nil }

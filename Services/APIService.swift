@@ -760,16 +760,17 @@ class APIService: ObservableObject {
     }
 
     func logRecovery(sleepHours: Double?, sleepQuality: Double?, restingHr: Double?,
-                     hrv: Double?, steps: Int?, soreness: Double?, notes: String,
-                     date: String? = nil) async throws {
+                     hrv: Double?, steps: Int?, soreness: Double?, activeEnergy: Double? = nil,
+                     notes: String, date: String? = nil) async throws {
         var body: [String: Any] = ["notes": notes]
-        if let v = sleepHours   { body["sleep_hours"] = v }
+        if let v = sleepHours   { body["sleep_hours"]   = v }
         if let v = sleepQuality { body["sleep_quality"] = v }
-        if let v = restingHr    { body["resting_hr"] = v }
-        if let v = hrv          { body["hrv"] = v }
-        if let v = steps        { body["steps"] = v }
-        if let v = soreness     { body["soreness"] = v }
-        if let d = date         { body["date"] = d }
+        if let v = restingHr    { body["resting_hr"]    = v }
+        if let v = hrv          { body["hrv"]           = v }
+        if let v = steps        { body["steps"]         = v }
+        if let v = soreness     { body["soreness"]      = v }
+        if let v = activeEnergy { body["active_energy"] = v }
+        if let d = date         { body["date"]          = d }
         _ = try await offlinePost(endpoint: "/api/log_recovery", payload: body)
         CacheService.shared.clear(for: "recovery_data")
     }

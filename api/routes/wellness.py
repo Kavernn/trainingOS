@@ -59,6 +59,7 @@ def api_log_recovery():
         "resting_hr":    data.get("resting_hr"),
         "hrv":           data.get("hrv"),
         "steps":         data.get("steps"),
+        "active_energy": data.get("active_energy"),
         "soreness":      soreness_val if soreness_val else None,  # 0 → NULL (constraint: 1-10)
         "notes":         data.get("notes", ""),
         "source":        "manual",

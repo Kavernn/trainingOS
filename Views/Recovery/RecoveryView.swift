@@ -15,7 +15,7 @@ struct RecoveryView: View {
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
     private var entriesMissingHK: [RecoveryEntry] {
-        log.filter { $0.restingHr == nil || $0.hrv == nil }
+        log.filter { $0.restingHr == nil || $0.hrv == nil || $0.activeEnergy == nil }
     }
 
     private var alreadyLoggedToday: Bool {
@@ -37,6 +37,9 @@ struct RecoveryView: View {
     }
     var avgActiveEnergy: Double {
         let v = log.compactMap(\.activeEnergy); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
+    }
+    var avgHRV: Double {
+        let v = log.compactMap(\.hrv); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
     }
 
     var body: some View {
@@ -113,6 +116,8 @@ struct RecoveryView: View {
                                         label: "Pas moy./jour", color: .green)
                                 KPICard(value: avgActiveEnergy > 0 ? String(format: "%.0f kcal", avgActiveEnergy) : "—",
                                         label: "Énergie active", color: .orange)
+                                KPICard(value: avgHRV > 0 ? String(format: "%.0f ms", avgHRV) : "—",
+                                        label: "HRV moy.", color: .green)
                             }
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.05)
@@ -242,11 +247,12 @@ struct RecoveryView: View {
             guard let dateStr = entry.date,
                   let date    = fmt.date(from: dateStr) else { continue }
 
-            async let rhr = entry.restingHr == nil ? hk.fetchRestingHR(for: date) : nil
-            async let hrv = entry.hrv       == nil ? hk.fetchHRV(for: date)       : nil
-            let (newRHR, newHRV) = await (rhr, hrv)
+            async let rhr = entry.restingHr    == nil ? hk.fetchRestingHR(for: date)    : nil
+            async let hrv = entry.hrv           == nil ? hk.fetchHRV(for: date)           : nil
+            async let ae  = entry.activeEnergy  == nil ? hk.fetchActiveEnergy(for: date)  : nil
+            let (newRHR, newHRV, newAE) = await (rhr, hrv, ae)
 
-            guard newRHR != nil || newHRV != nil else { continue }
+            guard newRHR != nil || newHRV != nil || newAE != nil else { continue }
 
             try? await APIService.shared.logRecovery(
                 sleepHours:   entry.sleepHours,
@@ -255,6 +261,7 @@ struct RecoveryView: View {
                 hrv:          newHRV ?? entry.hrv,
                 steps:        entry.steps,
                 soreness:     entry.soreness,
+                activeEnergy: newAE  ?? entry.activeEnergy,
                 notes:        entry.notes ?? "",
                 date:         dateStr
             )
@@ -309,7 +316,7 @@ struct RecoveryRow: View {
                             .font(.system(size: 11)).foregroundColor(.purple)
                     }
                     if let hr = entry.restingHr {
-                        Label(String(format: "%.0f", hr), systemImage: "heart.fill")
+                        Label(String(format: "%.0f bpm", hr), systemImage: "heart.fill")
                             .font(.system(size: 11)).foregroundColor(.red)
                     }
                 }
@@ -671,6 +678,7 @@ struct LogRecoverySheet: View {
     @State private var restingHrStr = ""
     @State private var hrvStr = ""
     @State private var stepsStr = ""
+    @State private var activeEnergyStr = ""
     @State private var soreness: Double = 0
     @State private var notes = ""
     @State private var isSaving = false
@@ -763,6 +771,10 @@ struct LogRecoverySheet: View {
                                 RecoveryField(label: "PAS", placeholder: "8500", text: $stepsStr, keyboardType: .numberPad)
                                 RecoveryField(label: "HRV (ms)", placeholder: "45", text: $hrvStr)
                             }
+                            HStack(spacing: 12) {
+                                RecoveryField(label: "ÉNERGIE ACTIVE (kcal)", placeholder: "350", text: $activeEnergyStr, keyboardType: .numberPad)
+                                Spacer().frame(maxWidth: .infinity)
+                            }
                         }
                         .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
 
@@ -807,12 +819,13 @@ struct LogRecoverySheet: View {
 
     private func prefill() {
         if let e = prefillEntry {
-            if let h  = e.sleepHours    { sleepHoursStr = String(format: "%.1f", h) }
-            if let q  = e.sleepQuality  { sleepQuality  = q }
-            if let hr = e.restingHr     { restingHrStr  = String(format: "%.0f", hr) }
-            if let v  = e.hrv           { hrvStr         = String(format: "%.0f", v) }
-            if let s  = e.steps         { stepsStr       = "\(s)" }
-            if let so = e.soreness      { soreness       = so }
+            if let h  = e.sleepHours    { sleepHoursStr    = String(format: "%.1f", h) }
+            if let q  = e.sleepQuality  { sleepQuality     = q }
+            if let hr = e.restingHr     { restingHrStr     = String(format: "%.0f", hr) }
+            if let v  = e.hrv           { hrvStr           = String(format: "%.0f", v) }
+            if let s  = e.steps         { stepsStr         = "\(s)" }
+            if let ae = e.activeEnergy  { activeEnergyStr  = String(format: "%.0f", ae) }
+            if let so = e.soreness      { soreness         = so }
             notes = e.notes ?? ""
             let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
             if let d = e.date, let parsed = f.date(from: d) { selectedDate = parsed }
@@ -833,17 +846,19 @@ struct LogRecoverySheet: View {
             let authorized = await hk.requestAuthorization()
             guard authorized else { isLoadingHK = false; return }
 
-            async let sleep = hk.fetchLastNightSleep()
+            async let sleep = hk.fetchSleep(for: date)
             async let hr    = hk.fetchRestingHR(for: date)
             async let hrv   = hk.fetchHRV(for: date)
             async let steps = hk.fetchSteps(for: date)
+            async let ae    = hk.fetchActiveEnergy(for: date)
 
-            let (s, h, v, st) = await (sleep, hr, hrv, steps)
+            let (s, h, v, st, a) = await (sleep, hr, hrv, steps, ae)
 
-            if let s  { sleepHoursStr = String(format: "%.1f", s) }
-            if let h  { restingHrStr  = String(format: "%.0f", h) }
-            if let v  { hrvStr        = String(format: "%.0f", v) }
-            if let st { stepsStr      = "\(st)" }
+            if let s  { sleepHoursStr   = String(format: "%.1f", s) }
+            if let h  { restingHrStr    = String(format: "%.0f", h) }
+            if let v  { hrvStr          = String(format: "%.0f", v) }
+            if let st { stepsStr        = "\(st)" }
+            if let a  { activeEnergyStr = String(format: "%.0f", a) }
 
             isLoadingHK = false
         }
@@ -860,6 +875,7 @@ struct LogRecoverySheet: View {
                     hrv:          Double(hrvStr),
                     steps:        stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
                     soreness:     soreness,
+                    activeEnergy: activeEnergyStr.isEmpty ? nil : Double(activeEnergyStr),
                     notes:        notes,
                     date:         dateStr
                 )
