@@ -24,9 +24,9 @@ struct SeanceView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if timer.isVisible {
-                FloatingRestTimerBar()
+                FloatingRestTimerCard()
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: timer.isVisible)
+                    .animation(.spring(response: 0.42, dampingFraction: 0.82), value: timer.isVisible)
             }
         }
         .task { await vm.load() }
@@ -712,6 +712,7 @@ struct WorkoutSeanceView: View {
     @State private var showAddHIIT   = false
     @State private var cardioCount   = 0
     @State private var hiitCount     = 0
+    @State private var lastScrollY: CGFloat? = nil
     
     /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
     private var computedSessionRPE: Double {
@@ -1224,6 +1225,24 @@ struct WorkoutSeanceView: View {
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
             .padding(.bottom, timer.isVisible ? 90 : 0)
+            .background(
+                GeometryReader { geo in
+                    Color.clear.preference(
+                        key: ScrollOffsetKey.self,
+                        value: geo.frame(in: .named("workoutScroll")).minY
+                    )
+                }
+            )
+        }
+        .coordinateSpace(name: "workoutScroll")
+        .onPreferenceChange(ScrollOffsetKey.self) { offset in
+            guard let last = lastScrollY else { lastScrollY = offset; return }
+            if abs(offset - last) > 4, timer.isVisible {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                    timer.isVisible = false
+                }
+            }
+            lastScrollY = offset
         }
         .scrollDismissesKeyboard(.interactively)
         .sheet(isPresented: $showFinish) {
@@ -2958,118 +2977,114 @@ private struct ConfettiView: View {
     }
 }
 
-// MARK: - Floating rest timer card
-struct FloatingRestTimerBar: View {
+// MARK: - Floating Rest Timer Card
+struct FloatingRestTimerCard: View {
     @ObservedObject private var timer = RestTimerManager.shared
-    private let presets = [60, 90, 120, 180]
+
+    private var ringColor: Color {
+        if timer.progress > 0.6 { return .green }
+        if timer.progress > 0.3 { return .orange }
+        return .red
+    }
 
     var body: some View {
-        HStack(spacing: 14) {
-            // Ring + countdown
+        VStack(spacing: 22) {
+            if let name = timer.exerciseName {
+                Text(name.uppercased())
+                    .font(.system(size: 11, weight: .semibold))
+                    .tracking(2)
+                    .foregroundColor(.white.opacity(0.4))
+                    .lineLimit(1)
+            }
+
+            // Circular clock
             ZStack {
                 Circle()
-                    .stroke(Color.white.opacity(0.1), lineWidth: 3)
+                    .stroke(Color.white.opacity(0.07), lineWidth: 18)
+                    .frame(width: 200, height: 200)
+
+                // Glow arc
                 Circle()
                     .trim(from: 0, to: timer.progress)
-                    .stroke(timer.timerColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .stroke(ringColor.opacity(0.28), style: StrokeStyle(lineWidth: 28, lineCap: .round))
+                    .frame(width: 200, height: 200)
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 1), value: timer.progress)
+                    .blur(radius: 8)
+
+                // Main arc
+                Circle()
+                    .trim(from: 0, to: timer.progress)
+                    .stroke(ringColor, style: StrokeStyle(lineWidth: 18, lineCap: .round))
+                    .frame(width: 200, height: 200)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1), value: timer.progress)
+
                 Text(formatTime(timer.remaining))
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .font(.system(size: 58, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                     .monospacedDigit()
                     .contentTransition(.numericText())
             }
-            .frame(width: 52, height: 52)
 
-            // Exercise name + controls
-            VStack(alignment: .leading, spacing: 5) {
-                if let name = timer.exerciseName {
-                    Text(name)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.4))
-                        .lineLimit(1)
+            // Controls
+            HStack(spacing: 28) {
+                Button { timer.reset() } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.55))
+                        .frame(width: 50, height: 50)
+                        .background(Color.white.opacity(0.09))
+                        .clipShape(Circle())
                 }
-                if timer.isRunning {
-                    HStack(spacing: 4) {
-                        ForEach([-30, -10, +10, +30], id: \.self) { d in
-                            Button { timer.adjust(by: d) } label: {
-                                Text(d > 0 ? "+\(d)s" : "\(d)s")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(d < 0 ? Color(hex: "ff6b6b") : Color(hex: "6bffb8"))
-                                    .padding(.horizontal, 6).padding(.vertical, 4)
-                                    .background((d < 0 ? Color(hex: "ff6b6b") : Color(hex: "6bffb8")).opacity(0.15))
-                                    .clipShape(Capsule())
-                            }
-                        }
-                    }
-                } else {
-                    HStack(spacing: 4) {
-                        ForEach(presets, id: \.self) { p in
-                            Button { timer.setPreset(p) } label: {
-                                Text(p % 60 == 0 ? "\(p/60)m" : "\(p)s")
-                                    .font(.system(size: 11, weight: .bold))
-                                    .foregroundColor(timer.totalSeconds == p ? .black : .white.opacity(0.8))
-                                    .padding(.horizontal, 7).padding(.vertical, 4)
-                                    .background(timer.totalSeconds == p ? timer.timerColor : Color.white.opacity(0.1))
-                                    .clipShape(Capsule())
-                            }
-                        }
-                    }
+
+                Button {
+                    if timer.isRunning { timer.stop() } else { timer.resume() }
+                } label: {
+                    Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.black)
+                        .frame(width: 68, height: 68)
+                        .background(ringColor)
+                        .clipShape(Circle())
+                        .shadow(color: ringColor.opacity(0.55), radius: 14, y: 5)
                 }
-            }
+                .animation(.easeInOut(duration: 0.25), value: timer.isRunning)
 
-            Spacer(minLength: 0)
-
-            // Reset
-            Button { timer.reset() } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.4))
-                    .frame(width: 34, height: 34)
-                    .background(Color.white.opacity(0.07))
-                    .clipShape(Circle())
-            }
-
-            // Play / Pause
-            Button {
-                if timer.isRunning { timer.stop() } else { timer.resume() }
-            } label: {
-                Image(systemName: timer.isRunning ? "pause.fill" : "play.fill")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.black)
-                    .frame(width: 42, height: 42)
-                    .background(timer.timerColor)
-                    .clipShape(Circle())
-                    .shadow(color: timer.timerColor.opacity(0.5), radius: 8, y: 3)
-            }
-
-            // Dismiss
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { timer.dismiss() }
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.white.opacity(0.35))
-                    .frame(width: 26, height: 26)
-                    .background(Color.white.opacity(0.07))
-                    .clipShape(Circle())
+                // Close — stops and dismisses the timer completely
+                Button {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                        timer.dismiss()
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.45))
+                        .frame(width: 50, height: 50)
+                        .background(Color.white.opacity(0.07))
+                        .clipShape(Circle())
+                }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.top, 28)
+        .padding(.bottom, 36)
+        .padding(.horizontal, 32)
+        .frame(maxWidth: .infinity)
         .background(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(Color(hex: "111128").opacity(0.96))
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                .fill(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 22, style: .continuous)
-                        .stroke(timer.timerColor.opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                        .fill(Color(hex: "080810").opacity(0.72))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 32, style: .continuous)
+                        .stroke(ringColor.opacity(0.3), lineWidth: 1)
                 )
         )
-        .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 8)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 10)
-        .frame(maxWidth: .infinity)
+        .shadow(color: .black.opacity(0.55), radius: 32, x: 0, y: -8)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 8)
     }
 
     private func formatTime(_ s: Int) -> String {
@@ -3077,10 +3092,15 @@ struct FloatingRestTimerBar: View {
     }
 }
 
-// MARK: - Card Height Preference Key
+/// MARK: - Card Height Preference Key
 private struct CardHeightKey: PreferenceKey {
     static var defaultValue: [String: CGFloat] = [:]
     static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
         value.merge(nextValue()) { $1 }
     }
+}
+
+struct ScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
 }

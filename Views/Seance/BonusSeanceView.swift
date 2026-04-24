@@ -60,6 +60,7 @@ struct BonusSeanceView: View {
     @ObservedObject private var timer = RestTimerManager.shared
     @State private var sessionStart = Date()
     @State private var expandedExercise: String? = nil
+    @State private var lastScrollY: CGFloat? = nil
 
     private var orderedExercises: [String] {
         exerciseOrder.filter { localExercises[$0] != nil }
@@ -177,6 +178,24 @@ struct BonusSeanceView: View {
                             .padding(.bottom, 24)
                         }
                     }
+                    .background(
+                        GeometryReader { geo in
+                            Color.clear.preference(
+                                key: ScrollOffsetKey.self,
+                                value: geo.frame(in: .named("bonusScroll")).minY
+                            )
+                        }
+                    )
+                }
+                .coordinateSpace(name: "bonusScroll")
+                .onPreferenceChange(ScrollOffsetKey.self) { offset in
+                    guard let last = lastScrollY else { lastScrollY = offset; return }
+                    if abs(offset - last) > 4, timer.isVisible {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.82)) {
+                            timer.isVisible = false
+                        }
+                    }
+                    lastScrollY = offset
                 }
                 .padding(.bottom, timer.isVisible ? 90 : 0)
                 .scrollDismissesKeyboard(.interactively)
@@ -186,9 +205,9 @@ struct BonusSeanceView: View {
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if timer.isVisible {
-                FloatingRestTimerBar()
+                FloatingRestTimerCard()
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: timer.isVisible)
+                    .animation(.spring(response: 0.42, dampingFraction: 0.82), value: timer.isVisible)
             }
         }
         .task { await loadInventory() }
