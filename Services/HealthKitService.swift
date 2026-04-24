@@ -79,20 +79,18 @@ class HealthKitService: ObservableObject {
         }
     }
 
-    /// Resting HR for a specific date.
-    /// Uses a 48-hour window (day-1 00:00 → day+1 00:00) because Apple Health
-    /// stores resting HR samples with timestamps from the overnight measurement
-    /// period, which may fall on the previous calendar day.
+    /// Resting HR for a specific date — daily average via statistics query.
+    /// 48-hour window (day-1 00:00 → day+1 00:00) covers overnight samples
+    /// whose timestamps may fall on the previous calendar day.
     func fetchRestingHR(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else { return nil }
         let cal   = Calendar.current
         let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: date)!)
         let end   = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: date))!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
-        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return await withCheckedContinuation { cont in
-            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
-                let val = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: HKUnit(from: "count/min"))
+            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .discreteAverage) { _, stats, _ in
+                let val = stats?.averageQuantity()?.doubleValue(for: HKUnit(from: "count/min"))
                 cont.resume(returning: val)
             }
             store.execute(q)
@@ -175,17 +173,16 @@ class HealthKitService: ObservableObject {
         return await fetchLatestQuantity(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))
     }
 
-    /// HRV for a specific date — same 48-hour window as fetchRestingHR.
+    /// HRV for a specific date — daily average via statistics query, same 48h window as fetchRestingHR.
     func fetchHRV(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else { return nil }
         let cal   = Calendar.current
         let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: date)!)
         let end   = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: date))!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
-        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return await withCheckedContinuation { cont in
-            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 1, sortDescriptors: [sort]) { _, samples, _ in
-                let val = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: .secondUnit(with: .milli))
+            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .discreteAverage) { _, stats, _ in
+                let val = stats?.averageQuantity()?.doubleValue(for: .secondUnit(with: .milli))
                 cont.resume(returning: val)
             }
             store.execute(q)
