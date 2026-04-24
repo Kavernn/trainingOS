@@ -501,6 +501,39 @@ let yesterday = Date(timeIntervalSince1970: todayMidnight.timeIntervalSince1970 
 
 ---
 
+## iOS — "Reprendre la dernière séance" : redimensionner les sets avant de remplir
+
+Le bouton boucle sur `evm.sets.indices` qui est initialisé depuis le `scheme` programme (ex: `"4x8-12"` → 4 sets). Si l'utilisateur n'a jamais fait 4 sets, le 4e set apparaît vide à chaque "Reprendre".
+
+**Règle :** Toujours redimensionner `evm.sets` au compte réel de `lastRepsParts` **avant** de remplir :
+```swift
+let parts = evm.lastRepsParts
+let targetCount = max(1, parts.count)
+if evm.sets.count < targetCount {
+    evm.sets.append(contentsOf: Array(repeating: SetInput(), count: targetCount - evm.sets.count))
+} else if evm.sets.count > targetCount {
+    evm.sets = Array(evm.sets.prefix(targetCount))
+}
+for i in evm.sets.indices {
+    evm.sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
+}
+```
+
+---
+
+## iOS — `SeanceSoirViewModel` et `BonusSeanceViewModel` : override `finish()` doit appeler `logExercise()` par exercice
+
+Ces deux classes overridaient `finish()` en appelant seulement `logSession()`, sans boucle sur `logResults`. Résultat : les exercices n'étaient pas enregistrés dans `exercise_logs` (aucun appel `/api/log`).
+
+**Règle :** Tout override de `finish()` dans une sous-classe de `SeanceViewModel` doit copier exactement le pattern de la classe parente :
+1. Boucle `for result in logResults.values` → `APIService.shared.logExercise(...)`
+2. Puis `APIService.shared.logSession(..., exerciseLogs: exerciseLogs)`
+3. Puis `fetchDashboard()`
+
+Ne jamais shortcutter en appelant seulement `logSession()`.
+
+---
+
 ## DB — Les migrations KV→relational peuvent créer des doublons
 
 Lors de la migration d'une table KV (clé/valeur) vers des tables relationnelles, si le script de migration est relancé sans guard `ON CONFLICT`, il insère des doublons.

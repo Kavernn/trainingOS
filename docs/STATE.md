@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-19
+Dernière mise à jour : 2026-04-24
 
 ---
 
@@ -143,6 +143,27 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 1. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
 2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
 3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
+
+## Complété récemment (2026-04-24)
+
+### Audit séance log — 5 bugs critiques corrigés
+- **`api/log` perf** : `load_weights()` → `load_weights([exercise], limit_per=10)` — chargeait tout l'historique à chaque appel
+- **`api/log` fiabilité** : retourne HTTP 500 si `upsert_exercise_log_direct()` échoue (plus de `{"success": True}` silencieux)
+- **`api/log_session` fiabilité** : retourne HTTP 500 si `complete_workout_session()` échoue
+- **`SeanceSoirViewModel.finish()`** : ajout des appels `logExercise()` par exercice (manquants — seul `logSession()` était appelé)
+- **`BonusSeanceViewModel.finish()`** : même fix — les exercices n'étaient pas loggés individuellement
+- **"Reprendre la dernière séance"** : `ExerciseCard` redimensionne `evm.sets` au compte réel de `lastRepsParts` avant de remplir (plus de 4e set fantôme issu du `scheme` programme)
+
+### Rebuild timer repos
+- **`RestTimerManager` simplifié** : suppression de `pendingStart`, `confirmReplace`, `cancelReplace`, `requestAutoStart`, `restoreIfNeeded`, `syncFromEndDate`, `applyPreset`, `adjustTime`
+- **Nouvelle API** : `start(seconds:exerciseName:)` — remplace toujours le timer en cours, auto-start immédiat · `resume()` · `dismiss()` · `isVisible` · `setPreset(_:)` · `adjust(by:)`
+- **`FloatingRestTimerBar` redesigné** : carte flottante compacte (cornerRadius 22, background `#111128`, bordure colorée, shadow noire) — plus de barre pleine largeur étirée
+- **Bouton dismiss (X)** ajouté sur la carte flottante
+- **Suppression `RestTimerSheet`** (dead code — jamais présenté)
+- **Suppression alert "Remplacer le timer ?"** (dialog irritante en pleine séance)
+- `ExerciseCard.doLog()` → `start(seconds:exerciseName:)` (auto-start à chaque log)
+
+---
 
 ## Complété récemment (2026-04-19 — Nouvelles features)
 
