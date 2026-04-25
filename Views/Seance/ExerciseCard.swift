@@ -15,6 +15,7 @@ struct ExerciseCard: View {
     var restSeconds: Int? = nil
     var prescription: ExercisePrescription? = nil
     var suggestion: ProgressionSuggestion? = nil
+    var hint: String? = nil
     @Binding var logResult: ExerciseLogResult?
     var onLogged: (() -> Void)? = nil
     // Expand/collapse (controlled by parent)
@@ -35,7 +36,7 @@ struct ExerciseCard: View {
          equipmentType: String = "machine", trackingType: String = "reps",
          bodyWeight: Double = 0, isSecondSession: Bool = false, isBonusSession: Bool = false,
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
-         suggestion: ProgressionSuggestion? = nil,
+         suggestion: ProgressionSuggestion? = nil, hint: String? = nil,
          logResult: Binding<ExerciseLogResult?>, onLogged: (() -> Void)? = nil,
          isExpanded: Bool = false, onToggle: @escaping () -> Void = {},
          nextExerciseName: String? = nil) {
@@ -50,6 +51,7 @@ struct ExerciseCard: View {
         self.restSeconds     = restSeconds
         self.prescription    = prescription
         self.suggestion      = suggestion
+        self.hint            = hint
         self._logResult      = logResult
         self.onLogged        = onLogged
         self.isExpanded      = isExpanded
@@ -433,6 +435,15 @@ struct ExerciseCard: View {
                     // Inline coaching chip
                     if logResult == nil, let s = suggestion, s.suggestionType != "maintain" {
                         CoachingChip(suggestion: s)
+                    }
+
+                    // Hint technique
+                    if let h = hint, !h.isEmpty {
+                        Text(h)
+                            .font(.system(size: 12, weight: .regular))
+                            .italic()
+                            .foregroundColor(.gray.opacity(0.6))
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
                     // Already-logged state

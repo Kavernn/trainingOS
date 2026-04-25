@@ -2021,6 +2021,61 @@ def get_full_program(program_id: str | None = None) -> dict | None:
             return None
 
 
+def get_session_supersets(program_id: str | None = None) -> dict:
+    """Return superset structure for all sessions of a program.
+
+    Shape: {session_name: {"SS1": {"A": ex_name, "B": ex_name, "rest": int}, ...}}
+    Only exercises with superset_group set are included.
+    Returns {} on error or if no superset data exists.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return {}
+    if program_id is None:
+        program_id = get_default_program_id()
+    try:
+        q = _client.table("program_sessions").select("id, name")
+        if program_id:
+            q = q.eq("program_id", program_id)
+        sessions = (q.order("order_index").execute().data) or []
+
+        result: dict = {}
+        for session in sessions:
+            sid, sname = session["id"], session["name"]
+            blocks = (_client.table("program_blocks")
+                      .select("id").eq("session_id", sid).eq("type", "strength")
+                      .execute().data) or []
+            ss_map: dict = {}
+            for block in blocks:
+                bid = block["id"]
+                rows = (_client.table("program_block_exercises")
+                        .select("superset_group, superset_position, rest_after_superset, exercises(name)")
+                        .eq("block_id", bid)
+                        .not_.is_("superset_group", "null")
+                        .order("order_index")
+                        .execute().data) or []
+                for row in rows:
+                    grp = row.get("superset_group")
+                    pos = row.get("superset_position")
+                    rest = row.get("rest_after_superset")
+                    ex_name = (row.get("exercises") or {}).get("name")
+                    if not grp or not ex_name:
+                        continue
+                    if grp not in ss_map:
+                        ss_map[grp] = {}
+                    if pos == 1:
+                        ss_map[grp]["A"] = ex_name
+                    elif pos == 2:
+                        ss_map[grp]["B"] = ex_name
+                        if rest is not None:
+                            ss_map[grp]["rest"] = rest
+            if ss_map:
+                result[sname] = ss_map
+        return result
+    except Exception as e:
+        logger.error("get_session_supersets error: %s", e)
+        return {}
+
+
 def save_full_program(program: dict, program_id: str | None = None) -> bool:
     """Persist {session_name: {"blocks": [...]}} to relational tables.
 

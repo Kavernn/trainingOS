@@ -902,8 +902,9 @@ def api_seance_data():
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
     inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
-    # Ordered list of exercise names per session (preserves user-defined order)
+    inventory_hints    = {name: info["tips"] for name, info in inv.items() if info.get("tips")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
+    exercise_supersets = _db.get_session_supersets()
 
     # Build per-exercise prescriptions (sets × reps adjusted for fatigue + trend)
     fatigue_score = get_cached_fatigue_score()
@@ -942,7 +943,9 @@ def api_seance_data():
         "inventory_types": inventory_types,
         "inventory_tracking": inventory_tracking,
         "inventory_rest": inventory_rest,
+        "inventory_hints": inventory_hints,
         "exercise_order": exercise_order,
+        "exercise_supersets": exercise_supersets,
         "prescriptions": prescriptions,
         "exercise_suggestions": exercise_suggestions,
     })

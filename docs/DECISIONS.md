@@ -90,3 +90,29 @@ Les agents doivent ajouter une entrée lors de tout changement architectural maj
 **Décision** : Narrative hebdomadaire cachée par clé `narrative_YYYY-WXX` (semaine ISO).
 
 **Raison** : La narrative ne change pas significativement pendant la même semaine. Le cache par semaine évite des appels Claude répétés à chaque ouverture de l'IntelligenceView.
+
+---
+
+## 2026-04-25
+
+**Décision** : Supersets encodés via 3 colonnes nullables sur `program_block_exercises` (`superset_group`, `superset_position`, `rest_after_superset`) plutôt qu'une table `supersets` dédiée.
+
+**Raison** : Rétrocompatibilité totale — les exercices solo gardent ces colonnes à NULL sans impact sur les requêtes existantes. Une table séparée aurait requis des JOINs supplémentaires sur un chemin critique (fetch séance). La structure de superset est simple (paire A+B) et ne justifie pas une table dédiée.
+
+---
+
+**Décision** : Hints d'exercice exposés via le champ `tips TEXT` existant dans la table `exercises` (réutilisé) plutôt qu'une nouvelle colonne `hint`.
+
+**Raison** : `tips` était déjà présent dans le schema comme "coaching cue" — même sémantique. Zéro migration nécessaire. Renommé conceptuellement en "hint" côté API/iOS uniquement (`inventory_hints` dans la réponse).
+
+---
+
+**Décision** : Repos uniform 120 s sur tous les supersets du programme UL/PPL (valeur utilisateur, vs 90/75/60 s du PDF d'origine).
+
+**Raison** : Simplicité cognitive en séance — un seul chiffre à retenir. La colonne `rest_after_superset` reste flexible pour ajuster par exercice si besoin dans un programme futur.
+
+---
+
+**Décision** : Rendu superset dans `SeanceView` via un enum `ExerciseRenderItem` (`.superset` / `.solo`) calculé une fois en computed property, plutôt que détection inline dans le `ForEach`.
+
+**Raison** : Évite le double-rendu de l'exercice B (qui apparaîtrait deux fois dans un ForEach naïf). La computed property construit la liste de render items en un seul passage (`Set<String> rendered`), garantissant un identifiant stable par item pour SwiftUI. Le fallback vers la liste plate quand `sessionSupersets` est vide préserve le comportement exact des anciennes sessions.

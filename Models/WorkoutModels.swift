@@ -169,6 +169,19 @@ struct ProgramInfo: Codable, Identifiable, Equatable {
     }
 }
 
+// MARK: - Superset
+struct SupersetEntry: Codable {
+    let a: String
+    let b: String
+    let rest: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case a = "A"
+        case b = "B"
+        case rest
+    }
+}
+
 // MARK: - Seance
 struct SeanceData: Codable {
     let today: String
@@ -180,9 +193,11 @@ struct SeanceData: Codable {
     let weights: [String: WeightData]
     let week: Int
     let inventoryTypes: [String: String]
-    let inventoryTracking: [String: String]   // "reps" | "time"
-    let inventoryRest: [String: Int]          // exercise name → rest seconds
+    let inventoryTracking: [String: String]
+    let inventoryRest: [String: Int]
+    let inventoryHints: [String: String]
     let exerciseOrder: [String: [String]]
+    let exerciseSupersets: [String: [String: SupersetEntry]]
     let prescriptions: [String: ExercisePrescription]?
     let exerciseSuggestions: [String: ProgressionSuggestion]?
 
@@ -196,7 +211,9 @@ struct SeanceData: Codable {
         case inventoryTypes       = "inventory_types"
         case inventoryTracking    = "inventory_tracking"
         case inventoryRest        = "inventory_rest"
+        case inventoryHints       = "inventory_hints"
         case exerciseOrder        = "exercise_order"
+        case exerciseSupersets    = "exercise_supersets"
         case exerciseSuggestions  = "exercise_suggestions"
     }
 
@@ -212,7 +229,9 @@ struct SeanceData: Codable {
         inventoryTypes     = (try? c.decode([String: String].self, forKey: .inventoryTypes))    ?? [:]
         inventoryTracking  = (try? c.decode([String: String].self, forKey: .inventoryTracking)) ?? [:]
         inventoryRest      = (try? c.decode([String: Int].self,    forKey: .inventoryRest))     ?? [:]
+        inventoryHints     = (try? c.decode([String: String].self, forKey: .inventoryHints))    ?? [:]
         exerciseOrder      = (try? c.decode([String: [String]].self, forKey: .exerciseOrder))   ?? [:]
+        exerciseSupersets  = (try? c.decode([String: [String: SupersetEntry]].self, forKey: .exerciseSupersets)) ?? [:]
         prescriptions      = try? c.decode([String: ExercisePrescription].self, forKey: .prescriptions)
         exerciseSuggestions = try? c.decode([String: ProgressionSuggestion].self, forKey: .exerciseSuggestions)
     }
@@ -221,8 +240,8 @@ struct SeanceData: Codable {
          schedule: [String: String], fullProgram: [String: [String: SafeString]],
          weights: [String: WeightData], week: Int,
          inventoryTypes: [String: String], inventoryTracking: [String: String] = [:],
-         inventoryRest: [String: Int] = [:],
-         exerciseOrder: [String: [String]],
+         inventoryRest: [String: Int] = [:], inventoryHints: [String: String] = [:],
+         exerciseOrder: [String: [String]], exerciseSupersets: [String: [String: SupersetEntry]] = [:],
          prescriptions: [String: ExercisePrescription]? = nil,
          exerciseSuggestions: [String: ProgressionSuggestion]? = nil) {
         self.today               = today
@@ -235,7 +254,9 @@ struct SeanceData: Codable {
         self.inventoryTypes      = inventoryTypes
         self.inventoryTracking   = inventoryTracking
         self.inventoryRest       = inventoryRest
+        self.inventoryHints      = inventoryHints
         self.exerciseOrder       = exerciseOrder
+        self.exerciseSupersets   = exerciseSupersets
         self.prescriptions       = prescriptions
         self.exerciseSuggestions = exerciseSuggestions
     }

@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-24
+Dernière mise à jour : 2026-04-25
 
 ---
 
@@ -143,6 +143,43 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 1. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
 2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
 3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
+
+## Complété récemment (2026-04-25 — Programme UL/PPL + Supersets)
+
+### Nouveau programme d'entraînement : UL/PPL
+- **5 sessions** créées dans Supabase : Upper A, Lower A, Push, Pull, Legs B
+- **8 exercices par session** en 4 supersets (SS1–SS4), modèle double progression, incrément lbs (composés +5 lbs, isolation +2.5 lbs)
+- **13 nouveaux exercices** créés avec champ `tips` (cue de coaching), par ex. Incline Dumbbell Curl, Single-Leg Press, Overhead Triceps Extension
+- **21 exercices existants** enrichis avec `tips`
+- **`weekly_schedule`** mis à jour : Lun→Upper A / Mar→Lower A / Mer→Push / Jeu→Pull / Ven→Legs B
+- Ancien programme (Push A, Pull A, Legs, Push B, Pull B + Full Body) archivé — données historiques intactes
+
+### Schema DB — colonnes supersets
+- 3 colonnes ajoutées à `program_block_exercises` (migration appliquée en amont) :
+  - `superset_group TEXT` (ex. "SS1"–"SS4", NULL = exercice solo)
+  - `superset_position SMALLINT` (1=A, 2=B)
+  - `rest_after_superset INT` (120 s sur toutes les B, NULL sur A et exercices solo)
+
+### API — `GET /api/seance_data`
+- **`inventory_hints`** : `{exerciceName: tip}` — construit depuis `exercises.tips` au moment de la réponse
+- **`exercise_supersets`** : `{sessionName: {groupLabel: {A, B, rest}}}` — calculé par `db.get_session_supersets()`
+
+### iOS — WorkoutModels.swift
+- `SupersetEntry: Codable` (champs `a`, `b`, `rest` ; CodingKeys `"A"`, `"B"`, `"rest"`)
+- `SeanceData` étendu : `inventoryHints: [String: String]` + `exerciseSupersets: [String: [String: SupersetEntry]]` (décodage avec `?? [:]` fallback)
+
+### iOS — ExerciseCard.swift
+- Propriété `hint: String? = nil` — affichée en italique gris dans la section expanded (sous les coaching chips)
+
+### iOS — SeanceView / WorkoutSeanceView
+- `@State inventoryHints` + `@State sessionSupersets` initialisés depuis `data` dans `loadInventory()`
+- `onChange(data.inventoryHints)` pour maintenir l'état à jour
+- `draggableCard` : passe `hint: inventoryHints[name]` à `ExerciseCard` ; paramètres `forceNoRest`/`restOverride` pour contrôler le timer par position superset
+- `ExerciseRenderItem` enum (`.superset` / `.solo`) + `exerciseRenderItems` computed property — groupe les pairs A+B sans double-render
+- `supersetBlock` : header capsule (label + "N s repos") → card A (pas de timer) → "↓ enchaîner" → card B (120 s timer)
+- Fallback automatique au rendu plat quand `sessionSupersets` est vide (aucune régression sur les anciennes sessions)
+
+---
 
 ## Complété récemment (2026-04-24)
 

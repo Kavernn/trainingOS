@@ -681,6 +681,8 @@ struct WorkoutSeanceView: View {
     @State private var inventoryTypes: [String: String] = [:]
     @State private var inventoryTracking: [String: String] = [:]
     @State private var inventoryRest: [String: Int] = [:]
+    @State private var inventoryHints: [String: String] = [:]
+    @State private var sessionSupersets: [String: SupersetEntry] = [:]
     @State private var draggingName: String?
     @State private var dragOffset: CGFloat = 0
     @State private var cardHeights: [String: CGFloat] = [:]
@@ -843,12 +845,8 @@ struct WorkoutSeanceView: View {
             .padding(.horizontal, 16)
         } else {
             VStack(spacing: 8) {
-                ForEach(Array(exercises.enumerated()), id: \.element.0) { idx, pair in
-                    draggableCard(
-                        name: pair.0,
-                        scheme: pair.1,
-                        nextExerciseName: idx + 1 < exercises.count ? exercises[idx + 1].0 : nil
-                    )
+                ForEach(exerciseRenderItems) { item in
+                    renderExerciseItem(item)
                 }
             }
             .onPreferenceChange(CardHeightKey.self) { cardHeights.merge($0) { $1 } }
@@ -896,8 +894,109 @@ struct WorkoutSeanceView: View {
         Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
     }
 
+    // MARK: - Superset render model
+
+    private enum ExerciseRenderItem: Identifiable {
+        case superset(id: String, group: String, entry: SupersetEntry, schemeA: String, schemeB: String, nextName: String?)
+        case solo(name: String, scheme: String, next: String?)
+        var id: String {
+            switch self {
+            case .superset(let id, _, _, _, _, _): return id
+            case .solo(let name, _, _): return name
+            }
+        }
+    }
+
+    private var exerciseRenderItems: [ExerciseRenderItem] {
+        guard !sessionSupersets.isEmpty else {
+            let exs = exercises
+            return exs.enumerated().map { idx, pair in
+                .solo(name: pair.0, scheme: pair.1, next: idx + 1 < exs.count ? exs[idx + 1].0 : nil)
+            }
+        }
+        var ssLookup: [String: (group: String, entry: SupersetEntry)] = [:]
+        for (group, entry) in sessionSupersets {
+            ssLookup[entry.a] = (group, entry)
+            ssLookup[entry.b] = (group, entry)
+        }
+        var rendered = Set<String>()
+        var items: [ExerciseRenderItem] = []
+        let exs = exercises
+        for (idx, pair) in exs.enumerated() {
+            let name = pair.0
+            guard !rendered.contains(name) else { continue }
+            if let ss = ssLookup[name], ss.entry.a == name {
+                let bName = ss.entry.b
+                let schemeB = exs.first(where: { $0.0 == bName })?.1 ?? ""
+                let bIdx = exs.firstIndex(where: { $0.0 == bName }) ?? idx
+                let nextAfterB = bIdx + 1 < exs.count ? exs[bIdx + 1].0 : nil
+                items.append(.superset(id: "ss_\(ss.group)", group: ss.group, entry: ss.entry,
+                                       schemeA: pair.1, schemeB: schemeB, nextName: nextAfterB))
+                rendered.insert(name)
+                rendered.insert(bName)
+            } else {
+                let next = idx + 1 < exs.count ? exs[idx + 1].0 : nil
+                items.append(.solo(name: name, scheme: pair.1, next: next))
+                rendered.insert(name)
+            }
+        }
+        return items
+    }
+
     @ViewBuilder
-    private func draggableCard(name: String, scheme: String, nextExerciseName: String? = nil) -> some View {
+    private func renderExerciseItem(_ item: ExerciseRenderItem) -> some View {
+        switch item {
+        case .superset(_, let group, let entry, let schemeA, let schemeB, let nextName):
+            supersetBlock(group: group, entry: entry, schemeA: schemeA, schemeB: schemeB, nextName: nextName)
+        case .solo(let name, let scheme, let next):
+            draggableCard(name: name, scheme: scheme, nextExerciseName: next)
+        }
+    }
+
+    @ViewBuilder
+    private func supersetBlock(group: String, entry: SupersetEntry, schemeA: String, schemeB: String, nextName: String?) -> some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                Text(group)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.15))
+                    .clipShape(Capsule())
+                Text("Superset")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.gray)
+                Spacer()
+                HStack(spacing: 4) {
+                    Image(systemName: "timer")
+                        .font(.system(size: 10))
+                    Text("\(entry.rest ?? 120) s repos")
+                        .font(.system(size: 11, weight: .medium))
+                }
+                .foregroundColor(.gray)
+            }
+            .padding(.horizontal, 16)
+
+            draggableCard(name: entry.a, scheme: schemeA, nextExerciseName: nil, forceNoRest: true)
+
+            HStack(spacing: 5) {
+                Image(systemName: "arrow.down")
+                    .font(.system(size: 10))
+                Text("enchaîner")
+                    .font(.system(size: 11, weight: .medium))
+            }
+            .foregroundColor(.orange.opacity(0.6))
+            .frame(maxWidth: .infinity, alignment: .center)
+
+            draggableCard(name: entry.b, scheme: schemeB, nextExerciseName: nextName,
+                          restOverride: entry.rest ?? 120)
+        }
+    }
+
+    @ViewBuilder
+    private func draggableCard(name: String, scheme: String, nextExerciseName: String? = nil,
+                               forceNoRest: Bool = false, restOverride: Int? = nil) -> some View {
         let isDragging = draggingName == name
         let shift = shiftY(for: name)
         let card = ExerciseCard(
@@ -909,9 +1008,10 @@ struct WorkoutSeanceView: View {
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
             isSecondSession: isSecondSession,
             isBonusSession: isBonusSession,
-            restSeconds: restSeconds(for: name),
+            restSeconds: forceNoRest ? nil : (restOverride ?? restSeconds(for: name)),
             prescription: data.prescriptions?[name],
             suggestion: data.exerciseSuggestions?[name],
+            hint: inventoryHints[name],
             logResult: $vm.logResults[name],
             onLogged: nil,
             isExpanded: expandedExercise == name,
@@ -1361,6 +1461,9 @@ struct WorkoutSeanceView: View {
         .onChange(of: data.inventoryRest) { fresh in
             inventoryRest = fresh
         }
+        .onChange(of: data.inventoryHints) { fresh in
+            if !fresh.isEmpty { inventoryHints = fresh }
+        }
     }
     
     private func rpeColor(_ v: Double) -> Color {
@@ -1396,6 +1499,8 @@ struct WorkoutSeanceView: View {
             self.inventoryTypes    = data.inventoryTypes
             self.inventoryTracking = data.inventoryTracking
             self.inventoryRest     = data.inventoryRest
+            self.inventoryHints    = data.inventoryHints
+            self.sessionSupersets  = data.exerciseSupersets[data.today] ?? [:]
         }
 
         // Fetch fresh programme + inventory types from network
