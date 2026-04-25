@@ -1933,11 +1933,10 @@ def get_full_program(program_id: str | None = None) -> dict | None:
     """
     if _client is None or MODE == "OFFLINE":
         return None
-    # Resolve program_id
-    if program_id is None:
-        program_id = get_default_program_id()
     try:
-        # Load sessions filtered by program
+        # Load sessions — filter by programme if specified, otherwise load ALL sessions
+        # across all programmes so the weekly_schedule (which can reference any session)
+        # always resolves exercises correctly.
         q = _client.table("program_sessions").select("id, name, order_index")
         if program_id:
             q = q.eq("program_id", program_id)
@@ -2030,8 +2029,6 @@ def get_session_supersets(program_id: str | None = None) -> dict:
     """
     if _client is None or MODE == "OFFLINE":
         return {}
-    if program_id is None:
-        program_id = get_default_program_id()
     try:
         q = _client.table("program_sessions").select("id, name")
         if program_id:
