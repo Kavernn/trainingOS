@@ -406,6 +406,14 @@ def api_weekly_report():
     session_count = len(week_sessions)
 
     # ── Volume & PRs ─────────────────────────────────────────────────────────
+    def _total_reps(reps_str: str) -> int:
+        parts = [p.strip() for p in str(reps_str).split(",") if p.strip().isdigit()]
+        return sum(int(p) for p in parts)
+
+    def _avg_reps(reps_str: str) -> float:
+        parts = [int(p.strip()) for p in str(reps_str).split(",") if p.strip().isdigit()]
+        return sum(parts) / len(parts) if parts else 1.0
+
     weights   = load_weights()
     total_vol = 0.0
     pr_count  = 0
@@ -417,7 +425,7 @@ def api_weekly_report():
         if not week_logs:
             continue
         ex_vol = sum(
-            (e.get("weight") or 0) * len((e.get("reps") or "").split(","))
+            (e.get("weight") or 0) * _total_reps(e.get("reps") or "")
             for e in week_logs
         )
         total_vol += ex_vol
@@ -426,11 +434,11 @@ def api_weekly_report():
             top_exercise = name
         # PR: this week's max 1RM > all-time prior max
         week_ones = [
-            e["weight"] * (1 + len((e.get("reps") or "1").split(",")) / 30)
+            e["weight"] * (1 + _avg_reps(e.get("reps") or "1") / 30)
             for e in week_logs if e.get("weight")
         ]
         all_ones = [
-            e["weight"] * (1 + len((e.get("reps") or "1").split(",")) / 30)
+            e["weight"] * (1 + _avg_reps(e.get("reps") or "1") / 30)
             for e in hist if e.get("weight") and str(e.get("date", "")) < week_start
         ]
         if week_ones and (not all_ones or max(week_ones) > max(all_ones)):
