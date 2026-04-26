@@ -1910,6 +1910,41 @@ def delete_program(program_id: str) -> bool:
         return False
 
 
+def get_cycle_start_date() -> str | None:
+    """Return cycle_start_date (YYYY-MM-DD) of the default program, or None."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        program_id = get_default_program_id()
+        if not program_id:
+            return None
+        resp = (_client.table("programs")
+                .select("cycle_start_date")
+                .eq("id", program_id)
+                .single()
+                .execute())
+        val = (resp.data or {}).get("cycle_start_date")
+        return str(val)[:10] if val else None
+    except Exception as e:
+        logger.error("get_cycle_start_date error: %s", e)
+        return None
+
+
+def set_cycle_start_date(date_str: str) -> bool:
+    """Set cycle_start_date on the default program. date_str = 'YYYY-MM-DD'."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        program_id = get_default_program_id()
+        if not program_id:
+            return False
+        _client.table("programs").update({"cycle_start_date": date_str}).eq("id", program_id).execute()
+        return True
+    except Exception as e:
+        logger.error("set_cycle_start_date error: %s", e)
+        return False
+
+
 def get_all_session_names() -> list[str]:
     """Return all session names across all programs (for schedule pickers)."""
     if _client is None or MODE == "OFFLINE":

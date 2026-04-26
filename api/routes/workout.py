@@ -870,7 +870,7 @@ def api_seance_data():
     from blocks import get_strength_exercises
     from progression import prescribe_volume
     from deload import get_cached_fatigue_score
-    from utils import _parse_scheme, get_current_week
+    from utils import _parse_scheme, get_current_week, get_mesocycle_info
     import db as _db
 
     full_program = load_program()
@@ -940,6 +940,7 @@ def api_seance_data():
         "suggestions": suggestions,
         "weights": weights,
         "week": get_current_week(),
+        "mesocycle": get_mesocycle_info(),
         "inventory_types": inventory_types,
         "inventory_tracking": inventory_tracking,
         "inventory_rest": inventory_rest,

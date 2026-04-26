@@ -183,6 +183,20 @@ struct SupersetEntry: Codable, Equatable, Hashable {
 }
 
 // MARK: - Seance
+struct MesocycleInfo: Codable {
+    let week: Int
+    let phase: String
+    let phaseLabel: String
+    let rpeTarget: String
+    let note: String
+
+    enum CodingKeys: String, CodingKey {
+        case week, phase, note
+        case phaseLabel = "phase_label"
+        case rpeTarget  = "rpe_target"
+    }
+}
+
 struct SeanceData: Codable {
     let today: String
     let todayDate: String
@@ -192,6 +206,7 @@ struct SeanceData: Codable {
     let fullProgram: [String: [String: SafeString]]
     let weights: [String: WeightData]
     let week: Int
+    let mesocycle: MesocycleInfo?
     let inventoryTypes: [String: String]
     let inventoryTracking: [String: String]
     let inventoryRest: [String: Int]
@@ -207,7 +222,7 @@ struct SeanceData: Codable {
         case alreadyLogged = "already_logged"
         case schedule
         case fullProgram = "full_program"
-        case weights, week, prescriptions
+        case weights, week, mesocycle, prescriptions
         case inventoryTypes       = "inventory_types"
         case inventoryTracking    = "inventory_tracking"
         case inventoryRest        = "inventory_rest"
@@ -226,6 +241,7 @@ struct SeanceData: Codable {
         fullProgram        = try c.decode([String: [String: SafeString]].self, forKey: .fullProgram)
         weights            = try c.decode([String: WeightData].self, forKey: .weights)
         week               = try c.decode(Int.self, forKey: .week)
+        mesocycle          = try? c.decode(MesocycleInfo.self, forKey: .mesocycle)
         inventoryTypes     = (try? c.decode([String: String].self, forKey: .inventoryTypes))    ?? [:]
         inventoryTracking  = (try? c.decode([String: String].self, forKey: .inventoryTracking)) ?? [:]
         inventoryRest      = (try? c.decode([String: Int].self,    forKey: .inventoryRest))     ?? [:]
@@ -238,7 +254,7 @@ struct SeanceData: Codable {
 
     init(today: String, todayDate: String, alreadyLogged: Bool,
          schedule: [String: String], fullProgram: [String: [String: SafeString]],
-         weights: [String: WeightData], week: Int,
+         weights: [String: WeightData], week: Int, mesocycle: MesocycleInfo? = nil,
          inventoryTypes: [String: String], inventoryTracking: [String: String] = [:],
          inventoryRest: [String: Int] = [:], inventoryHints: [String: String] = [:],
          exerciseOrder: [String: [String]], exerciseSupersets: [String: [String: SupersetEntry]] = [:],
@@ -251,6 +267,7 @@ struct SeanceData: Codable {
         self.fullProgram         = fullProgram
         self.weights             = weights
         self.week                = week
+        self.mesocycle           = mesocycle
         self.inventoryTypes      = inventoryTypes
         self.inventoryTracking   = inventoryTracking
         self.inventoryRest       = inventoryRest

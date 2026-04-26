@@ -96,6 +96,45 @@ def get_current_week() -> int:
     return max(1, (delta.days // 7) + 1)
 
 
+def get_mesocycle_info() -> dict:
+    """Return mesocycle week + phase derived from programs.cycle_start_date.
+
+    Falls back to 2026-04-25 (UL/PPL v1 start) if unset.
+    """
+    try:
+        import db as _db
+        start_str = _db.get_cycle_start_date() or "2026-04-25"
+        start = date.fromisoformat(start_str[:10])
+    except Exception:
+        start = date(2026, 4, 25)
+
+    week = max(1, ((date.today() - start).days // 7) + 1)
+
+    if week <= 2:
+        phase, phase_label, rpe_target = "Mise en place", "S1–S2", "7"
+        note = "Apprends les mouvements. Tempo contrôlé. Ne cherche pas l'échec."
+    elif week <= 4:
+        phase, phase_label, rpe_target = "Accumulation", "S3–S4", "8"
+        note = "Pousse les reps vers le haut de la fourchette. Charge stable."
+    elif week <= 6:
+        phase, phase_label, rpe_target = "Surcharge", "S5–S6", "8–9"
+        note = "Plafond atteint sur TOUTES les séries → +2.5 kg composés / +1.25 kg isolation."
+    elif week == 7:
+        phase, phase_label, rpe_target = "Deload", "S7", "5–6"
+        note = "−1 série par superset. 70% de la charge S6. Obligatoire."
+    else:
+        phase, phase_label, rpe_target = "Nouveau cycle", "S8+", "7"
+        note = "Charges de S5 + 5%. Nouvelle base, nouveau plafond."
+
+    return {
+        "week": week,
+        "phase": phase,
+        "phase_label": phase_label,
+        "rpe_target": rpe_target,
+        "note": note,
+    }
+
+
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

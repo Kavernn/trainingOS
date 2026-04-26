@@ -1145,14 +1145,18 @@ struct WorkoutSeanceView: View {
                 // Header
                 VStack(spacing: 6) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 2) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text(data.today.uppercased())
                                 .font(.system(size: 13, weight: .black))
                                 .tracking(3)
                                 .foregroundColor(.orange)
-                            Text("Semaine \(data.week)")
-                                .font(.system(size: 12))
-                                .foregroundColor(.gray)
+                            if let meso = data.mesocycle {
+                                MesocycleChip(info: meso)
+                            } else {
+                                Text("Semaine \(data.week)")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.gray)
+                            }
                         }
                         Spacer()
                         TimelineView(.periodic(from: vm.sessionStart, by: 60)) { ctx in
@@ -1580,6 +1584,46 @@ struct WorkoutSeanceView: View {
                 await MainActor.run { localProgram[oldName] = scheme }
             }
         }
+}
+
+// MARK: - Mesocycle Chip
+struct MesocycleChip: View {
+    let info: MesocycleInfo
+
+    private var color: Color {
+        switch info.phaseLabel {
+        case "S1–S2": return .blue
+        case "S3–S4": return .orange
+        case "S5–S6": return .red
+        case "S7":    return .green
+        default:      return .purple
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Text(info.phaseLabel)
+                .font(.system(size: 10, weight: .black))
+                .foregroundColor(color)
+            Text("·")
+                .font(.system(size: 10))
+                .foregroundColor(.gray.opacity(0.5))
+            Text(info.phase)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundColor(.white.opacity(0.75))
+            Text("·")
+                .font(.system(size: 10))
+                .foregroundColor(.gray.opacity(0.5))
+            Text("RPE \(info.rpeTarget)")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(color.opacity(0.9))
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.1))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.25), lineWidth: 1))
+        .cornerRadius(6)
+    }
 }
 
 // MARK: - Ghost Banner
