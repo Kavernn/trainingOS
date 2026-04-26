@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-25
+Dernière mise à jour : 2026-04-26
 
 ---
 
@@ -143,6 +143,31 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 1. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
 2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
 3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
+
+## Complété récemment (2026-04-26 — Programme UL/PPL v2 + Mésocycle)
+
+### Programme UL/PPL v2 — Migration complète
+- **`scripts/migrate_ulppl_v2.py`** : 40 exercices upsertés avec métadonnées complètes (type, muscles, tips)
+- **Exercices v2 (noms exacts du PDF)** : Seated Cable Row, Lateral Raise, Lying Leg Curl, Standing Calf Raise, Incline Barbell Press, Cable Lateral Raise, Flat DB Press, Tricep Pushdown, Pull-up / Weighted, Rear Delt Cable Fly, Cable Pull-Through, Sissy Squat, Seated Leg Curl, Seated Calf Raise (nouveaux ou renommés)
+- **Repos par superset différenciés** : SS1=90s / SS2=75s / SS3=75s / SS4=60s (remplace 120s flat)
+- **Legs B entièrement refondu** : ischio-dominant (Cable Pull-Through, Hip Thrust, Walking Lunges, Sissy Squat) vs quad-dominant v1
+
+### Fix programme actif — root cause corrigé
+- **`get_active_program_id()`** (db.py) : dérive le programme actif depuis `weekly_schedule` (morning slot) au lieu du plus vieux programme — retourne "Programme UL/PPL" (d7c7409b)
+- **`load_program()`** (planner.py) : passe `program_id` explicite à `get_full_program()` — plus de mélange sessions tous programmes confondus
+- **`get_session_supersets()`** : filtré par `active_program_id` dans `seance_data`
+- **Exercices "Programme UL/PPL" corrigés** en DB avec noms v2 exacts et supersets
+
+### Mésocycle 8 semaines — chip dans SeanceView
+- **`MesocycleInfo` Codable** (WorkoutModels.swift) : `week`, `phase`, `phaseLabel`, `rpeTarget`, `note`
+- **`get_mesocycle_info()`** (utils.py) : calcule la phase depuis `programs.cycle_start_date` (fallback 2026-04-25)
+- **`get_cycle_start_date()` / `set_cycle_start_date()`** (db.py) : lecture/écriture de la date de départ
+- **`seance_data`** retourne `mesocycle` (en plus de `week`)
+- **`MesocycleChip`** (SeanceView.swift) : capsule colorée par phase dans le header de `WorkoutSeanceView`
+  - S1–S2 bleu · S3–S4 orange · S5–S6 rouge · S7 vert · S8+ violet
+- **Migration 015** (`docs/migrations/015_programs_cycle_start.sql`) : ajouter `cycle_start_date DATE` à `programs` — à appliquer en SQL Editor pour activation dynamique
+
+---
 
 ## Complété récemment (2026-04-25 — Programme UL/PPL + Supersets)
 
