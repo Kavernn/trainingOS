@@ -12,6 +12,7 @@ struct DashboardView: View {
     @State private var lastRefresh: Date = .distantPast
     @State private var sleepPromptDismissedThisSession = false
     @State private var actionErrorMessage: String? = nil
+    @State private var showMorningReveal = false
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -187,12 +188,13 @@ struct DashboardView: View {
             }
             .navigationBarHidden(true)
         }
-        .task { await vm.loadAll(); lastRefresh = Date() }
+        .task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
         .onChange(of: scenePhase) {
-            if scenePhase == .active,
-               !api.isLoading,
-               Date().timeIntervalSince(lastRefresh) > 300 {
-                Task { await vm.loadAll(); lastRefresh = Date() }
+            if scenePhase == .active {
+                BehaviorTracker.shared.record(.appOpen)
+                if !api.isLoading, Date().timeIntervalSince(lastRefresh) > 300 {
+                    Task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
+                }
             }
         }
         .sheet(isPresented: $showMoodSheet, onDismiss: {
@@ -225,6 +227,22 @@ struct DashboardView: View {
         } message: {
             Text(actionErrorMessage ?? "")
         }
+        .fullScreenCover(isPresented: $showMorningReveal) {
+            if let brief = vm.morningBrief {
+                MorningRevealView(morningBrief: brief) {
+                    UserDefaults.standard.set(todayStr, forKey: "morningRevealDate")
+                    showMorningReveal = false
+                }
+            }
+        }
+    }
+
+    private func checkAndShowMorningReveal() {
+        let hour = Calendar.current.component(.hour, from: Date())
+        guard hour < 14,
+              UserDefaults.standard.string(forKey: "morningRevealDate") != todayStr,
+              vm.morningBrief != nil else { return }
+        showMorningReveal = true
     }
 
     var todayAccentColor: Color {

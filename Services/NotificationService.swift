@@ -5,15 +5,15 @@ import UserNotifications
 
 enum NotificationService {
 
-    /// Schedules (or reschedules) all app notifications.
+    /// Schedules (or reschedules) all recurring app notifications.
     /// Safe to call multiple times — removes previous copies first.
+    /// Uses BehaviorTracker to adapt times to the user's learned patterns.
     static func scheduleAll() {
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-            scheduleFridayFullBody()
-            scheduleSelfCareReminder()
-            schedulePSSWeeklyReminder()
-        }
+        let tracker = BehaviorTracker.shared
+        scheduleFridayReminder(tracker: tracker)
+        scheduleSelfCareReminder(tracker: tracker)
+        schedulePSSWeeklyReminder(tracker: tracker)
+        scheduleNutritionReminder(tracker: tracker)
     }
 
     /// Call after data loads, passing the sorted session dates.
@@ -25,9 +25,9 @@ enum NotificationService {
         }
     }
 
-    // MARK: - Friday Full Body
+    // MARK: - Friday Training Reminder (adaptive — defaults to 09:00)
 
-    private static func scheduleFridayFullBody() {
+    private static func scheduleFridayReminder(tracker: BehaviorTracker) {
         let center = UNUserNotificationCenter.current()
         let id = "weekly.friday.fullbody"
         center.removePendingNotificationRequests(withIdentifiers: [id])
@@ -37,18 +37,22 @@ enum NotificationService {
         content.body  = "Pull B + Full Body — c'est vendredi, on envoie."
         content.sound = .default
 
+        // Adapt to learned session-end time, clamped to a reasonable training window (6–14h)
+        let rawHour = tracker.preferredHour(for: .sessionEnd) ?? 9
+        let hour = min(max(rawHour, 6), 14)
+
         var dc = DateComponents()
         dc.weekday = 6
-        dc.hour    = 9
+        dc.hour    = hour
         dc.minute  = 0
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
-    // MARK: - Self-Care Daily Reminder (every day at 9pm)
+    // MARK: - Self-Care Daily Reminder (adaptive — defaults to 21:00)
 
-    private static func scheduleSelfCareReminder() {
+    private static func scheduleSelfCareReminder(tracker: BehaviorTracker) {
         let center = UNUserNotificationCenter.current()
         let id = "selfcare.daily.reminder"
         center.removePendingNotificationRequests(withIdentifiers: [id])
@@ -58,17 +62,24 @@ enum NotificationService {
         content.body  = "Tes habitudes de self-care t'attendent — coche tes actions du jour."
         content.sound = .default
 
+        // Use learned self-care time if available, else fall back to app-open evening hour
+        let rawHour = tracker.preferredHour(for: .selfCareCheck)
+                   ?? tracker.preferredHour(for: .appOpen)
+                   ?? 21
+        // Clamp to evening window (19–23)
+        let hour = min(max(rawHour, 19), 23)
+
         var dc = DateComponents()
-        dc.hour   = 21
+        dc.hour   = hour
         dc.minute = 0
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
-    // MARK: - PSS Weekly Reminder (every Monday at 10am)
+    // MARK: - PSS Weekly Reminder (adaptive Monday — defaults to 10:00)
 
-    private static func schedulePSSWeeklyReminder() {
+    private static func schedulePSSWeeklyReminder(tracker: BehaviorTracker) {
         let center = UNUserNotificationCenter.current()
         let id = "pss.weekly.test"
         center.removePendingNotificationRequests(withIdentifiers: [id])
@@ -78,16 +89,44 @@ enum NotificationService {
         content.body  = "Comment ton stress évolue cette semaine ? 2 minutes pour le mesurer."
         content.sound = .default
 
+        // Use morning app-open hour (when user checks their score), clamped to 7–12
+        let rawHour = tracker.preferredHour(for: .appOpen) ?? 10
+        let hour = min(max(rawHour, 7), 12)
+
         var dc = DateComponents()
         dc.weekday = 2   // Monday
-        dc.hour    = 10
+        dc.hour    = hour
         dc.minute  = 0
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
-    // MARK: - Inactivity Reminder (fires at 7pm if > 3 days without session)
+    // MARK: - Nutrition Daily Reminder (adaptive — new, defaults to 12:30)
+
+    private static func scheduleNutritionReminder(tracker: BehaviorTracker) {
+        let center = UNUserNotificationCenter.current()
+        let id = "nutrition.daily.reminder"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        // Only schedule once we have enough nutrition-logging data
+        guard let rawHour = tracker.preferredHour(for: .nutritionLog) else { return }
+        let hour = min(max(rawHour, 7), 20)
+
+        let content = UNMutableNotificationContent()
+        content.title = "Repas du jour 🥗"
+        content.body  = "Tu n'as pas encore loggé tes repas — garde le cap sur tes objectifs."
+        content.sound = .default
+
+        var dc = DateComponents()
+        dc.hour   = hour
+        dc.minute = 0
+
+        let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+        center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
+
+    // MARK: - Inactivity Reminder (adaptive fire time — defaults to 19:00)
 
     private static func scheduleInactivityReminder(sessionDates: [String]) {
         let center = UNUserNotificationCenter.current()
@@ -98,19 +137,17 @@ enum NotificationService {
               let lastDate = DateFormatter.isoDate.date(from: lastDateStr) else { return }
 
         let daysSince = Int(round((Date().timeIntervalSince1970 - lastDate.timeIntervalSince1970) / 86400.0))
-        guard daysSince >= 3 else { return }   // Already past threshold — fire tomorrow at 7pm
+        guard daysSince >= 3 else { return }
 
         let content = UNMutableNotificationContent()
         content.title = "Retour en salle ? 💪"
         content.body  = "\(daysSince + 1) jours sans séance — ton corps est prêt."
         content.sound = .default
 
-        // Fire tomorrow at 7pm
-        var dc = DateComponents()
-        dc.hour   = 19
-        dc.minute = 0
-        // Use a time interval trigger for "tomorrow 7pm" equivalent
-        let secondsUntil = nextOccurrence(hour: 19, minute: 0, fromNow: true)
+        // Fire at the user's usual session time (or 19h by default)
+        let rawHour = BehaviorTracker.shared.preferredHour(for: .sessionEnd) ?? 19
+        let hour = min(max(rawHour, 10), 21)
+        let secondsUntil = nextOccurrence(hour: hour, minute: 0, fromNow: true)
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(secondsUntil, 60), repeats: false)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }

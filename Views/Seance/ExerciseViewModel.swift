@@ -290,6 +290,7 @@ class SeanceViewModel: ObservableObject {
     @Published var submitError: String?
     @Published var isResuming = false
     @Published var commitWarning: String?
+    @Published var prCelebrations: [(name: String, oneRM: Double)] = []
 
     var sessionStart = Date()
     @Published private(set) var sessionStarted = false
@@ -378,14 +379,7 @@ class SeanceViewModel: ObservableObject {
                     isSecond: result.isSecond, isBonus: result.isBonus,
                     equipmentType: result.equipmentType, painZone: result.painZone)
                 if response.isPR == true {
-                    let content = UNMutableNotificationContent()
-                    content.title = "🏆 Nouveau PR !"
-                    content.body  = "\(result.name) — 1RM estimé : \(String(format: "%.1f", response.oneRM ?? 0)) lbs"
-                    content.sound = .default
-                    let request = UNNotificationRequest(
-                        identifier: "pr-\(result.name)-\(Date().timeIntervalSince1970)",
-                        content: content, trigger: nil)
-                    try? await UNUserNotificationCenter.current().add(request)
+                    prCelebrations.append((name: result.name, oneRM: response.oneRM ?? 0))
                 }
             } catch {
                 failedExercises.append(result.name)
@@ -424,6 +418,7 @@ class SeanceViewModel: ObservableObject {
             if let date = seanceData?.todayDate {
                 SessionDraftStore.clear(date: date, sessionType: draftSessionType)
             }
+            BehaviorTracker.shared.record(.sessionEnd)
             showSuccess = true
         }
     }

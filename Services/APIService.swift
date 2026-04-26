@@ -691,6 +691,7 @@ class APIService: ObservableObject {
         ]
         if let mt = mealType { payload["meal_type"] = mt }
         _ = try await offlinePost(endpoint: "/api/nutrition/add", payload: payload)
+        BehaviorTracker.shared.record(.nutritionLog)
     }
 
     func scanNutritionLabel(imageBase64: String, quantity: Double, unit: String) async throws -> ScanResult {

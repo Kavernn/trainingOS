@@ -28,6 +28,7 @@ struct ExerciseCard: View {
     @AppStorage("exo_notes_data") private var exoNotesData: String = "{}"
     @State private var confirmSkip = false
     @State private var showAdvanced = false
+    @State private var showPlateCalculator = false
 
     private enum SetFocus: Hashable { case weight(Int); case reps(Int) }
     @FocusState private var setFocus: SetFocus?
@@ -132,6 +133,20 @@ struct ExerciseCard: View {
                     .frame(width: 28, alignment: .leading)
                 Text(weightColumnLabel)
                     .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.gray)
+                if equipmentType == "barbell" {
+                    Button {
+                        triggerImpact(style: .light)
+                        showPlateCalculator = true
+                    } label: {
+                        Image(systemName: "scalemass.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.orange.opacity(0.8))
+                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .background(Color.orange.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
                 Spacer()
                 Text("REPS")
                     .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.gray)
@@ -870,5 +885,32 @@ struct ExerciseCard: View {
             }
             Button("Continuer", role: .cancel) {}
         }
+        .sheet(isPresented: $showPlateCalculator) {
+            PlateCalculatorSheet(
+                initialTotal: plateCalculatorInitialTotal,
+                onApply: { perSide in
+                    let perSideStr = String(format: "%.4g", perSide)
+                    for i in evm.sets.indices {
+                        evm.sets[i].weight = perSideStr
+                    }
+                }
+            )
+            .presentationDetents([.medium, .large])
+        }
+    }
+
+    /// Total weight in display units, computed from current set entries or fallback to last known weight.
+    private var plateCalculatorInitialTotal: Double {
+        let units = UnitSettings.shared
+        // Use average of non-empty weight fields if available
+        if let avg = evm.avgWeight, avg > 0 {
+            let totalLbs = evm.totalWeight(for: units.toStorage(avg))
+            return units.display(totalLbs)
+        }
+        // Fallback: last logged total weight
+        if let current = weightData?.currentWeight, current > 0 {
+            return units.display(current)
+        }
+        return 0
     }
 }

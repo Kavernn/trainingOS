@@ -101,6 +101,7 @@ struct SelfCareView: View {
             await MainActor.run {
                 if let result { today = result }
                 isSaving = false
+                BehaviorTracker.shared.record(.selfCareCheck)
             }
         }
     }

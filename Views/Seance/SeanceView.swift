@@ -703,6 +703,7 @@ struct WorkoutSeanceView: View {
     @State private var showRecap = false
     @State private var recapSnapshot: SessionRecapSnapshot? = nil
     @State private var didLoadPreCoaching = false
+    @State private var showPRCelebration = false
 
     // Energy pre-session
     @State private var energyPre: Int = 3
@@ -1380,7 +1381,18 @@ struct WorkoutSeanceView: View {
             guard success else { return }
             triggerNotificationFeedback(.success)
             vm.showSuccess = false
-            showRecap = true
+            if !vm.prCelebrations.isEmpty {
+                showPRCelebration = true
+            } else {
+                showRecap = true
+            }
+        }
+        .fullScreenCover(isPresented: $showPRCelebration) {
+            PRCelebrationView(prs: vm.prCelebrations) {
+                vm.prCelebrations = []
+                showPRCelebration = false
+                showRecap = true
+            }
         }
         .sheet(isPresented: $showRecap, onDismiss: {
             Task {
