@@ -170,7 +170,7 @@ struct ProgramInfo: Codable, Identifiable, Equatable {
 }
 
 // MARK: - Superset
-struct SupersetEntry: Codable {
+struct SupersetEntry: Codable, Equatable, Hashable {
     let a: String
     let b: String
     let rest: Int?

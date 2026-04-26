@@ -115,11 +115,6 @@ struct ExerciseCard: View {
             logResult = result
             onLogged?()
             triggerNotificationFeedback(.success)
-            if let secs = restSeconds, secs > 0 {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                    RestTimerManager.shared.start(seconds: secs, exerciseName: name)
-                }
-            }
             // Auto-close after brief feedback delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 onToggle()

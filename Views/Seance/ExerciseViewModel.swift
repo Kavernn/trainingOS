@@ -292,6 +292,7 @@ class SeanceViewModel: ObservableObject {
     @Published var commitWarning: String?
 
     var sessionStart = Date()
+    @Published private(set) var sessionStarted = false
     var draftSessionType: String
 
     var cacheService: CacheService = .shared
@@ -346,8 +347,10 @@ class SeanceViewModel: ObservableObject {
         logResults = restored
         if let restoredStart = SessionDraftStore.loadStartedAt(date: data.todayDate, sessionType: draftSessionType) {
             sessionStart = restoredStart
-        } else {
+            sessionStarted = true
+        } else if !restored.isEmpty {
             sessionStart = Date()
+            sessionStarted = true
         }
         isResuming = !restored.isEmpty
         if data.alreadyLogged {
@@ -424,8 +427,12 @@ class SeanceViewModel: ObservableObject {
         guard let date = seanceData?.todayDate else { return }
         if logResults.isEmpty {
             SessionDraftStore.clear(date: date, sessionType: draftSessionType)
-            sessionStart = Date()
+            sessionStarted = false
             return
+        }
+        if !sessionStarted {
+            sessionStart = Date()
+            sessionStarted = true
         }
         let values = logResults.values.map {
             PersistedExerciseLogResult(

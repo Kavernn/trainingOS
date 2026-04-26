@@ -1156,7 +1156,9 @@ struct WorkoutSeanceView: View {
                         }
                         Spacer()
                         TimelineView(.periodic(from: vm.sessionStart, by: 60)) { ctx in
-                            let elapsed = Int(ctx.date.timeIntervalSince(vm.sessionStart) / 60)
+                            let elapsed = vm.sessionStarted
+                                ? Int(ctx.date.timeIntervalSince(vm.sessionStart) / 60)
+                                : 0
                             HStack(spacing: 3) {
                                 Image(systemName: "clock").font(.system(size: 10))
                                 Text("\(elapsed) min")
@@ -1324,7 +1326,7 @@ struct WorkoutSeanceView: View {
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
-            .padding(.bottom, timer.isVisible ? 90 : 0)
+            .padding(.bottom, timer.isVisible ? 90 : 24)
             .background(
                 GeometryReader { geo in
                     Color.clear.preference(
@@ -1463,6 +1465,10 @@ struct WorkoutSeanceView: View {
         }
         .onChange(of: data.inventoryHints) { fresh in
             if !fresh.isEmpty { inventoryHints = fresh }
+        }
+        .onChange(of: data.exerciseSupersets) { fresh in
+            let updated = fresh[data.today] ?? [:]
+            if !updated.isEmpty { sessionSupersets = updated }
         }
     }
     
