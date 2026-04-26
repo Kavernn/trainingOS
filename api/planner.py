@@ -112,7 +112,8 @@ def load_program() -> dict:
     Does NOT auto-seed or auto-save — the seeding was one-time migration logic.
     """
     import db as _db
-    program = _db.get_full_program()
+    program_id = _db.get_active_program_id()
+    program = _db.get_full_program(program_id=program_id)
 
     if program is None:
         logger.warning("load_program: Supabase unavailable, returning DEFAULT_PROGRAM as read-only fallback")

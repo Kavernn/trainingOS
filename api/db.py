@@ -1869,6 +1869,33 @@ def get_all_programs() -> list:
         return []
 
 
+def get_active_program_id() -> str | None:
+    """Return the program_id referenced by the weekly_schedule (morning slot).
+
+    This is the programme whose sessions are actually scheduled for the user.
+    Falls back to the oldest program if the schedule has no sessions linked.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return get_default_program_id()
+    try:
+        resp = (
+            _client.table("weekly_schedule")
+            .select("program_sessions(program_id)")
+            .eq("slot", "morning")
+            .not_.is_("session_id", "null")
+            .limit(1)
+            .execute()
+        )
+        for row in (resp.data or []):
+            sess = row.get("program_sessions") or {}
+            pid = sess.get("program_id")
+            if pid:
+                return str(pid)
+    except Exception as e:
+        logger.error("get_active_program_id error: %s", e)
+    return get_default_program_id()
+
+
 def get_default_program_id() -> str | None:
     """Return the UUID of the first (oldest) program, or None if none exist."""
     programs = get_all_programs()

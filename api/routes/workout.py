@@ -904,7 +904,7 @@ def api_seance_data():
     inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
     inventory_hints    = {name: info["tips"] for name, info in inv.items() if info.get("tips")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
-    exercise_supersets = _db.get_session_supersets()
+    exercise_supersets = _db.get_session_supersets(_db.get_active_program_id())
 
     # Build per-exercise prescriptions (sets × reps adjusted for fatigue + trend)
     fatigue_score = get_cached_fatigue_score()
