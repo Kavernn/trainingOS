@@ -332,12 +332,17 @@ class SeanceViewModel: ObservableObject {
             }
         }
         for pending in SessionDraftStore.load(date: data.todayDate, sessionType: draftSessionType) {
+            let restoredSets: [[String: Any]] = pending.sets.map { s in
+                var entry: [String: Any] = ["weight": s.weight, "reps": s.reps, "rir": s.rir]
+                if let r = s.rpe { entry["rpe"] = r }
+                return entry
+            }
             restored[pending.name] = ExerciseLogResult(
                 name: pending.name,
                 weight: pending.weight,
                 reps: pending.reps,
                 rpe: pending.rpe,
-                sets: [],
+                sets: restoredSets,
                 isSecond: pending.isSecond,
                 isBonus: pending.isBonus,
                 equipmentType: pending.equipmentType,
@@ -443,7 +448,17 @@ class SeanceViewModel: ObservableObject {
                 isSecond: $0.isSecond,
                 isBonus: $0.isBonus,
                 equipmentType: $0.equipmentType,
-                painZone: $0.painZone
+                painZone: $0.painZone,
+                sets: $0.sets.compactMap { s -> PersistedSet? in
+                    guard let w = s["weight"] as? Double,
+                          let r = s["reps"] as? String else { return nil }
+                    return PersistedSet(
+                        weight: w,
+                        reps: r,
+                        rir: s["rir"] as? Int ?? 3,
+                        rpe: s["rpe"] as? Double
+                    )
+                }
             )
         }
         SessionDraftStore.save(date: date, sessionType: draftSessionType, values: values)

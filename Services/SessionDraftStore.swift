@@ -1,5 +1,12 @@
 import Foundation
 
+struct PersistedSet: Codable {
+    let weight: Double
+    let reps: String
+    let rir: Int
+    let rpe: Double?
+}
+
 struct PersistedExerciseLogResult: Codable {
     let name: String
     let weight: Double
@@ -9,6 +16,7 @@ struct PersistedExerciseLogResult: Codable {
     let isBonus: Bool
     let equipmentType: String
     let painZone: String
+    var sets: [PersistedSet]
 }
 
 enum SessionDraftStore {
