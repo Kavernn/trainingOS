@@ -1069,3 +1069,23 @@ def api_hiit_data():
         "total":    total,
         "avg_rpe":  avg_rpe,
     })
+
+
+@workout_bp.route("/api/exercise/media", methods=["GET"])
+def api_exercise_media():
+    import db as _db
+    name = request.args.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "name required"}), 400
+    row = _db.get_exercise_by_name(name)
+    if not row:
+        return jsonify({}), 404
+    return jsonify({
+        "gif_url":  row.get("gif_url"),
+        "alt_url":  row.get("image_url_alt"),
+        "muscles":  row.get("muscles") or [],
+        "tips":     row.get("tips"),
+        "level":    row.get("level") or "",
+        "pattern":  row.get("pattern") or "",
+        "type":     row.get("type") or "",
+    })
