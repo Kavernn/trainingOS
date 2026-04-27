@@ -765,12 +765,13 @@ struct GreetingHeaderView: View {
     }
 
     var todayIcon: String {
-        switch dash.today {
-        case "Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs": return "dumbbell.fill"
-        case "Yoga / Tai Chi": return "figure.mind.and.body"
-        case "Recovery":       return "heart.fill"
-        default:               return "moon.fill"
-        }
+        let low = dash.today.lowercased()
+        if low.contains("yoga") { return "figure.mind.and.body" }
+        if low.contains("recovery") { return "heart.fill" }
+        if low.contains("upper") || low.contains("lower") ||
+           low.contains("push") || low.contains("pull") ||
+           low.contains("legs") || low.contains("full body") { return "dumbbell.fill" }
+        return "dumbbell.fill"
     }
 
     var weekSessions: Int {
@@ -898,12 +899,13 @@ struct TodayCardView: View {
     }
 
     var todayIcon: String {
-        switch dash.today {
-        case "Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs": return "dumbbell.fill"
-        case "Yoga / Tai Chi":               return "figure.mind.and.body"
-        case "Recovery":                     return "heart.fill"
-        default:                             return "moon.fill"
-        }
+        let low = dash.today.lowercased()
+        if low.contains("yoga") { return "figure.mind.and.body" }
+        if low.contains("recovery") { return "heart.fill" }
+        if low.contains("upper") || low.contains("lower") ||
+           low.contains("push") || low.contains("pull") ||
+           low.contains("legs") || low.contains("full body") { return "dumbbell.fill" }
+        return "dumbbell.fill"
     }
 
     var exercises: [(String, String)] {
