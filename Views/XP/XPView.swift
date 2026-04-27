@@ -376,7 +376,6 @@ struct BadgeCell: View {
         }
         .scaleEffect(badge.unlocked ? 1.0 : 0.88)
         .opacity(badge.unlocked ? 1.0 : 0.5)
-        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: badge.unlocked)
     }
 }
 
