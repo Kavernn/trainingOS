@@ -182,7 +182,8 @@ struct XPView: View {
                         statsRow
                         badgesSection
                     }
-                    .padding(.vertical, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, contentBottomPadding)
                 }
             }
         }
