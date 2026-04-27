@@ -32,6 +32,9 @@ struct IntelligenceView: View {
     @StateObject private var memoryStore = CoachMemoryStore.shared
     @State private var nutritionHistory: [NutritionDayHistory]  = []
     @State private var showNutritionInsight                     = true
+    @State private var weeklyReportData: WeeklyReport?          = nil
+    @State private var showWeeklyReport                         = false
+    @State private var isLoadingWeeklyReport                    = false
 
     var body: some View {
         NavigationStack {
@@ -85,6 +88,28 @@ struct IntelligenceView: View {
                         .cornerRadius(10)
                     }
                     .disabled(isLoadingNarrative)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+
+                    // Weekly report button
+                    Button(action: openWeeklyReport) {
+                        HStack {
+                            if isLoadingWeeklyReport {
+                                ProgressView().tint(.white).scaleEffect(0.8)
+                            } else {
+                                Image(systemName: "chart.bar.doc.horizontal")
+                            }
+                            Text(isLoadingWeeklyReport ? "Chargement..." : "Bilan de la semaine")
+                                .font(.system(size: 13, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.green.opacity(0.15))
+                        .foregroundColor(.green)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.35), lineWidth: 1))
+                        .cornerRadius(10)
+                    }
+                    .disabled(isLoadingWeeklyReport)
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
 
@@ -362,6 +387,20 @@ struct IntelligenceView: View {
             }
             .sheet(isPresented: $showMemory) {
                 CoachMemoryView()
+            }
+            .sheet(isPresented: $showWeeklyReport) {
+                if let r = weeklyReportData {
+                    NavigationStack {
+                        WeeklyReportView(report: r)
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button("Fermer") { showWeeklyReport = false }.foregroundColor(.white)
+                                }
+                            }
+                    }
+                    .preferredColorScheme(.dark)
+                    .presentationDetents([.large])
+                }
             }
         }
     }
@@ -813,6 +852,32 @@ struct IntelligenceView: View {
                     isLoadingProposals = false
                     proposalError = "Erreur réseau : \(error.localizedDescription)"
                 }
+            }
+        }
+    }
+
+    private func openWeeklyReport() {
+        guard !isLoadingWeeklyReport else { return }
+        let cacheKey = "weekly_report_\(currentWeekKey)"
+        if let cached = CacheService.shared.load(for: cacheKey),
+           let r = try? JSONDecoder().decode(WeeklyReport.self, from: cached) {
+            weeklyReportData = r
+            showWeeklyReport = true
+            return
+        }
+        isLoadingWeeklyReport = true
+        Task {
+            if let r = try? await APIService.shared.fetchWeeklyReport() {
+                if let data = try? JSONEncoder().encode(r) {
+                    CacheService.shared.save(data, for: cacheKey)
+                }
+                await MainActor.run {
+                    weeklyReportData    = r
+                    isLoadingWeeklyReport = false
+                    showWeeklyReport    = true
+                }
+            } else {
+                await MainActor.run { isLoadingWeeklyReport = false }
             }
         }
     }

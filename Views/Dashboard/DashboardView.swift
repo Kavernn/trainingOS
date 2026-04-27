@@ -2705,6 +2705,38 @@ struct WeeklyReportView: View {
                         }
                     }
 
+                    // Weekly score ring
+                    if let score = report.weeklyScore {
+                        let scoreColor: Color = score >= 75 ? .green : score >= 50 ? .orange : .red
+                        HStack(spacing: 20) {
+                            ZStack {
+                                Circle().stroke(Color.white.opacity(0.07), lineWidth: 8).frame(width: 70, height: 70)
+                                Circle()
+                                    .trim(from: 0, to: CGFloat(score) / 100)
+                                    .stroke(scoreColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                                    .frame(width: 70, height: 70)
+                                    .rotationEffect(.degrees(-90))
+                                VStack(spacing: 0) {
+                                    Text("\(score)").font(.system(size: 20, weight: .black)).foregroundColor(.white)
+                                    Text("/100").font(.system(size: 9)).foregroundColor(.gray)
+                                }
+                            }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("SCORE SEMAINE").font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                                Text(score >= 75 ? "Excellente semaine" : score >= 50 ? "Bonne semaine" : "Semaine à améliorer")
+                                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                                if let rpe = report.avgRpe {
+                                    Text("RPE moy. \(String(format: "%.1f", rpe))/10")
+                                        .font(.system(size: 12)).foregroundColor(.gray)
+                                }
+                            }
+                            Spacer()
+                        }
+                        .padding(14)
+                        .glassCard(color: scoreColor, intensity: 0.06)
+                        .cornerRadius(14)
+                    }
+
                     if let top = report.topExercise {
                         HStack(spacing: 10) {
                             Image(systemName: "star.fill").foregroundColor(.yellow)
@@ -2716,6 +2748,44 @@ struct WeeklyReportView: View {
                         }
                         .padding(14)
                         .glassCard(color: .yellow, intensity: 0.07)
+                        .cornerRadius(14)
+                    }
+
+                    // PRs list
+                    if !report.prs.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("RECORDS PERSONNELS", systemImage: "trophy.fill")
+                                .font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.yellow)
+                            ForEach(report.prs, id: \.self) { exo in
+                                HStack(spacing: 8) {
+                                    Image(systemName: "star.fill").font(.system(size: 10)).foregroundColor(.yellow.opacity(0.8))
+                                    Text(exo).font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding(14)
+                        .glassCard(color: .yellow, intensity: 0.05)
+                        .cornerRadius(14)
+                    }
+
+                    // Focus next week
+                    if !report.focusNextWeek.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label("FOCUS SEMAINE PROCHAINE", systemImage: "target")
+                                .font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.purple)
+                            ForEach(Array(report.focusNextWeek.enumerated()), id: \.offset) { _, tip in
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "arrow.right.circle.fill")
+                                        .font(.system(size: 11)).foregroundColor(.purple)
+                                    Text(tip).font(.system(size: 13)).foregroundColor(.white.opacity(0.85))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding(14)
+                        .glassCard(color: .purple, intensity: 0.05)
                         .cornerRadius(14)
                     }
 

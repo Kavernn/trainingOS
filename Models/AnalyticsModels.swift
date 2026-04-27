@@ -299,6 +299,10 @@ struct WeeklyReport: Codable {
     let avgSteps:            Int?
     let avgHrv:              Double?
     let nutritionCompliance: Int?
+    let avgRpe:              Double?
+    let weeklyScore:         Int?
+    let prs:                 [String]
+    let focusNextWeek:       [String]
 
     enum CodingKeys: String, CodingKey {
         case weekStart           = "week_start"
@@ -312,5 +316,28 @@ struct WeeklyReport: Codable {
         case avgSteps            = "avg_steps"
         case avgHrv              = "avg_hrv"
         case nutritionCompliance = "nutrition_compliance"
+        case avgRpe              = "avg_rpe"
+        case weeklyScore         = "weekly_score"
+        case prs
+        case focusNextWeek       = "focus_next_week"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        weekStart           = (try? c.decode(String.self, forKey: .weekStart)) ?? ""
+        weekEnd             = (try? c.decode(String.self, forKey: .weekEnd)) ?? ""
+        sessionCount        = (try? c.decode(Int.self, forKey: .sessionCount)) ?? 0
+        totalVolumeLbs      = (try? c.decode(Double.self, forKey: .totalVolumeLbs)) ?? 0
+        prCount             = (try? c.decode(Int.self, forKey: .prCount)) ?? 0
+        topExercise         = try? c.decode(String.self, forKey: .topExercise)
+        avgRecoveryScore    = try? c.decode(Double.self, forKey: .avgRecoveryScore)
+        avgSleepHours       = try? c.decode(Double.self, forKey: .avgSleepHours)
+        avgSteps            = try? c.decode(Int.self, forKey: .avgSteps)
+        avgHrv              = try? c.decode(Double.self, forKey: .avgHrv)
+        nutritionCompliance = try? c.decode(Int.self, forKey: .nutritionCompliance)
+        avgRpe              = try? c.decode(Double.self, forKey: .avgRpe)
+        weeklyScore         = try? c.decode(Int.self, forKey: .weeklyScore)
+        prs                 = (try? c.decode([String].self, forKey: .prs)) ?? []
+        focusNextWeek       = (try? c.decode([String].self, forKey: .focusNextWeek)) ?? []
     }
 }

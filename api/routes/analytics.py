@@ -417,6 +417,7 @@ def api_weekly_report():
     weights   = load_weights()
     total_vol = 0.0
     pr_count  = 0
+    prs_list: list[str] = []
     top_exercise: str | None = None
     top_vol = 0.0
     for name, data in weights.items():
@@ -443,6 +444,10 @@ def api_weekly_report():
         ]
         if week_ones and (not all_ones or max(week_ones) > max(all_ones)):
             pr_count += 1
+            prs_list.append(name)
+
+    rpe_vals = [s["rpe"] for s in week_sessions if s.get("rpe") is not None]
+    avg_rpe = round(sum(rpe_vals) / len(rpe_vals), 1) if rpe_vals else None
 
     # ── Health KPIs ──────────────────────────────────────────────────────────
     health_week = get_weekly_health_summary(days=7)
@@ -470,6 +475,37 @@ def api_weekly_report():
     else:
         nutrition_compliance = None
 
+    # Weekly score (0–100)
+    pts = min(int(session_count / 5 * 30), 30)
+    if avg_sleep is not None:
+        pts += 25 if avg_sleep >= 7.5 else 20 if avg_sleep >= 7 else 15 if avg_sleep >= 6.5 else 8
+    else:
+        pts += 12
+    if nutrition_compliance is not None:
+        pts += 25 if nutrition_compliance >= 80 else 18 if nutrition_compliance >= 60 else 12 if nutrition_compliance >= 40 else 6
+    else:
+        pts += 12
+    if avg_recovery is not None:
+        pts += 20 if avg_recovery >= 7 else 15 if avg_recovery >= 5 else 10 if avg_recovery >= 3 else 5
+    else:
+        pts += 10
+    weekly_score = min(pts, 100)
+
+    # Focus tips for next week
+    focus: list[str] = []
+    if avg_sleep is not None and avg_sleep < 7:
+        focus.append(f"Améliore ton sommeil (moy. {avg_sleep}h) — vise 7h+")
+    if nutrition_compliance is not None and nutrition_compliance < 70:
+        focus.append(f"Compliance nutrition à {nutrition_compliance}% — vise 80%+")
+    if session_count < 3:
+        focus.append("Vise au moins 3 séances cette semaine")
+    if avg_rpe is not None and avg_rpe > 8.5:
+        focus.append("RPE élevé — inclure une journée de récupération active")
+    if pr_count > 0:
+        focus.append(f"{pr_count} PR cette semaine — consolide avant d'augmenter les charges")
+    if not focus:
+        focus.append("Continue sur ta lancée — belle semaine !")
+
     return jsonify({
         "week_start":            week_start,
         "week_end":              today.isoformat(),
@@ -482,4 +518,8 @@ def api_weekly_report():
         "avg_steps":             avg_steps,
         "avg_hrv":               avg_hrv,
         "nutrition_compliance":  nutrition_compliance,
+        "avg_rpe":               avg_rpe,
+        "weekly_score":          weekly_score,
+        "prs":                   prs_list,
+        "focus_next_week":       focus,
     })
