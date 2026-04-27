@@ -171,25 +171,23 @@ struct XPView: View {
     // MARK: - View
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                AmbientBackground(color: .yellow)
-                if isLoading {
-                    AppLoadingView()
-                } else {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 20) {
-                            levelCard
-                            statsRow
-                            badgesSection
-                        }
-                        .padding(.vertical, 16)
+        ZStack {
+            AmbientBackground(color: .yellow)
+            if isLoading {
+                AppLoadingView()
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        levelCard
+                        statsRow
+                        badgesSection
                     }
+                    .padding(.vertical, 16)
                 }
             }
-            .navigationTitle("XP & Niveau")
-            .navigationBarTitleDisplayMode(.large)
         }
+        .navigationTitle("XP & Niveau")
+        .navigationBarTitleDisplayMode(.large)
         .task { await loadData() }
         .sheet(item: $selectedBadge) { b in
             BadgeDetailSheet(badge: b)
