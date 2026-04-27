@@ -156,11 +156,16 @@ struct StatsView: View {
 
     var exercisesCount: Int { weights.filter { $0.value.history?.isEmpty == false }.count }
 
-    var periodTotalSets: Int {
-        filteredSessions.values.compactMap(\.totalSets).reduce(0, +)
+    var avgSessionDuration: Double {
+        let durations = filteredSessions.values.compactMap(\.durationMin).filter { $0 > 0 }
+        guard !durations.isEmpty else { return 0 }
+        return durations.reduce(0, +) / Double(durations.count)
     }
-    var periodTotalReps: Int {
-        filteredSessions.values.compactMap(\.totalReps).reduce(0, +)
+
+    var volumeVelocityPct: Int? {
+        guard lastWeekVolume > 0 else { return nil }
+        let pct = (thisWeekVolume - lastWeekVolume) / lastWeekVolume * 100
+        return Int(round(pct))
     }
 
     // ── Personal Records ─────────────────────────────────────────────
@@ -362,7 +367,22 @@ struct StatsView: View {
         } else if currentStreak >= 7 {
             insights.append(("flame.fill", "Streak de \(currentStreak) jours — continue !", .orange))
         }
-        return Array(insights.prefix(3))
+        // Muscle gap: show the most overdue muscle if 7+ days without training
+        let todayStr = DateFormatter.isoDate.string(from: Date())
+        let todayDate = DateFormatter.isoDate.date(from: todayStr) ?? Date()
+        let overdueList = muscleStats
+            .compactMap { key, stat -> (String, Int)? in
+                guard let last = DateFormatter.isoDate.date(from: stat.lastDate) else { return nil }
+                let days = Int(todayDate.timeIntervalSince(last) / 86400)
+                return days >= 7 ? (key, days) : nil
+            }
+            .sorted { $0.1 > $1.1 }
+        if let overdue = overdueList.first {
+            insights.append(("exclamationmark.circle.fill",
+                             "\(overdue.0.capitalized) pas entraîné depuis \(overdue.1) jours",
+                             .indigo))
+        }
+        return Array(insights.prefix(4))
     }
 
     // ── Badges ────────────────────────────────────────────────────────
@@ -466,8 +486,17 @@ struct StatsView: View {
             KPICard(value: avgRPEPeriod > 0 ? String(format: "%.1f", avgRPEPeriod) : "—", label: "RPE moy.", color: .purple)
             KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .green)
             KPICard(value: "\(exercisesCount)", label: "Exercices", color: .cyan)
-            KPICard(value: periodTotalSets > 0 ? "\(periodTotalSets)" : "—", label: "Sets totaux", color: .teal)
-            KPICard(value: periodTotalReps > 0 ? _formatK(Double(periodTotalReps)) : "—", label: "Reps totaux", color: .indigo)
+            KPICard(
+                value: avgSessionDuration > 0 ? "\(Int(avgSessionDuration))min" : "—",
+                label: "Durée moy.", color: .teal
+            )
+            KPICard(
+                value: {
+                    guard let v = volumeVelocityPct else { return "—" }
+                    return v >= 0 ? "+\(v)%" : "\(v)%"
+                }(),
+                label: "Vol. +/−", color: (volumeVelocityPct ?? 0) >= 0 ? .green : .orange
+            )
         }
         .padding(.horizontal, 16)
         .appearAnimation(delay: 0.05)
