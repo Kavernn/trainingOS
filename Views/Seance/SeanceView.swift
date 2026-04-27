@@ -687,6 +687,17 @@ struct WorkoutSeanceView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var cardHeights: [String: CGFloat] = [:]
     @State private var inventory: [String] = []
+    @State private var inventoryMuscles: [String: [String]] = [:]
+    @State private var inventoryPatterns: [String: String] = [:]
+
+    // Swap d'exercice à la volée
+    @State private var swappedExercises: [String: String] = [:]   // replacementName → originalName
+    @State private var swapWeightData: [String: WeightData] = [:]
+    @State private var swapConversions: [String: EquipmentConversion] = [:]
+    @State private var swapPending: String? = nil                  // original name awaiting swap
+    @State private var showSwapSheet = false
+    @State private var showCreateVariant = false
+
     @State private var addTarget: SeanceName?
     @State private var editTarget: ExerciseTarget?
     @State private var isEditMode = false
@@ -1045,10 +1056,12 @@ struct WorkoutSeanceView: View {
                                forceNoRest: Bool = false, restOverride: Int? = nil) -> some View {
         let isDragging = draggingName == name
         let shift = shiftY(for: name)
+        let originalName = swappedExercises[name]
+        let effectiveWeightData = swapWeightData[name] ?? data.weights[name]
         let card = ExerciseCard(
             name: name,
             scheme: scheme,
-            weightData: data.weights[name],
+            weightData: effectiveWeightData,
             equipmentType: equipmentType(for: name),
             trackingType: trackingType(for: name),
             bodyWeight: APIService.shared.dashboard?.profile.weight ?? 0,
@@ -1066,7 +1079,13 @@ struct WorkoutSeanceView: View {
                     expandedExercise = expandedExercise == name ? nil : name
                 }
             },
-            nextExerciseName: nextExerciseName
+            nextExerciseName: nextExerciseName,
+            isReplaced: originalName != nil,
+            originalName: originalName,
+            onSwap: {
+                swapPending = name
+                showSwapSheet = true
+            }
         )
         card
             .padding(.horizontal, 16)
@@ -1510,6 +1529,46 @@ struct WorkoutSeanceView: View {
             AddHIITSheet { hiitCount += 1 }
                 .presentationDetents([.large])
         }
+        .sheet(isPresented: $showSwapSheet) {
+            if let pending = swapPending {
+                ExerciseSwapSheet(
+                    originalName: pending,
+                    originalType: inventoryTypes[pending] ?? "machine",
+                    originalMuscles: inventoryMuscles[pending] ?? [],
+                    originalPattern: inventoryPatterns[pending] ?? "",
+                    inventory: inventory,
+                    inventoryTypes: inventoryTypes,
+                    inventoryMuscles: inventoryMuscles,
+                    inventoryPatterns: inventoryPatterns,
+                    onSwap: { replacement in
+                        Task { await performSwap(original: pending, replacement: replacement) }
+                    },
+                    onCreateVariant: {
+                        showCreateVariant = true
+                    }
+                )
+                .presentationDetents([.large])
+            }
+        }
+        .sheet(isPresented: $showCreateVariant) {
+            if let pending = swapPending {
+                CreateVariantSheet(
+                    originalName: pending,
+                    originalMuscles: inventoryMuscles[pending] ?? [],
+                    originalPattern: inventoryPatterns[pending] ?? "",
+                    originalScheme: localProgram[pending] ?? "3x8-12",
+                    originalCategory: "",
+                    onCreated: { newName in
+                        // Refresh inventory then perform swap
+                        Task {
+                            await loadInventory()
+                            await performSwap(original: pending, replacement: newName)
+                        }
+                    }
+                )
+                .presentationDetents([.large])
+            }
+        }
         .onAppear {
             Task { await loadInventory() }
             computeGhost()
@@ -1592,11 +1651,15 @@ struct WorkoutSeanceView: View {
         let types    = (json["inventory_types"] as? [String: String]) ?? [:]
         let tracking = (json["inventory_tracking"] as? [String: String]) ?? [:]
         let rest     = (json["inventory_rest"] as? [String: Int]) ?? [:]
+        let muscles  = (json["inventory_muscles"] as? [String: [String]]) ?? [:]
+        let patterns = (json["inventory_patterns"] as? [String: String]) ?? [:]
         await MainActor.run {
             self.inventory = inv
             if !types.isEmpty    { self.inventoryTypes    = types }
             if !tracking.isEmpty { self.inventoryTracking = tracking }
             self.inventoryRest = rest
+            if !muscles.isEmpty  { self.inventoryMuscles  = muscles }
+            if !patterns.isEmpty { self.inventoryPatterns = patterns }
             if let fresh = fromNetwork {
                 self.localProgram  = fresh
                 self.exerciseOrder = orderNet ?? self.exerciseOrder
@@ -1624,6 +1687,45 @@ struct WorkoutSeanceView: View {
             let ok = await postProgramme(["action": "reorder", "jour": data.today, "ordre": order])
             if !ok {
                 await MainActor.run { orderSaveError = true }
+            }
+        }
+
+        func performSwap(original: String, replacement: String) async {
+            let scheme = localProgram[original] ?? "3x8-12"
+            let originalType = inventoryTypes[original] ?? "machine"
+            let replacementType = inventoryTypes[replacement] ?? "machine"
+            let originalWeight = data.weights[original]?.currentWeight ?? 0
+
+            // Fetch weight history for the replacement exercise
+            let fetchedData = try? await APIService.shared.fetchExerciseWeightData(name: replacement)
+
+            let conversion = EquipmentConversion(from: originalType, to: replacementType)
+            let effectiveWeightData: WeightData
+            if let fetched = fetchedData, (fetched.currentWeight ?? 0) > 0 {
+                effectiveWeightData = fetched
+            } else if let converted = conversion.convert(originalWeight), converted > 0 {
+                effectiveWeightData = WeightData(currentWeight: converted,
+                                                 lastReps: nil, lastLogged: nil, history: nil)
+            } else {
+                effectiveWeightData = fetchedData ?? WeightData(currentWeight: nil,
+                                                                lastReps: nil, lastLogged: nil, history: nil)
+            }
+
+            await MainActor.run {
+                // Update local program (session only — programme original intact)
+                localProgram.removeValue(forKey: original)
+                localProgram[replacement] = scheme
+                if let idx = exerciseOrder.firstIndex(of: original) {
+                    exerciseOrder[idx] = replacement
+                } else {
+                    exerciseOrder.append(replacement)
+                }
+                // Record swap
+                swappedExercises[replacement] = original
+                swapWeightData[replacement]   = effectiveWeightData
+                swapConversions[replacement]  = conversion
+                // Clear any in-progress log for the original
+                vm.logResults.removeValue(forKey: original)
             }
         }
 

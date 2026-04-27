@@ -429,6 +429,43 @@ struct MuscleStatEntry: Codable {
     }
 }
 
+// MARK: - Equipment Conversion
+
+enum EquipmentConversion: Equatable {
+    case dumbbellToBarbell
+    case barbellToDumbbell
+    case machineToFree
+    case freeToMachine
+    case sameType
+
+    init(from originalType: String, to replacementType: String) {
+        let dumbbell  = Set(["dumbbell"])
+        let barbell   = Set(["barbell", "ez-bar"])
+        let machine   = Set(["machine"])
+        let freeTypes = Set(["barbell", "ez-bar", "dumbbell", "cable", "bodyweight"])
+        switch (originalType, replacementType) {
+        case let (a, b) where dumbbell.contains(a)  && barbell.contains(b):   self = .dumbbellToBarbell
+        case let (a, b) where barbell.contains(a)   && dumbbell.contains(b):  self = .barbellToDumbbell
+        case let (a, b) where machine.contains(a)   && freeTypes.contains(b): self = .machineToFree
+        case let (a, b) where freeTypes.contains(a) && machine.contains(b):   self = .freeToMachine
+        default: self = .sameType
+        }
+    }
+
+    /// Returns the converted weight, or nil when types are not directly comparable.
+    func convert(_ weight: Double) -> Double? {
+        switch self {
+        case .dumbbellToBarbell: return weight * 2
+        case .barbellToDumbbell: return weight / 2
+        default: return nil
+        }
+    }
+
+    var requiresWarning: Bool {
+        self == .machineToFree || self == .freeToMachine
+    }
+}
+
 // MARK: - Body Weight
 struct BodyWeightEntry: Codable, Identifiable {
     var id: String { date }

@@ -190,6 +190,11 @@ _MUSCLE_ALIASES: dict = {
     "avant bras":      "forearms",
     # External rotators → rear deltoid canonical
     "external rotators": "rear delt",
+    # Core
+    "abdominaux":          "core",
+    "abdominaux obliques": "core",
+    "gainage":             "core",
+    "abs":                 "core",
 }
 
 def _normalize_muscle(name: str) -> str:

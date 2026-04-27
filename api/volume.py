@@ -6,8 +6,9 @@ Nothing is persisted; callers receive enriched copies for API responses only.
 Formulas
 --------
 Epley 1RM : weight * (1 + max_set_reps / 30)
-set_volume : weight * reps_in_that_set          (0 when weight is None or 0)
-exercise_volume : weight * total_reps_count     (sum of all set reps)
+set_volume : set_weight * set_reps              (real per-set load; 0 when weight is None or 0)
+exercise_volume : SUM(set_volume for each set)  when sets_json available
+                  weight * total_reps_count     fallback when sets_json is absent
 session_volume  : sum of exercise_volumes across all exercises in the session
 """
 from __future__ import annotations
@@ -91,12 +92,27 @@ def calc_1rm(weight: float, reps) -> float:
 # Volume
 # ---------------------------------------------------------------------------
 
-def calc_exercise_volume(weight: float, reps) -> float:
-    """Compute exercise volume: weight × total_reps_count.
+def calc_exercise_volume(weight: float, reps, sets_json: list | None = None) -> float:
+    """Compute exercise volume using per-set real loads when sets_json is available.
 
-    Returns 0.0 for bodyweight exercises (weight=None or 0).
-    Rounded to 2 decimal places.
+    When sets_json is provided, sums each set's individual load (set_volume or
+    set_weight × set_reps) so that sets with different weights are computed
+    correctly instead of using the average top-level weight.
+
+    Falls back to weight × total_reps_count when sets_json is absent.
+    Returns 0.0 for bodyweight exercises. Rounded to 2 decimal places.
     """
+    if sets_json:
+        total = 0.0
+        for s in sets_json:
+            sv = s.get("set_volume")
+            if sv is not None:
+                total += float(sv)
+            else:
+                sw = float(s.get("weight") or 0)
+                sr = sum(parse_reps(s.get("reps", 0)))
+                total += sw * sr
+        return round(total, 2)
     if weight is None:
         return 0.0
     w = float(weight)
@@ -131,17 +147,30 @@ def calc_session_volume(exercise_logs: list[dict]) -> dict:
     for entry in exercise_logs:
         if not isinstance(entry, dict):
             continue
-        weight = entry.get("weight")
-        reps = entry.get("reps")
-        parsed = parse_reps(reps)
-        set_count = len(parsed)
-        rep_count = sum(parsed)
-        total_sets += set_count
-        total_reps += rep_count
-        if weight is not None:
-            w = float(weight)
-            if w > 0:
-                volume += w * rep_count
+        sets = entry.get("sets_json") or entry.get("sets")
+        if sets:
+            for s in sets:
+                sr = sum(parse_reps(s.get("reps", 0)))
+                total_sets += 1
+                total_reps += sr
+                sv = s.get("set_volume")
+                if sv is not None:
+                    volume += float(sv)
+                else:
+                    sw = float(s.get("weight") or 0)
+                    if sw > 0:
+                        volume += sw * sr
+        else:
+            weight = entry.get("weight")
+            reps = entry.get("reps")
+            parsed = parse_reps(reps)
+            total_sets += len(parsed)
+            rep_count = sum(parsed)
+            total_reps += rep_count
+            if weight is not None:
+                w = float(weight)
+                if w > 0:
+                    volume += w * rep_count
 
     return {
         "volume":     round(volume, 2),
@@ -166,10 +195,11 @@ def annotate_history_entry(entry: dict) -> dict:
     """
     weight = entry.get("weight")
     reps = entry.get("reps")
+    sets_json = entry.get("sets_json") or entry.get("sets")
     return {
         **entry,
         "1rm":    calc_1rm(weight, reps),
-        "volume": calc_exercise_volume(weight, reps),
+        "volume": calc_exercise_volume(weight, reps, sets_json=sets_json),
     }
 
 

@@ -80,6 +80,8 @@
 		E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */; };
 		EBD686A12DC32EF0A13FD632 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A937EBC71FB17046EDA80FA1 /* NutritionModels.swift */; };
 		EE40EFBE12129A661F672B0A /* ExerciseCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15EBCC3B6A4B2F3CDA11F3EF /* ExerciseCard.swift */; };
+		SWAP0002SWAP0002SWAP0002 /* ExerciseSwapSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */; };
+		VAR00002VAR00002VAR00002 /* CreateVariantSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */; };
 		848288DCA8A442D283353361 /* PRCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */; };
 		DA26223185CE48C094B9CA75 /* PlateCalculatorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334E94AE7F3343C483E11FAC /* PlateCalculatorSheet.swift */; };
 		EE5500022F5D98BA002AE470 /* PendingMutation.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500012F5D98BA002AE470 /* PendingMutation.swift */; };
@@ -118,6 +120,8 @@
 		07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ErrorBannerView.swift; sourceTree = "<group>"; };
 		07F5AB1A421041E59142D99A /* NutritionViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
 		15EBCC3B6A4B2F3CDA11F3EF /* ExerciseCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseCard.swift; sourceTree = "<group>"; };
+		SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseSwapSheet.swift; sourceTree = "<group>"; };
+		VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateVariantSheet.swift; sourceTree = "<group>"; };
 		A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRCelebrationView.swift; sourceTree = "<group>"; };
 		334E94AE7F3343C483E11FAC /* PlateCalculatorSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlateCalculatorSheet.swift; sourceTree = "<group>"; };
 		17DD0C9095A69B34AA03E74F /* WorkoutModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutModels.swift; sourceTree = "<group>"; };
@@ -510,6 +514,8 @@
 				PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */,
 				058BA2E35BCC575568655DDC /* ExerciseViewModel.swift */,
 				15EBCC3B6A4B2F3CDA11F3EF /* ExerciseCard.swift */,
+				SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */,
+				VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */,
 				A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */,
 				334E94AE7F3343C483E11FAC /* PlateCalculatorSheet.swift */,
 			);
@@ -796,6 +802,8 @@
 				D69D3EEF2F85895800553153 /* SessionDraftStore.swift in Sources */,
 				189D3562DBA17BDF3736B59B /* ExerciseViewModel.swift in Sources */,
 				EE40EFBE12129A661F672B0A /* ExerciseCard.swift in Sources */,
+				SWAP0002SWAP0002SWAP0002 /* ExerciseSwapSheet.swift in Sources */,
+				VAR00002VAR00002VAR00002 /* CreateVariantSheet.swift in Sources */,
 				848288DCA8A442D283353361 /* PRCelebrationView.swift in Sources */,
 				DA26223185CE48C094B9CA75 /* PlateCalculatorSheet.swift in Sources */,
 				183289EC5ED0058D31E05A4E /* WorkoutModels.swift in Sources */,

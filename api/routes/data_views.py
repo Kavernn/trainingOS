@@ -117,6 +117,9 @@ def api_dashboard():
 @data_views_bp.route("/api/weights")
 def api_weights():
     from weights import load_weights
+    exercise = request.args.get("exercise")
+    if exercise:
+        return jsonify(load_weights(exercise_names=[exercise]))
     return jsonify(load_weights())
 
 
@@ -182,6 +185,8 @@ def api_programme_data():
     inventory_tracking = {name: info.get("tracking_type", "reps")   for name, info in inv.items()}
     inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
     inventory_schemes  = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
+    inventory_muscles  = {name: info.get("muscles") or []             for name, info in inv.items()}
+    inventory_patterns = {name: info.get("pattern") or ""             for name, info in inv.items()}
     exercise_order     = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     return jsonify({
         "full_program":        flat_program,
@@ -191,6 +196,8 @@ def api_programme_data():
         "inventory_tracking":  inventory_tracking,
         "inventory_rest":      inventory_rest,
         "inventory_schemes":   inventory_schemes,
+        "inventory_muscles":   inventory_muscles,
+        "inventory_patterns":  inventory_patterns,
         "exercise_order":      exercise_order,
         "programs":            programs,
         "current_program_id":  program_id,

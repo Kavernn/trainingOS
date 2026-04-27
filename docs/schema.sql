@@ -504,22 +504,36 @@ LEFT JOIN (
 
 -- v_session_volume
 -- Returns computed volume metrics per workout session.
--- volume     = SUM(weight * total_reps_for_exercise)
+-- volume     = SUM of real per-set loads from sets_json when available,
+--              otherwise weight * total_reps_for_exercise (legacy fallback)
 -- total_sets = COUNT(exercise_logs rows)  — one row per exercise per session
 -- total_reps = SUM of all individual set reps across all exercises
 -- Note: bodyweight exercises (weight IS NULL or 0) contribute 0 to volume.
-CREATE OR REPLACE VIEW v_session_volume AS
+CREATE OR REPLACE VIEW v_session_volume WITH (security_invoker = true) AS
 SELECT
     ws.id                                               AS session_id,
     ws.date,
     ws.rpe,
     ws.duration_min,
     ROUND(SUM(
-        COALESCE(el.weight, 0) * COALESCE((
-            SELECT SUM(r::INT)
-            FROM unnest(string_to_array(el.reps, ',')) AS r
-            WHERE r ~ '^\d+$'
-        ), 0)
+        CASE
+            WHEN el.sets_json IS NOT NULL AND jsonb_array_length(el.sets_json) > 0
+            THEN (
+                SELECT COALESCE(SUM(
+                    COALESCE(
+                        (s->>'set_volume')::NUMERIC,
+                        COALESCE((s->>'weight')::NUMERIC, 0) *
+                        COALESCE((s->>'reps')::NUMERIC, 0)
+                    )
+                ), 0)
+                FROM jsonb_array_elements(el.sets_json) AS s
+            )
+            ELSE COALESCE(el.weight, 0) * COALESCE((
+                SELECT SUM(r::INT)
+                FROM unnest(string_to_array(el.reps, ',')) AS r
+                WHERE r ~ '^\d+$'
+            ), 0)
+        END
     ), 2)                                               AS total_volume,
     COUNT(el.id)                                        AS total_sets,
     SUM(COALESCE((
@@ -535,17 +549,30 @@ GROUP BY ws.id, ws.date, ws.rpe, ws.duration_min;
 -- v_weekly_volume
 -- Aggregates session volume by ISO calendar week.
 -- Useful for weekly load monitoring and overtraining detection.
-CREATE OR REPLACE VIEW v_weekly_volume AS
+CREATE OR REPLACE VIEW v_weekly_volume WITH (security_invoker = true) AS
 SELECT
     DATE_TRUNC('week', ws.date)                     AS week_start,
     EXTRACT(WEEK FROM ws.date)::INT                 AS week_number,
     EXTRACT(YEAR FROM ws.date)::INT                 AS year,
     ROUND(SUM(
-        COALESCE(el.weight, 0) * COALESCE((
-            SELECT SUM(r::INT)
-            FROM unnest(string_to_array(el.reps, ',')) AS r
-            WHERE r ~ '^\d+$'
-        ), 0)
+        CASE
+            WHEN el.sets_json IS NOT NULL AND jsonb_array_length(el.sets_json) > 0
+            THEN (
+                SELECT COALESCE(SUM(
+                    COALESCE(
+                        (s->>'set_volume')::NUMERIC,
+                        COALESCE((s->>'weight')::NUMERIC, 0) *
+                        COALESCE((s->>'reps')::NUMERIC, 0)
+                    )
+                ), 0)
+                FROM jsonb_array_elements(el.sets_json) AS s
+            )
+            ELSE COALESCE(el.weight, 0) * COALESCE((
+                SELECT SUM(r::INT)
+                FROM unnest(string_to_array(el.reps, ',')) AS r
+                WHERE r ~ '^\d+$'
+            ), 0)
+        END
     ), 2)                                           AS total_volume,
     COUNT(DISTINCT ws.id)                           AS session_count,
     COUNT(el.id)                                    AS total_sets

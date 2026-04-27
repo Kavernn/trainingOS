@@ -22,6 +22,9 @@ struct ExerciseCard: View {
     var isExpanded: Bool = false
     var onToggle: () -> Void = {}
     var nextExerciseName: String? = nil
+    var isReplaced: Bool = false
+    var originalName: String? = nil
+    var onSwap: (() -> Void)? = nil
 
     @StateObject private var evm: ExerciseViewModel
     @ObservedObject private var units = UnitSettings.shared
@@ -44,7 +47,9 @@ struct ExerciseCard: View {
          suggestion: ProgressionSuggestion? = nil, hint: String? = nil,
          logResult: Binding<ExerciseLogResult?>, onLogged: (() -> Void)? = nil,
          isExpanded: Bool = false, onToggle: @escaping () -> Void = {},
-         nextExerciseName: String? = nil) {
+         nextExerciseName: String? = nil,
+         isReplaced: Bool = false, originalName: String? = nil,
+         onSwap: (() -> Void)? = nil) {
         self.name            = name
         self.scheme          = scheme
         self.weightData      = weightData
@@ -62,6 +67,9 @@ struct ExerciseCard: View {
         self.isExpanded      = isExpanded
         self.onToggle        = onToggle
         self.nextExerciseName = nextExerciseName
+        self.isReplaced      = isReplaced
+        self.originalName    = originalName
+        self.onSwap          = onSwap
         _evm = StateObject(wrappedValue: ExerciseViewModel(
             name: name, scheme: scheme, weightData: weightData,
             equipmentType: equipmentType, trackingType: trackingType,
@@ -415,9 +423,19 @@ struct ExerciseCard: View {
 
                     // Name + scheme
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(name)
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundColor(.white)
+                        HStack(spacing: 6) {
+                            Text(name)
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(.white)
+                            if isReplaced {
+                                Text("remplacé")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(.orange)
+                                    .padding(.horizontal, 5).padding(.vertical, 2)
+                                    .background(Color.orange.opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+                        }
                         Text(scheme)
                             .font(.system(size: 12))
                             .foregroundColor(.gray)
@@ -465,7 +483,7 @@ struct ExerciseCard: View {
 
                 VStack(alignment: .leading, spacing: 12) {
 
-                    // Demo button
+                    // Demo button + swap button
                     HStack {
                         Button {
                             triggerImpact(style: .light)
@@ -481,6 +499,22 @@ struct ExerciseCard: View {
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
+                        if !alreadyLogged, let onSwap {
+                            Button {
+                                triggerImpact(style: .light)
+                                onSwap()
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "arrow.left.arrow.right").font(.system(size: 11))
+                                    Text("Changer").font(.system(size: 12, weight: .semibold))
+                                }
+                                .foregroundColor(.gray.opacity(0.7))
+                                .padding(.horizontal, 10).padding(.vertical, 5)
+                                .background(Color.white.opacity(0.06))
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
                         Spacer()
                     }
 

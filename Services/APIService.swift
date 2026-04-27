@@ -826,6 +826,25 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode([String: WeightData].self, from: data)
     }
 
+    /// Fetches weight history for a single exercise without polluting the global weights cache.
+    func fetchExerciseWeightData(name: String) async throws -> WeightData? {
+        let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        guard let url = URL(string: "\(baseURL)/api/weights?exercise=\(encoded)") else { return nil }
+        let (data, _) = try await URLSession.authed.data(from: url)
+        let dict = try JSONDecoder().decode([String: WeightData].self, from: data)
+        return dict[name]
+    }
+
+    /// Creates a new exercise in the permanent catalogue via /api/save_exercise.
+    func saveExercise(name: String, type: String, muscles: [String],
+                      pattern: String, scheme: String, category: String) async throws {
+        let payload: [String: Any] = [
+            "name": name, "type": type, "muscles": muscles,
+            "pattern": pattern, "default_scheme": scheme, "category": category,
+        ]
+        _ = try await offlinePost(endpoint: "/api/save_exercise", payload: payload)
+    }
+
     // MARK: - Santé Mentale — Mood
 
     func fetchMoodEmotions() async throws -> [MoodEmotion] {
