@@ -710,6 +710,9 @@ struct WorkoutSeanceView: View {
     @State private var showEnergyPreSheet = false
     @AppStorage("energy_pre_date") private var energyPreDate = ""
 
+    // Mid-workout intelligence
+    @State private var dismissedAdviceId: String? = nil
+
     // Optional add-ons
     @State private var showAddCardio = false
     @State private var showAddHIIT   = false
@@ -747,6 +750,48 @@ struct WorkoutSeanceView: View {
             }
             return acc + r.weight * reps
         }
+    }
+
+    private var midWorkoutAdvice: MidWorkoutAdvice? {
+        let logged    = vm.logResults.count
+        let total     = exercises.count
+        let remaining = total - logged
+        let durationMin = Date().timeIntervalSince(vm.sessionStart) / 60
+        guard logged >= 2 else { return nil }
+
+        if computedSessionRPE >= 9.0 && remaining > 0 {
+            return MidWorkoutAdvice(
+                id: "high_rpe",
+                icon: "exclamationmark.triangle.fill", color: .red,
+                title: "Fatigue critique",
+                message: "RPE \(String(format: "%.1f", computedSessionRPE))/10 — réduis les charges de 5-10% sur les \(remaining) exercice(s) restant(s), ou supprime une série."
+            )
+        }
+        if computedSessionRPE <= 6.0 && remaining > 1 {
+            return MidWorkoutAdvice(
+                id: "low_rpe",
+                icon: "bolt.fill", color: .green,
+                title: "Tu as de la réserve",
+                message: "RPE \(String(format: "%.1f", computedSessionRPE))/10 — tu peux monter les charges de 2.5–5% sur les prochains exercices."
+            )
+        }
+        if durationMin > 90 && remaining > 0 {
+            return MidWorkoutAdvice(
+                id: "too_long",
+                icon: "clock.badge.exclamationmark.fill", color: .orange,
+                title: "Séance longue — \(Int(durationMin)) min",
+                message: "Les \(remaining) exercice(s) restant(s) sont optionnels. La qualité prime sur la quantité après 90 min."
+            )
+        }
+        if ghostBeaten && remaining > 0 {
+            return MidWorkoutAdvice(
+                id: "ghost_beaten",
+                icon: "figure.run", color: .purple,
+                title: "Fantôme battu !",
+                message: "Volume déjà supérieur à ta dernière séance — reste prudent sur l'intensité jusqu'à la fin."
+            )
+        }
+        return nil
     }
 
     private struct GhostSnapshot: Codable {
@@ -1319,6 +1364,16 @@ struct WorkoutSeanceView: View {
                     .background(rpeColor(computedSessionRPE).opacity(0.08))
                     .cornerRadius(12)
                     .padding(.horizontal, 16)
+                }
+
+                // Mid-workout intelligence card
+                if let advice = midWorkoutAdvice, dismissedAdviceId != advice.id {
+                    MidWorkoutAdvisorCard(advice: advice) {
+                        withAnimation(.easeOut(duration: 0.25)) { dismissedAdviceId = advice.id }
+                    }
+                    .padding(.horizontal, 16)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .animation(.spring(response: 0.45, dampingFraction: 0.8), value: advice.id)
                 }
 
                 Button(action: { showFinish = true }) {
@@ -3270,4 +3325,73 @@ private struct CardHeightKey: PreferenceKey {
 struct ScrollOffsetKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
+// MARK: - Mid-Workout Intelligence
+
+struct MidWorkoutAdvice {
+    let id: String
+    let icon: String
+    let color: Color
+    let title: String
+    let message: String
+}
+
+struct MidWorkoutAdvisorCard: View {
+    let advice: MidWorkoutAdvice
+    let onDismiss: () -> Void
+    @State private var expanded = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: advice.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(advice.color)
+
+                Text(advice.title)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(advice.color)
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+                    } label: {
+                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.gray)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.gray.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+
+            if expanded {
+                Divider().background(advice.color.opacity(0.2)).padding(.horizontal, 12)
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(advice.color.opacity(0.7))
+                    Text(advice.message)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.8))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .background(advice.color.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(advice.color.opacity(0.3), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
 }

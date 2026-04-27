@@ -29,6 +29,10 @@ struct ExerciseCard: View {
     @State private var confirmSkip = false
     @State private var showAdvanced = false
     @State private var showPlateCalculator = false
+    @State private var showMediaSheet = false
+    @State private var mediaGifUrl: String? = nil
+    @State private var mediaMusclss: [String] = []
+    @State private var mediaFetched = false
 
     private enum SetFocus: Hashable { case weight(Int); case reps(Int) }
     @FocusState private var setFocus: SetFocus?
@@ -109,6 +113,25 @@ struct ExerciseCard: View {
         if v >= 8 { return .orange }
         if v >= 7 { return .yellow }
         return .green
+    }
+
+    private func fetchMedia() {
+        guard !mediaFetched else { showMediaSheet = true; return }
+        let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
+        guard let url = URL(string: "https://training-os-rho.vercel.app/api/exercise/media?name=\(encoded)") else { return }
+        Task {
+            if let (data, _) = try? await URLSession.shared.data(from: url),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                await MainActor.run {
+                    mediaGifUrl  = json["gif_url"] as? String
+                    mediaMusclss = json["muscles"] as? [String] ?? []
+                    mediaFetched = true
+                    showMediaSheet = true
+                }
+            } else {
+                await MainActor.run { mediaFetched = true; showMediaSheet = true }
+            }
+        }
     }
 
     private func doLog() {
@@ -441,6 +464,25 @@ struct ExerciseCard: View {
                     .background(Color.white.opacity(0.07))
 
                 VStack(alignment: .leading, spacing: 12) {
+
+                    // Demo button
+                    HStack {
+                        Button {
+                            triggerImpact(style: .light)
+                            fetchMedia()
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "play.circle.fill").font(.system(size: 12))
+                                Text("Démo").font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundColor(.purple)
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background(Color.purple.opacity(0.1))
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        Spacer()
+                    }
 
                     // Inline coaching chip
                     if logResult == nil, let s = suggestion, s.suggestionType != "maintain" {
@@ -896,6 +938,10 @@ struct ExerciseCard: View {
                 }
             )
             .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showMediaSheet) {
+            ExerciseMediaSheet(exerciseName: name, gifUrl: mediaGifUrl, muscles: mediaMusclss, tips: nil)
+                .presentationDetents([.medium, .large])
         }
     }
 

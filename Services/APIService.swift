@@ -682,6 +682,13 @@ class APIService: ObservableObject {
         return (r.settings, r.entries, r.totals)
     }
 
+    func fetchNutritionHistory() async throws -> [NutritionDayHistory] {
+        let url = URL(string: "\(baseURL)/api/nutrition_data")!
+        let data = try await fetchWithCache(url: url, key: "nutrition_data")
+        let r = try JSONDecoder().decode(NutritionDataResponse.self, from: data)
+        return r.history
+    }
+
     func addNutritionEntry(name: String, calories: Double, proteines: Double, glucides: Double,
                            lipides: Double, mealType: String? = nil, source: String = "manual") async throws {
         var payload: [String: Any] = [

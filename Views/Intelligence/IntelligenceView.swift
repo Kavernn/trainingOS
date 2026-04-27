@@ -28,6 +28,10 @@ struct IntelligenceView: View {
     @State private var isGeneratingProgram                       = false
     @State private var showProgramPreview                        = false
     @State private var programError:    String?                  = nil
+    @State private var showMemory                                = false
+    @StateObject private var memoryStore = CoachMemoryStore.shared
+    @State private var nutritionHistory: [NutritionDayHistory]  = []
+    @State private var showNutritionInsight                     = true
 
     var body: some View {
         NavigationStack {
@@ -163,6 +167,13 @@ struct IntelligenceView: View {
                             .foregroundColor(.indigo.opacity(0.8))
                         }
                         .padding(.top, 2)
+                    }
+
+                    // Nutrition × performance insight
+                    if showNutritionInsight, let ni = nutritionPerfInsight {
+                        NutritionPerfInsightCard(insight: ni, onDismiss: { showNutritionInsight = false })
+                            .padding(.horizontal, 16)
+                            .padding(.top, 4)
                     }
 
                     // Proposals sheet
@@ -311,6 +322,25 @@ struct IntelligenceView: View {
                 }
             }
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showMemory = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: 13, weight: .semibold))
+                            if !memoryStore.entries.isEmpty {
+                                Text("\(memoryStore.entries.count)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.purple)
+                                    .padding(.horizontal, 5).padding(.vertical, 2)
+                                    .background(Color.purple.opacity(0.15))
+                                    .clipShape(Capsule())
+                            }
+                        }
+                        .foregroundColor(.purple)
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if !messages.isEmpty {
                         Button("Effacer") { messages = []; historyData = "[]" }.foregroundColor(.purple)
@@ -330,7 +360,78 @@ struct IntelligenceView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showMemory) {
+                CoachMemoryView()
+            }
         }
+    }
+
+    // MARK: - Nutrition × Performance Insight
+
+    private var iso14DaysAgo: String {
+        DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 14 * 86400))
+    }
+
+    private var nutritionPerfInsight: NutritionPerfInsight? {
+        guard let ns = api.dashboard?.nutritionSettings,
+              let calTarget = ns.calories, calTarget > 0,
+              nutritionHistory.count >= 5 else { return nil }
+
+        let recent = Array(nutritionHistory.suffix(7))
+        let avgCal  = recent.map { $0.calories }.reduce(0, +) / Double(recent.count)
+        let avgProt = recent.map { $0.proteines }.reduce(0, +) / Double(recent.count)
+        let calRatio = avgCal / calTarget
+
+        // 1. Protein deficit + high session volume
+        if let protTarget = ns.proteines, protTarget > 0, avgProt < protTarget * 0.78 {
+            let sessions14d = sessionsData.filter { $0.key >= iso14DaysAgo }.count
+            if sessions14d >= 5 {
+                return NutritionPerfInsight(
+                    kind: .proteinVolume,
+                    title: "Protéines insuffisantes vs volume",
+                    detail: "Moy. \(Int(avgProt))g/j — objectif \(Int(protTarget))g (\(Int(avgProt / protTarget * 100))%) · \(sessions14d) séances en 14j",
+                    actionHint: "Augmenter les protéines réduit le catabolisme lors d'un volume élevé."
+                )
+            }
+        }
+
+        // 2. Caloric deficit + lift stagnation
+        if calRatio < 0.87 {
+            let hasProgress = weightsData.values.contains { wd in
+                guard let hist = wd.history, hist.count >= 2 else { return false }
+                let w14 = hist.filter { ($0.date ?? "") >= iso14DaysAgo }.sorted { ($0.date ?? "") < ($1.date ?? "") }
+                guard w14.count >= 2 else { return false }
+                return (w14.last?.weight ?? 0) > (w14.first?.weight ?? 0)
+            }
+            if !hasProgress {
+                return NutritionPerfInsight(
+                    kind: .deficitStagnation,
+                    title: "Déficit calorique + stagnation des charges",
+                    detail: "Moy. \(Int(avgCal)) kcal/j (\(Int(calRatio * 100))% de l'objectif) · aucune progression en 14j",
+                    actionHint: "Un déficit prolongé sans progression signale un risque de catabolisme musculaire."
+                )
+            }
+        }
+
+        // 3. Caloric deficit + HRV decline
+        if calRatio < 0.85 {
+            let hrvValues = recoveryData.compactMap { $0.hrv }
+            if hrvValues.count >= 10 {
+                let avgRecent = hrvValues.prefix(7).reduce(0, +) / 7.0
+                let avgPrev   = Array(hrvValues.dropFirst(7).prefix(7)).reduce(0, +) / 7.0
+                if avgPrev > 0 && avgRecent < avgPrev * 0.88 {
+                    let drop = Int((1 - avgRecent / avgPrev) * 100)
+                    return NutritionPerfInsight(
+                        kind: .deficitFatigue,
+                        title: "Déficit calorique + HRV en baisse",
+                        detail: "Moy. \(Int(avgCal)) kcal/j (\(Int(calRatio * 100))%) · HRV −\(drop)% sur 7j",
+                        actionHint: "Déficit + HRV bas = stress systémique. Considérer un jour de repos ou plus de calories."
+                    )
+                }
+            }
+        }
+
+        return nil
     }
 
     private let suggestions = [
@@ -385,11 +486,39 @@ struct IntelligenceView: View {
             acwrData = acwrResult
             lssData  = lssResult
         }
+
+        // 3. Nutrition history for nutrition×perf insight
+        if let hist = try? await APIService.shared.fetchNutritionHistory(), !hist.isEmpty {
+            await MainActor.run { nutritionHistory = hist; showNutritionInsight = true }
+        }
+
+        // 4. Weekly memory auto-analysis (no-op if run < 7 days ago)
+        let snap = await MainActor.run {
+            (sessions: sessionsData,
+             recovery: recoveryData,
+             weights:  weightsData,
+             goals:    api.dashboard?.goals ?? [:])
+        }
+        CoachMemoryStore.shared.runAnalysisIfNeeded(
+            sessions:     snap.sessions,
+            recovery:     snap.recovery,
+            weights:      snap.weights,
+            goals:        snap.goals,
+            correlations: correlations?.insights ?? []
+        )
     }
 
     private func buildContext() -> String {
         guard let dash = api.dashboard else { return "no data" }
         var lines: [String] = []
+
+        // Coach memory — injected first for maximum AI attention
+        let memBlock = CoachMemoryStore.shared.contextBlock
+        if !memBlock.isEmpty {
+            lines.append("=== MÉMOIRE COACH (persistante) ===")
+            lines.append(memBlock)
+            lines.append("===")
+        }
 
         // Profile + date (1 line)
         let p = dash.profile
@@ -964,6 +1093,105 @@ struct NarrativeCard: View {
         .background(Color(hex: "0a1018"))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.teal.opacity(0.3), lineWidth: 1))
         .cornerRadius(12)
+    }
+}
+
+// MARK: - Nutrition × Performance Insight Model
+
+struct NutritionPerfInsight {
+    enum Kind {
+        case deficitStagnation
+        case deficitFatigue
+        case proteinVolume
+    }
+    let kind: Kind
+    let title: String
+    let detail: String
+    let actionHint: String
+
+    var icon: String {
+        switch kind {
+        case .deficitStagnation: return "chart.line.flattrend.xyaxis"
+        case .deficitFatigue:    return "heart.slash.fill"
+        case .proteinVolume:     return "fork.knife"
+        }
+    }
+
+    var accentColor: Color {
+        switch kind {
+        case .deficitStagnation: return .orange
+        case .deficitFatigue:    return .red
+        case .proteinVolume:     return .yellow
+        }
+    }
+}
+
+// MARK: - Nutrition × Performance Card
+
+struct NutritionPerfInsightCard: View {
+    let insight: NutritionPerfInsight
+    let onDismiss: () -> Void
+    @State private var expanded = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image(systemName: insight.icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(insight.accentColor)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(insight.title)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(insight.accentColor)
+                    Text(insight.detail)
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.7))
+                        .lineLimit(expanded ? nil : 1)
+                }
+
+                Spacer()
+
+                HStack(spacing: 8) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+                    } label: {
+                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.gray)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.gray.opacity(0.6))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+
+            if expanded {
+                Divider().background(insight.accentColor.opacity(0.2)).padding(.horizontal, 12)
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(insight.accentColor.opacity(0.7))
+                    Text(insight.actionHint)
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.75))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .background(insight.accentColor.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(insight.accentColor.opacity(0.3), lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 

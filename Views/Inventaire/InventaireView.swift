@@ -18,6 +18,7 @@ struct InventoryItem: Identifiable {
     var trackingType: String
     var restSeconds: Int?
     var loadProfile: String   // "compound_heavy" | "compound_hypertrophy" | "isolation" | ""
+    var gifUrl: String?
     init(name: String, _ d: [String: Any]) {
         self.name          = name
         self.type          = d["type"]          as? String ?? "machine"
@@ -31,6 +32,7 @@ struct InventoryItem: Identifiable {
         self.trackingType  = d["tracking_type"] as? String ?? "reps"
         self.restSeconds   = d["rest_seconds"]  as? Int
         self.loadProfile   = d["load_profile"]  as? String ?? ""
+        self.gifUrl        = d["gif_url"]        as? String
     }
 }
 
@@ -313,6 +315,7 @@ struct InventaireView: View {
 struct InventaireRow: View {
     let item: InventoryItem
     var isInProgram: Bool = false
+    @State private var showMedia = false
 
     func loadProfileInfo(_ lp: String) -> (String, Color) {
         switch lp {
@@ -395,11 +398,24 @@ struct InventaireRow: View {
                 }
             }
             Spacer()
+            if item.gifUrl != nil {
+                Button {
+                    showMedia = true
+                } label: {
+                    Image(systemName: "play.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.orange.opacity(0.75))
+                }
+                .buttonStyle(.plain)
+            }
             Image(systemName: "chevron.right")
                 .font(.system(size: 11))
                 .foregroundColor(.gray.opacity(0.4))
         }
         .padding(.vertical, 6)
+        .sheet(isPresented: $showMedia) {
+            ExerciseMediaSheet(exerciseName: item.name, gifUrl: item.gifUrl, muscles: item.muscles, tips: item.gifUrl != nil ? nil : nil)
+        }
     }
 }
 
@@ -974,6 +990,175 @@ struct FilterChip: View {
                 .foregroundColor(selected ? color : .gray)
                 .clipShape(Capsule())
                 .overlay(Capsule().stroke(selected ? color.opacity(0.5) : Color.clear, lineWidth: 1))
+        }
+    }
+}
+
+// MARK: - Exercise Media Sheet
+
+struct ExerciseMediaSheet: View {
+    let exerciseName: String
+    let gifUrl: String?
+    let muscles: [String]
+    let tips: String?
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var showAlt = false
+
+    private var altUrl: String? {
+        guard let g = gifUrl else { return nil }
+        return g.replacingOccurrences(of: "/0.jpg", with: "/1.jpg")
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "0D0D14").ignoresSafeArea()
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        // Images (start / end position)
+                        if let url = gifUrl {
+                            VStack(spacing: 0) {
+                                HStack(spacing: 0) {
+                                    imageTab(label: "Départ", active: !showAlt) { showAlt = false }
+                                    imageTab(label: "Arrivée", active: showAlt)  { showAlt = true  }
+                                }
+                                .padding(.bottom, 10)
+
+                                let displayUrl = (showAlt ? altUrl : gifUrl) ?? url
+                                AsyncImage(url: URL(string: displayUrl)) { phase in
+                                    switch phase {
+                                    case .success(let img):
+                                        img.resizable()
+                                            .scaledToFit()
+                                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                                            .transition(.opacity)
+                                    case .failure:
+                                        Color(hex: "191926")
+                                            .frame(height: 200)
+                                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                                            .overlay(Image(systemName: "photo.slash").foregroundColor(.gray))
+                                    default:
+                                        Color(hex: "191926")
+                                            .frame(height: 200)
+                                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                                            .overlay(ProgressView())
+                                    }
+                                }
+                                .animation(.easeInOut(duration: 0.2), value: showAlt)
+                            }
+                            .padding(.horizontal, 16)
+                        }
+
+                        // Muscles
+                        if !muscles.isEmpty {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("MUSCLES")
+                                    .font(.system(size: 10, weight: .black)).tracking(2)
+                                    .foregroundColor(.gray)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                FlowLayout(spacing: 8) {
+                                    ForEach(muscles, id: \.self) { m in
+                                        Text(m.capitalized)
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.orange)
+                                            .padding(.horizontal, 10).padding(.vertical, 5)
+                                            .background(Color.orange.opacity(0.1))
+                                            .clipShape(Capsule())
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                        }
+
+                        // Tips
+                        if let t = tips, !t.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("COACHING")
+                                    .font(.system(size: 10, weight: .black)).tracking(2)
+                                    .foregroundColor(.gray)
+                                HStack(alignment: .top, spacing: 8) {
+                                    Image(systemName: "lightbulb.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.yellow)
+                                    Text(t)
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.white.opacity(0.85))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .padding(14)
+                            .background(Color.yellow.opacity(0.06))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.yellow.opacity(0.2), lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal, 16)
+                        }
+
+                        if gifUrl == nil && muscles.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "photo.slash").font(.system(size: 36)).foregroundColor(.gray.opacity(0.4))
+                                Text("Aucun média disponible pour cet exercice.")
+                                    .font(.system(size: 13)).foregroundColor(.gray).multilineTextAlignment(.center)
+                            }
+                            .padding(.top, 40)
+                        }
+                    }
+                    .padding(.vertical, 16)
+                }
+            }
+            .navigationTitle(exerciseName)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fermer") { dismiss() }.foregroundColor(.white)
+                }
+            }
+            .toolbarBackground(Color(hex: "0D0D14"), for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func imageTab(label: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(active ? .white : .gray)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(active ? Color.orange.opacity(0.2) : Color.clear)
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .bottom) {
+            if active { Rectangle().fill(Color.orange).frame(height: 2) }
+        }
+    }
+}
+
+// MARK: - Flow Layout (muscle chips)
+
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxW = proposal.width ?? 0
+        var x: CGFloat = 0; var y: CGFloat = 0; var rowH: CGFloat = 0
+        for sv in subviews {
+            let s = sv.sizeThatFits(.unspecified)
+            if x + s.width > maxW && x > 0 { y += rowH + spacing; x = 0; rowH = 0 }
+            x += s.width + spacing; rowH = max(rowH, s.height)
+        }
+        return CGSize(width: maxW, height: y + rowH)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX; var y = bounds.minY; var rowH: CGFloat = 0
+        for sv in subviews {
+            let s = sv.sizeThatFits(.unspecified)
+            if x + s.width > bounds.maxX && x > bounds.minX { y += rowH + spacing; x = bounds.minX; rowH = 0 }
+            sv.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(s))
+            x += s.width + spacing; rowH = max(rowH, s.height)
         }
     }
 }
