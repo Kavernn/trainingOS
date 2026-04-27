@@ -166,12 +166,25 @@ struct StatsView: View {
     // ── Personal Records ─────────────────────────────────────────────
     var personalRecords: [(String, Double)] {
         weights.compactMap { name, data -> (String, Double)? in
-            // Bodyweight exercises have no meaningful 1RM (load varies with body weight)
-            if inventoryTypes[name] == "bodyweight" { return nil }
+            let isBodyweight = inventoryTypes[name] == "bodyweight"
             let best = data.history?.compactMap { e -> Double? in
+                // Bodyweight: only use explicitly stored 1RM (no estimation)
+                if isBodyweight {
+                    return (e.oneRM ?? 0) > 0 ? e.oneRM : nil
+                }
                 if let stored = e.oneRM, stored > 0 { return stored }
+                // Use best per-set estimate if available (more accurate than average)
+                if let sets = e.sets, !sets.isEmpty {
+                    return sets.compactMap { s -> Double? in
+                        let r = avgReps(s.reps)
+                        guard r >= 1, r <= 15, s.weight > 0 else { return nil }
+                        return s.weight * (1 + r / 30.0)
+                    }.max()
+                }
+                // Fallback: average weight/reps — cap at 15 reps (above is endurance, not strength)
                 guard let w = e.weight, w > 0, let r = e.reps else { return nil }
-                let avg = avgReps(r); guard avg > 0 else { return nil }
+                let avg = avgReps(r)
+                guard avg >= 1, avg <= 15 else { return nil }
                 return w * (1 + avg / 30.0)
             }.max()
             return best.map { (name, $0) }
