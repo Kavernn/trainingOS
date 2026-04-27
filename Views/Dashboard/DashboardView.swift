@@ -1413,27 +1413,30 @@ struct WeekGridView: View {
     }
 
     private func seanceShort(_ s: String) -> String {
-        switch s {
-        case "Push A":             return "PSH A"
-        case "Pull A":             return "PLL A"
-        case "Legs":               return "LEGS"
-        case "Push B":             return "PSH B"
-        case "Pull B + Full Body": return "PLL B"
-        case "Yoga / Tai Chi":     return "YOGA"
-        case "Recovery":           return "REC"
-        default: return "—"
-        }
+        let low = s.lowercased()
+        if low.contains("upper")   { return s.replacingOccurrences(of: "Upper", with: "UPP") }
+        if low.contains("lower")   { return s.replacingOccurrences(of: "Lower", with: "LOW") }
+        if low.contains("push")    { return s.replacingOccurrences(of: "Push", with: "PSH") }
+        if low.contains("pull")    { return s.replacingOccurrences(of: "Pull", with: "PLL") }
+        if low.contains("legs")    { return s.replacingOccurrences(of: "Legs", with: "LEGS") }
+        if low.contains("yoga")    { return "YOGA" }
+        if low.contains("recovery") || low == "rec" { return "REC" }
+        if low.contains("full body") { return "FB" }
+        // Generic fallback: up to 6 chars
+        return String(s.prefix(6)).uppercased()
     }
 
     private func seanceColor(_ s: String) -> Color {
-        switch s {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery": return .green
-        default: return .gray
-        }
+        let low = s.lowercased()
+        if low.contains("upper")    { return .orange }
+        if low.contains("lower")    { return .yellow }
+        if low.contains("push")     { return .orange }
+        if low.contains("pull")     { return .cyan }
+        if low.contains("legs")     { return .yellow }
+        if low.contains("yoga")     { return .purple }
+        if low.contains("recovery") { return .green }
+        if low.contains("full body"){ return .mint }
+        return .gray
     }
 }
 
