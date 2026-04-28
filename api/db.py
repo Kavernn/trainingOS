@@ -1109,6 +1109,28 @@ def update_exercise_default_scheme(exercise_name: str, default_scheme: str) -> b
         return False
 
 
+def normalize_schemes_max_sets(max_sets: int = 3) -> int:
+    """Cap set count to max_sets for every exercise whose default_scheme has more.
+    e.g. '4x5' → '3x5', '5x3' → '3x3'. Returns number of exercises updated."""
+    import re
+    if _client is None or MODE == "OFFLINE":
+        return 0
+    try:
+        rows = (_client.table("exercises").select("name,default_scheme").execute().data or [])
+        updated = 0
+        for row in rows:
+            scheme = (row.get("default_scheme") or "").strip()
+            m = re.match(r'^(\d+)(x.+)$', scheme, re.IGNORECASE)
+            if m and int(m.group(1)) > max_sets:
+                new_scheme = f"{max_sets}{m.group(2)}"
+                _client.table("exercises").update({"default_scheme": new_scheme}).eq("name", row["name"]).execute()
+                updated += 1
+        return updated
+    except Exception as e:
+        logger.error("normalize_schemes_max_sets error: %s", e)
+        return 0
+
+
 def bulk_set_rest_seconds(seconds: int) -> bool:
     """Set rest_seconds = seconds for every exercise in the inventory."""
     if _client is None or MODE == "OFFLINE":

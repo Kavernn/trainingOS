@@ -630,6 +630,14 @@ def api_save_exercise():
     return jsonify({"success": True})
 
 
+@workout_bp.route("/api/exercises/normalize_schemes", methods=["POST"])
+def api_normalize_schemes():
+    import db as _db
+    max_sets = (request.get_json(silent=True) or {}).get("max_sets", 3)
+    n = _db.normalize_schemes_max_sets(int(max_sets))
+    return jsonify({"ok": True, "updated": n})
+
+
 @workout_bp.route("/api/exercises/set_all_rest", methods=["POST"])
 def api_set_all_rest():
     import db as _db
