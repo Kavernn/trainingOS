@@ -1626,13 +1626,6 @@ struct WorkoutSeanceView: View {
     // MARK: - Programme mutations
     
     private func loadInventory() async {
-        // One-time migration: set all inventory rest timers to 120 s
-        let migrationKey = "migrationAllRest120_v1"
-        if !UserDefaults.standard.bool(forKey: migrationKey) {
-            try? await APIService.shared.setAllRestSeconds(120)
-            UserDefaults.standard.set(true, forKey: migrationKey)
-        }
-
         // Seed immediately from already-loaded seanceData
         let fromCache  = data.fullProgram[data.today]?.mapValues { $0.value } ?? [:]
         let orderCache = data.exerciseOrder[data.today] ?? fromCache.keys.sorted()
@@ -1657,9 +1650,21 @@ struct WorkoutSeanceView: View {
         let orderNet    = (json["exercise_order"] as? [String: [String]])?[data.today]
         let types    = (json["inventory_types"] as? [String: String]) ?? [:]
         let tracking = (json["inventory_tracking"] as? [String: String]) ?? [:]
-        let rest     = (json["inventory_rest"] as? [String: Int]) ?? [:]
+        var rest     = (json["inventory_rest"] as? [String: Int]) ?? [:]
         let muscles  = (json["inventory_muscles"] as? [String: [String]]) ?? [:]
         let patterns = (json["inventory_patterns"] as? [String: String]) ?? [:]
+
+        // Migration: push 120 s to DB and override locally until all exercises are updated
+        let migrationKey = "migrationAllRest120_v2"
+        if !UserDefaults.standard.bool(forKey: migrationKey) {
+            // Only mark done if the endpoint actually succeeds
+            if (try? await APIService.shared.setAllRestSeconds(120)) != nil {
+                UserDefaults.standard.set(true, forKey: migrationKey)
+            }
+            // Force 120 s locally for all exercises this session, regardless of endpoint result
+            rest = Dictionary(uniqueKeysWithValues: inv.map { ($0, 120) })
+        }
+
         await MainActor.run {
             self.inventory = inv
             if !types.isEmpty    { self.inventoryTypes    = types }
