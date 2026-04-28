@@ -1091,6 +1091,25 @@ def api_hiit_data():
     })
 
 
+@workout_bp.route("/api/exercise/set_gif", methods=["POST"])
+def api_exercise_set_gif():
+    """Manually override gif_url for a specific exercise.
+    Body: {"name": "Nordic Curl", "gif_url": "https://..."}
+    """
+    import db as _db
+    data    = request.get_json(silent=True) or {}
+    name    = data.get("name", "").strip()
+    gif_url = data.get("gif_url", "").strip()
+    if not name:
+        return jsonify({"error": "name required"}), 400
+    update = {"gif_url": gif_url if gif_url else None}
+    try:
+        _db._client.table("exercises").update(update).eq("name", name).execute()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"ok": True, "name": name, "gif_url": gif_url or None})
+
+
 @workout_bp.route("/api/exercise/media", methods=["GET"])
 def api_exercise_media():
     import db as _db
