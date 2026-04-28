@@ -164,9 +164,11 @@ def api_programme_data():
     inventory    = load_inventory()
     programs     = _db.get_all_programs()
     all_sessions = _db.get_all_session_names()
+    from utils import cap_scheme_sets
+
     # Aplatit la structure bloc → {seance: {exercice: scheme}} pour le client iOS
     flat_program = {
-        seance: get_strength_exercises(session_def)
+        seance: {ex: cap_scheme_sets(s) for ex, s in get_strength_exercises(session_def).items()}
         for seance, session_def in full_program.items()
     }
     # Sync: ajoute dans l'inventaire tout exercice du programme qui en est absent.

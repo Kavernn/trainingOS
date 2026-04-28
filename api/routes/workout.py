@@ -907,9 +907,10 @@ def api_seance_data():
     # but failed before complete_workout_session() succeeded (completed=False).
     already_logged = bool(_s.get("completed"))
 
+    from utils import cap_scheme_sets
     # Aplatit la structure bloc → {exercice: scheme} pour le client iOS
     flat_program = {
-        seance: get_strength_exercises(session_def)
+        seance: {ex: cap_scheme_sets(s) for ex, s in get_strength_exercises(session_def).items()}
         for seance, session_def in full_program.items()
     }
 
@@ -993,8 +994,9 @@ def api_seance_soir_data():
     schedule     = get_evening_schedule()
     already_logged = _db.get_workout_session_second(today_date) is not None
 
+    from utils import cap_scheme_sets
     flat_program = {
-        seance: get_strength_exercises(session_def)
+        seance: {ex: cap_scheme_sets(s) for ex, s in get_strength_exercises(session_def).items()}
         for seance, session_def in full_program.items()
     }
     inv = inventory if isinstance(inventory, dict) else {}

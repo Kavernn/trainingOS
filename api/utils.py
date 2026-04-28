@@ -34,6 +34,12 @@ def _today_mtl() -> str:
     return _now_mtl().strftime("%Y-%m-%d")
 
 
+def cap_scheme_sets(scheme: str, max_sets: int = 3) -> str:
+    """Cap the set count in a scheme string. '4x8' → '3x8', '3x8-12' unchanged."""
+    m = _re.match(r'^(\d+)(x.+)$', scheme or "", _re.IGNORECASE)
+    return f"{max_sets}{m.group(2)}" if m and int(m.group(1)) > max_sets else (scheme or "")
+
+
 # ── Rate limiting for Anthropic AI routes ─────────────────────────────────────
 # Stored in Supabase so the limit is shared across all Vercel workers.
 # Table: ai_rate_limit (hour_key TEXT PRIMARY KEY, count INTEGER DEFAULT 0)

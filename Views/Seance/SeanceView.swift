@@ -1663,14 +1663,6 @@ struct WorkoutSeanceView: View {
             rest = Dictionary(uniqueKeysWithValues: inv.map { ($0, 120) })
         }
 
-        // Migration: cap all schemes to max 3 sets
-        let schemeMigrationKey = "migrationMaxSets3_v1"
-        if !UserDefaults.standard.bool(forKey: schemeMigrationKey) {
-            if (try? await APIService.shared.normalizeSchemes(maxSets: 3)) != nil {
-                UserDefaults.standard.set(true, forKey: schemeMigrationKey)
-            }
-        }
-
         await MainActor.run {
             self.inventory = inv
             if !types.isEmpty    { self.inventoryTypes    = types }
