@@ -217,6 +217,9 @@ CREATE TABLE IF NOT EXISTS recovery_logs (
     hrv             NUMERIC,
     steps           INT,
     active_energy   NUMERIC,    -- kcal actives (Apple Watch)
+    hr_morning      SMALLINT,   -- FC matin (06-09h)
+    hr_post_workout SMALLINT,   -- FC post séance (+30 min)
+    hr_evening      SMALLINT,   -- FC soir (21-23h)
     source          TEXT        NOT NULL DEFAULT 'manual',  -- manual | healthkit
     notes           TEXT
 );
