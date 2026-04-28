@@ -845,6 +845,10 @@ class APIService: ObservableObject {
         _ = try await offlinePost(endpoint: "/api/save_exercise", payload: payload)
     }
 
+    func setAllRestSeconds(_ seconds: Int) async throws {
+        _ = try await offlinePost(endpoint: "/api/exercises/set_all_rest", payload: ["seconds": seconds])
+    }
+
     // MARK: - Santé Mentale — Mood
 
     func fetchMoodEmotions() async throws -> [MoodEmotion] {

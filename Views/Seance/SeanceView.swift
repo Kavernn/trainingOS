@@ -1626,6 +1626,13 @@ struct WorkoutSeanceView: View {
     // MARK: - Programme mutations
     
     private func loadInventory() async {
+        // One-time migration: set all inventory rest timers to 120 s
+        let migrationKey = "migrationAllRest120_v1"
+        if !UserDefaults.standard.bool(forKey: migrationKey) {
+            try? await APIService.shared.setAllRestSeconds(120)
+            UserDefaults.standard.set(true, forKey: migrationKey)
+        }
+
         // Seed immediately from already-loaded seanceData
         let fromCache  = data.fullProgram[data.today]?.mapValues { $0.value } ?? [:]
         let orderCache = data.exerciseOrder[data.today] ?? fromCache.keys.sorted()
