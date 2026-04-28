@@ -630,6 +630,18 @@ def api_save_exercise():
     return jsonify({"success": True})
 
 
+@workout_bp.route("/api/exercises/set_all_rest", methods=["POST"])
+def api_set_all_rest():
+    import db as _db
+    seconds = (request.get_json(silent=True) or {}).get("seconds", 120)
+    if not isinstance(seconds, int) or seconds < 10:
+        return jsonify({"error": "seconds doit être un entier ≥ 10"}), 400
+    ok = _db.bulk_set_rest_seconds(seconds)
+    if not ok:
+        return jsonify({"error": "Erreur base de données"}), 500
+    return jsonify({"ok": True, "seconds": seconds})
+
+
 @workout_bp.route("/api/delete_exercise", methods=["POST"])
 def api_delete_exercise():
     name = (request.get_json(silent=True) or {}).get("name", "").strip()

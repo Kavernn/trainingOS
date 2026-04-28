@@ -1109,6 +1109,18 @@ def update_exercise_default_scheme(exercise_name: str, default_scheme: str) -> b
         return False
 
 
+def bulk_set_rest_seconds(seconds: int) -> bool:
+    """Set rest_seconds = seconds for every exercise in the inventory."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("exercises").update({"rest_seconds": seconds}).neq("name", "").execute()
+        return True
+    except Exception as e:
+        logger.error("bulk_set_rest_seconds error: %s", e)
+        return False
+
+
 def upsert_exercise_log(
     session_date: str, exercise_name: str, weight: float, reps: str, sets_json: list | None = None
 ) -> bool:
