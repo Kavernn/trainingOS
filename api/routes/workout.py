@@ -922,7 +922,7 @@ def api_seance_data():
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
-    inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
+    inventory_rest     = {name: 120 for name in inv}
     inventory_hints    = {name: info["tips"] for name, info in inv.items() if info.get("tips")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     exercise_supersets = _db.get_session_supersets(_db.get_active_program_id())
@@ -1002,7 +1002,7 @@ def api_seance_soir_data():
     inv = inventory if isinstance(inventory, dict) else {}
     inventory_types    = {name: info.get("type") or "machine" for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps") for name, info in inv.items()}
-    inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
+    inventory_rest     = {name: 120 for name in inv}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     suggestions     = get_suggested_weights_for_today(weights, full_program)
 

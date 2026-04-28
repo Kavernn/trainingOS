@@ -185,7 +185,7 @@ def api_programme_data():
                     inv[ex_name] = entry
     inventory_types    = {name: info.get("type") or "machine"          for name, info in inv.items()}
     inventory_tracking = {name: info.get("tracking_type", "reps")   for name, info in inv.items()}
-    inventory_rest     = {name: info["rest_seconds"] for name, info in inv.items() if info.get("rest_seconds")}
+    inventory_rest     = {name: 120 for name in inv}
     inventory_schemes  = {name: info.get("default_scheme", "3x8-12") for name, info in inv.items()}
     inventory_muscles  = {name: info.get("muscles") or []             for name, info in inv.items()}
     inventory_patterns = {name: info.get("pattern") or ""             for name, info in inv.items()}

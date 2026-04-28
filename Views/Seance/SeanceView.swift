@@ -1654,15 +1654,6 @@ struct WorkoutSeanceView: View {
         let muscles  = (json["inventory_muscles"] as? [String: [String]]) ?? [:]
         let patterns = (json["inventory_patterns"] as? [String: String]) ?? [:]
 
-        // Migration: push 120 s to DB and override locally until all exercises are updated
-        let migrationKey = "migrationAllRest120_v2"
-        if !UserDefaults.standard.bool(forKey: migrationKey) {
-            if (try? await APIService.shared.setAllRestSeconds(120)) != nil {
-                UserDefaults.standard.set(true, forKey: migrationKey)
-            }
-            rest = Dictionary(uniqueKeysWithValues: inv.map { ($0, 120) })
-        }
-
         await MainActor.run {
             self.inventory = inv
             if !types.isEmpty    { self.inventoryTypes    = types }

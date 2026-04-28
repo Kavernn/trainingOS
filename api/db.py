@@ -2159,8 +2159,7 @@ def get_session_supersets(program_id: str | None = None) -> dict:
                         ss_map[grp]["A"] = ex_name
                     elif pos == 2:
                         ss_map[grp]["B"] = ex_name
-                        if rest is not None:
-                            ss_map[grp]["rest"] = rest
+                        ss_map[grp]["rest"] = 120
             if ss_map:
                 result[sname] = ss_map
         return result
