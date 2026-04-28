@@ -849,6 +849,10 @@ class APIService: ObservableObject {
         _ = try await offlinePost(endpoint: "/api/exercises/set_all_rest", payload: ["seconds": seconds])
     }
 
+    func normalizeSchemes(maxSets: Int = 3) async throws {
+        _ = try await offlinePost(endpoint: "/api/exercises/normalize_schemes", payload: ["max_sets": maxSets])
+    }
+
     // MARK: - Santé Mentale — Mood
 
     func fetchMoodEmotions() async throws -> [MoodEmotion] {
