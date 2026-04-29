@@ -659,32 +659,42 @@ def upsert_exercise_log_direct(
 def get_exercise_history_grouped_by_session(session_ids: list | None = None) -> dict:
     """Return exercise history keyed by workout_sessions.id (UUID string).
 
-    Pass session_ids to filter — avoids the Supabase default 1000-row cap.
+    Paginates through exercise_logs to bypass Supabase's 1000-row default cap.
     Returns: {session_id: [{"exercise": name, "weight": w, "reps": r}, ...]}
     """
     if _client is None or MODE == "OFFLINE":
         return {}
+    result: dict = {}
+    page_size = 1000
+    offset = 0
     try:
-        q = _client.table("exercise_logs").select("weight, reps, session_id, exercises(name)")
-        if session_ids:
-            q = q.in_("session_id", session_ids)
-        resp = q.limit(10000).execute()
-        rows = resp.data or []
-        result: dict = {}
-        for r in rows:
-            sid = r.get("session_id")
-            name = (r.get("exercises") or {}).get("name")
-            if not sid or not name:
-                continue
-            result.setdefault(sid, []).append({
-                "exercise": name,
-                "weight":   r.get("weight", 0),
-                "reps":     r.get("reps", ""),
-            })
+        while True:
+            q = (
+                _client.table("exercise_logs")
+                .select("weight, reps, session_id, exercises(name)")
+                .range(offset, offset + page_size - 1)
+            )
+            if session_ids:
+                q = q.in_("session_id", session_ids)
+            resp = q.execute()
+            rows = resp.data or []
+            for r in rows:
+                sid = r.get("session_id")
+                name = (r.get("exercises") or {}).get("name")
+                if not sid or not name:
+                    continue
+                result.setdefault(sid, []).append({
+                    "exercise": name,
+                    "weight":   r.get("weight", 0),
+                    "reps":     r.get("reps", ""),
+                })
+            if len(rows) < page_size:
+                break
+            offset += page_size
         return result
     except Exception as e:
         logger.error("get_exercise_history_grouped_by_session error: %s", e)
-        return {}
+        return result  # return partial data rather than empty
 
 
 def update_workout_session_by_type(date: str, session_type: str, patch: dict) -> bool:
@@ -793,27 +803,35 @@ def get_all_exercise_history() -> dict:
     """Return {exercise_name: [{date, weight, reps}]} for all exercises in one query.
 
     Used by load_weights() to avoid N+1 per-exercise queries.
+    Paginates to bypass Supabase's 1000-row default cap.
     """
     if _client is None or MODE == "OFFLINE":
         return {}
+    result: dict = {}
+    page_size = 1000
+    offset = 0
     try:
-        resp = (
-            _client.table("exercise_logs")
-            .select("weight, reps, sets_json, exercises(name), workout_sessions(date)")
-            .execute()
-        )
-        rows = resp.data or []
-        result: dict = {}
-        for r in rows:
-            name = (r.get("exercises") or {}).get("name")
-            date = (r.get("workout_sessions") or {}).get("date")
-            if not name or not date:
-                continue
-            entry = {"date": date, "weight": r.get("weight"), "reps": r.get("reps")}
-            sets_json = r.get("sets_json")
-            if sets_json:
-                entry["sets"] = sets_json
-            result.setdefault(name, []).append(entry)
+        while True:
+            resp = (
+                _client.table("exercise_logs")
+                .select("weight, reps, sets_json, exercises(name), workout_sessions(date)")
+                .range(offset, offset + page_size - 1)
+                .execute()
+            )
+            rows = resp.data or []
+            for r in rows:
+                name = (r.get("exercises") or {}).get("name")
+                date = (r.get("workout_sessions") or {}).get("date")
+                if not name or not date:
+                    continue
+                entry = {"date": date, "weight": r.get("weight"), "reps": r.get("reps")}
+                sets_json = r.get("sets_json")
+                if sets_json:
+                    entry["sets"] = sets_json
+                result.setdefault(name, []).append(entry)
+            if len(rows) < page_size:
+                break
+            offset += page_size
         # Sort each exercise history newest-first
         for name in result:
             result[name].sort(key=lambda x: x.get("date", ""), reverse=True)
