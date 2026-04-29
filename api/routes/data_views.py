@@ -5,6 +5,24 @@ import os
 data_views_bp = Blueprint("data_views", __name__)
 
 
+@data_views_bp.route("/api/debug_today")
+def api_debug_today():
+    import db as _db
+    from utils import _today_mtl
+    today = _today_mtl()
+    session = _db.get_workout_session(today)
+    sid = (session or {}).get("id")
+    logs = _db.get_session_exercise_logs(today) if sid else []
+    all_sessions = _db.get_workout_sessions(limit=10)
+    return jsonify({
+        "today": today,
+        "session": session,
+        "exercise_logs_count": len(logs),
+        "exercise_logs": logs,
+        "recent_sessions": [{"id": s.get("id"), "date": s.get("date"), "session_type": s.get("session_type"), "completed": s.get("completed")} for s in all_sessions],
+    })
+
+
 @data_views_bp.route("/api/dashboard")
 def api_dashboard():
     from weights import load_weights
