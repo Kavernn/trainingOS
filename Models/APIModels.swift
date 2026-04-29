@@ -18,6 +18,8 @@ struct PagedResponse<T: Codable>: Codable {
 struct SafeString: Codable {
     let value: String
 
+    init(_ value: String) { self.value = value }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 

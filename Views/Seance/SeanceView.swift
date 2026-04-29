@@ -55,9 +55,20 @@ struct AlreadyLoggedSeanceView: View {
     @State private var showConfetti = false
     @State private var postWorkoutBrief: String? = nil
     @State private var isLoadingBrief = false
+    @State private var showFinishRemaining = false
 
     var todaySession: SessionEntry? {
         APIService.shared.dashboard?.sessions[data.todayDate]
+    }
+
+    var unloggedExercises: [(String, String)] {
+        guard let program = data.fullProgram[data.today] else { return [] }
+        let order = data.exerciseOrder[data.today] ?? program.keys.sorted()
+        return order.compactMap { name -> (String, String)? in
+            guard let scheme = program[name] else { return nil }
+            let loggedToday = data.weights[name]?.history?.first?.date == data.todayDate
+            return loggedToday ? nil : (name, scheme.value)
+        }
     }
 
     var sessionColor: Color {
@@ -369,6 +380,50 @@ struct AlreadyLoggedSeanceView: View {
                 .buttonStyle(SpringButtonStyle())
                 .padding(.horizontal, 16)
 
+                // ── Exercices non loggés ─────────────────────────────────
+                if !unloggedExercises.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 13))
+                                .foregroundColor(.yellow)
+                            Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggé\(unloggedExercises.count > 1 ? "s" : "")")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        VStack(alignment: .leading, spacing: 3) {
+                            ForEach(unloggedExercises.prefix(3), id: \.0) { ex in
+                                HStack(spacing: 6) {
+                                    Circle().fill(Color.yellow.opacity(0.4)).frame(width: 4, height: 4)
+                                    Text(ex.0)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white.opacity(0.7))
+                                }
+                            }
+                            if unloggedExercises.count > 3 {
+                                Text("+ \(unloggedExercises.count - 3) autre\(unloggedExercises.count - 3 > 1 ? "s" : "")…")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        Button(action: { showFinishRemaining = true }) {
+                            Text("Finir la séance")
+                                .font(.system(size: 14, weight: .semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                                .background(Color.yellow.opacity(0.18))
+                                .foregroundColor(.yellow)
+                                .cornerRadius(10)
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow.opacity(0.35), lineWidth: 1))
+                        }
+                    }
+                    .padding(14)
+                    .background(Color.yellow.opacity(0.07))
+                    .cornerRadius(14)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.2), lineWidth: 1))
+                    .padding(.horizontal, 16)
+                }
+
                 // ── Séance supplémentaire ────────────────────────────────
                 Button(action: { showExtra = true }) {
                     HStack(spacing: 10) {
@@ -392,6 +447,11 @@ struct AlreadyLoggedSeanceView: View {
                 .buttonStyle(SpringButtonStyle())
                 .padding(.horizontal, 16)
                 .padding(.bottom, 32)
+            }
+        }
+        .sheet(isPresented: $showFinishRemaining) {
+            FinishRemainingSheet(data: data, remaining: unloggedExercises) {
+                await vm.load()
             }
         }
         .sheet(isPresented: $showExtra) {
@@ -418,6 +478,9 @@ struct AlreadyLoggedSeanceView: View {
                 }
         }
         } // end ZStack
+        .onAppear {
+            Task { await vm.load() }
+        }
     }
 
     private func loadPostWorkoutBrief() async {
@@ -639,6 +702,133 @@ struct ExtraSessionSheet: View {
                 showFinishFromExit = false
                 dismiss()
             }
+        }
+    }
+}
+
+// MARK: - Finish Remaining Sheet
+struct FinishRemainingSheet: View {
+    let data: SeanceData
+    let remaining: [(String, String)]
+    var onDone: () async -> Void
+
+    @StateObject private var finishVM = SeanceViewModel()
+    @Environment(\.dismiss) private var dismiss
+    @State private var showExitAlert = false
+    @State private var exitRpe: Double = 7
+    @State private var exitComment: String = ""
+    @State private var showFinishFromExit = false
+
+    private var loggedExercises: [(name: String, scheme: String, weight: Double?, reps: String?)] {
+        guard let program = data.fullProgram[data.today] else { return [] }
+        let order = data.exerciseOrder[data.today] ?? program.keys.sorted()
+        let remainingNames = Set(remaining.map(\.0))
+        return order.compactMap { name -> (String, String, Double?, String?)? in
+            guard !remainingNames.contains(name), let scheme = program[name] else { return nil }
+            let h = data.weights[name]?.history?.first
+            return (name, scheme.value, h?.weight, h?.reps)
+        }
+    }
+
+    private var patchedData: SeanceData {
+        var filteredProgram = data.fullProgram
+        filteredProgram[data.today] = Dictionary(uniqueKeysWithValues: remaining.map { ($0.0, SafeString($0.1)) })
+        var filteredOrder = data.exerciseOrder
+        filteredOrder[data.today] = remaining.map(\.0)
+        return SeanceData(
+            today: data.today, todayDate: data.todayDate, alreadyLogged: false,
+            schedule: data.schedule, fullProgram: filteredProgram,
+            weights: data.weights, week: data.week, mesocycle: data.mesocycle,
+            inventoryTypes: data.inventoryTypes, inventoryTracking: data.inventoryTracking,
+            inventoryRest: data.inventoryRest, inventoryHints: data.inventoryHints,
+            exerciseOrder: filteredOrder, exerciseSupersets: [:],
+            prescriptions: data.prescriptions, exerciseSuggestions: data.exerciseSuggestions
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                WorkoutSeanceView(data: patchedData, vm: finishVM)
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        if !loggedExercises.isEmpty {
+                            VStack(spacing: 0) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("DÉJÀ LOGGÉS")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .tracking(2)
+                                        .foregroundColor(.gray)
+                                    ForEach(loggedExercises, id: \.name) { ex in
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: 13))
+                                                .foregroundColor(.green.opacity(0.7))
+                                            Text(ex.name)
+                                                .font(.system(size: 13))
+                                                .foregroundColor(.white.opacity(0.5))
+                                            Spacer()
+                                            if let w = ex.weight {
+                                                Text(UnitSettings.shared.format(w))
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                    .foregroundColor(.green.opacity(0.6))
+                                            }
+                                            if let r = ex.reps {
+                                                Text("· \(r)")
+                                                    .font(.system(size: 11))
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Color(hex: "080810"))
+                                Divider().background(Color.white.opacity(0.06))
+                            }
+                        }
+                    }
+            }
+            .navigationTitle("Finir la séance")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Fermer") {
+                        if !finishVM.logResults.isEmpty {
+                            showExitAlert = true
+                        } else {
+                            dismiss()
+                        }
+                    }
+                    .foregroundColor(.orange)
+                }
+            }
+            .alert("Exercices non sauvegardés", isPresented: $showExitAlert) {
+                Button("Sauvegarder") { showFinishFromExit = true }
+                Button("Abandonner", role: .destructive) { dismiss() }
+                Button("Continuer", role: .cancel) {}
+            } message: {
+                Text("Tu as \(finishVM.logResults.count) exercice(s) loggé(s) non sauvegardés.")
+            }
+            .sheet(isPresented: $showFinishFromExit) {
+                FinishSessionSheet(
+                    exercises: remaining.map(\.0),
+                    logResults: finishVM.logResults,
+                    elapsedMin: Date().timeIntervalSince(finishVM.sessionStart) / 60,
+                    rpe: $exitRpe, comment: $exitComment,
+                    onSubmit: { energy in
+                        let dur = Date().timeIntervalSince(finishVM.sessionStart) / 60
+                        Task { await finishVM.finish(rpe: exitRpe, comment: exitComment, durationMin: dur, energyPre: energy, sessionName: data.today) }
+                    }
+                )
+            }
+        }
+        .onChange(of: finishVM.showSuccess) { success in
+            guard success else { return }
+            finishVM.showSuccess = false
+            showFinishFromExit = false
+            dismiss()
+            Task { await onDone() }
         }
     }
 }
@@ -1028,7 +1218,7 @@ struct WorkoutSeanceView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "timer")
                         .font(.system(size: 10))
-                    Text("\(entry.rest ?? 120) s repos")
+                    Text("120 s repos")
                         .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundColor(.gray)
@@ -1047,7 +1237,7 @@ struct WorkoutSeanceView: View {
             .frame(maxWidth: .infinity, alignment: .center)
 
             draggableCard(name: entry.b, scheme: schemeB, nextExerciseName: nextName,
-                          restOverride: entry.rest ?? 120)
+                          restOverride: 120)
         }
     }
 

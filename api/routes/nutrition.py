@@ -157,11 +157,15 @@ def api_nutrition_edit():
 def api_nutrition_settings():
     from nutrition import (save_settings as save_nutrition_settings)
     data = request.get_json(silent=True) or {}
+    tc_raw = data.get("training_calories")
+    rc_raw = data.get("rest_calories")
     save_nutrition_settings(
-        int(data.get("limite_calories", 2200)),
+        int(data.get("limite_calories",    2200)),
         int(data.get("objectif_proteines", 160)),
         float(data.get("glucides", 0)),
         float(data.get("lipides",  0)),
+        training_calories=int(tc_raw) if tc_raw is not None else None,
+        rest_calories=int(rc_raw)     if rc_raw is not None else None,
     )
     return jsonify({"success": True})
 
@@ -179,17 +183,269 @@ def api_food_catalog():
     return jsonify({"success": ok})
 
 
+@nutrition_bp.route("/api/food/barcode/<code>")
+def api_food_barcode(code):
+    """Query Open Food Facts for a product by EAN/UPC barcode."""
+    import requests as _req
+    try:
+        resp = _req.get(
+            f"https://world.openfoodfacts.org/api/v0/product/{code}.json",
+            timeout=8,
+            headers={"User-Agent": "TrainingOS/1.0 (contact: kavernn@gmail.com)"},
+        )
+        data = resp.json()
+    except Exception:
+        return jsonify({"error": "Impossible de joindre Open Food Facts"}), 503
+
+    if data.get("status") != 1:
+        return jsonify({"error": "Produit introuvable"}), 404
+
+    product    = data.get("product", {})
+    nutriments = product.get("nutriments", {})
+
+    nom = (
+        product.get("product_name_fr")
+        or product.get("product_name_en")
+        or product.get("product_name")
+        or "Produit inconnu"
+    ).strip()
+
+    serving_size = (product.get("serving_size") or "").strip() or None
+
+    def n(key):
+        v = nutriments.get(key)
+        return float(v) if v is not None else 0.0
+
+    per_100g = {
+        "calories":  round(n("energy-kcal_100g")),
+        "proteines": round(n("proteins_100g"), 1),
+        "glucides":  round(n("carbohydrates_100g"), 1),
+        "lipides":   round(n("fat_100g"), 1),
+    }
+
+    cal_s = nutriments.get("energy-kcal_serving")
+    per_serving = None
+    if cal_s is not None:
+        per_serving = {
+            "calories":  round(float(cal_s)),
+            "proteines": round(n("proteins_serving"), 1),
+            "glucides":  round(n("carbohydrates_serving"), 1),
+            "lipides":   round(n("fat_serving"), 1),
+        }
+
+    return jsonify({
+        "nom":          nom,
+        "serving_size": serving_size,
+        "per_100g":     per_100g,
+        "per_serving":  per_serving,
+    })
+
+
+# ── Meal Templates ──────────────────────────────────────────────────────────
+
+@nutrition_bp.route("/api/meal_templates", methods=["GET"])
+def api_get_meal_templates():
+    import db as _db
+    return jsonify({"templates": _db.get_meal_templates()})
+
+
+@nutrition_bp.route("/api/meal_templates", methods=["POST"])
+def api_create_meal_template():
+    import db as _db
+    data  = request.get_json(silent=True) or {}
+    name  = (data.get("name") or "").strip()
+    items = data.get("items") or []
+    if not name:
+        return jsonify({"error": "name requis"}), 422
+    result = _db.create_meal_template(name, items)
+    if result is None:
+        return jsonify({"error": "Erreur lors de la création"}), 500
+    return jsonify({"success": True, "template": result})
+
+
+@nutrition_bp.route("/api/meal_templates/<template_id>/update", methods=["POST"])
+def api_update_meal_template(template_id):
+    import db as _db
+    data  = request.get_json(silent=True) or {}
+    name  = (data.get("name") or "").strip()
+    items = data.get("items") or []
+    if not name:
+        return jsonify({"error": "name requis"}), 422
+    ok = _db.update_meal_template(template_id, name, items)
+    return jsonify({"success": ok})
+
+
+@nutrition_bp.route("/api/meal_templates/<template_id>/delete", methods=["POST"])
+def api_delete_meal_template(template_id):
+    import db as _db
+    ok = _db.delete_meal_template(template_id)
+    return jsonify({"success": ok})
+
+
+@nutrition_bp.route("/api/meal_templates/<template_id>/log", methods=["POST"])
+def api_log_meal_template(template_id):
+    """Log all items from a template as today's nutrition entries."""
+    import db as _db
+    from nutrition import add_entry as _add_entry, get_today_totals
+    data      = request.get_json(silent=True) or {}
+    meal_type = data.get("meal_type")
+
+    templates = _db.get_meal_templates()
+    template  = next((t for t in templates if str(t.get("id")) == template_id), None)
+    if template is None:
+        return jsonify({"error": "Template introuvable"}), 404
+
+    entries = []
+    for item in (template.get("items") or []):
+        entry = _add_entry(
+            nom       = str(item.get("name") or item.get("nom") or ""),
+            calories  = float(item.get("calories") or 0),
+            proteines = float(item.get("proteines") or 0),
+            glucides  = float(item.get("glucides") or 0),
+            lipides   = float(item.get("lipides") or 0),
+            meal_type = meal_type,
+            source    = "template",
+        )
+        entries.append(entry)
+
+    return jsonify({"success": True, "count": len(entries), "totals": get_today_totals()})
+
+
 @nutrition_bp.route("/api/nutrition_data")
 def api_nutrition_data():
     from nutrition import (load_settings as load_nutrition_settings,
-                           get_today_entries, get_today_totals, get_recent_days)
+                           get_today_entries, get_today_totals, get_recent_days,
+                           _is_training_day)
     settings = load_nutrition_settings()
     entries  = get_today_entries()
     totals   = get_today_totals()
-    history  = get_recent_days(7)
+    days     = min(int(request.args.get("days", 7)), 90)
+    history  = get_recent_days(days)
+
+    is_training  = _is_training_day()
+    today_type   = "training" if is_training else "rest"
+    tc = settings.get("training_calories")
+    rc = settings.get("rest_calories")
+    base = settings.get("limite_calories", 2200) or 2200
+    if tc and rc:
+        effective_calories = tc if is_training else rc
+    elif tc:
+        effective_calories = tc
+    elif rc:
+        effective_calories = rc
+    else:
+        effective_calories = base
+
     return jsonify({
-        "settings": settings,
-        "entries":  entries,
-        "totals":   totals,
-        "history":  history,
+        "settings":           settings,
+        "entries":            entries,
+        "totals":             totals,
+        "history":            history,
+        "today_type":         today_type,
+        "effective_calories": effective_calories,
+    })
+
+
+@nutrition_bp.route("/api/nutrition/correlations")
+def api_nutrition_correlations():
+    """Join 90 days of nutrition + workout RPE + recovery to surface correlations."""
+    import db as _db
+    from datetime import date as _date, timedelta
+    from nutrition import get_recent_days, load_settings
+
+    settings    = load_settings()
+    cal_target  = float(settings.get("limite_calories", 2200)    or 2200)
+    prot_target = float(settings.get("objectif_proteines", 160)  or 160)
+
+    nutr_days    = get_recent_days(90)
+    nutr_by_date = {d["date"]: d for d in nutr_days}
+    sessions     = _db.get_sessions_for_correlations(days=90)
+    recovery     = _db.get_recovery_logs(limit=90)
+    rec_by_date  = {str(r.get("date", ""))[:10]: r for r in recovery}
+
+    # ── 1. Protein adherence D → next-day RPE ─────────────────────────────
+    high_prot_rpe, low_prot_rpe = [], []
+    for d_str in sorted(nutr_by_date):
+        try:
+            next_d = (_date.fromisoformat(d_str) + timedelta(days=1)).isoformat()
+        except Exception:
+            continue
+        rpe = (sessions.get(next_d) or {}).get("rpe")
+        if rpe is None:
+            continue
+        prot = nutr_by_date[d_str].get("proteines", 0) or 0
+        (high_prot_rpe if prot >= prot_target * 0.9 else low_prot_rpe).append(float(rpe))
+
+    prot_rpe = None
+    if len(high_prot_rpe) >= 3 and len(low_prot_rpe) >= 3:
+        avg_h = round(sum(high_prot_rpe) / len(high_prot_rpe), 1)
+        avg_l = round(sum(low_prot_rpe)  / len(low_prot_rpe),  1)
+        prot_rpe = {
+            "high_prot_avg_rpe": avg_h,
+            "low_prot_avg_rpe":  avg_l,
+            "diff":              round(avg_h - avg_l, 1),
+            "sample_high":       len(high_prot_rpe),
+            "sample_low":        len(low_prot_rpe),
+        }
+
+    # ── 2. Calorie adherence D → same-day recovery score ─────────────────
+    on_target_rec, off_target_rec = [], []
+    for d_str, nutr in nutr_by_date.items():
+        rec = rec_by_date.get(d_str)
+        if not rec:
+            continue
+        scores = []
+        if rec.get("soreness") is not None: scores.append(10 - float(rec["soreness"]))
+        if rec.get("fatigue")  is not None: scores.append(10 - float(rec["fatigue"]))
+        if rec.get("mood")     is not None: scores.append(float(rec["mood"]))
+        if len(scores) < 2:
+            continue
+        rec_score = sum(scores) / len(scores)
+        cal = nutr.get("calories", 0) or 0
+        (on_target_rec if cal_target * 0.85 <= cal <= cal_target * 1.15 else off_target_rec).append(rec_score)
+
+    cal_rec = None
+    if len(on_target_rec) >= 3 and len(off_target_rec) >= 3:
+        avg_on  = round(sum(on_target_rec)  / len(on_target_rec),  1)
+        avg_off = round(sum(off_target_rec) / len(off_target_rec), 1)
+        cal_rec = {
+            "on_target_avg":  avg_on,
+            "off_target_avg": avg_off,
+            "diff":           round(avg_on - avg_off, 1),
+            "sample_on":      len(on_target_rec),
+            "sample_off":     len(off_target_rec),
+        }
+
+    # ── 3. Session volume D → next-day calorie intake ────────────────────
+    vols = [v["session_volume"] for v in sessions.values() if v.get("session_volume")]
+    vol_cal = None
+    if vols:
+        vol_median   = sorted(vols)[len(vols) // 2]
+        high_vol_cal, low_vol_cal = [], []
+        for d_str, sess in sessions.items():
+            sv = sess.get("session_volume")
+            if sv is None:
+                continue
+            try:
+                next_d = (_date.fromisoformat(d_str) + timedelta(days=1)).isoformat()
+            except Exception:
+                continue
+            cal = (nutr_by_date.get(next_d) or {}).get("calories", 0) or 0
+            if cal == 0:
+                continue
+            (high_vol_cal if sv >= vol_median else low_vol_cal).append(float(cal))
+        if len(high_vol_cal) >= 3 and len(low_vol_cal) >= 3:
+            avg_h = round(sum(high_vol_cal) / len(high_vol_cal))
+            avg_l = round(sum(low_vol_cal)  / len(low_vol_cal))
+            vol_cal = {
+                "high_vol_avg_cal": avg_h,
+                "low_vol_avg_cal":  avg_l,
+                "diff":             avg_h - avg_l,
+            }
+
+    return jsonify({
+        "prot_rpe":   prot_rpe,
+        "cal_rec":    cal_rec,
+        "vol_cal":    vol_cal,
+        "sample_days": len(nutr_by_date),
     })

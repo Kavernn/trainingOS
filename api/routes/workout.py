@@ -396,10 +396,46 @@ def api_log_session():
         energy_pre     = data.get("energy_pre")
         session_name   = data.get("session_name")  # e.g. "Push A", "Pull B", "Legs"
 
+        def _parse_exo_summary(raw: str):
+            text = (raw or "").strip()
+            if not text:
+                return None
+            m = re.match(r"^(?P<name>.+?)\s+(?P<weight>-?\d+(?:\.\d+)?)lbs\s+(?P<reps>.+)$", text)
+            if not m:
+                return None
+            try:
+                return (m.group("name").strip(), float(m.group("weight")), m.group("reps").strip())
+            except Exception:
+                return None
+
         if not second_session and not bonus_session:
             existing = _db.get_workout_session(today)
             if existing and existing.get("completed"):
-                return jsonify({"error": "already_logged"}), 409
+                # Merge new exercises into the already-completed session
+                # (exercises individually logged via /api/log are in weights history,
+                # but exercise_logs table also needs them for the session recap/historique)
+                sid = existing.get("id")
+                if sid:
+                    if isinstance(exercise_logs, list) and exercise_logs:
+                        for row in exercise_logs:
+                            if not isinstance(row, dict):
+                                continue
+                            ex_name = str(row.get("exercise", "")).strip()
+                            ex_reps = str(row.get("reps", "")).strip()
+                            try:
+                                ex_weight = float(row.get("weight", 0) or 0)
+                            except Exception:
+                                ex_weight = 0.0
+                            if not ex_name or not ex_reps:
+                                continue
+                            _db.upsert_exercise_log_direct(sid, ex_name, ex_weight, ex_reps)
+                    elif isinstance(exos, list):
+                        for raw_exo in exos:
+                            parsed = _parse_exo_summary(str(raw_exo))
+                            if not parsed:
+                                continue
+                            _db.upsert_exercise_log_direct(sid, parsed[0], parsed[1], parsed[2])
+                return jsonify({"success": True})
 
         # Compute session volume stats from today's logged exercises
         weights   = load_weights()
@@ -439,22 +475,6 @@ def api_log_session():
         # iOS sends `exos` as summary strings (e.g. "Bench Press 185.0lbs 5,5,5").
         # If per-exercise /api/log calls were skipped or failed, persist those rows now
         # so Historique still shows exercises for the session.
-        def _parse_exo_summary(raw: str):
-            text = (raw or "").strip()
-            if not text:
-                return None
-            m = re.match(r"^(?P<name>.+?)\s+(?P<weight>-?\d+(?:\.\d+)?)lbs\s+(?P<reps>.+)$", text)
-            if not m:
-                return None
-            try:
-                return (
-                    m.group("name").strip(),
-                    float(m.group("weight")),
-                    m.group("reps").strip(),
-                )
-            except Exception:
-                return None
-
         sid = None
         if bonus_session:
             sid = (_db.get_or_create_workout_session_bonus(today) or {}).get("id")

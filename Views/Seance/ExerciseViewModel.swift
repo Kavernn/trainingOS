@@ -391,6 +391,11 @@ class SeanceViewModel: ObservableObject {
                                                    durationMin: durationMin, energyPre: energyPre,
                                                    bonusSession: bonusSession, sessionName: sessionName,
                                                    exerciseLogs: exerciseLogs)
+        } catch APIError.serverError(409, _) {
+            // Session already completed — exercises were individually logged above, treat as success.
+            await APIService.shared.fetchDashboard()
+            showSuccess = true
+            return
         } catch {
             submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
             await APIService.shared.fetchDashboard()

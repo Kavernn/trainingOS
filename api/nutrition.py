@@ -34,23 +34,43 @@ def load_settings() -> dict:
     raw = db.get_nutrition_settings()
     if not isinstance(raw, dict):
         raw = {}
-    # Normalize column names — table may use either FR or EN naming
     return {
         "limite_calories":    raw.get("limite_calories")    or raw.get("calorie_limit")    or 2200,
         "objectif_proteines": raw.get("objectif_proteines") or raw.get("protein_target")   or 160,
         "glucides":           raw.get("glucides") or 0,
         "lipides":            raw.get("lipides")  or 0,
+        "training_calories":  raw.get("training_calories"),
+        "rest_calories":      raw.get("rest_calories"),
     }
 
 
 def save_settings(limite_calories: int, objectif_proteines: int,
-                  glucides: float = 0, lipides: float = 0):
-    db.update_nutrition_settings({
+                  glucides: float = 0, lipides: float = 0,
+                  training_calories: int | None = None,
+                  rest_calories: int | None = None):
+    patch: dict = {
         "calorie_limit":  limite_calories,
         "protein_target": objectif_proteines,
         "glucides":       glucides,
         "lipides":        lipides,
-    })
+    }
+    # Explicit None → clear the column; omitted → leave unchanged
+    patch["training_calories"] = training_calories
+    patch["rest_calories"]     = rest_calories
+    db.update_nutrition_settings(patch)
+
+
+def _is_training_day() -> bool:
+    """True if today's scheduled session has strength exercises."""
+    try:
+        from planner import load_program, get_today
+        from blocks import get_strength_exercises
+        today_str   = get_today()
+        full_prog   = load_program()
+        session_def = full_prog.get(today_str, {})
+        return bool(get_strength_exercises(session_def))
+    except Exception:
+        return False
 
 
 # ── Entries ───────────────────────────────────────────────────────────────────

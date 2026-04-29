@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import AVFoundation
 
 struct NutritionView: View {
     @EnvironmentObject private var appState: AppState
@@ -9,19 +10,12 @@ struct NutritionView: View {
     @State private var editTarget: NutritionEntry? = nil
     @State private var showSettings = false
     @State private var toast: ToastMessage? = nil
-    @AppStorage("special_session_logged_date") private var specialSessionDate: String = ""
-
-    private var workoutBonusActive: Bool {
-        specialSessionDate == DateFormatter.isoDate.string(from: Date())
-    }
-
+    @State private var historyPeriod = 7
     private var effectiveSettings: NutritionSettings? {
         guard let s = vm.settings else { return nil }
-        guard workoutBonusActive else { return s }
-        return NutritionSettings(calories: (s.calories ?? 2200) + 300,
-                                 proteines: s.proteines,
-                                 glucides: s.glucides,
-                                 lipides: s.lipides)
+        guard let eff = vm.effectiveCalories else { return s }
+        return NutritionSettings(calories: eff, proteines: s.proteines,
+                                 glucides: s.glucides, lipides: s.lipides)
     }
 
     var body: some View {
@@ -49,11 +43,15 @@ struct NutritionView: View {
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.08)
 
-                            if workoutBonusActive {
-                                WorkoutBonusBadge()
+                            if let dayType = vm.todayType, vm.settings?.hasDynamicGoals == true {
+                                DayTypeBadge(type: dayType)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.1)
                             }
+
+                            WorkoutTimingCard(todayType: vm.todayType, totals: vm.totals, settings: effectiveSettings)
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.12)
 
                             // Entrées du jour groupées
                             GroupedEntryList(
@@ -64,8 +62,27 @@ struct NutritionView: View {
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.15)
 
-                            // Historique 7j (calories + protéines)
+                            // Historique + period picker
                             if !vm.history.isEmpty {
+                                HStack(spacing: 6) {
+                                    ForEach([7, 30, 90], id: \.self) { p in
+                                        Button("\(p)j") {
+                                            withAnimation { historyPeriod = p }
+                                            Task { await vm.loadData(days: p, silent: true) }
+                                        }
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .padding(.horizontal, 10).padding(.vertical, 5)
+                                        .background(historyPeriod == p ? Color.orange.opacity(0.18) : Color.clear)
+                                        .foregroundColor(historyPeriod == p ? .orange : .gray)
+                                        .cornerRadius(7)
+                                        .overlay(RoundedRectangle(cornerRadius: 7)
+                                            .stroke(historyPeriod == p ? Color.orange.opacity(0.4) : Color.clear, lineWidth: 1))
+                                    }
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.18)
+
                                 WeeklyNutritionChart(
                                     history: vm.history,
                                     protTarget: vm.settings?.proteines ?? 160,
@@ -80,6 +97,16 @@ struct NutritionView: View {
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.22)
                             }
+
+                            if vm.history.count >= 14 {
+                                NutritionPatternsCard(history: vm.history, settings: vm.settings)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.25)
+                            }
+
+                            NutritionCorrelationsCard(settings: vm.settings)
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.28)
 
                             Spacer(minLength: 80)
                         }
@@ -129,7 +156,7 @@ struct NutritionView: View {
                     .padding(.bottom, fabBottomPadding)
             }
         }
-        .task { await vm.loadData() }
+        .task { await vm.loadData(days: historyPeriod) }
         .toast($toast)
     }
 
@@ -396,10 +423,33 @@ struct WeeklyNutritionChart: View {
         return date
     }
 
+    private var displayDays: [(label: String, cal: Double, prot: Double, date: String)] {
+        guard history.count > 31 else {
+            return history.map { (shortDay($0.date), $0.calories, $0.proteines, $0.date) }
+        }
+        // Aggregate by ISO week for 90-day view
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        var weeks: [(key: String, days: [NutritionDayHistory])] = []
+        var seen: [String: Int] = [:]
+        for day in history.sorted(by: { $0.date < $1.date }) {
+            guard let d = fmt.date(from: day.date) else { continue }
+            let y = Calendar.current.component(.yearForWeekOfYear, from: d)
+            let w = Calendar.current.component(.weekOfYear, from: d)
+            let key = "\(y)-\(w)"
+            if let idx = seen[key] { weeks[idx].days.append(day) }
+            else { seen[key] = weeks.count; weeks.append((key, [day])) }
+        }
+        return weeks.enumerated().map { idx, wk in
+            let avgCal  = wk.days.reduce(0) { $0 + $1.calories }  / Double(wk.days.count)
+            let avgProt = wk.days.reduce(0) { $0 + $1.proteines } / Double(wk.days.count)
+            return ("S\(idx + 1)", avgCal, avgProt, wk.days.last?.date ?? "")
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("7 DERNIERS JOURS")
+                Text(history.count > 31 ? "PAR SEMAINE" : history.count > 7 ? "\(history.count) DERNIERS JOURS" : "7 DERNIERS JOURS")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(2)
                     .foregroundColor(.gray)
@@ -411,33 +461,38 @@ struct WeeklyNutritionChart: View {
                 .frame(width: 180)
             }
 
-            HStack(alignment: .bottom, spacing: 6) {
-                ForEach(history) { day in
-                    let pct = value(for: day) / maxValue
+            let days = displayDays
+            let maxVal = days.map { metric == .calories ? $0.cal : $0.prot }.max() ?? 1
+            let isCompact = history.count > 7
+            HStack(alignment: .bottom, spacing: isCompact ? 2 : 6) {
+                ForEach(days, id: \.date) { day in
+                    let v = metric == .calories ? day.cal : day.prot
+                    let pct = v / maxVal
                     let isToday = day.date == DateFormatter.isoDate.string(from: Date())
                     let isSelected = selectedDay?.date == day.date
-                    VStack(spacing: 4) {
+                    VStack(spacing: isCompact ? 2 : 4) {
                         GeometryReader { geo in
                             VStack(spacing: 0) {
                                 Spacer()
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(isSelected ? accentColor : (isToday ? accentColor : accentColor.opacity(0.35)))
-                                    .frame(height: max(geo.size.height * pct, 4))
-                                    .overlay(
-                                        isSelected ? RoundedRectangle(cornerRadius: 4).stroke(Color.white.opacity(0.4), lineWidth: 1.5) : nil
-                                    )
+                                RoundedRectangle(cornerRadius: isCompact ? 2 : 4)
+                                    .fill(isSelected ? accentColor : (isToday ? accentColor : accentColor.opacity(isCompact ? 0.5 : 0.35)))
+                                    .frame(height: max(geo.size.height * pct, 3))
+                                    .overlay(isSelected ? RoundedRectangle(cornerRadius: isCompact ? 2 : 4)
+                                        .stroke(Color.white.opacity(0.4), lineWidth: 1.5) : nil)
                             }
                         }
                         .frame(height: 60)
-                        Text(shortDay(day.date))
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(isToday ? .white : .gray)
+                        if !isCompact || history.count > 31 {
+                            Text(day.label)
+                                .font(.system(size: isCompact ? 7 : 9, weight: .medium))
+                                .foregroundColor(isToday ? .white : .gray)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .contentShape(Rectangle())
                     .onTapGesture {
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            selectedDay = selectedDay?.date == day.date ? nil : day
+                            selectedDay = selectedDay?.date == day.date ? nil : NutritionDayHistory(date: day.date, calories: day.cal, proteines: day.prot)
                         }
                     }
                 }
@@ -784,6 +839,13 @@ struct AddNutritionSheet: View {
     @State private var showCatalog = false
     @State private var isSaving = false
     @State private var searchText = ""
+    @State private var showBarcodeScanner = false
+    @State private var isLoadingBarcode = false
+    @State private var barcodeNote = ""
+    @State private var barcodeError: String? = nil
+    @State private var templates: [MealTemplate] = []
+    @State private var showManageTemplates = false
+    @State private var isLoggingTemplate = false
 
     private var filteredCatalog: [FoodItem] {
         searchText.isEmpty ? catalog : catalog.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
@@ -840,10 +902,65 @@ struct AddNutritionSheet: View {
                     .listRowBackground(Color(hex: "11111c"))
 
                     if !manualMode {
+                        // ── Repas sauvegardés ────────────────────────────
+                        Section(header: HStack {
+                            Text("REPAS SAUVEGARDÉS")
+                            Spacer()
+                            Button { showManageTemplates = true } label: {
+                                Label("Gérer", systemImage: "slider.horizontal.3")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.orange)
+                            }
+                            .buttonStyle(.plain)
+                            .textCase(nil)
+                        }) {
+                            if templates.isEmpty {
+                                Button { showManageTemplates = true } label: {
+                                    Label("Créer un repas sauvegardé…", systemImage: "fork.knife")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.orange.opacity(0.7))
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(templates) { template in
+                                            Button { logTemplate(template) } label: {
+                                                VStack(alignment: .leading, spacing: 3) {
+                                                    Text(template.name)
+                                                        .font(.system(size: 13, weight: .semibold))
+                                                    Text("\(Int(template.totalCalories)) kcal")
+                                                        .font(.system(size: 11))
+                                                        .opacity(0.75)
+                                                }
+                                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                                .background(Color.orange.opacity(0.12))
+                                                .foregroundColor(.orange)
+                                                .cornerRadius(12)
+                                                .overlay(RoundedRectangle(cornerRadius: 12)
+                                                    .stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            }
+                        }
+                        .listRowBackground(Color(hex: "11111c"))
+
                         // ── Chips catalogue ─────────────────────────────
                         Section(header: HStack {
                             Text("CATALOGUE")
                             Spacer()
+                            Button { showBarcodeScanner = true } label: {
+                                Label("Scanner", systemImage: "barcode.viewfinder")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.green)
+                            }
+                            .buttonStyle(.plain)
+                            .textCase(nil)
                             Button { withAnimation { manualMode = true } } label: {
                                 Label("Manuel", systemImage: "pencil")
                                     .font(.system(size: 11, weight: .semibold))
@@ -933,7 +1050,16 @@ struct AddNutritionSheet: View {
 
                     } else {
                         // ── Mode manuel ────────────────────────────────
-                        Section("ALIMENT") {
+                        Section(header: HStack {
+                            Text("ALIMENT")
+                            if !barcodeNote.isEmpty {
+                                Spacer()
+                                Label(barcodeNote, systemImage: "barcode.viewfinder")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.green.opacity(0.85))
+                                    .textCase(nil)
+                            }
+                        }) {
                             TextField("Nom", text: $manName).foregroundColor(.white)
                             HStack {
                                 TextField("Calories (kcal)", text: $manCal).keyboardType(.decimalPad).foregroundColor(.white)
@@ -949,7 +1075,11 @@ struct AddNutritionSheet: View {
 
                         Section {
                             Button {
-                                withAnimation { manualMode = false; manName = ""; manCal = "" }
+                                withAnimation {
+                                    manualMode = false
+                                    manName = ""; manCal = ""
+                                    barcodeNote = ""
+                                }
                             } label: {
                                 Label("Retour au catalogue", systemImage: "list.bullet")
                                     .font(.system(size: 13))
@@ -963,6 +1093,16 @@ struct AddNutritionSheet: View {
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
+
+                if isLoadingBarcode || isLoggingTemplate {
+                    Color.black.opacity(0.55).ignoresSafeArea()
+                    VStack(spacing: 14) {
+                        ProgressView().tint(.white).scaleEffect(1.4)
+                        Text(isLoggingTemplate ? "Enregistrement du repas…" : "Recherche du produit…")
+                            .foregroundColor(.white)
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                }
             }
             .navigationTitle("Ajouter aliment")
             .navigationBarTitleDisplayMode(.inline)
@@ -982,14 +1122,82 @@ struct AddNutritionSheet: View {
                 FoodCatalogView(items: $catalog)
             }
             .task {
-                let remote = await APIService.shared.fetchFoodCatalog()
-                if !remote.isEmpty {
-                    catalog = remote
-                    FoodCatalogStore.save(remote)
+                async let catalogFetch  = APIService.shared.fetchFoodCatalog()
+                async let templateFetch = APIService.shared.fetchMealTemplates()
+                let (remote, tmpl) = await (catalogFetch, templateFetch)
+                if !remote.isEmpty { catalog = remote; FoodCatalogStore.save(remote) }
+                templates = tmpl
+            }
+            .sheet(isPresented: $showManageTemplates, onDismiss: {
+                Task { templates = await APIService.shared.fetchMealTemplates() }
+            }) {
+                MealTemplateListSheet()
+            }
+            .sheet(isPresented: $showBarcodeScanner) {
+                BarcodeScannerSheet { code in
+                    handleBarcode(code)
                 }
+            }
+            .alert("Produit introuvable", isPresented: Binding(
+                get: { barcodeError != nil },
+                set: { if !$0 { barcodeError = nil } }
+            ), presenting: barcodeError) { _ in
+                Button("OK") { barcodeError = nil }
+            } message: { err in
+                Text(err)
             }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    private func logTemplate(_ template: MealTemplate) {
+        isLoggingTemplate = true
+        Task {
+            try? await APIService.shared.logMealTemplate(template.id, mealType: mealType)
+            await onSaved()
+            isLoggingTemplate = false
+            dismiss()
+        }
+    }
+
+    private func handleBarcode(_ code: String) {
+        isLoadingBarcode = true
+        barcodeError = nil
+        Task {
+            do {
+                let result = try await APIService.shared.scanBarcode(code)
+                let macros = result.perServing ?? result.per100g
+                let note: String = {
+                    if result.perServing != nil, let sz = result.servingSize {
+                        return "1 portion (\(sz))"
+                    } else if result.perServing != nil {
+                        return "1 portion"
+                    } else {
+                        return "pour 100g"
+                    }
+                }()
+                await MainActor.run {
+                    manName = result.nom
+                    manCal  = "\(macros.calories)"
+                    manProt = "\(macros.proteines)"
+                    manGluc = "\(macros.glucides)"
+                    manLip  = "\(macros.lipides)"
+                    barcodeNote = note
+                    withAnimation { manualMode = true }
+                    isLoadingBarcode = false
+                }
+            } catch let e as ScanLabelError {
+                await MainActor.run {
+                    barcodeError = e.message
+                    isLoadingBarcode = false
+                }
+            } catch {
+                await MainActor.run {
+                    barcodeError = "Produit introuvable dans la base Open Food Facts"
+                    isLoadingBarcode = false
+                }
+            }
+        }
     }
 
     private func save() {
@@ -1115,22 +1323,27 @@ private struct MacroPreviewPill: View {
 
 // MARK: - Workout Bonus Badge
 
-struct WorkoutBonusBadge: View {
+struct DayTypeBadge: View {
+    let type: String  // "training" | "rest"
+
+    private var isTraining: Bool { type == "training" }
+
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "bolt.fill")
+            Image(systemName: isTraining ? "dumbbell.fill" : "moon.fill")
                 .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.orange)
-            Text("+300 kcal · Séance enregistrée aujourd'hui")
+                .foregroundColor(isTraining ? .orange : .indigo)
+            Text(isTraining ? "Jour d'entraînement · objectif augmenté" : "Jour de repos · objectif réduit")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.orange)
+                .foregroundColor(isTraining ? .orange : .indigo)
             Spacer()
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color.orange.opacity(0.1))
+        .background((isTraining ? Color.orange : Color.indigo).opacity(0.1))
         .cornerRadius(10)
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 10)
+            .stroke((isTraining ? Color.orange : Color.indigo).opacity(0.25), lineWidth: 1))
     }
 }
 
@@ -1225,7 +1438,7 @@ struct AdherenceScoreCard: View {
     var body: some View {
         VStack(spacing: 14) {
             HStack {
-                Text("ADHÉRENCE 7 JOURS")
+                Text("ADHÉRENCE · \(history.count) JOURS")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(2)
                     .foregroundColor(.gray)
@@ -1274,6 +1487,344 @@ struct AdherenceScoreCard: View {
     }
 }
 
+// MARK: - Nutrition Patterns Card
+
+struct NutritionPatternsCard: View {
+    let history: [NutritionDayHistory]
+    let settings: NutritionSettings?
+
+    private var calTarget:  Double { settings?.calories  ?? 2200 }
+    private var protTarget: Double { settings?.proteines ?? 160  }
+
+    private var avgCal:  Double {
+        history.isEmpty ? 0 : history.reduce(0) { $0 + $1.calories  } / Double(history.count)
+    }
+    private var avgProt: Double {
+        history.isEmpty ? 0 : history.reduce(0) { $0 + $1.proteines } / Double(history.count)
+    }
+
+    private var bestStreak: Int {
+        var best = 0, current = 0
+        for day in history.sorted(by: { $0.date < $1.date }) {
+            let ok = day.proteines >= protTarget * 0.9 && day.calories <= calTarget * 1.1
+            current = ok ? current + 1 : 0
+            best = max(best, current)
+        }
+        return best
+    }
+
+    private var weekdayAverages: [(label: String, avgCal: Double)] {
+        guard history.count >= 21 else { return [] }
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        let names = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+        var groups: [Int: [Double]] = [:]
+        for day in history {
+            guard let d = fmt.date(from: day.date) else { continue }
+            let wd = Calendar.current.component(.weekday, from: d) - 1
+            groups[wd, default: []].append(day.calories)
+        }
+        let reordered = [1,2,3,4,5,6,0] // Mon→Sun
+        return reordered.compactMap { idx in
+            guard let vals = groups[idx], !vals.isEmpty else { return nil }
+            return (label: names[idx], avgCal: vals.reduce(0, +) / Double(vals.count))
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("TENDANCES")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            HStack(spacing: 0) {
+                VStack(alignment: .center, spacing: 4) {
+                    Text("\(Int(avgCal))")
+                        .font(.system(size: 24, weight: .black)).foregroundColor(.orange)
+                    Text("/ \(Int(calTarget)) kcal")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                    Text("moy. calories/j")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity)
+
+                Divider().frame(height: 44).background(Color.white.opacity(0.07))
+
+                VStack(alignment: .center, spacing: 4) {
+                    Text("\(Int(avgProt))g")
+                        .font(.system(size: 24, weight: .black)).foregroundColor(.blue)
+                    Text("/ \(Int(protTarget))g")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                    Text("moy. protéines/j")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity)
+
+                Divider().frame(height: 44).background(Color.white.opacity(0.07))
+
+                VStack(alignment: .center, spacing: 4) {
+                    Text("\(bestStreak)")
+                        .font(.system(size: 24, weight: .black)).foregroundColor(.green)
+                    Text("jours consécutifs")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                    Text("meilleur streak")
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            if !weekdayAverages.isEmpty {
+                Divider().background(Color.white.opacity(0.07))
+                Text("MOYENNE PAR JOUR DE LA SEMAINE")
+                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(Color.gray.opacity(0.6))
+                let maxAvg = weekdayAverages.map(\.avgCal).max() ?? 1
+                HStack(alignment: .bottom, spacing: 6) {
+                    ForEach(weekdayAverages, id: \.label) { item in
+                        let pct = item.avgCal / maxAvg
+                        let overTarget = item.avgCal > calTarget * 1.1
+                        VStack(spacing: 4) {
+                            Text("\(Int(item.avgCal / 100) * 100)")
+                                .font(.system(size: 7)).foregroundColor(.gray)
+                            GeometryReader { geo in
+                                VStack(spacing: 0) {
+                                    Spacer()
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(overTarget ? Color.red.opacity(0.5) : Color.orange.opacity(0.45))
+                                        .frame(height: max(geo.size.height * pct, 4))
+                                }
+                            }
+                            .frame(height: 36)
+                            Text(item.label)
+                                .font(.system(size: 9)).foregroundColor(.gray)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Nutrition Correlations Card
+
+struct NutritionCorrelationsCard: View {
+    let settings: NutritionSettings?
+    @State private var data: NutritionCorrelations? = nil
+    @State private var isLoading = true
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("CORRÉLATIONS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            if isLoading {
+                HStack { Spacer(); ProgressView().tint(.gray); Spacer() }.frame(height: 40)
+            } else if let d = data, d.sampleDays >= 14, hasInsights(d) {
+                VStack(spacing: 12) {
+                    if let pr = d.protRpe {
+                        NutritionCorrInsightRow(
+                            icon:  "fork.knife",
+                            title: "Protéines \u{2265} objectif → RPE lendemain",
+                            left:  ("Oui (\(pr.sampleHigh)j)", String(format: "%.1f", pr.highProtAvgRpe)),
+                            right: ("Non (\(pr.sampleLow)j)",  String(format: "%.1f", pr.lowProtAvgRpe)),
+                            positive: pr.diff <= 0,
+                            note:  pr.diff <= 0
+                                ? "Séances perçues \(String(format: "%.1f", abs(pr.diff))) pts plus légères"
+                                : "Pas de différence significative"
+                        )
+                    }
+                    if let cr = d.calRec {
+                        NutritionCorrInsightRow(
+                            icon:  "moon.stars.fill",
+                            title: "Calories dans objectif → récupération",
+                            left:  ("Objectif (\(cr.sampleOn)j)",  String(format: "%.1f", cr.onTargetAvg)),
+                            right: ("Hors cible (\(cr.sampleOff)j)", String(format: "%.1f", cr.offTargetAvg)),
+                            positive: cr.diff >= 0,
+                            note:  cr.diff >= 0.3
+                                ? "Récupération \(String(format: "%.1f", cr.diff)) pts meilleure"
+                                : "Différence non significative"
+                        )
+                    }
+                    if let vc = d.volCal {
+                        NutritionCorrInsightRow(
+                            icon:  "dumbbell.fill",
+                            title: "Volume élevé → calories lendemain",
+                            left:  ("Volume haut", "\(vc.highVolAvgCal)"),
+                            right: ("Volume bas",  "\(vc.lowVolAvgCal)"),
+                            positive: vc.diff >= 0,
+                            note:  "Compensation naturelle : \(abs(vc.diff)) kcal de plus"
+                        )
+                    }
+                }
+            } else {
+                Text("Pas encore assez de données partagées entre nutrition, séances et récupération.\nContinue à tout logger pendant 2–3 semaines.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.leading)
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+        .task {
+            guard let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition/correlations"),
+                  let (raw, _) = try? await URLSession.authed.data(from: url),
+                  let decoded  = try? JSONDecoder().decode(NutritionCorrelations.self, from: raw)
+            else { isLoading = false; return }
+            data = decoded
+            isLoading = false
+        }
+    }
+
+    private func hasInsights(_ d: NutritionCorrelations) -> Bool {
+        d.protRpe != nil || d.calRec != nil || d.volCal != nil
+    }
+}
+
+private struct NutritionCorrInsightRow: View {
+    let icon:     String
+    let title:    String
+    let left:     (label: String, value: String)
+    let right:    (label: String, value: String)
+    let positive: Bool
+    let note:     String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray)
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.85))
+            }
+            HStack(spacing: 0) {
+                VStack(spacing: 2) {
+                    Text(left.value)
+                        .font(.system(size: 18, weight: .black))
+                        .foregroundColor(positive ? .green : .orange)
+                    Text(left.label)
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity)
+
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 10)).foregroundColor(.gray)
+
+                VStack(spacing: 2) {
+                    Text(right.value)
+                        .font(.system(size: 18, weight: .black))
+                        .foregroundColor(.gray.opacity(0.8))
+                    Text(right.label)
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                }
+                .frame(maxWidth: .infinity)
+            }
+            HStack(spacing: 4) {
+                Image(systemName: positive ? "checkmark.circle.fill" : "minus.circle.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(positive ? .green : .yellow)
+                Text(note)
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(10)
+    }
+}
+
+// MARK: - Workout Timing Card
+
+struct WorkoutTimingCard: View {
+    let todayType: String?
+    let totals: NutritionTotals?
+    let settings: NutritionSettings?
+
+    private struct Guidance {
+        let icon: String
+        let color: Color
+        let title: String
+        let body: String
+    }
+
+    private var guidance: Guidance? {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let isTraining = todayType == "training"
+        let protConsumed = totals?.proteines ?? 0
+        let protGoal = settings?.proteines ?? 0
+        let calConsumed = totals?.calories ?? 0
+        let calGoal = settings?.calories ?? 0
+        let protDeficit = protGoal > 0 ? protGoal - protConsumed : 0
+        let calDeficit = calGoal > 0 ? calGoal - calConsumed : 0
+
+        if isTraining && (5...10).contains(hour) {
+            return Guidance(
+                icon: "bolt.fill",
+                color: .orange,
+                title: "Fenêtre pré-entraînement",
+                body: "Vise +30–40g glucides + 20g protéines 1–2h avant ta séance."
+            )
+        }
+        if isTraining && (12...16).contains(hour) {
+            let msg = protDeficit > 15
+                ? "Mange +\(Int(protDeficit))g protéines + des glucides dans les 2h."
+                : "Continue sur ta lancée, fenêtre anabolique active."
+            return Guidance(
+                icon: "arrow.triangle.2.circlepath",
+                color: .green,
+                title: "Récupération post-entraînement",
+                body: msg
+            )
+        }
+        if (19...23).contains(hour) && protDeficit > 20 {
+            return Guidance(
+                icon: "moon.stars.fill",
+                color: .indigo,
+                title: "Protéines avant de dormir",
+                body: "Il te manque \(Int(protDeficit))g de protéines. Skyr ou cottage cheese pour la nuit."
+            )
+        }
+        if (15...19).contains(hour) && calDeficit < -200 {
+            return Guidance(
+                icon: "exclamationmark.triangle.fill",
+                color: .red,
+                title: "Surplus calorique",
+                body: "Tu as dépassé ton objectif de \(Int(-calDeficit)) kcal. Reste léger ce soir."
+            )
+        }
+        return nil
+    }
+
+    var body: some View {
+        if let g = guidance {
+            HStack(spacing: 12) {
+                Image(systemName: g.icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(g.color)
+                    .frame(width: 32)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(g.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.primary)
+                    Text(g.body)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+            }
+            .padding(12)
+            .background(g.color.opacity(0.08))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(g.color.opacity(0.2), lineWidth: 1))
+            .cornerRadius(12)
+        }
+    }
+}
+
 // MARK: - Nutrition Settings Sheet
 
 struct NutritionSettingsSheet: View {
@@ -1281,25 +1832,33 @@ struct NutritionSettingsSheet: View {
     var onSaved: () async -> Void
     @Environment(\.dismiss) private var dismiss
 
-    @State private var calories:  String
-    @State private var proteines: String
-    @State private var glucides:  String
-    @State private var lipides:   String
-    @State private var isSaving = false
+    @State private var calories:       String
+    @State private var proteines:      String
+    @State private var glucides:       String
+    @State private var lipides:        String
+    @State private var dynamicEnabled: Bool
+    @State private var trainingCal:    String
+    @State private var restCal:        String
+    @State private var isSaving  = false
     @State private var saveError: String? = nil
 
     init(settings: NutritionSettings?, onSaved: @escaping () async -> Void) {
         self.settings = settings
         self.onSaved  = onSaved
         let fmt = { (v: Double?) -> String in v.map { "\(Int($0))" } ?? "" }
-        _calories  = State(initialValue: fmt(settings?.calories))
-        _proteines = State(initialValue: fmt(settings?.proteines))
-        _glucides  = State(initialValue: fmt(settings?.glucides))
-        _lipides   = State(initialValue: fmt(settings?.lipides))
+        _calories       = State(initialValue: fmt(settings?.calories))
+        _proteines      = State(initialValue: fmt(settings?.proteines))
+        _glucides       = State(initialValue: fmt(settings?.glucides))
+        _lipides        = State(initialValue: fmt(settings?.lipides))
+        _dynamicEnabled = State(initialValue: settings?.hasDynamicGoals == true)
+        _trainingCal    = State(initialValue: fmt(settings?.trainingCalories))
+        _restCal        = State(initialValue: fmt(settings?.restCalories))
     }
 
     private var canSave: Bool {
-        Double(calories) != nil && Double(proteines) != nil
+        guard Double(calories) != nil && Double(proteines) != nil else { return false }
+        if dynamicEnabled { return Double(trainingCal) != nil && Double(restCal) != nil }
+        return true
     }
 
     var body: some View {
@@ -1307,12 +1866,51 @@ struct NutritionSettingsSheet: View {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
                 Form {
-                    Section("OBJECTIF CALORIQUE") {
-                        HStack {
-                            TextField("2200", text: $calories)
-                                .keyboardType(.numberPad)
-                                .foregroundColor(.white)
-                            Text("kcal / jour").foregroundColor(.gray).font(.system(size: 13))
+                    Section(header: Text("OBJECTIF CALORIQUE")) {
+                        Toggle(isOn: $dynamicEnabled.animation()) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Objectifs différenciés")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 14, weight: .medium))
+                                Text("Entraînement vs repos")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        .tint(.orange)
+                        .onChange(of: dynamicEnabled) { enabled in
+                            if enabled && trainingCal.isEmpty && restCal.isEmpty {
+                                let base = Int(Double(calories) ?? 2200)
+                                trainingCal = "\(base + 200)"
+                                restCal     = "\(max(base - 200, 1500))"
+                            }
+                        }
+
+                        if dynamicEnabled {
+                            HStack {
+                                Image(systemName: "dumbbell.fill")
+                                    .foregroundColor(.orange)
+                                    .font(.system(size: 12))
+                                    .frame(width: 20)
+                                TextField("2400", text: $trainingCal)
+                                    .keyboardType(.numberPad).foregroundColor(.white)
+                                Text("kcal entraînement").foregroundColor(.gray).font(.system(size: 12))
+                            }
+                            HStack {
+                                Image(systemName: "moon.fill")
+                                    .foregroundColor(.indigo)
+                                    .font(.system(size: 12))
+                                    .frame(width: 20)
+                                TextField("2000", text: $restCal)
+                                    .keyboardType(.numberPad).foregroundColor(.white)
+                                Text("kcal repos").foregroundColor(.gray).font(.system(size: 12))
+                            }
+                        } else {
+                            HStack {
+                                TextField("2200", text: $calories)
+                                    .keyboardType(.numberPad).foregroundColor(.white)
+                                Text("kcal / jour").foregroundColor(.gray).font(.system(size: 13))
+                            }
                         }
                     }
                     .listRowBackground(Color(hex: "11111c"))
@@ -1330,12 +1928,14 @@ struct NutritionSettingsSheet: View {
                             TextField("65", text: $lipides).keyboardType(.numberPad).foregroundColor(.white)
                             Text("g lipides").foregroundColor(.pink).font(.system(size: 13))
                         }
-                        Button(action: { if let kcal = Double(calories) { autoFillMacros(kcal: kcal) } }) {
+                        Button(action: {
+                            let base = dynamicEnabled ? (Double(trainingCal) ?? 2400) : (Double(calories) ?? 2200)
+                            autoFillMacros(kcal: base)
+                        }) {
                             Label("Recalculer (30% prot · 45% glucides · 25% lip)", systemImage: "wand.and.stars")
                                 .font(.system(size: 12))
-                                .foregroundColor(Double(calories) != nil ? .orange : .gray)
+                                .foregroundColor(.orange)
                         }
-                        .disabled(Double(calories) == nil)
                     } header: {
                         Text("OBJECTIFS MACROS (g / jour)")
                     }
@@ -1357,7 +1957,7 @@ struct NutritionSettingsSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
         .alert("Erreur de sauvegarde", isPresented: Binding(
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
@@ -1369,7 +1969,6 @@ struct NutritionSettingsSheet: View {
     }
 
     private func autoFillMacros(kcal: Double) {
-        // 30% protein (4 kcal/g), 45% carbs (4 kcal/g), 25% fat (9 kcal/g)
         let protG  = Int((kcal * 0.30) / 4)
         let carbG  = Int((kcal * 0.45) / 4)
         let fatG   = Int((kcal * 0.25) / 9)
@@ -1384,10 +1983,14 @@ struct NutritionSettingsSheet: View {
         isSaving = true
         saveError = nil
         do {
+            let tc: Double? = dynamicEnabled ? Double(trainingCal) : nil
+            let rc: Double? = dynamicEnabled ? Double(restCal)     : nil
             try await APIService.shared.updateNutritionSettings(
                 calories: cal, proteines: prot,
                 glucides: Double(glucides) ?? 0,
-                lipides:  Double(lipides)  ?? 0
+                lipides:  Double(lipides)  ?? 0,
+                trainingCalories: tc,
+                restCalories: rc
             )
             await onSaved()
             dismiss()
@@ -1708,6 +2311,385 @@ struct ImagePickerView: UIViewControllerRepresentable {
         }
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             parent.dismiss()
+        }
+    }
+}
+
+// MARK: - Meal Template List
+
+struct MealTemplateListSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var templates: [MealTemplate] = []
+    @State private var isLoading = true
+    @State private var showCreate = false
+    @State private var editTarget: MealTemplate? = nil
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                if isLoading {
+                    ProgressView().tint(.white)
+                } else if templates.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "fork.knife.circle")
+                            .font(.system(size: 52)).foregroundColor(.gray.opacity(0.5))
+                        Text("Aucun repas sauvegardé")
+                            .foregroundColor(.gray)
+                        Button("Créer mon premier repas") { showCreate = true }
+                            .buttonStyle(.borderedProminent).tint(.orange)
+                    }
+                } else {
+                    List {
+                        ForEach(templates) { template in
+                            Button { editTarget = template } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(template.name)
+                                            .foregroundColor(.white).fontWeight(.semibold)
+                                        HStack(spacing: 10) {
+                                            Text("\(Int(template.totalCalories)) kcal")
+                                                .font(.system(size: 12)).foregroundColor(.orange)
+                                            Text("\(template.items.count) aliment\(template.items.count > 1 ? "s" : "")")
+                                                .font(.system(size: 12)).foregroundColor(.gray)
+                                        }
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12)).foregroundColor(.gray)
+                                }
+                            }
+                            .listRowBackground(Color(hex: "11111c"))
+                        }
+                        .onDelete { idxs in
+                            let toDelete = idxs.map { templates[$0] }
+                            templates.remove(atOffsets: idxs)
+                            Task {
+                                for t in toDelete {
+                                    try? await APIService.shared.deleteMealTemplate(t.id)
+                                }
+                            }
+                        }
+                    }
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .navigationTitle("Repas sauvegardés")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Fermer") { dismiss() }.foregroundColor(.orange)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button { showCreate = true } label: {
+                        Image(systemName: "plus").foregroundColor(.orange)
+                    }
+                }
+            }
+            .sheet(isPresented: $showCreate, onDismiss: { Task { await reload() } }) {
+                MealTemplateEditorSheet(template: nil) { _ in }
+            }
+            .sheet(item: $editTarget, onDismiss: { Task { await reload() } }) { t in
+                MealTemplateEditorSheet(template: t) { _ in }
+            }
+        }
+        .task { await reload() }
+    }
+
+    private func reload() async {
+        isLoading = true
+        templates = await APIService.shared.fetchMealTemplates()
+        isLoading = false
+    }
+}
+
+// MARK: - Meal Template Editor
+
+struct MealTemplateEditorSheet: View {
+    let template: MealTemplate?
+    var onSaved: (MealTemplate) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name: String
+    @State private var items: [MealTemplateItem]
+    @State private var isSaving = false
+    @State private var showAddItem = false
+    @State private var newItemName = ""
+    @State private var newItemCal = ""
+    @State private var newItemProt = ""
+    @State private var newItemGluc = ""
+    @State private var newItemLip = ""
+
+    init(template: MealTemplate?, onSaved: @escaping (MealTemplate) -> Void) {
+        self.template = template
+        self.onSaved  = onSaved
+        _name  = State(initialValue: template?.name ?? "")
+        _items = State(initialValue: template?.items ?? [])
+    }
+
+    private func p(_ s: String) -> Double {
+        Double(s.replacingOccurrences(of: ",", with: ".")) ?? 0
+    }
+
+    private var totalCalories: Double { items.reduce(0) { $0 + $1.calories } }
+    private var totalProteines: Double { items.reduce(0) { $0 + $1.proteines } }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                Form {
+                    Section("NOM") {
+                        TextField("Ex: Petit déjeuner protéiné", text: $name)
+                            .foregroundColor(.white)
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+
+                    Section(header: HStack {
+                        Text("ALIMENTS")
+                        Spacer()
+                        Button {
+                            withAnimation { showAddItem.toggle() }
+                        } label: {
+                            Image(systemName: showAddItem ? "minus.circle.fill" : "plus.circle.fill")
+                                .foregroundColor(.orange)
+                        }
+                        .buttonStyle(.plain)
+                        .textCase(nil)
+                    }) {
+                        if items.isEmpty && !showAddItem {
+                            Text("Utilise + pour ajouter un aliment")
+                                .font(.caption).foregroundColor(.gray)
+                        }
+                        ForEach($items) { $item in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    TextField("Nom", text: $item.name)
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 14, weight: .semibold))
+                                    Text("\(Int(item.calories)) kcal · \(String(format: "%.0fg", item.proteines)) prot")
+                                        .font(.caption).foregroundColor(.gray)
+                                }
+                            }
+                        }
+                        .onDelete { items.remove(atOffsets: $0) }
+                    }
+                    .listRowBackground(Color(hex: "11111c"))
+
+                    if showAddItem {
+                        Section("NOUVEL ALIMENT") {
+                            TextField("Nom", text: $newItemName).foregroundColor(.white)
+                            HStack {
+                                TextField("Calories", text: $newItemCal)
+                                    .keyboardType(.decimalPad).foregroundColor(.white)
+                                Text("kcal").foregroundColor(.gray).font(.caption)
+                            }
+                            HStack {
+                                TextField("Protéines", text: $newItemProt)
+                                    .keyboardType(.decimalPad).foregroundColor(.white)
+                                Text("g").foregroundColor(.gray).font(.caption)
+                            }
+                            HStack {
+                                TextField("Glucides", text: $newItemGluc)
+                                    .keyboardType(.decimalPad).foregroundColor(.white)
+                                Text("g").foregroundColor(.gray).font(.caption)
+                            }
+                            HStack {
+                                TextField("Lipides", text: $newItemLip)
+                                    .keyboardType(.decimalPad).foregroundColor(.white)
+                                Text("g").foregroundColor(.gray).font(.caption)
+                            }
+                            Button("Ajouter") {
+                                guard !newItemName.isEmpty else { return }
+                                withAnimation {
+                                    items.append(MealTemplateItem(
+                                        name: newItemName, calories: p(newItemCal),
+                                        proteines: p(newItemProt), glucides: p(newItemGluc),
+                                        lipides: p(newItemLip)
+                                    ))
+                                    newItemName = ""; newItemCal = ""
+                                    newItemProt = ""; newItemGluc = ""; newItemLip = ""
+                                    showAddItem = false
+                                }
+                            }
+                            .foregroundColor(.orange)
+                            .disabled(newItemName.isEmpty)
+                        }
+                        .listRowBackground(Color(hex: "11111c"))
+                    }
+
+                    if !items.isEmpty {
+                        Section {
+                            HStack {
+                                Text("Total")
+                                Spacer()
+                                Text("\(Int(totalCalories)) kcal · \(Int(totalProteines))g prot")
+                                    .font(.system(size: 13)).foregroundColor(.orange)
+                            }
+                        }
+                        .listRowBackground(Color(hex: "11111c"))
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                .scrollDismissesKeyboard(.interactively)
+            }
+            .navigationTitle(template == nil ? "Nouveau repas" : "Modifier")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(isSaving ? "…" : "Sauvegarder") { save() }
+                        .foregroundColor(.orange).fontWeight(.semibold)
+                        .disabled(name.isEmpty || items.isEmpty || isSaving)
+                }
+            }
+        }
+    }
+
+    private func save() {
+        Task {
+            isSaving = true
+            do {
+                if let t = template {
+                    try await APIService.shared.updateMealTemplate(id: t.id, name: name, items: items)
+                    onSaved(MealTemplate(id: t.id, name: name, items: items))
+                } else {
+                    let created = try await APIService.shared.createMealTemplate(name: name, items: items)
+                    onSaved(created)
+                }
+            } catch {}
+            isSaving = false
+            dismiss()
+        }
+    }
+}
+
+// MARK: - Barcode Scanner
+
+struct BarcodeScannerSheet: View {
+    var onDetected: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var hasPermission: Bool? = nil
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                if let permitted = hasPermission {
+                    if permitted {
+                        BarcodeCameraView { code in
+                            let gen = UIImpactFeedbackGenerator(style: .medium)
+                            gen.impactOccurred()
+                            dismiss()
+                            onDetected(code)
+                        }
+                        .ignoresSafeArea()
+                        VStack {
+                            Spacer()
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(.white.opacity(0.75), lineWidth: 2)
+                                .frame(width: 280, height: 110)
+                                .shadow(color: .white.opacity(0.15), radius: 8)
+                            Text("Pointe vers le code-barres")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white.opacity(0.8))
+                                .padding(.top, 12)
+                            Spacer()
+                        }
+                    } else {
+                        VStack(spacing: 16) {
+                            Image(systemName: "camera.slash.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(.gray)
+                            Text("Accès caméra refusé")
+                                .foregroundColor(.white)
+                                .fontWeight(.semibold)
+                            Text("Active l'accès dans Réglages > Confidentialité > Caméra.")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
+                    }
+                } else {
+                    ProgressView().tint(.white)
+                }
+            }
+            .navigationTitle("Scanner")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.white)
+                }
+            }
+        }
+        .onAppear {
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                DispatchQueue.main.async { hasPermission = granted }
+            }
+        }
+    }
+}
+
+struct BarcodeCameraView: UIViewRepresentable {
+    var onDetected: (String) -> Void
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .black
+        context.coordinator.onDetected = onDetected
+        context.coordinator.setupSession(in: view)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            context.coordinator.previewLayer?.frame = uiView.bounds
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    final class Coordinator: NSObject, AVCaptureMetadataOutputObjectsDelegate {
+        var onDetected: ((String) -> Void)?
+        var previewLayer: AVCaptureVideoPreviewLayer?
+        private let session = AVCaptureSession()
+        private var hasDetected = false
+
+        func setupSession(in view: UIView) {
+            guard let device = AVCaptureDevice.default(for: .video),
+                  let input  = try? AVCaptureDeviceInput(device: device),
+                  session.canAddInput(input) else { return }
+            session.addInput(input)
+
+            let output = AVCaptureMetadataOutput()
+            guard session.canAddOutput(output) else { return }
+            session.addOutput(output)
+            output.setMetadataObjectsDelegate(self, queue: .main)
+            output.metadataObjectTypes = [.ean13, .ean8, .upce, .code128]
+
+            let layer = AVCaptureVideoPreviewLayer(session: session)
+            layer.videoGravity = .resizeAspectFill
+            layer.frame = view.bounds
+            view.layer.addSublayer(layer)
+            previewLayer = layer
+
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.session.startRunning()
+            }
+        }
+
+        func metadataOutput(_ output: AVCaptureMetadataOutput,
+                            didOutput objects: [AVMetadataObject],
+                            from connection: AVCaptureConnection) {
+            guard !hasDetected,
+                  let meta = objects.first as? AVMetadataMachineReadableCodeObject,
+                  let code = meta.stringValue else { return }
+            hasDetected = true
+            session.stopRunning()
+            onDetected?(code)
         }
     }
 }

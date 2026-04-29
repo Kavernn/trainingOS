@@ -1814,6 +1814,59 @@ def save_food_catalog(items: list) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Meal Templates
+# ---------------------------------------------------------------------------
+
+def get_meal_templates() -> list:
+    """Return all meal templates ordered by name."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    try:
+        resp = _client.table("meal_templates").select("*").order("name").execute()
+        return resp.data or []
+    except Exception as e:
+        logger.error("get_meal_templates error: %s", e)
+        return []
+
+
+def create_meal_template(name: str, items: list) -> dict | None:
+    """Insert a new meal template; returns the created row."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        resp = _client.table("meal_templates").insert({"name": name, "items": items}).execute()
+        return resp.data[0] if resp.data else None
+    except Exception as e:
+        logger.error("create_meal_template error: %s", e)
+        return None
+
+
+def update_meal_template(template_id: str, name: str, items: list) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("meal_templates")\
+            .update({"name": name, "items": items})\
+            .eq("id", template_id)\
+            .execute()
+        return True
+    except Exception as e:
+        logger.error("update_meal_template error: %s", e)
+        return False
+
+
+def delete_meal_template(template_id: str) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        _client.table("meal_templates").delete().eq("id", template_id).execute()
+        return True
+    except Exception as e:
+        logger.error("delete_meal_template error: %s", e)
+        return False
+
+
+# ---------------------------------------------------------------------------
 # Deload state
 # ---------------------------------------------------------------------------
 

@@ -669,6 +669,45 @@ class APIService: ObservableObject {
         CacheService.shared.clear(for: "food_catalog")
     }
 
+    // MARK: - Meal Templates
+    func fetchMealTemplates() async -> [MealTemplate] {
+        guard let url = URL(string: "\(baseURL)/api/meal_templates"),
+              let (data, _) = try? await URLSession.authed.data(from: url) else { return [] }
+        struct Resp: Decodable { let templates: [MealTemplate] }
+        return (try? JSONDecoder().decode(Resp.self, from: data))?.templates ?? []
+    }
+
+    func createMealTemplate(name: String, items: [MealTemplateItem]) async throws -> MealTemplate {
+        struct Resp: Decodable { let template: MealTemplate }
+        let itemDicts: [[String: Any]] = items.map {
+            ["name": $0.name, "calories": $0.calories,
+             "proteines": $0.proteines, "glucides": $0.glucides, "lipides": $0.lipides]
+        }
+        guard let data = try await offlinePost(endpoint: "/api/meal_templates",
+                                               payload: ["name": name, "items": itemDicts]) else {
+            throw APIError.serverError(0, "offline")
+        }
+        return try JSONDecoder().decode(Resp.self, from: data).template
+    }
+
+    func updateMealTemplate(id: String, name: String, items: [MealTemplateItem]) async throws {
+        let itemDicts: [[String: Any]] = items.map {
+            ["name": $0.name, "calories": $0.calories,
+             "proteines": $0.proteines, "glucides": $0.glucides, "lipides": $0.lipides]
+        }
+        _ = try await offlinePost(endpoint: "/api/meal_templates/\(id)/update",
+                                  payload: ["name": name, "items": itemDicts])
+    }
+
+    func deleteMealTemplate(_ id: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/meal_templates/\(id)/delete", payload: [:])
+    }
+
+    func logMealTemplate(_ id: String, mealType: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/meal_templates/\(id)/log",
+                                  payload: ["meal_type": mealType])
+    }
+
     // MARK: - Nutrition
     func fetchNutritionData() async throws -> (settings: NutritionSettings?, entries: [NutritionEntry], totals: NutritionTotals?) {
         let url = URL(string: "\(baseURL)/api/nutrition_data")!
@@ -723,13 +762,32 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode(ScanResult.self, from: data)
     }
 
-    func updateNutritionSettings(calories: Double, proteines: Double, glucides: Double, lipides: Double) async throws {
-        _ = try await offlinePost(endpoint: "/api/nutrition/settings", payload: [
+    func scanBarcode(_ code: String) async throws -> BarcodeResult {
+        guard let url = URL(string: "\(baseURL)/api/food/barcode/\(code)") else {
+            throw URLError(.badURL)
+        }
+        let (data, resp) = try await URLSession.authed.data(from: url)
+        guard let http = resp as? HTTPURLResponse else { throw URLError(.badServerResponse) }
+        if http.statusCode == 404 || http.statusCode == 503 {
+            let msg = (try? JSONDecoder().decode([String: String].self, from: data))?["error"]
+                      ?? "Produit introuvable"
+            throw ScanLabelError(message: msg)
+        }
+        guard http.statusCode == 200 else { throw URLError(.badServerResponse) }
+        return try JSONDecoder().decode(BarcodeResult.self, from: data)
+    }
+
+    func updateNutritionSettings(calories: Double, proteines: Double, glucides: Double, lipides: Double,
+                                  trainingCalories: Double? = nil, restCalories: Double? = nil) async throws {
+        var payload: [String: Any] = [
             "limite_calories":    Int(calories),
             "objectif_proteines": Int(proteines),
             "glucides":           glucides,
             "lipides":            lipides,
-        ])
+        ]
+        if let tc = trainingCalories { payload["training_calories"] = Int(tc) }
+        if let rc = restCalories     { payload["rest_calories"]     = Int(rc) }
+        _ = try await offlinePost(endpoint: "/api/nutrition/settings", payload: payload)
     }
 
     // MARK: - Cardio
@@ -1117,4 +1175,27 @@ struct ScanResult: Decodable {
 
 struct ScanLabelError: Error {
     let message: String
+}
+
+// MARK: - Barcode models
+
+struct BarcodeResult: Decodable {
+    let nom: String
+    let servingSize: String?
+    let per100g: MacroSet
+    let perServing: MacroSet?
+
+    struct MacroSet: Decodable {
+        let calories: Int
+        let proteines: Double
+        let glucides: Double
+        let lipides: Double
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case nom
+        case servingSize = "serving_size"
+        case per100g     = "per_100g"
+        case perServing  = "per_serving"
+    }
 }

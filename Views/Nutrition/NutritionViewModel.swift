@@ -8,22 +8,26 @@ final class NutritionViewModel: ObservableObject {
     @Published var entries: [NutritionEntry] = []
     @Published var totals: NutritionTotals? = nil
     @Published var history: [NutritionDayHistory] = []
+    @Published var effectiveCalories: Double? = nil
+    @Published var todayType: String? = nil
     @Published var isLoading = true
     @Published var networkError: String? = nil
 
-    func loadData(silent: Bool = false) async {
+    func loadData(days: Int = 7, silent: Bool = false) async {
         if !silent { isLoading = true }
-        let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition_data")!
+        let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition_data?days=\(days)")!
         var req = URLRequest(url: url)
         req.cachePolicy = .reloadIgnoringLocalCacheData
         req.timeoutInterval = 15
         do {
             let (data, _) = try await URLSession.authed.data(for: req)
             let decoded   = try JSONDecoder().decode(NutritionDataResponse.self, from: data)
-            settings = decoded.settings
-            totals   = decoded.totals
-            entries  = decoded.entries
-            history  = decoded.history
+            settings          = decoded.settings
+            totals            = decoded.totals
+            entries           = decoded.entries
+            history           = decoded.history
+            effectiveCalories = decoded.effectiveCalories
+            todayType         = decoded.todayType
             networkError = nil
         } catch {
             if entries.isEmpty { networkError = "Impossible de charger la nutrition" }
