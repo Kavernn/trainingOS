@@ -326,8 +326,10 @@ def api_historique_data():
         reverse=True,
     )
 
-    # Fallback: if a session has no exos (legacy/duplicate linkage issues),
-    # rebuild exercise rows from per-exercise history by date.
+    # Supplement exos from weights history (authoritative source).
+    # Always merge — not just when empty — so exercises logged after session
+    # completion (e.g. "Finir la séance") appear even if exercise_logs query
+    # returned a partial result.
     try:
         weights = load_weights()
         ex_by_date: dict[str, list[dict]] = {}
@@ -342,8 +344,16 @@ def api_historique_data():
                     "reps": entry.get("reps", ""),
                 })
         for row in session_list:
-            if not row.get("exos"):
-                row["exos"] = ex_by_date.get(row.get("date"), [])
+            d = row.get("date")
+            date_exos = ex_by_date.get(d, [])
+            existing = row.get("exos") or []
+            if not existing:
+                row["exos"] = date_exos
+            elif date_exos:
+                existing_names = {e.get("exercise") for e in existing}
+                extra = [e for e in date_exos if e.get("exercise") not in existing_names]
+                if extra:
+                    row["exos"] = list(existing) + extra
     except Exception:
         pass
 
