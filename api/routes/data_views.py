@@ -247,7 +247,8 @@ def api_historique_data():
     month  = request.args.get("month")  # "YYYY-MM" filter
 
     sessions = _db.get_workout_sessions(limit=500)
-    ex_by_session = _db.get_exercise_history_grouped_by_session()
+    session_ids = [s["id"] for s in sessions if s.get("id")]
+    ex_by_session = _db.get_exercise_history_grouped_by_session(session_ids=session_ids)
     hiit_log = _db.get_hiit_logs(limit=500)
 
     # Deduplicate rows by (date, session_type).

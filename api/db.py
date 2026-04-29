@@ -656,19 +656,19 @@ def upsert_exercise_log_direct(
         return False
 
 
-def get_exercise_history_grouped_by_session() -> dict:
+def get_exercise_history_grouped_by_session(session_ids: list | None = None) -> dict:
     """Return exercise history keyed by workout_sessions.id (UUID string).
 
+    Pass session_ids to filter — avoids the Supabase default 1000-row cap.
     Returns: {session_id: [{"exercise": name, "weight": w, "reps": r}, ...]}
     """
     if _client is None or MODE == "OFFLINE":
         return {}
     try:
-        resp = (
-            _client.table("exercise_logs")
-            .select("weight, reps, session_id, exercises(name)")
-            .execute()
-        )
+        q = _client.table("exercise_logs").select("weight, reps, session_id, exercises(name)")
+        if session_ids:
+            q = q.in_("session_id", session_ids)
+        resp = q.limit(10000).execute()
         rows = resp.data or []
         result: dict = {}
         for r in rows:
