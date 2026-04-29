@@ -90,6 +90,17 @@ def api_dashboard():
     except Exception:
         pass
 
+    # Enrich today's session with all exercise names from exercise_logs so the
+    # RÉCAP shows every exercise (including those added via "Finir la séance").
+    # workout_sessions may have a legacy exos column with only the first batch;
+    # _today_logged_names is the authoritative complete list from exercise_logs.
+    if today_date in merged_sessions and _today_logged_names:
+        existing_exos = merged_sessions[today_date].get("exos") or []
+        existing_set = set(existing_exos) if isinstance(existing_exos, list) else set()
+        merged_sessions[today_date]["exos"] = list(existing_exos) + [
+            n for n in sorted(_today_logged_names) if n not in existing_set
+        ]
+
     smart_goals_count = 0
     try:
         smart_goals_count = len(_db.get_smart_goals())
