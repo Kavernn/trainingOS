@@ -39,6 +39,7 @@ struct IntelligenceView: View {
     @AppStorage("coach_brief_text") private var briefText: String = ""
     @State private var isBriefLoading = false
     @State private var cardioData: [CardioEntry] = []
+    @State private var chatReady = false     // true only after history restore; gates auto-scroll
 
     // Tab-switch callback injected from ContentView
     var onOpenSession: (() -> Void)? = nil
@@ -216,14 +217,12 @@ struct IntelligenceView: View {
                             .padding(.bottom, 8)
                         }
                         .onChange(of: messages.count) {
-                            if let last = messages.last {
-                                withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                            }
+                            guard chatReady, let last = messages.last else { return }
+                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
                         }
                         .onChange(of: isLoading) {
-                            if isLoading {
-                                withAnimation { proxy.scrollTo("loading", anchor: .bottom) }
-                            }
+                            guard chatReady, isLoading else { return }
+                            withAnimation { proxy.scrollTo("loading", anchor: .bottom) }
                         }
                         .scrollDismissesKeyboard(.interactively)
                     }
@@ -260,15 +259,19 @@ struct IntelligenceView: View {
             .navigationBarTitleDisplayMode(.inline)
             .task {
                 if let data = historyData.data(using: .utf8),
-                   let saved = try? JSONDecoder().decode([ChatMessage].self, from: data), !saved.isEmpty {
-                    messages = saved
+                   let saved = try? JSONDecoder().decode([ChatMessage].self, from: data) {
+                    // Strip error messages — they're transient UX, not conversation history
+                    messages = saved.filter { !$0.content.hasPrefix("Erreur:") }
                 }
+                chatReady = true   // history restored; auto-scroll now allowed
                 await loadContextData()
                 generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram()
                 await loadMorningBrief()
             }
             .onChange(of: messages) {
-                if let data = try? JSONEncoder().encode(Array(messages.suffix(50))),
+                // Only persist non-error messages
+                let toSave = messages.filter { !$0.content.hasPrefix("Erreur:") }
+                if let data = try? JSONEncoder().encode(Array(toSave.suffix(50))),
                    let str = String(data: data, encoding: .utf8) {
                     historyData = str
                 }
