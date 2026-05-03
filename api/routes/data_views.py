@@ -5,27 +5,6 @@ import os
 data_views_bp = Blueprint("data_views", __name__)
 
 
-@data_views_bp.route("/api/debug_today")
-def api_debug_today():
-    import db as _db
-    from utils import _today_mtl
-    today = _today_mtl()
-    morning = _db.get_workout_session(today)
-    bonus = _db.get_workout_session_bonus(today)
-    morning_logs = _db.get_session_exercise_logs(today) if morning else []
-    bonus_sid = (bonus or {}).get("id")
-    bonus_logs = []
-    if bonus_sid:
-        resp = _db._client.table("exercise_logs").select("weight, reps, exercises(name)").eq("session_id", bonus_sid).execute()
-        bonus_logs = [{"exercise_name": r["exercises"]["name"], "weight": r["weight"], "reps": r["reps"]} for r in (resp.data or []) if r.get("exercises")]
-    return jsonify({
-        "today": today,
-        "morning_session_id": (morning or {}).get("id"),
-        "morning_logs": morning_logs,
-        "bonus_session_id": bonus_sid,
-        "bonus_logs": bonus_logs,
-    })
-
 
 @data_views_bp.route("/api/dashboard")
 def api_dashboard():
@@ -57,6 +36,15 @@ def api_dashboard():
     _today_logged_names = set()
     try:
         _today_logged_names = {e["exercise_name"] for e in _db.get_session_exercise_logs(today_date)}
+        # Also include exercises from today's bonus session (e.g. logged via "Finir la séance")
+        _today_bonus = _db.get_workout_session_bonus(today_date)
+        bonus_sid = (_today_bonus or {}).get("id")
+        if bonus_sid:
+            resp = _db._client.table("exercise_logs").select("exercises(name)").eq("session_id", bonus_sid).execute()
+            for r in (resp.data or []):
+                n = (r.get("exercises") or {}).get("name")
+                if n:
+                    _today_logged_names.add(n)
     except Exception:
         pass
     already_logged_today = bool(
@@ -334,9 +322,15 @@ def api_historique_data():
                 morning["rpe"] = bonus["rpe"]
             if not morning.get("comment") and bonus.get("comment"):
                 morning["comment"] = bonus["comment"]
-            # Inherit exercises from bonus only if morning has none
-            if not morning.get("exos") and bonus.get("exos"):
-                morning["exos"] = bonus["exos"]
+            # Always merge bonus exercises into morning (supplement, don't replace)
+            if bonus.get("exos"):
+                if not morning.get("exos"):
+                    morning["exos"] = bonus["exos"]
+                else:
+                    existing_names = {e.get("exercise") for e in morning["exos"]}
+                    extra = [e for e in bonus["exos"] if e.get("exercise") not in existing_names]
+                    if extra:
+                        morning["exos"] = list(morning["exos"]) + extra
             del best_by_key[d_stype]
         else:
             # No morning session — keep bonus as the sole entry for that day
