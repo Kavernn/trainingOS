@@ -10,16 +10,20 @@ def api_debug_today():
     import db as _db
     from utils import _today_mtl
     today = _today_mtl()
-    session = _db.get_workout_session(today)
-    sid = (session or {}).get("id")
-    logs = _db.get_session_exercise_logs(today) if sid else []
-    all_sessions = _db.get_workout_sessions(limit=10)
+    morning = _db.get_workout_session(today)
+    bonus = _db.get_workout_session_bonus(today)
+    morning_logs = _db.get_session_exercise_logs(today) if morning else []
+    bonus_sid = (bonus or {}).get("id")
+    bonus_logs = []
+    if bonus_sid:
+        resp = _db._client.table("exercise_logs").select("weight, reps, exercises(name)").eq("session_id", bonus_sid).execute()
+        bonus_logs = [{"exercise_name": r["exercises"]["name"], "weight": r["weight"], "reps": r["reps"]} for r in (resp.data or []) if r.get("exercises")]
     return jsonify({
         "today": today,
-        "session": session,
-        "exercise_logs_count": len(logs),
-        "exercise_logs": logs,
-        "recent_sessions": [{"id": s.get("id"), "date": s.get("date"), "session_type": s.get("session_type"), "completed": s.get("completed")} for s in all_sessions],
+        "morning_session_id": (morning or {}).get("id"),
+        "morning_logs": morning_logs,
+        "bonus_session_id": bonus_sid,
+        "bonus_logs": bonus_logs,
     })
 
 
