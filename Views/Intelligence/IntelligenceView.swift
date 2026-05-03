@@ -35,6 +35,15 @@ struct IntelligenceView: View {
     @State private var weeklyReportData: WeeklyReport?          = nil
     @State private var showWeeklyReport                         = false
     @State private var isLoadingWeeklyReport                    = false
+    @AppStorage("coach_brief_date") private var briefDate: String = ""
+    @AppStorage("coach_brief_text") private var briefText: String = ""
+    @State private var isBriefLoading = false
+    @State private var cardioData: [CardioEntry] = []
+
+    // Tab-switch callback injected from ContentView
+    var onOpenSession: (() -> Void)? = nil
+
+    private var todayRecovery: RecoveryEntry? { recoveryData.first }
 
     var body: some View {
         NavigationStack {
@@ -44,239 +53,152 @@ struct IntelligenceView: View {
                     .onTapGesture { inputFocused = false }
 
                 VStack(spacing: 0) {
-                    // Propose button
-                    Button(action: loadProposals) {
-                        HStack {
-                            if isLoadingProposals {
-                                ProgressView().tint(.white).scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "wand.and.stars")
-                            }
-                            Text(isLoadingProposals ? "Analyse en cours..." : "Propositions de programme")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.purple.opacity(0.2))
-                        .foregroundColor(.purple)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.purple.opacity(0.4), lineWidth: 1)
-                        )
-                        .cornerRadius(10)
-                    }
-                    .disabled(isLoadingProposals)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-
-                    // Narrative button
-                    Button(action: loadNarrative) {
-                        HStack {
-                            if isLoadingNarrative {
-                                ProgressView().tint(.white).scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "text.quote")
-                            }
-                            Text(isLoadingNarrative ? "Rédaction en cours..." : "Récit de la semaine")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.teal.opacity(0.15))
-                        .foregroundColor(.teal)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.teal.opacity(0.35), lineWidth: 1))
-                        .cornerRadius(10)
-                    }
-                    .disabled(isLoadingNarrative)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-
-                    // Weekly report button
-                    Button(action: openWeeklyReport) {
-                        HStack {
-                            if isLoadingWeeklyReport {
-                                ProgressView().tint(.white).scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "chart.bar.doc.horizontal")
-                            }
-                            Text(isLoadingWeeklyReport ? "Chargement..." : "Bilan de la semaine")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.green.opacity(0.15))
-                        .foregroundColor(.green)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.35), lineWidth: 1))
-                        .cornerRadius(10)
-                    }
-                    .disabled(isLoadingWeeklyReport)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-
-                    // Insights button
-                    Button(action: loadInsights) {
-                        HStack {
-                            if isLoadingCorrelations {
-                                ProgressView().tint(.white).scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "chart.dots.scatter")
-                            }
-                            Text(isLoadingCorrelations ? "Analyse en cours..." : "Insights corrélations")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.blue.opacity(0.15))
-                        .foregroundColor(.blue)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.blue.opacity(0.35), lineWidth: 1)
-                        )
-                        .cornerRadius(10)
-                    }
-                    .disabled(isLoadingCorrelations)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-
-                    // Generate program button
-                    Button(action: generateProgram) {
-                        HStack {
-                            if isGeneratingProgram {
-                                ProgressView().tint(.white).scaleEffect(0.8)
-                            } else {
-                                Image(systemName: "calendar.badge.plus")
-                            }
-                            Text(isGeneratingProgram ? "Génération en cours..." : "Générer un programme 4 semaines")
-                                .font(.system(size: 13, weight: .semibold))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                        .background(Color.indigo.opacity(0.18))
-                        .foregroundColor(.indigo)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.indigo.opacity(0.4), lineWidth: 1))
-                        .cornerRadius(10)
-                    }
-                    .disabled(isGeneratingProgram)
-                    .padding(.horizontal, 16)
-                    .padding(.top, 4)
-
-                    // Program error
-                    if let err = programError {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
-                            Text(err).font(.system(size: 12)).foregroundColor(.gray)
-                            Spacer()
-                            Button { programError = nil } label: {
-                                Image(systemName: "xmark").foregroundColor(.gray)
-                            }
-                        }
-                        .padding(12)
-                        .background(Color.orange.opacity(0.08))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
-                        .cornerRadius(10)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 2)
-                    }
-
-                    // Re-open last generated program if exists
-                    if generatedProgram != nil && !isGeneratingProgram {
-                        Button {
-                            showProgramPreview = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "doc.text.magnifyingglass")
-                                    .font(.system(size: 11))
-                                Text("Voir le dernier programme généré")
-                                    .font(.system(size: 11, weight: .medium))
-                            }
-                            .foregroundColor(.indigo.opacity(0.8))
-                        }
-                        .padding(.top, 2)
-                    }
-
-                    // Nutrition × performance insight
-                    if showNutritionInsight, let ni = nutritionPerfInsight {
-                        NutritionPerfInsightCard(insight: ni, onDismiss: { showNutritionInsight = false })
-                            .padding(.horizontal, 16)
-                            .padding(.top, 4)
-                    }
-
-                    // Proposals sheet
-                    if !proposals.isEmpty {
-                        ProposalsCard(proposals: proposals, onDismiss: { proposals = []; proposalError = nil })
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 4)
-                    } else if let err = proposalError {
-                        HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
-                            Text(err).font(.system(size: 12)).foregroundColor(.gray)
-                            Spacer()
-                            Button { proposalError = nil } label: {
-                                Image(systemName: "xmark").foregroundColor(.gray)
-                            }
-                        }
-                        .padding(12)
-                        .background(Color.orange.opacity(0.08))
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
-                        .cornerRadius(10)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 4)
-                    }
-
-                    // Narrative card
-                    if let text = narrative {
-                        NarrativeCard(text: text, onDismiss: { narrative = nil })
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 4)
-                    }
-
-                    // Insights sheet
-                    if showInsights, let corr = correlations {
-                        InsightsCard(data: corr, onDismiss: { showInsights = false })
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 4)
-                    }
-
-                    Divider().background(Color.white.opacity(0.07))
-
-                    // Chat history
                     ScrollViewReader { proxy in
                         ScrollView {
-                            LazyVStack(spacing: 12) {
-                                if messages.isEmpty {
-                                    VStack(spacing: 16) {
-                                        Image(systemName: "brain.head.profile")
-                                            .font(.system(size: 48))
-                                            .foregroundColor(.purple)
-                                        Text("Coach IA")
-                                            .font(.system(size: 20, weight: .bold))
-                                            .foregroundColor(.white)
-                                        Text("Pose une question sur ton entraînement, ta récupération, ou demande une analyse de tes progrès.")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.gray)
-                                            .multilineTextAlignment(.center)
+                            LazyVStack(spacing: 0) {
 
-                                        VStack(spacing: 8) {
-                                            ForEach(suggestions, id: \.self) { s in
-                                                Button(action: { input = s; inputFocused = true }) {
-                                                    Text(s)
-                                                        .font(.system(size: 13))
-                                                        .foregroundColor(.purple)
-                                                        .padding(.horizontal, 14)
-                                                        .padding(.vertical, 8)
-                                                        .background(Color.purple.opacity(0.08))
-                                                        .cornerRadius(20)
-                                                }
-                                            }
+                                // Program error banner
+                                if let err = programError {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
+                                        Text(err).font(.system(size: 12)).foregroundColor(.gray)
+                                        Spacer()
+                                        Button { programError = nil } label: {
+                                            Image(systemName: "xmark").foregroundColor(.gray)
                                         }
                                     }
-                                    .padding(.top, 32)
-                                    .padding(.horizontal, 20)
+                                    .padding(12)
+                                    .background(Color.orange.opacity(0.08))
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                                    .cornerRadius(10)
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 10)
+                                    .padding(.bottom, 4)
+                                }
+
+                                // Re-open last generated program
+                                if generatedProgram != nil && !isGeneratingProgram {
+                                    Button { showProgramPreview = true } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "doc.text.magnifyingglass").font(.system(size: 11))
+                                            Text("Voir le dernier programme généré").font(.system(size: 11, weight: .medium))
+                                        }
+                                        .foregroundColor(.indigo.opacity(0.8))
+                                    }
+                                    .padding(.top, 6).padding(.bottom, 4)
+                                }
+
+                                // ── Greeting + Hero ──────────────────────────────
+                                if let dash = api.dashboard {
+                                    CoachGreetingHeader(dash: dash)
+                                        .padding(.horizontal, 20)
+                                        .padding(.top, 8)
+                                        .padding(.bottom, 12)
+
+                                    CoachMissionCard(
+                                        dash: dash,
+                                        briefText: briefText,
+                                        isBriefLoading: isBriefLoading,
+                                        onOpenSession: onOpenSession,
+                                        onRefreshBrief: { Task { await regenerateBrief() } },
+                                        onAskMore: { q in sendQuery(q) }
+                                    )
+                                    .padding(.horizontal, 16)
+                                    .padding(.bottom, 14)
+
+                                    WeekMomentumStrip(dash: dash)
+                                        .padding(.horizontal, 16)
+                                        .padding(.bottom, 14)
+
+                                    TodayMetricsRow(dash: dash, recovery: todayRecovery, cardioData: cardioData)
+                                        .padding(.horizontal, 16)
+                                        .padding(.bottom, 14)
+
+                                    SmartInsightsSection(
+                                        dash: dash,
+                                        weightsData: weightsData,
+                                        sessionsData: sessionsData,
+                                        recovery: todayRecovery,
+                                        recoveryLog: recoveryData,
+                                        nutritionHistory: nutritionHistory
+                                    )
+                                    .padding(.horizontal, 16)
+                                    .padding(.bottom, 14)
+                                } else {
+                                    // Skeleton while dashboard loads
+                                    VStack(spacing: 12) {
+                                        SkeletonBar(height: 44, radius: 12)
+                                        SkeletonBar(height: 180, radius: 20)
+                                        SkeletonBar(height: 76, radius: 16)
+                                        HStack(spacing: 10) {
+                                            SkeletonBar(height: 60, radius: 12)
+                                            SkeletonBar(height: 60, radius: 12)
+                                            SkeletonBar(height: 60, radius: 12)
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.top, 16)
+                                    .padding(.bottom, 14)
+                                }
+
+                                // Proposals
+                                if !proposals.isEmpty {
+                                    ProposalsCard(proposals: proposals, onDismiss: { proposals = []; proposalError = nil })
+                                        .padding(.horizontal, 16)
+                                        .padding(.bottom, 12)
+                                } else if let err = proposalError {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
+                                        Text(err).font(.system(size: 12)).foregroundColor(.gray)
+                                        Spacer()
+                                        Button { proposalError = nil } label: {
+                                            Image(systemName: "xmark").foregroundColor(.gray)
+                                        }
+                                    }
+                                    .padding(12)
+                                    .background(Color.orange.opacity(0.08))
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                                    .cornerRadius(10)
+                                    .padding(.horizontal, 16)
+                                    .padding(.bottom, 12)
+                                }
+
+                                // Narrative card
+                                if let text = narrative {
+                                    NarrativeCard(text: text, onDismiss: { narrative = nil })
+                                        .padding(.horizontal, 16)
+                                        .padding(.bottom, 12)
+                                }
+
+                                // Insights card
+                                if showInsights, let corr = correlations {
+                                    InsightsCard(data: corr, onDismiss: { showInsights = false })
+                                        .padding(.horizontal, 16)
+                                        .padding(.bottom, 12)
+                                }
+
+                                // ── Topic Explorer ───────────────────────────────
+                                TopicExplorer { q in sendQuery(q) }
+                                    .padding(.horizontal, 16)
+                                    .padding(.bottom, 20)
+
+                                // ── Chat section ─────────────────────────────────
+                                if !messages.isEmpty {
+                                    HStack(spacing: 8) {
+                                        Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
+                                        Text("CONVERSATION")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .tracking(1.5)
+                                            .foregroundColor(Color.white.opacity(0.2))
+                                            .fixedSize()
+                                        Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.bottom, 8)
                                 }
 
                                 ForEach(messages) { msg in
-                                    ChatBubble(message: msg)
-                                        .id(msg.id)
+                                    ChatBubble(message: msg).id(msg.id)
                                 }
 
                                 if isLoading {
@@ -285,10 +207,13 @@ struct IntelligenceView: View {
                                         Spacer()
                                     }
                                     .padding(.horizontal, 16)
+                                    .padding(.top, 4)
                                     .id("loading")
                                 }
+
+                                Color.clear.frame(height: 24).id("bottom")
                             }
-                            .padding(.vertical, 16)
+                            .padding(.bottom, 8)
                         }
                         .onChange(of: messages.count) {
                             if let last = messages.last {
@@ -304,10 +229,12 @@ struct IntelligenceView: View {
                     }
 
                     // Input bar
+                    Divider().background(Color.white.opacity(0.07))
                     HStack(spacing: 10) {
                         TextField("Demande à ton coach...", text: $input, axis: .vertical)
                             .font(.system(size: 14))
                             .foregroundColor(.white)
+                            .tint(.purple)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
                             .background(Color(hex: "11111c"))
@@ -329,16 +256,16 @@ struct IntelligenceView: View {
                     .background(Color(hex: "080810"))
                 }
             }
-            .navigationTitle("Intelligence")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .task {
-                // Restore persisted chat history
                 if let data = historyData.data(using: .utf8),
                    let saved = try? JSONDecoder().decode([ChatMessage].self, from: data), !saved.isEmpty {
                     messages = saved
                 }
                 await loadContextData()
                 generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram()
+                await loadMorningBrief()
             }
             .onChange(of: messages) {
                 if let data = try? JSONEncoder().encode(Array(messages.suffix(50))),
@@ -348,9 +275,7 @@ struct IntelligenceView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        showMemory = true
-                    } label: {
+                    Button { showMemory = true } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "brain.head.profile")
                                 .font(.system(size: 13, weight: .semibold))
@@ -367,8 +292,38 @@ struct IntelligenceView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if !messages.isEmpty {
-                        Button("Effacer") { messages = []; historyData = "[]" }.foregroundColor(.purple)
+                    Menu {
+                        Button { loadProposals() } label: {
+                            Label("Propositions de programme", systemImage: "wand.and.stars")
+                        }
+                        Button { loadNarrative() } label: {
+                            Label("Récit de la semaine", systemImage: "text.quote")
+                        }
+                        Button { openWeeklyReport() } label: {
+                            Label("Bilan de la semaine", systemImage: "chart.bar.doc.horizontal")
+                        }
+                        Button { loadInsights() } label: {
+                            Label("Insights corrélations", systemImage: "chart.dots.scatter")
+                        }
+                        Button { generateProgram() } label: {
+                            Label("Générer un programme", systemImage: "calendar.badge.plus")
+                        }
+                        Divider()
+                        Button { Task { await regenerateBrief() } } label: {
+                            Label("Régénérer le brief", systemImage: "arrow.clockwise")
+                        }
+                        if !messages.isEmpty {
+                            Divider()
+                            Button(role: .destructive) {
+                                messages = []
+                                historyData = "[]"
+                            } label: {
+                                Label("Effacer la conversation", systemImage: "trash")
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundColor(.purple)
                     }
                 }
             }
@@ -473,13 +428,6 @@ struct IntelligenceView: View {
         return nil
     }
 
-    private let suggestions = [
-        "Analyse mes progrès récents",
-        "Comment améliorer ma récupération ?",
-        "Suis-je en surcharge progressive ?",
-        "Quels muscles devrais-je prioriser ?"
-    ]
-
     // Subset of stats_data cache fields we need
     private struct StatsSnapshot: Codable {
         let weights:     [String: WeightData]
@@ -526,9 +474,13 @@ struct IntelligenceView: View {
             lssData  = lssResult
         }
 
-        // 3. Nutrition history for nutrition×perf insight
-        if let hist = try? await APIService.shared.fetchNutritionHistory(), !hist.isEmpty {
-            await MainActor.run { nutritionHistory = hist; showNutritionInsight = true }
+        // 3. Nutrition history + cardio data in parallel
+        async let histTask  = try? APIService.shared.fetchNutritionHistory()
+        async let cardioTask = try? APIService.shared.fetchCardioData()
+        let (hist, cardio) = await (histTask, cardioTask)
+        await MainActor.run {
+            if let h = hist, !h.isEmpty { nutritionHistory = h; showNutritionInsight = true }
+            if let c = cardio             { cardioData = c }
         }
 
         // 4. Weekly memory auto-analysis (no-op if run < 7 days ago)
@@ -681,6 +633,53 @@ struct IntelligenceView: View {
         }
 
         return lines.joined(separator: "\n")
+    }
+
+    private func loadMorningBrief() async {
+        let today = DateFormatter.isoDate.string(from: Date())
+        guard !(briefDate == today && !briefText.isEmpty) else { return }
+
+        let context = buildContext()
+        guard context != "no data" else { return }
+
+        await MainActor.run { isBriefLoading = true }
+        do {
+            let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.httpBody = try JSONSerialization.data(withJSONObject: [
+                "context": context,
+                "messages": [[
+                    "role": "user",
+                    "content": "Brief du matin. 3 phrases max. Dis-moi : (1) ce que je fais aujourd'hui et pourquoi compte tenu de ma récup, (2) un point clé sur ma progression récente, (3) une chose concrète à surveiller aujourd'hui. Sois direct, personnalisé, pas de formule de politesse."
+                ]]
+            ])
+            let (data, _) = try await URLSession.authed.data(for: req)
+            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let reply = json["response"] as? String {
+                await MainActor.run {
+                    briefText = reply
+                    briefDate = today
+                    isBriefLoading = false
+                }
+            } else {
+                await MainActor.run { isBriefLoading = false }
+            }
+        } catch {
+            await MainActor.run { isBriefLoading = false }
+        }
+    }
+
+    private func regenerateBrief() async {
+        briefDate = ""
+        briefText = ""
+        await loadMorningBrief()
+    }
+
+    private func sendQuery(_ query: String) {
+        input = query
+        sendMessage()
     }
 
     private func sendMessage() {
@@ -1257,6 +1256,734 @@ struct NutritionPerfInsightCard: View {
         .background(insight.accentColor.opacity(0.07))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(insight.accentColor.opacity(0.3), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Coach Greeting Header
+
+private struct CoachGreetingHeader: View {
+    let dash: DashboardData
+
+    private static let dateFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEE d MMM"
+        f.locale = Locale(identifier: "fr_FR")
+        return f
+    }()
+
+    private static let isoFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+
+    private var firstName: String {
+        dash.profile.name?.components(separatedBy: " ").first ?? "Athlète"
+    }
+
+    private var greeting: String {
+        let h = Calendar.current.component(.hour, from: Date())
+        if h < 12 { return "Bonjour" }
+        if h < 18 { return "Bon après-midi" }
+        return "Bonsoir"
+    }
+
+    private var formattedDate: String {
+        guard let d = Self.isoFmt.date(from: dash.todayDate) else { return dash.todayDate }
+        return Self.dateFmt.string(from: d).capitalized
+    }
+
+    var body: some View {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(greeting), \(firstName)")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundColor(.white)
+                Text(formattedDate + " · Sem. \(dash.week)")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color.white.opacity(0.38))
+            }
+            Spacer()
+            Image(systemName: "brain.head.profile")
+                .font(.system(size: 22, weight: .light))
+                .foregroundColor(Color.purple.opacity(0.5))
+        }
+    }
+}
+
+// MARK: - Coach Mission Card (Hero)
+
+private struct CoachMissionCard: View {
+    let dash: DashboardData
+    let briefText: String
+    let isBriefLoading: Bool
+    let onOpenSession: (() -> Void)?
+    let onRefreshBrief: () -> Void
+    let onAskMore: (String) -> Void
+
+    private var sessionColor: Color {
+        switch dash.today {
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
+        case "Recovery":                     return .green
+        default:                             return .blue
+        }
+    }
+
+    private var sessionDone: Bool {
+        dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
+    }
+
+    private var hasDraft: Bool {
+        SessionDraftStore.hasDraft(date: dash.todayDate, sessionType: "morning")
+    }
+
+    private var ctaLabel: String {
+        if sessionDone { return "Voir ma séance" }
+        if hasDraft    { return "Reprendre la séance" }
+        return "Commencer →"
+    }
+
+    private var ctaIcon: String {
+        if sessionDone { return "checkmark.circle.fill" }
+        if hasDraft    { return "play.fill" }
+        return "bolt.fill"
+    }
+
+    private var statusLabel: String {
+        if sessionDone { return "Terminé ✓" }
+        if hasDraft    { return "En cours" }
+        return "À faire"
+    }
+
+    private var statusColor: Color {
+        if sessionDone { return .green }
+        if hasDraft    { return .orange }
+        return sessionColor
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // ── Header ────────────────────────────────────────────────
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("MISSION DU JOUR")
+                        .font(.system(size: 10, weight: .black))
+                        .tracking(2)
+                        .foregroundColor(sessionColor)
+                    Text(dash.today)
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundColor(.white)
+                }
+                Spacer()
+                Text(statusLabel)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(statusColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(statusColor.opacity(0.15))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            Divider().background(Color.white.opacity(0.07))
+
+            // ── Brief text ────────────────────────────────────────────
+            if isBriefLoading && briefText.isEmpty {
+                MissionShimmer()
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+            } else if !briefText.isEmpty {
+                Text(briefText)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(.white.opacity(0.82))
+                    .lineSpacing(5)
+                    .lineLimit(5)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+            } else {
+                Color.clear.frame(height: 8)
+            }
+
+            // ── CTA row ───────────────────────────────────────────────
+            HStack(spacing: 10) {
+                Button(action: { onOpenSession?() }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: ctaIcon)
+                            .font(.system(size: 14, weight: .bold))
+                        Text(ctaLabel)
+                            .font(.system(size: 16, weight: .bold))
+                    }
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(sessionDone ? Color.green : sessionColor)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(ScaleButtonStyle())
+
+                if isBriefLoading {
+                    ProgressView()
+                        .tint(Color.white.opacity(0.35))
+                        .scaleEffect(0.8)
+                        .frame(width: 38, height: 38)
+                } else {
+                    Button(action: onRefreshBrief) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color.white.opacity(0.3))
+                            .frame(width: 38, height: 38)
+                            .background(Color.white.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+        }
+        .background(
+            ZStack {
+                Color(hex: "0c0c18")
+                LinearGradient(
+                    colors: [sessionColor.opacity(0.12), Color.clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(sessionColor.opacity(0.28), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+// MARK: - Mission Shimmer
+
+private struct MissionShimmer: View {
+    @State private var opacity: Double = 0.06
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            ForEach(0..<4, id: \.self) { i in
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.white.opacity(opacity))
+                    .frame(maxWidth: i == 3 ? 140 : .infinity)
+                    .frame(height: 12)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
+                opacity = 0.16
+            }
+        }
+    }
+}
+
+// MARK: - Week Momentum Strip
+
+private struct WeekMomentumStrip: View {
+    let dash: DashboardData
+
+    private static let isoFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "fr_FR")
+        return f
+    }()
+
+    private static let dayFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "EEEEE"
+        f.locale = Locale(identifier: "fr_FR")
+        return f
+    }()
+
+    private struct DayDot {
+        let letter: String
+        let hasSession: Bool
+        let isToday: Bool
+    }
+
+    private var dots: [DayDot] {
+        guard let todayMidnight = Self.isoFmt.date(from: dash.todayDate) else { return [] }
+        let base = todayMidnight.timeIntervalSince1970
+        return (0..<7).reversed().map { i in
+            let d = Date(timeIntervalSince1970: base - Double(i) * 86400)
+            let str = Self.isoFmt.string(from: d)
+            let letter = Self.dayFmt.string(from: d).uppercased()
+            return DayDot(
+                letter: letter,
+                hasSession: dash.sessions[str] != nil,
+                isToday: str == dash.todayDate
+            )
+        }
+    }
+
+    private var streak: Int {
+        guard let todayMidnight = Self.isoFmt.date(from: dash.todayDate) else { return 0 }
+        let base = todayMidnight.timeIntervalSince1970
+        var count = 0
+        for i in 0..<365 {
+            let d = Date(timeIntervalSince1970: base - Double(i) * 86400)
+            let str = Self.isoFmt.string(from: d)
+            if dash.sessions[str] != nil { count += 1 } else { break }
+        }
+        return count
+    }
+
+    private var weekCount: Int { dots.filter { $0.hasSession }.count }
+
+    private var streakMessage: String {
+        if streak >= 30 { return "🏆 \(streak)j — légende en cours" }
+        if streak >= 14 { return "🔥 \(streak)j — 2 semaines non-stop !" }
+        if streak >= 7  { return "🔥 \(streak)j de suite — semaine parfaite !" }
+        if streak >= 5  { return "🔥 \(streak)j d'affilée — momentum solide" }
+        return ""
+    }
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 0) {
+                HStack(spacing: 5) {
+                    ForEach(Array(dots.enumerated()), id: \.offset) { _, dot in
+                        VStack(spacing: 4) {
+                            ZStack {
+                                Circle()
+                                    .fill(dot.hasSession ? Color.orange : Color.white.opacity(0.07))
+                                    .frame(width: 30, height: 30)
+                                if dot.isToday {
+                                    Circle()
+                                        .stroke(Color.orange.opacity(0.65), lineWidth: 1.5)
+                                        .frame(width: 30, height: 30)
+                                }
+                                if dot.hasSession {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(.black)
+                                }
+                            }
+                            Text(dot.letter)
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(dot.isToday ? .orange : Color.white.opacity(0.3))
+                        }
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.orange)
+                        Text("\(streak)j streak")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(streak >= 5 ? .orange : .white)
+                    }
+                    Text("\(weekCount)/7 jours")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color.white.opacity(0.38))
+                }
+            }
+
+            if !streakMessage.isEmpty {
+                Text(streakMessage)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.orange)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 2)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            streak >= 5
+                ? Color.orange.opacity(0.06)
+                : Color(white: 0.07).opacity(0.7)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(streak >= 5 ? Color.orange.opacity(0.25) : Color.white.opacity(0.06), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+}
+
+// MARK: - Today Metrics Row
+
+private struct TodayMetricsRow: View {
+    let dash: DashboardData
+    let recovery: RecoveryEntry?
+    let cardioData: [CardioEntry]
+
+    private static let isoFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+
+    private var calories: Double { dash.nutritionTotals.calories ?? 0 }
+    private var calGoal: Double { dash.nutritionSettings?.calories ?? 2000 }
+    private var protein: Double { dash.nutritionTotals.proteines ?? 0 }
+    private var protGoal: Double { dash.nutritionSettings?.proteines ?? 150 }
+
+    private var weeklyCardioKm: Double {
+        guard !cardioData.isEmpty else { return 0 }
+        guard let todayMid = Self.isoFmt.date(from: dash.todayDate) else { return 0 }
+        let cutoff = Self.isoFmt.string(from: Date(timeIntervalSince1970: todayMid.timeIntervalSince1970 - 6 * 86400))
+        return cardioData.filter { ($0.date ?? "") >= cutoff }.compactMap { $0.distanceKm }.reduce(0, +)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            MetricMiniCard(
+                icon: "flame.fill",
+                iconColor: .orange,
+                value: "\(Int(calories))",
+                label: "/ \(Int(calGoal)) kcal",
+                fill: calGoal > 0 ? min(calories / calGoal, 1.0) : 0,
+                fillColor: .orange,
+                compact: weeklyCardioKm > 0
+            )
+
+            MetricMiniCard(
+                icon: "circle.hexagongrid.fill",
+                iconColor: .cyan,
+                value: "\(Int(protein))g",
+                label: "/ \(Int(protGoal))g prot.",
+                fill: protGoal > 0 ? min(protein / protGoal, 1.0) : 0,
+                fillColor: .cyan,
+                compact: weeklyCardioKm > 0
+            )
+
+            if weeklyCardioKm > 0 {
+                MetricMiniCard(
+                    icon: "figure.run",
+                    iconColor: .green,
+                    value: String(format: "%.1f", weeklyCardioKm),
+                    label: "km · 7 jours",
+                    fill: min(weeklyCardioKm / 20.0, 1.0),
+                    fillColor: .green,
+                    compact: true
+                )
+            } else if let sleep = recovery?.sleepHours {
+                MetricMiniCard(
+                    icon: "moon.zzz.fill",
+                    iconColor: .indigo,
+                    value: String(format: "%.1fh", sleep),
+                    label: "sommeil",
+                    fill: min(sleep / 8.0, 1.0),
+                    fillColor: .indigo,
+                    compact: false
+                )
+            }
+        }
+    }
+}
+
+private struct MetricMiniCard: View {
+    let icon: String
+    let iconColor: Color
+    let value: String
+    let label: String
+    let fill: Double
+    let fillColor: Color
+    var compact: Bool = false
+
+    private var valueSize: CGFloat { compact ? 16 : 20 }
+    private var labelSize: CGFloat { compact ? 10 : 11 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: compact ? 11 : 12, weight: .semibold))
+                    .foregroundColor(iconColor)
+                Text(value)
+                    .font(.system(size: valueSize, weight: .black))
+                    .foregroundColor(.white)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 0)
+            }
+            Text(label)
+                .font(.system(size: labelSize))
+                .foregroundColor(Color.white.opacity(0.4))
+                .lineLimit(1)
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.white.opacity(0.07))
+                        .frame(height: 3)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(fillColor.opacity(0.85))
+                        .frame(width: geo.size.width * CGFloat(fill), height: 3)
+                }
+            }
+            .frame(height: 3)
+        }
+        .padding(compact ? 10 : 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(white: 0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Smart Insights Section
+
+private struct SmartInsight {
+    let icon: String
+    let color: Color
+    let title: String
+    let detail: String
+}
+
+private struct SmartInsightsSection: View {
+    let dash: DashboardData
+    let weightsData: [String: WeightData]
+    let sessionsData: [String: SessionEntry]
+    let recovery: RecoveryEntry?
+    let recoveryLog: [RecoveryEntry]
+    let nutritionHistory: [NutritionDayHistory]
+
+    private var ago14: String {
+        let base = Date().timeIntervalSince1970
+        return DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: base - 14 * 86400))
+    }
+
+    private var insights: [SmartInsight] {
+        var result: [SmartInsight] = []
+        let ns = dash.nutritionSettings
+
+        // 1. Protein deficit + high training volume (high signal)
+        if result.count < 2, let protTarget = ns?.proteines, protTarget > 0, nutritionHistory.count >= 3 {
+            let recent = Array(nutritionHistory.prefix(3))
+            let avgProt = recent.map { $0.proteines }.reduce(0, +) / Double(recent.count)
+            if avgProt < protTarget * 0.80 {
+                let sessions14d = sessionsData.filter { $0.key >= ago14 }.count
+                if sessions14d >= 4 {
+                    result.append(SmartInsight(
+                        icon: "fork.knife",
+                        color: .yellow,
+                        title: "Protéines insuffisantes",
+                        detail: "Moy. \(Int(avgProt))g/j vs \(Int(protTarget))g · \(sessions14d) séances en 14j"
+                    ))
+                } else {
+                    result.append(SmartInsight(
+                        icon: "circle.hexagongrid.fill",
+                        color: .cyan,
+                        title: "Protéines en dessous",
+                        detail: "Moy. \(Int(avgProt))g/j vs \(Int(protTarget))g objectif sur 3j"
+                    ))
+                }
+            }
+        }
+
+        // 2. Caloric deficit + HRV drop (high signal)
+        if result.count < 2, let calTarget = ns?.calories, calTarget > 0, nutritionHistory.count >= 5 {
+            let avgCal = Array(nutritionHistory.prefix(7)).map { $0.calories }.reduce(0, +) / Double(min(nutritionHistory.count, 7))
+            let calRatio = avgCal / calTarget
+            if calRatio < 0.87 {
+                let hrvVals = recoveryLog.compactMap { $0.hrv }
+                if hrvVals.count >= 10 {
+                    let recent7 = hrvVals.prefix(7).reduce(0, +) / 7.0
+                    let prev7   = Array(hrvVals.dropFirst(7).prefix(7)).reduce(0, +) / 7.0
+                    if prev7 > 0 && recent7 < prev7 * 0.88 {
+                        let drop = Int((1 - recent7 / prev7) * 100)
+                        result.append(SmartInsight(
+                            icon: "heart.slash.fill",
+                            color: .red,
+                            title: "Déficit + HRV en baisse",
+                            detail: "\(Int(avgCal)) kcal/j (\(Int(calRatio * 100))%) · HRV −\(drop)% sur 7j"
+                        ))
+                    }
+                }
+            }
+        }
+
+        // 3. Sleep below threshold
+        if result.count < 2 {
+            if let sleep = recovery?.sleepHours, sleep < 6.5 {
+                result.append(SmartInsight(
+                    icon: "moon.zzz.fill",
+                    color: .indigo,
+                    title: "Récupération limitée",
+                    detail: "\(String(format: "%.1f", sleep))h cette nuit — adapte l'intensité"
+                ))
+            }
+        }
+
+        // 4. Missed sessions this week
+        if result.count < 2 {
+            let scheduled = dash.schedule.count
+            let logged = dash.sessions.count
+            if scheduled >= 3 && logged < scheduled - 1 {
+                result.append(SmartInsight(
+                    icon: "calendar.badge.exclamationmark",
+                    color: .yellow,
+                    title: "Séances manquées",
+                    detail: "\(logged)/\(scheduled) complétées cette semaine"
+                ))
+            }
+        }
+
+        return Array(result.prefix(2))
+    }
+
+    @ViewBuilder var body: some View {
+        if !insights.isEmpty {
+            VStack(spacing: 8) {
+                ForEach(Array(insights.enumerated()), id: \.offset) { _, insight in
+                    HStack(spacing: 12) {
+                        Image(systemName: insight.icon)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(insight.color)
+                            .frame(width: 22)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(insight.title)
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white)
+                            Text(insight.detail)
+                                .font(.system(size: 12))
+                                .foregroundColor(Color.white.opacity(0.5))
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(insight.color.opacity(0.07))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(insight.color.opacity(0.22), lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Topic Explorer
+
+private struct CoachTopic {
+    let icon: String
+    let color: Color
+    let title: String
+    let subtitle: String
+    let query: String
+}
+
+private let coachTopics: [CoachTopic] = [
+    CoachTopic(
+        icon: "chart.line.uptrend.xyaxis",
+        color: .blue,
+        title: "Progression",
+        subtitle: "Forces & blocages",
+        query: "Analyse ma progression sur les 30 derniers jours. Quels exercices progressent le plus ? Où est-ce que je stagne ?"
+    ),
+    CoachTopic(
+        icon: "moon.zzz.fill",
+        color: .indigo,
+        title: "Récupération",
+        subtitle: "HRV, sommeil, fatigue",
+        query: "Évalue ma récupération actuelle à partir de mes données HRV et sommeil. Dois-je réduire mon volume ou puis-je pousser ?"
+    ),
+    CoachTopic(
+        icon: "fork.knife",
+        color: .orange,
+        title: "Nutrition",
+        subtitle: "Macros & performance",
+        query: "Analyse le lien entre ma nutrition et mes performances. Quels ajustements me feraient progresser plus vite ?"
+    ),
+    CoachTopic(
+        icon: "list.bullet.clipboard",
+        color: .green,
+        title: "Programme",
+        subtitle: "Structure & phases",
+        query: "Analyse mon programme d'entraînement actuel. Est-il bien structuré pour mon objectif ? Que changerais-tu ?"
+    ),
+    CoachTopic(
+        icon: "bolt.fill",
+        color: .red,
+        title: "Intensité",
+        subtitle: "RPE & surcharge",
+        query: "Mes RPE récents sont-ils cohérents avec mes objectifs ? Est-ce que je m'entraîne avec la bonne intensité ?"
+    ),
+    CoachTopic(
+        icon: "scalemass.fill",
+        color: .teal,
+        title: "Corps",
+        subtitle: "Poids & composition",
+        query: "Analyse la tendance de mon poids corporel et de ma composition. Suis-je sur la bonne trajectoire pour mon objectif ?"
+    ),
+]
+
+private struct TopicExplorer: View {
+    let onSelect: (String) -> Void
+
+    private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("EXPLORER")
+                .font(.system(size: 10, weight: .black))
+                .tracking(2)
+                .foregroundColor(Color.white.opacity(0.22))
+
+            LazyVGrid(columns: columns, spacing: 10) {
+                ForEach(coachTopics, id: \.title) { topic in
+                    TopicCard(topic: topic, onTap: onSelect)
+                }
+            }
+        }
+    }
+}
+
+private struct TopicCard: View {
+    let topic: CoachTopic
+    let onTap: (String) -> Void
+
+    var body: some View {
+        Button { onTap(topic.query) } label: {
+            HStack(alignment: .center, spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(topic.color.opacity(0.15))
+                        .frame(width: 34, height: 34)
+                    Image(systemName: topic.icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(topic.color)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(topic.title)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    Text(topic.subtitle)
+                        .font(.system(size: 10))
+                        .foregroundColor(Color.white.opacity(0.32))
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(hex: "0d0d1a"))
+            .overlay(
+                RoundedRectangle(cornerRadius: 13)
+                    .stroke(topic.color.opacity(0.2), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 13))
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+private struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 

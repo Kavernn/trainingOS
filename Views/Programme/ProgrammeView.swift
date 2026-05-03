@@ -15,16 +15,20 @@ struct ProgrammeView: View {
     @State private var showCreateSeance = false
     @State private var deleteSeanceTarget: String? = nil
     @State private var confirmDeleteSeance = false
-    @AppStorage("programme_clipboard") private var clipboardData: String = "{}"
+    @AppStorage("programme_clipboard")      private var clipboardData: String = "{}"
+    @AppStorage("programme_clipboard_name") private var clipboardName: String = ""
     @AppStorage("periodisation_start") private var periodisationStart: String = ""
     @State private var showResetMesocycle = false
+    @State private var showApplyPhaseConfirm = false
 
     private var clipboard: [String: String] {
         (try? JSONDecoder().decode([String: String].self, from: Data(clipboardData.utf8))) ?? [:]
     }
-    private func copySeance(_ exercises: [String: String]) {
+    private func copySeance(name: String, exercises: [String: String]) {
         if let d = try? JSONEncoder().encode(exercises), let s = String(data: d, encoding: .utf8) {
             clipboardData = s
+            clipboardName = name
+            triggerNotificationFeedback(.success)
         }
     }
     private func pasteSeance(into seance: String) {
@@ -68,6 +72,24 @@ struct ProgrammeView: View {
         case .deload:       return "3 × 10-12 reps — 50–60% 1RM"
         }
     }
+
+    private var phaseShortScheme: String {
+        switch currentPhase {
+        case .hypertrophie: return "3x10"
+        case .force:        return "4x5"
+        case .peak:         return "5x2"
+        case .deload:       return "3x12"
+        }
+    }
+
+    private func applyPhaseScheme() async {
+        let scheme = phaseShortScheme
+        for (seance, exercises) in fullProgram {
+            for exercise in exercises.keys {
+                await editExercise(seance: seance, oldName: exercise, newName: exercise, scheme: scheme)
+            }
+        }
+    }
     private var nextPhase: Phase {
         switch currentPhase {
         case .hypertrophie: return .force
@@ -84,6 +106,61 @@ struct ProgrammeView: View {
         case .deload:       return .green
         }
     }
+
+    @State private var mutationCount = 0
+    @State private var lastSaveError = false
+
+    // Session reorder
+    @State private var sessionOrder: [String] = []
+    @State private var draggingSession: String? = nil
+    @State private var sessionDragY: CGFloat = 0
+    @State private var sessionCardHeights: [String: CGFloat] = [:]
+
+    private var proposedSessionDrop: Int {
+        guard let name = draggingSession,
+              let from = sessionOrder.firstIndex(of: name) else { return 0 }
+        let h = sessionCardHeights[name] ?? 80
+        let steps = Int((sessionDragY / h).rounded())
+        return max(0, min(sessionOrder.count - 1, from + steps))
+    }
+
+    private func sessionShiftFor(_ name: String) -> CGFloat {
+        guard let dr = draggingSession, dr != name,
+              let from = sessionOrder.firstIndex(of: dr),
+              let idx  = sessionOrder.firstIndex(of: name) else { return 0 }
+        let to = proposedSessionDrop
+        let h  = sessionCardHeights[dr] ?? 80
+        if from < to, idx > from, idx <= to { return -h }
+        if from > to, idx >= to,  idx < from { return  h }
+        return 0
+    }
+
+    private func refreshSessionOrder() {
+        let existing = Set(fullProgram.keys)
+        let key = "session_order_\(selectedProgramId.isEmpty ? "default" : selectedProgramId)"
+        if let saved = UserDefaults.standard.array(forKey: key) as? [String] {
+            var ordered = saved.filter { existing.contains($0) }
+            let missing = orderedSeances.filter { !ordered.contains($0) }
+            ordered += missing
+            sessionOrder = ordered
+        } else {
+            sessionOrder = orderedSeances
+        }
+    }
+
+    private func saveSessionOrder() {
+        let key = "session_order_\(selectedProgramId.isEmpty ? "default" : selectedProgramId)"
+        UserDefaults.standard.set(sessionOrder, forKey: key)
+    }
+
+    struct UndoDeleteItem {
+        let seance: String
+        let name: String
+        let scheme: String
+        let orderIndex: Int
+    }
+    @State private var undoDeleteItem: UndoDeleteItem? = nil
+    @State private var undoDeleteTask: Task<Void, Never>? = nil
 
     // Multi-programmes
     @State private var programs: [ProgramInfo] = []
@@ -136,7 +213,7 @@ struct ProgrammeView: View {
                             EditableWeekScheduleCard(
                                 schedule: $schedule,
                                 dayNames: dayNames,
-                                sessions: allSessions.isEmpty ? orderedSeances : allSessions,
+                                sessions: sessionsList,
                                 onSave: { Task { await saveSchedule() } }
                             )
                             .padding(.horizontal, 16)
@@ -144,11 +221,12 @@ struct ProgrammeView: View {
                             EveningScheduleCard(
                                 eveningSchedule: $eveningSchedule,
                                 dayNames: dayNames,
-                                sessions: allSessions.isEmpty ? orderedSeances : allSessions,
+                                sessions: sessionsList,
                                 onSave: { Task { await saveEveningSchedule() } }
                             )
                             .padding(.horizontal, 16)
 
+                            let applyAction: (() -> Void)? = periodisationStart.isEmpty ? nil : { showApplyPhaseConfirm = true }
                             PeriodisationCard(
                                 week: mesocycleWeek,
                                 phase: currentPhase.rawValue,
@@ -159,49 +237,117 @@ struct ProgrammeView: View {
                                 onStart: {
                                     periodisationStart = DateFormatter.isoDate.string(from: Date())
                                 },
-                                onReset: { showResetMesocycle = true }
+                                onReset: { showResetMesocycle = true },
+                                onApply: applyAction
                             )
                             .padding(.horizontal, 16)
 
-                            ForEach(orderedSeances, id: \.self) { seance in
-                                EditableSeanceProgramCard(
-                                    seance:   seance,
-                                    exercises: Binding(
-                                        get: { fullProgram[seance] ?? [:] },
-                                        set: { fullProgram[seance] = $0 }
-                                    ),
-                                    orderedNames: Binding(
-                                        get: { exerciseOrder[seance] ?? (fullProgram[seance]?.keys.sorted() ?? []) },
-                                        set: { exerciseOrder[seance] = $0 }
-                                    ),
-                                    onAdd:    { addTarget = SeanceName(id: seance) },
-                                    onEdit:   { ex, scheme in editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme) },
-                                    onDelete: { ex in Task { await deleteExercise(seance: seance, exercise: ex) } },
-                                    onReorder: { order in Task { await reorderExercises(seance: seance, order: order) } },
-                                    onDeleteSeance: {
-                                        deleteSeanceTarget = seance
-                                        confirmDeleteSeance = true
-                                    },
-                                    onCopy: { copySeance(fullProgram[seance] ?? [:]) },
-                                    onPaste: clipboard.isEmpty ? nil : { pasteSeance(into: seance) }
-                                )
+                            if !clipboard.isEmpty {
+                                let clipboardLabel: String = clipboardName.isEmpty
+                                    ? "\(clipboard.count) exos"
+                                    : "\(clipboardName) · \(clipboard.count) exos"
+                                HStack(spacing: 10) {
+                                    Image(systemName: "doc.on.clipboard.fill")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.orange)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text("Clipboard")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .tracking(1)
+                                            .foregroundColor(.gray)
+                                        Text(clipboardLabel)
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .foregroundColor(.white)
+                                    }
+                                    Spacer()
+                                    Button {
+                                        clipboardData = "{}"
+                                        clipboardName = ""
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .font(.system(size: 16))
+                                            .foregroundColor(.gray.opacity(0.5))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.horizontal, 14).padding(.vertical, 10)
+                                .background(Color.orange.opacity(0.07))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+                                .cornerRadius(10)
                                 .padding(.horizontal, 16)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
                             }
+
+                            ForEach(sessionOrder, id: \.self) { seance in
+                                sessionCard(for: seance)
+                            }
+                            .onPreferenceChange(SessionCardHeightKey.self) { sessionCardHeights.merge($0) { $1 } }
                         }
                         .padding(.vertical, 16)
                     }
                     .scrollDismissesKeyboard(.interactively)
+                    .refreshable {
+                        CacheService.shared.clear(for: "programme_data")
+                        await loadData(programId: selectedProgramId.isEmpty ? nil : selectedProgramId)
+                    }
+                }
+
+                // Undo toast
+                if let item = undoDeleteItem {
+                    VStack {
+                        Spacer()
+                        HStack(spacing: 12) {
+                            Text("\"\(item.name)\" supprimé")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                            Spacer()
+                            Button("Annuler") { undoDelete() }
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.orange)
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 12)
+                        .background(Color(hex: "1c1c2e"))
+                        .cornerRadius(12)
+                        .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.spring(response: 0.35, dampingFraction: 0.85), value: undoDeleteItem != nil)
+                    .zIndex(10)
                 }
             }
             .navigationTitle("Programme")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { showCreateSeance = true } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.orange)
+                    HStack(spacing: 10) {
+                        if mutationCount > 0 {
+                            HStack(spacing: 5) {
+                                ProgressView().scaleEffect(0.7).tint(.orange)
+                                Text("Sauvegarde…")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.orange)
+                            }
+                            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                        } else if lastSaveError {
+                            HStack(spacing: 4) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 11))
+                                Text("Erreur réseau")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundColor(.red)
+                            .transition(.opacity)
+                        }
+                        Button { showCreateSeance = true } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.orange)
+                        }
                     }
+                    .animation(.easeInOut(duration: 0.2), value: mutationCount)
+                    .animation(.easeInOut(duration: 0.2), value: lastSaveError)
                 }
             }
             .sheet(isPresented: $showCreateSeance) {
@@ -219,7 +365,7 @@ struct ProgrammeView: View {
                     Task { await editExercise(seance: target.seance, oldName: target.exercise, newName: newName, scheme: newScheme) }
                 }
             }
-            .alert("Supprimer \(deleteSeanceTarget ?? "") ?", isPresented: $confirmDeleteSeance) {
+            .alert(deleteSeanceTitle, isPresented: $confirmDeleteSeance) {
                 Button("Supprimer", role: .destructive) {
                     if let target = deleteSeanceTarget {
                         Task { await deleteSeance(name: target) }
@@ -228,6 +374,14 @@ struct ProgrammeView: View {
                 Button("Annuler", role: .cancel) {}
             } message: {
                 Text("Tous les exercices de cette séance seront supprimés. Cette action est irréversible.")
+            }
+            .alert(applyPhaseTitle, isPresented: $showApplyPhaseConfirm) {
+                Button("Appliquer", role: .destructive) {
+                    Task { await applyPhaseScheme() }
+                }
+                Button("Annuler", role: .cancel) {}
+            } message: {
+                Text("Tous les exercices du programme passeront au scheme \(phaseShortScheme). Cette action est réversible exercice par exercice.")
             }
             .alert("Nouveau mésocycle ?", isPresented: $showResetMesocycle) {
                 Button("Recommencer", role: .destructive) {
@@ -249,7 +403,7 @@ struct ProgrammeView: View {
                 Button("Annuler", role: .cancel) { newProgramName = "" }
             }
             // ── Renommer programme ───────────────────────────────
-            .alert("Renommer", isPresented: Binding(get: { renameProgramTarget != nil }, set: { if !$0 { renameProgramTarget = nil } })) {
+            .alert("Renommer", isPresented: renameAlertBinding) {
                 TextField("Nouveau nom", text: $renameProgramName)
                 Button("Renommer") {
                     let name = renameProgramName.trimmingCharacters(in: .whitespaces)
@@ -260,7 +414,7 @@ struct ProgrammeView: View {
                 Button("Annuler", role: .cancel) { renameProgramTarget = nil }
             }
             // ── Supprimer programme ──────────────────────────────
-            .alert("Supprimer \(deleteProgramTarget?.name ?? "") ?", isPresented: $confirmDeleteProgram) {
+            .alert(deleteProgramTitle, isPresented: $confirmDeleteProgram) {
                 Button("Supprimer", role: .destructive) {
                     if let target = deleteProgramTarget {
                         Task { await deleteProgram(id: target.id) }
@@ -277,6 +431,90 @@ struct ProgrammeView: View {
             guard !newId.isEmpty else { return }
             Task { await loadData(programId: newId) }
         }
+    }
+
+    // MARK: – Body helpers (extracted to keep type-checker happy)
+
+    private var sessionsList: [String] { allSessions.isEmpty ? orderedSeances : allSessions }
+
+    private var renameAlertBinding: Binding<Bool> {
+        Binding(
+            get: { renameProgramTarget != nil },
+            set: { if !$0 { renameProgramTarget = nil } }
+        )
+    }
+
+    private var deleteSeanceTitle: String  { "Supprimer \(deleteSeanceTarget ?? "") ?" }
+    private var applyPhaseTitle: String    { "Appliquer \(currentPhase.rawValue) (\(phaseShortScheme)) ?" }
+    private var deleteProgramTitle: String { "Supprimer \(deleteProgramTarget?.name ?? "") ?" }
+
+    @ViewBuilder
+    private func sessionCard(for seance: String) -> some View {
+        let isSessionDragging: Bool = draggingSession == seance
+        let exercisesBinding = Binding<[String: String]>(
+            get: { self.fullProgram[seance] ?? [:] },
+            set: { self.fullProgram[seance] = $0 }
+        )
+        let orderedNamesBinding = Binding<[String]>(
+            get: {
+                if let names = self.exerciseOrder[seance] { return names }
+                return self.fullProgram[seance]?.keys.sorted() ?? []
+            },
+            set: { self.exerciseOrder[seance] = $0 }
+        )
+        let pasteAction: Optional<() -> Void> = clipboard.isEmpty
+            ? Optional<() -> Void>.none
+            : Optional<() -> Void>.some({ self.pasteSeance(into: seance) })
+        let shift: CGFloat = isSessionDragging ? sessionDragY : sessionShiftFor(seance)
+        let scale: CGFloat = isSessionDragging ? 1.02 : 1.0
+        let zIdx: Double   = isSessionDragging ? 1 : 0
+        EditableSeanceProgramCard(
+            seance:       seance,
+            exercises:    exercisesBinding,
+            orderedNames: orderedNamesBinding,
+            onAdd:        { addTarget = SeanceName(id: seance) },
+            onEdit:       { ex, scheme in editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme) },
+            onDelete:     { ex in deleteWithUndo(seance: seance, exercise: ex) },
+            onReorder:    { order in Task { await reorderExercises(seance: seance, order: order) } },
+            onDeleteSeance: {
+                deleteSeanceTarget = seance
+                confirmDeleteSeance = true
+            },
+            onCopy:  { copySeance(name: seance, exercises: fullProgram[seance] ?? [:]) },
+            onPaste: pasteAction,
+            onSessionDragChanged: { dy in
+                if draggingSession == nil { triggerImpact(style: .light) }
+                draggingSession = seance
+                sessionDragY = dy
+            },
+            onSessionDragEnded: {
+                let to = proposedSessionDrop
+                if let from = sessionOrder.firstIndex(of: seance), from != to {
+                    withAnimation(.spring(response: 0.25)) {
+                        sessionOrder.move(fromOffsets: IndexSet(integer: from),
+                                          toOffset: to > from ? to + 1 : to)
+                    }
+                    saveSessionOrder()
+                }
+                withAnimation(.spring(response: 0.25)) {
+                    draggingSession = nil
+                    sessionDragY = 0
+                }
+            }
+        )
+        .padding(.horizontal, 16)
+        .background(
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: SessionCardHeightKey.self,
+                    value: [seance: geo.size.height]
+                )
+            }
+        )
+        .offset(y: shift)
+        .scaleEffect(scale, anchor: .center)
+        .zIndex(zIdx)
+        .animation(.spring(response: 0.25, dampingFraction: 0.85), value: sessionShiftFor(seance))
     }
 
     // MARK: – Load
@@ -304,6 +542,7 @@ struct ProgrammeView: View {
         if let sessions = json["all_sessions"] as? [String] {
             allSessions = sessions
         }
+        refreshSessionOrder()
     }
 
     private func loadData(programId: String? = nil) async {
@@ -345,6 +584,8 @@ struct ProgrammeView: View {
     // MARK: – Mutations
 
     private func postProgramme(_ body: [String: Any]) async {
+        await MainActor.run { mutationCount += 1; lastSaveError = false }
+        defer { Task { @MainActor in mutationCount = max(0, mutationCount - 1) } }
         guard let url = URL(string: "\(kBaseURL)/api/programme") else { return }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -354,8 +595,14 @@ struct ProgrammeView: View {
             enrichedBody["program_id"] = selectedProgramId
         }
         req.httpBody = try? JSONSerialization.data(withJSONObject: enrichedBody)
-        _ = try? await URLSession.authed.data(for: req)
-        // Invalide les deux caches pour que la séance recharge dans le bon ordre
+        do {
+            let (_, resp) = try await URLSession.authed.data(for: req)
+            if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
+                await MainActor.run { lastSaveError = true }
+            }
+        } catch {
+            await MainActor.run { lastSaveError = true }
+        }
         CacheService.shared.clear(for: "programme_data")
         CacheService.shared.clear(for: "seance_data")
     }
@@ -370,10 +617,41 @@ struct ProgrammeView: View {
 
     private func deleteExercise(seance: String, exercise: String) async {
         await postProgramme(["action": "remove", "jour": seance, "exercise": exercise])
-        await MainActor.run {
-            fullProgram[seance]?.removeValue(forKey: exercise)
-            exerciseOrder[seance]?.removeAll { $0 == exercise }
+    }
+
+    private func deleteWithUndo(seance: String, exercise: String) {
+        // Commit any previous pending delete immediately
+        if let prev = undoDeleteItem {
+            undoDeleteTask?.cancel()
+            undoDeleteTask = nil
+            Task { await deleteExercise(seance: prev.seance, exercise: prev.name) }
         }
+        // Snapshot for undo
+        let idx = exerciseOrder[seance]?.firstIndex(of: exercise) ?? 0
+        let scheme = fullProgram[seance]?[exercise] ?? ""
+        // Optimistic local removal
+        fullProgram[seance]?.removeValue(forKey: exercise)
+        exerciseOrder[seance]?.removeAll { $0 == exercise }
+        // Show undo toast
+        withAnimation { undoDeleteItem = UndoDeleteItem(seance: seance, name: exercise, scheme: scheme, orderIndex: idx) }
+        // Auto-commit after 4 s
+        undoDeleteTask = Task {
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            guard !Task.isCancelled else { return }
+            await deleteExercise(seance: seance, exercise: exercise)
+            await MainActor.run { withAnimation { undoDeleteItem = nil } }
+        }
+    }
+
+    private func undoDelete() {
+        guard let item = undoDeleteItem else { return }
+        undoDeleteTask?.cancel()
+        undoDeleteTask = nil
+        // Restore local state
+        fullProgram[item.seance, default: [:]][item.name] = item.scheme
+        let idx = min(item.orderIndex, exerciseOrder[item.seance]?.count ?? 0)
+        exerciseOrder[item.seance, default: []].insert(item.name, at: idx)
+        withAnimation { undoDeleteItem = nil }
     }
 
     private func reorderExercises(seance: String, order: [String]) async {
@@ -501,6 +779,7 @@ struct PeriodisationCard: View {
     let started: Bool
     let onStart: () -> Void
     let onReset: () -> Void
+    var onApply: (() -> Void)? = nil
 
     private let totalWeeks = 11
 
@@ -555,6 +834,24 @@ struct PeriodisationCard: View {
                     Text("→ \(next)")
                         .font(.system(size: 11))
                         .foregroundColor(.gray)
+                }
+
+                if let apply = onApply {
+                    Button(action: apply) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 11, weight: .bold))
+                            Text("Appliquer à tout le programme")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(color.opacity(0.12))
+                        .foregroundColor(color)
+                        .cornerRadius(8)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(color.opacity(0.25), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
             } else {
                 Button(action: onStart) {
@@ -648,6 +945,13 @@ private struct ProgramRowHeightKey: PreferenceKey {
     }
 }
 
+private struct SessionCardHeightKey: PreferenceKey {
+    static var defaultValue: [String: CGFloat] = [:]
+    static func reduce(value: inout [String: CGFloat], nextValue: () -> [String: CGFloat]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
 struct EditableSeanceProgramCard: View {
     let seance: String
     @Binding var exercises: [String: String]
@@ -656,9 +960,11 @@ struct EditableSeanceProgramCard: View {
     let onEdit:         (String, String) -> Void
     let onDelete:       (String) -> Void
     let onReorder:      ([String]) -> Void
-    var onDeleteSeance: (() -> Void)? = nil
-    var onCopy:         (() -> Void)? = nil
-    var onPaste:        (() -> Void)? = nil
+    var onDeleteSeance:       (() -> Void)? = nil
+    var onCopy:               (() -> Void)? = nil
+    var onPaste:              (() -> Void)? = nil
+    var onSessionDragChanged: ((CGFloat) -> Void)? = nil
+    var onSessionDragEnded:   (() -> Void)? = nil
 
     @State private var expanded    = true
     @State private var dragging:   String? = nil
@@ -733,6 +1039,18 @@ struct EditableSeanceProgramCard: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack(spacing: 10) {
+                if onSessionDragChanged != nil {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray.opacity(0.4))
+                        .frame(width: 24)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 6)
+                                .onChanged { val in onSessionDragChanged?(val.translation.height) }
+                                .onEnded { _ in onSessionDragEnded?() }
+                        )
+                }
                 Circle()
                     .fill(color.opacity(0.15))
                     .frame(width: 32, height: 32)
@@ -872,8 +1190,6 @@ struct ExerciseRow: View {
     let onTap: () -> Void
     let onDelete: () -> Void
 
-    @State private var confirmDelete = false
-
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 10) {
@@ -881,7 +1197,6 @@ struct ExerciseRow: View {
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                // Scheme badge
                 Text(scheme)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(color)
@@ -889,9 +1204,8 @@ struct ExerciseRow: View {
                     .background(color.opacity(0.15))
                     .cornerRadius(6)
                     .lineLimit(1)
-                // Delete button
                 Button {
-                    confirmDelete = true
+                    onDelete()
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 13))
@@ -905,10 +1219,6 @@ struct ExerciseRow: View {
             .padding(.horizontal, 16).padding(.vertical, 10)
         }
         .buttonStyle(.plain)
-        .alert("Supprimer \(name) ?", isPresented: $confirmDelete) {
-            Button("Supprimer", role: .destructive) { onDelete() }
-            Button("Annuler", role: .cancel) {}
-        }
     }
 }
 
@@ -1124,25 +1434,36 @@ struct EditableWeekScheduleCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("SEMAINE TYPE")
-                        .font(.system(size: 10, weight: .bold))
+                HStack(spacing: 6) {
+                    Image(systemName: "sun.max.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(.orange)
+                    Text("MATIN")
+                        .font(.system(size: 10, weight: .black))
                         .tracking(2)
-                        .foregroundColor(.gray)
+                        .foregroundColor(.orange)
+                }
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Color.orange.opacity(0.1))
+                .cornerRadius(6)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Semaine type")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.85))
                     Text("Appuie sur un jour pour changer la séance")
                         .font(.system(size: 11))
                         .foregroundColor(.gray.opacity(0.6))
                 }
                 Spacer()
-                Image(systemName: "calendar").foregroundColor(.orange.opacity(0.7)).font(.system(size: 13))
             }
 
-            HStack(spacing: 6) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
                 ForEach(dayNames, id: \.self) { day in
                     let current = schedule[day] ?? none
                     Menu {
                         Button(none) {
-                            schedule.removeValue(forKey: day)
+                            schedule[day] = none
                             onSave()
                         }
                         ForEach(sessions, id: \.self) { s in
@@ -1154,16 +1475,16 @@ struct EditableWeekScheduleCard: View {
                     } label: {
                         VStack(spacing: 4) {
                             Text(day)
-                                .font(.system(size: 9, weight: .medium))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.gray)
                             Text(seanceShort(current))
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(current == none ? Color.gray.opacity(0.4) : seanceColor(current))
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.6)
+                                .minimumScaleFactor(0.8)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                         .background((current == none ? Color.gray : seanceColor(current)).opacity(0.1))
                         .cornerRadius(8)
                     }
@@ -1173,6 +1494,7 @@ struct EditableWeekScheduleCard: View {
         .padding(16)
         .background(Color(hex: "11111c"))
         .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
     }
 
     private func seanceShort(_ s: String) -> String {
@@ -1215,20 +1537,31 @@ struct EveningScheduleCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("SÉANCE DU SOIR")
-                        .font(.system(size: 10, weight: .bold))
+                HStack(spacing: 6) {
+                    Image(systemName: "moon.stars.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.indigo)
+                    Text("SOIR")
+                        .font(.system(size: 10, weight: .black))
                         .tracking(2)
                         .foregroundColor(.indigo)
+                }
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Color.indigo.opacity(0.12))
+                .cornerRadius(6)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Séance du soir")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.85))
                     Text("Optionnel — apparaît sur le dashboard le soir")
                         .font(.system(size: 11))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.gray.opacity(0.6))
                 }
                 Spacer()
-                Image(systemName: "moon.fill").foregroundColor(.indigo).font(.system(size: 14))
             }
 
-            HStack(spacing: 6) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
                 ForEach(dayNames, id: \.self) { day in
                     let current = eveningSchedule[day] ?? none
                     Menu {
@@ -1245,16 +1578,16 @@ struct EveningScheduleCard: View {
                     } label: {
                         VStack(spacing: 4) {
                             Text(day)
-                                .font(.system(size: 9, weight: .medium))
+                                .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.gray)
                             Text(shortLabel(current))
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(current == none ? Color.gray.opacity(0.4) : sessionColor(current))
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.6)
+                                .minimumScaleFactor(0.8)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                         .background((current == none ? Color.gray : sessionColor(current)).opacity(0.1))
                         .cornerRadius(8)
                     }
@@ -1264,6 +1597,7 @@ struct EveningScheduleCard: View {
         .padding(16)
         .background(Color(hex: "11111c"))
         .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.indigo.opacity(0.25), lineWidth: 1))
     }
 
     private func shortLabel(_ s: String) -> String {

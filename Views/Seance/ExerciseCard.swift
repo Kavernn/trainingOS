@@ -40,6 +40,19 @@ struct ExerciseCard: View {
     private enum SetFocus: Hashable { case weight(Int); case reps(Int) }
     @FocusState private var setFocus: SetFocus?
 
+    private func nextFocus(from f: SetFocus) -> SetFocus? {
+        switch f {
+        case .weight(let i): return .reps(i)
+        case .reps(let i):   return i + 1 < evm.sets.count ? .weight(i + 1) : nil
+        }
+    }
+    private func prevFocus(from f: SetFocus) -> SetFocus? {
+        switch f {
+        case .weight(let i): return i > 0 ? .reps(i - 1) : nil
+        case .reps(let i):   return .weight(i)
+        }
+    }
+
     init(name: String, scheme: String, weightData: WeightData?,
          equipmentType: String = "machine", trackingType: String = "reps",
          bodyWeight: Double = 0, isSecondSession: Bool = false, isBonusSession: Bool = false,
@@ -95,8 +108,23 @@ struct ExerciseCard: View {
         }
     }
 
+    private var hasNote: Bool { !exoNote.isEmpty || !evm.sessionNote.isEmpty }
+
+    private var noteIconButton: some View {
+        Button {
+            triggerImpact(style: .light)
+            if !isExpanded { onToggle() }
+            withAnimation(.easeInOut(duration: 0.2)) { showAdvanced = true }
+        } label: {
+            Image(systemName: hasNote ? "note.text" : "note.text.badge.plus")
+                .font(.system(size: 14))
+                .foregroundColor(hasNote ? .orange : .gray.opacity(0.35))
+        }
+        .buttonStyle(.plain)
+    }
+
     private var equipmentLabel: String {
-        switch equipmentType {
+        switch evm.equipmentType {
         case "barbell":    return "Barre"
         case "ez-bar":     return "EZ-Bar"
         case "dumbbell":   return "Haltères"
@@ -107,12 +135,22 @@ struct ExerciseCard: View {
     }
 
     private var weightColumnLabel: String {
-        switch equipmentType {
+        switch evm.equipmentType {
         case "barbell":    return "POIDS PAR CÔTÉ (\(units.label.uppercased()))"
         case "dumbbell":   return "POIDS PAR HALTÈRE (\(units.label.uppercased()))"
         case "bodyweight": return "LEST (\(units.label.uppercased()))"
         case "ez-bar":     return "POIDS TOTAL (\(units.label.uppercased()))"
         default:           return "POIDS (\(units.label.uppercased()))"
+        }
+    }
+
+    private func equipmentIcon(_ type: String) -> String {
+        switch type {
+        case "barbell", "ez-bar": return "minus.circle.fill"
+        case "dumbbell":          return "dumbbell.fill"
+        case "bodyweight":        return "figure.walk"
+        case "cable":             return "arrow.up.and.down.circle"
+        default:                  return "gearshape.fill"
         }
     }
 
@@ -147,9 +185,10 @@ struct ExerciseCard: View {
             logResult = result
             onLogged?()
             triggerNotificationFeedback(.success)
-            // Auto-close after brief feedback delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                onToggle()
+            if isExpanded {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    onToggle()
+                }
             }
         }
     }
@@ -164,7 +203,7 @@ struct ExerciseCard: View {
                     .frame(width: 28, alignment: .leading)
                 Text(weightColumnLabel)
                     .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.gray)
-                if equipmentType == "barbell" {
+                if evm.equipmentType == "barbell" {
                     Button {
                         triggerImpact(style: .light)
                         showPlateCalculator = true
@@ -193,6 +232,7 @@ struct ExerciseCard: View {
                     withAnimation {
                         evm.setBySetMode.toggle()
                         if evm.setBySetMode { evm.currentSetIndex = 0 }
+                        if !evm.setBySetMode { evm.repCountMode = false }
                     }
                 } label: {
                     HStack(spacing: 3) {
@@ -201,7 +241,29 @@ struct ExerciseCard: View {
                         Text("Set à set")
                             .font(.system(size: 9, weight: .semibold))
                     }
-                    .foregroundColor(evm.setBySetMode ? .orange : .gray.opacity(0.6))
+                    .foregroundColor(evm.setBySetMode && !evm.repCountMode ? .orange : .gray.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 4)
+                Button {
+                    withAnimation {
+                        if evm.repCountMode {
+                            evm.repCountMode = false
+                        } else {
+                            evm.repCountMode = true
+                            evm.setBySetMode = true
+                            evm.currentSetIndex = 0
+                            evm.currentRepCount = 0
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "hand.tap.fill")
+                            .font(.system(size: 12))
+                        Text("Compteur")
+                            .font(.system(size: 9, weight: .semibold))
+                    }
+                    .foregroundColor(evm.repCountMode ? .purple : .gray.opacity(0.6))
                 }
                 .buttonStyle(.plain)
                 .padding(.leading, 4)
@@ -210,6 +272,12 @@ struct ExerciseCard: View {
                 let isActive = evm.setBySetMode && i == evm.currentSetIndex
                 let isDone   = evm.setBySetMode && i < evm.currentSetIndex
                 HStack(spacing: 8) {
+                    if isActive && !evm.repCountMode {
+                        Image(systemName: "chevron.right.2")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(.orange.opacity(0.35))
+                            .transition(.opacity)
+                    }
                     Text("S\(i + 1)")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(isDone ? .green : isActive ? .orange : .gray)
@@ -220,23 +288,34 @@ struct ExerciseCard: View {
                         .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                         .padding(8).background(Color(hex: "191926")).cornerRadius(8)
                         .disabled(evm.setBySetMode && !isActive && !isDone)
-                    let repsInvalid = !evm.sets[i].reps.isEmpty && Int(evm.sets[i].reps) == nil
-                    TextField(evm.lastRepsParts.indices.contains(i) ? evm.lastRepsParts[i] : "0",
-                              text: $evm.sets[i].reps)
-                        .keyboardType(.numberPad)
-                        .focused($setFocus, equals: .reps(i))
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(repsInvalid ? .red : .white)
-                        .multilineTextAlignment(.center)
-                        .frame(width: 56)
-                        .padding(8)
-                        .background(Color(hex: "191926"))
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.red.opacity(repsInvalid ? 0.7 : 0), lineWidth: 1.5)
-                        )
-                        .disabled(evm.setBySetMode && !isActive && !isDone)
+                    if evm.repCountMode && isActive {
+                        Text(evm.currentRepCount > 0 ? "\(evm.currentRepCount)" : "—")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.purple)
+                            .multilineTextAlignment(.center)
+                            .frame(width: 56)
+                            .padding(8)
+                            .background(Color.purple.opacity(0.1))
+                            .cornerRadius(8)
+                    } else {
+                        let repsInvalid = !evm.sets[i].reps.isEmpty && Int(evm.sets[i].reps) == nil
+                        TextField(evm.lastRepsParts.indices.contains(i) ? evm.lastRepsParts[i] : "0",
+                                  text: $evm.sets[i].reps)
+                            .keyboardType(.numberPad)
+                            .focused($setFocus, equals: .reps(i))
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(repsInvalid ? .red : .white)
+                            .multilineTextAlignment(.center)
+                            .frame(width: 56)
+                            .padding(8)
+                            .background(Color(hex: "191926"))
+                            .cornerRadius(8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.red.opacity(repsInvalid ? 0.7 : 0), lineWidth: 1.5)
+                            )
+                            .disabled(evm.setBySetMode && !isActive && !isDone)
+                    }
                     HStack(spacing: 0) {
                         Button { if evm.sets[i].rir > 0 { evm.sets[i].rir -= 1 } } label: {
                             Image(systemName: "minus").font(.system(size: 11, weight: .bold))
@@ -281,7 +360,7 @@ struct ExerciseCard: View {
                         .buttonStyle(.plain)
                     }
 
-                    if isActive {
+                    if isActive && !evm.repCountMode {
                         Button {
                             withAnimation {
                                 triggerImpact(style: .medium)
@@ -308,6 +387,23 @@ struct ExerciseCard: View {
                 .background(isActive ? Color.orange.opacity(0.06) : Color.clear)
                 .cornerRadius(8)
                 .animation(.easeInOut(duration: 0.2), value: evm.currentSetIndex)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 40)
+                        .onEnded { v in
+                            guard isActive && !evm.repCountMode else { return }
+                            guard v.translation.width > 60, abs(v.translation.height) < 50 else { return }
+                            withAnimation {
+                                triggerImpact(style: .medium)
+                                setFocus = nil
+                                if evm.currentSetIndex < evm.sets.count - 1 {
+                                    evm.currentSetIndex += 1
+                                } else {
+                                    evm.setBySetMode = false
+                                    doLog()
+                                }
+                            }
+                        }
+                )
             }
             if !evm.repsStr.isEmpty {
                 HStack {
@@ -316,12 +412,130 @@ struct ExerciseCard: View {
                 }
                 .padding(.top, 2)
             }
-            if evm.setBySetMode {
+            if evm.repCountMode {
+                repCounterSection
+            } else if evm.setBySetMode {
                 Text("Set \(evm.currentSetIndex + 1)/\(evm.sets.count) — appuie ✓ après chaque set")
                     .font(.system(size: 11)).foregroundColor(.orange.opacity(0.7))
                     .padding(.top, 2)
             }
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if let current = setFocus {
+                    Button {
+                        setFocus = prevFocus(from: current)
+                    } label: {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .disabled(prevFocus(from: current) == nil)
+
+                    Button {
+                        if let next = nextFocus(from: current) {
+                            setFocus = next
+                        } else {
+                            setFocus = nil
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(nextFocus(from: current) != nil ? "Suivant" : "Terminé")
+                                .font(.system(size: 14, weight: .semibold))
+                            if nextFocus(from: current) != nil {
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                        }
+                        .foregroundColor(.orange)
+                    }
+
+                    Spacer()
+
+                    Button("Terminé") { setFocus = nil }
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.orange)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var repCounterSection: some View {
+        VStack(spacing: 16) {
+            Divider().background(Color.purple.opacity(0.2)).padding(.top, 4)
+
+            Text("SET \(evm.currentSetIndex + 1) / \(evm.sets.count)")
+                .font(.system(size: 11, weight: .bold)).tracking(2)
+                .foregroundColor(.purple.opacity(0.7))
+
+            Text("\(evm.currentRepCount)")
+                .font(.system(size: 80, weight: .black, design: .rounded))
+                .foregroundColor(.purple)
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.2, dampingFraction: 0.6), value: evm.currentRepCount)
+                .frame(minWidth: 100)
+
+            HStack(spacing: 36) {
+                Button {
+                    evm.decrementRep()
+                    triggerImpact(style: .light)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(.gray.opacity(0.45))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    evm.tapRep()
+                    triggerImpact(style: .medium)
+                } label: {
+                    ZStack {
+                        Circle().fill(Color.purple.opacity(0.12)).frame(width: 112, height: 112)
+                        Circle().stroke(Color.purple.opacity(0.35), lineWidth: 2).frame(width: 112, height: 112)
+                        VStack(spacing: 4) {
+                            Image(systemName: "hand.tap.fill").font(.system(size: 24))
+                            Text("REP").font(.system(size: 14, weight: .black))
+                        }
+                        .foregroundColor(.purple)
+                    }
+                }
+                .buttonStyle(SpringButtonStyle(scale: 0.92))
+
+                Button {
+                    evm.currentRepCount = 0
+                    triggerImpact(style: .light)
+                } label: {
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(.gray.opacity(0.45))
+                }
+                .buttonStyle(.plain)
+            }
+
+            let isLastSet = evm.currentSetIndex == evm.sets.count - 1
+            Button {
+                let allDone = evm.confirmCurrentSet()
+                triggerImpact(style: .medium)
+                if allDone { doLog() }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: isLastSet ? "checkmark.circle.fill" : "arrow.right.circle.fill")
+                        .font(.system(size: 18))
+                    Text(isLastSet ? "Logger l'exercice" : "Set terminé →")
+                        .font(.system(size: 15, weight: .bold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(evm.currentRepCount > 0
+                    ? (isLastSet ? Color.orange : Color.purple)
+                    : Color.gray.opacity(0.1))
+                .foregroundColor(evm.currentRepCount > 0 ? .white : .gray)
+                .cornerRadius(12)
+            }
+            .disabled(evm.currentRepCount == 0)
+            .buttonStyle(SpringButtonStyle())
+        }
+        .padding(.top, 4)
     }
 
     @ViewBuilder private func timeSetRows() -> some View {
@@ -371,7 +585,7 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private var avgTotalRow: some View {
-        switch equipmentType {
+        switch evm.equipmentType {
         case "barbell", "dumbbell":
             if let avg = evm.avgWeight {
                 let avgLbs = units.toStorage(avg)
@@ -445,30 +659,63 @@ struct ExerciseCard: View {
 
                     // Right: logged summary OR chevron
                     if alreadyLogged && !evm.isEditing, let r = logResult {
-                        VStack(alignment: .trailing, spacing: 2) {
-                            if isTimeBased {
-                                Text(r.reps.split(separator: ",").compactMap { Int($0) }
-                                        .map { evm.formatDuration($0) }.first ?? "—")
-                                    .font(.system(size: 13, weight: .black))
-                                    .foregroundColor(.white)
-                            } else {
-                                Text(units.format(r.weight))
-                                    .font(.system(size: 13, weight: .black))
-                                    .foregroundColor(.white)
-                                Text(r.reps)
-                                    .font(.system(size: 10))
-                                    .foregroundColor(.gray)
+                        HStack(spacing: 8) {
+                            noteIconButton
+                            VStack(alignment: .trailing, spacing: 2) {
+                                if isTimeBased {
+                                    Text(r.reps.split(separator: ",").compactMap { Int($0) }
+                                            .map { evm.formatDuration($0) }.first ?? "—")
+                                        .font(.system(size: 13, weight: .black))
+                                        .foregroundColor(.white)
+                                } else {
+                                    Text(units.format(r.weight))
+                                        .font(.system(size: 13, weight: .black))
+                                        .foregroundColor(.white)
+                                    Text(r.reps)
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.gray)
+                                }
                             }
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.green)
                         }
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(.green)
                     } else {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.gray.opacity(0.4))
-                            .rotationEffect(.degrees(isExpanded ? 0 : 180))
-                            .animation(.easeInOut(duration: 0.22), value: isExpanded)
+                        HStack(spacing: 8) {
+                            noteIconButton
+                            if !isTimeBased, evm.currentWeight > 0,
+                               evm.lastReps != "—", !evm.lastReps.isEmpty {
+                                Button {
+                                    triggerImpact(style: .medium)
+                                    evm.fillFromLastSession()
+                                    doLog()
+                                } label: {
+                                    Image(systemName: "bolt.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.orange)
+                                        .padding(.horizontal, 8).padding(.vertical, 5)
+                                        .background(Color.orange.opacity(0.12))
+                                        .clipShape(Capsule())
+                                }
+                                .buttonStyle(.plain)
+
+                                VStack(alignment: .trailing, spacing: 1) {
+                                    if evm.inputHint > 0 {
+                                        Text(units.format(evm.inputHint))
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(.white.opacity(0.35))
+                                    }
+                                    Text(evm.lastReps)
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.gray.opacity(0.45))
+                                }
+                            }
+                            Image(systemName: "chevron.up")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.gray.opacity(0.4))
+                                .rotationEffect(.degrees(isExpanded ? 0 : 180))
+                                .animation(.easeInOut(duration: 0.22), value: isExpanded)
+                        }
                     }
                 }
                 .padding(.horizontal, 16)
@@ -483,7 +730,7 @@ struct ExerciseCard: View {
 
                 VStack(alignment: .leading, spacing: 12) {
 
-                    // Demo button + swap button
+                    // Demo button + swap button + equipment picker
                     HStack {
                         Button {
                             triggerImpact(style: .light)
@@ -516,6 +763,28 @@ struct ExerciseCard: View {
                             .buttonStyle(.plain)
                         }
                         Spacer()
+                        Menu {
+                            Button { evm.equipmentType = "barbell" }    label: { Label("Barre",       systemImage: "minus.circle.fill") }
+                            Button { evm.equipmentType = "ez-bar" }     label: { Label("EZ-Bar",      systemImage: "waveform") }
+                            Button { evm.equipmentType = "dumbbell" }   label: { Label("Haltères",    systemImage: "dumbbell.fill") }
+                            Button { evm.equipmentType = "machine" }    label: { Label("Machine",     systemImage: "gearshape.fill") }
+                            Button { evm.equipmentType = "cable" }      label: { Label("Câble",       systemImage: "arrow.up.and.down.circle") }
+                            Button { evm.equipmentType = "bodyweight" } label: { Label("Poids corps", systemImage: "figure.walk") }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: equipmentIcon(evm.equipmentType))
+                                    .font(.system(size: 11))
+                                Text(equipmentLabel)
+                                    .font(.system(size: 12, weight: .semibold))
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 9, weight: .semibold))
+                            }
+                            .foregroundColor(evm.equipmentType == equipmentType ? .gray.opacity(0.6) : .cyan)
+                            .padding(.horizontal, 10).padding(.vertical, 5)
+                            .background((evm.equipmentType == equipmentType ? Color.white : Color.cyan).opacity(0.07))
+                            .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     // Inline coaching chip
@@ -605,17 +874,8 @@ struct ExerciseCard: View {
 
                         if !isTimeBased, evm.lastReps != "—", !evm.lastReps.isEmpty {
                             Button {
-                                let parts = evm.lastRepsParts
-                                let targetCount = max(1, parts.count)
-                                if evm.sets.count < targetCount {
-                                    evm.sets.append(contentsOf: Array(repeating: SetInput(), count: targetCount - evm.sets.count))
-                                } else if evm.sets.count > targetCount {
-                                    evm.sets = Array(evm.sets.prefix(targetCount))
-                                }
-                                for i in evm.sets.indices {
-                                    evm.sets[i].weight = evm.perSetHint(for: i)
-                                    evm.sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
-                                }
+                                triggerImpact(style: .medium)
+                                evm.fillFromLastSession()
                             } label: {
                                 HStack(spacing: 5) {
                                     Image(systemName: "arrow.counterclockwise").font(.system(size: 11))
@@ -729,20 +989,19 @@ struct ExerciseCard: View {
                         }
                         .padding(.top, 4)
 
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) { showAdvanced.toggle() }
-                        } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: showAdvanced ? "chevron.up.circle" : "chevron.down.circle").font(.system(size: 10))
-                                Text(showAdvanced ? "Masquer" : "Zone douleur · Notes").font(.system(size: 10))
-                                if !evm.painZone.isEmpty || !exoNote.isEmpty || !evm.sessionNote.isEmpty {
-                                    Circle().fill(Color.orange).frame(width: 5, height: 5)
+                        if showAdvanced {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.2)) { showAdvanced = false }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "chevron.up.circle").font(.system(size: 10))
+                                    Text("Masquer").font(.system(size: 10))
                                 }
+                                .foregroundColor(.gray.opacity(0.4))
                             }
-                            .foregroundColor(.gray.opacity(0.4))
+                            .buttonStyle(.plain)
+                            .padding(.top, 2)
                         }
-                        .buttonStyle(.plain)
-                        .padding(.top, 2)
 
                         if showAdvanced {
                             VStack(spacing: 8) {
@@ -802,8 +1061,17 @@ struct ExerciseCard: View {
                                 }
                             } else {
                                 Button(action: { confirmSkip = true }) {
-                                    Text("Sauter cet exercice")
-                                        .font(.system(size: 12, weight: .medium)).foregroundColor(.gray.opacity(0.4))
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "forward.fill")
+                                            .font(.system(size: 10, weight: .bold))
+                                        Text("Sauter")
+                                            .font(.system(size: 12, weight: .semibold))
+                                    }
+                                    .foregroundColor(.red.opacity(0.7))
+                                    .padding(.horizontal, 14).padding(.vertical, 6)
+                                    .background(Color.red.opacity(0.08))
+                                    .cornerRadius(20)
+                                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.red.opacity(0.2), lineWidth: 1))
                                 }
                             }
                         }
@@ -836,8 +1104,16 @@ struct ExerciseCard: View {
 
                     // History
                     if let history = weightData?.history, !history.isEmpty {
+                        let historyPerSide: (Double) -> Double = { stored in
+                            switch evm.equipmentType {
+                            case "barbell":  return max(0, (stored - 45) / 2)
+                            case "dumbbell": return stored / 2
+                            default:         return stored
+                            }
+                        }
+                        let showPerSide = evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell"
                         VStack(spacing: 4) {
-                            let sparkData = history.reversed().compactMap { $0.weight }.filter { $0 > 0 }
+                            let sparkData = history.reversed().compactMap { $0.weight.map(historyPerSide) }.filter { $0 > 0 }
                             if sparkData.count >= 3 {
                                 Chart {
                                     ForEach(Array(sparkData.enumerated()), id: \.offset) { i, w in
@@ -855,6 +1131,13 @@ struct ExerciseCard: View {
                             }
                             let defaultCount = min(3, history.count)
                             let visibleEntries = evm.showHistory ? history : Array(history.prefix(defaultCount))
+                            if showPerSide {
+                                HStack {
+                                    Text(evm.equipmentType == "barbell" ? "poids par côté" : "par haltère")
+                                        .font(.system(size: 9)).foregroundColor(.gray.opacity(0.45))
+                                    Spacer()
+                                }
+                            }
                             VStack(spacing: 3) {
                                 ForEach(Array(visibleEntries.enumerated()), id: \.offset) { i, entry in
                                     HStack(spacing: 6) {
@@ -863,7 +1146,7 @@ struct ExerciseCard: View {
                                             .foregroundColor(.gray.opacity(i == 0 ? 0.5 : 0.25))
                                         Text(entry.date ?? "—").font(.system(size: 10)).foregroundColor(i == 0 ? .gray : .gray.opacity(0.7))
                                         Text("·").foregroundColor(.gray.opacity(0.3)).font(.system(size: 10))
-                                        Text(units.format(entry.weight ?? 0))
+                                        Text(units.format(historyPerSide(entry.weight ?? 0)))
                                             .font(.system(size: 10, weight: i == 0 ? .semibold : .regular))
                                             .foregroundColor(i == 0 ? .white.opacity(0.65) : .white.opacity(0.5))
                                         Text(entry.reps ?? "—").font(.system(size: 10)).foregroundColor(i == 0 ? .gray : .gray.opacity(0.6))

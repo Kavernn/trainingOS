@@ -7,17 +7,30 @@ final class CacheService {
 
     /// TTL in seconds per cache key (default: 3600s / 1h)
     private static let ttls: [String: TimeInterval] = [
-        "dashboard":       5 * 60,
-        "seance_data":     5 * 60,
-        "historique_data": 10 * 60,
-        "stats_data":      15 * 60,
-        "programme_data":  3600,
-        "recovery_data":   10 * 60,
-        "cardio_data":     10 * 60,
-        "nutrition_data":  5 * 60,
-        "profil_data":     30 * 60,
-        // coach tip: valid all day — keyed by date so auto-rotates at midnight
-        "coach_tip":       24 * 3600,
+        // Core
+        "dashboard":          5 * 60,
+        "seance_data":        5 * 60,
+        "seance_soir_data":   5 * 60,
+        "historique_data":    10 * 60,
+        "stats_data":         15 * 60,
+        "programme_data":     3600,
+        // Health
+        "recovery_data":      10 * 60,
+        "cardio_data":        10 * 60,
+        "acwr":               30 * 60,
+        "deload_data":        30 * 60,
+        // Nutrition
+        "nutrition_data":     5 * 60,
+        // Analytics — computed server-side, changes rarely
+        "insights":           30 * 60,
+        "life_stress":        30 * 60,
+        "morning_brief_data": 5 * 60,
+        "smart_day":          30 * 60,
+        "weekly_report":      3600,
+        // Profile
+        "profil_data":        30 * 60,
+        // Coach tip: valid all day — keyed by date so auto-rotates at midnight
+        "coach_tip":          24 * 3600,
     ]
 
     init(directory: URL? = nil) {

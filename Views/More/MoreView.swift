@@ -9,39 +9,29 @@ struct MoreView: View {
                 AmbientBackground(color: .purple)
 
                 List {
-                    Section("IA") {
-                        MoreRow(icon: "brain.head.profile", color: .purple, title: "Intelligence") { IntelligenceView() }
-                    }
-                    .listRowBackground(glassRowBG(.purple))
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
-
                     Section("Entraînement") {
-                        MoreRow(icon: "list.bullet.clipboard", color: .blue,   title: "Programme")    { ProgrammeView() }
-                        MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")        { StatsView() }
-                        MoreRow(icon: "target",                color: .orange, title: "Objectifs")    { ObjectifsView() }
-                        MoreRow(icon: "timer",                 color: .orange, title: "Timer")        { TimerView() }
-                        MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")         { HIITHistoriqueView() }
-                        MoreRow(icon: "calendar",              color: .teal,   title: "Historique")   { HistoriqueView() }
-                        MoreRow(icon: "star.fill",             color: .yellow, title: "XP & Niveau")  { XPView() }
+                        MoreRow(icon: "list.bullet.clipboard", color: .blue,   title: "Programme")  { ProgrammeView() }
+                        MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")      { StatsView() }
+                        MoreRow(icon: "target",                color: .orange, title: "Objectifs")  { ObjectifsView() }
+                        MoreRow(icon: "timer",                 color: .orange, title: "Timer")      { TimerView() }
+                        MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")       { HIITHistoriqueView() }
+                        MoreRow(icon: "calendar",              color: .teal,   title: "Historique") { HistoriqueView() }
                     }
                     .listRowBackground(glassRowBG(.blue))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
                     Section("Corps & Santé") {
-                        MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Health Dashboard")    { HealthDashboardView() }
-                        MoreRow(icon: "scalemass.fill",         color: .green,  title: "Body Comp")            { BodyCompView() }
-                        MoreRow(icon: "figure.arms.open",       color: .green,  title: "Calculateur Navy")     { NavyCalculatorView() }
+                        MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Health Dashboard") { HealthDashboardView() }
+                        MoreRow(icon: "scalemass.fill",         color: .green,  title: "Body Comp")        { BodyCompView() }
                         MoreRow(icon: "fork.knife",             color: .orange, title: "Nutrition")        { NutritionView() }
                         MoreRow(icon: "figure.run",             color: .teal,   title: "Cardio")           { CardioView() }
                         MoreRow(icon: "moon.zzz.fill",         color: .indigo, title: "Récupération")     { RecoveryView() }
-                        MoreRow(icon: "brain.head.profile",    color: .purple, title: "Stress (PSS)")     { PSSView() }
                         MoreRow(icon: "face.smiling.fill",     color: .mint,   title: "Santé Mentale")    { MentalHealthView() }
                     }
                     .listRowBackground(glassRowBG(.green))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
-                    Section("Divers") {
-                        MoreRow(icon: "note.text",        color: .blue,   title: "Notes")      { NotesView() }
+                    Section("Réglages") {
                         MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Inventaire") { InventaireView() }
                         MoreRow(icon: "person.fill",      color: .purple, title: "Profil")     { ProfileView() }
                     }

@@ -104,8 +104,11 @@ struct AlreadyLoggedSeanceView: View {
 
     var tomorrowExercises: [(String, String)] {
         guard let program = data.fullProgram[tomorrowType] else { return [] }
-        // On ajoute .value ici pour transformer le SafeString en String
-        return program.map { ($0.key, $0.value.value) }.sorted { $0.0 < $1.0 }
+        let order = data.exerciseOrder[tomorrowType] ?? program.keys.sorted()
+        return order.compactMap { name in
+            guard let scheme = program[name] else { return nil }
+            return (name, scheme.value)
+        }
     }
     var body: some View {
         ZStack {
@@ -194,7 +197,8 @@ struct AlreadyLoggedSeanceView: View {
                         if let exos = session.exos, !exos.isEmpty {
                             VStack(spacing: 0) {
                                 ForEach(exos, id: \.self) { exo in
-                                    HStack {
+                                    let entry = data.weights[exo]?.history?.first(where: { $0.date == data.todayDate })
+                                    HStack(spacing: 8) {
                                         Circle()
                                             .fill(sessionColor.opacity(0.3))
                                             .frame(width: 5, height: 5)
@@ -202,6 +206,16 @@ struct AlreadyLoggedSeanceView: View {
                                             .font(.system(size: 13))
                                             .foregroundColor(.white.opacity(0.85))
                                         Spacer()
+                                        if let w = entry?.weight, w > 0 {
+                                            Text(UnitSettings.shared.format(w))
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundColor(sessionColor.opacity(0.8))
+                                        }
+                                        if let r = entry?.reps, !r.isEmpty {
+                                            Text(r)
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.gray)
+                                        }
                                     }
                                     .padding(.vertical, 6)
                                     Divider().background(Color.white.opacity(0.04))
@@ -326,13 +340,46 @@ struct AlreadyLoggedSeanceView: View {
 
                 // ── Partager la séance ─────────────────────────────────
                 let shareText: String = {
-                    var parts = ["💪 \(data.today) — TrainingOS"]
+                    let u = UnitSettings.shared
+                    var lines: [String] = []
+
+                    // Header
+                    var header = "💪 \(data.today)"
                     if let s = todaySession {
-                        if let exos = s.exos { parts.append("\(exos.count) exercices : \(exos.prefix(3).joined(separator: ", "))\(exos.count > 3 ? "…" : "")") }
-                        if let rpe = s.rpe { parts.append("RPE \(String(format: "%.1f", rpe))") }
-                        if let dur = s.durationMin { parts.append("\(Int(dur)) min") }
+                        var meta: [String] = []
+                        if let dur = s.durationMin { meta.append("\(Int(dur)) min") }
+                        if let rpe = s.rpe { meta.append("RPE \(String(format: "%.1f", rpe))") }
+                        if !meta.isEmpty { header += " · " + meta.joined(separator: " · ") }
                     }
-                    return parts.joined(separator: "\n")
+                    lines.append(header)
+                    lines.append("")
+
+                    // Per-exercise detail
+                    if let exos = todaySession?.exos {
+                        for exo in exos {
+                            let entry = data.weights[exo]?.history?.first(where: { $0.date == data.todayDate })
+                                     ?? data.weights[exo]?.history?.first
+                            if let e = entry, let w = e.weight, let r = e.reps {
+                                let oneRM = e.oneRM.map { "  🏆 1RM \(u.format($0))" } ?? ""
+                                lines.append("• \(exo): \(u.format(w)) · \(r)\(oneRM)")
+                            } else {
+                                lines.append("• \(exo)")
+                            }
+                        }
+                        lines.append("")
+                    }
+
+                    // Volume summary
+                    if let s = todaySession {
+                        var stats: [String] = []
+                        if let vol = s.sessionVolume, vol > 0 { stats.append("Volume: \(u.format(vol))") }
+                        if let sets = s.totalSets { stats.append("\(sets) sets") }
+                        if let reps = s.totalReps { stats.append("\(reps) reps") }
+                        if !stats.isEmpty { lines.append("📊 " + stats.joined(separator: " · ")) }
+                    }
+
+                    lines.append("\nTrainingOS 🏋️")
+                    return lines.joined(separator: "\n")
                 }()
                 ShareLink(item: shareText) {
                     HStack(spacing: 8) {
@@ -517,10 +564,14 @@ struct PostSessionEditSheet: View {
     @ObservedObject var vm: SeanceViewModel
     @Environment(\.dismiss) private var dismiss
 
-    struct ExerciseEdit {
-        let name: String
+    struct SetEdit {
         var weight: String
         var reps: String
+    }
+    struct ExerciseEdit {
+        let name: String
+        let equipmentType: String
+        var sets: [SetEdit]
         var rpe: Double
     }
 
@@ -531,6 +582,34 @@ struct PostSessionEditSheet: View {
     private var exoNames: [String] {
         let session = APIService.shared.dashboard?.sessions[data.todayDate]
         return session?.exos ?? []
+    }
+
+    private func weightLabel(_ eq: String) -> String {
+        let u = UnitSettings.shared.label.uppercased()
+        switch eq {
+        case "barbell":  return "PAR CÔTÉ (\(u))"
+        case "dumbbell": return "PAR HALTÈRE (\(u))"
+        default:         return "POIDS (\(u))"
+        }
+    }
+
+    private func displayWeight(_ stored: Double, eq: String) -> String {
+        let perSide: Double
+        switch eq {
+        case "barbell":  perSide = stored > 45 ? (stored - 45) / 2 : 0
+        case "dumbbell": perSide = stored / 2
+        default:         perSide = stored
+        }
+        let display = UnitSettings.shared.display(perSide)
+        return display > 0 ? String(format: "%.1f", display) : ""
+    }
+
+    private func storedWeight(_ input: Double, eq: String) -> Double {
+        switch eq {
+        case "barbell":  return input * 2 + 45
+        case "dumbbell": return input * 2
+        default:         return input
+        }
     }
 
     var body: some View {
@@ -545,39 +624,7 @@ struct PostSessionEditSheet: View {
                                 .padding(.horizontal, 20)
                         }
                         ForEach(edits.indices, id: \.self) { i in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(edits[i].name)
-                                    .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
-                                HStack(spacing: 10) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("POIDS (\(UnitSettings.shared.label.uppercased()))")
-                                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                                        TextField("0.0", text: $edits[i].weight)
-                                            .keyboardType(.decimalPad)
-                                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
-                                            .padding(8).background(Color(hex: "191926")).cornerRadius(8)
-                                    }
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("REPS")
-                                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                                        TextField("0", text: $edits[i].reps)
-                                            .keyboardType(.numberPad)
-                                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
-                                            .padding(8).background(Color(hex: "191926")).cornerRadius(8)
-                                    }
-                                }
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text("RPE").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                                        Spacer()
-                                        Text(String(format: "%.1f", edits[i].rpe))
-                                            .font(.system(size: 13, weight: .black)).foregroundColor(.orange)
-                                    }
-                                    Slider(value: $edits[i].rpe, in: 1...10, step: 0.5).tint(.orange)
-                                }
-                            }
-                            .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
-                            .padding(.horizontal, 16)
+                            exerciseCard(index: i)
                         }
 
                         Button(action: save) {
@@ -607,12 +654,78 @@ struct PostSessionEditSheet: View {
         .onAppear { buildEdits() }
     }
 
+    @ViewBuilder
+    private func exerciseCard(index i: Int) -> some View {
+        let eq = edits[i].equipmentType
+        VStack(alignment: .leading, spacing: 10) {
+            Text(edits[i].name)
+                .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+
+            HStack(spacing: 6) {
+                Text("S#").font(.system(size: 9, weight: .bold)).foregroundColor(.clear)
+                    .frame(width: 22)
+                Text(weightLabel(eq))
+                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                Spacer()
+                Text("REPS")
+                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    .frame(width: 60)
+            }
+            .padding(.horizontal, 2)
+
+            ForEach(edits[i].sets.indices, id: \.self) { j in
+                HStack(spacing: 6) {
+                    Text("S\(j + 1)")
+                        .font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
+                        .frame(width: 22)
+                    TextField("0.0", text: $edits[i].sets[j].weight)
+                        .keyboardType(.decimalPad)
+                        .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                        .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                    TextField("0", text: $edits[i].sets[j].reps)
+                        .keyboardType(.numberPad)
+                        .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                        .padding(8).background(Color(hex: "191926")).cornerRadius(8)
+                        .frame(width: 60)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("RPE").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    Spacer()
+                    Text(String(format: "%.1f", edits[i].rpe))
+                        .font(.system(size: 13, weight: .black)).foregroundColor(.orange)
+                }
+                Slider(value: $edits[i].rpe, in: 1...10, step: 0.5).tint(.orange)
+            }
+        }
+        .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+        .padding(.horizontal, 16)
+    }
+
     private func buildEdits() {
         edits = exoNames.map { name in
+            let eq = data.inventoryTypes[name] ?? "barbell"
             let entry = data.weights[name]?.history?.first
-            let w = entry?.weight.map { UnitSettings.shared.display($0) } ?? 0.0
-            let r = entry?.reps ?? ""
-            return ExerciseEdit(name: name, weight: w > 0 ? String(format: "%.1f", w) : "", reps: r, rpe: 7.0)
+            let setEdits: [SetEdit]
+            if let rawSets = entry?.sets, !rawSets.isEmpty {
+                setEdits = rawSets.map { s in
+                    SetEdit(weight: displayWeight(s.weight, eq: eq), reps: s.reps)
+                }
+            } else {
+                let stored = entry?.weight ?? 0
+                let repsStr = entry?.reps ?? ""
+                let repParts = repsStr.split(separator: ",").map(String.init)
+                if repParts.count > 1 {
+                    setEdits = repParts.map { r in
+                        SetEdit(weight: displayWeight(stored, eq: eq), reps: r.trimmingCharacters(in: .whitespaces))
+                    }
+                } else {
+                    setEdits = [SetEdit(weight: displayWeight(stored, eq: eq), reps: repsStr)]
+                }
+            }
+            return ExerciseEdit(name: name, equipmentType: eq, sets: setEdits, rpe: 7.0)
         }
     }
 
@@ -621,12 +734,21 @@ struct PostSessionEditSheet: View {
         saveError = nil
         Task {
             for edit in edits {
-                guard !edit.weight.isEmpty || !edit.reps.isEmpty else { continue }
-                let w = Double(edit.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
+                let validSets = edit.sets.filter { !$0.weight.isEmpty || !$0.reps.isEmpty }
+                guard !validSets.isEmpty else { continue }
+                let setsPayload: [[String: Any]] = validSets.map { s in
+                    let input = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
+                    let stored = storedWeight(UnitSettings.shared.toStorage(input), eq: edit.equipmentType)
+                    return ["weight": stored, "reps": s.reps]
+                }
+                let weights = setsPayload.compactMap { $0["weight"] as? Double }
+                let avgStored = weights.isEmpty ? 0 : weights.reduce(0, +) / Double(weights.count)
+                let repsStr = validSets.map(\.reps).joined(separator: ",")
                 do {
                     try await APIService.shared.logExercise(
-                        exercise: edit.name, weight: UnitSettings.shared.toStorage(w),
-                        reps: edit.reps, rpe: edit.rpe, force: true)
+                        exercise: edit.name, weight: avgStored, reps: repsStr,
+                        rpe: edit.rpe, sets: setsPayload, force: true,
+                        equipmentType: edit.equipmentType)
                 } catch {
                     await MainActor.run { saveError = "Erreur: \(error.localizedDescription)"; isSaving = false }
                     return
@@ -643,46 +765,101 @@ struct ExtraSessionSheet: View {
     let data: SeanceData
     @StateObject private var extraVM = SeanceViewModel(draftSessionType: "bonus")
     @Environment(\.dismiss) private var dismiss
-    @State private var showExitAlert = false
+
+    @State private var selectedSession: String? = nil
+    @State private var bonusData: SeanceData? = nil
+    @State private var isLoading = false
+    @State private var loadError: String? = nil
+
     @State private var showFinishFromExit = false
     @State private var exitRpe: Double = 7
     @State private var exitComment: String = ""
+
+    private let knownOrder = ["Push A", "Pull A", "Legs", "Push B", "Pull B + Full Body", "Yoga / Tai Chi", "Recovery"]
+
+    private var sessionList: [String] {
+        let known  = knownOrder.filter { data.fullProgram[$0] != nil }
+        let custom = data.fullProgram.keys.filter { !knownOrder.contains($0) }.sorted()
+        return known + custom
+    }
+
+    private func sessionColor(_ s: String) -> Color {
+        switch s {
+        case "Push A", "Push B":             return .orange
+        case "Pull A", "Pull B + Full Body": return .cyan
+        case "Legs":                         return .yellow
+        case "Yoga / Tai Chi":               return .purple
+        case "Recovery":                     return .green
+        default:                             return .indigo
+        }
+    }
+
+    private func sessionIcon(_ s: String) -> String {
+        switch s {
+        case "Push A", "Push B":             return "arrow.up.circle.fill"
+        case "Pull A", "Pull B + Full Body": return "arrow.down.circle.fill"
+        case "Legs":                         return "figure.run"
+        case "Yoga / Tai Chi":               return "figure.mind.and.body"
+        case "Recovery":                     return "heart.fill"
+        default:                             return "dumbbell.fill"
+        }
+    }
+
+    private func pick(_ session: String) {
+        selectedSession = session
+        isLoading = true
+        loadError = nil
+        Task {
+            do {
+                let d = try await APIService.shared.fetchSeanceData(sessionName: session)
+                await MainActor.run { bonusData = d; isLoading = false }
+            } catch {
+                await MainActor.run { loadError = error.localizedDescription; isLoading = false }
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
-                Group {
-                    if data.today == "Yoga / Tai Chi" || data.today == "Recovery" {
-                        SpecialSeanceView(sessionType: data.today, vm: extraVM)
-                    } else {
-                        WorkoutSeanceView(data: data, vm: extraVM, isBonusSession: true)
+                if let bonus = bonusData, let session = selectedSession {
+                    Group {
+                        if session == "Yoga / Tai Chi" || session == "Recovery" {
+                            SpecialSeanceView(sessionType: session, vm: extraVM)
+                        } else {
+                            WorkoutSeanceView(data: bonus, vm: extraVM, isBonusSession: true)
+                        }
                     }
+                } else if isLoading {
+                    VStack(spacing: 16) {
+                        ProgressView().tint(.orange)
+                        Text("Chargement…")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
+                    }
+                } else {
+                    sessionPickerBody
                 }
             }
-            .navigationTitle("Séance supplémentaire")
+            .navigationTitle(selectedSession.map { "Séance — \($0)" } ?? "Séance supplémentaire")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") {
-                        if !extraVM.showSuccess && !extraVM.logResults.isEmpty {
-                            showExitAlert = true
+                    Button(bonusData != nil ? "Retour" : "Fermer") {
+                        if bonusData != nil {
+                            if !extraVM.showSuccess && !extraVM.logResults.isEmpty {
+                                showFinishFromExit = true
+                            } else {
+                                bonusData = nil
+                                selectedSession = nil
+                            }
                         } else {
                             dismiss()
                         }
                     }
                     .foregroundColor(.orange)
                 }
-            }
-            .alert("Séance en cours", isPresented: $showExitAlert) {
-                Button("Sauvegarder") { showFinishFromExit = true }
-                Button("Abandonner", role: .destructive) {
-                    extraVM.logResults = [:]
-                    dismiss()
-                }
-                Button("Continuer", role: .cancel) {}
-            } message: {
-                Text("Tu as \(extraVM.logResults.count) exercice(s) loggé(s) non sauvegardés.")
             }
             .sheet(isPresented: $showFinishFromExit) {
                 FinishSessionSheet(
@@ -702,6 +879,62 @@ struct ExtraSessionSheet: View {
                 showFinishFromExit = false
                 dismiss()
             }
+        }
+    }
+
+    private var sessionPickerBody: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Text("QUELLE SÉANCE ?")
+                    .font(.system(size: 12, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundColor(.gray)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+
+                if let err = loadError {
+                    Text(err)
+                        .font(.system(size: 13))
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                }
+
+                VStack(spacing: 1) {
+                    ForEach(sessionList, id: \.self) { session in
+                        let color = sessionColor(session)
+                        let exoCount = data.fullProgram[session]?.count ?? 0
+                        Button { pick(session) } label: {
+                            HStack(spacing: 14) {
+                                Image(systemName: sessionIcon(session))
+                                    .font(.system(size: 18))
+                                    .foregroundColor(color)
+                                    .frame(width: 28)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(session)
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(.white)
+                                    if exoCount > 0 {
+                                        Text("\(exoCount) exercices")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.gray)
+                                    }
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(Color.gray.opacity(0.4))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(Color(hex: "11111c"))
+                        }
+                    }
+                }
+                .cornerRadius(12)
+                .padding(.horizontal)
+            }
+            .padding(.bottom, 32)
         }
     }
 }
@@ -893,6 +1126,7 @@ struct WorkoutSeanceView: View {
     @State private var isEditMode = false
     @State private var orderSaveError = false
     @State private var expandedExercise: String? = nil
+    @State private var scrollProxy: ScrollViewProxy? = nil
     @ObservedObject private var timer = RestTimerManager.shared
     @Environment(\.scenePhase) private var scenePhase
 
@@ -920,12 +1154,45 @@ struct WorkoutSeanceView: View {
     @State private var cardioCount   = 0
     @State private var hiitCount     = 0
     @State private var lastScrollY: CGFloat? = nil
+
+    // AI analysis pre-load
+    @State private var preloadedAIAnalysis: String? = nil
+    @State private var isPreloadingAI = false
     
     /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
     private var computedSessionRPE: Double {
         let vals = vm.logResults.values.compactMap(\.rpe)
         guard !vals.isEmpty else { return 7.0 }
         return (vals.reduce(0, +) / Double(vals.count) * 2).rounded() / 2  // arrondi au 0.5
+    }
+
+    private func preloadAIAnalysis() {
+        guard !isPreloadingAI, preloadedAIAnalysis == nil, !vm.logResults.isEmpty else { return }
+        isPreloadingAI = true
+        let logRes = vm.logResults
+        let elapsed = Date().timeIntervalSince(vm.sessionStart) / 60
+        let rpeVal = computedSessionRPE
+        let summary = logRes.map { k, v in
+            "\(k): \(v.reps) @ \(String(format: "%.0f", v.weight))lbs RPE\(String(format: "%.1f", v.rpe ?? rpeVal))"
+        }.joined(separator: ", ")
+        let prompt = "Séance terminée en \(Int(elapsed)) min. Exercices: \(summary). RPE global: \(String(format: "%.1f", rpeVal)). Donne une analyse courte (3-4 phrases) : points positifs, point à améliorer, conseil pour la prochaine séance."
+        Task {
+            do {
+                let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
+                var req = URLRequest(url: url)
+                req.httpMethod = "POST"
+                req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                req.httpBody = try JSONSerialization.data(withJSONObject: [
+                    "context": "Post-session analysis",
+                    "messages": [["role": "user", "content": prompt]]
+                ])
+                let (data, _) = try await URLSession.authed.data(for: req)
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let reply = json["response"] as? String {
+                    await MainActor.run { preloadedAIAnalysis = reply; isPreloadingAI = false }
+                } else { await MainActor.run { isPreloadingAI = false } }
+            } catch { await MainActor.run { isPreloadingAI = false } }
+        }
     }
 
     private var exercises: [(String, String)] {
@@ -1262,7 +1529,19 @@ struct WorkoutSeanceView: View {
             suggestion: data.exerciseSuggestions?[name],
             hint: inventoryHints[name],
             logResult: $vm.logResults[name],
-            onLogged: nil,
+            onLogged: {
+                let loggedNames = Set(vm.logResults.keys)
+                if let next = exercises.first(where: { !loggedNames.contains($0.0) && $0.0 != name }) {
+                    withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                        expandedExercise = next.0
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            scrollProxy?.scrollTo(next.0, anchor: .top)
+                        }
+                    }
+                }
+            },
             isExpanded: expandedExercise == name,
             onToggle: {
                 withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
@@ -1278,6 +1557,7 @@ struct WorkoutSeanceView: View {
             }
         )
         card
+            .id(name)
             .padding(.horizontal, 16)
             .background(GeometryReader { geo in
                 Color.clear.preference(key: CardHeightKey.self, value: [name: geo.size.height])
@@ -1395,6 +1675,7 @@ struct WorkoutSeanceView: View {
     }
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 16) {
                 // Header
@@ -1414,13 +1695,15 @@ struct WorkoutSeanceView: View {
                             }
                         }
                         Spacer()
-                        TimelineView(.periodic(from: vm.sessionStart, by: 60)) { ctx in
+                        TimelineView(.periodic(from: vm.sessionStart, by: 1)) { ctx in
                             let elapsed = vm.sessionStarted
-                                ? Int(ctx.date.timeIntervalSince(vm.sessionStart) / 60)
+                                ? max(0, ctx.date.timeIntervalSince(vm.sessionStart))
                                 : 0
+                            let mm = Int(elapsed) / 60
+                            let ss = Int(elapsed) % 60
                             HStack(spacing: 3) {
                                 Image(systemName: "clock").font(.system(size: 10))
-                                Text("\(elapsed) min")
+                                Text(String(format: "%d:%02d", mm, ss))
                                     .font(.system(size: 11, weight: .bold, design: .monospaced))
                             }
                             .foregroundColor(.cyan.opacity(0.75))
@@ -1531,22 +1814,22 @@ struct WorkoutSeanceView: View {
                 }
 
                 // Volume cumulé temps réel
-                if !vm.logResults.isEmpty {
-                    HStack(spacing: 8) {
-                        Image(systemName: "scalemass.fill")
-                            .font(.system(size: 12)).foregroundColor(.orange)
-                        Text("Volume total")
-                            .font(.system(size: 11, weight: .semibold)).foregroundColor(.gray)
-                        Spacer()
-                        Text("\(Int(currentVolume)) \(UnitSettings.shared.label)")
-                            .font(.system(size: 14, weight: .black)).foregroundColor(.orange)
-                    }
-                    .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(Color.orange.opacity(0.07))
-                    .cornerRadius(10)
-                    .padding(.horizontal, 16)
-                    .animation(.spring(response: 0.4), value: currentVolume)
+                HStack(spacing: 8) {
+                    Image(systemName: "scalemass.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(currentVolume > 0 ? .orange : .gray.opacity(0.4))
+                    Text("Volume total")
+                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.gray)
+                    Spacer()
+                    Text("\(Int(currentVolume)) \(UnitSettings.shared.label)")
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundColor(currentVolume > 0 ? .orange : .gray.opacity(0.4))
                 }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Color.orange.opacity(currentVolume > 0 ? 0.07 : 0.03))
+                .cornerRadius(10)
+                .padding(.horizontal, 16)
+                .animation(.spring(response: 0.4), value: currentVolume)
 
                 exerciseSection
 
@@ -1585,14 +1868,23 @@ struct WorkoutSeanceView: View {
                     .animation(.spring(response: 0.45, dampingFraction: 0.8), value: advice.id)
                 }
 
-                Button(action: { showFinish = true }) {
+                let canFinish = !vm.logResults.isEmpty
+                Button(action: { preloadAIAnalysis(); showFinish = true }) {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                         Text("Terminer la séance").font(.system(size: 15, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(Color.orange).foregroundColor(.white).cornerRadius(14)
+                    .background(canFinish ? Color.orange : Color(hex: "1a1a2e"))
+                    .foregroundColor(canFinish ? .white : .gray)
+                    .cornerRadius(14)
+                    .overlay(
+                        canFinish ? nil :
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
                 }
+                .disabled(!canFinish)
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
             .padding(.bottom, timer.isVisible ? 90 : 24)
@@ -1616,6 +1908,7 @@ struct WorkoutSeanceView: View {
             lastScrollY = offset
         }
         .scrollDismissesKeyboard(.interactively)
+        .onAppear { scrollProxy = proxy }
         .sheet(isPresented: $showFinish) {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
@@ -1624,6 +1917,7 @@ struct WorkoutSeanceView: View {
                 rpe: $rpe,
                 comment: $comment,
                 preEnergy: energyPre,
+                preloadedAnalysis: preloadedAIAnalysis,
                 onSubmit: { _ in
                     let dur = Date().timeIntervalSince(vm.sessionStart) / 60
                     recapSnapshot = SessionRecapSnapshot(
@@ -1640,6 +1934,10 @@ struct WorkoutSeanceView: View {
             )
             .presentationDetents([.medium, .large])
             .onAppear { rpe = computedSessionRPE }
+        }
+        .onChange(of: vm.logResults.count) { count in
+            guard count == exercises.count else { return }
+            preloadAIAnalysis()
         }
         .onChange(of: vm.showSuccess) { success in
             guard success else { return }
@@ -1790,6 +2088,7 @@ struct WorkoutSeanceView: View {
             let updated = fresh[data.today] ?? [:]
             if !updated.isEmpty { sessionSupersets = updated }
         }
+        } // end ScrollViewReader
     }
     
     private func rpeColor(_ v: Double) -> Color {
@@ -2530,11 +2829,12 @@ struct AddHIITSheet: View {
         let elapsedMin: Double
         @Binding var rpe: Double
         @Binding var comment: String
-        var preEnergy: Int? = nil          // pre-filled from EnergyPreWorkoutSheet (nil = show picker)
+        var preEnergy: Int? = nil
+        var preloadedAnalysis: String? = nil
         var onSubmit: (Int?) -> Void
         @Environment(\.dismiss) private var dismiss
 
-        @State private var energyPre: Int = 3   // 1–5, used only when preEnergy == nil
+        @State private var energyPre: Int = 3
         @State private var confirmDiscard = false
         @State private var aiAnalysis: String? = nil
         @State private var isLoadingAI = false
@@ -2754,7 +3054,13 @@ struct AddHIITSheet: View {
                     Button("Abandonner", role: .destructive) { dismiss() }
                     Button("Continuer", role: .cancel) {}
                 }
-                .onAppear { loadAIAnalysis() }
+                .onAppear {
+                    if let preloaded = preloadedAnalysis {
+                        aiAnalysis = preloaded
+                    } else {
+                        loadAIAnalysis()
+                    }
+                }
             }
         }
 

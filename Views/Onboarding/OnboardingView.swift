@@ -3,203 +3,180 @@ import SwiftUI
 struct OnboardingView: View {
     let onComplete: () -> Void
 
+    @State private var step = 0
     @State private var name = ""
-    @State private var sex = "M"
-    @State private var age = 25
-    @State private var weightKg = 75.0
-    @State private var height = 175
     @State private var goal = "Prise de masse"
-    @State private var level = "Intermédiaire"
     @State private var isSaving = false
 
-    @ObservedObject private var units = UnitSettings.shared
+    // Defaults — user updates later in Profile
+    private let sex      = "M"
+    private let age      = 25
+    private let weightKg = 75.0
+    private let height   = 175
+    private let level    = "Intermédiaire"
 
-    private let goals  = ["Prise de masse", "Perte de poids", "Performance", "Maintien"]
-    private let levels = ["Débutant", "Intermédiaire", "Avancé"]
+    private let goalOptions: [(label: String, subtitle: String, value: String)] = [
+        ("Prendre du muscle",   "Force & hypertrophie",      "Prise de masse"),
+        ("Perdre du gras",      "Composition corporelle",    "Perte de poids"),
+        ("Performer",           "Force, vitesse, endurance", "Performance"),
+        ("Rester consistant",   "Habitudes durables",        "Maintien"),
+    ]
 
     private var isValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    private var displayWeight: String {
-        units.isKg
-            ? String(format: "%.1f kg",  weightKg)
-            : String(format: "%.1f lbs", weightKg * 2.20462)
-    }
-
     var body: some View {
         ZStack {
-            Color(hex: "080810").ignoresSafeArea()
+            Color.black.ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-
-                    // ── Header ─────────────────────────────────────────────
-                    VStack(spacing: 10) {
-                        Image(systemName: "figure.strengthtraining.traditional")
-                            .font(.system(size: 56))
-                            .foregroundColor(.orange)
-                            .padding(.top, 64)
-
-                        Text("Bienvenue sur\nTrainingOS")
-                            .font(.system(size: 32, weight: .black))
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-
-                        Text("2 minutes pour personnaliser\nton expérience d'entraînement.")
-                            .font(.system(size: 15))
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.bottom, 40)
-
-                    // ── Identité ───────────────────────────────────────────
-                    OnboardingCard(title: "IDENTITÉ") {
-                        OnboardingRow(label: "Prénom") {
-                            TextField("Ex: Vincent", text: $name)
-                                .foregroundColor(.white)
-                                .tint(.orange)
-                                .multilineTextAlignment(.trailing)
-                                .autocorrectionDisabled()
-                        }
-                        OBDivider()
-                        OnboardingRow(label: "Sexe") {
-                            Picker("", selection: $sex) {
-                                Text("Homme").tag("M")
-                                Text("Femme").tag("F")
-                            }
-                            .pickerStyle(.segmented)
-                            .frame(width: 160)
-                        }
-                        OBDivider()
-                        OnboardingRow(label: "Âge") {
-                            OBStepper(value: $age, unit: "ans", min: 10, max: 100)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-
-                    // ── Mesures ────────────────────────────────────────────
-                    OnboardingCard(title: "MESURES") {
-                        OnboardingRow(label: "Poids (\(units.label))") {
-                            HStack(spacing: 16) {
-                                Button {
-                                    let step = units.isKg ? 0.5 : 1.0
-                                    let minW  = units.isKg ? 30.0 : 30.0 * 2.20462
-                                    let cur   = units.isKg ? weightKg : weightKg * 2.20462
-                                    if cur - step >= minW {
-                                        weightKg = units.isKg
-                                            ? weightKg - step
-                                            : (cur - step) / 2.20462
-                                    }
-                                } label: {
-                                    Image(systemName: "minus.circle.fill").font(.system(size: 28)).foregroundColor(.orange)
-                                }
-                                Text(displayWeight)
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .frame(width: 90, alignment: .center)
-                                Button {
-                                    let step = units.isKg ? 0.5 : 1.0
-                                    let maxW  = units.isKg ? 300.0 : 300.0 * 2.20462
-                                    let cur   = units.isKg ? weightKg : weightKg * 2.20462
-                                    if cur + step <= maxW {
-                                        weightKg = units.isKg
-                                            ? weightKg + step
-                                            : (cur + step) / 2.20462
-                                    }
-                                } label: {
-                                    Image(systemName: "plus.circle.fill").font(.system(size: 28)).foregroundColor(.orange)
-                                }
-                            }
-                        }
-                        OBDivider()
-                        OnboardingRow(label: "Taille (cm)") {
-                            OBStepper(value: $height, unit: "cm", min: 100, max: 250)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-
-                    // ── Programme ──────────────────────────────────────────
-                    OnboardingCard(title: "PROGRAMME") {
-                        OnboardingRow(label: "Objectif") {
-                            Menu {
-                                ForEach(goals, id: \.self) { g in
-                                    Button(g) { goal = g }
-                                }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text(goal)
-                                        .font(.system(size: 15, weight: .medium))
-                                        .foregroundColor(.orange)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.orange)
-                                }
-                            }
-                        }
-                        OBDivider()
-                        OnboardingRow(label: "Niveau") {
-                            Menu {
-                                ForEach(levels, id: \.self) { l in
-                                    Button(l) { level = l }
-                                }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text(level)
-                                        .font(.system(size: 15, weight: .medium))
-                                        .foregroundColor(.orange)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.orange)
-                                }
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 32)
-
-                    // ── Validation hint ────────────────────────────────────
-                    if !isValid {
-                        Text("Entre ton prénom pour continuer")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
-                            .padding(.bottom, 10)
-                    }
-
-                    // ── CTA ────────────────────────────────────────────────
-                    Button(action: submit) {
-                        HStack(spacing: 10) {
-                            if isSaving {
-                                ProgressView().tint(.white).scaleEffect(0.85)
-                            }
-                            Text(isSaving ? "Enregistrement…" : "Commencer →")
-                                .font(.system(size: 17, weight: .bold))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(isValid ? Color.orange : Color.gray.opacity(0.3))
-                        .cornerRadius(16)
-                    }
-                    .disabled(!isValid || isSaving)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 56)
-                }
+            Group {
+                if step == 0 { splashStep.transition(.asymmetric(insertion: .opacity, removal: .opacity)) }
+                if step == 1 { goalStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
+                if step == 2 { nameStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
             }
-            .scrollDismissesKeyboard(.interactively)
-            .overlay(alignment: .topTrailing) {
-                Button("Passer") { onComplete() }
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.gray)
-                    .padding(.trailing, 20)
-                    .padding(.top, 56)
-            }
+            .animation(.easeInOut(duration: 0.3), value: step)
+        }
+        .overlay(alignment: .topTrailing) {
+            Button("Passer") { onComplete() }
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(white: 0.4))
+                .padding(.trailing, 20)
+                .padding(.top, 56)
         }
     }
 
-    // ── Submit ─────────────────────────────────────────────────────────────────
+    // MARK: Step 0 — Brand
+
+    private var splashStep: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            VStack(spacing: 20) {
+                Text("Ton coach.\nTon avantage.")
+                    .font(.system(size: 42, weight: .black))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(2)
+
+                Text("Un entraînement intelligent,\nadapté à ce que tu es aujourd'hui.")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(white: 0.45))
+                    .multilineTextAlignment(.center)
+            }
+            Spacer()
+            Button { withAnimation { step = 1 } } label: {
+                Text("Commencer →")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(Color.orange)
+                    .cornerRadius(16)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 56)
+        }
+    }
+
+    // MARK: Step 1 — Goal
+
+    private var goalStep: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 10) {
+                Text("Quel est ton\nobjectif ?")
+                    .font(.system(size: 34, weight: .black))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 80)
+                Text("Ton coach adapte tout à partir de là.")
+                    .font(.system(size: 15))
+                    .foregroundColor(Color(white: 0.45))
+            }
+            .padding(.bottom, 44)
+
+            VStack(spacing: 12) {
+                ForEach(goalOptions, id: \.value) { option in
+                    Button {
+                        goal = option.value
+                        withAnimation { step = 2 }
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(option.label)
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Text(option.subtitle)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(white: 0.45))
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Color(white: 0.25))
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 18)
+                        .background(Color(white: 0.08))
+                        .cornerRadius(14)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 24)
+            Spacer()
+        }
+    }
+
+    // MARK: Step 2 — Name
+
+    private var nameStep: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 10) {
+                Text("Comment\nt'appelle-tu ?")
+                    .font(.system(size: 34, weight: .black))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 80)
+                Text("Ton coach va te parler par ton prénom.")
+                    .font(.system(size: 15))
+                    .foregroundColor(Color(white: 0.45))
+            }
+            .padding(.bottom, 48)
+
+            TextField("Ex: Vincent", text: $name)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(.white)
+                .tint(.orange)
+                .multilineTextAlignment(.center)
+                .autocorrectionDisabled()
+                .padding(.vertical, 22)
+                .background(Color(white: 0.08))
+                .cornerRadius(14)
+                .padding(.horizontal, 24)
+
+            Spacer()
+
+            Button(action: submit) {
+                HStack(spacing: 10) {
+                    if isSaving {
+                        ProgressView().tint(.black).scaleEffect(0.85)
+                    }
+                    Text(isSaving ? "Préparation…" : "Rencontrer mon coach →")
+                        .font(.system(size: 17, weight: .bold))
+                }
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(isValid ? Color.orange : Color(white: 0.18))
+                .cornerRadius(16)
+            }
+            .disabled(!isValid || isSaving)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 56)
+        }
+    }
+
+    // MARK: Submit
 
     private func submit() {
         guard isValid else { return }
@@ -219,84 +196,6 @@ struct OnboardingView: View {
                 // Network failure: profile syncs later via SyncManager
             }
             await MainActor.run { onComplete() }
-        }
-    }
-}
-
-// MARK: - Sub-components
-
-private struct OnboardingCard<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(title)
-                .font(.system(size: 10, weight: .bold))
-                .tracking(2)
-                .foregroundColor(.gray)
-                .padding(.leading, 4)
-                .padding(.bottom, 8)
-            VStack(spacing: 0) {
-                content
-            }
-            .background(Color(hex: "11111c"))
-            .cornerRadius(14)
-        }
-    }
-}
-
-private struct OnboardingRow<Content: View>: View {
-    let label: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 15))
-                .foregroundColor(.white)
-            Spacer()
-            content
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-    }
-}
-
-private struct OBDivider: View {
-    var body: some View {
-        Divider()
-            .background(Color.white.opacity(0.06))
-            .padding(.horizontal, 16)
-    }
-}
-
-private struct OBStepper: View {
-    @Binding var value: Int
-    let unit: String
-    let min: Int
-    let max: Int
-
-    var body: some View {
-        HStack(spacing: 16) {
-            Button {
-                if value > min { value -= 1 }
-            } label: {
-                Image(systemName: "minus.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(.orange)
-            }
-            Text("\(value) \(unit)")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: 80, alignment: .center)
-            Button {
-                if value < max { value += 1 }
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(.orange)
-            }
         }
     }
 }

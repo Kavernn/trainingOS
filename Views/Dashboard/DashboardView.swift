@@ -49,37 +49,32 @@ struct DashboardView: View {
                             GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
                                 .appearAnimation(delay: 0)
 
-                            if let tip = vm.coachTip {
-                                CoachTipCard(tip: tip)
-                                    .appearAnimation(delay: 0.01)
-                            }
-
-                            if let sd = vm.smartDay {
-                                SmartDayBannerView(recommendation: sd)
-                                    .appearAnimation(delay: 0.015)
-                            }
-
-                            DataGapSection(dash: dash, recovery: vm.todayRecovery)
-                                .appearAnimation(delay: 0.02)
-
-                            // TodayCard: primary action every session
+                            // TodayCard: primary action, always first
                             TodayCardView(
                                 dash: dash,
                                 showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
                                 onOpenSession: onOpenSession
                             )
-                            .appearAnimation(delay: 0.02)
+                            .appearAnimation(delay: 0.01)
 
                             if let soir = vm.eveningSession, soir.hasEveningSession {
                                 SoirCardView(data: soir)
-                                    .appearAnimation(delay: 0.03)
+                                    .appearAnimation(delay: 0.02)
                             }
 
-                            // UX#4: Week progress strip right under TodayCard
                             WeekProgressStripView(dash: dash)
-                                .appearAnimation(delay: 0.04)
+                                .appearAnimation(delay: 0.03)
 
-                            // UX#5: Compact nutrition strip in position 4 (not last)
+                            if let tip = vm.coachTip {
+                                CoachTipCard(tip: tip)
+                                    .appearAnimation(delay: 0.04)
+                            }
+
+                            if let sd = vm.smartDay {
+                                SmartDayBannerView(recommendation: sd)
+                                    .appearAnimation(delay: 0.045)
+                            }
+
                             NavigationLink(destination: NutritionView()) {
                                 NutritionStripView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
                             }

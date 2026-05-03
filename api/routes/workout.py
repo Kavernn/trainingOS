@@ -915,17 +915,23 @@ def api_seance_data():
 
     full_program = load_program()
     inventory    = load_inventory()
-    today_str  = get_today()
     today_date = get_today_date()
     schedule   = get_week_schedule()
 
-    # Query the morning session directly — avoids the multi-row overwrite bug in
-    # load_sessions() when both morning and evening rows exist for the same date.
-    _s = _db.get_workout_session(today_date) or {}
-    # Use only "completed" as source of truth. "rpe is not None" was a legacy
-    # fallback that incorrectly blocks re-logging when a previous attempt set rpe
-    # but failed before complete_workout_session() succeeded (completed=False).
-    already_logged = bool(_s.get("completed"))
+    # Optional override: bonus session for a specific session type
+    session_name_override = request.args.get("session_name", "").strip()
+    if session_name_override:
+        today_str     = session_name_override
+        already_logged = False  # bonus sessions are never "already logged"
+    else:
+        today_str  = get_today()
+        # Query the morning session directly — avoids the multi-row overwrite bug in
+        # load_sessions() when both morning and evening rows exist for the same date.
+        _s = _db.get_workout_session(today_date) or {}
+        # Use only "completed" as source of truth. "rpe is not None" was a legacy
+        # fallback that incorrectly blocks re-logging when a previous attempt set rpe
+        # but failed before complete_workout_session() succeeded (completed=False).
+        already_logged = bool(_s.get("completed"))
 
     from utils import cap_scheme_sets
     # Aplatit la structure bloc → {exercice: scheme} pour le client iOS

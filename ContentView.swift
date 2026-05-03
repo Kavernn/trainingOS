@@ -24,18 +24,18 @@ private struct iOSContentView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            DashboardView(onOpenSession: { selectedTab = 1 })
+            IntelligenceView(onOpenSession: { selectedTab = 2 })
                 .tag(0)
+                .tabItem { Label("Coach", systemImage: "brain.head.profile") }
+            DashboardView(onOpenSession: { selectedTab = 2 })
+                .tag(1)
                 .tabItem { Label("Accueil", systemImage: "house.fill") }
             SeanceView()
-                .tag(1)
+                .tag(2)
                 .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
             NutritionView()
-                .tag(2)
-                .tabItem { Label("Nutrition", systemImage: "fork.knife") }
-            TimerView()
                 .tag(3)
-                .tabItem { Label("Timer", systemImage: "timer") }
+                .tabItem { Label("Nutrition", systemImage: "fork.knife") }
             MoreView()
                 .tag(4)
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
@@ -187,8 +187,7 @@ private struct MacSidebarSection {
 }
 
 private let macSections: [MacSidebarSection] = [
-    MacSidebarSection(title: "Principal",      pages: [.dashboard, .seance, .nutrition]),
-    MacSidebarSection(title: "IA",             pages: [.intelligence]),
+    MacSidebarSection(title: "Principal",      pages: [.intelligence, .dashboard, .seance, .nutrition]),
     MacSidebarSection(title: "Entraînement",   pages: [.programme, .stats, .objectifs, .timer, .hiit, .historique, .xp]),
     MacSidebarSection(title: "Corps & Santé",  pages: [.healthDashboard, .bodyComp, .cardio, .recovery, .pss, .mentalHealth]),
     MacSidebarSection(title: "Divers",         pages: [.notes, .inventaire, .profil]),

@@ -44,7 +44,7 @@ final class ExerciseViewModel: ObservableObject {
     let name: String
     let scheme: String
     let weightData: WeightData?
-    let equipmentType: String
+    @Published var equipmentType: String
     let trackingType: String
     let bodyWeight: Double
     let isSecondSession: Bool
@@ -61,6 +61,8 @@ final class ExerciseViewModel: ObservableObject {
     @Published var painZone: String = ""
     @Published var setBySetMode: Bool = false
     @Published var currentSetIndex: Int = 0
+    @Published var repCountMode: Bool = false
+    @Published var currentRepCount: Int = 0
     @Published var showWarmup: Bool = false
     @Published var isLogged = false
     @Published var isEditing = false
@@ -219,6 +221,37 @@ final class ExerciseViewModel: ObservableObject {
         } else if sets.count > setsCount {
             sets = Array(sets.prefix(setsCount))
         }
+    }
+
+    func fillFromLastSession() {
+        let parts = lastRepsParts
+        let targetCount = max(1, parts.count)
+        if sets.count < targetCount {
+            sets.append(contentsOf: Array(repeating: SetInput(), count: targetCount - sets.count))
+        } else if sets.count > targetCount {
+            sets = Array(sets.prefix(targetCount))
+        }
+        for i in sets.indices {
+            sets[i].weight = perSetHint(for: i)
+            sets[i].reps = parts.indices.contains(i) ? parts[i] : (parts.first ?? "")
+        }
+    }
+
+    func tapRep() { currentRepCount += 1 }
+    func decrementRep() { currentRepCount = max(0, currentRepCount - 1) }
+
+    /// Confirme le set courant en rep-counter mode. Retourne true si c'était le dernier set (→ caller doit auto-logger).
+    func confirmCurrentSet() -> Bool {
+        guard setBySetMode, currentSetIndex < sets.count else { return false }
+        if currentRepCount > 0 {
+            sets[currentSetIndex].reps = String(currentRepCount)
+        }
+        currentRepCount = 0
+        if currentSetIndex < sets.count - 1 {
+            currentSetIndex += 1
+            return false
+        }
+        return true
     }
 
     func resetAfterClear() {

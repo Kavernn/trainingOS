@@ -81,8 +81,25 @@ class APIService: ObservableObject {
     private init() {}
 
     // MARK: - Cache helper
-    // Timeout réseau : 15 s (couvre les cold starts Vercel sans bloquer 60 s)
+    // Stratégie : cache-first + background refresh.
+    // Si le cache est valide (dans le TTL), on le retourne immédiatement
+    // et on lance un refresh en arrière-plan pour garder le cache chaud.
+    // Si pas de cache, on attend le réseau (seul cas bloquant = premier lancement).
     private func fetchWithCache(url: URL, key: String) async throws -> Data {
+        if let cached = CacheService.shared.load(for: key) {
+            // Background refresh — ne bloque pas l'UI
+            Task.detached(priority: .utility) {
+                var req = URLRequest(url: url)
+                req.timeoutInterval = 15
+                req.cachePolicy = .reloadIgnoringLocalCacheData
+                if let (fresh, _) = try? await URLSession.authed.data(for: req) {
+                    CacheService.shared.save(fresh, for: key)
+                }
+            }
+            return cached
+        }
+
+        // Pas de cache valide → appel réseau bloquant (premier lancement ou TTL expiré)
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
         req.cachePolicy = .reloadIgnoringLocalCacheData
@@ -91,9 +108,6 @@ class APIService: ObservableObject {
             CacheService.shared.save(data, for: key)
             return data
         } catch {
-            if let cached = CacheService.shared.load(for: key) {
-                return cached
-            }
             throw error
         }
     }
@@ -183,6 +197,13 @@ class APIService: ObservableObject {
     func fetchSeanceData() async throws -> SeanceData {
         let url = URL(string: "\(baseURL)/api/seance_data")!
         let data = try await fetchWithCache(url: url, key: "seance_data")
+        return try JSONDecoder().decode(SeanceData.self, from: data)
+    }
+
+    func fetchSeanceData(sessionName: String) async throws -> SeanceData {
+        var comps = URLComponents(string: "\(baseURL)/api/seance_data")!
+        comps.queryItems = [URLQueryItem(name: "session_name", value: sessionName)]
+        let (data, _) = try await URLSession.authed.data(from: comps.url!)
         return try JSONDecoder().decode(SeanceData.self, from: data)
     }
 
