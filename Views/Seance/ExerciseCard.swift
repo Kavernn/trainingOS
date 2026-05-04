@@ -154,12 +154,7 @@ struct ExerciseCard: View {
         }
     }
 
-    private func rpeColor(_ v: Double) -> Color {
-        if v >= 9 { return .red }
-        if v >= 8 { return .orange }
-        if v >= 7 { return .yellow }
-        return .green
-    }
+    private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     private func fetchMedia() {
         guard !mediaFetched else { showMediaSheet = true; return }
@@ -316,48 +311,17 @@ struct ExerciseCard: View {
                             )
                             .disabled(evm.setBySetMode && !isActive && !isDone)
                     }
-                    HStack(spacing: 0) {
-                        Button { if evm.sets[i].rir > 0 { evm.sets[i].rir -= 1 } } label: {
-                            Image(systemName: "minus").font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.gray)
-                                .frame(width: 26, height: 36)
-                                .contentShape(Rectangle())
-                        }.buttonStyle(.plain)
-                        Text("\(evm.sets[i].rir)")
-                            .font(.system(size: 13, weight: .black)).foregroundColor(.cyan)
-                            .frame(width: 18, alignment: .center)
-                        Button { if evm.sets[i].rir < 6 { evm.sets[i].rir += 1 } } label: {
-                            Image(systemName: "plus").font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.cyan)
-                                .frame(width: 26, height: 36)
-                                .contentShape(Rectangle())
-                        }.buttonStyle(.plain)
-                    }
+                    RPEHelper.RIRTiles(
+                        rir: $evm.sets[i].rir,
+                        disabled: evm.setBySetMode && !isActive && !isDone
+                    )
                     .frame(width: 70)
-                    .background(Color(hex: "191926")).cornerRadius(8)
-                    .disabled(evm.setBySetMode && !isActive && !isDone)
 
                     if let p = prescription, !evm.sets[i].reps.isEmpty, let entered = Int(evm.sets[i].reps) {
                         Image(systemName: entered >= p.repMin ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                             .font(.system(size: 13))
                             .foregroundColor(entered >= p.repMin ? .green : .orange)
                             .transition(.opacity)
-                    }
-
-                    if !evm.setBySetMode || isDone {
-                        Button {
-                            let current = evm.sets[i].rpe ?? 5
-                            evm.sets[i].rpe = current >= 10 ? nil : current + 1
-                            triggerImpact(style: .light)
-                        } label: {
-                            Text(evm.sets[i].rpe.map { "R\(Int($0))" } ?? "RPE")
-                                .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(evm.sets[i].rpe != nil ? rpeColor(evm.sets[i].rpe!) : .gray.opacity(0.3))
-                                .padding(.horizontal, 5).padding(.vertical, 3)
-                                .background(Color(hex: "191926"))
-                                .cornerRadius(4)
-                        }
-                        .buttonStyle(.plain)
                     }
 
                     if isActive && !evm.repCountMode {
@@ -964,26 +928,26 @@ struct ExerciseCard: View {
 
                         if !isTimeBased, evm.avgWeight != nil { avgTotalRow }
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("RPE (1–10)")
-                                .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                            ScrollView(.horizontal, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack(spacing: 6) {
+                                Text("EFFORT ESTIMÉ")
+                                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                Spacer()
+                                let rpe = evm.exerciseRPE
+                                let rir = RPEHelper.rirFromRPE(rpe)
+                                Text("RIR \(rir == 4 ? "4+" : "\(rir)")  ·  RPE \(String(format: "%.0f", rpe))")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(RPEHelper.color(for: rpe))
+                            }
+                            Text(RPEHelper.feedback(for: evm.exerciseRPE))
+                                .font(.system(size: 11)).foregroundColor(.white.opacity(0.55))
+                                .fixedSize(horizontal: false, vertical: true)
+                            if let hint = RPEHelper.progressionHint(for: evm.exerciseRPE) {
                                 HStack(spacing: 4) {
-                                    ForEach(Array(1...10), id: \.self) { val in
-                                        let selected = Int(evm.exerciseRPE) == val
-                                        Button {
-                                            evm.exerciseRPE = Double(val)
-                                            triggerImpact(style: .light)
-                                        } label: {
-                                            Text("\(val)")
-                                                .font(.system(size: 13, weight: selected ? .black : .medium))
-                                                .foregroundColor(selected ? .black : .gray)
-                                                .frame(width: 30, height: 26)
-                                                .background(selected ? rpeColor(Double(val)) : Color(hex: "1a1a2e"))
-                                                .clipShape(Capsule())
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
+                                    Image(systemName: "arrow.up.forward.circle")
+                                        .font(.system(size: 9)).foregroundColor(.cyan.opacity(0.65))
+                                    Text(hint)
+                                        .font(.system(size: 10)).foregroundColor(.cyan.opacity(0.65))
                                 }
                             }
                         }
@@ -1088,8 +1052,12 @@ struct ExerciseCard: View {
                                     Image(systemName: "equal.circle.fill").foregroundColor(.yellow)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Stagné — même poids").font(.system(size: 13, weight: .semibold)).foregroundColor(.yellow)
-                                        Text(evm.exerciseRPE < 7.5 ? "RPE bas — essaie +1 rep" : "RPE élevé — maintiens le poids")
-                                            .font(.system(size: 11)).foregroundColor(.yellow.opacity(0.7))
+                                        if let hint = RPEHelper.progressionHint(for: evm.exerciseRPE) {
+                                            Text(hint).font(.system(size: 11)).foregroundColor(.yellow.opacity(0.7))
+                                        } else {
+                                            Text(RPEHelper.feedback(for: evm.exerciseRPE))
+                                                .font(.system(size: 11)).foregroundColor(.yellow.opacity(0.7))
+                                        }
                                     }
                                 case .loading:
                                     ProgressView().tint(.orange).scaleEffect(0.8)

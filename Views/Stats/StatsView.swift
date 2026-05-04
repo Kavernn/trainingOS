@@ -1376,9 +1376,7 @@ struct RPEChartView: View {
         .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
     }
 
-    private func rpeColor(_ rpe: Double) -> Color {
-        if rpe >= 8 { return .red }; if rpe >= 6 { return .orange }; return .green
-    }
+    private func rpeColor(_ rpe: Double) -> Color { RPEHelper.color(for: rpe) }
 }
 
 // MARK: - KPI Card

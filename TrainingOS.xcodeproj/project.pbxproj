@@ -94,6 +94,7 @@
 		FF51E36866234A41AFD33040 /* FoodCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */; };
 		OB000002OB000002OB000002 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB000001OB000001OB000001 /* OnboardingView.swift */; };
 		PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH000001PH000001PH000001 /* PlatformHelpers.swift */; };
+		RH000002RH000002RH000002 /* RPEHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = RH000001RH000001RH000001 /* RPEHelper.swift */; };
 		PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000001PS000001PS000001 /* ProgressionSuggestion.swift */; };
 		PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */; };
 		SWAP0002SWAP0002SWAP0002 /* ExerciseSwapSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */; };
@@ -210,6 +211,7 @@
 		FF11000A2F5D98BA002AE470 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
 		OB000001OB000001OB000001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		PH000001PH000001PH000001 /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
+		RH000001RH000001RH000001 /* RPEHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPEHelper.swift; sourceTree = "<group>"; };
 		PS000001PS000001PS000001 /* ProgressionSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestion.swift; sourceTree = "<group>"; };
 		PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestionsSheet.swift; sourceTree = "<group>"; };
 		SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseSwapSheet.swift; sourceTree = "<group>"; };
@@ -480,6 +482,7 @@
 				D665E43A2F5D98B8002AE470 /* Extensions.swift */,
 				BB001002BB001002BB001002 /* DesignSystem.swift */,
 				PH000001PH000001PH000001 /* PlatformHelpers.swift */,
+				RH000001RH000001RH000001 /* RPEHelper.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -753,6 +756,7 @@
 				D665E44F2F5D98BA002AE470 /* Extensions.swift in Sources */,
 				BB001001BB001001BB001001 /* DesignSystem.swift in Sources */,
 				PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */,
+				RH000002RH000002RH000002 /* RPEHelper.swift in Sources */,
 				D665E4502F5D98BA002AE470 /* DashboardView.swift in Sources */,
 				CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */,
 				07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */,

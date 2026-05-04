@@ -551,12 +551,7 @@ struct AlreadyLoggedSeanceView: View {
         await vm.load()
     }
 
-    private func rpeColor(_ v: Double) -> Color {
-        if v <= 4 { return .green }
-        if v <= 6 { return .yellow }
-        if v <= 8 { return .orange }
-        return .red
-    }
+    private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 }
 
 // MARK: - Post Session Edit Sheet
@@ -1233,7 +1228,7 @@ struct WorkoutSeanceView: View {
                 id: "high_rpe",
                 icon: "exclamationmark.triangle.fill", color: .red,
                 title: "Fatigue critique",
-                message: "RPE \(String(format: "%.1f", computedSessionRPE))/10 — réduis les charges de 5-10% sur les \(remaining) exercice(s) restant(s), ou supprime une série."
+                message: "Effort très élevé (RIR \(RPEHelper.rirFromRPE(computedSessionRPE)) / RPE \(String(format: "%.0f", computedSessionRPE))) — réduis les charges de 5-10% sur les \(remaining) exercice(s) restant(s), ou supprime une série."
             )
         }
         if computedSessionRPE <= 6.0 && remaining > 1 {
@@ -1241,7 +1236,7 @@ struct WorkoutSeanceView: View {
                 id: "low_rpe",
                 icon: "bolt.fill", color: .green,
                 title: "Tu as de la réserve",
-                message: "RPE \(String(format: "%.1f", computedSessionRPE))/10 — tu peux monter les charges de 2.5–5% sur les prochains exercices."
+                message: "Effort faible (RIR 4+ / RPE \(String(format: "%.0f", computedSessionRPE))) — tu peux monter les charges de 2.5–5% sur les prochains exercices."
             )
         }
         if durationMin > 90 && remaining > 0 {
@@ -1836,25 +1831,27 @@ struct WorkoutSeanceView: View {
 
                 optionalAddonsSection
 
-                // Live RPE — visible dès qu'un exercice est loggé
+                // Effort live — visible dès qu'un exercice est loggé
                 if !vm.logResults.isEmpty {
                     HStack(spacing: 10) {
                         Image(systemName: "gauge.with.dots.needle.67percent")
                             .font(.system(size: 14))
-                            .foregroundColor(rpeColor(computedSessionRPE))
-                        Text("RPE séance")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.gray)
+                            .foregroundColor(RPEHelper.color(for: computedSessionRPE))
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Effort séance")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.gray)
+                            Text(RPEHelper.option(for: RPEHelper.rirFromRPE(computedSessionRPE)).label)
+                                .font(.system(size: 11))
+                                .foregroundColor(RPEHelper.color(for: computedSessionRPE))
+                        }
                         Spacer()
-                        Text(String(format: "%.1f", computedSessionRPE))
-                            .font(.system(size: 18, weight: .black))
-                            .foregroundColor(rpeColor(computedSessionRPE))
-                        Text("/ 10")
-                            .font(.system(size: 11))
-                            .foregroundColor(.gray)
+                        Text("RPE \(String(format: "%.0f", computedSessionRPE))")
+                            .font(.system(size: 16, weight: .black))
+                            .foregroundColor(RPEHelper.color(for: computedSessionRPE))
                     }
                     .padding(.horizontal, 16).padding(.vertical, 12)
-                    .background(rpeColor(computedSessionRPE).opacity(0.08))
+                    .background(RPEHelper.color(for: computedSessionRPE).opacity(0.08))
                     .cornerRadius(12)
                     .padding(.horizontal, 16)
                 }
@@ -2092,9 +2089,7 @@ struct WorkoutSeanceView: View {
         } // end ScrollViewReader
     }
     
-    private func rpeColor(_ v: Double) -> Color {
-        if v <= 4 { return .green }; if v <= 6 { return .yellow }; if v <= 8 { return .orange }; return .red
-    }
+    private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     // Lookup equipment type with fuzzy name matching.
     // Handles e.g. program "Deadlift" matching inventory "Barbell Deadlift".
@@ -2478,9 +2473,7 @@ struct AddCardioSheet: View {
         }
     }
 
-    private func rpeColor(_ v: Double) -> Color {
-        if v <= 4 { return .green }; if v <= 6 { return .yellow }; if v <= 8 { return .orange }; return .red
-    }
+    private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     private func submit() {
         isLogging = true
@@ -2670,9 +2663,7 @@ struct AddHIITSheet: View {
         }
     }
 
-    private func rpeColor(_ v: Double) -> Color {
-        if v <= 4 { return .green }; if v <= 6 { return .yellow }; if v <= 8 { return .orange }; return .red
-    }
+    private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     private func submit() {
         isLogging = true
@@ -2954,18 +2945,27 @@ struct AddHIITSheet: View {
                                 .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             }
                             
-                            // RPE — pré-rempli depuis la moyenne des RPE par exercice
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("RPE SÉANCE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        Text("Moy. RPE exercices")
-                                            .font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
+                            // Effort global — saisie via RIR tiles
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("EFFORT GLOBAL").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("Combien de reps aurais-tu pu faire en plus ?")
+                                    .font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.75))
+                                let selectedRIR = Binding<Int>(
+                                    get: { RPEHelper.rirFromRPE(rpe) },
+                                    set: { rpe = RPEHelper.rirToRPE($0) }
+                                )
+                                RPEHelper.RIRTiles(rir: selectedRIR, showLabels: true)
+                                Text(RPEHelper.feedback(for: rpe))
+                                    .font(.system(size: 12))
+                                    .foregroundColor(RPEHelper.color(for: rpe))
+                                    .fixedSize(horizontal: false, vertical: true)
+                                if let hint = RPEHelper.progressionHint(for: rpe) {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: "arrow.up.forward.circle")
+                                            .font(.system(size: 11)).foregroundColor(.cyan.opacity(0.7))
+                                        Text(hint).font(.system(size: 11)).foregroundColor(.cyan.opacity(0.7))
                                     }
-                                    Spacer()
-                                    Text("\(rpe, specifier: "%.1f")").font(.system(size: 24, weight: .black)).foregroundColor(.orange)
                                 }
-                                Slider(value: $rpe, in: 1...10, step: 0.5).tint(.orange)
                             }
                             .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             
@@ -3304,14 +3304,7 @@ struct AddHIITSheet: View {
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
         }
 
-        private func rpeColor(_ v: Double) -> Color {
-            switch v {
-            case ..<5: return .green
-            case ..<7: return .yellow
-            case ..<9: return .orange
-            default:   return .red
-            }
-        }
+        private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
         private func energyColor(_ v: Int) -> Color {
             switch v {

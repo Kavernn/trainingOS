@@ -489,9 +489,7 @@ struct MuscuSessionCard: View {
 
     var rpeColor: Color {
         guard let rpe = session.rpe else { return .gray }
-        if rpe >= 8 { return .red }
-        if rpe >= 6 { return .orange }
-        return .green
+        return RPEHelper.color(for: rpe)
     }
 
     private static let dateParser: DateFormatter = {

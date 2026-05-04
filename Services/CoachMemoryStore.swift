@@ -123,6 +123,7 @@ final class CoachMemoryStore: ObservableObject {
         }
     }
 }
+ 
 
 // MARK: - Analyzer
 
@@ -360,28 +361,48 @@ enum CoachMemoryAnalyzer {
 
         for (name, data) in weights {
             guard let history = data.history else { continue }
-            let points = history.compactMap { e -> (date: String, weight: Double)? in
-                guard let d = e.date else { return nil }
-                return (d, e.weight)
-            }.sorted { $0.date < $1.date }
-            guard points.count >= 3,
-                  let firstDate = DateFormatter.isoDate.date(from: points.first!.date),
-                  let lastDate  = DateFormatter.isoDate.date(from: points.last!.date) else { continue }
+
+            let points = history.compactMap { e -> (date: Date, weight: Double)? in
+                guard
+                    let dStr = e.date,
+                    let d = DateFormatter.isoDate.date(from: dStr),
+                    let w = e.weight
+                else { return nil }
+
+                return (date: d, weight: w)
+            }
+            .sorted { $0.date < $1.date }
+
+            guard points.count >= 3 else { continue }
+
+            let firstDate = points.first!.date
+            let lastDate = points.last!.date
+
             let days = lastDate.timeIntervalSince(firstDate) / 86400
             guard days >= 14 else { continue }
+
             let gain = points.last!.weight - points.first!.weight
-            velocities.append(ExoVelocity(name: name, lbsPerWeek: gain / (days / 7)))
+            let lbsPerWeek = gain / (days / 7)
+
+            velocities.append(
+                ExoVelocity(name: name, lbsPerWeek: lbsPerWeek)
+            )
         }
+
         guard !velocities.isEmpty else { return nil }
 
-        // Top 3 by absolute velocity
-        let top = velocities.sorted { abs($0.lbsPerWeek) > abs($1.lbsPerWeek) }.prefix(3)
+        let top = velocities
+            .sorted { abs($0.lbsPerWeek) > abs($1.lbsPerWeek) }
+            .prefix(3)
+
         let parts = top.map { v -> String in
             let sign = v.lbsPerWeek > 0.05 ? "+" : (v.lbsPerWeek < -0.05 ? "" : "~")
+
             return abs(v.lbsPerWeek) < 0.05
                 ? "\(v.name) stable"
                 : "\(v.name) \(sign)\(String(format: "%.1f", v.lbsPerWeek))lbs/sem"
         }
+
         return "Vélocité charges : " + parts.joined(separator: " | ")
     }
 

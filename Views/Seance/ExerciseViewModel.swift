@@ -57,7 +57,12 @@ final class ExerciseViewModel: ObservableObject {
     @Published var sets: [SetInput] = []
     @Published var showHistory = false
     @Published var logStatus: LogStatus? = nil
-    @Published var exerciseRPE: Double = 7
+    // Auto-calculé depuis le RIR moyen des sets (ne plus modifier manuellement)
+    var exerciseRPE: Double {
+        guard !sets.isEmpty else { return 7.0 }
+        let avgRIR = Int((Double(sets.map(\.rir).reduce(0, +)) / Double(sets.count)).rounded())
+        return RPEHelper.rirToRPE(min(avgRIR, 4))
+    }
     @Published var painZone: String = ""
     @Published var setBySetMode: Bool = false
     @Published var currentSetIndex: Int = 0
@@ -289,17 +294,14 @@ final class ExerciseViewModel: ObservableObject {
         let total = totalWeight(for: w)
         let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
             guard !s.reps.isEmpty else { return nil }
+            let setRPE = s.rpe ?? RPEHelper.rirToRPE(s.rir)
             if equipmentType == "bodyweight" {
                 let lest = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
-                var entry: [String: Any] = ["weight": units.toStorage(lest), "reps": s.reps, "rir": s.rir]
-                if let r = s.rpe { entry["rpe"] = r }
-                return entry
+                return ["weight": units.toStorage(lest), "reps": s.reps, "rir": s.rir, "rpe": setRPE]
             }
             guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")), sw > 0 else { return nil }
             let setTotal = totalWeight(for: units.toStorage(sw))
-            var entry: [String: Any] = ["weight": setTotal, "reps": s.reps, "rir": s.rir]
-            if let r = s.rpe { entry["rpe"] = r }
-            return entry
+            return ["weight": setTotal, "reps": s.reps, "rir": s.rir, "rpe": setRPE]
         }
         let result = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE,
             sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,

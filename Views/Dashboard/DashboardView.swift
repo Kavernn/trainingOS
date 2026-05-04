@@ -1206,11 +1206,7 @@ struct TodaySessionRecap: View {
         .padding(.horizontal, 16).padding(.vertical, 12)
     }
 
-    private func rpeColor(_ rpe: Double) -> Color {
-        if rpe >= 9 { return .red }
-        if rpe >= 7 { return .orange }
-        return .green
-    }
+    private func rpeColor(_ rpe: Double) -> Color { RPEHelper.color(for: rpe) }
 }
 
 // MARK: - Recap Metric Pill
