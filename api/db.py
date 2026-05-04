@@ -125,8 +125,10 @@ def _sqlite_upsert_clean(key: str, value: Any, updated_at_iso: Optional[str] = N
 
 
 # ---------------------------------------------------------------------------
-# Supabase helpers
+# Supabase helpers (legacy KV sync — only used by sync_now(), never in prod)
 # ---------------------------------------------------------------------------
+_TABLE = "kv"  # kept for backward-compat with sync_now(); kv table removed from Supabase
+
 def _get_online(key: str) -> Tuple[Optional[Any], Optional[str]]:
     if not _client:
         return None, None
