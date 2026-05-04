@@ -135,6 +135,34 @@ extension InfoEntry {
         ),
     ]
 
+    // Condition du jour / Readiness Score
+    static let readinessEntries: [InfoEntry] = [
+        InfoEntry(
+            term: "Condition du jour — score 0–100",
+            definition: "Score composite qui estime ta capacité physique aujourd'hui. Il combine plusieurs signaux biologiques pour répondre à une question simple : est-ce que mon corps est prêt à performer ?"
+        ),
+        InfoEntry(
+            term: "HRV — Variabilité cardiaque (30 %)",
+            definition: "La HRV mesure l'irrégularité entre tes battements cardiaques au repos. Une HRV élevée = système nerveux autonome bien récupéré. Une HRV basse = fatigue accumulée ou stress. C'est le signal le plus fiable de ton état de récupération.\n\nPour l'améliorer : dors 7–9h, réduis l'alcool, évite les séances intenses dos-à-dos, pratique la cohérence cardiaque."
+        ),
+        InfoEntry(
+            term: "Sommeil (35 %)",
+            definition: "La durée de ton sommeil cette nuit. Objectif optimal : 7–9h. En dessous de 6h, la récupération musculaire et hormonale est sévèrement compromise — une nuit courte peut faire chuter ton score de 20–30 points.\n\nPour l'améliorer : couche-toi à heure fixe, évite les écrans 30 min avant, baisse la température de ta chambre."
+        ),
+        InfoEntry(
+            term: "FC de repos (25 %)",
+            definition: "Ta fréquence cardiaque au repos ce matin. Plus elle est basse, mieux tu récupères. Une FC repos élevée par rapport à ta baseline est un signal de stress, de maladie ou de fatigue nerveuse.\n\nPour l'améliorer : cardio régulier à faible intensité (zone 2), sommeil suffisant, réduction du stress chronique."
+        ),
+        InfoEntry(
+            term: "Douleurs musculaires (10 %)",
+            definition: "Le niveau de courbatures ressenti (si renseigné). Un score de douleur élevé indique que tes muscles sont encore en phase de réparation — s'entraîner lourd dans cet état ralentit la progression.\n\nPour l'améliorer : intègre des jours de récupération active (marche, mobilité), optimise l'apport en protéines (≥ 1,6 g/kg)."
+        ),
+        InfoEntry(
+            term: "Interprétation du score",
+            definition: "76–100 → Optimal : conditions idéales pour une séance intense ou un test de force.\n61–75 → Bon : entraîne-toi normalement, reste attentif aux signaux.\n41–60 → Modéré : réduis le volume ou l'intensité de 15–20 %.\n0–40 → Repos : privilégie une récupération active (marche, étirements)."
+        ),
+    ]
+
     // Volume landmarks (MEV / MAV / MRV)
     static let volumeLandmarkEntries: [InfoEntry] = [
         InfoEntry(

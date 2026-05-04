@@ -3195,13 +3195,17 @@ struct ReadinessScoreCard: View {
             .frame(width: 96, height: 96)
 
             VStack(alignment: .leading, spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("CONDITION DU JOUR")
-                        .font(.system(size: 9, weight: .bold)).tracking(1.5)
-                        .foregroundColor(.gray)
-                    Text(scoreLabel)
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(scoreColor)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("CONDITION DU JOUR")
+                            .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                            .foregroundColor(.gray)
+                        Text(scoreLabel)
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(scoreColor)
+                    }
+                    Spacer(minLength: 4)
+                    CardInfoButton(title: "Condition du jour", entries: InfoEntry.readinessEntries)
                 }
 
                 VStack(alignment: .leading, spacing: 5) {

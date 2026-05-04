@@ -78,7 +78,8 @@ final class DashboardViewModel: ObservableObject {
     // Readiness score 0–100. Uses server value when available, falls back to local computation.
     var readinessScore: Int? {
         if let s = smartDay?.recoveryScore, s > 0 {
-            return s > 1 ? Int(s) : Int(s * 100)
+            // Server returns 0–10 scale
+            return min(100, Int((s / 10.0) * 100))
         }
         guard let rec = todayRecovery else { return nil }
         var weighted = 0.0
