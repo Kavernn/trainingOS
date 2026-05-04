@@ -4,6 +4,12 @@ final class CacheService {
     static let shared = CacheService()
 
     private let directory: URL
+    private let mem: NSCache<NSString, NSData> = {
+        let c = NSCache<NSString, NSData>()
+        c.countLimit = 60
+        c.totalCostLimit = 20 * 1024 * 1024  // 20 MB
+        return c
+    }()
 
     /// TTL in seconds per cache key (default: 3600s / 1h)
     private static let ttls: [String: TimeInterval] = [
@@ -64,6 +70,7 @@ final class CacheService {
     }
 
     func save(_ data: Data, for key: String) {
+        mem.setObject(data as NSData, forKey: key as NSString, cost: data.count)
         try? data.write(to: fileURL(for: key), options: .atomic)
         let ttl = ttl(for: key)
         let expiry = Date().addingTimeInterval(ttl).timeIntervalSince1970
@@ -72,21 +79,26 @@ final class CacheService {
     }
 
     func load(for key: String) -> Data? {
-        // Check expiry
+        // L1: memory hit — no disk I/O
+        if let hit = mem.object(forKey: key as NSString) { return hit as Data }
+
+        // L2: disk — check expiry first
         if let expiryData = try? Data(contentsOf: expiryURL(for: key)),
            expiryData.count == MemoryLayout<Double>.size {
             let expiry = expiryData.withUnsafeBytes { $0.load(as: Double.self) }
             if Date().timeIntervalSince1970 > expiry {
-                // Expired — evict
                 try? FileManager.default.removeItem(at: fileURL(for: key))
                 try? FileManager.default.removeItem(at: expiryURL(for: key))
                 return nil
             }
         }
-        return try? Data(contentsOf: fileURL(for: key))
+        guard let data = try? Data(contentsOf: fileURL(for: key)) else { return nil }
+        mem.setObject(data as NSData, forKey: key as NSString, cost: data.count)
+        return data
     }
 
     func clear(for key: String) {
+        mem.removeObject(forKey: key as NSString)
         try? FileManager.default.removeItem(at: fileURL(for: key))
         try? FileManager.default.removeItem(at: expiryURL(for: key))
     }

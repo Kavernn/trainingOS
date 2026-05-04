@@ -546,35 +546,41 @@ class APIService: ObservableObject {
                           userInfo: [NSLocalizedDescriptionKey: "Impossible de créer le programme"])
         }
 
-        // 2. Create each unique séance (from week 1 day names)
+        // 2. Create each unique séance in parallel
         let days = week1?.days ?? []
-        for day in days {
-            var seanceReq = URLRequest(url: URL(string: "\(baseURL)/api/programme")!)
-            seanceReq.httpMethod = "POST"
-            seanceReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            seanceReq.httpBody = try JSONSerialization.data(withJSONObject: [
-                "action":     "create_seance",
-                "jour":       day.name,
-                "program_id": programmeId
-            ])
-            _ = try? await URLSession.authed.data(for: seanceReq)
+        let base = baseURL
+        await withTaskGroup(of: Void.self) { group in
+            for day in days {
+                let name = day.name; let pid = programmeId
+                group.addTask {
+                    var req = URLRequest(url: URL(string: "\(base)/api/programme")!)
+                    req.httpMethod = "POST"
+                    req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    req.httpBody = try? JSONSerialization.data(withJSONObject: [
+                        "action": "create_seance", "jour": name, "program_id": pid
+                    ])
+                    _ = try? await URLSession.authed.data(for: req)
+                }
+            }
         }
 
-        // 3. Add exercises (week 1 schemes)
-        for day in days {
-            for ex in day.exercises {
-                let scheme = "\(ex.sets)x\(ex.reps)"
-                var exReq = URLRequest(url: URL(string: "\(baseURL)/api/programme")!)
-                exReq.httpMethod = "POST"
-                exReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                exReq.httpBody = try JSONSerialization.data(withJSONObject: [
-                    "action":     "add",
-                    "jour":       day.name,
-                    "exercise":   ex.name,
-                    "scheme":     scheme,
-                    "program_id": programmeId
-                ])
-                _ = try? await URLSession.authed.data(for: exReq)
+        // 3. Add exercises in parallel
+        await withTaskGroup(of: Void.self) { group in
+            for day in days {
+                for ex in day.exercises {
+                    let dayName = day.name; let exName = ex.name
+                    let scheme = "\(ex.sets)x\(ex.reps)"; let pid = programmeId
+                    group.addTask {
+                        var req = URLRequest(url: URL(string: "\(base)/api/programme")!)
+                        req.httpMethod = "POST"
+                        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                        req.httpBody = try? JSONSerialization.data(withJSONObject: [
+                            "action": "add", "jour": dayName,
+                            "exercise": exName, "scheme": scheme, "program_id": pid
+                        ])
+                        _ = try? await URLSession.authed.data(for: req)
+                    }
+                }
             }
         }
 

@@ -90,7 +90,7 @@ final class ExerciseViewModel: ObservableObject {
 
         $sets
             .dropFirst()
-            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
+            .debounce(for: .seconds(1.5), scheduler: RunLoop.main)
             .sink { [weak self] _ in self?.saveDraft() }
             .store(in: &cancellables)
     }

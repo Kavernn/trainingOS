@@ -15,8 +15,7 @@ struct RecoveryView: View {
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
     private var entriesMissingHK: [RecoveryEntry] {
-        log.filter { $0.restingHr == nil || $0.hrv == nil || $0.activeEnergy == nil
-                  || $0.hrMorning == nil || $0.hrEvening == nil }
+        log.filter { $0.restingHr == nil || $0.hrv == nil }
     }
 
     private var alreadyLoggedToday: Bool {
@@ -278,28 +277,23 @@ struct RecoveryView: View {
             guard let dateStr = entry.date,
                   let date    = fmt.date(from: dateStr) else { continue }
 
-            async let rhr  = entry.restingHr     == nil ? hk.fetchRestingHR(for: date)     : nil
-            async let hrv  = entry.hrv            == nil ? hk.fetchHRV(for: date)            : nil
-            async let ae   = entry.activeEnergy   == nil ? hk.fetchActiveEnergy(for: date)   : nil
-            async let hrM  = entry.hrMorning      == nil ? hk.fetchMorningHR(for: date)      : nil
-            async let hrPW = entry.hrPostWorkout  == nil ? hk.fetchPostWorkoutHR(for: date)  : nil
-            async let hrE  = entry.hrEvening      == nil ? hk.fetchEveningHR(for: date)      : nil
-            let (newRHR, newHRV, newAE, newHRM, newHRPW, newHRE) = await (rhr, hrv, ae, hrM, hrPW, hrE)
+            async let rhr = entry.restingHr == nil ? hk.fetchRestingHR(for: date) : nil
+            async let hrv = entry.hrv       == nil ? hk.fetchHRV(for: date)       : nil
+            let (newRHR, newHRV) = await (rhr, hrv)
 
-            guard newRHR != nil || newHRV != nil || newAE != nil
-               || newHRM != nil || newHRPW != nil || newHRE != nil else { continue }
+            guard newRHR != nil || newHRV != nil else { continue }
 
             try? await APIService.shared.logRecovery(
                 sleepHours:    entry.sleepHours,
                 sleepQuality:  entry.sleepQuality,
-                restingHr:     newRHR  ?? entry.restingHr,
-                hrv:           newHRV  ?? entry.hrv,
+                restingHr:     newRHR ?? entry.restingHr,
+                hrv:           newHRV ?? entry.hrv,
                 steps:         entry.steps,
                 soreness:      entry.soreness,
-                activeEnergy:  newAE   ?? entry.activeEnergy,
-                hrMorning:     newHRM  ?? entry.hrMorning,
-                hrPostWorkout: newHRPW ?? entry.hrPostWorkout,
-                hrEvening:     newHRE  ?? entry.hrEvening,
+                activeEnergy:  entry.activeEnergy,
+                hrMorning:     entry.hrMorning,
+                hrPostWorkout: entry.hrPostWorkout,
+                hrEvening:     entry.hrEvening,
                 notes:         entry.notes ?? "",
                 date:          dateStr
             )

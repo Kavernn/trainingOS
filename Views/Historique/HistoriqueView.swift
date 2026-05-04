@@ -41,6 +41,7 @@ struct HistoriqueView: View {
     @State private var monthFilter: String? = nil   // "YYYY-MM"
     @State private var showMonthPicker = false
     @State private var pickerDate = Date()
+    @State private var timelineCache: [TimelineDay] = []
 
     var body: some View {
         NavigationStack {
@@ -136,12 +137,10 @@ struct HistoriqueView: View {
                                         }
                                     }
                                 } else {
-                                    // Timeline: merge muscu + hiit sorted by date desc
-                                    let timelineItems = buildTimeline()
-                                    if timelineItems.isEmpty {
+                                    if timelineCache.isEmpty {
                                         EmptyHistoriqueView(label: "Aucune activité")
                                     } else {
-                                        ForEach(timelineItems, id: \.date) { item in
+                                        ForEach(timelineCache, id: \.date) { item in
                                             TimelineRow(item: item)
                                                 .padding(.horizontal, 16)
                                         }
@@ -158,6 +157,8 @@ struct HistoriqueView: View {
             .navigationBarTitleDisplayMode(.large)
         }
         .task { await loadData() }
+        .onChange(of: muscuSessions.count) { timelineCache = buildTimeline() }
+        .onChange(of: hiitSessions.count)  { timelineCache = buildTimeline() }
         .sheet(item: $editTarget) { session in
             EditSessionSheet(session: session) { date, rpe, comment, exos in
                 await saveEdit(date: date, rpe: rpe, comment: comment, sessionType: session.sessionType, exos: exos)
@@ -364,29 +365,32 @@ struct HistoriqueView: View {
     }
 
     private func buildTimeline() -> [TimelineDay] {
-        var days: [String: TimelineDay] = [:]
+        var muscu: [String: Int] = [:]
+        var hiit:  [String: Int] = [:]
+        var exos:  [String: [String]] = [:]
+        var rpes:  [String: Double] = [:]
+
         for s in muscuSessions {
-            let existing = days[s.date]
-            days[s.date] = TimelineDay(
-                date: s.date,
-                muscuCount: (existing?.muscuCount ?? 0) + 1,
-                hiitCount:  existing?.hiitCount ?? 0,
-                exercises:  (existing?.exercises ?? []) + s.exos.prefix(3).map(\.exercise),
-                rpe:        s.rpe ?? existing?.rpe
-            )
+            muscu[s.date, default: 0] += 1
+            if rpes[s.date] == nil, let rpe = s.rpe { rpes[s.date] = rpe }
+            var list = exos[s.date, default: []]
+            if list.count < 3 {
+                list.append(contentsOf: s.exos.prefix(3 - list.count).map(\.exercise))
+                exos[s.date] = list
+            }
         }
         for h in hiitSessions {
             guard let date = h.date else { continue }
-            let existing = days[date]
-            days[date] = TimelineDay(
-                date: date,
-                muscuCount: existing?.muscuCount ?? 0,
-                hiitCount:  (existing?.hiitCount ?? 0) + 1,
-                exercises:  existing?.exercises ?? [],
-                rpe:        existing?.rpe ?? h.rpe
-            )
+            hiit[date, default: 0] += 1
+            if rpes[date] == nil, let rpe = h.rpe { rpes[date] = rpe }
         }
-        return days.values.sorted { $0.date > $1.date }
+
+        let allDates = Set(muscu.keys).union(hiit.keys)
+        return allDates.map { date in
+            TimelineDay(date: date, muscuCount: muscu[date] ?? 0,
+                        hiitCount: hiit[date] ?? 0,
+                        exercises: exos[date] ?? [], rpe: rpes[date])
+        }.sorted { $0.date > $1.date }
     }
 }
 
@@ -490,9 +494,15 @@ struct MuscuSessionCard: View {
         return .green
     }
 
+    private static let dateParser: DateFormatter = {
+        let f = DateFormatter(); f.locale = Locale(identifier: "fr_CA"); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+    private static let datePrinter: DateFormatter = {
+        let f = DateFormatter(); f.locale = Locale(identifier: "fr_CA"); f.dateFormat = "EEEE d MMM"; return f
+    }()
+
     var formattedDate: String {
-        let f = DateFormatter(); f.locale = Locale(identifier: "fr_CA"); f.dateFormat = "yyyy-MM-dd"
-        if let d = f.date(from: session.date) { f.dateFormat = "EEEE d MMM"; return f.string(from: d).capitalized }
+        if let d = Self.dateParser.date(from: session.date) { return Self.datePrinter.string(from: d).capitalized }
         return session.date
     }
 

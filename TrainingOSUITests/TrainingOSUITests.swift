@@ -76,7 +76,7 @@ final class TrainingOSUITests: XCTestCase {
     func testDashboardLoads() throws {
         let tabs = app.tabBars.firstMatch
         XCTAssertTrue(tabs.waitForExistence(timeout: 15), "Tab bar did not appear")
-        tabs.buttons["Accueil"].tap()
+        tabs.buttons["Aujourd'hui"].tap()
 
         // Expect no error banner
         let errorBanner = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Impossible'")).firstMatch

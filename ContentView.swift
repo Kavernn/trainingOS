@@ -29,7 +29,7 @@ private struct iOSContentView: View {
                 .tabItem { Label("Coach", systemImage: "brain.head.profile") }
             DashboardView(onOpenSession: { selectedTab = 2 })
                 .tag(1)
-                .tabItem { Label("Accueil", systemImage: "house.fill") }
+                .tabItem { Label("Aujourd'hui", systemImage: "sun.horizon.fill") }
             SeanceView()
                 .tag(2)
                 .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
@@ -107,7 +107,7 @@ private enum MacPage: String, Identifiable {
 
     var label: String {
         switch self {
-        case .dashboard:      return "Accueil"
+        case .dashboard:      return "Aujourd'hui"
         case .seance:         return "Séance"
         case .programme:      return "Programme"
         case .timer:          return "Timer"

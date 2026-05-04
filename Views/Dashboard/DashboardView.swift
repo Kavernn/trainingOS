@@ -9,6 +9,7 @@ struct DashboardView: View {
     @ObservedObject private var alertService = AlertService.shared
     @State private var showMoodSheet = false
     @State private var showChecklist = false
+    @State private var showSleepSheet = false
     @State private var lastRefresh: Date = .distantPast
     @State private var sleepPromptDismissedThisSession = false
     @State private var actionErrorMessage: String? = nil
@@ -49,6 +50,21 @@ struct DashboardView: View {
                             GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
                                 .appearAnimation(delay: 0)
 
+                            if let score = vm.readinessScore {
+                                ReadinessScoreCard(score: score, recovery: vm.todayRecovery)
+                                    .appearAnimation(delay: 0.005)
+                            }
+
+                            QuickLogBar(
+                                alreadyLogged: dash.alreadyLoggedToday,
+                                sleepLogged: vm.todaySleepLogged,
+                                moodDone: vm.moodDue?.isDue == false,
+                                onSleepTap: { showSleepSheet = true },
+                                onMoodTap:  { showMoodSheet  = true },
+                                onSessionTap: { onOpenSession?() }
+                            )
+                            .appearAnimation(delay: 0.008)
+
                             // TodayCard: primary action, always first
                             TodayCardView(
                                 dash: dash,
@@ -75,6 +91,11 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.045)
                             }
 
+                            if let window = vm.sleepWindow, !dash.alreadyLoggedToday {
+                                OptimalWindowCard(wakeTime: window.wakeTime)
+                                    .appearAnimation(delay: 0.047)
+                            }
+
                             NavigationLink(destination: NutritionView()) {
                                 NutritionStripView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
                             }
@@ -89,6 +110,16 @@ struct DashboardView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .appearAnimation(delay: 0.06)
+                            }
+
+                            if let stages = vm.sleepStages {
+                                SleepStagingBar(stages: stages)
+                                    .appearAnimation(delay: 0.065)
+                            }
+
+                            if let steps = vm.todayRecovery?.steps {
+                                ActivityRingCard(steps: steps)
+                                    .appearAnimation(delay: 0.068)
                             }
 
                             if shouldShowSleepPrompt {
@@ -196,6 +227,32 @@ struct DashboardView: View {
             Task { await vm.refreshMoodDue() }
         }) {
             MoodLogSheet()
+        }
+        .sheet(isPresented: $showSleepSheet) {
+            NavigationStack {
+                VStack(spacing: 0) {
+                    SleepPromptCard(
+                        onDone: {
+                            UserDefaults.standard.set(todayStr, forKey: "sleepPromptDate")
+                            withAnimation(.easeOut(duration: 0.25)) { sleepPromptDismissedThisSession = true }
+                            showSleepSheet = false
+                        },
+                        onError: { msg in actionErrorMessage = msg }
+                    )
+                    .padding(16)
+                    Spacer()
+                }
+                .background(Color(hex: "0D0D14").ignoresSafeArea())
+                .navigationTitle("Sommeil")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Fermer") { showSleepSheet = false }
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+            .presentationDetents([.medium])
         }
         .sheet(isPresented: $showChecklist) {
             NavigationStack {
@@ -2827,6 +2884,365 @@ private struct WeeklyKPI: View {
         .padding(.vertical, 16)
         .glassCard(color: color, intensity: 0.05)
         .cornerRadius(14)
+    }
+}
+
+// MARK: - Quick Log Bar
+struct QuickLogBar: View {
+    let alreadyLogged: Bool
+    let sleepLogged: Bool
+    let moodDone: Bool
+    var onSleepTap: () -> Void
+    var onMoodTap: () -> Void
+    var onSessionTap: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            QuickLogChip(icon: "dumbbell.fill",     label: "Séance",    done: alreadyLogged, color: .orange,                                         action: onSessionTap)
+            QuickLogChip(icon: "moon.fill",          label: "Sommeil",   done: sleepLogged,   color: Color(red: 0.45, green: 0.35, blue: 0.95),       action: onSleepTap)
+            QuickLogChip(icon: "face.smiling.fill",  label: "Humeur",    done: moodDone,      color: .yellow,                                          action: onMoodTap)
+            NavigationLink(destination: NutritionView()) {
+                HStack(spacing: 6) {
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.green)
+                    Text("Nutrition")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 8)
+                .background(Color.green.opacity(0.12))
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.green.opacity(0.3), lineWidth: 1))
+                .cornerRadius(20)
+            }
+            .buttonStyle(.plain)
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+struct QuickLogChip: View {
+    let icon: String
+    let label: String
+    let done: Bool
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: done ? "checkmark.circle.fill" : icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(done ? .green : color)
+                Text(label)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(done ? Color.gray : .white)
+            }
+            .padding(.horizontal, 12).padding(.vertical, 8)
+            .background(done ? Color.white.opacity(0.05) : color.opacity(0.12))
+            .overlay(RoundedRectangle(cornerRadius: 20).stroke(done ? Color.white.opacity(0.08) : color.opacity(0.3), lineWidth: 1))
+            .cornerRadius(20)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Activity Ring Card
+struct ActivityRingCard: View {
+    let steps: Int
+    private let goal = 10_000
+
+    private var progress: Double { min(1.0, Double(steps) / Double(goal)) }
+    private var ringColor: Color {
+        switch progress {
+        case 0.75...: return .green
+        case 0.5...:   return .yellow
+        default:      return .orange
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .trim(from: 0, to: 0.75)
+                    .stroke(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .rotationEffect(.degrees(135))
+                Circle()
+                    .trim(from: 0, to: 0.75 * progress)
+                    .stroke(ringColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .rotationEffect(.degrees(135))
+                    .animation(.easeOut(duration: 0.8), value: steps)
+                VStack(spacing: 0) {
+                    Text("\(Int(progress * 100))%")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(width: 64, height: 64)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("OBJECTIF PAS")
+                    .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                    .foregroundColor(.gray)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(steps.formatted())")
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("/ \(goal.formatted()) pas")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                }
+                let remaining = max(0, goal - steps)
+                if remaining > 0 {
+                    Text("encore \(remaining.formatted()) pas")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                } else {
+                    Label("Objectif atteint", systemImage: "checkmark.circle.fill")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.green)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Optimal Training Window Card
+struct OptimalWindowCard: View {
+    let wakeTime: Date
+
+    private var windowStart: Date {
+        let candidate = wakeTime.addingTimeInterval(3 * 3600)
+        let cal = Calendar.current
+        let hour = cal.component(.hour, from: candidate)
+        if hour < 10 {
+            return cal.date(bySettingHour: 10, minute: 0, second: 0, of: candidate) ?? candidate
+        }
+        return candidate
+    }
+
+    private var windowEnd: Date {
+        wakeTime.addingTimeInterval(8 * 3600)
+    }
+
+    private var isWindowNow: Bool {
+        let now = Date()
+        return now >= windowStart && now <= windowEnd
+    }
+
+    private var timeFormatter: DateFormatter {
+        let f = DateFormatter()
+        f.dateFormat = "HH'h'"
+        return f
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color.cyan.opacity(0.12)).frame(width: 36, height: 36)
+                Image(systemName: "clock.badge.checkmark.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(.cyan)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("FENÊTRE OPTIMALE")
+                    .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                    .foregroundColor(.gray)
+                HStack(spacing: 4) {
+                    Text("\(timeFormatter.string(from: windowStart))–\(timeFormatter.string(from: windowEnd))")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                    if isWindowNow {
+                        Text("• MAINTENANT")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.cyan)
+                    }
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 14).padding(.vertical, 10)
+        .background(Color.cyan.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan.opacity(0.2), lineWidth: 1))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Sleep Staging Bar
+struct SleepStagingBar: View {
+    let stages: SleepStages
+
+    private var total: Double { max(stages.totalHours, 0.01) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "moon.zzz.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(.indigo)
+                Text("PHASES DE SOMMEIL")
+                    .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                    .foregroundColor(.gray)
+                Spacer()
+                Text(String(format: "%.1fh total", stages.totalHours))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.gray)
+            }
+
+            // Proportional bar
+            GeometryReader { geo in
+                HStack(spacing: 2) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color(red: 0.2, green: 0.3, blue: 0.9))
+                        .frame(width: max(0, geo.size.width * CGFloat(stages.deepHours / total)))
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.purple)
+                        .frame(width: max(0, geo.size.width * CGFloat(stages.remHours / total)))
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.indigo.opacity(0.6))
+                        .frame(maxWidth: .infinity)
+                }
+                .frame(height: 10)
+                .clipShape(RoundedRectangle(cornerRadius: 5))
+            }
+            .frame(height: 10)
+
+            // Legend
+            HStack(spacing: 16) {
+                StageLegendItem(color: Color(red: 0.2, green: 0.3, blue: 0.9), label: "Profond", hours: stages.deepHours)
+                StageLegendItem(color: .purple, label: "REM", hours: stages.remHours)
+                StageLegendItem(color: .indigo.opacity(0.7), label: "Léger", hours: stages.coreHours)
+            }
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(14)
+    }
+}
+
+private struct StageLegendItem: View {
+    let color: Color
+    let label: String
+    let hours: Double
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.gray)
+            Text(String(format: "%.0fmin", hours * 60))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.white)
+        }
+    }
+}
+
+// MARK: - Readiness Score Card
+struct ReadinessScoreCard: View {
+    let score: Int
+    let recovery: RecoveryEntry?
+
+    private var scoreColor: Color {
+        switch score {
+        case 76...100: return .green
+        case 61...75:  return Color(red: 0.85, green: 0.75, blue: 0.1)
+        case 41...60:  return .orange
+        default:       return .red
+        }
+    }
+
+    private var scoreLabel: String {
+        switch score {
+        case 76...100: return "Optimal"
+        case 61...75:  return "Bon"
+        case 41...60:  return "Modéré"
+        default:       return "Repos"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 20) {
+            // Gauge arc (270° sweep, opens at bottom)
+            ZStack {
+                Circle()
+                    .trim(from: 0, to: 0.75)
+                    .stroke(Color.white.opacity(0.08),
+                            style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(135))
+
+                Circle()
+                    .trim(from: 0, to: 0.75 * CGFloat(score) / 100)
+                    .stroke(scoreColor,
+                            style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                    .rotationEffect(.degrees(135))
+                    .animation(.easeOut(duration: 0.8), value: score)
+
+                VStack(spacing: 1) {
+                    Text("\(score)")
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("/ 100")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.gray)
+                }
+            }
+            .frame(width: 96, height: 96)
+
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CONDITION DU JOUR")
+                        .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                        .foregroundColor(.gray)
+                    Text(scoreLabel)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(scoreColor)
+                }
+
+                VStack(alignment: .leading, spacing: 5) {
+                    if let hrv = recovery?.hrv {
+                        ReadinessMetricRow(icon: "waveform.path.ecg", label: "HRV", value: "\(Int(hrv)) ms")
+                    }
+                    if let sleep = recovery?.sleepHours {
+                        ReadinessMetricRow(icon: "moon.fill", label: "Sommeil", value: String(format: "%.1fh", sleep))
+                    }
+                    if let rhr = recovery?.restingHr {
+                        ReadinessMetricRow(icon: "heart.fill", label: "RHR", value: "\(Int(rhr)) bpm")
+                    }
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(16)
+    }
+}
+
+private struct ReadinessMetricRow: View {
+    let icon: String
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundColor(.gray)
+                .frame(width: 14)
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(.gray)
+            Text(value)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.white)
+        }
     }
 }
 

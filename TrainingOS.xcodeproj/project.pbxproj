@@ -56,6 +56,9 @@
 		CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3300012F5D98BA002AE472 /* PSSView.swift */; };
 		CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */; };
 		D60EC6EA2F76B1F2003A5209 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EC6E92F76B1F2003A5209 /* NotificationService.swift */; };
+		D618A6BF2FA81E94001AEADD /* ChatPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D618A6BE2FA81E8C001AEADD /* ChatPanel.swift */; };
+		D618A6C12FA81E9E001AEADD /* CoachDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D618A6C02FA81E98001AEADD /* CoachDashboardView.swift */; };
+		D618A6C32FA820DC001AEADD /* ChatComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = D618A6C22FA820D9001AEADD /* ChatComponents.swift */; };
 		D665E4472F5D98BA002AE470 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4332F5D98B8002AE470 /* ContentView.swift */; };
 		D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4422F5D98B8002AE470 /* SeanceView.swift */; };
 		D665E4492F5D98BA002AE470 /* HistoriqueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43E2F5D98B8002AE470 /* HistoriqueView.swift */; };
@@ -169,6 +172,9 @@
 		CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardView.swift; sourceTree = "<group>"; };
 		D0FE1CA8525F46319027AD6D /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
 		D60EC6E92F76B1F2003A5209 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		D618A6BE2FA81E8C001AEADD /* ChatPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPanel.swift; sourceTree = "<group>"; };
+		D618A6C02FA81E98001AEADD /* CoachDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachDashboardView.swift; sourceTree = "<group>"; };
+		D618A6C22FA820D9001AEADD /* ChatComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatComponents.swift; sourceTree = "<group>"; };
 		D665E4252F5D9858002AE470 /* TrainingOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TrainingOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D665E4332F5D98B8002AE470 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D665E4342F5D98B8002AE470 /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
@@ -374,6 +380,9 @@
 		AA00300B2F5D98B8002AE470 /* Intelligence */ = {
 			isa = PBXGroup;
 			children = (
+				D618A6C22FA820D9001AEADD /* ChatComponents.swift */,
+				D618A6C02FA81E98001AEADD /* CoachDashboardView.swift */,
+				D618A6BE2FA81E8C001AEADD /* ChatPanel.swift */,
 				AA00100B2F5D98B8002AE470 /* IntelligenceView.swift */,
 				AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */,
 			);
@@ -780,6 +789,7 @@
 				EE5500022F5D98BA002AE470 /* PendingMutation.swift in Sources */,
 				EE5500042F5D98BA002AE470 /* SyncManager.swift in Sources */,
 				AA1100052F5D98BA002AE470 /* UnitSettings.swift in Sources */,
+				D618A6C32FA820DC001AEADD /* ChatComponents.swift in Sources */,
 				BB2200032F5D98BA002AE470 /* WearableService.swift in Sources */,
 				FF1100012F5D98BA002AE470 /* WatchSyncService.swift in Sources */,
 				BB2200042F5D98BA002AE470 /* HealthDashboardView.swift in Sources */,
@@ -793,6 +803,7 @@
 				DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */,
 				FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */,
 				PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */,
+				D618A6C12FA81E9E001AEADD /* CoachDashboardView.swift in Sources */,
 				PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */,
 				OB000002OB000002OB000002 /* OnboardingView.swift in Sources */,
 				E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */,
@@ -811,6 +822,7 @@
 				F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */,
 				FBCACC3302AC10C5231E0521 /* GoalsModels.swift in Sources */,
 				2013CE6D9FC8EE527D8B63F2 /* AnalyticsModels.swift in Sources */,
+				D618A6BF2FA81E94001AEADD /* ChatPanel.swift in Sources */,
 				0D8210D4F61FF52D9FFFE4DF /* ProfileModels.swift in Sources */,
 				536A301CA097593473B475D5 /* DashboardViewModel.swift in Sources */,
 				0886AB2185354BBDA38FD7C4 /* NutritionViewModel.swift in Sources */,
