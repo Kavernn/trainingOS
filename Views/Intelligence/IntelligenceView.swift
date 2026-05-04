@@ -39,6 +39,7 @@ struct IntelligenceView: View {
     @AppStorage("coach_brief_text") private var briefText: String = ""
     @State private var isBriefLoading = false
     @State private var cardioData: [CardioEntry] = []
+    @State private var mesocycleInfo: MesocycleInfo? = nil
     @State private var userHasInteracted = false  // gates auto-scroll; set only when user sends a message
 
     // Tab-switch callback injected from ContentView
@@ -483,13 +484,15 @@ struct IntelligenceView: View {
             lssData  = lssResult
         }
 
-        // 3. Nutrition history + cardio data in parallel
-        async let histTask  = try? APIService.shared.fetchNutritionHistory()
+        // 3. Nutrition history + cardio data + mesocycle in parallel
+        async let histTask   = try? APIService.shared.fetchNutritionHistory()
         async let cardioTask = try? APIService.shared.fetchCardioData()
-        let (hist, cardio) = await (histTask, cardioTask)
+        async let mesoTask   = try? APIService.shared.fetchSeanceData()
+        let (hist, cardio, seanceData) = await (histTask, cardioTask, mesoTask)
         await MainActor.run {
-            if let h = hist, !h.isEmpty { nutritionHistory = h; showNutritionInsight = true }
-            if let c = cardio             { cardioData = c }
+            if let h = hist,       !h.isEmpty { nutritionHistory = h; showNutritionInsight = true }
+            if let c = cardio                 { cardioData = c }
+            if let m = seanceData?.mesocycle  { mesocycleInfo = m }
         }
 
         // 4. Weekly memory auto-analysis (no-op if run < 7 days ago)
@@ -548,6 +551,13 @@ struct IntelligenceView: View {
         }
         if let acwr = acwrData {
             lines.append("ACWR:\(String(format: "%.2f", acwr.ratio)) \(acwr.zone.code) aiguë:\(String(format: "%.0f", acwr.acuteLoad)) chr:\(String(format: "%.0f", acwr.chronicLoad))")
+        }
+
+        // Mesocycle phase — critical context for RPE targets and volume expectations
+        if let meso = mesocycleInfo {
+            var mesoLine = "mésocycle: S\(meso.week)/8 \(meso.phase) cibleRPE:\(meso.rpeTarget)"
+            if !meso.note.isEmpty { mesoLine += " (\(meso.note))" }
+            lines.append(mesoLine)
         }
 
         // Schedule

@@ -70,8 +70,20 @@ final class CoachMemoryStore: ObservableObject {
 
     var contextBlock: String {
         guard !entries.isEmpty else { return "" }
-        let sorted = entries.sorted { $0.confidence > $1.confidence }.prefix(12)
-        return sorted.map { "[\($0.type.rawValue)] \($0.content)" }.joined(separator: "\n")
+        // Guarantee at least 1 entry per type so milestones (confidence=1.0) don't crowd out
+        // actionable patterns/risks/correlations. Fill remaining slots by confidence.
+        var slots: [CoachMemoryEntry] = []
+        for type in CoachMemoryEntry.MemType.allCases {
+            if let best = entries.filter({ $0.type == type }).max(by: { $0.confidence < $1.confidence }) {
+                slots.append(best)
+            }
+        }
+        let slotIDs = Set(slots.map(\.id))
+        let remaining = entries
+            .filter { !slotIDs.contains($0.id) }
+            .sorted { $0.confidence > $1.confidence }
+        let combined = (slots + remaining).prefix(12)
+        return combined.map { "[\($0.type.rawValue)] \($0.content)" }.joined(separator: "\n")
     }
 
     // MARK: - Weekly auto-analysis
@@ -176,11 +188,15 @@ enum CoachMemoryAnalyzer {
             ))
         }
 
-        // 6. CORRÉLATION — strongest personal correlation
-        if let top = correlations.filter({ abs($0.correlation) >= 0.5 }).max(by: { abs($0.correlation) < abs($1.correlation) }) {
+        // 6. CORRÉLATION — top 3 personal correlations (was: only 1)
+        let strongCorrs = correlations
+            .filter { abs($0.correlation) >= 0.4 }
+            .sorted { abs($0.correlation) > abs($1.correlation) }
+            .prefix(3)
+        for (i, top) in strongCorrs.enumerated() {
             let dir = top.correlation > 0 ? "↑" : "↓"
             results.append(CoachMemoryEntry(
-                id: "correlation.top.\(top.xVar).\(top.yVar)",
+                id: "correlation.top\(i).\(top.xVar).\(top.yVar)",
                 type: .correlation,
                 content: "\(top.label) (r=\(String(format: "%.2f", top.correlation))) — \(top.xVar)\(dir) influence \(top.yVar)",
                 createdAt: today, updatedAt: today, confidence: min(1.0, abs(top.correlation))
@@ -207,6 +223,47 @@ enum CoachMemoryAnalyzer {
             ))
         }
 
+        // 9. PATTERN — exercise progression velocity (lbs/week on top 3 lifts)
+        if let velocityFact = exerciseProgressionVelocity(weights: weights) {
+            results.append(CoachMemoryEntry(
+                id: "pattern.progression.velocity",
+                type: .pattern,
+                content: velocityFact,
+                createdAt: today, updatedAt: today, confidence: 0.9
+            ))
+        }
+
+        // 10. RISQUE — sleep quality + HRV decline (richer than hours-only)
+        if let recoveryRisk = sleepQualityHrvRisk(recovery: recovery) {
+            results.append(CoachMemoryEntry(
+                id: "risk.recovery.quality",
+                type: .risk,
+                content: recoveryRisk,
+                createdAt: today, updatedAt: today, confidence: 0.88
+            ))
+        }
+
+        // 11. CORRÉLATION — énergie pré-séance vs RPE
+        if let energyFact = energyPreRpePattern(sessions: sessions) {
+            results.append(CoachMemoryEntry(
+                id: "correlation.energy.rpe",
+                type: .correlation,
+                content: energyFact,
+                createdAt: today, updatedAt: today, confidence: 0.8
+            ))
+        }
+
+        // 12. RISQUE — stagnation exercice (plateau détecté)
+        let plateauFacts = exercisePlateaus(weights: weights)
+        for (i, fact) in plateauFacts.enumerated() {
+            results.append(CoachMemoryEntry(
+                id: "risk.plateau.\(i)",
+                type: .risk,
+                content: fact,
+                createdAt: today, updatedAt: today, confidence: 0.85
+            ))
+        }
+
         return results
     }
 
@@ -221,8 +278,11 @@ enum CoachMemoryAnalyzer {
             let weekday = cal.component(.weekday, from: date)
             dayCounts[weekday, default: 0] += 1
         }
-        let total = Double(sessions.count)
-        let preferred = dayCounts.filter { Double($0.value) / total > 0.3 }
+        // Use top-3 days by count with a relative threshold (≥60% of the most frequent day)
+        // — avoids the 30% absolute threshold that silently returns nil for 4-5 day/week trainees
+        guard let maxCount = dayCounts.values.max() else { return nil }
+        let preferred = dayCounts
+            .filter { Double($0.value) >= Double(maxCount) * 0.6 }
             .sorted { $0.value > $1.value }
             .prefix(3)
             .map { dayName($0.key) }
@@ -290,5 +350,137 @@ enum CoachMemoryAnalyzer {
         case 7: return "sam"
         default: return "?"
         }
+    }
+
+    // MARK: - New analyzers
+
+    private static func exerciseProgressionVelocity(weights: [String: WeightData]) -> String? {
+        struct ExoVelocity { let name: String; let lbsPerWeek: Double }
+        var velocities: [ExoVelocity] = []
+
+        for (name, data) in weights {
+            guard let history = data.history else { continue }
+            let points = history.compactMap { e -> (date: String, weight: Double)? in
+                guard let d = e.date else { return nil }
+                return (d, e.weight)
+            }.sorted { $0.date < $1.date }
+            guard points.count >= 3,
+                  let firstDate = DateFormatter.isoDate.date(from: points.first!.date),
+                  let lastDate  = DateFormatter.isoDate.date(from: points.last!.date) else { continue }
+            let days = lastDate.timeIntervalSince(firstDate) / 86400
+            guard days >= 14 else { continue }
+            let gain = points.last!.weight - points.first!.weight
+            velocities.append(ExoVelocity(name: name, lbsPerWeek: gain / (days / 7)))
+        }
+        guard !velocities.isEmpty else { return nil }
+
+        // Top 3 by absolute velocity
+        let top = velocities.sorted { abs($0.lbsPerWeek) > abs($1.lbsPerWeek) }.prefix(3)
+        let parts = top.map { v -> String in
+            let sign = v.lbsPerWeek > 0.05 ? "+" : (v.lbsPerWeek < -0.05 ? "" : "~")
+            return abs(v.lbsPerWeek) < 0.05
+                ? "\(v.name) stable"
+                : "\(v.name) \(sign)\(String(format: "%.1f", v.lbsPerWeek))lbs/sem"
+        }
+        return "Vélocité charges : " + parts.joined(separator: " | ")
+    }
+
+    private static func sleepQualityHrvRisk(recovery: [RecoveryEntry]) -> String? {
+        let recent = Array(recovery.prefix(14))
+        guard recent.count >= 5 else { return nil }
+        var flags: [String] = []
+
+        let qualities = recent.compactMap { $0.sleepQuality }
+        if qualities.count >= 5 {
+            let avg = qualities.reduce(0, +) / Double(qualities.count)
+            if avg < 60 { flags.append("qualité sommeil faible (\(Int(avg))/100)") }
+        }
+
+        let hrvValues = recent.compactMap { $0.hrv }
+        if hrvValues.count >= 8 {
+            let avgRecent = Array(hrvValues.prefix(7)).reduce(0, +) / 7.0
+            let avgOlder  = Array(hrvValues.dropFirst(7)).reduce(0, +) / Double(hrvValues.count - 7)
+            if avgOlder > 0 && avgRecent < avgOlder * 0.85 {
+                let drop = Int((1 - avgRecent / avgOlder) * 100)
+                flags.append("HRV −\(drop)% sur 7j (\(Int(avgRecent)) vs \(Int(avgOlder)))")
+            }
+        }
+
+        guard !flags.isEmpty else { return nil }
+        return "Récupération compromise : " + flags.joined(separator: " + ")
+    }
+
+    private static func energyPreRpePattern(sessions: [String: SessionEntry]) -> String? {
+        // Detect if low pre-workout energy reliably drives high RPE
+        let pairs = sessions.values.compactMap { s -> (energy: Double, rpe: Double)? in
+            guard let e = s.energyPre, let r = s.rpe else { return nil }
+            return (Double(e), r)
+        }
+        guard pairs.count >= 8 else { return nil }
+
+        let lowEnergyRPEs  = pairs.filter { $0.energy <= 4 }.map { $0.rpe }
+        let highEnergyRPEs = pairs.filter { $0.energy >= 7 }.map { $0.rpe }
+        guard lowEnergyRPEs.count >= 3, highEnergyRPEs.count >= 3 else { return nil }
+
+        let avgLow  = lowEnergyRPEs.reduce(0, +)  / Double(lowEnergyRPEs.count)
+        let avgHigh = highEnergyRPEs.reduce(0, +) / Double(highEnergyRPEs.count)
+        let diff = avgLow - avgHigh
+        guard diff > 0.8 else { return nil }  // meaningful gap only
+
+        return "Séances avec énergie pré ≤4 → RPE moy. \(String(format: "%.1f", avgLow)) " +
+               "vs énergie ≥7 → RPE moy. \(String(format: "%.1f", avgHigh)) " +
+               "(delta +\(String(format: "%.1f", diff))) — l'énergie pré prédit l'effort perçu"
+    }
+
+    // Parse "8", "8-10", "8/10" → first integer found
+    private static func parseReps(_ s: String?) -> Int? {
+        guard let s else { return nil }
+        return s.components(separatedBy: CharacterSet(charactersIn: "-/ ")).compactMap(Int.init).first
+    }
+
+    private static func exercisePlateaus(weights: [String: WeightData]) -> [String] {
+        // Plateau = mêmes poids ET mêmes reps sur les 3 dernières entrées.
+        // Double progression : poids stable mais reps en hausse → PAS un plateau.
+        var plateaus: [String] = []
+
+        for (name, data) in weights {
+            guard let history = data.history else { continue }
+            let recent = history
+                .compactMap { e -> (weight: Double, reps: Int, date: String)? in
+                    guard let d = e.date, let w = e.weight else { return nil }
+                    // Prefer first set reps; fall back to entry-level reps string
+                    let repsStr = e.sets?.first?.reps ?? e.reps
+                    guard let repsVal = parseReps(repsStr) else { return nil }
+                    return (w, repsVal, d)
+                }
+                .sorted { $0.date > $1.date }
+                .prefix(3)
+
+            guard recent.count == 3 else { continue }
+
+            let weights3 = recent.map { $0.weight }
+            let reps3    = recent.map { $0.reps }
+
+            let weightFlat = weights3.max()! - weights3.min()! < 0.01
+            // Reps stable ou en baisse = vrai plateau; reps en hausse = progression (double progression)
+            let repsProgressing = reps3[0] > reps3[2]  // index 0 = le plus récent
+            let repsFlat = !repsProgressing && (reps3.max()! - reps3.min()! <= 1)
+
+            if weightFlat && repsFlat {
+                plateaus.append(
+                    "Plateau \(name) : \(String(format: "%.0f", weights3[0]))lbs×\(reps3[0]) reps — 3 séances sans progression"
+                )
+            }
+        }
+
+        // Limit to 3 most impactful (heaviest weight)
+        return plateaus
+            .sorted { lhs, rhs in
+                let w0 = Double(lhs.components(separatedBy: ":").last?.components(separatedBy: "lbs").first?.trimmingCharacters(in: .whitespaces) ?? "0") ?? 0
+                let w1 = Double(rhs.components(separatedBy: ":").last?.components(separatedBy: "lbs").first?.trimmingCharacters(in: .whitespaces) ?? "0") ?? 0
+                return w0 > w1
+            }
+            .prefix(3)
+            .map { $0 }
     }
 }
