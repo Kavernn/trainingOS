@@ -463,8 +463,16 @@ struct SleepPromptCard: View {
     let onDone: () -> Void
     var onError: (String) -> Void = { _ in }
 
-    @State private var bedtime  = Calendar.current.date(bySettingHour: 23, minute: 0, second: 0, of: Date()) ?? Date()
-    @State private var wakeTime = Calendar.current.date(bySettingHour: 7,  minute: 0, second: 0, of: Date()) ?? Date()
+    @State private var bedtime: Date = {
+        let tz = TimeZone.current.secondsFromGMT()
+        let local = Int(Date().timeIntervalSince1970) + tz
+        return Date(timeIntervalSince1970: TimeInterval(local - (local % 86400) + 23 * 3600 - tz))
+    }()
+    @State private var wakeTime: Date = {
+        let tz = TimeZone.current.secondsFromGMT()
+        let local = Int(Date().timeIntervalSince1970) + tz
+        return Date(timeIntervalSince1970: TimeInterval(local - (local % 86400) + 7 * 3600 - tz))
+    }()
     @State private var isSaving = false
     @State private var hkImported = false
 

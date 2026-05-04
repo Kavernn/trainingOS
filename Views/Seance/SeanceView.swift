@@ -56,7 +56,10 @@ struct AlreadyLoggedSeanceView: View {
     @State private var postWorkoutBrief: String? = nil
     @State private var isLoadingBrief = false
     @State private var showFinishRemaining = false
-    @State private var todayWeekday: Int = Calendar.current.component(.weekday, from: Date())
+    @State private var todayWeekday: Int = {
+        let localSecs = Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()
+        return ((localSecs / 86400 + 4) % 7) + 1  // Jan 1 1970 = Thu = weekday 5
+    }()
 
     var todaySession: SessionEntry? {
         APIService.shared.dashboard?.sessions[data.todayDate]
