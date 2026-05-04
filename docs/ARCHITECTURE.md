@@ -54,7 +54,7 @@ TrainingOS/
 │   └── UnitSettings.swift       — Préférences unités (kg/lbs)
 │
 └── Views/
-    ├── Dashboard/               — Accueil, MorningBrief, PeakPrediction, Ghost
+    ├── Dashboard/               — Aujourd'hui (ex-Accueil) : ReadinessScore, QuickLogBar, SleepStaging, ActivityRing, OptimalWindow, MorningBrief, PeakPrediction
     ├── Seance/                  — Logging séance (séries, poids, RPE, RIR)
     ├── Historique/              — Historique par date
     ├── Stats/                   — Graphiques 5 onglets (volume, 1RM, groupes, cardio, corps)

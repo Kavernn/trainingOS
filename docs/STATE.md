@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-04-26
+Dernière mise à jour : 2026-05-04
 
 ---
 
@@ -52,7 +52,13 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - Contexte athlete enrichi : LSS, ACWR, poids, groupes musculaires, sessions (~1400 chars terse)
 - Historique conversations persisté (`@AppStorage`, Codable `ChatMessage`)
 
-### Dashboard & UX
+### Dashboard & UX — onglet "Aujourd'hui"
+- Onglet renommé **Aujourd'hui** (ex-Accueil), icône `sun.horizon.fill`
+- **ReadinessScoreCard** : score composite 0–100 (arc gauge coloré) — HRV 30 %, sommeil 35 %, FC repos 25 %, douleurs 10 %. Utilise `SmartDay.recovery_score` (0–10 → converti) si dispo, sinon calcul local. Bouton ⓘ explicatif intégré.
+- **QuickLogBar** : 4 chips Séance / Sommeil / Humeur / Nutrition avec état "fait" (coche verte). Sommeil → sheet `SleepPromptCard`, Humeur → `MoodLogSheet`, Séance → switch tab, Nutrition → NavigationLink.
+- **SleepStagingBar** : barre proportionnelle HealthKit (Profond / REM / Léger en minutes). Affiché uniquement si HealthKit retourne des phases.
+- **ActivityRingCard** : arc de progression pas vers objectif 10 k. "Objectif atteint" si ≥ 10 k.
+- **OptimalWindowCard** : fenêtre pic = heure de réveil +3h → +8h (plancher 10h). Badge "MAINTENANT" si fenêtre en cours. Masqué si séance déjà loggée.
 - TodayCard en position #1 (action principale en haut de page)
 - Skeleton loading animé (`DashboardSkeletonView` + `SkeletonBar`)
 - Cards tappables : RecoverySnapshot → RecoveryView, StatsRow → StatsView, NutritionSummary → NutritionView
@@ -65,7 +71,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - Haptics sur toutes les actions importantes
 - Confetti sur PR et complétion de séance
 - Timer de repos auto-start après chaque log
-- `CardInfoButton` + `InfoSheetView` : bouton ⓘ contextuel sur les cards LSS, déload, prévision 7j, volume landmarks (MEV/MAV/MRV)
+- `CardInfoButton` + `InfoSheetView` : bouton ⓘ contextuel sur les cards LSS, déload, prévision 7j, volume landmarks (MEV/MAV/MRV), condition du jour
 - `ProactiveBannerCard` : bannière dismissable en tête du Dashboard pour les alertes proactives
 
 ### Santé & récupération
@@ -78,6 +84,8 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - SleepView : bridge `recovery_log → sleep` quand `sleep_records` vide (fallback HealthKit, `source: "healthkit"`, `bedtime: "—"`, `quality: 0`)
 - MentalHealth suite (mood, journal, breathwork, PSS, self-care)
 - HealthDashboard agrégé
+- **Fix sync Récupération** : `entriesMissingHK` filtre désormais uniquement sur `restingHr == nil || hrv == nil` (plus `activeEnergy/hrMorning/hrEvening` qui retournent systématiquement nil pour les dates passées → message "aucune donnée" trompeur corrigé)
+- **SleepStages** : `HealthKitService.fetchLastNightSleepStages()` retourne `deepHours/remHours/coreHours` depuis HealthKit; chargé dans `DashboardViewModel.sleepStages` au démarrage
 
 ### Objectifs
 - CRUD objectifs exercice avec deadline
