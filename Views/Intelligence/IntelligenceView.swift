@@ -29,7 +29,7 @@ struct IntelligenceView: View {
     @State private var showProgramPreview                        = false
     @State private var programError:    String?                  = nil
     @State private var showMemory                                = false
-    @StateObject private var memoryStore = CoachMemoryStore.shared
+    @ObservedObject private var memoryStore = CoachMemoryStore.shared
     @State private var nutritionHistory: [NutritionDayHistory]  = []
     @State private var showNutritionInsight                     = true
     @State private var weeklyReportData: WeeklyReport?          = nil
@@ -746,9 +746,10 @@ struct IntelligenceView: View {
     }
 
     private var currentWeekKey: String {
-        let y = Calendar.current.component(.yearForWeekOfYear, from: Date())
-        let w = Calendar.current.component(.weekOfYear, from: Date())
-        return String(format: "%04d-W%02d", y, w)
+        // Weeks since first Monday after Unix epoch (Jan 5, 1970 = second 345600)
+        // Avoids Calendar.current.component which recurses on iOS 26
+        let weekIndex = Int((Date().timeIntervalSince1970 - 345_600) / 604_800)
+        return "W\(weekIndex)"
     }
 
     private func loadNarrative() {
@@ -1230,7 +1231,8 @@ private struct CoachGreetingHeader: View {
     }
 
     private var greeting: String {
-        let h = Calendar.current.component(.hour, from: Date())
+        // Timestamp arithmetic to avoid Calendar.current.component on iOS 26
+        let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         if h < 12 { return "Bonjour" }
         if h < 18 { return "Bon après-midi" }
         return "Bonsoir"

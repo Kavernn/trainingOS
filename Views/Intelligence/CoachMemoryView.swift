@@ -4,7 +4,7 @@ import SwiftUI
 // Displays the AI coach's persistent memory — facts accumulated over time.
 // Accessible from the Intelligence tab toolbar.
 struct CoachMemoryView: View {
-    @StateObject private var store = CoachMemoryStore.shared
+    @ObservedObject private var store = CoachMemoryStore.shared
     @Environment(\.dismiss) private var dismiss
     @State private var confirmDeleteAll = false
 
@@ -104,7 +104,7 @@ struct CoachMemoryView: View {
 private struct MemorySection: View {
     let type: CoachMemoryEntry.MemType
     let entries: [CoachMemoryEntry]
-    @StateObject private var store = CoachMemoryStore.shared
+    @ObservedObject private var store = CoachMemoryStore.shared
 
     private var accentColor: Color {
         switch type {

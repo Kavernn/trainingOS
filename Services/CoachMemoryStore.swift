@@ -273,10 +273,12 @@ enum CoachMemoryAnalyzer {
     private static func preferredTrainingDays(sessions: [String: SessionEntry]) -> String? {
         guard sessions.count >= 8 else { return nil }
         var dayCounts: [Int: Int] = [:]
-        let cal = Calendar.current
         for dateStr in sessions.keys {
             guard let date = DateFormatter.isoDate.date(from: dateStr) else { continue }
-            let weekday = cal.component(.weekday, from: date)
+            // Pure timestamp weekday — avoids Calendar.current.component on iOS 26
+            // Jan 1, 1970 = Thursday = weekday 5 (Calendar: 1=Sun … 7=Sat)
+            let epochDays = Int(date.timeIntervalSince1970 / 86400)
+            let weekday = ((epochDays + 4) % 7) + 1
             dayCounts[weekday, default: 0] += 1
         }
         // Use top-3 days by count with a relative threshold (≥60% of the most frequent day)
