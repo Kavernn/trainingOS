@@ -436,7 +436,7 @@ def api_ai_generated_program_latest():
     import db as _db
     row = _db.get_latest_generated_program()
     if not row:
-        return jsonify({"error": "Aucun programme généré"}), 404
+        return jsonify(None), 200
     return jsonify({
         "id":           row["id"],
         "generated_at": str(row.get("generated_at", "")),
