@@ -317,7 +317,7 @@ def analyser_deload(weights: dict) -> dict:
         "deload_actif":        state["active"],
         "deload_since":        state.get("since"),
         "deload_reason":       state.get("reason"),
-        "stagnants":           stagnants,
+        "stagnants":           stagnant_names,
         "performance_drops":   drop_names,
         "fatigue_rpe":         fatigue["fatigue"],
         "recommande":          recommande,

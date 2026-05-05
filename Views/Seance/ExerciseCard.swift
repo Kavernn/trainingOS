@@ -993,10 +993,9 @@ struct ExerciseCard: View {
                             .transition(.opacity.combined(with: .move(edge: .top)))
                         }
 
-                        // Rest timer — integrated in form
-                        RestTimerBadge(restSeconds: restSeconds, onTap: {
-                            let secs = restSeconds ?? UserDefaults.standard.integer(forKey: RestTimerManager.presetKey)
-                            RestTimerManager.shared.start(seconds: max(secs, 10), exerciseName: name)
+                        // Rest timer — integrated in form (always 120s, manual start only)
+                        RestTimerBadge(restSeconds: 120, onTap: {
+                            RestTimerManager.shared.start(seconds: 120, exerciseName: name)
                         })
                         .padding(.top, 4)
 
