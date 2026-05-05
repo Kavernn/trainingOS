@@ -534,6 +534,83 @@ Ne jamais shortcutter en appelant seulement `logSession()`.
 
 ---
 
+## iOS 26 beta — `async let` parallèle → crash LIFO Swift Concurrency
+
+Sur iOS 26 beta, tout groupe `async let` / `await (a, b)` crash avec SIGABRT "freed pointer was not the last allocation" dans `libswift_Concurrency.dylib`.
+
+**Cause :** `asyncLet_finish_after_task_completion` fait un check LIFO sur la mémoire des child tasks. Quand les tasks se terminent dans un ordre non-déterministe (réseau rapide vs lent), le check échoue → fatal error. Régression beta du runtime Swift.
+
+**Signature stack trace :**
+```
+swift::_swift_task_dealloc_specific(.cold.2)
+asyncLet_finish_after_task_completion(...)
+Thread: View.task @ SomeView.swift:<line>
+```
+
+**Red herring :** "Requesting visual style in an implementation that has disabled it" (UIKit/Liquid Glass) apparaît systématiquement avant le crash — sans rapport avec la cause.
+
+**Fix :** Remplacer **tous** les `async let` par des `await` séquentiels :
+```swift
+// ❌ Crash iOS 26 beta
+async let a = try? APIService.shared.fetchA()
+async let b = try? APIService.shared.fetchB()
+let (x, y) = await (a, b)
+
+// ✅ Correct
+let x = try? await APIService.shared.fetchA()
+let y = try? await APIService.shared.fetchB()
+```
+**Règle :** Grep `async let` dans tous les `.swift` après chaque mise à jour iOS 26 beta. 19 fichiers affectés dans TrainingOS (2026-05-05). Parallelisme récupérable quand Apple corrige le runtime.
+
+---
+
+## Backend — Supabase "Server disconnected" : reconnexion httpx
+
+Le client Supabase est créé une fois au démarrage du module. Les connexions httpx keep-alive s'épuisent après une période d'inactivité → `httpx.RemoteProtocolError: Server disconnected without sending a response`.
+
+**Fix — pattern `_do()` + `_reconnect()` :**
+```python
+def _reconnect() -> bool:
+    global _client
+    try:
+        from supabase import create_client
+        _client = create_client(_SUPABASE_URL, _SUPABASE_KEY)
+        return True
+    except Exception:
+        return False
+
+def some_func(...):
+    def _do():
+        return _client.table(...).select(...).execute()
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            return _do()   # retry une fois
+        raise
+```
+**Règle :** Toute fonction db.py qui appelle Supabase doit avoir cette enveloppe. Ne jamais réutiliser le résultat d'un appel échoué sans `_reconnect()` d'abord.
+
+---
+
+## iOS — `fetchWithCache` peut servir un format de réponse obsolète
+
+`fetchWithCache` retourne le cache immédiatement si valide (TTL) et refresh en arrière-plan. Si le format JSON a changé côté API, le cache périmé cassera le décodeur à chaque lancement jusqu'à expiration du TTL.
+
+**Fix :** Écrire les décodeurs Codable de façon défensive — essayer le nouveau format, fallback sur l'ancien :
+```swift
+// stagnants : API peut retourner [String] (nouveau) ou [{exercise: String, ...}] (ancien)
+if let strings = try? c.decodeIfPresent([String].self, forKey: .stagnants) {
+    stagnants = strings ?? []
+} else {
+    struct StagnantDict: Decodable { let exercise: String }
+    stagnants = (try? c.decodeIfPresent([StagnantDict].self, forKey: .stagnants))?.map(\.exercise) ?? []
+}
+```
+**Règle :** Quand un champ API change de type, toujours écrire un décodeur tolérant au lieu de faire un breaking change brutal — le cache peut avoir des données dans l'ancien format pendant plusieurs heures.
+
+---
+
 ## DB — Les migrations KV→relational peuvent créer des doublons
 
 Lors de la migration d'une table KV (clé/valeur) vers des tables relationnelles, si le script de migration est relancé sans guard `ON CONFLICT`, il insère des doublons.

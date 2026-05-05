@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-05-04
+Dernière mise à jour : 2026-05-05
 
 ---
 
@@ -151,6 +151,14 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 1. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
 2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
 3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
+
+## Complété récemment (2026-05-05 — iOS 26 crash + backend reconnect + decoder fix)
+
+- **iOS 26 beta crash SIGABRT "freed pointer"** : root cause identifiée — régression beta Swift Concurrency (`asyncLet_finish_after_task_completion` LIFO check). Tous les `async let` parallèles convertis en `await` séquentiels dans 19 fichiers. UIKit appearance guard `#unavailable(iOS 26)` conservé, `iOS26TabContainer` supprimé (fausse piste), SplashView restauré.
+- **Supabase "Server disconnected" reconnect** : pattern `_do()` + `_reconnect()` + retry appliqué aux 42 fonctions de `db.py`. Client Supabase recréé automatiquement après déconnexion idle httpx.
+- **`DeloadReport.stagnants` decoder** : `AnalyticsModels.swift` — décodeur tolérant `[String]` → fallback `[{exercise: String}]` pour cache périmé avec ancien format. Aucun changement API requis.
+
+---
 
 ## Complété récemment (2026-04-26 — Programme UL/PPL v2 + Mésocycle)
 

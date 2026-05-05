@@ -1,7 +1,16 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-04-19.
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-05-05.
 > Audit senior dev/UX ajouté le 2026-04-05 — 20 items priorisés.
+
+---
+
+## 🐛 Fixes critiques — 2026-05-05
+
+- [x] **iOS 26 beta crash "freed pointer not last allocation"** : crash SIGABRT dans `libswift_Concurrency.dylib` → régression beta iOS 26 sur `async let` parallèle (LIFO dealloc check). Fix : remplacement de **tous** les `async let` par `await` séquentiels dans 19 fichiers Swift (IntelligenceView, DashboardViewModel, DashboardView, HealthKitService, XPView, SleepView, HealthDashboardView, StatsView, RecoveryView, MoodTrackerView, BreathworkView, SelfCareView, MentalHealthView, JournalView, BodyCompView, PSSView, NutritionView, ObjectifsView, ProgrammeView). *(2026-05-05)*
+- [x] **Supabase "Server disconnected"** : connexions httpx keep-alive stale après inactivité. Fix : `_reconnect()` + pattern `_do()` appliqué aux 42 fonctions de `db.py` — reconnexion automatique + retry une fois sur disconnect. *(2026-05-05)*
+- [x] **UIKit appearance iOS 26** : reverted to standard TabView + `guard #unavailable(iOS 26) else { return }` dans `ContentView.init()` pour les UITabBarAppearance/UINavigationBarAppearance. `iOS26TabContainer` (fausse piste) supprimé. SplashView restauré dans `TrainingOSApp`. *(2026-05-05)*
+- [x] **`fetchDeload: stagnants[0]` dict vs String** : cache périmé contenait `stagnants` comme liste de dicts `[{exercise, weight, séances, stagnation}]` (ancien format). Fix : `DeloadReport.init(from:)` essaie `[String]` d'abord, fallback vers extraction `.exercise` des dicts. `AnalyticsModels.swift`. *(2026-05-05)*
 
 ---
 
