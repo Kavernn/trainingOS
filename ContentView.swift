@@ -1,10 +1,29 @@
 import SwiftUI
 import Combine
+import UIKit
 
 struct ContentView: View {
     @ObservedObject private var network = NetworkMonitor.shared
     @ObservedObject private var sync    = SyncManager.shared
     @State private var selectedTab   = 0
+
+    init() {
+        // Configure UIKit bar appearance here — after UIWindowScene/Liquid Glass init,
+        // before TabView creates UITabBarController. Calling this in App.init() fires
+        // too early (before the visual style system exists), causing the
+        // "Requesting visual style in an implementation that has disabled it" crash.
+        let tab = UITabBarAppearance()
+        tab.configureWithDefaultBackground()
+        UITabBar.appearance().standardAppearance   = tab
+        UITabBar.appearance().scrollEdgeAppearance = tab
+
+        let nav = UINavigationBarAppearance()
+        nav.configureWithDefaultBackground()
+        UINavigationBar.appearance().standardAppearance          = nav
+        UINavigationBar.appearance().scrollEdgeAppearance        = nav
+        UINavigationBar.appearance().compactAppearance           = nav
+        UINavigationBar.appearance().compactScrollEdgeAppearance = nav
+    }
 
     var body: some View {
 #if targetEnvironment(macCatalyst)
