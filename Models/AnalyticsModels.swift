@@ -35,7 +35,13 @@ struct DeloadReport: Codable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         deloadActif  = try c.decodeIfPresent(Bool.self,           forKey: .deloadActif)  ?? false
-        stagnants    = try c.decodeIfPresent([String].self,       forKey: .stagnants)    ?? []
+        // API may return either [String] or [{exercise: String, ...}] depending on cache age
+        if let strings = try? c.decodeIfPresent([String].self, forKey: .stagnants) {
+            stagnants = strings ?? []
+        } else {
+            struct StagnantDict: Decodable { let exercise: String }
+            stagnants = (try? c.decodeIfPresent([StagnantDict].self, forKey: .stagnants))?.map(\.exercise) ?? []
+        }
         fatigueRpe   = try c.decodeIfPresent(Bool.self,           forKey: .fatigueRpe)   ?? false
         recommande   = try c.decodeIfPresent(Bool.self,           forKey: .recommande)   ?? false
         poidsDeload  = try c.decodeIfPresent([String: Double].self, forKey: .poidsDeload) ?? [:]
