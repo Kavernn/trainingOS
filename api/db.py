@@ -151,13 +151,23 @@ _TABLE = "kv"  # kept for backward-compat with sync_now(); kv table removed from
 def _get_online(key: str) -> Tuple[Optional[Any], Optional[str]]:
     if not _client:
         return None, None
-    try:
+
+    def _do() -> Tuple[Optional[Any], Optional[str]]:
         resp = _client.table(_TABLE).select("value,updated_at").eq("key", key).single().execute()
         data = getattr(resp, "data", None)
         if not data:
             return None, None
         return data.get("value"), data.get("updated_at")
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.debug("GET retry error for key %s: %s", key, e2)
+                return None, None
         logger.debug("GET error for key %s: %s", key, e)
         return None, None
 
@@ -166,7 +176,8 @@ def _set_online(key: str, value: Any) -> Tuple[bool, Optional[str]]:
     if not _client:
         logger.warning("Supabase client not initialized")
         return False, None
-    try:
+
+    def _do() -> Tuple[bool, Optional[str]]:
         payload = {"key": key, "value": value}
         logger.debug("Upsert attempt for key: %s", key)
 
@@ -180,7 +191,15 @@ def _set_online(key: str, value: Any) -> Tuple[bool, Optional[str]]:
         logger.debug("Upsert sent for key: %s (no data returned)", key)
         return True, _now_iso()
 
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("Supabase retry error for key %s: %s — %s", key, type(e2).__name__, e2)
+                return False, None
         logger.error("Supabase error for key %s: %s — %s", key, type(e).__name__, e)
         return False, None
 
@@ -279,7 +298,8 @@ def get_exercises() -> Dict[str, dict] | None:
     """
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Dict[str, dict] | None:
         rows: list = []
         page_size = 1000
         start = 0
@@ -291,7 +311,16 @@ def get_exercises() -> Dict[str, dict] | None:
                 break
             start += page_size
         return {row["name"]: row for row in rows}
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_exercises retry error: %s", e2)
+                return None
         logger.error("get_exercises error: %s", e)
         return None  # Signal unavailability — do NOT overwrite with defaults
 
@@ -300,10 +329,20 @@ def get_exercise_by_name(name: str) -> Optional[dict]:
     """Return a single exercise row by name, or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = _client.table("exercises").select("*").eq("name", name).single().execute()
         return resp.data
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.debug("get_exercise_by_name(%s) retry error: %s", name, e2)
+                return None
         logger.debug("get_exercise_by_name(%s) error: %s", name, e)
         return None
 
@@ -313,10 +352,20 @@ def get_exercise_id(name: str) -> Optional[str]:
     # fallback to KV during migration
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[str]:
         resp = _client.table("exercises").select("id").eq("name", name).single().execute()
         return resp.data["id"] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.debug("get_exercise_id(%s) retry error: %s", name, e2)
+                return None
         logger.debug("get_exercise_id(%s) error: %s", name, e)
         return None  # fallback to KV during migration
 
@@ -344,7 +393,8 @@ def upsert_exercise(data: dict) -> dict:
     if _client is None or MODE == "OFFLINE":
         return data
     name = data.get("name", "")
-    try:
+
+    def _do() -> dict:
         try:
             resp = _client.table("exercises").insert(data).execute()
             if resp.data:
@@ -356,7 +406,16 @@ def upsert_exercise(data: dict) -> dict:
             return resp.data[0]
         logger.error("upsert_exercise UPDATE found no row for %s", name)
         return data
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_exercise retry error: %s", e2)
+                return data
         logger.error("upsert_exercise error: %s", e)
         return data
 
@@ -365,10 +424,20 @@ def rename_exercise_table(old_name: str, new_name: str) -> bool:
     """Rename an exercise in the exercises table. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("exercises").update({"name": new_name}).eq("name", old_name).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("rename_exercise_table retry error: %s", e2)
+                return False
         logger.error("rename_exercise_table error: %s", e)
         return False
 
@@ -381,10 +450,20 @@ def delete_exercise_by_name(name: str) -> bool:
     """
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("exercises").delete().eq("name", name).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_exercise_by_name retry error: %s", e2)
+                return False
         logger.error("delete_exercise_by_name error: %s", e)
         return False
 
@@ -398,7 +477,8 @@ def get_workout_sessions(limit: int = 100) -> List[dict]:
     """Return list of workout sessions ordered by date DESC."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = (
             _client.table("workout_sessions")
             .select("*")
@@ -407,7 +487,16 @@ def get_workout_sessions(limit: int = 100) -> List[dict]:
             .execute()
         )
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_workout_sessions retry error: %s", e2)
+                return []
         logger.error("get_workout_sessions error: %s", e)
         return []
 
@@ -416,7 +505,8 @@ def get_workout_session(date: str) -> Optional[dict]:
     """Return a single workout session by date (is_second=False), or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = (
             _client.table("workout_sessions")
             .select("*")
@@ -426,7 +516,16 @@ def get_workout_session(date: str) -> Optional[dict]:
             .execute()
         )
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.debug("get_workout_session(%s) retry error: %s", date, e2)
+                return None
         logger.debug("get_workout_session(%s) error: %s", date, e)
         return None
 
@@ -443,7 +542,8 @@ def get_workout_session_second(date: str) -> Optional[dict]:
     """Return the second (is_second=True) workout session for a date, or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = (
             _client.table("workout_sessions")
             .select("*")
@@ -453,7 +553,16 @@ def get_workout_session_second(date: str) -> Optional[dict]:
             .execute()
         )
         return resp.data
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.debug("get_workout_session_second(%s) retry error: %s", date, e2)
+                return None
         logger.debug("get_workout_session_second(%s) error: %s", date, e)
         return None
 
@@ -470,7 +579,8 @@ def get_workout_session_bonus(date: str) -> Optional[dict]:
     """Return the bonus (session_type='bonus') workout session for a date, or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = (
             _client.table("workout_sessions")
             .select("*")
@@ -480,7 +590,16 @@ def get_workout_session_bonus(date: str) -> Optional[dict]:
             .execute()
         )
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.debug("get_workout_session_bonus(%s) retry error: %s", date, e2)
+                return None
         logger.debug("get_workout_session_bonus(%s) error: %s", date, e)
         return None
 
@@ -519,10 +638,20 @@ def create_workout_session(
 
     if _client is None or MODE == "OFFLINE":
         return {}
-    try:
+
+    def _do() -> dict:
         resp = _client.table("workout_sessions").insert(payload).execute()
         return resp.data[0] if resp.data else payload
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("create_workout_session retry error: %s", e2)
+                return {}
         logger.error("create_workout_session error: %s", e)
         return {}
 
@@ -531,7 +660,8 @@ def complete_workout_session(date: str, patch: Optional[dict] = None) -> bool:
     """Mark a workout session as completed and persist session metadata."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         data = {"completed": True}
         if patch:
             for k, v in patch.items():
@@ -553,7 +683,16 @@ def complete_workout_session(date: str, patch: Optional[dict] = None) -> bool:
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("complete_workout_session retry error: %s", e2)
+                return False
         logger.error("complete_workout_session error: %s", e)
         return False
 
@@ -562,7 +701,8 @@ def complete_workout_session_bonus(date: str, patch: Optional[dict] = None) -> b
     """Mark a bonus session as completed and persist session metadata."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         data = {"completed": True}
         if patch:
             for k, v in patch.items():
@@ -584,7 +724,16 @@ def complete_workout_session_bonus(date: str, patch: Optional[dict] = None) -> b
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("complete_workout_session_bonus retry error: %s", e2)
+                return False
         logger.error("complete_workout_session_bonus error: %s", e)
         return False
 
@@ -593,7 +742,8 @@ def update_workout_session_bonus(date: str, patch: dict) -> bool:
     """Update fields on a bonus session. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = (
             _client.table("workout_sessions")
             .update(patch)
@@ -602,7 +752,16 @@ def update_workout_session_bonus(date: str, patch: dict) -> bool:
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_workout_session_bonus retry error: %s", e2)
+                return False
         logger.error("update_workout_session_bonus error: %s", e)
         return False
 
@@ -611,7 +770,8 @@ def delete_workout_session_by_type(date: str, session_type: str = "morning") -> 
     """Delete a single session row by date + session_type."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = (
             _client.table("workout_sessions")
             .delete()
@@ -620,7 +780,16 @@ def delete_workout_session_by_type(date: str, session_type: str = "morning") -> 
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_workout_session_by_type retry error: %s", e2)
+                return False
         logger.error("delete_workout_session_by_type error: %s", e)
         return False
 
@@ -629,10 +798,20 @@ def delete_exercise_logs_for_session(session_id: str) -> bool:
     """Delete all exercise_logs for a given session_id."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("exercise_logs").delete().eq("session_id", session_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_exercise_logs_for_session retry error: %s", e2)
+                return False
         logger.error("delete_exercise_logs_for_session error: %s", e)
         return False
 
@@ -649,7 +828,8 @@ def upsert_exercise_log_direct(
     """Insert/update an exercise_log row using session_id directly (bypasses date lookup)."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         exercise_id = get_or_create_exercise_id(exercise_name)
         if not exercise_id:
             logger.warning("upsert_exercise_log_direct: exercise '%s' unavailable", exercise_name)
@@ -672,7 +852,16 @@ def upsert_exercise_log_direct(
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_exercise_log_direct retry error: %s", e2)
+                return False
         logger.error("upsert_exercise_log_direct error: %s", e)
         return False
 
@@ -688,7 +877,11 @@ def get_exercise_history_grouped_by_session(session_ids: list | None = None) -> 
     result: dict = {}
     page_size = 1000
     offset = 0
-    try:
+
+    def _do() -> dict:
+        nonlocal result, offset
+        result = {}
+        offset = 0
         while True:
             q = (
                 _client.table("exercise_logs")
@@ -713,7 +906,16 @@ def get_exercise_history_grouped_by_session(session_ids: list | None = None) -> 
                 break
             offset += page_size
         return result
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_exercise_history_grouped_by_session retry error: %s", e2)
+                return result  # return partial data rather than empty
         logger.error("get_exercise_history_grouped_by_session error: %s", e)
         return result  # return partial data rather than empty
 
@@ -722,7 +924,8 @@ def update_workout_session_by_type(date: str, session_type: str, patch: dict) ->
     """Update fields on a workout session identified by date + session_type."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = (
             _client.table("workout_sessions")
             .update(patch)
@@ -731,7 +934,16 @@ def update_workout_session_by_type(date: str, session_type: str, patch: dict) ->
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_workout_session_by_type(%s,%s) retry error: %s", date, session_type, e2)
+                return False
         logger.error("update_workout_session_by_type(%s,%s) error: %s", date, session_type, e)
         return False
 
@@ -743,7 +955,7 @@ def update_workout_session(date: str, patch: dict) -> bool:
     if _client is None or MODE == "OFFLINE":
         return False
 
-    try:
+    def _do() -> bool:
         cleaned = {}
 
         for k, v in patch.items():
@@ -766,7 +978,15 @@ def update_workout_session(date: str, patch: dict) -> bool:
 
         return bool(resp.data)
 
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_workout_session retry error: %s", e2)
+                return False
         logger.error("update_workout_session error: %s", e)
         return False
 
@@ -775,10 +995,20 @@ def delete_workout_session(date: str) -> bool:
     """Delete a workout session and its exercise_logs (cascade). Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("workout_sessions").delete().eq("date", date).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_workout_session retry error: %s", e2)
+                return False
         logger.error("delete_workout_session error: %s", e)
         return False
 
@@ -791,7 +1021,8 @@ def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
     """Return [{date, weight, reps, session_id}] newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         ex_id = get_exercise_id(exercise_name)
         if not ex_id:
             return []
@@ -815,7 +1046,16 @@ def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
             for r in rows
             if r.get("workout_sessions")
         ]
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_exercise_history(%s) retry error: %s", exercise_name, e2)
+                return []
         logger.error("get_exercise_history(%s) error: %s", exercise_name, e)
         return []
 
@@ -828,10 +1068,11 @@ def get_all_exercise_history() -> dict:
     """
     if _client is None or MODE == "OFFLINE":
         return {}
-    result: dict = {}
     page_size = 1000
-    offset = 0
-    try:
+
+    def _do() -> dict:
+        result: dict = {}
+        offset = 0
         while True:
             resp = (
                 _client.table("exercise_logs")
@@ -857,7 +1098,16 @@ def get_all_exercise_history() -> dict:
         for name in result:
             result[name].sort(key=lambda x: x.get("date", ""), reverse=True)
         return result
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_all_exercise_history retry error: %s", e2)
+                return {}
         logger.error("get_all_exercise_history error: %s", e)
         return {}
 
@@ -873,7 +1123,8 @@ def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) ->
     names = [n for n in exercise_names if isinstance(n, str) and n.strip()]
     if not names:
         return {}
-    try:
+
+    def _do() -> dict:
         ex_rows = (
             _client.table("exercises")
             .select("id,name")
@@ -910,7 +1161,16 @@ def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) ->
                 entry["sets"] = r.get("sets_json")
             lst.append(entry)
         return result
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_exercise_history_bulk retry error: %s", e2)
+                return {}
         logger.error("get_exercise_history_bulk error: %s", e)
         return {}
 
@@ -919,7 +1179,8 @@ def get_session_exercise_logs(session_date: str) -> List[dict]:
     """Return [{exercise_name, weight, reps}] for a given session date."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         session = get_workout_session(session_date)
         if not session:
             return []
@@ -940,7 +1201,16 @@ def get_session_exercise_logs(session_date: str) -> List[dict]:
             for r in rows
             if r.get("exercises")
         ]
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_session_exercise_logs(%s) retry error: %s", session_date, e2)
+                return []
         logger.error("get_session_exercise_logs(%s) error: %s", session_date, e)
         return []
 
@@ -949,7 +1219,8 @@ def get_previous_session_by_name(current_date: str, session_name: str) -> Option
     """Return the most recent workout_session with session_name strictly before current_date."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = (
             _client.table("workout_sessions")
             .select("*")
@@ -960,7 +1231,16 @@ def get_previous_session_by_name(current_date: str, session_name: str) -> Option
             .execute()
         )
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_previous_session_by_name(%s,%s) retry error: %s", current_date, session_name, e2)
+                return None
         logger.error("get_previous_session_by_name(%s,%s) error: %s", current_date, session_name, e)
         return None
 
@@ -969,7 +1249,8 @@ def get_workout_session_by_type(date: str, session_type: str) -> Optional[dict]:
     """Return workout session for date + session_type, or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = (
             _client.table("workout_sessions")
             .select("*")
@@ -979,7 +1260,16 @@ def get_workout_session_by_type(date: str, session_type: str) -> Optional[dict]:
             .execute()
         )
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_workout_session_by_type(%s,%s) retry error: %s", date, session_type, e2)
+                return None
         logger.error("get_workout_session_by_type(%s,%s) error: %s", date, session_type, e)
         return None
 
@@ -988,7 +1278,8 @@ def get_exercise_logs_for_session_with_names(session_id: str) -> List[dict]:
     """Return [{exercise_name, weight, reps, sets_json}] for a session_id."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = (
             _client.table("exercise_logs")
             .select("weight, reps, sets_json, exercises(name)")
@@ -1006,7 +1297,16 @@ def get_exercise_logs_for_session_with_names(session_id: str) -> List[dict]:
             for r in rows
             if r.get("exercises")
         ]
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_exercise_logs_for_session_with_names(%s) retry error: %s", session_id, e2)
+                return []
         logger.error("get_exercise_logs_for_session_with_names(%s) error: %s", session_id, e)
         return []
 
@@ -1023,7 +1323,8 @@ def get_previous_session_by_exercises(ref_date: str, session_type: str, exercise
     """
     if not exercise_names or _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         # 1. Resolve exercise names → IDs
         ex_resp = (
             _client.table("exercises")
@@ -1070,7 +1371,16 @@ def get_previous_session_by_exercises(ref_date: str, session_type: str, exercise
             if session_counts.get(s["id"], 0) >= threshold:
                 return s
         return candidates[0]
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_previous_session_by_exercises(%s) retry error: %s", ref_date, e2)
+                return None
         logger.error("get_previous_session_by_exercises(%s) error: %s", ref_date, e)
         return None
 
@@ -1079,7 +1389,8 @@ def get_previous_session_of_type(current_date: str, session_type: str) -> Option
     """Return the most recent workout_session of session_type strictly before current_date."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = (
             _client.table("workout_sessions")
             .select("*")
@@ -1090,7 +1401,16 @@ def get_previous_session_of_type(current_date: str, session_type: str) -> Option
             .execute()
         )
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_previous_session_of_type(%s,%s) retry error: %s", current_date, session_type, e2)
+                return None
         logger.error("get_previous_session_of_type(%s,%s) error: %s", current_date, session_type, e)
         return None
 
@@ -1099,7 +1419,8 @@ def get_exercise_info(exercise_name: str) -> Optional[dict]:
     """Return exercise row (category, load_profile, default_scheme) from exercises table."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = (
             _client.table("exercises")
             .select("name, category, load_profile, default_scheme")
@@ -1108,7 +1429,16 @@ def get_exercise_info(exercise_name: str) -> Optional[dict]:
             .execute()
         )
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_exercise_info(%s) retry error: %s", exercise_name, e2)
+                return None
         logger.error("get_exercise_info(%s) error: %s", exercise_name, e)
         return None
 
@@ -1123,7 +1453,8 @@ def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
     names = [n for n in exercise_names if isinstance(n, str) and n.strip()]
     if not names:
         return {}
-    try:
+
+    def _do() -> dict[str, dict]:
         resp = (
             _client.table("exercises")
             .select("name, category, load_profile, default_scheme")
@@ -1131,7 +1462,16 @@ def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
             .execute()
         )
         return {row["name"]: row for row in (resp.data or []) if row.get("name")}
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_exercises_info_bulk retry error: %s", e2)
+                return {}
         logger.error("get_exercises_info_bulk error: %s", e)
         return {}
 
@@ -1140,10 +1480,20 @@ def update_exercise_default_scheme(exercise_name: str, default_scheme: str) -> b
     """Update exercises.default_scheme for an exercise."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("exercises").update({"default_scheme": default_scheme}).eq("name", exercise_name).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_exercise_default_scheme(%s) retry error: %s", exercise_name, e2)
+                return False
         logger.error("update_exercise_default_scheme(%s) error: %s", exercise_name, e)
         return False
 
@@ -1154,7 +1504,8 @@ def normalize_schemes_max_sets(max_sets: int = 3) -> int:
     import re
     if _client is None or MODE == "OFFLINE":
         return 0
-    try:
+
+    def _do() -> int:
         rows = (_client.table("exercises").select("name,default_scheme").execute().data or [])
         updated = 0
         for row in rows:
@@ -1165,7 +1516,16 @@ def normalize_schemes_max_sets(max_sets: int = 3) -> int:
                 _client.table("exercises").update({"default_scheme": new_scheme}).eq("name", row["name"]).execute()
                 updated += 1
         return updated
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("normalize_schemes_max_sets retry error: %s", e2)
+                return 0
         logger.error("normalize_schemes_max_sets error: %s", e)
         return 0
 
@@ -1174,10 +1534,20 @@ def bulk_set_rest_seconds(seconds: int) -> bool:
     """Set rest_seconds = seconds for every exercise in the inventory."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("exercises").update({"rest_seconds": seconds}).neq("name", "").execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("bulk_set_rest_seconds retry error: %s", e2)
+                return False
         logger.error("bulk_set_rest_seconds error: %s", e)
         return False
 
@@ -1188,7 +1558,8 @@ def upsert_exercise_log(
     """Insert or update an exercise log entry. Resolves IDs internally. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         exercise_id = get_or_create_exercise_id(exercise_name)
         if not exercise_id:
             logger.warning("upsert_exercise_log: exercise '%s' unavailable", exercise_name)
@@ -1212,7 +1583,16 @@ def upsert_exercise_log(
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_exercise_log retry error: %s", e2)
+                return False
         logger.error("upsert_exercise_log error: %s", e)
         return False
 
@@ -1228,7 +1608,8 @@ def upsert_exercise_log_by_type(
     """Insert/update an exercise log entry by date + session_type."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         exercise_id = get_or_create_exercise_id(exercise_name)
         if not exercise_id:
             logger.warning("upsert_exercise_log_by_type: exercise '%s' unavailable", exercise_name)
@@ -1251,7 +1632,16 @@ def upsert_exercise_log_by_type(
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_exercise_log_by_type retry error: %s", e2)
+                return False
         logger.error("upsert_exercise_log_by_type error: %s", e)
         return False
 
@@ -1260,7 +1650,8 @@ def delete_exercise_log_entry(session_date: str, exercise_name: str) -> bool:
     """Delete a single exercise_log entry by date + exercise name."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         session = get_workout_session(session_date)
         if not session:
             return False
@@ -1273,7 +1664,16 @@ def delete_exercise_log_entry(session_date: str, exercise_name: str) -> bool:
             .eq("exercise_id", exercise_id) \
             .execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_exercise_log_entry retry error: %s", e2)
+                return False
         logger.error("delete_exercise_log_entry error: %s", e)
         return False
 
@@ -1282,7 +1682,8 @@ def delete_exercise_log_entry_by_type(session_date: str, session_type: str, exer
     """Delete one exercise_log entry by date + session_type + exercise name."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         session = get_workout_session_by_type(session_date, session_type)
         if not session:
             return False
@@ -1295,7 +1696,16 @@ def delete_exercise_log_entry_by_type(session_date: str, session_type: str, exer
             .eq("exercise_id", exercise_id) \
             .execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_exercise_log_entry_by_type retry error: %s", e2)
+                return False
         logger.error("delete_exercise_log_entry_by_type error: %s", e)
         return False
 
@@ -1304,14 +1714,24 @@ def delete_session_exercise_logs(session_date: str) -> bool:
     """Delete all exercise_logs for a given session date. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         session = get_workout_session(session_date)
         if not session:
             return False
         session_id = session["id"]
         _client.table("exercise_logs").delete().eq("session_id", session_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_session_exercise_logs retry error: %s", e2)
+                return False
         logger.error("delete_session_exercise_logs error: %s", e)
         return False
 
@@ -1326,7 +1746,8 @@ def get_body_weight_logs(limit: int = 100) -> List[dict]:
     """
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = (
             _client.table("body_weight_logs")
             .select("*")
@@ -1335,7 +1756,16 @@ def get_body_weight_logs(limit: int = 100) -> List[dict]:
             .execute()
         )
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_body_weight_logs retry error: %s", e2)
+                return []
         logger.error("get_body_weight_logs error: %s", e)
         return []
 
@@ -1354,7 +1784,8 @@ def upsert_body_weight(
     """Insert or update a body weight log entry for the given date."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         payload: dict = {"date": date, "weight": weight, "note": note}
         for field, val in [("body_fat", body_fat), ("waist_cm", waist_cm),
                            ("arms_cm", arms_cm), ("chest_cm", chest_cm),
@@ -1367,7 +1798,16 @@ def upsert_body_weight(
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_body_weight retry error: %s", e2)
+                return False
         logger.error("upsert_body_weight error: %s", e)
         return False
 
@@ -1386,10 +1826,20 @@ def delete_body_weight(date: str) -> bool:
     """Delete a body weight log entry by date."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("body_weight_logs").delete().eq("date", date).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_body_weight retry error: %s", e2)
+                return False
         logger.error("delete_body_weight error: %s", e)
         return False
 
@@ -1402,7 +1852,8 @@ def get_hiit_logs(limit: int = 100) -> List[dict]:
     """Return HIIT log entries, newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = (
             _client.table("hiit_logs")
             .select("*")
@@ -1412,7 +1863,16 @@ def get_hiit_logs(limit: int = 100) -> List[dict]:
             .execute()
         )
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_hiit_logs retry error: %s", e2)
+                return []
         logger.error("get_hiit_logs error: %s", e)
         return []
 
@@ -1421,10 +1881,20 @@ def insert_hiit_log(data: dict) -> dict:
     """Insert a new HIIT log entry. Returns the inserted record."""
     if _client is None or MODE == "OFFLINE":
         return data
-    try:
+
+    def _do() -> dict:
         resp = _client.table("hiit_logs").insert(data).execute()
         return resp.data[0] if resp.data else data
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_hiit_log retry error: %s", e2)
+                return data
         logger.error("insert_hiit_log error: %s", e)
         return data
 
@@ -1435,10 +1905,20 @@ def update_hiit_log(hiit_id: str, patch: dict) -> bool:
     if _client is None or MODE == "OFFLINE":
         logger.warning("update_hiit_log: UUID-based update not supported in KV fallback")
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("hiit_logs").update(patch).eq("id", hiit_id).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_hiit_log retry error: %s", e2)
+                return False  # fallback to KV during migration not feasible by UUID
         logger.error("update_hiit_log error: %s", e)
         return False  # fallback to KV during migration not feasible by UUID
 
@@ -1449,10 +1929,20 @@ def delete_hiit_log_by_id(hiit_id: str) -> bool:
     if _client is None or MODE == "OFFLINE":
         logger.warning("delete_hiit_log_by_id: UUID-based deletion not supported in KV fallback")
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("hiit_logs").delete().eq("id", hiit_id).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_hiit_log_by_id retry error: %s", e2)
+                return False  # fallback to KV during migration not feasible by UUID
         logger.error("delete_hiit_log_by_id error: %s", e)
         return False  # fallback to KV during migration not feasible by UUID
 
@@ -1490,14 +1980,24 @@ def upsert_recovery_log(data: dict) -> bool:
     """Insert or update a recovery log by date. data must include 'date'."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = (
             _client.table("recovery_logs")
             .upsert(data, on_conflict="date")
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_recovery_log retry error: %s", e2)
+                return False
         logger.error("upsert_recovery_log error: %s", e)
         return False
 
@@ -1539,10 +2039,20 @@ def delete_recovery_log(date: str) -> bool:
     """Delete a recovery log entry by date. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("recovery_logs").delete().eq("date", date).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_recovery_log retry error: %s", e2)
+                return False
         logger.error("delete_recovery_log error: %s", e)
         return False
 
@@ -1559,7 +2069,8 @@ def get_goals() -> Dict[str, dict]:
     """
     if _client is None or MODE == "OFFLINE":
         return {}
-    try:
+
+    def _do() -> Dict[str, dict]:
         resp = (
             _client.table("goals")
             .select("id, target_weight, target_date, exercises(name)")
@@ -1575,7 +2086,16 @@ def get_goals() -> Dict[str, dict]:
             for r in rows
             if r.get("exercises")
         }
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_goals retry error: %s", e2)
+                return {}
         logger.error("get_goals error: %s", e)
         return {}
 
@@ -1588,7 +2108,8 @@ def set_goal(
     """Create or update a goal for an exercise. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         exercise_id = get_or_create_exercise_id(exercise_name)
         if not exercise_id:
             logger.warning("set_goal: exercise '%s' not found/created", exercise_name)
@@ -1602,7 +2123,16 @@ def set_goal(
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("set_goal retry error: %s", e2)
+                return False
         logger.error("set_goal error: %s", e)
         return False
 
@@ -1615,7 +2145,8 @@ def get_cardio_logs(limit: int = 100) -> List[dict]:
     """Return cardio log entries, newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = (
             _client.table("cardio_logs")
             .select("*")
@@ -1624,7 +2155,16 @@ def get_cardio_logs(limit: int = 100) -> List[dict]:
             .execute()
         )
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_cardio_logs retry error: %s", e2)
+                return []
         logger.error("get_cardio_logs error: %s", e)
         return []
 
@@ -1633,10 +2173,20 @@ def insert_cardio_log(data: dict) -> bool:
     """Insert a new cardio log entry. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("cardio_logs").insert(data).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_cardio_log retry error: %s", e2)
+                return False
         logger.error("insert_cardio_log error: %s", e)
         return False
 
@@ -1645,7 +2195,8 @@ def delete_cardio_log(date: str, type_: str) -> bool:
     """Delete a cardio log entry by date and type. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = (
             _client.table("cardio_logs")
             .delete()
@@ -1654,7 +2205,16 @@ def delete_cardio_log(date: str, type_: str) -> bool:
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_cardio_log retry error: %s", e2)
+                return False
         logger.error("delete_cardio_log error: %s", e)
         return False
 
@@ -1667,7 +2227,8 @@ def get_profile() -> dict:
     """Return the single user_profile row as a dict."""
     if _client is None or MODE == "OFFLINE":
         return {}
-    try:
+
+    def _do() -> dict:
         resp = (
             _client.table("user_profile")
             .select("*")
@@ -1676,7 +2237,16 @@ def get_profile() -> dict:
             .execute()
         )
         return (resp.data[0] if resp and resp.data else None) or {}
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.warning("get_profile retry error: %s", e2)
+                return {}
         logger.warning("get_profile error: %s", e)
         return {}
 
@@ -1685,7 +2255,8 @@ def update_profile(patch: dict) -> bool:
     """Update the user profile. Creates the row if it does not yet exist."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         payload = {**patch, "id": 1, "updated_at": _now_iso()}
         resp = (
             _client.table("user_profile")
@@ -1693,7 +2264,16 @@ def update_profile(patch: dict) -> bool:
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_profile retry error: %s", e2)
+                return False
         logger.error("update_profile error: %s", e)
         return False
 
@@ -1707,7 +2287,8 @@ def get_nutrition_settings() -> dict:
     _default = {"calorie_limit": 2000, "protein_target": 150}
     if _client is None or MODE == "OFFLINE":
         return _default
-    try:
+
+    def _do() -> dict:
         resp = (
             _client.table("nutrition_settings")
             .select("*")
@@ -1716,7 +2297,16 @@ def get_nutrition_settings() -> dict:
             .execute()
         )
         return (resp.data[0] if resp and resp.data else None) or _default
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.warning("get_nutrition_settings retry error: %s", e2)
+                return _default
         logger.warning("get_nutrition_settings error: %s", e)
         return _default
 
@@ -1725,13 +2315,27 @@ def update_nutrition_settings(patch: dict) -> bool:
     """Update nutrition settings row (Supabase only)."""
     if _client is None or MODE == "OFFLINE":
         raise RuntimeError("Supabase client not available")
-    payload = {**patch, "id": 1, "updated_at": _now_iso()}
-    resp = (
-        _client.table("nutrition_settings")
-        .upsert(payload, on_conflict="id")
-        .execute()
-    )
-    return bool(resp.data)
+
+    def _do() -> bool:
+        payload = {**patch, "id": 1, "updated_at": _now_iso()}
+        resp = (
+            _client.table("nutrition_settings")
+            .upsert(payload, on_conflict="id")
+            .execute()
+        )
+        return bool(resp.data)
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_nutrition_settings retry error: %s", e2)
+                return False
+        logger.error("update_nutrition_settings error: %s", e)
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -1742,7 +2346,8 @@ def get_nutrition_entries(date: str) -> List[dict]:
     """Return nutrition entries for a specific date, ordered by insertion time."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = (
             _client.table("nutrition_entries")
             .select("*")
@@ -1751,7 +2356,16 @@ def get_nutrition_entries(date: str) -> List[dict]:
             .execute()
         )
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_nutrition_entries retry error: %s", e2)
+                return []
         logger.error("get_nutrition_entries error: %s", e)
         return []
 
@@ -1763,7 +2377,8 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
     """
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         from datetime import date as _date, timedelta
         cutoff = (_date.today() - timedelta(days=n * 2)).isoformat()
         resp = (
@@ -1788,7 +2403,16 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
             day["calories"]  = round(day["calories"])
             day["proteines"] = round(day["proteines"], 1)
         return sorted_days
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_nutrition_entries_recent retry error: %s", e2)
+                return []
         logger.error("get_nutrition_entries_recent error: %s", e)
         return []
 
@@ -1797,10 +2421,20 @@ def insert_nutrition_entry(data: dict) -> dict:
     """Insert a nutrition entry. Returns the saved entry (with id)."""
     if _client is None or MODE == "OFFLINE":
         return data
-    try:
+
+    def _do() -> dict:
         resp = _client.table("nutrition_entries").insert(data).execute()
         return resp.data[0] if resp.data else data
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_nutrition_entry retry error: %s", e2)
+                return data
         logger.error("insert_nutrition_entry error: %s", e)
         return data
 
@@ -1809,10 +2443,20 @@ def delete_nutrition_entry(entry_id: str) -> bool:
     """Delete a nutrition entry by id. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("nutrition_entries").delete().eq("id", entry_id).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_nutrition_entry retry error: %s", e2)
+                return False
         logger.error("delete_nutrition_entry error: %s", e)
         return False
 
@@ -1821,10 +2465,20 @@ def update_nutrition_entry(entry_id: str, patch: dict) -> bool:
     """Update fields of a nutrition entry by id. Returns True on success."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("nutrition_entries").update(patch).eq("id", entry_id).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_nutrition_entry retry error: %s", e2)
+                return False
         logger.error("update_nutrition_entry error: %s", e)
         return False
 
@@ -1837,10 +2491,20 @@ def get_food_catalog() -> list:
     """Return all food catalog items."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> list:
         resp = _client.table("food_catalog").select("*").execute()
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_food_catalog retry error: %s", e2)
+                return []
         logger.error("get_food_catalog error: %s", e)
         return []
 
@@ -1849,12 +2513,22 @@ def save_food_catalog(items: list) -> bool:
     """Replace entire food catalog (delete-all + reinsert)."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("food_catalog").delete().neq("id", "").execute()
         if items:
             _client.table("food_catalog").insert(items).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("save_food_catalog retry error: %s", e2)
+                return False
         logger.error("save_food_catalog error: %s", e)
         return False
 
@@ -1867,10 +2541,20 @@ def get_meal_templates() -> list:
     """Return all meal templates ordered by name."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> list:
         resp = _client.table("meal_templates").select("*").order("name").execute()
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_meal_templates retry error: %s", e2)
+                return []
         logger.error("get_meal_templates error: %s", e)
         return []
 
@@ -1879,10 +2563,20 @@ def create_meal_template(name: str, items: list) -> dict | None:
     """Insert a new meal template; returns the created row."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> dict | None:
         resp = _client.table("meal_templates").insert({"name": name, "items": items}).execute()
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("create_meal_template retry error: %s", e2)
+                return None
         logger.error("create_meal_template error: %s", e)
         return None
 
@@ -1890,13 +2584,23 @@ def create_meal_template(name: str, items: list) -> dict | None:
 def update_meal_template(template_id: str, name: str, items: list) -> bool:
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("meal_templates")\
             .update({"name": name, "items": items})\
             .eq("id", template_id)\
             .execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_meal_template retry error: %s", e2)
+                return False
         logger.error("update_meal_template error: %s", e)
         return False
 
@@ -1904,10 +2608,20 @@ def update_meal_template(template_id: str, name: str, items: list) -> bool:
 def delete_meal_template(template_id: str) -> bool:
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("meal_templates").delete().eq("id", template_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_meal_template retry error: %s", e2)
+                return False
         logger.error("delete_meal_template error: %s", e)
         return False
 
@@ -1920,7 +2634,8 @@ def get_deload_state() -> dict:
     """Return the current deload state (single row)."""
     if _client is None or MODE == "OFFLINE":
         return {"active": False, "started_at": None, "reason": None}
-    try:
+
+    def _do() -> dict:
         resp = (
             _client.table("deload_state")
             .select("*")
@@ -1929,7 +2644,16 @@ def get_deload_state() -> dict:
             .execute()
         )
         return resp.data or {"active": False, "started_at": None, "reason": None}
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_deload_state retry error: %s", e2)
+                return {"active": False}
         logger.error("get_deload_state error: %s", e)
         return {"active": False}
 
@@ -1948,14 +2672,24 @@ def set_deload_state(
 
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = (
             _client.table("deload_state")
             .upsert(payload, on_conflict="id")
             .execute()
         )
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("set_deload_state retry error: %s", e2)
+                return False
         logger.error("set_deload_state error: %s", e)
         return False
 
@@ -1977,12 +2711,25 @@ def ensure_schema_migrations() -> bool:
     """
     if _client is None or MODE == "OFFLINE":
         return True
-    try:
+
+    def _do() -> bool:
         _client.table("weekly_schedule").select("day_name, slot").limit(1).execute()
         _client.table("programs").select("id").limit(1).execute()
         _client.table("program_sessions").select("id, program_id").limit(1).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error(
+                    "⚠️  Schema migration required! Run docs/migrations/002_multi_programs.sql "
+                    "in your Supabase SQL Editor. Error: %s", e2
+                )
+                return False
         logger.error(
             "⚠️  Schema migration required! Run docs/migrations/002_multi_programs.sql "
             "in your Supabase SQL Editor. Error: %s", e
@@ -1994,10 +2741,20 @@ def get_all_programs() -> list:
     """Return [{id, name, created_at}, ...] ordered by created_at ASC."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> list:
         resp = _client.table("programs").select("id, name, created_at").order("created_at").execute()
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_all_programs retry error: %s", e2)
+                return []
         logger.error("get_all_programs error: %s", e)
         return []
 
@@ -2010,7 +2767,8 @@ def get_active_program_id() -> str | None:
     """
     if _client is None or MODE == "OFFLINE":
         return get_default_program_id()
-    try:
+
+    def _do() -> str | None:
         resp = (
             _client.table("weekly_schedule")
             .select("program_sessions(program_id)")
@@ -2024,8 +2782,22 @@ def get_active_program_id() -> str | None:
             pid = sess.get("program_id")
             if pid:
                 return str(pid)
+        return None
+
+    try:
+        result = _do()
+        if result is not None:
+            return result
     except Exception as e:
-        logger.error("get_active_program_id error: %s", e)
+        if _is_disconnect(e) and _reconnect():
+            try:
+                result = _do()
+                if result is not None:
+                    return result
+            except Exception as e2:
+                logger.error("get_active_program_id retry error: %s", e2)
+        else:
+            logger.error("get_active_program_id error: %s", e)
     return get_default_program_id()
 
 
@@ -2039,10 +2811,20 @@ def create_program(name: str) -> str | None:
     """Insert a new program. Returns its UUID or None on error."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> str | None:
         resp = _client.table("programs").insert({"name": name}).execute()
         return resp.data[0]["id"] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("create_program retry error: %s", e2)
+                return None
         logger.error("create_program error: %s", e)
         return None
 
@@ -2050,10 +2832,20 @@ def create_program(name: str) -> str | None:
 def rename_program(program_id: str, new_name: str) -> bool:
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("programs").update({"name": new_name}).eq("id", program_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("rename_program retry error: %s", e2)
+                return False
         logger.error("rename_program error: %s", e)
         return False
 
@@ -2062,10 +2854,20 @@ def delete_program(program_id: str) -> bool:
     """Delete a program — sessions cascade via FK."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("programs").delete().eq("id", program_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_program retry error: %s", e2)
+                return False
         logger.error("delete_program error: %s", e)
         return False
 
@@ -2074,7 +2876,8 @@ def get_cycle_start_date() -> str | None:
     """Return cycle_start_date (YYYY-MM-DD) of the default program, or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> str | None:
         program_id = get_default_program_id()
         if not program_id:
             return None
@@ -2085,7 +2888,16 @@ def get_cycle_start_date() -> str | None:
                 .execute())
         val = (resp.data or {}).get("cycle_start_date")
         return str(val)[:10] if val else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_cycle_start_date retry error: %s", e2)
+                return None
         logger.error("get_cycle_start_date error: %s", e)
         return None
 
@@ -2094,13 +2906,23 @@ def set_cycle_start_date(date_str: str) -> bool:
     """Set cycle_start_date on the default program. date_str = 'YYYY-MM-DD'."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         program_id = get_default_program_id()
         if not program_id:
             return False
         _client.table("programs").update({"cycle_start_date": date_str}).eq("id", program_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("set_cycle_start_date retry error: %s", e2)
+                return False
         logger.error("set_cycle_start_date error: %s", e)
         return False
 
@@ -2109,10 +2931,20 @@ def get_all_session_names() -> list[str]:
     """Return all session names across all programs (for schedule pickers)."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> list[str]:
         resp = _client.table("program_sessions").select("name").order("name").execute()
         return [r["name"] for r in (resp.data or [])]
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_all_session_names retry error: %s", e2)
+                return []
         logger.error("get_all_session_names error: %s", e)
         return []
 
@@ -2249,7 +3081,8 @@ def save_full_program(program: dict, program_id: str | None = None) -> bool:
         return False
     if program_id is None:
         program_id = get_default_program_id()
-    try:
+
+    def _do() -> bool:
         for order_idx, (session_name, session_def) in enumerate(program.items()):
             # Upsert session (conflict on program_id + name after migration)
             upsert_data: dict = {"name": session_name, "order_index": order_idx}
@@ -2351,7 +3184,16 @@ def save_full_program(program: dict, program_id: str | None = None) -> bool:
                     }).execute()
 
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("save_full_program retry error: %s", e2)
+                return False
         logger.error("save_full_program error: %s", e)
         return False
 
@@ -2360,7 +3202,8 @@ def delete_program_session(name: str) -> bool:
     """Delete a programme session and all its data (blocks, exercises, schedule refs)."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("program_sessions").select("id").eq("name", name).limit(1).execute()
         if not resp.data:
             return True  # already gone
@@ -2374,7 +3217,16 @@ def delete_program_session(name: str) -> bool:
         _client.table("program_blocks").delete().eq("session_id", session_id).execute()
         _client.table("program_sessions").delete().eq("id", session_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_program_session retry error: %s", e2)
+                return False
         logger.error("delete_program_session error: %s", e)
         return False
 
@@ -2387,7 +3239,8 @@ def get_relational_week_schedule() -> dict:
     """
     if _client is None or MODE == "OFFLINE":
         return {}
-    try:
+
+    def _do() -> dict:
         resp = (
             _client.table("weekly_schedule")
             .select("day_name, program_sessions(name)")
@@ -2400,7 +3253,16 @@ def get_relational_week_schedule() -> dict:
             if session and session.get("name"):
                 result[row["day_name"]] = session["name"]
         return result
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_relational_week_schedule retry error: %s", e2)
+                return {}
         logger.error("get_relational_week_schedule error: %s", e)
         return {}
 
@@ -2413,7 +3275,8 @@ def set_relational_week_schedule(schedule: dict) -> bool:
     """
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         for day_name, session_name in schedule.items():
             session_id = None
             if session_name:
@@ -2430,7 +3293,16 @@ def set_relational_week_schedule(schedule: dict) -> bool:
                 on_conflict="day_name,slot",
             ).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("set_relational_week_schedule retry error: %s", e2)
+                return False
         logger.error("set_relational_week_schedule error: %s", e)
         return False
 
@@ -2439,7 +3311,8 @@ def get_evening_week_schedule() -> dict:
     """Return {"Lun": "Core", ...} for slot='evening' from weekly_schedule."""
     if _client is None or MODE == "OFFLINE":
         return {}
-    try:
+
+    def _do() -> dict:
         resp = (
             _client.table("weekly_schedule")
             .select("day_name, program_sessions(name)")
@@ -2452,7 +3325,16 @@ def get_evening_week_schedule() -> dict:
             if session and session.get("name"):
                 result[row["day_name"]] = session["name"]
         return result
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_evening_week_schedule retry error: %s", e2)
+                return {}
         logger.error("get_evening_week_schedule error: %s", e)
         return {}
 
@@ -2461,7 +3343,8 @@ def set_evening_week_schedule(schedule: dict) -> bool:
     """Upsert weekly_schedule for slot='evening'. None clears the day."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         for day_name, session_name in schedule.items():
             session_id = None
             if session_name:
@@ -2478,7 +3361,16 @@ def set_evening_week_schedule(schedule: dict) -> bool:
                 on_conflict="day_name,slot",
             ).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("set_evening_week_schedule retry error: %s", e2)
+                return False
         logger.error("set_evening_week_schedule error: %s", e)
         return False
 
@@ -2491,7 +3383,8 @@ def get_mood_logs(days: int = 0, limit: int = 0) -> List[dict]:
     """Return mood log entries, newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         from datetime import date as _date, timedelta
         q = _client.table("mood_logs").select("*").order("date", desc=True)
         if days:
@@ -2501,7 +3394,16 @@ def get_mood_logs(days: int = 0, limit: int = 0) -> List[dict]:
             q = q.limit(limit)
         resp = q.execute()
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_mood_logs retry error: %s", e2)
+                return []
         logger.error("get_mood_logs error: %s", e)
         return []
 
@@ -2510,10 +3412,20 @@ def insert_mood_log(entry: dict) -> Optional[dict]:
     """Insert a mood log entry. Returns saved record or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = _client.table("mood_logs").insert(entry).execute()
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_mood_log retry error: %s", e2)
+                return None
         logger.error("insert_mood_log error: %s", e)
         return None
 
@@ -2526,7 +3438,8 @@ def get_pss_records(pss_type: Optional[str] = None, limit: int = 0) -> List[dict
     """Return PSS records, newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         q = _client.table("pss_records").select("*").order("date", desc=True)
         if pss_type:
             q = q.eq("type", pss_type)
@@ -2534,7 +3447,16 @@ def get_pss_records(pss_type: Optional[str] = None, limit: int = 0) -> List[dict
             q = q.limit(limit)
         resp = q.execute()
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_pss_records retry error: %s", e2)
+                return []
         logger.error("get_pss_records error: %s", e)
         return []
 
@@ -2543,10 +3465,20 @@ def insert_pss_record(entry: dict) -> Optional[dict]:
     """Insert a PSS record. Returns saved record or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = _client.table("pss_records").insert(entry).execute()
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_pss_record retry error: %s", e2)
+                return None
         logger.error("insert_pss_record error: %s", e)
         return None
 
@@ -2559,13 +3491,23 @@ def get_sleep_records(limit: int = 0, offset: int = 0) -> List[dict]:
     """Return sleep records, newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         q = _client.table("sleep_records").select("*").order("date", desc=True)
         if limit:
             q = q.range(offset, offset + limit - 1)
         resp = q.execute()
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_sleep_records retry error: %s", e2)
+                return []
         logger.error("get_sleep_records error: %s", e)
         return []
 
@@ -2574,10 +3516,20 @@ def upsert_sleep_record(entry: dict) -> Optional[dict]:
     """Insert or replace sleep record for a date (on_conflict=date)."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = _client.table("sleep_records").upsert(entry, on_conflict="date").execute()
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_sleep_record retry error: %s", e2)
+                return None
         logger.error("upsert_sleep_record error: %s", e)
         return None
 
@@ -2586,10 +3538,20 @@ def delete_sleep_record(record_id: str) -> bool:
     """Delete a sleep record by id."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("sleep_records").delete().eq("id", record_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_sleep_record retry error: %s", e2)
+                return False
         logger.error("delete_sleep_record error: %s", e)
         return False
 
@@ -2602,13 +3564,23 @@ def get_journal_entries_all(limit: int = 0, offset: int = 0) -> List[dict]:
     """Return journal entries, newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         q = _client.table("journal_entries").select("*").order("date", desc=True)
         if limit:
             q = q.range(offset, offset + limit - 1)
         resp = q.execute()
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_journal_entries_all retry error: %s", e2)
+                return []
         logger.error("get_journal_entries_all error: %s", e)
         return []
 
@@ -2617,10 +3589,20 @@ def insert_journal_entry(entry: dict) -> Optional[dict]:
     """Insert a journal entry."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = _client.table("journal_entries").insert(entry).execute()
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_journal_entry retry error: %s", e2)
+                return None
         logger.error("insert_journal_entry error: %s", e)
         return None
 
@@ -2629,7 +3611,8 @@ def search_journal_entries_db(query: str) -> List[dict]:
     """Search journal entries by content or prompt (case-insensitive)."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = (
             _client.table("journal_entries")
             .select("*")
@@ -2638,7 +3621,16 @@ def search_journal_entries_db(query: str) -> List[dict]:
             .execute()
         )
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("search_journal_entries_db retry error: %s", e2)
+                return []
         logger.error("search_journal_entries_db error: %s", e)
         return []
 
@@ -2647,7 +3639,8 @@ def count_journal_entries_since(since_date: str) -> int:
     """Count journal entries on or after since_date."""
     if _client is None or MODE == "OFFLINE":
         return 0
-    try:
+
+    def _do() -> int:
         resp = (
             _client.table("journal_entries")
             .select("id", count="exact")
@@ -2655,7 +3648,16 @@ def count_journal_entries_since(since_date: str) -> int:
             .execute()
         )
         return resp.count or 0
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("count_journal_entries_since retry error: %s", e2)
+                return 0
         logger.error("count_journal_entries_since error: %s", e)
         return 0
 
@@ -2668,7 +3670,8 @@ def get_breathwork_sessions(days: int = 30) -> List[dict]:
     """Return breathwork sessions within last N days, newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         from datetime import date as _date, timedelta
         cutoff = (_date.today() - timedelta(days=days)).isoformat()
         resp = (
@@ -2679,7 +3682,16 @@ def get_breathwork_sessions(days: int = 30) -> List[dict]:
             .execute()
         )
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_breathwork_sessions retry error: %s", e2)
+                return []
         logger.error("get_breathwork_sessions error: %s", e)
         return []
 
@@ -2688,10 +3700,20 @@ def insert_breathwork_session(entry: dict) -> Optional[dict]:
     """Insert a breathwork session."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = _client.table("breathwork_sessions").insert(entry).execute()
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_breathwork_session retry error: %s", e2)
+                return None
         logger.error("insert_breathwork_session error: %s", e)
         return None
 
@@ -2704,10 +3726,20 @@ def get_self_care_habits() -> List[dict]:
     """Return all self-care habits ordered by order_index."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = _client.table("self_care_habits").select("*").order("order_index").execute()
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_self_care_habits retry error: %s", e2)
+                return []
         logger.error("get_self_care_habits error: %s", e)
         return []
 
@@ -2716,10 +3748,20 @@ def upsert_self_care_habit(habit: dict) -> Optional[dict]:
     """Insert or update a self-care habit by id."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = _client.table("self_care_habits").upsert(habit, on_conflict="id").execute()
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_self_care_habit retry error: %s", e2)
+                return None
         logger.error("upsert_self_care_habit error: %s", e)
         return None
 
@@ -2728,11 +3770,21 @@ def delete_self_care_habit(habit_id: str) -> bool:
     """Delete a self-care habit and all its log entries."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("self_care_logs").delete().eq("habit_id", habit_id).execute()
         _client.table("self_care_habits").delete().eq("id", habit_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_self_care_habit retry error: %s", e2)
+                return False
         logger.error("delete_self_care_habit error: %s", e)
         return False
 
@@ -2741,7 +3793,8 @@ def get_self_care_log(days: int = 90) -> Dict[str, List[str]]:
     """Return {date: [habit_id, ...]} for last N days."""
     if _client is None or MODE == "OFFLINE":
         return {}
-    try:
+
+    def _do() -> Dict[str, List[str]]:
         from datetime import date as _date, timedelta
         cutoff = (_date.today() - timedelta(days=days)).isoformat()
         resp = (
@@ -2754,7 +3807,16 @@ def get_self_care_log(days: int = 90) -> Dict[str, List[str]]:
         for row in (resp.data or []):
             result.setdefault(row["date"], []).append(row["habit_id"])
         return result
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_self_care_log retry error: %s", e2)
+                return {}
         logger.error("get_self_care_log error: %s", e)
         return {}
 
@@ -2763,13 +3825,23 @@ def set_self_care_log_for_date(date: str, habit_ids: List[str]) -> bool:
     """Replace self-care log for a specific date."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("self_care_logs").delete().eq("date", date).execute()
         if habit_ids:
             rows = [{"date": date, "habit_id": hid} for hid in habit_ids]
             _client.table("self_care_logs").insert(rows).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("set_self_care_log_for_date retry error: %s", e2)
+                return False
         logger.error("set_self_care_log_for_date error: %s", e)
         return False
 
@@ -2782,10 +3854,20 @@ def get_life_stress_score_db(date: str) -> Optional[dict]:
     """Return cached life stress score for a date, or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = _client.table("life_stress_scores").select("*").eq("date", date).single().execute()
         return resp.data
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.debug("get_life_stress_score_for_date(%s) retry error: %s", date, e2)
+                return None
         logger.debug("get_life_stress_score_for_date(%s): %s", date, e)
         return None
 
@@ -2794,10 +3876,20 @@ def upsert_life_stress_score(entry: dict) -> bool:
     """Insert or update a life stress score entry."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("life_stress_scores").upsert(entry, on_conflict="date").execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_life_stress_score retry error: %s", e2)
+                return False
         logger.error("upsert_life_stress_score error: %s", e)
         return False
 
@@ -2810,7 +3902,8 @@ def get_coach_history(limit: int = 50) -> List[dict]:
     """Return coach history entries, newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = (
             _client.table("coach_history")
             .select("*")
@@ -2819,7 +3912,16 @@ def get_coach_history(limit: int = 50) -> List[dict]:
             .execute()
         )
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_coach_history retry error: %s", e2)
+                return []
         logger.error("get_coach_history error: %s", e)
         return []
 
@@ -2828,10 +3930,20 @@ def insert_coach_message(entry: dict) -> Optional[dict]:
     """Insert a coach history message."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         resp = _client.table("coach_history").insert(entry).execute()
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_coach_message retry error: %s", e2)
+                return None
         logger.error("insert_coach_message error: %s", e)
         return None
 
@@ -2844,10 +3956,20 @@ def get_goals_archived() -> List[str]:
     """Return list of archived exercise names."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[str]:
         resp = _client.table("goals_archived").select("exercise_name").execute()
         return [r["exercise_name"] for r in (resp.data or [])]
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_goals_archived retry error: %s", e2)
+                return []
         logger.error("get_goals_archived error: %s", e)
         return []
 
@@ -2856,12 +3978,22 @@ def add_goal_archived(exercise_name: str) -> bool:
     """Archive a goal by exercise name."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("goals_archived").upsert(
             {"exercise_name": exercise_name}, on_conflict="exercise_name"
         ).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("add_goal_archived retry error: %s", e2)
+                return False
         logger.error("add_goal_archived error: %s", e)
         return False
 
@@ -2870,10 +4002,20 @@ def remove_goal_archived(exercise_name: str) -> bool:
     """Restore a goal (remove from archived)."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("goals_archived").delete().eq("exercise_name", exercise_name).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("remove_goal_archived retry error: %s", e2)
+                return False
         logger.error("remove_goal_archived error: %s", e)
         return False
 
@@ -2886,10 +4028,20 @@ def update_exercise_current_weight(name: str, weight: float) -> bool:
     """Update current_weight for an exercise (used by SeanceView pre-fill)."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         resp = _client.table("exercises").update({"current_weight": weight}).eq("name", name).execute()
         return bool(resp.data)
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_exercise_current_weight retry error: %s", e2)
+                return False
         logger.error("update_exercise_current_weight error: %s", e)
         return False
 
@@ -2905,7 +4057,8 @@ def get_sessions_for_correlations(days: int = 60) -> Dict[str, dict]:
     from datetime import date as _date, timedelta
     cutoff = (_date.today() - timedelta(days=days)).isoformat()
     result: Dict[str, dict] = {}
-    try:
+
+    def _do_sessions() -> None:
         resp = (
             _client.table("workout_sessions")
             .select("date, rpe")
@@ -2916,10 +4069,8 @@ def get_sessions_for_correlations(days: int = 60) -> Dict[str, dict]:
             d = str(row.get("date", ""))[:10]
             if d:
                 result[d] = {"rpe": row.get("rpe")}
-    except Exception as e:
-        logger.error("get_sessions_for_correlations (sessions) error: %s", e)
 
-    try:
+    def _do_volume() -> None:
         resp = (
             _client.table("v_session_volume")
             .select("date, total_volume")
@@ -2930,8 +4081,28 @@ def get_sessions_for_correlations(days: int = 60) -> Dict[str, dict]:
             d = str(row.get("date", ""))[:10]
             if d:
                 result.setdefault(d, {})["session_volume"] = row.get("total_volume")
+
+    try:
+        _do_sessions()
     except Exception as e:
-        logger.error("get_sessions_for_correlations (volume) error: %s", e)
+        if _is_disconnect(e) and _reconnect():
+            try:
+                _do_sessions()
+            except Exception as e2:
+                logger.error("get_sessions_for_correlations (sessions) retry error: %s", e2)
+        else:
+            logger.error("get_sessions_for_correlations (sessions) error: %s", e)
+
+    try:
+        _do_volume()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                _do_volume()
+            except Exception as e2:
+                logger.error("get_sessions_for_correlations (volume) retry error: %s", e2)
+        else:
+            logger.error("get_sessions_for_correlations (volume) error: %s", e)
 
     return result
 
@@ -2960,10 +4131,20 @@ SMART_GOAL_META: dict = {
 def get_smart_goals() -> List[dict]:
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
+
+    def _do() -> List[dict]:
         resp = _client.table("smart_goals").select("*").order("created_at").execute()
         return resp.data or []
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_smart_goals retry error: %s", e2)
+                return []
         logger.error("get_smart_goals error: %s", e)
         return []
 
@@ -2977,7 +4158,8 @@ def upsert_smart_goal(
 ) -> Optional[dict]:
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> Optional[dict]:
         payload: dict = {"type": goal_type, "target_value": target_value}
         if goal_id:
             payload["id"] = goal_id
@@ -2987,7 +4169,16 @@ def upsert_smart_goal(
             payload["target_date"] = target_date
         resp = _client.table("smart_goals").upsert(payload, on_conflict="id").execute()
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_smart_goal retry error: %s", e2)
+                return None
         logger.error("upsert_smart_goal error: %s", e)
         return None
 
@@ -2995,10 +4186,20 @@ def upsert_smart_goal(
 def delete_smart_goal(goal_id: str) -> bool:
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         _client.table("smart_goals").delete().eq("id", goal_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_smart_goal retry error: %s", e2)
+                return False
         logger.error("delete_smart_goal error: %s", e)
         return False
 
@@ -3134,14 +4335,24 @@ def save_generated_program(program_json: dict) -> str | None:
     """Insert a generated program. Returns its UUID or None on error."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> str | None:
         resp = (
             _client.table("generated_programs")
             .insert({"program_json": program_json, "status": "pending_approval"})
             .execute()
         )
         return resp.data[0]["id"] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("save_generated_program retry error: %s", e2)
+                return None
         logger.error("save_generated_program error: %s", e)
         return None
 
@@ -3150,7 +4361,8 @@ def get_latest_generated_program() -> dict | None:
     """Return the most recent generated program row (any status), or None."""
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
+
+    def _do() -> dict | None:
         resp = (
             _client.table("generated_programs")
             .select("*")
@@ -3159,7 +4371,16 @@ def get_latest_generated_program() -> dict | None:
             .execute()
         )
         return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_latest_generated_program retry error: %s", e2)
+                return None
         logger.error("get_latest_generated_program error: %s", e)
         return None
 
@@ -3168,12 +4389,22 @@ def update_generated_program(gp_id: str, status: str, programme_id: str | None =
     """Update status and optionally link to an approved programme."""
     if _client is None or MODE == "OFFLINE":
         return False
-    try:
+
+    def _do() -> bool:
         data: dict = {"status": status}
         if programme_id:
             data["programme_id"] = programme_id
         _client.table("generated_programs").update(data).eq("id", gp_id).execute()
         return True
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_generated_program retry error: %s", e2)
+                return False
         logger.error("update_generated_program error: %s", e)
         return False
