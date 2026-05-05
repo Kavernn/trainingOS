@@ -5,11 +5,7 @@ import UserNotifications
 @main
 struct TrainingOSApp: App {
     @ObservedObject private var appState = AppState.shared
-    // iOS 26 beta: skip splash to isolate crash source
-    @State private var showSplash: Bool = {
-        if #available(iOS 26, *) { return false }
-        return true
-    }()
+    @State private var showSplash = true
     @State private var hkSetupDone = false
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 

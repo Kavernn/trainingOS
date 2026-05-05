@@ -8,10 +8,9 @@ struct ContentView: View {
     @State private var selectedTab   = 0
 
     init() {
-        // iOS 26+: skip UIKit appearance entirely — Liquid Glass manages bar styling.
-        // UITabBarAppearance/UINavigationBarAppearance calls before the visual style
-        // context is ready cause "Requesting visual style in an implementation that
-        // has disabled it, returning nil" → nano malloc heap corruption crash.
+        // iOS 26+: skip UIKit appearance — Liquid Glass manages bar styling natively.
+        // Setting UITabBarAppearance/UINavigationBarAppearance via UIKit proxy on iOS 26
+        // conflicts with the Liquid Glass visual style system.
         guard #unavailable(iOS 26) else { return }
 
         let tab = UITabBarAppearance()
@@ -36,7 +35,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - iOS layout
+// MARK: - iOS layout (TabView)
 
 private struct iOSContentView: View {
     @ObservedObject var network: NetworkMonitor
@@ -44,34 +43,27 @@ private struct iOSContentView: View {
     @Binding var selectedTab: Int
 
     var body: some View {
-        if #available(iOS 26, *) {
-            // iOS 26: custom pure-SwiftUI tabs to avoid UITabBarController,
-            // which crashes when UIKitCore requests the Liquid Glass visual style
-            // and gets nil → nano malloc heap corruption.
-            iOS26TabContainer(network: network, sync: sync, selectedTab: $selectedTab)
-        } else {
-            TabView(selection: $selectedTab) {
-                IntelligenceView(onOpenSession: { selectedTab = 2 })
-                    .tag(0)
-                    .tabItem { Label("Coach", systemImage: "brain.head.profile") }
-                DashboardView(onOpenSession: { selectedTab = 2 })
-                    .tag(1)
-                    .tabItem { Label("Aujourd'hui", systemImage: "sun.horizon.fill") }
-                SeanceView()
-                    .tag(2)
-                    .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
-                NutritionView()
-                    .tag(3)
-                    .tabItem { Label("Nutrition", systemImage: "fork.knife") }
-                MoreView()
-                    .tag(4)
-                    .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
-            }
-            .overlay(alignment: .top) { offlineBanner }
-            .overlay(alignment: .bottom) { offlineToast }
-            .tint(.orange)
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
+        TabView(selection: $selectedTab) {
+            IntelligenceView(onOpenSession: { selectedTab = 2 })
+                .tag(0)
+                .tabItem { Label("Coach", systemImage: "brain.head.profile") }
+            DashboardView(onOpenSession: { selectedTab = 2 })
+                .tag(1)
+                .tabItem { Label("Aujourd'hui", systemImage: "sun.horizon.fill") }
+            SeanceView()
+                .tag(2)
+                .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
+            NutritionView()
+                .tag(3)
+                .tabItem { Label("Nutrition", systemImage: "fork.knife") }
+            MoreView()
+                .tag(4)
+                .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
         }
+        .overlay(alignment: .top) { offlineBanner }
+        .overlay(alignment: .bottom) { offlineToast }
+        .tint(.orange)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
     }
 
     @ViewBuilder private var offlineBanner: some View {
@@ -109,104 +101,6 @@ private struct iOSContentView: View {
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
             .padding(.bottom, 90)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: msg)
-            .allowsHitTesting(false)
-        }
-    }
-}
-
-// MARK: - iOS 26 custom tab container (no UITabBarController)
-
-@available(iOS 26, *)
-private struct iOS26TabContainer: View {
-    @ObservedObject var network: NetworkMonitor
-    @ObservedObject var sync: SyncManager
-    @Binding var selectedTab: Int
-
-    var body: some View {
-        tabContent
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .safeAreaInset(edge: .bottom, spacing: 0) { tabBar }
-            .overlay(alignment: .top) { offlineBanner }
-            .overlay(alignment: .bottom) { offlineToast }
-            .tint(.orange)
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
-    }
-
-    @ViewBuilder private var tabContent: some View {
-        switch selectedTab {
-        case 0: IntelligenceView(onOpenSession: { selectedTab = 2 })
-        case 1: DashboardView(onOpenSession: { selectedTab = 2 })
-        case 2: SeanceView()
-        case 3: NutritionView()
-        default: MoreView()
-        }
-    }
-
-    private var tabBar: some View {
-        HStack(spacing: 0) {
-            tabItem(tag: 0, icon: "brain.head.profile",   label: "Coach")
-            tabItem(tag: 1, icon: "sun.horizon.fill",     label: "Aujourd'hui")
-            tabItem(tag: 2, icon: "dumbbell.fill",        label: "Séance")
-            tabItem(tag: 3, icon: "fork.knife",           label: "Nutrition")
-            tabItem(tag: 4, icon: "ellipsis.circle.fill", label: "Plus")
-        }
-        .frame(height: 49)
-        .background(.bar)
-        .overlay(alignment: .top) { Divider() }
-    }
-
-    private func tabItem(tag: Int, icon: String, label: String) -> some View {
-        Button { selectedTab = tag } label: {
-            VStack(spacing: 3) {
-                Image(systemName: icon)
-                    .font(.system(size: 22, weight: .medium))
-                Text(label)
-                    .font(.system(size: 10))
-            }
-            .foregroundStyle(selectedTab == tag ? Color.orange : Color.secondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder private var offlineBanner: some View {
-        if !network.isOnline {
-            HStack(spacing: 6) {
-                Image(systemName: "wifi.slash").font(.system(size: 11, weight: .semibold))
-                Text("Hors-ligne — données en cache").font(.system(size: 12, weight: .medium))
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 7)
-            .background(
-                Capsule()
-                    .fill(Color(hex: "1c1c1e"))
-                    .overlay(Capsule().stroke(Color.orange.opacity(0.55), lineWidth: 1))
-            )
-            .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
-            .padding(.top, 52)
-            .transition(.move(edge: .top).combined(with: .opacity))
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: network.isOnline)
-            .allowsHitTesting(false)
-        }
-    }
-
-    @ViewBuilder private var offlineToast: some View {
-        if let msg = sync.offlineToast {
-            HStack(spacing: 8) {
-                Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 13, weight: .semibold))
-                Text(msg).font(.system(size: 13, weight: .medium)).multilineTextAlignment(.leading)
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(Color(white: 0.15).opacity(0.95))
-            .clipShape(Capsule())
-            .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
-            .padding(.bottom, 8)
             .transition(.move(edge: .bottom).combined(with: .opacity))
             .animation(.spring(response: 0.4, dampingFraction: 0.8), value: msg)
             .allowsHitTesting(false)
