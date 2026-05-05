@@ -3,48 +3,20 @@ import SwiftData
 import UserNotifications
 import UIKit
 
-// MARK: - App Delegate (iOS 26 visual-style pre-init)
-// Pre-initializes UIKit appearance proxy before SwiftUI creates the window.
-// Without this, iOS 26's new Liquid Glass visual-style system fires during
-// UIWindowScene setup with UIKit objects that haven't opted in yet, producing:
-//   "Requesting visual style in an implementation that has disabled it" × 2
-// followed by a nano-malloc "freed pointer was not the last allocation" crash.
-final class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(
-        _ application: UIApplication,
-        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
-    ) -> Bool {
-        let tabAppearance = UITabBarAppearance()
-        tabAppearance.configureWithDefaultBackground()
-        UITabBar.appearance().standardAppearance   = tabAppearance
-        UITabBar.appearance().scrollEdgeAppearance = tabAppearance
-
-        let navAppearance = UINavigationBarAppearance()
-        navAppearance.configureWithDefaultBackground()
-        UINavigationBar.appearance().standardAppearance       = navAppearance
-        UINavigationBar.appearance().scrollEdgeAppearance     = navAppearance
-        UINavigationBar.appearance().compactAppearance        = navAppearance
-        UINavigationBar.appearance().compactScrollEdgeAppearance = navAppearance
-        return true
-    }
-}
-
 @main
 struct TrainingOSApp: App {
-    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var appState = AppState.shared
+    @ObservedObject private var appState = AppState.shared
     @State private var showSplash = true
-    @State private var hkSetupDone = false   // ROB-9: prevent re-registration on every onAppear
+    @State private var hkSetupDone = false
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
     private let modelContainer: ModelContainer = {
         let schema    = Schema([PendingMutation.self, BodyCompEntry.self])
         let memConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
 
-        // iOS 26 beta: disk-based ModelContainer triggers heap corruption during
-        // schema migration ("freed pointer was not the last allocation"). Use
-        // memory-only to avoid the crash; offline mutations are lost on relaunch
-        // but the app stays stable. Revert once the SwiftData bug is fixed.
+        // iOS 26 beta: disk-based ModelContainer corrupts the nano-malloc heap
+        // during schema migration. Use memory-only; offline mutations won't
+        // persist across relaunches on iOS 26 until Apple fixes SwiftData.
         if #available(iOS 26, *) {
             return (try? ModelContainer(for: schema, configurations: memConfig))
                 ?? { fatalError("Impossible de créer un ModelContainer en mémoire") }()
@@ -62,15 +34,27 @@ struct TrainingOSApp: App {
     }()
 
     init() {
-        // ModelContainer must be created before init() returns,
-        // so we call setup after the lazy initializer runs.
+        // Pre-initialize UIKit appearance proxy before SwiftUI creates the window.
+        // On iOS 26 the Liquid Glass visual-style system fires during UIWindowScene
+        // setup; setting appearance here (before body is evaluated) avoids the
+        // "Requesting visual style in an implementation that has disabled it" conflict.
+        let tab = UITabBarAppearance()
+        tab.configureWithDefaultBackground()
+        UITabBar.appearance().standardAppearance   = tab
+        UITabBar.appearance().scrollEdgeAppearance = tab
+
+        let nav = UINavigationBarAppearance()
+        nav.configureWithDefaultBackground()
+        UINavigationBar.appearance().standardAppearance          = nav
+        UINavigationBar.appearance().scrollEdgeAppearance        = nav
+        UINavigationBar.appearance().compactAppearance           = nav
+        UINavigationBar.appearance().compactScrollEdgeAppearance = nav
     }
 
     var body: some Scene {
         WindowGroup {
             Group {
                 if ProcessInfo.processInfo.environment["UITEST_MODE"] == "1" {
-                    // Skip splash + onboarding in UITest mode — go straight to ContentView
                     ContentView()
                 } else if showSplash {
                     SplashView { showSplash = false }
@@ -87,8 +71,8 @@ struct TrainingOSApp: App {
                     if granted { NotificationService.scheduleAll() }
                 }
                 Task {
-                    await appState.loadProfile()    // ARCH-8: load user profile at startup
-                    guard !hkSetupDone else { return } // ROB-9: register HK observers once only
+                    await appState.loadProfile()
+                    guard !hkSetupDone else { return }
                     hkSetupDone = true
                     await HealthKitService.shared.requestAuthorization()
                     await WatchSyncService.shared.syncIfNeeded()
