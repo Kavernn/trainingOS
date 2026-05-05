@@ -38,17 +38,25 @@ struct TrainingOSApp: App {
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
     private let modelContainer: ModelContainer = {
-        let schema = Schema([PendingMutation.self, BodyCompEntry.self])
-        let memConfig  = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        let schema    = Schema([PendingMutation.self, BodyCompEntry.self])
+        let memConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+
+        // iOS 26 beta: disk-based ModelContainer triggers heap corruption during
+        // schema migration ("freed pointer was not the last allocation"). Use
+        // memory-only to avoid the crash; offline mutations are lost on relaunch
+        // but the app stays stable. Revert once the SwiftData bug is fixed.
+        if #available(iOS 26, *) {
+            return (try? ModelContainer(for: schema, configurations: memConfig))
+                ?? { fatalError("Impossible de créer un ModelContainer en mémoire") }()
+        }
+
         let diskConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        // Essaie sur disque + validation par fetch — fallback mémoire si le store est corrompu
         if let container = try? ModelContainer(for: schema, configurations: diskConfig) {
             let ctx = ModelContext(container)
             if (try? ctx.fetch(FetchDescriptor<PendingMutation>())) != nil {
-                return container   // store lisible, on l'utilise
+                return container
             }
         }
-        // Store corrompu ou illisible → mémoire (mutations offline perdues, mais l'app ne crashe plus)
         return (try? ModelContainer(for: schema, configurations: memConfig))
             ?? { fatalError("Impossible de créer un ModelContainer en mémoire") }()
     }()
@@ -73,7 +81,6 @@ struct TrainingOSApp: App {
                 }
             }
             .environmentObject(appState)
-            .preferredColorScheme(.dark)
             .onAppear {
                 SyncManager.shared.setup(container: modelContainer)
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
