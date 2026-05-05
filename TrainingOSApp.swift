@@ -1,9 +1,37 @@
 import SwiftUI
 import SwiftData
 import UserNotifications
+import UIKit
+
+// MARK: - App Delegate (iOS 26 visual-style pre-init)
+// Pre-initializes UIKit appearance proxy before SwiftUI creates the window.
+// Without this, iOS 26's new Liquid Glass visual-style system fires during
+// UIWindowScene setup with UIKit objects that haven't opted in yet, producing:
+//   "Requesting visual style in an implementation that has disabled it" × 2
+// followed by a nano-malloc "freed pointer was not the last allocation" crash.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        let tabAppearance = UITabBarAppearance()
+        tabAppearance.configureWithDefaultBackground()
+        UITabBar.appearance().standardAppearance   = tabAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabAppearance
+
+        let navAppearance = UINavigationBarAppearance()
+        navAppearance.configureWithDefaultBackground()
+        UINavigationBar.appearance().standardAppearance       = navAppearance
+        UINavigationBar.appearance().scrollEdgeAppearance     = navAppearance
+        UINavigationBar.appearance().compactAppearance        = navAppearance
+        UINavigationBar.appearance().compactScrollEdgeAppearance = navAppearance
+        return true
+    }
+}
 
 @main
 struct TrainingOSApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var appState = AppState.shared
     @State private var showSplash = true
     @State private var hkSetupDone = false   // ROB-9: prevent re-registration on every onAppear

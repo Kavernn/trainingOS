@@ -3890,11 +3890,7 @@ struct FloatingRestTimerCard: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 32, style: .continuous)
-                        .fill(Color(hex: "080810").opacity(0.72))
-                )
+                .fill(Color(hex: "080810").opacity(0.72))
                 .overlay(
                     RoundedRectangle(cornerRadius: 32, style: .continuous)
                         .stroke(ringColor.opacity(0.3), lineWidth: 1)
