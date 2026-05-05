@@ -10,17 +10,19 @@ struct TrainingOSApp: App {
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
     private let modelContainer: ModelContainer = {
-        let schema    = Schema([PendingMutation.self, BodyCompEntry.self])
-        let memConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-
-        // iOS 26 beta: disk-based ModelContainer corrupts the nano-malloc heap
-        // during schema migration. Use memory-only; offline mutations won't
-        // persist across relaunches on iOS 26 until Apple fixes SwiftData.
+        // iOS 26 beta: SwiftData @Model ObjC runtime registration corrupts the
+        // nano-malloc heap. Use an empty schema to skip model registration entirely;
+        // SyncManager offline queue and BodyComp history are unavailable until Apple
+        // fixes SwiftData on iOS 26.
         if #available(iOS 26, *) {
-            return (try? ModelContainer(for: schema, configurations: memConfig))
-                ?? { fatalError("Impossible de créer un ModelContainer en mémoire") }()
+            let empty = Schema([])
+            let cfg   = ModelConfiguration(schema: empty, isStoredInMemoryOnly: true)
+            return (try? ModelContainer(for: empty, configurations: cfg))
+                ?? { fatalError("Cannot create empty ModelContainer") }()
         }
 
+        let schema     = Schema([PendingMutation.self, BodyCompEntry.self])
+        let memConfig  = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let diskConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         if let container = try? ModelContainer(for: schema, configurations: diskConfig) {
             let ctx = ModelContext(container)
@@ -47,7 +49,9 @@ struct TrainingOSApp: App {
             }
             .environmentObject(appState)
             .onAppear {
-                SyncManager.shared.setup(container: modelContainer)
+                if #unavailable(iOS 26) {
+                    SyncManager.shared.setup(container: modelContainer)
+                }
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
                     if granted { NotificationService.scheduleAll() }
                 }
