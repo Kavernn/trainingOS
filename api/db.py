@@ -2128,91 +2128,53 @@ def get_full_program(program_id: str | None = None) -> dict | None:
     """
     if _client is None or MODE == "OFFLINE":
         return None
-    try:
-        # Load sessions — filter by programme if specified, otherwise load ALL sessions
-        # across all programmes so the weekly_schedule (which can reference any session)
-        # always resolves exercises correctly.
+
+    def _do() -> dict | None:
         q = _client.table("program_sessions").select("id, name, order_index")
         if program_id:
             q = q.eq("program_id", program_id)
-        sessions_resp = q.order("order_index").execute()
-        sessions = sessions_resp.data or []
+        sessions = (q.order("order_index").execute().data) or []
         if not sessions:
-            return {}  # Genuinely empty — safe to seed defaults
-
+            return {}
         program: dict = {}
         for session in sessions:
-            sid = session["id"]
-            sname = session["name"]
-
-            # Load blocks for this session
-            blocks_resp = (
-                _client.table("program_blocks")
-                .select("id, type, order_index, hiit_config")
-                .eq("session_id", sid)
-                .order("order_index")
-                .execute()
-            )
-            blocks_data = blocks_resp.data or []
-
+            sid, sname = session["id"], session["name"]
+            blocks_data = (_client.table("program_blocks")
+                           .select("id, type, order_index, hiit_config")
+                           .eq("session_id", sid).order("order_index")
+                           .execute().data) or []
             built_blocks = []
             for block in blocks_data:
-                bid = block["id"]
+                bid   = block["id"]
                 btype = block.get("type", "strength")
                 border = block.get("order_index", 0)
-
                 if btype == "strength":
-                    # Load exercises for this block
-                    ex_resp = (
-                        _client.table("program_block_exercises")
-                        .select("scheme, order_index, exercises(name)")
-                        .eq("block_id", bid)
-                        .order("order_index")
-                        .execute()
-                    )
-                    ex_rows = ex_resp.data or []
-                    exercises: dict = {}
-                    for row in ex_rows:
-                        ex_name = (row.get("exercises") or {}).get("name")
-                        if ex_name:
-                            exercises[ex_name] = row.get("scheme", "3x8-12")
+                    ex_rows = (_client.table("program_block_exercises")
+                               .select("scheme, order_index, exercises(name)")
+                               .eq("block_id", bid).order("order_index")
+                               .execute().data) or []
+                    exercises = {
+                        (r.get("exercises") or {}).get("name"): r.get("scheme", "3x8-12")
+                        for r in ex_rows if (r.get("exercises") or {}).get("name")
+                    }
                     built_blocks.append({"type": "strength", "order": border, "exercises": exercises})
                 else:
-                    cfg = block.get("hiit_config") or {}
-                    built_blocks.append({"type": btype, "order": border, "hiit_config": cfg})
-
+                    built_blocks.append({"type": btype, "order": border,
+                                         "hiit_config": block.get("hiit_config") or {}})
             program[sname] = {"blocks": built_blocks}
-
         return program
+
+    try:
+        return _do()
     except Exception as e:
-        logger.warning("get_full_program error: %s — retrying once", e)
-        # Retry once on transient connection errors (e.g. "Server disconnected")
-        try:
-            q2 = _client.table("program_sessions").select("id, name, order_index")
-            if program_id:
-                q2 = q2.eq("program_id", program_id)
-            sessions_resp = q2.order("order_index").execute()
-            sessions = sessions_resp.data or []
-            if not sessions:
-                return {}
-            program2: dict = {}
-            for session in sessions:
-                sid, sname = session["id"], session["name"]
-                blocks_resp = _client.table("program_blocks").select("id, type, order_index, hiit_config").eq("session_id", sid).order("order_index").execute()
-                built_blocks = []
-                for block in (blocks_resp.data or []):
-                    bid, btype, border = block["id"], block.get("type", "strength"), block.get("order_index", 0)
-                    if btype == "strength":
-                        ex_resp = _client.table("program_block_exercises").select("scheme, order_index, exercises(name)").eq("block_id", bid).order("order_index").execute()
-                        exercises = {(r.get("exercises") or {}).get("name"): r.get("scheme", "3x8-12") for r in (ex_resp.data or []) if (r.get("exercises") or {}).get("name")}
-                        built_blocks.append({"type": "strength", "order": border, "exercises": exercises})
-                    else:
-                        built_blocks.append({"type": btype, "order": border, "hiit_config": block.get("hiit_config") or {}})
-                program2[sname] = {"blocks": built_blocks}
-            return program2
-        except Exception as e2:
-            logger.error("get_full_program retry failed: %s", e2)
-            return None
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_full_program retry error: %s", e2)
+                return None
+        logger.error("get_full_program error: %s", e)
+        return None
 
 
 def get_session_supersets(program_id: str | None = None) -> dict:
@@ -2224,12 +2186,12 @@ def get_session_supersets(program_id: str | None = None) -> dict:
     """
     if _client is None or MODE == "OFFLINE":
         return {}
-    try:
+
+    def _do() -> dict:
         q = _client.table("program_sessions").select("id, name")
         if program_id:
             q = q.eq("program_id", program_id)
         sessions = (q.order("order_index").execute().data) or []
-
         result: dict = {}
         for session in sessions:
             sid, sname = session["id"], session["name"]
@@ -2246,9 +2208,8 @@ def get_session_supersets(program_id: str | None = None) -> dict:
                         .order("order_index")
                         .execute().data) or []
                 for row in rows:
-                    grp = row.get("superset_group")
-                    pos = row.get("superset_position")
-                    rest = row.get("rest_after_superset")
+                    grp     = row.get("superset_group")
+                    pos     = row.get("superset_position")
                     ex_name = (row.get("exercises") or {}).get("name")
                     if not grp or not ex_name:
                         continue
@@ -2262,7 +2223,16 @@ def get_session_supersets(program_id: str | None = None) -> dict:
             if ss_map:
                 result[sname] = ss_map
         return result
+
+    try:
+        return _do()
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_session_supersets retry error: %s", e2)
+                return {}
         logger.error("get_session_supersets error: %s", e)
         return {}
 
