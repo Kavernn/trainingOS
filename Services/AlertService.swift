@@ -58,7 +58,7 @@ final class AlertService: ObservableObject {
 
         // Prune keys older than 3 days to avoid unbounded growth
         let cutoff = DateFormatter.isoDate.string(
-            from: Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date()
+            from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 3 * 86400)
         )
         current = current.filter { key in
             guard let datePart = key.split(separator: "_").last.map(String.init) else { return true }
@@ -76,10 +76,11 @@ final class AlertService: ObservableObject {
             guard granted else { return }
 
             // Only schedule if 19:30 today hasn't passed
-            var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+            var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone.current
+            var components = cal.dateComponents([.year, .month, .day], from: Date())
             components.hour = 19
             components.minute = 30
-            guard let target = Calendar.current.date(from: components), target > Date() else { return }
+            guard let target = cal.date(from: components), target > Date() else { return }
 
             let content = UNMutableNotificationContent()
             content.title = top.title

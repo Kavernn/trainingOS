@@ -433,9 +433,9 @@ struct WeeklyNutritionChart: View {
         var seen: [String: Int] = [:]
         for day in history.sorted(by: { $0.date < $1.date }) {
             guard let d = fmt.date(from: day.date) else { continue }
-            let y = Calendar.current.component(.yearForWeekOfYear, from: d)
-            let w = Calendar.current.component(.weekOfYear, from: d)
-            let key = "\(y)-\(w)"
+            let tz = TimeZone.current.secondsFromGMT()
+            let wIdx = (Int(d.timeIntervalSince1970) + tz) / 86400
+            let key = "W\((wIdx + 3) / 7)"
             if let idx = seen[key] { weeks[idx].days.append(day) }
             else { seen[key] = weeks.count; weeks.append((key, [day])) }
         }
@@ -852,7 +852,7 @@ struct AddNutritionSheet: View {
     }
 
     @State private var mealType: String = {
-        let h = Calendar.current.component(.hour, from: Date())
+        let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         switch h {
         case 5..<10:  return "matin"
         case 10..<14: return "midi"
@@ -1520,7 +1520,8 @@ struct NutritionPatternsCard: View {
         var groups: [Int: [Double]] = [:]
         for day in history {
             guard let d = fmt.date(from: day.date) else { continue }
-            let wd = Calendar.current.component(.weekday, from: d) - 1
+            let epochDays = (Int(d.timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
+            let wd = ((epochDays + 4) % 7 + 1) - 1
             groups[wd, default: []].append(day.calories)
         }
         let reordered = [1,2,3,4,5,6,0] // Mon→Sun
@@ -1752,7 +1753,7 @@ struct WorkoutTimingCard: View {
     }
 
     private var guidance: Guidance? {
-        let hour = Calendar.current.component(.hour, from: Date())
+        let hour = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         let isTraining = todayType == "training"
         let protConsumed = totals?.proteines ?? 0
         let protGoal = settings?.proteines ?? 0
@@ -2028,7 +2029,8 @@ struct ScanLabelSheet: View {
     @State private var isSaving = false
 
     @State private var mealType: String = {
-        switch Calendar.current.component(.hour, from: Date()) {
+        let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
+        switch h {
         case 5..<10:  return "matin"
         case 10..<14: return "midi"
         case 14..<20: return "soir"

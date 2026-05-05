@@ -545,15 +545,17 @@ struct SleepLogSheet: View {
         .onAppear {
             if let e = existing {
                 // Prefill from existing entry
-                let cal = Calendar.current
                 let now = Date()
+                let tz = TimeZone.current.secondsFromGMT()
+                let localNow = Int(now.timeIntervalSince1970) + tz
+                let startOfDay = localNow - (localNow % 86400)
                 if let bh = Int(e.bedtime.split(separator: ":").first ?? ""),
                    let bm = Int(e.bedtime.split(separator: ":").last  ?? "") {
-                    bedtime = cal.date(bySettingHour: bh, minute: bm, second: 0, of: now) ?? now
+                    bedtime = Date(timeIntervalSince1970: TimeInterval(startOfDay + bh * 3600 + bm * 60 - tz))
                 }
                 if let wh = Int(e.wakeTime.split(separator: ":").first ?? ""),
                    let wm = Int(e.wakeTime.split(separator: ":").last  ?? "") {
-                    wakeTime = cal.date(bySettingHour: wh, minute: wm, second: 0, of: now) ?? now
+                    wakeTime = Date(timeIntervalSince1970: TimeInterval(startOfDay + wh * 3600 + wm * 60 - tz))
                 }
                 quality = e.quality
                 notes   = e.notes ?? ""

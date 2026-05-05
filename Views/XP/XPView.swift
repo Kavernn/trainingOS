@@ -311,12 +311,11 @@ struct XPView: View {
 
     private func hasPerfectWeek(sessions: [String: SessionEntry]) -> Bool {
         var weekCounts: [String: Int] = [:]
-        let cal = Calendar.current
+        let tz = TimeZone.current.secondsFromGMT()
         for dateStr in sessions.keys {
             guard let date = DateFormatter.isoDate.date(from: dateStr) else { continue }
-            let y = cal.component(.yearForWeekOfYear, from: date)
-            let w = cal.component(.weekOfYear, from: date)
-            let key = "\(y)-W\(w)"
+            let epochDays = (Int(date.timeIntervalSince1970) + tz) / 86400
+            let key = "W\((epochDays + 3) / 7)"
             weekCounts[key, default: 0] += 1
         }
         return weekCounts.values.contains { $0 >= 4 }

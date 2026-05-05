@@ -95,14 +95,13 @@ class WatchSyncService: ObservableObject {
     /// Checks the last 7 days and syncs any day that has HealthKit steps but no
     /// recovery log entry. Safe to call at any time — idempotent.
     func backfillRecentDaysIfNeeded() async {
-        let cal = Calendar.current
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
 
         let existingLog = (try? await APIService.shared.fetchRecoveryData()) ?? []
 
         // Build list of dates that need backfill
         let datesToBackfill: [Date] = (1...7).compactMap { daysAgo -> Date? in
-            guard let date = cal.date(byAdding: .day, value: -daysAgo, to: Date()) else { return nil }
+            let date = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - Double(daysAgo) * 86400)
             let dateStr = fmt.string(from: date)
             return existingLog.first(where: { $0.date == dateStr })?.steps != nil ? nil : date
         }

@@ -572,7 +572,7 @@ struct AddGoalSheet: View {
             HStack(spacing: 8) {
                 ForEach([1, 3, 6], id: \.self) { months in
                     Button("\(months) mois") {
-                        deadline = Calendar.current.date(byAdding: .month, value: months, to: Date()) ?? Date()
+                        deadline = Date(timeIntervalSince1970: Date().timeIntervalSince1970 + Double(months) * 30.44 * 86400)
                     }
                     .font(.system(size: 12, weight: .medium)).foregroundColor(.orange)
                     .padding(.horizontal, 10).padding(.vertical, 5)
@@ -834,7 +834,7 @@ private func scheduleGoalDeadlineNotifications(exercise: String, deadlineStr: St
         ]
 
         for (offset, title, body) in alerts {
-            let fireDate = Calendar.current.date(byAdding: .day, value: offset, to: deadline)!
+            let fireDate = Date(timeIntervalSince1970: deadline.timeIntervalSince1970 + Double(offset) * 86400)
             guard fireDate > now else { continue }
 
             let content       = UNMutableNotificationContent()
@@ -842,7 +842,8 @@ private func scheduleGoalDeadlineNotifications(exercise: String, deadlineStr: St
             content.body      = body
             content.sound     = .default
 
-            let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+            var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone.current
+            let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
             var triggerComps  = comps
             triggerComps.hour   = 9
             triggerComps.minute = 0

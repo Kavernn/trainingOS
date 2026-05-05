@@ -41,8 +41,9 @@ final class BehaviorTracker {
 
         let hours = timestamps.map { t -> Double in
             let date = Date(timeIntervalSince1970: t)
-            let h = Double(Calendar.current.component(.hour, from: date))
-            let m = Double(Calendar.current.component(.minute, from: date))
+            let localSecs = Int(date.timeIntervalSince1970) + TimeZone.current.secondsFromGMT()
+            let h = Double((localSecs / 3600) % 24)
+            let m = Double((localSecs / 60) % 60)
             return h + m / 60.0
         }.sorted()
 

@@ -54,7 +54,7 @@ struct ProgrammeView: View {
     private var mesocycleWeek: Int {
         guard !periodisationStart.isEmpty,
               let start = DateFormatter.isoDate.date(from: periodisationStart) else { return 0 }
-        let days = Calendar.current.dateComponents([.day], from: start, to: Date()).day ?? 0
+        let days = Int(Date().timeIntervalSince(start) / 86400)
         return max(1, days / 7 + 1)
     }
     private var currentPhase: Phase {

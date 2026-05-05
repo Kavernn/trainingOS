@@ -74,7 +74,7 @@ class HealthKitService: ObservableObject {
 
     func fetchSteps(for date: Date) async -> Int? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return nil }
-        let cal   = Calendar.current
+        let cal   = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }())
         let start = cal.startOfDay(for: date)
         let end   = cal.date(byAdding: .day, value: 1, to: start)!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
@@ -92,7 +92,7 @@ class HealthKitService: ObservableObject {
     /// whose timestamps may fall on the previous calendar day.
     func fetchRestingHR(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else { return nil }
-        let cal   = Calendar.current
+        let cal   = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }())
         let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: date)!)
         let end   = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: date))!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
@@ -122,7 +122,7 @@ class HealthKitService: ObservableObject {
     /// Sleep hours for the night that precedes `date` (18:00 day-1 → 12:00 day).
     func fetchSleep(for date: Date) async -> Double? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
-        let cal   = Calendar.current
+        let cal   = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }())
         let start = cal.date(byAdding: .hour, value: -6, to: cal.startOfDay(for: date))!
         let end   = cal.date(byAdding: .hour, value: 12, to: cal.startOfDay(for: date))!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
@@ -148,7 +148,7 @@ class HealthKitService: ObservableObject {
     func fetchLastNightSleepWindow() async -> SleepWindow? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
         let now   = Date()
-        let start = Calendar.current.date(byAdding: .hour, value: -18, to: now)!
+        let start = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }()).date(byAdding: .hour, value: -18, to: now)!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: now)
         let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         return await withCheckedContinuation { cont in
@@ -184,7 +184,7 @@ class HealthKitService: ObservableObject {
     /// HRV for a specific date — daily average via statistics query, same 48h window as fetchRestingHR.
     func fetchHRV(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else { return nil }
-        let cal   = Calendar.current
+        let cal   = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }())
         let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: date)!)
         let end   = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: date))!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
@@ -237,7 +237,7 @@ class HealthKitService: ObservableObject {
 
     /// Average HR 06:00–09:00 (repos matinal).
     func fetchMorningHR(for date: Date) async -> Double? {
-        let cal   = Calendar.current
+        let cal   = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }())
         let start = cal.date(bySettingHour: 6, minute: 0, second: 0, of: date)!
         let end   = cal.date(bySettingHour: 9, minute: 0, second: 0, of: date)!
         return await fetchAvgHR(start: start, end: end)
@@ -245,7 +245,7 @@ class HealthKitService: ObservableObject {
 
     /// Average HR in the 30 min following the last workout of the day.
     func fetchPostWorkoutHR(for date: Date) async -> Double? {
-        let cal      = Calendar.current
+        let cal      = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }())
         let dayStart = cal.startOfDay(for: date)
         let dayEnd   = cal.date(byAdding: .day, value: 1, to: dayStart)!
         let workouts: [HKWorkout] = await withCheckedContinuation { cont in
@@ -264,7 +264,7 @@ class HealthKitService: ObservableObject {
 
     /// Average HR 21:00–23:00 (repos vespéral).
     func fetchEveningHR(for date: Date) async -> Double? {
-        let cal   = Calendar.current
+        let cal   = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }())
         let start = cal.date(bySettingHour: 21, minute: 0, second: 0, of: date)!
         let end   = cal.date(bySettingHour: 23, minute: 0, second: 0, of: date)!
         return await fetchAvgHR(start: start, end: end)
@@ -277,7 +277,7 @@ class HealthKitService: ObservableObject {
 
     func fetchActiveEnergy(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return nil }
-        let cal   = Calendar.current
+        let cal   = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }())
         let start = cal.startOfDay(for: date)
         let end   = cal.date(byAdding: .day, value: 1, to: start)!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
@@ -291,7 +291,7 @@ class HealthKitService: ObservableObject {
 
     // MARK: - All Workouts (last N days, all activity types)
     func fetchAllWorkouts(days: Int = 1) async -> [HKWorkout] {
-        let start = Calendar.current.date(byAdding: .day, value: -days, to: Date())!
+        let start = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }()).date(byAdding: .day, value: -days, to: Date())!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: Date())
         let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return await withCheckedContinuation { cont in
@@ -362,7 +362,7 @@ class HealthKitService: ObservableObject {
     func fetchLastNightSleepStages() async -> SleepStages? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
         let now   = Date()
-        let start = Calendar.current.date(byAdding: .hour, value: -18, to: now)!
+        let start = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }()).date(byAdding: .hour, value: -18, to: now)!
         let pred  = HKQuery.predicateForSamples(withStart: start, end: now)
         let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         return await withCheckedContinuation { cont in

@@ -290,7 +290,7 @@ struct DashboardView: View {
     }
 
     private func checkAndShowMorningReveal() {
-        let hour = Calendar.current.component(.hour, from: Date())
+        let hour = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         guard hour < 14,
               UserDefaults.standard.string(forKey: "morningRevealDate") != todayStr,
               vm.morningBrief != nil else { return }
@@ -777,7 +777,7 @@ struct GreetingHeaderView: View {
     @Binding var showChecklist: Bool
 
     var greeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
+        let hour = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         if hour < 12 { return "Bon matin" }
         if hour < 18 { return "Bon après-midi" }
         return "Bonsoir"
@@ -839,7 +839,8 @@ struct GreetingHeaderView: View {
         let todayStr = fmt.string(from: Date())
         guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
         let base = todayMidnight.timeIntervalSince1970
-        let weekday = Calendar.current.component(.weekday, from: Date())
+        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
+        let weekday = ((epochDays + 4) % 7) + 1
         let daysSinceMonday = (weekday + 5) % 7
         var count = 0
         for i in 0...daysSinceMonday {
@@ -1273,7 +1274,8 @@ struct StatsRowView: View {
         let todayStr = fmt.string(from: Date())
         guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
         let base = todayMidnight.timeIntervalSince1970
-        let weekday = Calendar.current.component(.weekday, from: Date())
+        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
+        let weekday = ((epochDays + 4) % 7) + 1
         let daysSinceMonday = (weekday + 5) % 7
         var count = 0
         for i in 0...daysSinceMonday {
@@ -1408,7 +1410,8 @@ struct WeekGridView: View {
     private let days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 
     private func dateForDay(_ index: Int) -> String {
-        let weekday = Calendar.current.component(.weekday, from: Date()) // Sun=1, Mon=2..Sat=7
+        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
+        let weekday = ((epochDays + 4) % 7) + 1
         let daysSinceMonday = (weekday + 5) % 7
         let base = Date().timeIntervalSince1970
         let monday = Date(timeIntervalSince1970: base - Double(daysSinceMonday) * 86400.0)
@@ -1417,7 +1420,8 @@ struct WeekGridView: View {
     }
 
     private func isToday(_ index: Int) -> Bool {
-        let weekday = Calendar.current.component(.weekday, from: Date())
+        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
+        let weekday = ((epochDays + 4) % 7) + 1
         return index == (weekday + 5) % 7
     }
 
@@ -1713,7 +1717,8 @@ struct WeekProgressStripView: View {
         let todayStr = fmt.string(from: Date())
         guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
         let base = todayMidnight.timeIntervalSince1970
-        let weekday = Calendar.current.component(.weekday, from: Date())
+        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
+        let weekday = ((epochDays + 4) % 7) + 1
         let daysSinceMonday = (weekday + 5) % 7
         var count = 0
         for i in 0...daysSinceMonday {
@@ -2015,7 +2020,7 @@ struct MorningBriefCardView: View {
             }
 
             // Contexte temporel
-            let hour = Calendar.current.component(.hour, from: Date())
+            let hour = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
             if let lastDate = lastSessionDate,
                let last = DateFormatter.isoDate.date(from: lastDate) {
                 let hours = Int(Date().timeIntervalSince(last) / 3600)
@@ -3022,10 +3027,12 @@ struct OptimalWindowCard: View {
 
     private var windowStart: Date {
         let candidate = wakeTime.addingTimeInterval(3 * 3600)
-        let cal = Calendar.current
-        let hour = cal.component(.hour, from: candidate)
+        let tz = TimeZone.current.secondsFromGMT()
+        let localSecs = Int(candidate.timeIntervalSince1970) + tz
+        let hour = (localSecs / 3600) % 24
         if hour < 10 {
-            return cal.date(bySettingHour: 10, minute: 0, second: 0, of: candidate) ?? candidate
+            let startOfDay = localSecs - (localSecs % 86400)
+            return Date(timeIntervalSince1970: TimeInterval(startOfDay + 10 * 3600 - tz))
         }
         return candidate
     }

@@ -30,18 +30,14 @@ private func avgReps(_ reps: String) -> Double {
 
 private func isoWeekKey(_ dateStr: String) -> String {
     guard let d = DateFormatter.isoDate.date(from: dateStr) else { return "" }
-    let y = Calendar.current.component(.yearForWeekOfYear, from: d)
-    let w = Calendar.current.component(.weekOfYear, from: d)
-    return String(format: "%04d-W%02d", y, w)
+    let epochDays = (Int(d.timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
+    return "W\((epochDays + 3) / 7)"
 }
 
 private func weekLabel(_ key: String) -> String {
-    let parts = key.split(separator: "-")
-    guard parts.count == 2,
-          let year = Int(parts[0]),
-          let week = Int(parts[1].dropFirst()) else { return key }
-    var c = DateComponents(); c.yearForWeekOfYear = year; c.weekOfYear = week; c.weekday = 2
-    guard let d = Calendar.current.date(from: c) else { return key }
+    guard key.hasPrefix("W"), let weekIdx = Int(key.dropFirst()) else { return key }
+    let tz = TimeZone.current.secondsFromGMT()
+    let d = Date(timeIntervalSince1970: TimeInterval(weekIdx * 7 * 86400 - 3 * 86400 - tz))
     let f = DateFormatter(); f.dateFormat = "d MMM"; f.locale = Locale(identifier: "fr_CA")
     return f.string(from: d)
 }
@@ -136,7 +132,8 @@ struct StatsView: View {
     }
 
     var weeklyVolume: Double {
-        let weekday = Calendar.current.component(.weekday, from: Date())
+        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
+        let weekday = ((epochDays + 4) % 7) + 1
         let daysSinceMonday = (weekday + 5) % 7
         let mondayStr = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - Double(daysSinceMonday) * 86400.0))
         // Primary: sessionVolume from sessions (server-computed, includes all exercises)
@@ -200,15 +197,9 @@ struct StatsView: View {
 
     // ── Weekly charts ─────────────────────────────────────────────────
     private var last8Weeks: [String] {
-        var result: [String] = []
-        var date = Date()
-        for _ in 0..<8 {
-            let y = Calendar.current.component(.yearForWeekOfYear, from: date)
-            let w = Calendar.current.component(.weekOfYear, from: date)
-            result.append(String(format: "%04d-W%02d", y, w))
-            date = Date(timeIntervalSince1970: date.timeIntervalSince1970 - 7 * 86400.0)
-        }
-        return result.reversed()
+        let tz = TimeZone.current.secondsFromGMT()
+        let todayDays = (Int(Date().timeIntervalSince1970) + tz) / 86400
+        return (0..<8).reversed().map { i in "W\((todayDays - i * 7 + 3) / 7)" }
     }
 
     var weeklyFrequency: [(String, Double)] {
@@ -291,11 +282,13 @@ struct StatsView: View {
 
     // ── Week comparison ───────────────────────────────────────────────
     private func weekBounds(weeksAgo: Int) -> (String, String) {
-        let cal = Calendar.current
-        let today = Date()
-        let daysSinceMonday = (cal.component(.weekday, from: today) + 5) % 7
-        let monday = Date(timeIntervalSince1970: today.timeIntervalSince1970 - Double(daysSinceMonday + weeksAgo * 7) * 86400)
-        let sunday = Date(timeIntervalSince1970: monday.timeIntervalSince1970 + 6 * 86400)
+        let tz = TimeZone.current.secondsFromGMT()
+        let todayDays = (Int(Date().timeIntervalSince1970) + tz) / 86400
+        let weekday = ((todayDays + 4) % 7) + 1
+        let daysSinceMonday = (weekday + 5) % 7
+        let mondayDays = todayDays - daysSinceMonday - weeksAgo * 7
+        let monday = Date(timeIntervalSince1970: TimeInterval(mondayDays * 86400 - tz))
+        let sunday = Date(timeIntervalSince1970: TimeInterval((mondayDays + 6) * 86400 - tz))
         return (DateFormatter.isoDate.string(from: monday), DateFormatter.isoDate.string(from: sunday))
     }
 
@@ -2059,7 +2052,7 @@ struct MuscleBreakdownView: View {
 
     private func daysSince(_ dateStr: String) -> Int? {
         guard let d = DateFormatter.isoDate.date(from: dateStr) else { return nil }
-        return Calendar.current.dateComponents([.day], from: d, to: Date()).day
+        return Int(Date().timeIntervalSince(d) / 86400)
     }
 
     private func freshnessColor(_ days: Int?) -> Color {
@@ -2140,7 +2133,6 @@ struct PRTrackerView: View {
     }
 
     private var prs: [PREntry] {
-        let cal = Calendar.current
         let now = Date()
         return weights.compactMap { name, data -> PREntry? in
             guard let history = data.history, !history.isEmpty else { return nil }
@@ -2148,7 +2140,7 @@ struct PRTrackerView: View {
                   let w = best.weight, w > 0, let date = best.date else { return nil }
             let isRecent: Bool
             if let d = DateFormatter.isoDate.date(from: date) {
-                isRecent = cal.dateComponents([.day], from: d, to: now).day ?? 99 <= 30
+                isRecent = Int(now.timeIntervalSince(d) / 86400) <= 30
             } else { isRecent = false }
             return PREntry(name: name, prWeight: w, prDate: date, isRecent: isRecent)
         }

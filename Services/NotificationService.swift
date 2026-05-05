@@ -178,7 +178,8 @@ enum NotificationService {
     private static func nextOccurrence(hour: Int, minute: Int, fromNow: Bool) -> TimeInterval {
         var dc = DateComponents()
         dc.hour = hour; dc.minute = minute; dc.second = 0
-        guard let next = Calendar.current.nextDate(after: Date(), matching: dc, matchingPolicy: .nextTime) else {
+        var cal = Calendar(identifier: .gregorian); cal.timeZone = TimeZone.current
+        guard let next = cal.nextDate(after: Date(), matching: dc, matchingPolicy: .nextTime) else {
             return 86400
         }
         return next.timeIntervalSince(Date())
