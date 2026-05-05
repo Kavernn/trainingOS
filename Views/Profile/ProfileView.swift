@@ -2,7 +2,7 @@ import SwiftUI
 import PhotosUI
 
 struct ProfileView: View {
-    @StateObject private var api = APIService.shared
+    @ObservedObject private var api = APIService.shared
     @State private var bodyWeight: [BodyWeightEntry] = []
     @State private var tendance = ""
     @State private var isLoading = true

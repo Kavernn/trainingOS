@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Journal View
 
 struct JournalView: View {
-    @StateObject private var api = APIService.shared
+    @ObservedObject private var api = APIService.shared
     @State private var entries:         [JournalEntry] = []
     @State private var contextualPrompt: ContextualPrompt? = nil
     @State private var showEntrySheet   = false

@@ -10,7 +10,7 @@ struct HealthDashboardView: View {
     @State private var isLoading = true
     @ObservedObject private var units = UnitSettings.shared
     // Live HealthKit values — shown when backend summary has no data for today
-    @StateObject private var hk = HealthKitService.shared
+    @ObservedObject private var hk = HealthKitService.shared
     @State private var hkRestingHR: Double? = nil
     @State private var hkHRV: Double? = nil
 

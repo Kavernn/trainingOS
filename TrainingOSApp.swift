@@ -1,7 +1,6 @@
 import SwiftUI
 import SwiftData
 import UserNotifications
-import UIKit
 
 @main
 struct TrainingOSApp: App {
@@ -32,24 +31,6 @@ struct TrainingOSApp: App {
         return (try? ModelContainer(for: schema, configurations: memConfig))
             ?? { fatalError("Impossible de créer un ModelContainer en mémoire") }()
     }()
-
-    init() {
-        // Pre-initialize UIKit appearance proxy before SwiftUI creates the window.
-        // On iOS 26 the Liquid Glass visual-style system fires during UIWindowScene
-        // setup; setting appearance here (before body is evaluated) avoids the
-        // "Requesting visual style in an implementation that has disabled it" conflict.
-        let tab = UITabBarAppearance()
-        tab.configureWithDefaultBackground()
-        UITabBar.appearance().standardAppearance   = tab
-        UITabBar.appearance().scrollEdgeAppearance = tab
-
-        let nav = UINavigationBarAppearance()
-        nav.configureWithDefaultBackground()
-        UINavigationBar.appearance().standardAppearance          = nav
-        UINavigationBar.appearance().scrollEdgeAppearance        = nav
-        UINavigationBar.appearance().compactAppearance           = nav
-        UINavigationBar.appearance().compactScrollEdgeAppearance = nav
-    }
 
     var body: some Scene {
         WindowGroup {

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MoreView: View {
-    @StateObject private var api = APIService.shared
+    @ObservedObject private var api = APIService.shared
 
     var body: some View {
         NavigationStack {

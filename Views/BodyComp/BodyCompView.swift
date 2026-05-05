@@ -646,7 +646,7 @@ struct BodyWeightSheet: View {
     let editEntry: BodyWeightEntry?     // nil = add mode
     var onSaved: () async -> Void
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var hk = HealthKitService.shared
+    @ObservedObject private var hk = HealthKitService.shared
     @ObservedObject private var units = UnitSettings.shared
 
     @State private var weightStr = ""

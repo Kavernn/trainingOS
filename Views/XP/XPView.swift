@@ -25,7 +25,7 @@ struct Badge: Identifiable {
 // MARK: - XP View
 
 struct XPView: View {
-    @StateObject private var api = APIService.shared
+    @ObservedObject private var api = APIService.shared
     @State private var hiitLog:   [HIITEntry]        = []
     @State private var weights:   [String: WeightData] = [:]
     @State private var recovery:  [RecoveryEntry]    = []

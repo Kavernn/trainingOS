@@ -13,7 +13,7 @@ struct IntelligenceView: View {
     @State private var isLoadingCorrelations = false
     @State private var showInsights = false
     @FocusState private var inputFocused: Bool
-    @StateObject private var api = APIService.shared
+    @ObservedObject private var api = APIService.shared
     @State private var narrative:        String?                  = nil
     @State private var isLoadingNarrative = false
     @State private var recoveryData:    [RecoveryEntry]          = []

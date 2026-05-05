@@ -8,7 +8,7 @@ struct RecoveryView: View {
     @State private var editTarget: RecoveryEntry? = nil
     @State private var apiError: String? = nil
     @State private var toast: ToastMessage? = nil
-    @StateObject private var watchSync = WatchSyncService.shared
+    @ObservedObject private var watchSync = WatchSyncService.shared
     @State private var isBackfilling = false
     @State private var backfillDone  = false
 
@@ -767,7 +767,7 @@ struct LogRecoverySheet: View {
     var prefillEntry: RecoveryEntry? = nil
     var onSaved: () async -> Void
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var hk = HealthKitService.shared
+    @ObservedObject private var hk = HealthKitService.shared
 
     @State private var selectedDate = Date()
     @State private var sleepHoursStr = ""

@@ -88,7 +88,6 @@ struct SplashView: View {
     private let mutedColor = Color(red: 74/255,  green: 70/255,  blue: 64/255)
     private let gridLine   = Color(red: 240/255, green: 82/255,  blue: 14/255).opacity(0.18)
 
-    let timer = Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()
     var onFinish: () -> Void
 
     // MARK: - Body
@@ -418,7 +417,9 @@ struct SplashView: View {
         }
         .opacity(allOpacity)
         .ignoresSafeArea()
-        .onReceive(timer) { _ in updateParticles() }
+        .onReceive(Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()) { _ in
+            updateParticles()
+        }
         .onAppear {
             glowPulsing = true
             generateCracks(target: &cracks,  mainCount: 13, branchChance: 0.85)

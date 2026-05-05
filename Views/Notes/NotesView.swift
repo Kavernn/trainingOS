@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct NotesView: View {
-    @StateObject private var api = APIService.shared
+    @ObservedObject private var api = APIService.shared
     @State private var showOnlyWithNotes = false
 
     private var allSessions: [HistoriqueSession] {
