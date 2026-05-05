@@ -34,6 +34,25 @@ if MODE != "OFFLINE":
         if MODE == "ONLINE":
             MODE = "HYBRID"
 
+
+def _reconnect() -> bool:
+    """Recreate the Supabase client after a server-disconnected error."""
+    global _client
+    if not (_SUPABASE_URL and _SUPABASE_KEY):
+        return False
+    try:
+        from supabase import create_client
+        _client = create_client(_SUPABASE_URL, _SUPABASE_KEY)
+        logger.info("Supabase reconnected")
+        return True
+    except Exception as e:
+        logger.error("Supabase reconnect failed: %s", e)
+        return False
+
+
+def _is_disconnect(e: Exception) -> bool:
+    return "disconnected" in str(e).lower() or "server disconnected" in str(e).lower()
+
 # ---------------------------------------------------------------------------
 # SQLite local (kv_local: key TEXT PK, value TEXT JSON, updated_at TEXT ISO, dirty INT)
 # ---------------------------------------------------------------------------
@@ -1446,16 +1465,23 @@ def get_recovery_logs(limit: int = 100) -> List[dict]:
     """Return recovery log entries, newest first."""
     if _client is None or MODE == "OFFLINE":
         return []
-    try:
-        resp = (
+    def _fetch():
+        return (
             _client.table("recovery_logs")
             .select("*")
             .order("date", desc=True)
             .limit(limit)
             .execute()
         )
-        return resp.data or []
+    try:
+        return _fetch().data or []
     except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _fetch().data or []
+            except Exception as e2:
+                logger.error("get_recovery_logs retry error: %s", e2)
+                return []
         logger.error("get_recovery_logs error: %s", e)
         return []
 
