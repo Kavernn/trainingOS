@@ -131,14 +131,11 @@ struct HealthDashboardView: View {
 
     private func loadData() async {
         isLoading = true
-        async let weekTask    = APIService.shared.fetchWeeklyHealthSummary(days: 7)
-        async let lssTask     = APIService.shared.fetchLifeStressScore(forceRefresh: true)
-        async let trendTask   = APIService.shared.fetchLifeStressTrend(days: 7)
-        async let pssDueTask  = APIService.shared.checkPSSDue(type: "full")
-        week            = (try? await weekTask)   ?? []
-        lifeStress      = try? await lssTask
-        lifeStressTrend = (try? await trendTask)  ?? []
-        pssDueStatus    = try? await pssDueTask
+        // sequential — async let LIFO crash on iOS 26 beta
+        week            = (try? await APIService.shared.fetchWeeklyHealthSummary(days: 7)) ?? []
+        lifeStress      = try? await APIService.shared.fetchLifeStressScore(forceRefresh: true)
+        lifeStressTrend = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? []
+        pssDueStatus    = try? await APIService.shared.checkPSSDue(type: "full")
         isLoading = false
         // Fetch live HK data in parallel — fills gaps when recovery not yet logged
         await fetchHKLive()
@@ -146,11 +143,9 @@ struct HealthDashboardView: View {
 
     private func fetchHKLive() async {
         guard await hk.requestAuthorization() else { return }
-        async let hr  = hk.fetchLatestRestingHR()
-        async let hrv = hk.fetchLatestHRV()
-        let (h, v) = await (hr, hrv)
-        hkRestingHR = h
-        hkHRV = v
+        // sequential — async let LIFO crash on iOS 26 beta
+        hkRestingHR = await hk.fetchLatestRestingHR()
+        hkHRV       = await hk.fetchLatestHRV()
     }
 }
 

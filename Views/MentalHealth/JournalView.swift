@@ -116,11 +116,10 @@ struct JournalView: View {
     }
 
     private func loadData() async {
-        // Load in parallel: entries + PSS + mood + dashboard
-        async let entriesTask  = try? APIService.shared.fetchJournalEntries()
-        async let pssTask      = try? APIService.shared.fetchPSSHistory()
-        async let moodTask     = try? APIService.shared.fetchMoodHistory(days: 14, limit: 14)
-        let (pg, pssHistory, moodPage) = await (entriesTask, pssTask, moodTask)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let pg         = try? await APIService.shared.fetchJournalEntries()
+        let pssHistory = try? await APIService.shared.fetchPSSHistory()
+        let moodPage   = try? await APIService.shared.fetchMoodHistory(days: 14, limit: 14)
 
         let dash     = APIService.shared.dashboard
         let sessions = dash?.sessions ?? [:]

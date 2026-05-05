@@ -24,27 +24,27 @@ final class DashboardViewModel: ObservableObject {
 
     func loadAll() async {
         let today = todayStr
-        // PERF-2: fetchDashboard runs in parallel with the other calls
-        async let dash: Void = APIService.shared.fetchDashboard()
-        async let d = APIService.shared.fetchDeloadData()
-        async let m = APIService.shared.checkMoodDue()
-        async let b = APIService.shared.fetchMorningBrief()
-        async let s = APIService.shared.fetchSeanceSoirData()
-        async let r = APIService.shared.fetchRecoveryData()
+        // sequential — async let LIFO crash on iOS 26 beta
+        do { _ = try await APIService.shared.fetchDashboard() } catch { print("[Dashboard] fetchDashboard: \(error)") }
+        do { deload   = try await APIService.shared.fetchDeloadData()   } catch { print("[Dashboard] fetchDeload: \(error)") }
+        do { moodDue  = try await APIService.shared.checkMoodDue()  } catch { print("[Dashboard] checkMoodDue: \(error)") }
+        do { morningBrief   = try await APIService.shared.fetchMorningBrief() } catch { print("[Dashboard] fetchMorningBrief: \(error)") }
+        do { eveningSession = try await APIService.shared.fetchSeanceSoirData() } catch { print("[Dashboard] fetchSeanceSoir: \(error)") }
+        do {
+            let log = try await APIService.shared.fetchRecoveryData()
+            let entry = log.first(where: { $0.date == today })
+            todaySleepLogged = entry?.sleepHours != nil
+            todayRecovery    = entry
+        } catch { print("[Dashboard] fetchRecovery: \(error)") }
 
         // PERF-5: insights / LSS / coach tip — once per day only
         if analyticsLoadedDate != today {
-            async let i = APIService.shared.fetchInsights()
-            async let t = APIService.shared.fetchLifeStressTrend(days: 7)
-            async let c = APIService.shared.fetchDailyCoachTip()
-            async let sd = APIService.shared.fetchSmartDay()
-            async let wr = APIService.shared.fetchWeeklyReport()
             // Collect all results before assigning — batches into one SwiftUI render pass
-            let iResult  = (try? await i) ?? []
-            let tResult  = (try? await t) ?? []
-            let cResult  = try? await c
-            let sdResult = try? await sd
-            let wrResult = try? await wr
+            let iResult  = (try? await APIService.shared.fetchInsights()) ?? []
+            let tResult  = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? []
+            let cResult  = try? await APIService.shared.fetchDailyCoachTip()
+            let sdResult = try? await APIService.shared.fetchSmartDay()
+            let wrResult = try? await APIService.shared.fetchWeeklyReport()
             insights     = iResult
             lssTrend     = tResult
             coachTip     = cResult
@@ -53,21 +53,8 @@ final class DashboardViewModel: ObservableObject {
             analyticsLoadedDate = today
         }
 
-        do { _ = try await dash        } catch { print("[Dashboard] fetchDashboard: \(error)") }
-        do { deload   = try await d   } catch { print("[Dashboard] fetchDeload: \(error)") }
-        do { moodDue  = try await m   } catch { print("[Dashboard] checkMoodDue: \(error)") }
-        do { morningBrief   = try await b } catch { print("[Dashboard] fetchMorningBrief: \(error)") }
-        do { eveningSession = try await s } catch { print("[Dashboard] fetchSeanceSoir: \(error)") }
-        do {
-            let log = try await r
-            let entry = log.first(where: { $0.date == today })
-            todaySleepLogged = entry?.sleepHours != nil
-            todayRecovery    = entry
-        } catch { print("[Dashboard] fetchRecovery: \(error)") }
-        async let stages = HealthKitService.shared.fetchLastNightSleepStages()
-        async let window = HealthKitService.shared.fetchLastNightSleepWindow()
-        sleepStages  = await stages
-        sleepWindow  = await window
+        sleepStages  = await HealthKitService.shared.fetchLastNightSleepStages()
+        sleepWindow  = await HealthKitService.shared.fetchLastNightSleepWindow()
         await AlertService.shared.fetch()
     }
 

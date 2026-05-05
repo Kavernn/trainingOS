@@ -324,10 +324,10 @@ struct XPView: View {
     private func loadData() async {
         isLoading = true
         if api.dashboard == nil { await api.fetchDashboard() }
-        async let h = try? APIService.shared.fetchHIITData()
-        async let w = try? APIService.shared.fetchWeights()
-        async let r = try? APIService.shared.fetchRecoveryData()
-        let (hh, ww, rr) = await (h, w, r)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let hh = try? await APIService.shared.fetchHIITData()
+        let ww = try? await APIService.shared.fetchWeights()
+        let rr = try? await APIService.shared.fetchRecoveryData()
         hiitLog  = hh ?? []
         weights  = ww ?? [:]
         recovery = rr ?? []

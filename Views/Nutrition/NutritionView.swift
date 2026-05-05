@@ -1122,9 +1122,9 @@ struct AddNutritionSheet: View {
                 FoodCatalogView(items: $catalog)
             }
             .task {
-                async let catalogFetch  = APIService.shared.fetchFoodCatalog()
-                async let templateFetch = APIService.shared.fetchMealTemplates()
-                let (remote, tmpl) = await (catalogFetch, templateFetch)
+                // sequential — async let LIFO crash on iOS 26 beta
+                let remote = await APIService.shared.fetchFoodCatalog()
+                let tmpl   = await APIService.shared.fetchMealTemplates()
                 if !remote.isEmpty { catalog = remote; FoodCatalogStore.save(remote) }
                 templates = tmpl
             }

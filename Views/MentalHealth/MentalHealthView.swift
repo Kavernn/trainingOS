@@ -125,11 +125,11 @@ struct MentalHealthView: View {
     }
 
     private func loadData() async {
-        async let due      = try? APIService.shared.checkMoodDue()
-        async let summary  = try? APIService.shared.fetchMentalHealthSummary(days: 7)
-        async let moods    = try? APIService.shared.fetchMoodHistory(days: 14, limit: 7)
-        async let emotions = try? APIService.shared.fetchMoodEmotions()
-        let (d, s, m, e) = await (due, summary, moods, emotions)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let d = try? await APIService.shared.checkMoodDue()
+        let s = try? await APIService.shared.fetchMentalHealthSummary(days: 7)
+        let m = try? await APIService.shared.fetchMoodHistory(days: 14, limit: 7)
+        let e = try? await APIService.shared.fetchMoodEmotions()
         await MainActor.run {
             moodDue          = d
             self.summary     = s

@@ -74,9 +74,9 @@ struct SelfCareView: View {
     }
 
     private func loadData() async {
-        async let t = try? APIService.shared.fetchSelfCareToday()
-        async let s = try? APIService.shared.fetchSelfCareStreaks()
-        let (tod, str) = await (t, s)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let tod = try? await APIService.shared.fetchSelfCareToday()
+        let str = try? await APIService.shared.fetchSelfCareStreaks()
         await MainActor.run {
             today     = tod
             streaks   = str ?? []

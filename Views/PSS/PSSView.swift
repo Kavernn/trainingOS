@@ -130,14 +130,11 @@ struct PSSView: View {
 
     private func loadData() async {
         isLoading = true
-        async let histTask = APIService.shared.fetchPSSHistory()
-        async let dueTask  = APIService.shared.checkPSSDue(type: "full")
-        async let lssTask  = APIService.shared.fetchLifeStressScore()
-        async let trendTask = APIService.shared.fetchLifeStressTrend(days: 14)
-        history    = (try? await histTask) ?? []
-        dueStatus  = try? await dueTask
-        lssToday   = try? await lssTask
-        lssTrend   = (try? await trendTask) ?? []
+        // sequential — async let LIFO crash on iOS 26 beta
+        history   = (try? await APIService.shared.fetchPSSHistory()) ?? []
+        dueStatus = try? await APIService.shared.checkPSSDue(type: "full")
+        lssToday  = try? await APIService.shared.fetchLifeStressScore()
+        lssTrend  = (try? await APIService.shared.fetchLifeStressTrend(days: 14)) ?? []
         isLoading  = false
     }
 }

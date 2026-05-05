@@ -47,9 +47,9 @@ struct BreathworkView: View {
     }
 
     private func loadData() async {
-        async let t = try? APIService.shared.fetchBreathworkTechniques()
-        async let s = try? APIService.shared.fetchBreathworkStats(days: 7)
-        let (tec, st) = await (t, s)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let tec = try? await APIService.shared.fetchBreathworkTechniques()
+        let st  = try? await APIService.shared.fetchBreathworkStats(days: 7)
         await MainActor.run {
             techniques = tec ?? []
             stats      = st

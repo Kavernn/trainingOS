@@ -183,14 +183,11 @@ struct DashboardView: View {
                     }
                     .refreshable {
                         await api.fetchDashboard()
-                        async let d  = APIService.shared.fetchDeloadData()
-                        async let m  = APIService.shared.checkMoodDue()
-                        async let b  = APIService.shared.fetchMorningBrief()
-                        async let s  = APIService.shared.fetchSeanceSoirData()
-                        vm.deload   = try? await d
-                        vm.moodDue  = try? await m
-                        vm.morningBrief    = try? await b
-                        vm.eveningSession = try? await s
+                        // sequential — async let LIFO crash on iOS 26 beta
+                        vm.deload        = try? await APIService.shared.fetchDeloadData()
+                        vm.moodDue       = try? await APIService.shared.checkMoodDue()
+                        vm.morningBrief  = try? await APIService.shared.fetchMorningBrief()
+                        vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
                     }
                 } else if let err = api.error {
                     VStack(spacing: 16) {

@@ -90,9 +90,9 @@ struct MoodTrackerView: View {
     }
 
     private func loadData() async {
-        async let e  = try? APIService.shared.fetchMoodEmotions()
-        async let pg = try? APIService.shared.fetchMoodHistory()
-        let (em, page) = await (e, pg)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let em   = try? await APIService.shared.fetchMoodEmotions()
+        let page = try? await APIService.shared.fetchMoodHistory()
         await MainActor.run {
             emotions = em ?? []
             if let page {

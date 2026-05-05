@@ -277,9 +277,9 @@ struct RecoveryView: View {
             guard let dateStr = entry.date,
                   let date    = fmt.date(from: dateStr) else { continue }
 
-            async let rhr = entry.restingHr == nil ? hk.fetchRestingHR(for: date) : nil
-            async let hrv = entry.hrv       == nil ? hk.fetchHRV(for: date)       : nil
-            let (newRHR, newHRV) = await (rhr, hrv)
+            // sequential — async let LIFO crash on iOS 26 beta
+            let newRHR = await (entry.restingHr == nil ? hk.fetchRestingHR(for: date) : nil)
+            let newHRV = await (entry.hrv       == nil ? hk.fetchHRV(for: date)       : nil)
 
             guard newRHR != nil || newHRV != nil else { continue }
 
@@ -965,16 +965,15 @@ struct LogRecoverySheet: View {
             let authorized = await hk.requestAuthorization()
             guard authorized else { isLoadingHK = false; return }
 
-            async let sleep = hk.fetchSleep(for: date)
-            async let hr    = hk.fetchRestingHR(for: date)
-            async let hrv   = hk.fetchHRV(for: date)
-            async let steps = hk.fetchSteps(for: date)
-            async let ae    = hk.fetchActiveEnergy(for: date)
-            async let hrM   = hk.fetchMorningHR(for: date)
-            async let hrPW  = hk.fetchPostWorkoutHR(for: date)
-            async let hrE   = hk.fetchEveningHR(for: date)
-
-            let (s, h, v, st, a, m, pw, e) = await (sleep, hr, hrv, steps, ae, hrM, hrPW, hrE)
+            // sequential — async let LIFO crash on iOS 26 beta
+            let s  = await hk.fetchSleep(for: date)
+            let h  = await hk.fetchRestingHR(for: date)
+            let v  = await hk.fetchHRV(for: date)
+            let st = await hk.fetchSteps(for: date)
+            let a  = await hk.fetchActiveEnergy(for: date)
+            let m  = await hk.fetchMorningHR(for: date)
+            let pw = await hk.fetchPostWorkoutHR(for: date)
+            let e  = await hk.fetchEveningHR(for: date)
 
             if let s  { sleepHoursStr    = String(format: "%.1f", s) }
             if let h  { restingHrStr     = String(format: "%.0f", h) }

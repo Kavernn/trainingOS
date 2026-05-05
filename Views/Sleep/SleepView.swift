@@ -170,10 +170,10 @@ struct SleepView: View {
     }
 
     private func loadData() async {
-        async let pg = try? APIService.shared.fetchSleepHistory()
-        async let s  = try? APIService.shared.fetchSleepStats()
-        async let t  = try? APIService.shared.fetchSleepToday()
-        let (page, st, to) = await (pg, s, t)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let page = try? await APIService.shared.fetchSleepHistory()
+        let st   = try? await APIService.shared.fetchSleepStats()
+        let to   = try? await APIService.shared.fetchSleepToday()
         await MainActor.run {
             if let page {
                 history    = page.items

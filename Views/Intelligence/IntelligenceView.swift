@@ -465,30 +465,28 @@ struct IntelligenceView: View {
                 sessionsData    = decoded.sessions
             }
         } else {
-            // Fallback: individual network calls
-            async let r = try? APIService.shared.fetchRecoveryData()
-            async let w = try? APIService.shared.fetchWeights()
-            let (recovery, weights) = await (r, w)
+            // Fallback: individual network calls (sequential — async let in parallel
+            // triggers asyncLet_finish_after_task_completion LIFO crash on iOS 26 beta)
+            let recovery = try? await APIService.shared.fetchRecoveryData()
+            let weights  = try? await APIService.shared.fetchWeights()
             await MainActor.run {
                 recoveryData = recovery ?? []
                 weightsData  = weights ?? [:]
             }
         }
 
-        // 2. ACWR + LSS in parallel (lightweight, separate endpoints)
-        async let acwrTask = try? APIService.shared.fetchACWR()
-        async let lssTask  = try? APIService.shared.fetchLifeStressScore()
-        let (acwrResult, lssResult) = await (acwrTask, lssTask)
+        // 2. ACWR + LSS
+        let acwrResult = try? await APIService.shared.fetchACWR()
+        let lssResult  = try? await APIService.shared.fetchLifeStressScore()
         await MainActor.run {
             acwrData = acwrResult
             lssData  = lssResult
         }
 
-        // 3. Nutrition history + cardio data + mesocycle in parallel
-        async let histTask   = try? APIService.shared.fetchNutritionHistory()
-        async let cardioTask = try? APIService.shared.fetchCardioData()
-        async let mesoTask   = try? APIService.shared.fetchSeanceData()
-        let (hist, cardio, seanceData) = await (histTask, cardioTask, mesoTask)
+        // 3. Nutrition history + cardio data + mesocycle
+        let hist       = try? await APIService.shared.fetchNutritionHistory()
+        let cardio     = try? await APIService.shared.fetchCardioData()
+        let seanceData = try? await APIService.shared.fetchSeanceData()
         await MainActor.run {
             if let h = hist,       !h.isEmpty { nutritionHistory = h; showNutritionInsight = true }
             if let c = cardio                 { cardioData = c }

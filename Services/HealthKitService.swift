@@ -108,9 +108,9 @@ class HealthKitService: ObservableObject {
     /// Snapshot for a past date (steps + resting HR scoped to that date — accurate backfill).
     func fetchSnapshotForDate(_ date: Date) async -> (date: String, steps: Int?, restingHr: Double?) {
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
-        async let s  = fetchSteps(for: date)
-        async let hr = fetchRestingHR(for: date)   // ROB-8: date-scoped HR, not "latest overall"
-        let (steps, rhr) = await (s, hr)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let steps = await fetchSteps(for: date)
+        let rhr   = await fetchRestingHR(for: date)   // ROB-8: date-scoped HR, not "latest overall"
         return (fmt.string(from: date), steps, rhr)
     }
 
@@ -308,16 +308,15 @@ class HealthKitService: ObservableObject {
         fmt.dateFormat = "yyyy-MM-dd"
         let today = fmt.string(from: Date())
 
-        async let steps         = fetchTodaySteps()
-        async let sleep         = fetchLastNightSleep()
-        async let rhr           = fetchLatestRestingHR()
-        async let hrv           = fetchLatestHRV()
-        async let activeEnergy  = fetchTodayActiveEnergy()
-        async let rawWorkouts   = fetchAllWorkouts(days: 1)
-        async let bodyWeightLbs = fetchLatestBodyWeight()
-        async let bodyFatPct    = fetchLatestBodyFat()
-
-        let (s, sl, hr, h, ae, wkts, bw, bf) = await (steps, sleep, rhr, hrv, activeEnergy, rawWorkouts, bodyWeightLbs, bodyFatPct)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let s    = await fetchTodaySteps()
+        let sl   = await fetchLastNightSleep()
+        let hr   = await fetchLatestRestingHR()
+        let h    = await fetchLatestHRV()
+        let ae   = await fetchTodayActiveEnergy()
+        let wkts = await fetchAllWorkouts(days: 1)
+        let bw   = await fetchLatestBodyWeight()
+        let bf   = await fetchLatestBodyFat()
 
         let workouts = wkts.map { w -> WearableWorkout in
             let type: String

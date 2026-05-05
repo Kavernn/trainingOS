@@ -555,17 +555,15 @@ struct ProgrammeView: View {
            let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
             await MainActor.run { applyJSON(json); isLoading = false }
         }
-        // Fetch programme + evening schedule en parallèle
-        async let progFetch = URLSession.authed.data(from: url)
-        async let eveningFetch = URLSession.authed.data(from: URL(string: "\(kBaseURL)/api/evening_schedule")!)
-        if let (data, _) = try? await progFetch,
+        // sequential — async let LIFO crash on iOS 26 beta
+        if let (data, _) = try? await URLSession.authed.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             CacheService.shared.save(data, for: "programme_data")
             await MainActor.run { applyJSON(json); isLoading = false }
         } else {
             await MainActor.run { isLoading = false }
         }
-        if let (eData, _) = try? await eveningFetch,
+        if let (eData, _) = try? await URLSession.authed.data(from: URL(string: "\(kBaseURL)/api/evening_schedule")!),
            let eJson = try? JSONSerialization.jsonObject(with: eData) as? [String: String] {
             await MainActor.run { eveningSchedule = eJson }
         }

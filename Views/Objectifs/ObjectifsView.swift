@@ -132,10 +132,9 @@ struct ObjectifsView: View {
     private func loadData() async {
         isLoading = true
         do {
-            async let obj = APIService.shared.fetchObjectifsData()
-            async let sgs = APIService.shared.fetchSmartGoals()
-            objectifs  = try await obj
-            smartGoals = try await sgs
+            // sequential — async let LIFO crash on iOS 26 beta
+            objectifs  = try await APIService.shared.fetchObjectifsData()
+            smartGoals = try await APIService.shared.fetchSmartGoals()
             networkError = nil
         } catch {
             if objectifs.isEmpty { networkError = "Impossible de charger les objectifs" }
