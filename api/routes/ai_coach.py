@@ -103,63 +103,102 @@ def api_ai_coach():
     from utils import _ai_rate_check, _now_mtl
     if not _ai_rate_check():
         return jsonify({"error": "Trop de requêtes — réessaie dans quelques minutes."}), 429
-    import os
+    import os, re
     import anthropic as _anthropic
     import db as _db
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
         return jsonify({"error": "ANTHROPIC_API_KEY manquant dans .env"}), 500
     try:
-        data         = request.get_json(silent=True) or {}
-        prompt       = data.get("prompt", "")       # legacy single-turn
-        context      = data.get("context", "")      # rich athlete context (new)
-        messages_in  = data.get("messages", [])     # full conversation history (new)
+        data        = request.get_json(silent=True) or {}
+        prompt      = data.get("prompt", "")
+        context     = data.get("context", "")
+        messages_in = data.get("messages", [])
 
-        # Build messages for Claude
         if messages_in:
-            claude_messages = messages_in            # multi-turn: iOS owns the history
+            claude_messages = messages_in
         elif prompt:
             claude_messages = [{"role": "user", "content": prompt}]
         else:
             return jsonify({"error": "Prompt vide"}), 400
 
-        # Keep last 20 messages to avoid token overflow
         claude_messages = claude_messages[-20:]
+
+        # Extract last user message for persistence
+        last_user_message = next(
+            (m.get("content", "") for m in reversed(claude_messages) if m.get("role") == "user"),
+            ""
+        )
 
         mode = data.get("mode", "custom")
 
-        # System prompt — inject rich athlete context when provided
-        system_base = (
-            "Tu es un coach sportif expert en musculation, HIIT et périodisation de l'entraînement. "
-            "Tu reçois des données réelles d'entraînement et tu les analyses avec rigueur. "
-            "Règles importantes:\n"
-            "- Ne compare JAMAIS le volume brut (lbs×reps) entre groupes musculaires — les jambes "
-            "utilisent toujours des charges plus lourdes, ça ne veut pas dire qu'elles sont sur-entraînées.\n"
-            "- Utilise le NOMBRE DE SETS par groupe musculaire comme indicateur de volume réel.\n"
-            "- La surcharge progressive a DEUX dimensions : augmentation du POIDS et augmentation des REPS. "
-            "  8 reps × 15 lbs > 6 reps × 15 lbs : c'est une progression réelle, même sans augmenter le poids. "
-            "  Recommande d'augmenter les reps jusqu'au haut de la plage cible AVANT d'augmenter le poids.\n"
-            "- Pour les suggestions de programme, sois précis: nomme les exercices à ajouter/retirer/modifier "
-            "avec les schemes (ex: 3x8-10, 4x5-7).\n"
-            "- Pour le HIIT, analyse la fréquence, les types et la récupération entre sessions.\n"
-            "- Réponds toujours en français, de façon directe et actionnable."
-        )
-        system = f"{system_base}\n\nDONNÉES ATHLÈTE:\n{context}" if context else system_base
+        # Extract first name from context line "[Prénom Nom ...]"
+        coach_name = "l'athlète"
+        if context:
+            m = re.search(r'\[([A-ZÀ-ÿ][a-zà-ÿ]+)', context)
+            if m:
+                coach_name = m.group(1)
 
-        logger.info("Claude coach — msgs=%d mode=%s", len(claude_messages), mode)
+        # Cross-session history from Supabase — injected as context, not as Claude messages
+        history_block = ""
+        try:
+            past = _db.get_coach_history(limit=10)
+            past = [p for p in reversed(past) if p.get("user_message") or p.get("assistant_response")]
+            if past:
+                lines = ["=== HISTORIQUE DES SESSIONS PRÉCÉDENTES ==="]
+                for p in past:
+                    ts = (p.get("created_at") or "")[:10]
+                    if p.get("user_message"):
+                        lines.append(f"[{ts}] {coach_name}: {p['user_message']}")
+                    if p.get("assistant_response"):
+                        lines.append(f"[{ts}] Coach: {p['assistant_response']}")
+                lines.append("===")
+                history_block = "\n".join(lines)
+        except Exception:
+            pass
+
+        system_base = (
+            f"Tu es le coach personnel de {coach_name}. Tu as accès à toutes ses données en temps réel.\n"
+            "Tu ne donnes JAMAIS de conseil générique.\n"
+            "Chaque réponse cite des données réelles : exercices nommés, dates exactes, chiffres précis.\n"
+            "Tu établis des corrélations entre entraînement, nutrition, récupération et santé mentale.\n"
+            "Tu es direct, précis, et toujours actionnable.\n"
+            "Tu te souviens des conversations précédentes et tu fais des suivis explicites.\n"
+            "Tu es le meilleur coach au monde — tu le prouves à chaque message.\n\n"
+            "Structure implicite de chaque réponse (sans labels) :\n"
+            "→ Observation ancrée dans les données réelles (date, chiffre, exercice nommé)\n"
+            "→ Corrélation avec un autre pilier (nutrition / récup / mental / volume)\n"
+            "→ Action concrète avec une échéance précise\n\n"
+            "Règles techniques :\n"
+            "- Ne compare JAMAIS le volume brut (lbs×reps) entre groupes musculaires.\n"
+            "- Utilise le NOMBRE DE SETS par groupe comme indicateur de volume réel.\n"
+            "- La surcharge progressive a deux dimensions : poids ET reps. 8×15 lbs > 6×15 lbs est un vrai progrès.\n"
+            "- Pour les programmes, nomme les exercices avec les schemes (ex: 3x8-10).\n"
+            "- Réponds toujours en français, de façon directe et actionnable.\n"
+            "- Si tu n'as pas assez de données pour répondre précisément, dis-le et demande."
+        )
+
+        system_parts = [system_base]
+        if context:
+            system_parts.append(f"DONNÉES ATHLÈTE EN TEMPS RÉEL:\n{context}")
+        if history_block:
+            system_parts.append(history_block)
+        system = "\n\n".join(system_parts)
+
+        logger.info("Claude coach — msgs=%d mode=%s history_chars=%d", len(claude_messages), mode, len(history_block))
         client = _anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=1200,
+            max_tokens=2000,
             system=system,
             messages=claude_messages
         )
         response_text = message.content[0].text
 
-        # Persist exchange in coach_history
         _db.insert_coach_message({
-            "created_at": _now_mtl().strftime("%Y-%m-%dT%H:%M:00"),
-            "mode":       mode,
+            "created_at":         _now_mtl().strftime("%Y-%m-%dT%H:%M:00"),
+            "mode":               mode,
+            "user_message":       last_user_message,
             "assistant_response": response_text,
         })
 

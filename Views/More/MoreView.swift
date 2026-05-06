@@ -23,8 +23,10 @@ struct MoreView: View {
                     Section("Corps & Santé") {
                         MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Health Dashboard") { HealthDashboardView() }
                         MoreRow(icon: "scalemass.fill",         color: .green,  title: "Body Comp")        { BodyCompView() }
+                        MoreRow(icon: "ruler.fill",             color: .teal,   title: "Calculateur Navy") { NavyCalculatorView() }
                         MoreRow(icon: "fork.knife",             color: .orange, title: "Nutrition")        { NutritionView() }
                         MoreRow(icon: "figure.run",             color: .teal,   title: "Cardio")           { CardioView() }
+                        MoreRow(icon: "bed.double.fill",        color: .purple, title: "Sommeil")          { SleepView() }
                         MoreRow(icon: "moon.zzz.fill",         color: .indigo, title: "Récupération")     { RecoveryView() }
                         MoreRow(icon: "face.smiling.fill",     color: .mint,   title: "Santé Mentale")    { MentalHealthView() }
                     }

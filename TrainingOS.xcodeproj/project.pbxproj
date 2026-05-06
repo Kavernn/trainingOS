@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		913EC83173A0479A8FA00023 /* SleepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 387B78078AEB4A1E9AA577C1 /* SleepView.swift */; };
 		07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68B8535D55F4B109509F146 /* MorningRevealView.swift */; };
 		0886AB2185354BBDA38FD7C4 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F5AB1A421041E59142D99A /* NutritionViewModel.swift */; };
 		0D8210D4F61FF52D9FFFE4DF /* ProfileModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD35C9A164F89962D3E6E18 /* ProfileModels.swift */; };
@@ -121,6 +122,7 @@
 /* Begin PBXFileReference section */
 		058BA2E35BCC575568655DDC /* ExerciseViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryView.swift; sourceTree = "<group>"; };
+		387B78078AEB4A1E9AA577C1 /* SleepView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SleepView.swift; sourceTree = "<group>"; };
 		07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ErrorBannerView.swift; sourceTree = "<group>"; };
 		07F5AB1A421041E59142D99A /* NutritionViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
 		15EBCC3B6A4B2F3CDA11F3EF /* ExerciseCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseCard.swift; sourceTree = "<group>"; };
@@ -563,6 +565,7 @@
 				AA00300B2F5D98B8002AE470 /* Intelligence */,
 				EA73F5AEC260AD6BE1B97728 /* Cardio */,
 				EE494F72F21A4AAE1BCC94D5 /* Recovery */,
+				BFFFE9FA995E4CFDB5583CC6 /* Sleep */,
 				BB2200052F5D98BA002AE470 /* HealthDashboard */,
 				CC3300032F5D98BA002AE472 /* PSS */,
 				DD44000F2F5D98BA002AE473 /* MentalHealth */,
@@ -601,6 +604,14 @@
 				0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */,
 			);
 			path = Recovery;
+			sourceTree = "<group>";
+		};
+		BFFFE9FA995E4CFDB5583CC6 /* Sleep */ = {
+			isa = PBXGroup;
+			children = (
+				387B78078AEB4A1E9AA577C1 /* SleepView.swift */,
+			);
+			path = Sleep;
 			sourceTree = "<group>";
 		};
 		OB000003OB000003OB000003 /* Onboarding */ = {
@@ -787,6 +798,7 @@
 				AA00200B2F5D98BA002AE470 /* IntelligenceView.swift in Sources */,
 				663379608FE0A821EC0F7D89 /* CardioView.swift in Sources */,
 				7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */,
+				913EC83173A0479A8FA00023 /* SleepView.swift in Sources */,
 				9E8ED6F12F56136AE817562F /* HealthKitService.swift in Sources */,
 				AA1100032F5D98BA002AE470 /* NetworkMonitor.swift in Sources */,
 				AA1100042F5D98BA002AE470 /* CacheService.swift in Sources */,

@@ -12,7 +12,6 @@ struct IntelligenceView: View {
     @State private var correlations: CorrelationsData? = nil
     @State private var isLoadingCorrelations = false
     @State private var showInsights = false
-    @FocusState private var inputFocused: Bool
     @ObservedObject private var api = APIService.shared
     @State private var narrative:        String?                  = nil
     @State private var isLoadingNarrative = false
@@ -40,6 +39,7 @@ struct IntelligenceView: View {
     @State private var isBriefLoading = false
     @State private var cardioData: [CardioEntry] = []
     @State private var mesocycleInfo: MesocycleInfo? = nil
+    @State private var mentalData: MentalHealthSummary? = nil
     @State private var userHasInteracted = false  // gates auto-scroll; set only when user sends a message
 
     // Tab-switch callback injected from ContentView
@@ -52,12 +52,10 @@ struct IntelligenceView: View {
             ZStack {
                 Color(hex: "080810")
                     .ignoresSafeArea()
-                    .onTapGesture { inputFocused = false }
 
                 VStack(spacing: 0) {
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            LazyVStack(spacing: 0) {
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
 
                                 // Program error banner
                                 if let err = programError {
@@ -183,77 +181,18 @@ struct IntelligenceView: View {
                                 TopicExplorer { q in sendQuery(q) }
                                     .padding(.horizontal, 16)
                                     .padding(.bottom, 20)
-
-                                // ── Chat section ─────────────────────────────────
-                                if !messages.isEmpty {
-                                    HStack(spacing: 8) {
-                                        Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
-                                        Text("CONVERSATION")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .tracking(1.5)
-                                            .foregroundColor(Color.white.opacity(0.2))
-                                            .fixedSize()
-                                        Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.bottom, 8)
-                                }
-
-                                ForEach(messages) { msg in
-                                    ChatBubble(message: msg).id(msg.id)
-                                }
-
-                                if isLoading {
-                                    HStack {
-                                        TypingIndicator()
-                                        Spacer()
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.top, 4)
-                                    .id("loading")
-                                }
-
-                                Color.clear.frame(height: 24).id("bottom")
                             }
                             .padding(.bottom, 8)
                         }
-                        .onChange(of: messages.count) {
-                            guard userHasInteracted, let last = messages.last else { return }
-                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
-                        }
-                        .onChange(of: isLoading) {
-                            guard userHasInteracted, isLoading else { return }
-                            withAnimation { proxy.scrollTo("loading", anchor: .bottom) }
-                        }
                         .scrollDismissesKeyboard(.interactively)
-                    }
 
-                    // Input bar
-                    Divider().background(Color.white.opacity(0.07))
-                    HStack(spacing: 10) {
-                        TextField("Demande à ton coach...", text: $input, axis: .vertical)
-                            .font(.system(size: 14))
-                            .foregroundColor(.white)
-                            .tint(.purple)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .background(Color(hex: "11111c"))
-                            .cornerRadius(22)
-                            .lineLimit(1...4)
-                            .focused($inputFocused)
-                            .submitLabel(.send)
-                            .onSubmit { if !input.isEmpty && !isLoading { sendMessage() } }
-
-                        Button(action: sendMessage) {
-                            Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 32))
-                                .foregroundColor(input.isEmpty || isLoading ? .gray : .purple)
-                        }
-                        .disabled(input.isEmpty || isLoading)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(Color(hex: "080810"))
+                    ChatPanel(
+                        messages: $messages,
+                        input: $input,
+                        isLoading: $isLoading,
+                        userHasInteracted: $userHasInteracted,
+                        sendMessage: sendMessage
+                    )
                 }
             }
             .navigationTitle("")
@@ -483,14 +422,16 @@ struct IntelligenceView: View {
             lssData  = lssResult
         }
 
-        // 3. Nutrition history + cardio data + mesocycle
+        // 3. Nutrition history + cardio data + mesocycle + mental health
         let hist       = try? await APIService.shared.fetchNutritionHistory()
         let cardio     = try? await APIService.shared.fetchCardioData()
         let seanceData = try? await APIService.shared.fetchSeanceData()
+        let mental     = try? await APIService.shared.fetchMentalHealthSummary(days: 7)
         await MainActor.run {
             if let h = hist,       !h.isEmpty { nutritionHistory = h; showNutritionInsight = true }
             if let c = cardio                 { cardioData = c }
             if let m = seanceData?.mesocycle  { mesocycleInfo = m }
+            if let m = mental                 { mentalData = m }
         }
 
         // 4. Weekly memory auto-analysis (no-op if run < 7 days ago)
@@ -627,6 +568,18 @@ struct IntelligenceView: View {
         if let fat = nt.lipides    { nutr.append("lip:\(String(format: "%.0f", fat))g") }
         if !nutr.isEmpty { lines.append("nutri: \(nutr.joined(separator: " "))") }
 
+        // Mental health (7d summary)
+        if let mental = mentalData {
+            var mt: [String] = []
+            if let mood = mental.avgMood { mt.append("humeur:\(String(format: "%.1f", mood))/10") }
+            mt.append("trend:\(mental.moodTrend)")
+            if let pss = mental.pssScore { mt.append("PSS:\(pss)") }
+            if let cat = mental.pssCategory { mt.append("(\(cat))") }
+            mt.append("autosoins:\(String(format: "%.0f", mental.selfCareRate * 100))%")
+            if !mental.topEmotions.isEmpty { mt.append("émotions:\(mental.topEmotions.prefix(3).joined(separator: "/"))") }
+            lines.append("mental(7j): \(mt.joined(separator: " "))")
+        }
+
         // Goals (1 line)
         if !dash.goals.isEmpty {
             let gs = dash.goals.sorted { $0.key < $1.key }.map { (k, v) in
@@ -709,7 +662,6 @@ struct IntelligenceView: View {
         messages.append(ChatMessage(role: .user, content: text))
         input = ""
         isLoading = true
-        inputFocused = false
 
         if messages.count > 50 { messages = Array(messages.suffix(50)) }
         // Keep last 12 messages (6 exchanges) — server caps at 20 but less is cheaper
