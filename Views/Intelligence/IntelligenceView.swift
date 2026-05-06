@@ -152,10 +152,9 @@ struct IntelligenceView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .task {
-                if let data = historyData.data(using: .utf8),
-                   let saved = try? JSONDecoder().decode([ChatMessage].self, from: data) {
-                    messages = saved.filter { !$0.content.hasPrefix("Erreur:") }
-                }
+                // Chat always starts empty — no history restore
+                messages = []
+                historyData = "[]"
                 if api.dashboard == nil { await api.fetchDashboard() }
                 Task { generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram() }
                 await loadContextData()

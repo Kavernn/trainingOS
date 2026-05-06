@@ -46,6 +46,12 @@ struct ChatPanel<Placeholder: View>: View {
                 }
                 .frame(maxHeight: .infinity)
                 .scrollDismissesKeyboard(.interactively)
+                .onAppear {
+                    // Jump to bottom immediately — no animation on initial render
+                    if let last = messages.last {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
                 .onChange(of: messages.count) {
                     guard userHasInteracted, let last = messages.last else { return }
                     withAnimation(.easeOut(duration: 0.25)) {
@@ -56,6 +62,27 @@ struct ChatPanel<Placeholder: View>: View {
                     guard userHasInteracted, isLoading else { return }
                     withAnimation { proxy.scrollTo("loading", anchor: .bottom) }
                 }
+            }
+
+            // Clear button strip — only when there are messages
+            if !messages.isEmpty {
+                HStack {
+                    Spacer()
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { messages = [] }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                            Text("Effacer")
+                                .font(.system(size: 12))
+                        }
+                        .foregroundColor(Color(white: 0.28))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                }
+                .background(Color(hex: "080810"))
             }
 
             Rectangle()
