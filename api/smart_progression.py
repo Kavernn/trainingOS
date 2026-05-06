@@ -303,6 +303,38 @@ def generate_exercise_suggestion(exercise_name: str) -> Optional[dict]:
     return s
 
 
+def generate_exercise_suggestions_bulk(
+    exercise_names: list[str],
+    weights_cache: dict,
+    exercise_info_cache: dict,
+) -> dict:
+    """
+    Batch version of generate_exercise_suggestion that uses pre-loaded data.
+
+    Args:
+        exercise_names:     list of exercise names to evaluate
+        weights_cache:      output of load_weights() — {name: {history: [...]}}
+        exercise_info_cache: output of db.get_exercises_info_bulk() — {name: {load_profile, ...}}
+
+    Returns {exercise_name: suggestion_dict} — only actionable (non-maintain) suggestions.
+    Uses zero additional DB queries.
+    """
+    results = {}
+    for ex_name in exercise_names:
+        info = exercise_info_cache.get(ex_name)
+        if not info or not info.get("load_profile"):
+            continue
+        history_entries = (weights_cache.get(ex_name) or {}).get("history", [])
+        if len(history_entries) < 2:
+            continue
+        # Translate 'sets' key → 'sets_json' expected by _suggest_for_exercise
+        logs = [{**h, "sets_json": h.get("sets")} for h in history_entries]
+        s = _suggest_for_exercise(ex_name, logs[0], logs[1], info, logs)
+        if s and s.get("suggestion_type") != "maintain":
+            results[ex_name] = s
+    return results
+
+
 # ---------------------------------------------------------------------------
 # Core — session-level
 # ---------------------------------------------------------------------------

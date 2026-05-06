@@ -969,14 +969,14 @@ def api_seance_data():
                 history=ex_history,
             )
 
-    # Per-exercise inline coaching (only when session not yet logged)
+    # Per-exercise inline coaching — bulk path: zero extra DB queries
     import smart_progression as _sp
     exercise_suggestions = {}
-    if not already_logged:
-        for ex_name in today_exercises:
-            s = _sp.generate_exercise_suggestion(ex_name)
-            if s:
-                exercise_suggestions[ex_name] = s
+    if not already_logged and today_exercises:
+        ex_info_bulk = _db.get_exercises_info_bulk(today_exercises)
+        exercise_suggestions = _sp.generate_exercise_suggestions_bulk(
+            today_exercises, weights, ex_info_bulk
+        )
 
     return jsonify({
         "today": today_str,
