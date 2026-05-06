@@ -36,158 +36,82 @@ struct DashboardView: View {
                 if api.isLoading && api.dashboard == nil {
                     DashboardSkeletonView()
                 } else if let dash = api.dashboard {
-                    ScrollView(showsIndicators: false) {
-                        VStack(alignment: .leading, spacing: 18) {
-                            if let alert = alertService.visibleAlert {
-                                ProactiveBannerCard(alert: alert) {
-                                    withAnimation(.easeOut(duration: 0.25)) {
-                                        alertService.dismiss(alert)
+                    VStack(spacing: 0) {
+                        ScrollView(showsIndicators: false) {
+                            VStack(alignment: .leading, spacing: 18) {
+                                if let alert = alertService.visibleAlert {
+                                    ProactiveBannerCard(alert: alert) {
+                                        withAnimation(.easeOut(duration: 0.25)) {
+                                            alertService.dismiss(alert)
+                                        }
                                     }
+                                    .appearAnimation(delay: 0)
                                 }
-                                .appearAnimation(delay: 0)
-                            }
 
-                            GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
-                                .appearAnimation(delay: 0)
+                                GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
+                                    .appearAnimation(delay: 0)
 
-                            if let score = vm.readinessScore {
-                                ReadinessScoreCard(score: score, recovery: vm.todayRecovery)
-                                    .appearAnimation(delay: 0.005)
-                            }
+                                if let score = vm.readinessScore {
+                                    ReadinessScoreCard(score: score, recovery: vm.todayRecovery)
+                                        .appearAnimation(delay: 0.005)
+                                }
 
-                            QuickLogBar(
-                                alreadyLogged: dash.alreadyLoggedToday,
-                                sleepLogged: vm.todaySleepLogged,
-                                moodDone: vm.moodDue?.isDue == false,
-                                onSleepTap: { showSleepSheet = true },
-                                onMoodTap:  { showMoodSheet  = true },
-                                onSessionTap: { onOpenSession?() }
-                            )
-                            .appearAnimation(delay: 0.008)
+                                TodayCardView(
+                                    dash: dash,
+                                    showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
+                                    onOpenSession: onOpenSession
+                                )
+                                .appearAnimation(delay: 0.01)
 
-                            // TodayCard: primary action, always first
-                            TodayCardView(
-                                dash: dash,
-                                showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
-                                onOpenSession: onOpenSession
-                            )
-                            .appearAnimation(delay: 0.01)
-
-                            if let soir = vm.eveningSession, soir.hasEveningSession {
-                                SoirCardView(data: soir)
-                                    .appearAnimation(delay: 0.02)
-                            }
-
-                            WeekProgressStripView(dash: dash)
-                                .appearAnimation(delay: 0.03)
-
-                            if let tip = vm.coachTip {
-                                CoachTipCard(tip: tip)
-                                    .appearAnimation(delay: 0.04)
-                            }
-
-                            if let sd = vm.smartDay {
-                                SmartDayBannerView(recommendation: sd)
-                                    .appearAnimation(delay: 0.045)
-                            }
-
-                            if let window = vm.sleepWindow, !dash.alreadyLoggedToday {
-                                OptimalWindowCard(wakeTime: window.wakeTime)
-                                    .appearAnimation(delay: 0.047)
-                            }
-
-                            NavigationLink(destination: NutritionView()) {
-                                NutritionStripView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
-                            }
-                            .buttonStyle(.plain)
-                            .appearAnimation(delay: 0.05)
-
-                            // Recovery snapshot
-                            if let rec = vm.todayRecovery,
-                               rec.sleepHours != nil || rec.restingHr != nil || rec.hrv != nil || rec.steps != nil {
-                                NavigationLink(destination: RecoveryView()) {
-                                    RecoverySnapshotView(recovery: rec)
+                                NavigationLink(destination: NutritionView()) {
+                                    NutritionStripView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
                                 }
                                 .buttonStyle(.plain)
-                                .appearAnimation(delay: 0.06)
-                            }
+                                .appearAnimation(delay: 0.02)
 
-                            if let stages = vm.sleepStages {
-                                SleepStagingBar(stages: stages)
-                                    .appearAnimation(delay: 0.065)
-                            }
-
-                            if let steps = vm.todayRecovery?.steps {
-                                ActivityRingCard(steps: steps)
-                                    .appearAnimation(delay: 0.068)
-                            }
-
-                            if shouldShowSleepPrompt {
-                                SleepPromptCard(onDone: {
-                                    UserDefaults.standard.set(todayStr, forKey: "sleepPromptDate")
-                                    withAnimation(.easeOut(duration: 0.25)) {
-                                        sleepPromptDismissedThisSession = true
+                                if let rec = vm.todayRecovery,
+                                   rec.sleepHours != nil || rec.restingHr != nil || rec.hrv != nil || rec.steps != nil {
+                                    NavigationLink(destination: RecoveryView()) {
+                                        RecoverySnapshotView(recovery: rec)
                                     }
-                                }, onError: { message in
-                                    actionErrorMessage = message
-                                })
-                                .appearAnimation(delay: 0.07)
-                            }
+                                    .buttonStyle(.plain)
+                                    .appearAnimation(delay: 0.03)
+                                }
 
-                            // UX#mood moved up — log while biometrics are fresh
-                            if vm.moodDue?.isDue == true {
-                                MoodCardView { showMoodSheet = true }
-                                    .appearAnimation(delay: 0.08)
-                            }
+                                WeekProgressStripView(dash: dash)
+                                    .appearAnimation(delay: 0.04)
 
-                            // Fix #7: full banner only for level 2; compact chip for level 1
-                            if let report = vm.deload, report.fatigueLevel > 0 {
-                                if report.fatigueLevel == 2 {
+                                if let report = vm.deload, report.fatigueLevel == 2 {
                                     DeloadBannerView(report: report) {
                                         await applyDeload(report: report)
                                     }
-                                    .appearAnimation(delay: 0.09)
-                                } else {
-                                    DeloadChipView(report: report)
-                                        .appearAnimation(delay: 0.09)
+                                    .appearAnimation(delay: 0.05)
                                 }
                             }
-
-
-                            if !vm.insights.isEmpty {
-                                DashboardInsightsCard(insights: vm.insights)
-                                    .appearAnimation(delay: 0.12)
-                            }
-
-                            if let report = vm.weeklyReport {
-                                NavigationLink(destination: WeeklyReportView(report: report)) {
-                                    WeeklyReportTeaser(report: report)
-                                }
-                                .buttonStyle(.plain)
-                                .appearAnimation(delay: 0.125)
-                            }
-
-                            // Full stats grid + heatmap stay at the bottom for deeper review
-                            NavigationLink(destination: StatsView()) {
-                                StatsRowView(dash: dash)
-                            }
-                            .buttonStyle(.plain)
-                            .appearAnimation(delay: 0.13)
-
-                            WeekGridView(schedule: dash.schedule, sessions: dash.sessions)
-                                .appearAnimation(delay: 0.14)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
+                            .padding(.bottom, 8)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                        .padding(.bottom, contentBottomPadding)
-                    }
-                    .refreshable {
-                        await api.fetchDashboard()
-                        // sequential — async let LIFO crash on iOS 26 beta
-                        vm.deload        = try? await APIService.shared.fetchDeloadData()
-                        vm.moodDue       = try? await APIService.shared.checkMoodDue()
-                        vm.morningBrief  = try? await APIService.shared.fetchMorningBrief()
-                        vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
+                        .refreshable {
+                            await api.fetchDashboard()
+                            vm.deload         = try? await APIService.shared.fetchDeloadData()
+                            vm.moodDue        = try? await APIService.shared.checkMoodDue()
+                            vm.morningBrief   = try? await APIService.shared.fetchMorningBrief()
+                            vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
+                        }
+
+                        QuickLogBar(
+                            alreadyLogged: dash.alreadyLoggedToday,
+                            sleepLogged:   vm.todaySleepLogged,
+                            moodDone:      vm.moodDue?.isDue == false,
+                            onSleepTap:    { showSleepSheet = true },
+                            onMoodTap:     { showMoodSheet  = true },
+                            onSessionTap:  { onOpenSession?() }
+                        )
+                        .overlay(alignment: .top) {
+                            Rectangle().fill(Color.white.opacity(0.07)).frame(height: 0.5)
+                        }
+                        .background(Color(hex: "080810").opacity(0.96).ignoresSafeArea(edges: .bottom))
                     }
                 } else if let err = api.error {
                     VStack(spacing: 16) {

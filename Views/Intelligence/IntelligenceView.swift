@@ -27,7 +27,7 @@ struct IntelligenceView: View {
     @State private var isGeneratingProgram                       = false
     @State private var showProgramPreview                        = false
     @State private var programError:    String?                  = nil
-    @State private var showMemory                                = false
+    @State private var selectedSection: CoachSection = .chat
     @ObservedObject private var memoryStore = CoachMemoryStore.shared
     @State private var nutritionHistory: [NutritionDayHistory]  = []
     @State private var showNutritionInsight                     = true
@@ -47,175 +47,121 @@ struct IntelligenceView: View {
 
     private var todayRecovery: RecoveryEntry? { recoveryData.first }
 
+    // MARK: - Section Navigation
+
+    private enum CoachSection: String, CaseIterable {
+        case chat      = "Chat"
+        case patterns  = "Patterns"
+        case programme = "Programme"
+        case bilan     = "Bilan"
+        case memoire   = "Mémoire"
+
+        var icon: String {
+            switch self {
+            case .chat:      return "bubble.left.and.bubble.right.fill"
+            case .patterns:  return "chart.dots.scatter"
+            case .programme: return "calendar.badge.plus"
+            case .bilan:     return "chart.bar.doc.horizontal"
+            case .memoire:   return "brain.head.profile"
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810")
-                    .ignoresSafeArea()
+                Color(hex: "080810").ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    ScrollView {
-                        LazyVStack(spacing: 0) {
-
-                                // Program error banner
-                                if let err = programError {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
-                                        Text(err).font(.system(size: 12)).foregroundColor(.gray)
-                                        Spacer()
-                                        Button { programError = nil } label: {
-                                            Image(systemName: "xmark").foregroundColor(.gray)
-                                        }
-                                    }
-                                    .padding(12)
-                                    .background(Color.orange.opacity(0.08))
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
-                                    .cornerRadius(10)
-                                    .padding(.horizontal, 16)
-                                    .padding(.top, 10)
-                                    .padding(.bottom, 4)
-                                }
-
-                                // Re-open last generated program
-                                if generatedProgram != nil && !isGeneratingProgram {
-                                    Button { showProgramPreview = true } label: {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "doc.text.magnifyingglass").font(.system(size: 11))
-                                            Text("Voir le dernier programme généré").font(.system(size: 11, weight: .medium))
-                                        }
-                                        .foregroundColor(.indigo.opacity(0.8))
-                                    }
-                                    .padding(.top, 6).padding(.bottom, 4)
-                                }
-
-                                // ── Greeting + Hero ──────────────────────────────
-                                if let dash = api.dashboard {
-                                    CoachGreetingHeader(dash: dash)
-                                        .padding(.horizontal, 20)
-                                        .padding(.top, 8)
-                                        .padding(.bottom, 12)
-
-                                    CoachMissionCard(
-                                        dash: dash,
-                                        briefText: briefText,
-                                        isBriefLoading: isBriefLoading,
-                                        onOpenSession: onOpenSession,
-                                        onRefreshBrief: { Task { await regenerateBrief() } },
-                                        onAskMore: { q in sendQuery(q) }
-                                    )
-                                    .padding(.horizontal, 16)
-                                    .padding(.bottom, 14)
-
-                                    WeekMomentumStrip(dash: dash)
-                                        .padding(.horizontal, 16)
-                                        .padding(.bottom, 14)
-
-                                    TodayMetricsRow(dash: dash, recovery: todayRecovery, cardioData: cardioData)
-                                        .padding(.horizontal, 16)
-                                        .padding(.bottom, 14)
-
-                                    SmartInsightsSection(
-                                        dash: dash,
-                                        weightsData: weightsData,
-                                        sessionsData: sessionsData,
-                                        recovery: todayRecovery,
-                                        recoveryLog: recoveryData,
-                                        nutritionHistory: nutritionHistory
-                                    )
-                                    .padding(.horizontal, 16)
-                                    .padding(.bottom, 14)
-                                } else {
-                                    // Skeleton while dashboard loads
-                                    VStack(spacing: 12) {
-                                        SkeletonBar(height: 44, radius: 12)
-                                        SkeletonBar(height: 180, radius: 20)
-                                        SkeletonBar(height: 76, radius: 16)
-                                        HStack(spacing: 10) {
-                                            SkeletonBar(height: 60, radius: 12)
-                                            SkeletonBar(height: 60, radius: 12)
-                                            SkeletonBar(height: 60, radius: 12)
-                                        }
-                                    }
-                                    .padding(.horizontal, 16)
-                                    .padding(.top, 16)
-                                    .padding(.bottom, 14)
-                                }
-
-                                // Proposals
-                                if !proposals.isEmpty {
-                                    ProposalsCard(proposals: proposals, onDismiss: { proposals = []; proposalError = nil })
-                                        .padding(.horizontal, 16)
-                                        .padding(.bottom, 12)
-                                } else if let err = proposalError {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
-                                        Text(err).font(.system(size: 12)).foregroundColor(.gray)
-                                        Spacer()
-                                        Button { proposalError = nil } label: {
-                                            Image(systemName: "xmark").foregroundColor(.gray)
-                                        }
-                                    }
-                                    .padding(12)
-                                    .background(Color.orange.opacity(0.08))
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
-                                    .cornerRadius(10)
-                                    .padding(.horizontal, 16)
-                                    .padding(.bottom, 12)
-                                }
-
-                                // Narrative card
-                                if let text = narrative {
-                                    NarrativeCard(text: text, onDismiss: { narrative = nil })
-                                        .padding(.horizontal, 16)
-                                        .padding(.bottom, 12)
-                                }
-
-                                // Insights card
-                                if showInsights, let corr = correlations {
-                                    InsightsCard(data: corr, onDismiss: { showInsights = false })
-                                        .padding(.horizontal, 16)
-                                        .padding(.bottom, 12)
-                                }
-
-                                // ── Topic Explorer ───────────────────────────────
-                                TopicExplorer { q in sendQuery(q) }
-                                    .padding(.horizontal, 16)
-                                    .padding(.bottom, 20)
+                    // Hero: mission card only
+                    if let dash = api.dashboard {
+                        CoachMissionCard(
+                            dash: dash,
+                            briefText: briefText,
+                            isBriefLoading: isBriefLoading,
+                            onOpenSession: onOpenSession,
+                            onRefreshBrief: { Task { await regenerateBrief() } },
+                            onAskMore: { q in
+                                withAnimation(.easeInOut(duration: 0.2)) { selectedSection = .chat }
+                                sendQuery(q)
                             }
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
+                    } else {
+                        SkeletonBar(height: 160, radius: 20)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 12)
                             .padding(.bottom, 8)
-                        }
-                        .scrollDismissesKeyboard(.interactively)
+                    }
 
-                    ChatPanel(
-                        messages: $messages,
-                        input: $input,
-                        isLoading: $isLoading,
-                        userHasInteracted: $userHasInteracted,
-                        sendMessage: sendMessage
-                    )
+                    // Section pills
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(CoachSection.allCases, id: \.self) { section in
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.2)) { selectedSection = section }
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        Image(systemName: section.icon)
+                                            .font(.system(size: 11, weight: .semibold))
+                                        Text(section.rawValue)
+                                            .font(.system(size: 13, weight: .medium))
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 7)
+                                    .background(
+                                        selectedSection == section
+                                            ? Color.purple.opacity(0.22)
+                                            : Color.white.opacity(0.06)
+                                    )
+                                    .foregroundColor(
+                                        selectedSection == section ? .purple : Color(white: 0.55)
+                                    )
+                                    .clipShape(Capsule())
+                                    .overlay(
+                                        Capsule().stroke(
+                                            selectedSection == section
+                                                ? Color.purple.opacity(0.45)
+                                                : Color.clear,
+                                            lineWidth: 1
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                    .padding(.vertical, 8)
+
+                    // Section content
+                    if selectedSection == .chat {
+                        chatSectionView
+                    } else if selectedSection == .patterns {
+                        ScrollView(showsIndicators: false) { patternsSectionView }
+                    } else if selectedSection == .programme {
+                        ScrollView(showsIndicators: false) { programmeSectionView }
+                    } else if selectedSection == .bilan {
+                        ScrollView(showsIndicators: false) { bilanSectionView }
+                    } else {
+                        ScrollView(showsIndicators: false) { memoireSectionView }
+                    }
                 }
             }
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .task {
-                // Restore history (strip transient error messages)
                 if let data = historyData.data(using: .utf8),
                    let saved = try? JSONDecoder().decode([ChatMessage].self, from: data) {
                     messages = saved.filter { !$0.content.hasPrefix("Erreur:") }
                 }
-
-                // Ensure dashboard is loaded regardless of which tab opened first
                 if api.dashboard == nil { await api.fetchDashboard() }
-
-                // Program fetch is independent — fire without blocking context load + brief
                 Task { generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram() }
-
-                // Context must finish before brief (brief uses the context for the AI prompt)
                 await loadContextData()
                 await loadMorningBrief()
             }
             .onChange(of: messages) {
-                // Only persist non-error messages
                 let toSave = messages.filter { !$0.content.hasPrefix("Erreur:") }
                 if let data = try? JSONEncoder().encode(Array(toSave.suffix(50))),
                    let str = String(data: data, encoding: .utf8) {
@@ -224,7 +170,9 @@ struct IntelligenceView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button { showMemory = true } label: {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { selectedSection = .memoire }
+                    } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "brain.head.profile")
                                 .font(.system(size: 13, weight: .semibold))
@@ -241,44 +189,17 @@ struct IntelligenceView: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button { loadProposals() } label: {
-                            Label("Propositions de programme", systemImage: "wand.and.stars")
-                        }
-                        Button { loadNarrative() } label: {
-                            Label("Récit de la semaine", systemImage: "text.quote")
-                        }
-                        Button { openWeeklyReport() } label: {
-                            Label("Bilan de la semaine", systemImage: "chart.bar.doc.horizontal")
-                        }
-                        Button { loadInsights() } label: {
-                            Label("Insights corrélations", systemImage: "chart.dots.scatter")
-                        }
-                        Button { generateProgram() } label: {
-                            Label("Générer un programme", systemImage: "calendar.badge.plus")
-                        }
-                        Divider()
-                        Button { Task { await regenerateBrief() } } label: {
-                            Label("Régénérer le brief", systemImage: "arrow.clockwise")
-                        }
-                        if !messages.isEmpty {
-                            Divider()
-                            Button(role: .destructive) {
-                                messages = []
-                                historyData = "[]"
-                            } label: {
-                                Label("Effacer la conversation", systemImage: "trash")
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .foregroundColor(.purple)
+                    Button { Task { await regenerateBrief() } } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 14))
+                            .foregroundColor(isBriefLoading ? .purple.opacity(0.5) : .purple)
                     }
+                    .disabled(isBriefLoading)
                 }
             }
             .fullScreenCover(isPresented: $showProgramPreview) {
                 if let gp = generatedProgram {
-                    ProgramPreviewSheet(program: gp) { approvedId in
+                    ProgramPreviewSheet(program: gp) { _ in
                         showProgramPreview = false
                         var updated = gp
                         updated.status = .active
@@ -288,9 +209,6 @@ struct IntelligenceView: View {
                         generatedProgram = nil
                     }
                 }
-            }
-            .sheet(isPresented: $showMemory) {
-                CoachMemoryView()
             }
             .sheet(isPresented: $showWeeklyReport) {
                 if let r = weeklyReportData {
@@ -308,6 +226,373 @@ struct IntelligenceView: View {
             }
         }
     }
+
+    // MARK: - Section Views
+
+    @ViewBuilder
+    private var chatSectionView: some View {
+        if messages.isEmpty {
+            VStack(spacing: 0) {
+                ScrollView(showsIndicators: false) {
+                    TopicExplorer { q in sendQuery(q) }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 16)
+                }
+                ChatPanel(
+                    messages: $messages,
+                    input: $input,
+                    isLoading: $isLoading,
+                    userHasInteracted: $userHasInteracted,
+                    sendMessage: sendMessage
+                )
+            }
+        } else {
+            ChatPanel(
+                messages: $messages,
+                input: $input,
+                isLoading: $isLoading,
+                userHasInteracted: $userHasInteracted,
+                sendMessage: sendMessage
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var patternsSectionView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if isLoadingCorrelations {
+                SkeletonBar(height: 120, radius: 16).padding(.horizontal, 16)
+            } else if let corr = correlations {
+                InsightsCard(data: corr, onDismiss: { correlations = nil; showInsights = false })
+                    .padding(.horizontal, 16)
+            } else {
+                Button { loadInsights() } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "chart.dots.scatter").font(.system(size: 14))
+                        Text("Analyser les corrélations").font(.system(size: 14, weight: .medium))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.purple.opacity(0.12))
+                    .foregroundColor(.purple)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.horizontal, 16)
+            }
+
+            if !memoryStore.entries.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("PATTERNS DÉTECTÉS")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color(white: 0.45))
+                        .padding(.horizontal, 16)
+
+                    ForEach(memoryStore.entries.prefix(8), id: \.id) { entry in
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: entry.type.icon)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.purple)
+                                .frame(width: 22)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(entry.type.rawValue)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.purple.opacity(0.7))
+                                Text(entry.content)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(white: 0.82))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer()
+                        }
+                        .padding(12)
+                        .background(Color.white.opacity(0.03))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .padding(.horizontal, 16)
+                    }
+                }
+            } else {
+                Text("Aucun pattern détecté — reviens après quelques semaines.")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(white: 0.45))
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+            }
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 28)
+        .onAppear {
+            if correlations == nil && !isLoadingCorrelations { loadInsights() }
+        }
+    }
+
+    @ViewBuilder
+    private var programmeSectionView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let meso = mesocycleInfo {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("MÉSOCYCLE ACTIF")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(Color(white: 0.45))
+                    HStack(alignment: .center, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("S\(meso.week)/8")
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.white)
+                            Text(meso.phase)
+                                .font(.system(size: 13))
+                                .foregroundColor(.purple)
+                        }
+                        Rectangle()
+                            .fill(Color.white.opacity(0.1))
+                            .frame(width: 1, height: 44)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("RPE cible")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color(white: 0.5))
+                            Text(meso.rpeTarget)
+                                .font(.system(size: 22, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        if !meso.note.isEmpty {
+                            Spacer()
+                            Text(meso.note)
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(white: 0.5))
+                                .lineLimit(2)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+                }
+                .padding(16)
+                .background(Color.white.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal, 16)
+            }
+
+            if generatedProgram != nil && !isGeneratingProgram {
+                Button { showProgramPreview = true } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "doc.text.magnifyingglass").font(.system(size: 13))
+                        Text("Voir le dernier programme généré")
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(white: 0.4))
+                    }
+                    .padding(14)
+                    .background(Color.indigo.opacity(0.1))
+                    .foregroundColor(.indigo)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.horizontal, 16)
+            }
+
+            if !proposals.isEmpty {
+                ProposalsCard(proposals: proposals, onDismiss: { proposals = []; proposalError = nil })
+                    .padding(.horizontal, 16)
+            }
+
+            if let err = proposalError {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
+                    Text(err).font(.system(size: 12)).foregroundColor(.gray)
+                    Spacer()
+                    Button { proposalError = nil } label: {
+                        Image(systemName: "xmark").foregroundColor(.gray)
+                    }
+                }
+                .padding(12)
+                .background(Color.orange.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 16)
+            }
+
+            if let err = programError {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
+                    Text(err).font(.system(size: 12)).foregroundColor(.gray)
+                    Spacer()
+                    Button { programError = nil } label: {
+                        Image(systemName: "xmark").foregroundColor(.gray)
+                    }
+                }
+                .padding(12)
+                .background(Color.orange.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 16)
+            }
+
+            HStack(spacing: 10) {
+                Button { loadProposals() } label: {
+                    HStack(spacing: 6) {
+                        if isLoadingProposals {
+                            ProgressView().tint(.purple).scaleEffect(0.75)
+                        } else {
+                            Image(systemName: "wand.and.stars").font(.system(size: 13))
+                        }
+                        Text("Propositions").font(.system(size: 13, weight: .medium))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.purple.opacity(0.15))
+                    .foregroundColor(.purple)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(isLoadingProposals)
+
+                Button { generateProgram() } label: {
+                    HStack(spacing: 6) {
+                        if isGeneratingProgram {
+                            ProgressView().tint(.indigo).scaleEffect(0.75)
+                        } else {
+                            Image(systemName: "calendar.badge.plus").font(.system(size: 13))
+                        }
+                        Text("Générer").font(.system(size: 13, weight: .medium))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.indigo.opacity(0.15))
+                    .foregroundColor(.indigo)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(isGeneratingProgram)
+            }
+            .padding(.horizontal, 16)
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 28)
+    }
+
+    @ViewBuilder
+    private var bilanSectionView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if isLoadingNarrative {
+                SkeletonBar(height: 100, radius: 12).padding(.horizontal, 16)
+            } else if let text = narrative {
+                NarrativeCard(text: text, onDismiss: { narrative = nil })
+                    .padding(.horizontal, 16)
+            } else {
+                Button { loadNarrative() } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "text.quote").font(.system(size: 14))
+                        Text("Récit de la semaine").font(.system(size: 14, weight: .medium))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.teal.opacity(0.12))
+                    .foregroundColor(.teal)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.horizontal, 16)
+            }
+
+            Button { openWeeklyReport() } label: {
+                HStack(spacing: 10) {
+                    if isLoadingWeeklyReport {
+                        ProgressView().tint(.white).scaleEffect(0.8)
+                    } else {
+                        Image(systemName: "chart.bar.doc.horizontal").font(.system(size: 14))
+                    }
+                    Text("Bilan de la semaine").font(.system(size: 14, weight: .medium))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(white: 0.4))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(14)
+                .background(Color.white.opacity(0.05))
+                .foregroundColor(.white)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            .padding(.horizontal, 16)
+            .disabled(isLoadingWeeklyReport)
+
+            if let dash = api.dashboard {
+                SmartInsightsSection(
+                    dash: dash,
+                    weightsData: weightsData,
+                    sessionsData: sessionsData,
+                    recovery: todayRecovery,
+                    recoveryLog: recoveryData,
+                    nutritionHistory: nutritionHistory
+                )
+                .padding(.horizontal, 16)
+            }
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 28)
+        .onAppear {
+            if narrative == nil && !isLoadingNarrative { loadNarrative() }
+        }
+    }
+
+    @ViewBuilder
+    private var memoireSectionView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if memoryStore.entries.isEmpty {
+                Text("Aucune mémoire enregistrée.\nLe coach apprend tes patterns au fil des semaines.")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(white: 0.45))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 40)
+                    .padding(.horizontal, 16)
+            } else {
+                Text("MÉMOIRE DU COACH")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(Color(white: 0.45))
+                    .padding(.horizontal, 16)
+
+                ForEach(memoryStore.entries, id: \.id) { entry in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: entry.type.icon)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.purple)
+                            .frame(width: 22)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(entry.type.rawValue)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.purple.opacity(0.7))
+                            Text(entry.content)
+                                .font(.system(size: 13))
+                                .foregroundColor(Color(white: 0.82))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer()
+                    }
+                    .padding(12)
+                    .background(Color.white.opacity(0.03))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .padding(.horizontal, 16)
+                }
+            }
+
+            if !messages.isEmpty {
+                Button(role: .destructive) {
+                    messages = []
+                    historyData = "[]"
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "trash").font(.system(size: 13))
+                        Text("Effacer la conversation").font(.system(size: 13, weight: .medium))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.red.opacity(0.1))
+                    .foregroundColor(.red)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+            }
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 28)
+    }
+
 
     // MARK: - Nutrition × Performance Insight
 
