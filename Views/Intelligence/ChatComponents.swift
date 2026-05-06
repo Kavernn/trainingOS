@@ -39,7 +39,6 @@ struct AIProposal: Identifiable {
 
 struct ChatBubble: View {
     let message: ChatMessage
-
     var isUser: Bool { message.role == .user }
 
     var body: some View {
@@ -49,26 +48,42 @@ struct ChatBubble: View {
             if !isUser {
                 ZStack {
                     Circle()
-                        .fill(Color.purple.opacity(0.15))
-                        .frame(width: 28, height: 28)
-
+                        .fill(Color.purple.opacity(0.18))
+                        .frame(width: 30, height: 30)
                     Image(systemName: "brain.head.profile")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundColor(.purple)
                 }
             }
 
             Text(message.content)
-                .font(.system(size: 14))
+                .font(.system(size: 15))
                 .foregroundColor(.white)
+                .lineSpacing(3)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
-                .background(isUser ? Color.purple : Color(hex: "11111c"))
-                .cornerRadius(18)
+                .background(isUser ? Color.purple.opacity(0.85) : Color(hex: "141428"))
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius:    18,
+                        bottomLeadingRadius: isUser ? 18 : 5,
+                        bottomTrailingRadius: isUser ? 5 : 18,
+                        topTrailingRadius:   18
+                    )
+                )
+                .overlay(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius:    18,
+                        bottomLeadingRadius: isUser ? 18 : 5,
+                        bottomTrailingRadius: isUser ? 5 : 18,
+                        topTrailingRadius:   18
+                    )
+                    .stroke(Color.white.opacity(isUser ? 0 : 0.09), lineWidth: 1)
+                )
 
             if !isUser { Spacer(minLength: 60) }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 14)
     }
 }
 

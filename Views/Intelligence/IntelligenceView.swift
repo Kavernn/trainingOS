@@ -231,30 +231,17 @@ struct IntelligenceView: View {
 
     @ViewBuilder
     private var chatSectionView: some View {
-        if messages.isEmpty {
-            VStack(spacing: 0) {
-                ScrollView(showsIndicators: false) {
-                    TopicExplorer { q in sendQuery(q) }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
-                        .padding(.bottom, 16)
-                }
-                ChatPanel(
-                    messages: $messages,
-                    input: $input,
-                    isLoading: $isLoading,
-                    userHasInteracted: $userHasInteracted,
-                    sendMessage: sendMessage
-                )
-            }
-        } else {
-            ChatPanel(
-                messages: $messages,
-                input: $input,
-                isLoading: $isLoading,
-                userHasInteracted: $userHasInteracted,
-                sendMessage: sendMessage
-            )
+        ChatPanel(
+            messages: $messages,
+            input: $input,
+            isLoading: $isLoading,
+            userHasInteracted: $userHasInteracted,
+            sendMessage: sendMessage
+        ) {
+            TopicExplorer { q in sendQuery(q) }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 20)
         }
     }
 
