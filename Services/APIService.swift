@@ -928,6 +928,7 @@ class APIService: ObservableObject {
             "pattern": pattern, "default_scheme": scheme, "category": category,
         ]
         _ = try await offlinePost(endpoint: "/api/save_exercise", payload: payload)
+        CacheService.shared.clear(for: "seance_data")
     }
 
     func setAllRestSeconds(_ seconds: Int) async throws {

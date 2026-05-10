@@ -304,7 +304,7 @@ def get_exercises() -> Dict[str, dict] | None:
         page_size = 1000
         start = 0
         while True:
-            resp = _client.table("exercises").select("*").order("name").range(start, start + page_size - 1).execute()
+            resp = _client.table("exercises").select("*").is_("deleted_at", "null").order("name").range(start, start + page_size - 1).execute()
             batch = resp.data or []
             rows.extend(batch)
             if len(batch) < page_size:
@@ -331,7 +331,7 @@ def get_exercise_by_name(name: str) -> Optional[dict]:
         return None
 
     def _do() -> Optional[dict]:
-        resp = _client.table("exercises").select("*").eq("name", name).single().execute()
+        resp = _client.table("exercises").select("*").eq("name", name).is_("deleted_at", "null").single().execute()
         return resp.data
 
     try:
@@ -368,6 +368,57 @@ def get_exercise_id(name: str) -> Optional[str]:
                 return None
         logger.debug("get_exercise_id(%s) error: %s", name, e)
         return None  # fallback to KV during migration
+
+
+def update_program_scheme_for_exercise(exercise_id: str, new_scheme: str) -> bool:
+    """Update scheme in all program_block_exercises rows that reference this exercise.
+
+    Called after api_save_exercise() updates exercises.default_scheme so the
+    programme immediately reflects the new prescription on next session load.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return False
+
+    def _do() -> bool:
+        _client.table("program_block_exercises").update({"scheme": new_scheme}).eq("exercise_id", exercise_id).execute()
+        return True
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_program_scheme_for_exercise retry error: %s", e2)
+                return False
+        logger.error("update_program_scheme_for_exercise error: %s", e)
+        return False
+
+
+def get_exercise_id_include_deleted(name: str) -> Optional[str]:
+    """Return the UUID of an exercise by name, including soft-deleted rows.
+
+    Used internally before cleaning up program_block_exercises on soft delete.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return None
+
+    def _do() -> Optional[str]:
+        resp = _client.table("exercises").select("id").eq("name", name).limit(1).execute()
+        return resp.data[0]["id"] if resp.data else None
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.debug("get_exercise_id_include_deleted(%s) retry error: %s", name, e2)
+                return None
+        logger.debug("get_exercise_id_include_deleted(%s) error: %s", name, e)
+        return None
 
 
 def get_or_create_exercise_id(name: str) -> Optional[str]:
@@ -426,7 +477,7 @@ def rename_exercise_table(old_name: str, new_name: str) -> bool:
         return False
 
     def _do() -> bool:
-        resp = _client.table("exercises").update({"name": new_name}).eq("name", old_name).execute()
+        resp = _client.table("exercises").update({"name": new_name}).eq("name", old_name).is_("deleted_at", "null").execute()
         return bool(resp.data)
 
     try:
@@ -444,16 +495,22 @@ def rename_exercise_table(old_name: str, new_name: str) -> bool:
 
 
 def delete_exercise_by_name(name: str) -> bool:
-    """Hard-delete an exercise by name. Returns True if a row was deleted.
+    """Soft-delete an exercise by name. Returns True if a row was found and marked.
 
-    CASCADE removes all associated exercise_logs and program_block_exercises rows.
+    Sets deleted_at = now() on the exercises row (preserving exercise_logs history).
+    Hard-deletes from program_block_exercises so it disappears from the programme.
     """
     if _client is None or MODE == "OFFLINE":
         return False
 
     def _do() -> bool:
-        resp = _client.table("exercises").delete().eq("name", name).execute()
-        return bool(resp.data)
+        resp = _client.table("exercises").update({"deleted_at": "now()"}).eq("name", name).is_("deleted_at", "null").execute()
+        if not resp.data:
+            return False
+        ex_id = get_exercise_id_include_deleted(name)
+        if ex_id:
+            _client.table("program_block_exercises").delete().eq("exercise_id", ex_id).execute()
+        return True
 
     try:
         return _do()
@@ -1129,6 +1186,7 @@ def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) ->
             _client.table("exercises")
             .select("id,name")
             .in_("name", names)
+            .is_("deleted_at", "null")
             .execute()
         ).data or []
         id_to_name = {r["id"]: r["name"] for r in ex_rows if r.get("id") and r.get("name")}
@@ -1330,6 +1388,7 @@ def get_previous_session_by_exercises(ref_date: str, session_type: str, exercise
             _client.table("exercises")
             .select("id")
             .in_("name", exercise_names)
+            .is_("deleted_at", "null")
             .execute()
         )
         ex_ids = [e["id"] for e in (ex_resp.data or [])]
@@ -1425,6 +1484,7 @@ def get_exercise_info(exercise_name: str) -> Optional[dict]:
             _client.table("exercises")
             .select("name, category, load_profile, default_scheme")
             .eq("name", exercise_name)
+            .is_("deleted_at", "null")
             .limit(1)
             .execute()
         )
@@ -1459,6 +1519,7 @@ def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
             _client.table("exercises")
             .select("name, category, load_profile, default_scheme")
             .in_("name", names)
+            .is_("deleted_at", "null")
             .execute()
         )
         return {row["name"]: row for row in (resp.data or []) if row.get("name")}
@@ -1506,7 +1567,7 @@ def normalize_schemes_max_sets(max_sets: int = 3) -> int:
         return 0
 
     def _do() -> int:
-        rows = (_client.table("exercises").select("name,default_scheme").execute().data or [])
+        rows = (_client.table("exercises").select("name,default_scheme").is_("deleted_at", "null").execute().data or [])
         updated = 0
         for row in rows:
             scheme = (row.get("default_scheme") or "").strip()
@@ -1536,7 +1597,7 @@ def bulk_set_rest_seconds(seconds: int) -> bool:
         return False
 
     def _do() -> bool:
-        _client.table("exercises").update({"rest_seconds": seconds}).neq("name", "").execute()
+        _client.table("exercises").update({"rest_seconds": seconds}).neq("name", "").is_("deleted_at", "null").execute()
         return True
 
     try:

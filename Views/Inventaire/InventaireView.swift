@@ -259,6 +259,7 @@ struct InventaireView: View {
         _ = try? await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "inventaire_data")
         CacheService.shared.clear(for: "programme_data")
+        CacheService.shared.clear(for: "seance_data")
         await loadData()
     }
 
@@ -272,6 +273,7 @@ struct InventaireView: View {
         await MainActor.run { items.removeAll { $0.name == name } }
         CacheService.shared.clear(for: "inventaire_data")
         CacheService.shared.clear(for: "programme_data")
+        CacheService.shared.clear(for: "seance_data")
     }
 
     // MARK: – Helpers

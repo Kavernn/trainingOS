@@ -2831,6 +2831,8 @@ struct AddHIITSheet: View {
 
         @State private var energyPre: Int = 3
         @State private var confirmDiscard = false
+        @State private var showConfirmSubmit = false
+        @State private var pendingEnergy: Int? = nil
         @State private var aiAnalysis: String? = nil
         @State private var isLoadingAI = false
 
@@ -3015,8 +3017,8 @@ struct AddHIITSheet: View {
                             // Soumission partielle — visible si des exercices ne sont pas loggués
                             if loggedCount < exercises.count && loggedCount > 0 {
                                 Button(action: {
-                                    onSubmit(preEnergy ?? energyPre)
-                                    dismiss()
+                                    pendingEnergy = preEnergy ?? energyPre
+                                    showConfirmSubmit = true
                                 }) {
                                     HStack(spacing: 6) {
                                         Image(systemName: "checkmark.circle")
@@ -3033,8 +3035,8 @@ struct AddHIITSheet: View {
                             }
 
                             Button(action: {
-                                onSubmit(preEnergy ?? energyPre)
-                                dismiss()
+                                pendingEnergy = preEnergy ?? energyPre
+                                showConfirmSubmit = true
                             }) {
                                 Text(loggedCount == exercises.count ? "Enregistrer la séance" : "Enregistrer quand même tout")
                                     .font(.system(size: 16, weight: .bold)).frame(maxWidth: .infinity).padding(.vertical, 14)
@@ -3057,6 +3059,13 @@ struct AddHIITSheet: View {
                 .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
                     Button("Abandonner", role: .destructive) { dismiss() }
                     Button("Continuer", role: .cancel) {}
+                }
+                .confirmationDialog("Enregistrer la séance ?", isPresented: $showConfirmSubmit, titleVisibility: .visible) {
+                    Button("Enregistrer") {
+                        onSubmit(pendingEnergy)
+                        dismiss()
+                    }
+                    Button("Continuer l'entraînement", role: .cancel) {}
                 }
                 .onAppear {
                     if let preloaded = preloadedAnalysis {

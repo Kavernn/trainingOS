@@ -174,6 +174,7 @@ def api_objectifs_data():
             rows = (_db._client.table("exercises")
                     .select("name, current_weight")
                     .in_("name", ex_names)
+                    .is_("deleted_at", "null")
                     .execute().data or [])
             current_weights = {r["name"]: (r.get("current_weight") or 0) for r in rows}
         except Exception:

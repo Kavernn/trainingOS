@@ -646,6 +646,11 @@ def api_save_exercise():
         # If Supabase unavailable, skip programme rename — inventory already renamed above
     else:
         add_exercise(name, entry)
+        import db as _db
+        ex_id = _db.get_exercise_id(name)
+        new_scheme = entry.get("default_scheme", "")
+        if ex_id and new_scheme:
+            _db.update_program_scheme_for_exercise(ex_id, new_scheme)
 
     return jsonify({"success": True})
 
@@ -678,10 +683,10 @@ def api_delete_exercise():
 
     import db as _db
 
-    # Hard delete — CASCADE removes exercise_logs and program_block_exercises rows.
+    # Soft-delete: marks deleted_at, preserves exercise_logs, removes from program_block_exercises.
     deleted = _db.delete_exercise_by_name(name)
     if not deleted:
-        return jsonify({"error": "Exercice introuvable"}), 404
+        return jsonify({"error": "Exercice introuvable ou déjà supprimé"}), 404
 
     return jsonify({"success": True})
 
