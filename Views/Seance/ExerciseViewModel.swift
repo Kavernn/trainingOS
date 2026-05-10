@@ -313,7 +313,7 @@ final class ExerciseViewModel: ObservableObject {
     func undoLog() {
         isLogged = false
         isEditing = false
-        logStatus = .idle
+        logStatus = nil
     }
 }
 
