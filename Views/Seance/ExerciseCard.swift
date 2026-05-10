@@ -20,6 +20,7 @@ struct ExerciseCard: View {
     var onLogged: (() -> Void)? = nil
     // Expand/collapse (controlled by parent)
     var isExpanded: Bool = false
+    var isFocused: Bool = false
     var onToggle: () -> Void = {}
     var nextExerciseName: String? = nil
     var isReplaced: Bool = false
@@ -36,6 +37,13 @@ struct ExerciseCard: View {
     @State private var mediaGifUrl: String? = nil
     @State private var mediaMusclss: [String] = []
     @State private var mediaFetched = false
+    // Hold-to-log
+    @State private var isHolding = false
+    @State private var holdProgress: Double = 0
+    // Undo window
+    @State private var showUndo = false
+    @State private var undoCountdown = 5
+    @State private var undoTask: Task<Void, Never>?
 
     private enum SetFocus: Hashable { case weight(Int); case reps(Int) }
     @FocusState private var setFocus: SetFocus?
@@ -59,7 +67,7 @@ struct ExerciseCard: View {
          restSeconds: Int? = nil, prescription: ExercisePrescription? = nil,
          suggestion: ProgressionSuggestion? = nil, hint: String? = nil,
          logResult: Binding<ExerciseLogResult?>, onLogged: (() -> Void)? = nil,
-         isExpanded: Bool = false, onToggle: @escaping () -> Void = {},
+         isExpanded: Bool = false, isFocused: Bool = false, onToggle: @escaping () -> Void = {},
          nextExerciseName: String? = nil,
          isReplaced: Bool = false, originalName: String? = nil,
          onSwap: (() -> Void)? = nil) {
@@ -78,6 +86,7 @@ struct ExerciseCard: View {
         self._logResult      = logResult
         self.onLogged        = onLogged
         self.isExpanded      = isExpanded
+        self.isFocused       = isFocused
         self.onToggle        = onToggle
         self.nextExerciseName = nextExerciseName
         self.isReplaced      = isReplaced
@@ -176,14 +185,21 @@ struct ExerciseCard: View {
     }
 
     private func doLog() {
+        guard !showUndo else { return }
         if let result = evm.logExercise(alreadyLoggedViaBinding: logResult != nil) {
             logResult = result
             onLogged?()
             triggerNotificationFeedback(.success)
-            if isExpanded {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    onToggle()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { showUndo = true }
+            undoCountdown = 5
+            undoTask?.cancel()
+            undoTask = Task { @MainActor in
+                for i in stride(from: 4, through: 0, by: -1) {
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                    guard !Task.isCancelled else { return }
+                    undoCountdown = i
                 }
+                withAnimation(.easeOut(duration: 0.3)) { showUndo = false }
             }
         }
     }
@@ -1000,22 +1016,74 @@ struct ExerciseCard: View {
                         .padding(.top, 4)
 
                         VStack(spacing: 8) {
-                            Button(action: doLog) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: evm.isEditing ? "arrow.triangle.2.circlepath.circle.fill" : "checkmark.circle.fill")
-                                        .font(.system(size: 20))
-                                    Text(evm.isEditing ? "Mettre à jour" : "Logger")
-                                        .font(.system(size: 16, weight: .bold))
+                            if showUndo {
+                                Button {
+                                    undoTask?.cancel(); undoTask = nil
+                                    withAnimation(.easeOut(duration: 0.25)) { showUndo = false }
+                                    logResult = nil
+                                    evm.undoLog()
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "arrow.uturn.backward.circle.fill")
+                                            .font(.system(size: 16))
+                                        Text("Annuler le log")
+                                            .font(.system(size: 15, weight: .semibold))
+                                        Spacer()
+                                        Text("\(undoCountdown)s")
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.45))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal, 16).padding(.vertical, 14)
+                                    .background(Color.orange.opacity(0.14))
+                                    .foregroundColor(.orange)
+                                    .cornerRadius(12)
+                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.28), lineWidth: 1))
                                 }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .background(evm.canLog ? Color.orange : Color(hex: "1a1a2e"))
-                                .foregroundColor(evm.canLog ? .white : .gray)
+                                .buttonStyle(.plain)
+                                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                            } else {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(hex: "1a1a2e"))
+                                    GeometryReader { geo in
+                                        Color.orange
+                                            .frame(width: geo.size.width * holdProgress)
+                                    }
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    HStack(spacing: 8) {
+                                        Image(systemName: evm.isEditing ? "arrow.triangle.2.circlepath.circle.fill" : "checkmark.circle.fill")
+                                            .font(.system(size: 20))
+                                        Text(isHolding ? "Maintenir..." : (evm.isEditing ? "Mettre à jour" : "Logger"))
+                                            .font(.system(size: 16, weight: .bold))
+                                    }
+                                    .foregroundColor(evm.canLog ? .white : .gray)
+                                }
+                                .frame(maxWidth: .infinity).frame(height: 50)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .opacity(evm.canLog ? 1 : 0.6)
-                                .cornerRadius(12)
+                                .gesture(
+                                    LongPressGesture(minimumDuration: 0.6)
+                                        .onEnded { _ in
+                                            guard evm.canLog else { return }
+                                            isHolding = false
+                                            withAnimation(.easeOut(duration: 0.15)) { holdProgress = 0 }
+                                            doLog()
+                                        }
+                                )
+                                .simultaneousGesture(
+                                    DragGesture(minimumDistance: 0)
+                                        .onChanged { _ in
+                                            guard evm.canLog, !isHolding else { return }
+                                            isHolding = true
+                                            withAnimation(.linear(duration: 0.6)) { holdProgress = 1.0 }
+                                        }
+                                        .onEnded { _ in
+                                            isHolding = false
+                                            withAnimation(.easeOut(duration: 0.15)) { holdProgress = 0 }
+                                        }
+                                )
                             }
-                            .disabled(!evm.canLog)
-                            .buttonStyle(SpringButtonStyle())
 
                             if evm.isEditing {
                                 Button(action: { evm.isEditing = false }) {
@@ -1167,7 +1235,7 @@ struct ExerciseCard: View {
                 .stroke(
                     alreadyLogged
                         ? Color.green.opacity(0.28)
-                        : (isExpanded ? Color.orange.opacity(0.18) : Color.white.opacity(0.07)),
+                        : (isFocused ? Color.orange.opacity(0.30) : (isExpanded ? Color.orange.opacity(0.12) : Color.white.opacity(0.07))),
                     lineWidth: 1
                 )
         )
@@ -1203,6 +1271,12 @@ struct ExerciseCard: View {
         }
         .onChange(of: logResult == nil) { _, isNil in
             if isNil { evm.resetAfterClear() }
+        }
+        .onChange(of: evm.isEditing) { _, editing in
+            if editing {
+                undoTask?.cancel(); undoTask = nil
+                withAnimation(.easeOut(duration: 0.2)) { showUndo = false }
+            }
         }
         .confirmationDialog("Sauter \(name) ?", isPresented: $confirmSkip, titleVisibility: .visible) {
             Button("Sauter cet exercice", role: .destructive) {

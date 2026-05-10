@@ -59,7 +59,7 @@ struct BonusSeanceView: View {
     @State private var isLoading = true
     @ObservedObject private var timer = RestTimerManager.shared
     @State private var sessionStart = Date()
-    @State private var expandedExercise: String? = nil
+    @State private var expandedExercises: Set<String> = []
     @State private var lastScrollY: CGFloat? = nil
 
     private var orderedExercises: [String] {
@@ -79,10 +79,14 @@ struct BonusSeanceView: View {
             isSecondSession: false,
             isBonusSession: true,
             logResult: $vm.logResults[name],
-            isExpanded: expandedExercise == name,
+            isExpanded: expandedExercises.contains(name),
             onToggle: {
                 withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
-                    expandedExercise = expandedExercise == name ? nil : name
+                    if expandedExercises.contains(name) {
+                        expandedExercises.remove(name)
+                    } else {
+                        expandedExercises.insert(name)
+                    }
                 }
             },
             nextExerciseName: next

@@ -309,6 +309,12 @@ final class ExerciseViewModel: ObservableObject {
         logStatus = .success(total)
         return result
     }
+
+    func undoLog() {
+        isLogged = false
+        isEditing = false
+        logStatus = .idle
+    }
 }
 
 // MARK: - SeanceViewModel

@@ -1124,7 +1124,8 @@ struct WorkoutSeanceView: View {
     @State private var editTarget: ExerciseTarget?
     @State private var isEditMode = false
     @State private var orderSaveError = false
-    @State private var expandedExercise: String? = nil
+    @State private var expandedExercises: Set<String> = []
+    @State private var lastOpenedExercise: String? = nil
     @State private var scrollProxy: ScrollViewProxy? = nil
     @ObservedObject private var timer = RestTimerManager.shared
     @Environment(\.scenePhase) private var scenePhase
@@ -1532,7 +1533,8 @@ struct WorkoutSeanceView: View {
                 let loggedNames = Set(vm.logResults.keys)
                 if let next = exercises.first(where: { !loggedNames.contains($0.0) && $0.0 != name }) {
                     withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-                        expandedExercise = next.0
+                        expandedExercises.insert(next.0)
+                        lastOpenedExercise = next.0
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         withAnimation(.easeInOut(duration: 0.35)) {
@@ -1541,10 +1543,17 @@ struct WorkoutSeanceView: View {
                     }
                 }
             },
-            isExpanded: expandedExercise == name,
+            isExpanded: expandedExercises.contains(name),
+            isFocused: name == lastOpenedExercise,
             onToggle: {
                 withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
-                    expandedExercise = expandedExercise == name ? nil : name
+                    if expandedExercises.contains(name) {
+                        expandedExercises.remove(name)
+                        if lastOpenedExercise == name { lastOpenedExercise = expandedExercises.first }
+                    } else {
+                        expandedExercises.insert(name)
+                        lastOpenedExercise = name
+                    }
                 }
             },
             nextExerciseName: nextExerciseName,
@@ -3852,6 +3861,32 @@ struct FloatingRestTimerCard: View {
                     .foregroundColor(.white)
                     .monospacedDigit()
                     .contentTransition(.numericText())
+            }
+
+            // +10 / -10 adjustment buttons (visible only while running)
+            if timer.isRunning {
+                HStack(spacing: 16) {
+                    Button { timer.adjust(by: -10) } label: {
+                        Text("−10s")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(ringColor.opacity(0.85))
+                            .padding(.horizontal, 16).padding(.vertical, 7)
+                            .background(ringColor.opacity(0.1))
+                            .cornerRadius(20)
+                            .overlay(RoundedRectangle(cornerRadius: 20).stroke(ringColor.opacity(0.25), lineWidth: 1))
+                    }
+                    Button { timer.adjust(by: 10) } label: {
+                        Text("+10s")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(ringColor.opacity(0.85))
+                            .padding(.horizontal, 16).padding(.vertical, 7)
+                            .background(ringColor.opacity(0.1))
+                            .cornerRadius(20)
+                            .overlay(RoundedRectangle(cornerRadius: 20).stroke(ringColor.opacity(0.25), lineWidth: 1))
+                    }
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
+                .animation(.easeInOut(duration: 0.2), value: timer.isRunning)
             }
 
             // Controls
