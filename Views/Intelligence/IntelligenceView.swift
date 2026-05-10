@@ -158,6 +158,7 @@ struct IntelligenceView: View {
                 if api.dashboard == nil { await api.fetchDashboard() }
                 Task { generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram() }
                 await loadContextData()
+                await MainActor.run { purgeStaleMemoryEntries() }
                 await loadMorningBrief()
             }
             .onChange(of: messages) {
@@ -548,6 +549,14 @@ struct IntelligenceView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer()
+                        Button {
+                            withAnimation { CoachMemoryStore.shared.delete(id: entry.id) }
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color(white: 0.3))
+                                .padding(6)
+                        }
                     }
                     .padding(12)
                     .background(Color.white.opacity(0.03))
@@ -874,6 +883,20 @@ struct IntelligenceView: View {
         }
 
         return lines.joined(separator: "\n")
+    }
+
+    private func purgeStaleMemoryEntries() {
+        // Remove any milestone that references deleted test data (e.g. 450lbs squat)
+        let stale = CoachMemoryStore.shared.entries.filter {
+            $0.id == "milestone.strongest.lift" && $0.content.contains("450")
+        }
+        for entry in stale {
+            CoachMemoryStore.shared.delete(id: entry.id)
+        }
+        if !stale.isEmpty {
+            // Reset cooldown so analysis re-runs with corrected data on next load
+            UserDefaults.standard.removeObject(forKey: "coach_memory_last_analysis")
+        }
     }
 
     private func loadMorningBrief() async {
