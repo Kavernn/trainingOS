@@ -431,6 +431,38 @@ struct ReadinessCard: View {
         return s >= 7 ? "Prêt" : (s >= 5 ? "Modéré" : "Fatigué")
     }
 
+    private var presentCount: Int {
+        [entry.hrv.map { _ in () }, entry.restingHr.map { _ in () },
+         entry.sleepHours.map { _ in () }, entry.soreness.map { _ in () }]
+            .compactMap { $0 }.count
+    }
+
+    private var missingMetrics: [String] {
+        var m: [String] = []
+        if entry.hrv == nil        { m.append("HRV") }
+        if entry.restingHr == nil  { m.append("Fréq. cardiaque") }
+        if entry.sleepHours == nil { m.append("Sommeil") }
+        if entry.soreness == nil   { m.append("Courbatures") }
+        return m
+    }
+
+    private var reliabilityLabel: String {
+        switch presentCount {
+        case 4:  return "Fiabilité élevée"
+        case 3:  return "Fiabilité partielle"
+        case 2:  return "Données limitées"
+        default: return "Données insuffisantes"
+        }
+    }
+
+    private var reliabilityColor: Color {
+        switch presentCount {
+        case 4:  return .green
+        case 3:  return .orange
+        default: return .red
+        }
+    }
+
     var body: some View {
         HStack(spacing: 16) {
             // Score ring
@@ -479,6 +511,16 @@ struct ReadinessCard: View {
                     if let s = entry.soreness {
                         metricPill("Courbatures", String(format: "%.0f/10", s),
                                    s <= 3 ? .green : (s <= 6 ? .orange : .red))
+                    }
+                }
+                if !missingMetrics.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.circle")
+                            .font(.system(size: 9))
+                            .foregroundColor(reliabilityColor)
+                        Text("\(reliabilityLabel) · manque : \(missingMetrics.joined(separator: ", "))")
+                            .font(.system(size: 9))
+                            .foregroundColor(.gray)
                     }
                 }
             }

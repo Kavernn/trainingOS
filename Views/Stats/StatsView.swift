@@ -89,6 +89,23 @@ struct StatsView: View {
     @State private var selectedTab: Int = 0
     @State private var period: StatsPeriod = .month3
 
+    // ── Stats Expansion State ────────────────────────────────────────
+    @State private var weeklyTonnage:      [WeeklyTonnageEntry]        = []
+    @State private var patternVolume:      PatternVolumeData?          = nil
+    @State private var complianceWeeks:    [ComplianceWeek]            = []
+    @State private var oneRmTrend:         [String: [OneRMPoint]]      = [:]
+    @State private var hiitCompletion:     [HIITCompletionEntry]       = []
+    @State private var macrosByDayType:    MacrosByDayType?            = nil
+    @State private var proteinWeightRatio: [ProteinWeightPoint]        = []
+    @State private var moodTrend:          [MoodTrendPoint]            = []
+    @State private var pssHistory:         [PSSRecord]                 = []
+    @State private var selfCareStreaks:    [SelfCareStreak]            = []
+    @State private var selfCareCompliance: SelfCareComplianceData?     = nil
+    @State private var sorenessScatter:    [ScatterPoint]              = []
+    @State private var sleepScatter:       [ScatterPoint]              = []
+    @State private var rpeProgression:     RPEProgressionData?         = nil
+    @State private var rirByExercise:      [RIREntry]                  = []
+
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int { sessions.count }
 
@@ -432,7 +449,7 @@ struct StatsView: View {
                             .padding(.horizontal, 16)
                             .padding(.top, 4)
 
-                        if selectedTab < 4 {
+                        if selectedTab < 5 {
                             PeriodPicker(selected: $period)
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 6)
@@ -448,7 +465,8 @@ struct StatsView: View {
                                 else if selectedTab == 1 { performanceTab }
                                 else if selectedTab == 2 { corpsTab }
                                 else if selectedTab == 3 { nutritionTab }
-                                else { exercicesTab }
+                                else if selectedTab == 4 { exercicesTab }
+                                else { bienetreTab }
                             }
                             .padding(.vertical, 8)
                         }
@@ -547,6 +565,21 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
+        if weeklyTonnage.count >= 2 {
+            TonnageBarChartView(entries: weeklyTonnage)
+                .padding(.horizontal, 16)
+        }
+
+        if let pv = patternVolume {
+            PatternVolumeView(data: pv)
+                .padding(.horizontal, 16)
+        }
+
+        if complianceWeeks.count >= 2 {
+            ComplianceProgrammeView(weeks: complianceWeeks)
+                .padding(.horizontal, 16)
+        }
+
         Spacer(minLength: 32)
     }
 
@@ -602,6 +635,21 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
+        if !oneRmTrend.isEmpty {
+            OneRMTrendView(trend: oneRmTrend)
+                .padding(.horizontal, 16)
+        }
+
+        if let rp = rpeProgression {
+            RPEProgressionView(data: rp)
+                .padding(.horizontal, 16)
+        }
+
+        if !rirByExercise.isEmpty {
+            RIRByExerciseView(entries: rirByExercise)
+                .padding(.horizontal, 16)
+        }
+
         Spacer(minLength: 32)
     }
 
@@ -636,6 +684,27 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
+        if hiitCompletion.count >= 2 {
+            HIITCompletionView(entries: hiitCompletion)
+                .padding(.horizontal, 16)
+        }
+
+        if filteredRecovery.count >= 5 {
+            RecoveryCompositeScoreView(log: Array(filteredRecovery.prefix(30).reversed()))
+                .padding(.horizontal, 16)
+        }
+
+        if sleepScatter.count >= 5 {
+            ScatterPlotView(
+                data: sleepScatter,
+                xLabel: "Qualité sommeil (J-1)",
+                yLabel: "Volume séance (J)",
+                title: "SOMMEIL → PERFORMANCE",
+                color: .indigo
+            )
+            .padding(.horizontal, 16)
+        }
+
         Spacer(minLength: 32)
     }
 
@@ -659,6 +728,49 @@ struct StatsView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 60)
+        }
+
+        if proteinWeightRatio.count >= 5 {
+            ProteinWeightRatioView(data: proteinWeightRatio)
+                .padding(.horizontal, 16)
+        }
+
+        if let mdt = macrosByDayType, mdt.nTraining >= 3, mdt.nRest >= 3 {
+            MacrosDayTypeView(data: mdt)
+                .padding(.horizontal, 16)
+        }
+
+        Spacer(minLength: 32)
+    }
+
+    @ViewBuilder private var bienetreTab: some View {
+        if !moodTrend.isEmpty {
+            MoodStressTrendView(data: moodTrend, pssHistory: pssHistory)
+                .padding(.horizontal, 16)
+        } else {
+            EmptyChartPlaceholder(message: "Logge ton humeur quotidiennement pour voir la tendance")
+                .padding(.horizontal, 16)
+        }
+
+        if !selfCareStreaks.isEmpty {
+            SelfCareStreaksView(streaks: selfCareStreaks, compliance: selfCareCompliance)
+                .padding(.horizontal, 16)
+        }
+
+        if sorenessScatter.count >= 5 {
+            ScatterPlotView(
+                data: sorenessScatter,
+                xLabel: "Volume J-1 (lbs)",
+                yLabel: "Soreness J (1–10)",
+                title: "VOLUME → DOULEURS MUSCULAIRES",
+                color: .orange
+            )
+            .padding(.horizontal, 16)
+        }
+
+        if !pssHistory.isEmpty {
+            PSSHistoryView(records: pssHistory)
+                .padding(.horizontal, 16)
         }
 
         Spacer(minLength: 32)
@@ -695,42 +807,97 @@ struct StatsView: View {
 
     private func formatK(_ v: Double) -> String { _formatK(v) }
 
-    // Local decodable mirror of the stats response (StatsResponse in APIService is private)
+    // Local decodable mirror of the stats response
     private struct StatsAPIResponse: Codable {
-        let weights:         [String: WeightData]
-        let sessions:        [String: SessionEntry]
-        let hiitLog:         [HIITEntry]
-        let bodyWeight:      [BodyWeightEntry]
-        let recoveryLog:     [RecoveryEntry]
-        let nutritionTarget: NutritionSettings?
-        let nutritionDays:   [NutritionDay]
-        let muscleStats:     [String: MuscleStatEntry]
-        let inventoryTypes:  [String: String]?
-        let muscleLandmarks: [String: MuscleLandmark]?
+        let weights:              [String: WeightData]
+        let sessions:             [String: SessionEntry]
+        let hiitLog:              [HIITEntry]
+        let bodyWeight:           [BodyWeightEntry]
+        let recoveryLog:          [RecoveryEntry]
+        let nutritionTarget:      NutritionSettings?
+        let nutritionDays:        [NutritionDay]
+        let muscleStats:          [String: MuscleStatEntry]
+        let inventoryTypes:       [String: String]?
+        let muscleLandmarks:      [String: MuscleLandmark]?
+        let weeklyTonnage:        [WeeklyTonnageEntry]?
+        let patternVolume:        PatternVolumeData?
+        let programmeCompliance:  [ComplianceWeek]?
+        let oneRmTrend:           [String: [OneRMPoint]]?
+        let hiitCompletion:       [HIITCompletionEntry]?
+        let macrosByDayType:      MacrosByDayType?
+        let proteinWeightRatio:   [ProteinWeightPoint]?
+
         enum CodingKeys: String, CodingKey {
             case weights, sessions
-            case hiitLog         = "hiit_log"
-            case bodyWeight      = "body_weight"
-            case recoveryLog     = "recovery_log"
-            case nutritionTarget = "nutrition_target"
-            case nutritionDays   = "nutrition_days"
-            case muscleStats     = "muscle_stats"
-            case inventoryTypes  = "inventory_types"
-            case muscleLandmarks = "muscle_landmarks"
+            case hiitLog            = "hiit_log"
+            case bodyWeight         = "body_weight"
+            case recoveryLog        = "recovery_log"
+            case nutritionTarget    = "nutrition_target"
+            case nutritionDays      = "nutrition_days"
+            case muscleStats        = "muscle_stats"
+            case inventoryTypes     = "inventory_types"
+            case muscleLandmarks    = "muscle_landmarks"
+            case weeklyTonnage      = "weekly_tonnage"
+            case patternVolume      = "pattern_volume"
+            case programmeCompliance = "programme_compliance"
+            case oneRmTrend         = "one_rm_trend"
+            case hiitCompletion     = "hiit_completion"
+            case macrosByDayType    = "macros_by_day_type"
+            case proteinWeightRatio = "protein_weight_ratio"
+        }
+    }
+
+    private struct WellnessAPIResponse: Codable {
+        let moodTrend:             [MoodTrendPoint]
+        let pssHistory:            [PSSRecord]
+        let selfCareStreaks:        [SelfCareStreak]
+        let selfCareCompliance:    SelfCareComplianceData?
+        let sorenessVolumeScatter: [ScatterPoint]
+        let sleepVolumeScatter:    [ScatterPoint]
+        let rpeProgression:        RPEProgressionData?
+        let rirByExercise:         [RIREntry]
+
+        enum CodingKeys: String, CodingKey {
+            case moodTrend             = "mood_trend"
+            case pssHistory            = "pss_history"
+            case selfCareStreaks        = "self_care_streaks"
+            case selfCareCompliance    = "self_care_compliance"
+            case sorenessVolumeScatter = "soreness_volume_scatter"
+            case sleepVolumeScatter    = "sleep_volume_scatter"
+            case rpeProgression        = "rpe_progression"
+            case rirByExercise         = "rir_by_exercise"
         }
     }
 
     private func applyStats(_ r: StatsAPIResponse) {
-        weights         = r.weights
-        sessions        = r.sessions
-        hiitLog         = r.hiitLog
-        bodyWeight      = r.bodyWeight
-        recoveryLog     = r.recoveryLog
-        nutritionTarget = r.nutritionTarget
-        nutritionDays   = r.nutritionDays
-        muscleStats     = r.muscleStats
-        inventoryTypes  = r.inventoryTypes ?? [:]
-        muscleLandmarks = r.muscleLandmarks ?? [:]
+        weights            = r.weights
+        sessions           = r.sessions
+        hiitLog            = r.hiitLog
+        bodyWeight         = r.bodyWeight
+        recoveryLog        = r.recoveryLog
+        nutritionTarget    = r.nutritionTarget
+        nutritionDays      = r.nutritionDays
+        muscleStats        = r.muscleStats
+        inventoryTypes     = r.inventoryTypes ?? [:]
+        muscleLandmarks    = r.muscleLandmarks ?? [:]
+        weeklyTonnage      = r.weeklyTonnage ?? []
+        patternVolume      = r.patternVolume
+        complianceWeeks    = r.programmeCompliance ?? []
+        oneRmTrend         = r.oneRmTrend ?? [:]
+        hiitCompletion     = r.hiitCompletion ?? []
+        macrosByDayType    = r.macrosByDayType
+        proteinWeightRatio = r.proteinWeightRatio ?? []
+    }
+
+    private func applyWellness(_ r: WellnessAPIResponse) {
+        moodTrend          = r.moodTrend
+        pssHistory         = r.pssHistory
+        selfCareStreaks    = r.selfCareStreaks
+        selfCareCompliance = r.selfCareCompliance
+        sorenessScatter    = r.sorenessVolumeScatter
+        sleepScatter       = r.sleepVolumeScatter
+        rpeProgression     = r.rpeProgression
+        rirByExercise      = r.rirByExercise
     }
 
     private func loadData() async {
@@ -756,6 +923,20 @@ struct StatsView: View {
         }
         // sequential — async let LIFO crash on iOS 26 beta
         acwr = try? await APIService.shared.fetchACWR()
+
+        // Fetch wellness data (Bien-être tab)
+        var wellnessReq = URLRequest(url: URL(string: "\(APIService.shared.baseURL)/api/stats_wellness")!)
+        wellnessReq.timeoutInterval = 20
+        if let cachedW = CacheService.shared.load(for: "stats_wellness"),
+           let decodedW = try? JSONDecoder().decode(WellnessAPIResponse.self, from: cachedW) {
+            applyWellness(decodedW)
+        }
+        if let (wData, _) = try? await URLSession.authed.data(for: wellnessReq),
+           let decodedW = try? JSONDecoder().decode(WellnessAPIResponse.self, from: wData) {
+            CacheService.shared.save(wData, for: "stats_wellness")
+            applyWellness(decodedW)
+        }
+
         isLoading = false
         // Schedule contextual notifications (inactivity + streak milestones)
         NotificationService.scheduleContextual(
@@ -2573,11 +2754,12 @@ struct StatsTabBar: View {
     @Binding var selectedTab: Int
 
     private let tabs: [(icon: String, label: String)] = [
-        ("chart.bar.fill",  "Global"),
-        ("bolt.fill",       "Perf"),
-        ("figure.stand",    "Corps"),
-        ("fork.knife",      "Nutrition"),
-        ("dumbbell.fill",   "Exercices"),
+        ("chart.bar.fill",           "Global"),
+        ("bolt.fill",                "Perf"),
+        ("figure.stand",             "Corps"),
+        ("fork.knife",               "Nutrition"),
+        ("dumbbell.fill",            "Exercices"),
+        ("heart.text.square.fill",   "Bien-être"),
     ]
 
     var body: some View {
@@ -2662,6 +2844,807 @@ struct SmartInsightsBanner: View {
         .background(Color(hex: "11111c"))
         .cornerRadius(14)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.25), lineWidth: 1))
+    }
+}
+
+// MARK: - Tonnage Hebdo Chart
+struct TonnageBarChartView: View {
+    let entries: [WeeklyTonnageEntry]
+    private let units = UnitSettings.shared
+
+    private var maxVol: Double { entries.map(\.totalVolume).max() ?? 1 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("TONNAGE HEBDOMADAIRE (8 SEM.)")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let last = entries.last {
+                    Text(_formatK(units.display(last.totalVolume)) + " " + units.label)
+                        .font(.system(size: 11, weight: .bold)).foregroundColor(.green)
+                }
+            }
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
+                    let pct = maxVol > 0 ? e.totalVolume / maxVol : 0
+                    let isLast = i == entries.count - 1
+                    VStack(spacing: 2) {
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(isLast ? Color.green : Color.green.opacity(0.4))
+                            .frame(height: max(CGFloat(pct) * 70, 3))
+                        Text(shortWeek(e.weekStart))
+                            .font(.system(size: 7)).foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 90)
+                }
+            }
+            .frame(height: 90)
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+
+    private func shortWeek(_ iso: String) -> String {
+        guard iso.count >= 10,
+              let d = DateFormatter.isoDate.date(from: String(iso.prefix(10))) else { return "" }
+        let f = DateFormatter(); f.dateFormat = "d/M"; f.locale = Locale(identifier: "fr_CA")
+        return f.string(from: d)
+    }
+}
+
+// MARK: - Pattern Volume Chart
+struct PatternVolumeView: View {
+    let data: PatternVolumeData
+    private let units = UnitSettings.shared
+
+    private var entries: [(String, Double, Color)] {
+        [
+            ("Push",  data.push  ?? 0, .orange),
+            ("Pull",  data.pull  ?? 0, .blue),
+            ("Hinge", data.hinge ?? 0, .purple),
+            ("Squat", data.squat ?? 0, .green),
+            ("Carry", data.carry ?? 0, .yellow),
+            ("Core",  data.core  ?? 0, .cyan),
+        ].filter { $0.1 > 0 }
+    }
+    private var maxVal: Double { entries.map(\.1).max() ?? 1 }
+    private var pushPullRatio: String? {
+        let push = data.push ?? 0, pull = data.pull ?? 0
+        guard push > 0, pull > 0 else { return nil }
+        let ratio = pull / push
+        return String(format: "Pull:Push = %.2f", ratio)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("VOLUME PAR PATTERN (4 SEM.)")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let r = pushPullRatio {
+                    Text(r)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(pushPullBalance)
+                }
+            }
+            ForEach(entries, id: \.0) { name, vol, color in
+                let pct = maxVal > 0 ? vol / maxVal : 0
+                HStack(spacing: 8) {
+                    Text(name)
+                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                        .frame(width: 42, alignment: .leading)
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(color.opacity(0.7))
+                            .frame(width: geo.size.width * CGFloat(pct))
+                    }
+                    .frame(height: 14)
+                    Text(_formatK(units.display(vol)))
+                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .frame(width: 44, alignment: .trailing)
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+
+    private var pushPullBalance: Color {
+        guard let push = data.push, let pull = data.pull, push > 0 else { return .gray }
+        let r = pull / push
+        return r >= 0.8 && r <= 1.4 ? .green : .orange
+    }
+}
+
+// MARK: - Programme Compliance
+struct ComplianceProgrammeView: View {
+    let weeks: [ComplianceWeek]
+
+    private var overallRate: Double {
+        let total = weeks.reduce(0) { $0 + $1.planned }
+        let done  = weeks.reduce(0) { $0 + $1.done }
+        return total > 0 ? Double(done) / Double(total) : 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("COMPLIANCE PROGRAMME")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text(String(format: "%.0f%%", overallRate * 100))
+                    .font(.system(size: 16, weight: .black))
+                    .foregroundColor(overallRate >= 0.8 ? .green : overallRate >= 0.6 ? .orange : .red)
+            }
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(weeks.enumerated()), id: \.0) { i, w in
+                    let pct = w.planned > 0 ? Double(min(w.done, w.planned)) / Double(w.planned) : 0
+                    let isLast = i == weeks.count - 1
+                    let color: Color = pct >= 1.0 ? .green : pct >= 0.5 ? .orange : .red
+                    VStack(spacing: 2) {
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(isLast ? color : color.opacity(0.5))
+                            .frame(height: max(CGFloat(pct) * 60, 3))
+                        Text("\(w.done)/\(w.planned)")
+                            .font(.system(size: 7)).foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 75)
+                }
+            }
+            .frame(height: 75)
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - 1RM Trend View
+struct OneRMTrendView: View {
+    let trend: [String: [OneRMPoint]]
+    private let units = UnitSettings.shared
+    @State private var selectedExercise: String = ""
+
+    private var exercises: [String] { Array(trend.keys).sorted() }
+    private var currentExercise: String { selectedExercise.isEmpty ? (exercises.first ?? "") : selectedExercise }
+    private var points: [OneRMPoint] { trend[currentExercise] ?? [] }
+    private var maxRM: Double { points.map(\.oneRM).max() ?? 1 }
+    private var minRM: Double { points.map(\.oneRM).min() ?? 0 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("TENDANCE 1RM — BLOC ACTIF")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let last = points.last, let first = points.first, last.oneRM > first.oneRM {
+                    Text("+\(String(format: "%.1f", last.oneRM - first.oneRM)) \(units.label)")
+                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.green)
+                }
+            }
+            if exercises.count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(exercises, id: \.self) { ex in
+                            Button {
+                                withAnimation { selectedExercise = ex }
+                            } label: {
+                                Text(ex)
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(currentExercise == ex ? Color.orange : Color(hex: "1a1a28"))
+                                    .foregroundColor(currentExercise == ex ? .black : .gray)
+                                    .cornerRadius(20)
+                            }
+                        }
+                    }
+                }
+            }
+            GeometryReader { geo in
+                if points.count >= 2 {
+                    let range = maxRM - minRM
+                    let pad: Double = range > 0 ? range * 0.1 : 5
+                    let lo = minRM - pad, hi = maxRM + pad, span = hi - lo
+                    let step = geo.size.width / CGFloat(points.count - 1)
+                    ZStack {
+                        Path { p in
+                            for (i, pt) in points.enumerated() {
+                                let x = CGFloat(i) * step
+                                let y = geo.size.height * (1 - CGFloat((pt.oneRM - lo) / span))
+                                if i == 0 { p.move(to: .init(x: x, y: y)) }
+                                else { p.addLine(to: .init(x: x, y: y)) }
+                            }
+                        }
+                        .stroke(Color.orange, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+
+                        ForEach(Array(points.enumerated()), id: \.0) { i, pt in
+                            let x = CGFloat(i) * step
+                            let y = geo.size.height * (1 - CGFloat((pt.oneRM - lo) / span))
+                            Circle().fill(Color.orange).frame(width: 6, height: 6)
+                                .position(x: x, y: y)
+                        }
+                    }
+                }
+            }
+            .frame(height: 80)
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - RPE Progression View
+struct RPEProgressionView: View {
+    let data: RPEProgressionData
+
+    private var buckets: [(String, Double?, Color)] {[
+        ("<7",   data.lt7,   .blue),
+        ("7–8",  data.r7_8,  .green),
+        ("8–9",  data.r8_9,  .orange),
+        ("9–10", data.r9_10, .red),
+    ]}
+    private var maxAbs: Double {
+        buckets.compactMap { $0.1 }.map { abs($0) }.max() ?? 1
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("RPE → PROGRESSION MOYENNE")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            Text("Gain de charge moyen sur la séance suivante par zone d'intensité")
+                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+            ForEach(buckets, id: \.0) { name, val, color in
+                HStack(spacing: 8) {
+                    Text("RPE \(name)")
+                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                        .frame(width: 60, alignment: .leading)
+                    GeometryReader { geo in
+                        let pct = val.map { abs($0) / max(maxAbs, 1) } ?? 0
+                        let width = geo.size.width * CGFloat(pct)
+                        let c = (val ?? 0) >= 0 ? color : Color.red
+                        HStack(spacing: 0) {
+                            RoundedRectangle(cornerRadius: 3).fill(c).frame(width: max(width, 2), height: 14)
+                            Spacer()
+                        }
+                    }
+                    .frame(height: 14)
+                    if let v = val {
+                        Text(v >= 0 ? "+\(String(format: "%.1f", v))%" : "\(String(format: "%.1f", v))%")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor((v) >= 0 ? .green : .red)
+                            .frame(width: 50, alignment: .trailing)
+                    } else {
+                        Text("—").font(.system(size: 10)).foregroundColor(.gray).frame(width: 50, alignment: .trailing)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - RIR By Exercise View
+struct RIRByExerciseView: View {
+    let entries: [RIREntry]
+    private var maxRIR: Double { entries.map(\.avgRir).max() ?? 5 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("RIR MOYEN PAR EXERCICE")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            Text("Reps In Reserve — distance à l'échec musculaire")
+                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+            ForEach(entries.prefix(8)) { e in
+                let pct = maxRIR > 0 ? e.avgRir / maxRIR : 0
+                let c: Color = e.avgRir <= 1 ? .red : e.avgRir <= 2 ? .orange : .green
+                HStack(spacing: 8) {
+                    Text(e.exercise)
+                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
+                        .frame(maxWidth: 120, alignment: .leading).lineLimit(1)
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 3).fill(c.opacity(0.7))
+                            .frame(width: geo.size.width * CGFloat(pct), height: 12)
+                    }
+                    .frame(height: 12)
+                    Text(String(format: "%.1f", e.avgRir))
+                        .font(.system(size: 10, weight: .bold)).foregroundColor(c)
+                        .frame(width: 28, alignment: .trailing)
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - HIIT Completion View
+struct HIITCompletionView: View {
+    let entries: [HIITCompletionEntry]
+    private var avgRate: Double {
+        let r = entries.filter { $0.roundsPlanned > 0 }.map(\.rate)
+        return r.isEmpty ? 0 : r.reduce(0,+)/Double(r.count)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("HIIT — TAUX DE COMPLETION")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text(String(format: "Moy. %.0f%%", avgRate * 100))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(avgRate >= 0.85 ? .green : .orange)
+            }
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
+                    let isLast = i == entries.count - 1
+                    let c: Color = e.rate >= 1.0 ? .green : e.rate >= 0.7 ? .orange : .red
+                    VStack(spacing: 2) {
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(isLast ? c : c.opacity(0.5))
+                            .frame(height: max(CGFloat(e.rate) * 60, 3))
+                        Text("\(e.roundsCompleted)/\(e.roundsPlanned)")
+                            .font(.system(size: 7)).foregroundColor(.gray)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 70)
+                }
+            }
+            .frame(height: 70)
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Recovery Composite Score View
+struct RecoveryCompositeScoreView: View {
+    let log: [RecoveryEntry]
+
+    private func score(_ r: RecoveryEntry) -> Double? {
+        var components: [(Double, Double)] = []
+        if let sh = r.sleepHours  { components.append((min(sh / 8.0, 1.0), 0.30)) }
+        if let sq = r.sleepQuality { components.append((sq / 10.0, 0.20)) }
+        if let s  = r.soreness     { components.append(((11.0 - s) / 10.0, 0.20)) }
+        if let h  = r.hrv          { components.append((min(h / 80.0, 1.0), 0.20)) }
+        if let st = r.steps.map(Double.init) { components.append((min(st / 8000.0, 1.0), 0.10)) }
+        guard !components.isEmpty else { return nil }
+        let totalWeight = components.map(\.1).reduce(0, +)
+        let weightedSum = components.map { $0.0 * $0.1 }.reduce(0, +)
+        return (weightedSum / totalWeight) * 100
+    }
+
+    private var points: [(String, Double)] {
+        log.compactMap { r -> (String, Double)? in
+            guard let d = r.date, let s = score(r) else { return nil }
+            return (d, s)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("SCORE RÉCUPÉRATION COMPOSITE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let last = points.last {
+                    let c: Color = last.1 >= 70 ? .green : last.1 >= 45 ? .orange : .red
+                    Text(String(format: "%.0f/100", last.1))
+                        .font(.system(size: 14, weight: .black)).foregroundColor(c)
+                }
+            }
+            Text("Sommeil × HRV × Soreness × Steps")
+                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+            GeometryReader { geo in
+                if points.count >= 2 {
+                    let maxS = 100.0
+                    let step = geo.size.width / CGFloat(points.count - 1)
+                    ZStack {
+                        ForEach([45.0, 70.0], id: \.self) { threshold in
+                            let y = geo.size.height * (1 - CGFloat(threshold / maxS))
+                            Path { p in p.move(to: .init(x: 0, y: y)); p.addLine(to: .init(x: geo.size.width, y: y)) }
+                                .stroke(Color.white.opacity(0.07), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                        }
+                        Path { p in
+                            for (i, pt) in points.enumerated() {
+                                let x = CGFloat(i) * step
+                                let y = geo.size.height * (1 - CGFloat(pt.1 / maxS))
+                                if i == 0 { p.move(to: .init(x: x, y: y)) }
+                                else { p.addLine(to: .init(x: x, y: y)) }
+                            }
+                        }
+                        .stroke(Color.teal, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+
+                        ForEach(Array(points.enumerated()), id: \.0) { i, pt in
+                            let c: Color = pt.1 >= 70 ? .green : pt.1 >= 45 ? .orange : .red
+                            Circle().fill(c).frame(width: 6, height: 6)
+                                .position(x: CGFloat(i) * step, y: geo.size.height * (1 - CGFloat(pt.1 / maxS)))
+                        }
+                    }
+                }
+            }
+            .frame(height: 80)
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Generic Scatter Plot View
+struct ScatterPlotView: View {
+    let data: [ScatterPoint]
+    let xLabel: String
+    let yLabel: String
+    let title: String
+    let color: Color
+
+    private var xs: [Double] { data.map(\.x) }
+    private var ys: [Double] { data.map(\.y) }
+    private var minX: Double { xs.min() ?? 0 }
+    private var maxX: Double { xs.max() ?? 1 }
+    private var minY: Double { ys.min() ?? 0 }
+    private var maxY: Double { ys.max() ?? 1 }
+
+    private func pearsonR() -> Double {
+        let n = Double(data.count)
+        guard n > 1 else { return 0 }
+        let mx = xs.reduce(0,+)/n, my = ys.reduce(0,+)/n
+        let num = zip(xs, ys).map { ($0 - mx) * ($1 - my) }.reduce(0,+)
+        let dx  = xs.map { pow($0 - mx, 2) }.reduce(0,+)
+        let dy  = ys.map { pow($0 - my, 2) }.reduce(0,+)
+        let den = sqrt(dx * dy)
+        return den > 0 ? num / den : 0
+    }
+
+    var body: some View {
+        let r = pearsonR()
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(title).font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                let rStr = String(format: "r = %.2f", r)
+                Text(rStr)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(abs(r) >= 0.5 ? .green : abs(r) >= 0.3 ? .orange : .gray)
+            }
+            GeometryReader { geo in
+                let xRange = maxX - minX, yRange = maxY - minY
+                let xPad = xRange * 0.05, yPad = yRange * 0.05
+                let xLo = minX - xPad, xSpan = xRange + 2 * xPad
+                let yLo = minY - yPad, ySpan = yRange + 2 * yPad
+                ZStack {
+                    // Grid
+                    ForEach([0.25, 0.5, 0.75], id: \.self) { f in
+                        Path { p in
+                            let y = geo.size.height * CGFloat(1 - f)
+                            p.move(to: .init(x: 0, y: y)); p.addLine(to: .init(x: geo.size.width, y: y))
+                        }
+                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                    }
+                    // Regression line
+                    if data.count >= 5 && abs(r) >= 0.2 {
+                        let n = Double(data.count)
+                        let mx = xs.reduce(0,+)/n, my = ys.reduce(0,+)/n
+                        let num = zip(xs, ys).map { ($0 - mx) * ($1 - my) }.reduce(0,+)
+                        let den = xs.map { pow($0 - mx, 2) }.reduce(0,+)
+                        let slope = den > 0 ? num/den : 0
+                        let inter = my - slope * mx
+                        let y0 = CGFloat(1 - (slope * xLo + inter - yLo) / ySpan) * geo.size.height
+                        let y1 = CGFloat(1 - (slope * (xLo + xSpan) + inter - yLo) / ySpan) * geo.size.height
+                        Path { p in p.move(to: .init(x: 0, y: y0)); p.addLine(to: .init(x: geo.size.width, y: y1)) }
+                            .stroke(color.opacity(0.5), style: StrokeStyle(lineWidth: 1.5, dash: [4]))
+                    }
+                    // Points
+                    ForEach(data) { pt in
+                        let px = CGFloat((pt.x - xLo) / xSpan) * geo.size.width
+                        let py = geo.size.height * (1 - CGFloat((pt.y - yLo) / ySpan))
+                        Circle().fill(color.opacity(0.7)).frame(width: 6, height: 6).position(x: px, y: py)
+                    }
+                }
+            }
+            .frame(height: 130)
+            HStack {
+                Text(xLabel).font(.system(size: 9)).foregroundColor(.gray)
+                Spacer()
+                Text(yLabel).font(.system(size: 9)).foregroundColor(.gray)
+            }
+            if abs(r) >= 0.3 {
+                let direction = r > 0 ? "positif" : "négatif"
+                let strength = abs(r) >= 0.6 ? "fort" : "modéré"
+                Text("Corrélation \(strength) \(direction) (\(data.count) points)")
+                    .font(.system(size: 10)).foregroundColor(.gray.opacity(0.8))
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Protein/Weight Ratio View
+struct ProteinWeightRatioView: View {
+    let data: [ProteinWeightPoint]
+    private let target: Double = 1.0
+    private var maxR: Double { max(data.map(\.ratio).max() ?? 1, target * 1.2) }
+    private var avg: Double {
+        data.isEmpty ? 0 : data.map(\.ratio).reduce(0,+)/Double(data.count)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("RATIO PROTÉINES / POIDS CORPOREL")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text(String(format: "Moy. %.2f g/lb", avg))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(avg >= 0.8 ? .green : .orange)
+            }
+            GeometryReader { geo in
+                let step = data.count > 1 ? geo.size.width / CGFloat(data.count - 1) : geo.size.width
+                ZStack {
+                    // Target zone (0.8–1.2 g/lb)
+                    let yTop = geo.size.height * (1 - CGFloat(1.2 / maxR))
+                    let yBot = geo.size.height * (1 - CGFloat(0.8 / maxR))
+                    Rectangle()
+                        .fill(Color.green.opacity(0.08))
+                        .frame(width: geo.size.width, height: yBot - yTop)
+                        .position(x: geo.size.width/2, y: (yTop + yBot)/2)
+                    // Target line
+                    let yTarget = geo.size.height * (1 - CGFloat(target / maxR))
+                    Path { p in p.move(to: .init(x: 0, y: yTarget)); p.addLine(to: .init(x: geo.size.width, y: yTarget)) }
+                        .stroke(Color.green.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    // Line chart
+                    if data.count >= 2 {
+                        Path { p in
+                            for (i, pt) in data.enumerated() {
+                                let x = CGFloat(i) * step
+                                let y = geo.size.height * (1 - CGFloat(pt.ratio / maxR))
+                                if i == 0 { p.move(to: .init(x: x, y: y)) } else { p.addLine(to: .init(x: x, y: y)) }
+                            }
+                        }
+                        .stroke(Color.orange, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                    }
+                }
+            }
+            .frame(height: 90)
+            Text("Zone verte = 0.8–1.2 g/lb — cible hypertrophie")
+                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Macros Day Type View
+struct MacrosDayTypeView: View {
+    let data: MacrosByDayType
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("MACROS : JOUR TRAINING VS REPOS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            if let t = data.training, let r = data.rest {
+                HStack(spacing: 12) {
+                    macroColumn(label: "Entraînement", bucket: t, color: .orange, n: data.nTraining)
+                    macroColumn(label: "Repos", bucket: r, color: .blue, n: data.nRest)
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+
+    private func macroColumn(label: String, bucket: MacroBucket, color: Color, n: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label).font(.system(size: 11, weight: .bold)).foregroundColor(color)
+            Text("(\(n) jours)").font(.system(size: 9)).foregroundColor(.gray)
+            macroRow("Calories", String(format: "%.0f kcal", bucket.avgCal), color)
+            macroRow("Protéines", String(format: "%.0f g", bucket.avgProt), .green)
+            macroRow("Glucides", String(format: "%.0f g", bucket.avgCarbs), .yellow)
+            macroRow("Lipides", String(format: "%.0f g", bucket.avgFat), .orange)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(10)
+    }
+
+    private func macroRow(_ name: String, _ value: String, _ color: Color) -> some View {
+        HStack {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(name).font(.system(size: 10)).foregroundColor(.gray)
+            Spacer()
+            Text(value).font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
+        }
+    }
+}
+
+// MARK: - Mood & Stress Trend View
+struct MoodStressTrendView: View {
+    let data: [MoodTrendPoint]
+    let pssHistory: [PSSRecord]
+
+    private var recentData: [MoodTrendPoint] { Array(data.suffix(30)) }
+    private var maxStress: Double { recentData.compactMap(\.lifeStressScore).max() ?? 100 }
+    private var avgMood: Double {
+        let m = recentData.compactMap(\.moodScore).map(Double.init)
+        return m.isEmpty ? 0 : m.reduce(0,+)/Double(m.count)
+    }
+    private var avgStress: Double {
+        let s = recentData.compactMap(\.lifeStressScore)
+        return s.isEmpty ? 0 : s.reduce(0,+)/Double(s.count)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("HUMEUR & STRESS — 30 JOURS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(String(format: "Humeur %.1f/10", avgMood))
+                        .font(.system(size: 9, weight: .semibold)).foregroundColor(.purple)
+                    Text(String(format: "Stress %.0f/100", avgStress))
+                        .font(.system(size: 9, weight: .semibold)).foregroundColor(.orange)
+                }
+            }
+            let n = recentData.count
+            if n >= 2 {
+                GeometryReader { geo in
+                    ZStack {
+                        let moodPts: [CGPoint] = recentData.enumerated().compactMap { i, pt in
+                            guard let m = pt.moodScore else { return nil }
+                            return CGPoint(x: geo.size.width * CGFloat(i) / CGFloat(n - 1),
+                                          y: geo.size.height * (1 - CGFloat(Double(m) / 10.0)))
+                        }
+                        if moodPts.count >= 2 {
+                            Path { p in moodPts.enumerated().forEach { i, pt in i == 0 ? p.move(to: pt) : p.addLine(to: pt) } }
+                                .stroke(Color.purple, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+                        }
+                        let stressPts: [CGPoint] = recentData.enumerated().compactMap { i, pt in
+                            guard let s = pt.lifeStressScore else { return nil }
+                            return CGPoint(x: geo.size.width * CGFloat(i) / CGFloat(n - 1),
+                                          y: geo.size.height * CGFloat(s / 100.0))
+                        }
+                        if stressPts.count >= 2 {
+                            Path { p in stressPts.enumerated().forEach { i, pt in i == 0 ? p.move(to: pt) : p.addLine(to: pt) } }
+                                .stroke(Color.orange, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+                        }
+                        ForEach(Array(pssHistory.prefix(5)), id: \.id) { rec in
+                            if let idx = recentData.firstIndex(where: { $0.date == rec.date }) {
+                                let x = geo.size.width * CGFloat(idx) / CGFloat(n - 1)
+                                let c: Color = rec.category == "low" ? .green : rec.category == "moderate" ? .orange : .red
+                                Circle().fill(c).frame(width: 8, height: 8).position(x: x, y: geo.size.height * 0.5)
+                            }
+                        }
+                    }
+                }
+                .frame(height: 90)
+            } else {
+                Color.clear.frame(height: 90)
+            }
+            HStack(spacing: 16) {
+                Label("Humeur",  systemImage: "circle.fill").font(.system(size: 9)).foregroundColor(.purple)
+                Label("Stress",  systemImage: "circle.fill").font(.system(size: 9)).foregroundColor(.orange)
+                Label("PSS",     systemImage: "circle.fill").font(.system(size: 9)).foregroundColor(.green)
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Self-Care Streaks View
+struct SelfCareStreaksView: View {
+    let streaks: [SelfCareStreak]
+    let compliance: SelfCareComplianceData?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("SELF-CARE — STREAKS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let c = compliance {
+                    Text(String(format: "Compliance 30j: %.0f%%", c.rate30d * 100))
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(c.rate30d >= 0.6 ? .green : .orange)
+                }
+            }
+            if let c = compliance, !c.daily.isEmpty {
+                SelfCareHeatStrip(daily: c.daily)
+            }
+            ForEach(Array(streaks.prefix(6)), id: \.habitId) { s in
+                HStack(spacing: 10) {
+                    Text(s.habitIcon).font(.system(size: 16))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(s.habitName).font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                        Text("Meilleure série : \(s.longestStreak) jours")
+                            .font(.system(size: 10)).foregroundColor(.gray)
+                    }
+                    Spacer()
+                    if s.currentStreak > 0 {
+                        Text("\(s.currentStreak)🔥")
+                            .font(.system(size: 13, weight: .bold)).foregroundColor(.orange)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+}
+
+struct SelfCareHeatStrip: View {
+    let daily: [SelfCareDailyEntry]
+    private var maxCount: Int { daily.map(\.count).max() ?? 1 }
+    private var last30: [SelfCareDailyEntry] { Array(daily.suffix(30)) }
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(last30) { entry in
+                let intensity = maxCount > 0 ? Double(entry.count) / Double(maxCount) : 0
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.teal.opacity(0.2 + intensity * 0.8))
+                    .frame(height: 14)
+            }
+        }
+    }
+}
+
+// MARK: - PSS History View
+struct PSSHistoryView: View {
+    let records: [PSSRecord]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("HISTORIQUE PSS (STRESS PERÇU)")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            ForEach(Array(records.prefix(5)), id: \.id) { rec in
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(rec.categoryLabel).font(.system(size: 11, weight: .bold)).foregroundColor(pssColor(rec.category))
+                        Text(rec.date.prefix(10)).font(.system(size: 10)).foregroundColor(.gray)
+                    }
+                    Spacer()
+                    Text("\(rec.score)/\(rec.maxScore)")
+                        .font(.system(size: 14, weight: .black)).foregroundColor(pssColor(rec.category))
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(pssColor(rec.category).opacity(0.3))
+                            .frame(width: geo.size.width * CGFloat(rec.score) / CGFloat(rec.maxScore), height: 8)
+                    }
+                    .frame(width: 60, height: 8)
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+    }
+
+    private func pssColor(_ cat: String) -> Color {
+        switch cat {
+        case "low":      return .green
+        case "moderate": return .orange
+        default:         return .red
+        }
     }
 }
 

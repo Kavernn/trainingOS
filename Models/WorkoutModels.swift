@@ -621,3 +621,55 @@ struct MuscleVolumeEntry: Codable {
         case frequency
     }
 }
+
+// MARK: - Stats Expansion Models
+
+struct WeeklyTonnageEntry: Codable, Identifiable {
+    var id: String { weekStart }
+    let weekStart: String
+    let totalVolume: Double
+    let sessionCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case weekStart    = "week_start"
+        case totalVolume  = "total_volume"
+        case sessionCount = "session_count"
+    }
+}
+
+struct PatternVolumeData: Codable {
+    let push: Double?
+    let pull: Double?
+    let hinge: Double?
+    let squat: Double?
+    let carry: Double?
+    let core: Double?
+}
+
+struct OneRMPoint: Codable, Identifiable {
+    var id: String { date }
+    let date: String
+    let oneRM: Double
+
+    enum CodingKeys: String, CodingKey {
+        case date
+        case oneRM = "one_rm"
+    }
+}
+
+struct HIITCompletionEntry: Codable, Identifiable {
+    var id: String { date + (sessionType ?? "") }
+    let date: String
+    let sessionType: String?
+    let roundsPlanned: Int
+    let roundsCompleted: Int
+    let rate: Double
+    let rpe: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case date, rate, rpe
+        case sessionType     = "session_type"
+        case roundsPlanned   = "rounds_planned"
+        case roundsCompleted = "rounds_completed"
+    }
+}

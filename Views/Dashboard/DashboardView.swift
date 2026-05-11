@@ -1,10 +1,14 @@
 
 import SwiftUI
 import Charts
+import Combine
+import WeatherKit
+import CoreLocation
 
 struct DashboardView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var vm = DashboardViewModel()
+    @StateObject private var weatherVM = WeatherViewModel()
     @ObservedObject private var api = APIService.shared
     @ObservedObject private var alertService = AlertService.shared
     @State private var showMoodSheet = false
@@ -50,6 +54,9 @@ struct DashboardView: View {
 
                                 GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
                                     .appearAnimation(delay: 0)
+
+                                WeatherChipView(vm: weatherVM)
+                                    .appearAnimation(delay: 0.003)
 
                                 if let score = vm.readinessScore {
                                     ReadinessScoreCard(score: score, recovery: vm.todayRecovery)
@@ -98,6 +105,7 @@ struct DashboardView: View {
                             vm.moodDue        = try? await APIService.shared.checkMoodDue()
                             vm.morningBrief   = try? await APIService.shared.fetchMorningBrief()
                             vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
+                            weatherVM.requestUpdate()
                         }
 
                         QuickLogBar(
@@ -135,7 +143,7 @@ struct DashboardView: View {
             }
             .navigationBarHidden(true)
         }
-        .task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
+        .task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal(); weatherVM.requestUpdate() }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 BehaviorTracker.shared.record(.appOpen)
@@ -3178,6 +3186,111 @@ private struct ReadinessMetricRow: View {
             Text(value)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.white)
+        }
+    }
+}
+
+// MARK: - Weather
+
+@MainActor
+final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published var temperature: Double? = nil
+    @Published var conditionSymbol: String = "cloud.fill"
+    @Published var cityName: String = ""
+    @Published var lastUpdated: Date? = nil
+
+    private let locationManager = CLLocationManager()
+
+    override init() {
+        super.init()
+        locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
+    }
+
+    func requestUpdate() {
+        switch locationManager.authorizationStatus {
+        case .notDetermined:
+            locationManager.requestWhenInUseAuthorization()
+        case .authorizedWhenInUse, .authorizedAlways:
+            locationManager.requestLocation()
+        default:
+            break
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let loc = locations.first else { return }
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            await self.fetchWeather(for: loc)
+            await self.reverseGeocode(loc)
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {}
+
+    nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let status = manager.authorizationStatus
+            if status == .authorizedWhenInUse || status == .authorizedAlways {
+                manager.requestLocation()
+            }
+        }
+    }
+
+    private func fetchWeather(for location: CLLocation) async {
+        do {
+            let weather = try await WeatherService.shared.weather(for: location)
+            temperature = weather.currentWeather.temperature.converted(to: .celsius).value
+            conditionSymbol = weather.currentWeather.symbolName
+            lastUpdated = Date()
+        } catch {}
+    }
+
+    private func reverseGeocode(_ location: CLLocation) async {
+        let geocoder = CLGeocoder()
+        if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
+            cityName = placemark.locality ?? placemark.administrativeArea ?? ""
+        }
+    }
+}
+
+struct WeatherChipView: View {
+    @ObservedObject var vm: WeatherViewModel
+
+    var body: some View {
+        if let temp = vm.temperature {
+            HStack(spacing: 12) {
+                Image(systemName: vm.conditionSymbol)
+                    .font(.system(size: 20, weight: .medium))
+                    .symbolRenderingMode(.multicolor)
+                    .frame(width: 28)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(String(format: "%.0f°C", temp))
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                    if !vm.cityName.isEmpty {
+                        Text(vm.cityName)
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
+                }
+
+                Spacer()
+
+                if let updated = vm.lastUpdated {
+                    Text(updated, style: .relative)
+                        .font(.system(size: 9))
+                        .foregroundColor(.gray.opacity(0.45))
+                        .monospacedDigit()
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color(hex: "11111c"))
+            .cornerRadius(14)
         }
     }
 }

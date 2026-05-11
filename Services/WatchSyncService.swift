@@ -92,18 +92,19 @@ class WatchSyncService: ObservableObject {
         defaults.set(lastSyncDate, forKey: lastSyncKey)
     }
 
-    /// Checks the last 7 days and syncs any day that has HealthKit steps but no
-    /// recovery log entry. Safe to call at any time — idempotent.
+    /// Checks the last 7 days and syncs any day missing steps or sleep in its recovery log.
+    /// Safe to call at any time — idempotent.
     func backfillRecentDaysIfNeeded() async {
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
 
         let existingLog = (try? await APIService.shared.fetchRecoveryData()) ?? []
 
-        // Build list of dates that need backfill
+        // Build list of dates that need backfill (missing steps OR missing sleep)
         let datesToBackfill: [Date] = (1...7).compactMap { daysAgo -> Date? in
             let date = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - Double(daysAgo) * 86400)
             let dateStr = fmt.string(from: date)
-            return existingLog.first(where: { $0.date == dateStr })?.steps != nil ? nil : date
+            let entry = existingLog.first(where: { $0.date == dateStr })
+            return (entry?.steps == nil || entry?.sleepHours == nil) ? date : nil
         }
         guard !datesToBackfill.isEmpty else { return }
 
@@ -114,7 +115,8 @@ class WatchSyncService: ObservableObject {
             for date in datesToBackfill {
                 group.addTask {
                     let t = await hkService.fetchSnapshotForDate(date)
-                    return WearableSnapshot(date: t.date, steps: t.steps, sleepHours: nil,
+                    let sleepHours = await hkService.fetchSleep(for: date)
+                    return WearableSnapshot(date: t.date, steps: t.steps, sleepHours: sleepHours,
                                            restingHr: t.restingHr, hrv: nil, activeEnergy: nil,
                                            bodyWeightLbs: nil, bodyFatPct: nil, workouts: [])
                 }
@@ -125,9 +127,9 @@ class WatchSyncService: ObservableObject {
         }
 
         for snap in snapshots {
-            guard let steps = snap.steps else { continue }
+            guard snap.steps != nil || snap.sleepHours != nil else { continue }
             let backfill = WearableSnapshot(
-                date: snap.date, steps: steps, sleepHours: nil,
+                date: snap.date, steps: snap.steps, sleepHours: snap.sleepHours,
                 restingHr: snap.restingHr, hrv: nil, activeEnergy: nil,
                 bodyWeightLbs: nil, bodyFatPct: nil, workouts: []
             )

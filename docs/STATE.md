@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-05-05
+Dernière mise à jour : 2026-05-10
 
 ---
 
@@ -143,6 +143,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 | 011_kv_migration | `docs/migrations/011_kv_migration.sql` | ✅ Appliquée + table kv supprimée (2026-04-04) |
 | 012_workout_sessions_completed | `docs/migrations/012_workout_sessions_completed.sql` | ✅ Appliquée (2026-04-16) + backfill rpe IS NOT NULL |
 | 013_nutrition_scan | `docs/migrations/013_nutrition_scan.sql` | ✅ Appliquée |
+| 020_soft_delete_exercises | `docs/migrations/020_soft_delete_exercises.sql` | ✅ Appliquée (2026-05-10) |
 
 ---
 
@@ -151,6 +152,24 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 1. **Supabase Storage** : créer le bucket `profile-photos` (public) pour activer upload photo → URL (le code est prêt, bucket absent).
 2. **Cible UITest Xcode** : ajouter `TrainingOSUITests` comme nouvelle cible UITest dans le projet Xcode pour exécuter les 5 flows E2E.
 3. **Vercel env var** : `TRAININGOS_API_KEY` déployé ✅ — auth active en prod.
+
+## Complété récemment (2026-05-10 — Audit Inventaire/Programme/Séance + UX cartes d'exercice)
+
+### Audit et corrections (4 bugs critiques)
+
+- **Soft delete `exercises` (migration 020)** : `delete_exercise_by_name()` (`db.py`) remplacé par soft delete (`deleted_at = now()`) — plus de CASCADE qui détruisait `exercise_logs`. Nettoyage `program_block_exercises` préservé (hard-delete de la relation seulement). 6 fonctions d'affichage patchées avec `.is_("deleted_at", "null")` : `get_exercises()`, `get_exercise_by_name()`, `rename_exercise_table()`, `get_exercise_history_bulk()`, `get_exercise_info()`, `get_exercises_info_bulk()`. `get_exercise_id()` et `get_or_create_exercise_id()` intentionnellement non-filtrés (doit fonctionner sur exercices supprimés pour préserver l'historique de log). Helper `get_exercise_id_include_deleted()` ajouté.
+- **Confirmation avant fin de séance** : `FinishSessionSheet` (`SeanceView.swift`) — bouton "Enregistrer" n'appelle plus directement `onSubmit`. Nouveau `confirmationDialog("Enregistrer la séance ?")` avec "Enregistrer" / "Continuer l'entraînement". État local `showConfirmSubmit` + `pendingEnergy` pour différer l'appel.
+- **Propagation scheme → `program_block_exercises`** : `api_save_exercise()` (`workout.py`) propage maintenant `default_scheme` vers toutes les lignes `program_block_exercises` liées via nouvelle fonction `update_program_scheme_for_exercise()` (`db.py`). La séance du lendemain voit le bon scheme immédiatement.
+- **Invalidation cache `seance_data`** : `InventaireView.saveItem()` et `deleteItem()` + `APIService.saveExercise()` appellent `CacheService.shared.clear(for: "seance_data")` après chaque mutation. `ProgrammeView.postProgramme()` avait déjà l'invalidation.
+
+### UX cartes d'exercice (3 features)
+
+- **Hold-to-log (0.6s)** : le bouton "Logger" est remplacé par une zone tactile avec remplissage progressif orange (`GeometryReader` proportionnel à `holdProgress`). `LongPressGesture(minimumDuration: 0.6)` + `simultaneousGesture(DragGesture(minimumDistance: 0))` pour l'animation de progression. Tap court = aucun effet (prévient les logs accidentels).
+- **Undo 5s post-log** : après un log réussi, chip "Annuler le log" avec compteur 5-4-3-2-1 affiché à la place du bouton. `Task { @MainActor in }` avec `Task.sleep` (1s × 5). `evm.undoLog()` : `isLogged = false; isEditing = false; logStatus = nil`. Chip disparaît automatiquement après 5s ou si on entre en mode édition.
+- **Multi-cards simultanées** : `@State private var expandedExercise: String?` → `@State private var expandedExercises: Set<String>` dans `SeanceView` et `BonusSeanceView`. Toutes les cartes peuvent être ouvertes en même temps. `lastOpenedExercise: String?` pour la mise en évidence (bordure orange plus intense) de la dernière carte ouverte. `onLogged` ouvre automatiquement la carte suivante.
+- **Timer +10s/−10s** : `FloatingRestTimerCard` affiche un `HStack` de deux boutons "−10s" / "+10s" quand `timer.isRunning`. Appelle `timer.adjust(by: -10)` / `timer.adjust(by: 10)` (méthode déjà existante dans `RestTimerManager`). Boutons stylés capsule avec couleur `ringColor` contextuelle.
+
+---
 
 ## Complété récemment (2026-05-05 — iOS 26 crash + backend reconnect + decoder fix)
 

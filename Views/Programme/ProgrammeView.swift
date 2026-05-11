@@ -107,6 +107,8 @@ struct ProgrammeView: View {
         }
     }
 
+    @State private var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
+    @State private var exerciseSupersets: [String: [String: SupersetEntry]] = [:]
     @State private var mutationCount = 0
     @State private var lastSaveError = false
 
@@ -175,6 +177,60 @@ struct ProgrammeView: View {
 
     private let dayNames    = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
     private let seanceOrder = ["Push A", "Pull A", "Legs", "Push B", "Pull B + Full Body", "Yoga / Tai Chi", "Recovery"]
+
+    // MARK: - Volume MEV/MAV
+    private let muscleMEV: [String: Int] = ["Pecs": 10, "Dos": 10, "Épaules": 8, "Biceps": 6, "Triceps": 6, "Jambes": 8, "Fessiers": 6, "Core": 6]
+    private let muscleMAV: [String: Int] = ["Pecs": 16, "Dos": 16, "Épaules": 14, "Biceps": 12, "Triceps": 12, "Jambes": 14, "Fessiers": 10, "Core": 12]
+
+    private func muscleGroup(for exercise: String) -> String {
+        let e = exercise.lowercased()
+        if ["bench","fly","chest","dip","pec","incline"].contains(where: { e.contains($0) }) { return "Pecs" }
+        if ["row","pulldown","pull-up","pull up","lat","deadlift","rdl","back"].contains(where: { e.contains($0) }) { return "Dos" }
+        if ["squat","leg press","lunge","quad","hack"].contains(where: { e.contains($0) }) { return "Jambes" }
+        if ["curl","bicep"].contains(where: { e.contains($0) }) { return "Biceps" }
+        if ["tricep","pushdown","skull","extension"].contains(where: { e.contains($0) }) { return "Triceps" }
+        if ["press","lateral","shoulder","delt","ohp"].contains(where: { e.contains($0) }) { return "Épaules" }
+        if ["glute","hip thrust","fessier"].contains(where: { e.contains($0) }) { return "Fessiers" }
+        if ["plank","core","ab","crunch"].contains(where: { e.contains($0) }) { return "Core" }
+        return "Autre"
+    }
+
+    private func parseSets(from scheme: String) -> Int {
+        guard let xRange = scheme.range(of: "x", options: .caseInsensitive) else { return 3 }
+        let setsPart = String(scheme[scheme.startIndex..<xRange.lowerBound])
+        return Int(setsPart.trimmingCharacters(in: .whitespaces)) ?? 3
+    }
+
+    private var weeklySessionFrequency: [String: Int] {
+        var freq: [String: Int] = [:]
+        for session in schedule.values where session != "Repos" {
+            freq[session, default: 0] += 1
+        }
+        return freq
+    }
+
+    private var weeklyVolumeByMuscle: [String: Int] {
+        let freq = weeklySessionFrequency
+        var vol: [String: Int] = [:]
+        for (seance, exercises) in fullProgram {
+            let f = freq[seance] ?? 0
+            guard f > 0 else { continue }
+            for (exercise, scheme) in exercises {
+                let muscle = muscleGroup(for: exercise)
+                guard muscle != "Autre" else { continue }
+                let sets = parseSets(from: scheme)
+                vol[muscle, default: 0] += sets * f
+            }
+        }
+        return vol
+    }
+
+    private var volumeAlerts: [String] {
+        weeklyVolumeByMuscle.compactMap { muscle, sets in
+            guard let mev = muscleMEV[muscle], sets < mev else { return nil }
+            return "\(muscle) — \(sets)/\(mev) sets min."
+        }.sorted()
+    }
 
     /// Known seances in canonical order, then any custom seances alphabetically.
     var orderedSeances: [String] {
@@ -278,6 +334,17 @@ struct ProgrammeView: View {
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
 
+                            let volData = weeklyVolumeByMuscle
+                            if !volData.isEmpty {
+                                VolumeCard(
+                                    volumeByMuscle: volData,
+                                    mev: muscleMEV,
+                                    mav: muscleMAV,
+                                    alerts: volumeAlerts
+                                )
+                                .padding(.horizontal, 16)
+                            }
+
                             ForEach(sessionOrder, id: \.self) { seance in
                                 sessionCard(for: seance)
                             }
@@ -297,9 +364,14 @@ struct ProgrammeView: View {
                     VStack {
                         Spacer()
                         HStack(spacing: 12) {
-                            Text("\"\(item.name)\" supprimé")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\"\(item.name)\" retiré du programme")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white)
+                                Text("L'inventaire n'est pas affecté")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.gray)
+                            }
                             Spacer()
                             Button("Annuler") { undoDelete() }
                                 .font(.system(size: 13, weight: .bold))
@@ -435,7 +507,11 @@ struct ProgrammeView: View {
 
     // MARK: – Body helpers (extracted to keep type-checker happy)
 
-    private var sessionsList: [String] { allSessions.isEmpty ? orderedSeances : allSessions }
+    private var sessionsList: [String] {
+        let list = allSessions.isEmpty ? orderedSeances : allSessions
+        var seen = Set<String>()
+        return list.filter { seen.insert($0).inserted }
+    }
 
     private var renameAlertBinding: Binding<Bool> {
         Binding(
@@ -473,7 +549,10 @@ struct ProgrammeView: View {
             exercises:    exercisesBinding,
             orderedNames: orderedNamesBinding,
             onAdd:        { addTarget = SeanceName(id: seance) },
-            onEdit:       { ex, scheme in editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme) },
+            onEdit:       { ex, scheme in
+                let w = exerciseWeights[ex]
+                editTarget = ExerciseTarget(seance: seance, exercise: ex, scheme: scheme, lastWeight: w?.weight, lastReps: w?.reps, lastDate: w?.date)
+            },
             onDelete:     { ex in deleteWithUndo(seance: seance, exercise: ex) },
             onReorder:    { order in Task { await reorderExercises(seance: seance, order: order) } },
             onDeleteSeance: {
@@ -500,7 +579,9 @@ struct ProgrammeView: View {
                     draggingSession = nil
                     sessionDragY = 0
                 }
-            }
+            },
+            supersets:       exerciseSupersets[seance] ?? [:],
+            exerciseWeights: exerciseWeights
         )
         .padding(.horizontal, 16)
         .background(
@@ -528,6 +609,20 @@ struct ProgrammeView: View {
         inventorySchemes = (json["inventory_schemes"] as? [String: String]) ?? [:]
         if let order = json["exercise_order"] as? [String: [String]] {
             exerciseOrder = order
+        }
+        if let ss = json["exercise_supersets"] as? [String: [String: [String: Any]]] {
+            var parsed: [String: [String: SupersetEntry]] = [:]
+            for (seance, pairs) in ss {
+                var seanceMap: [String: SupersetEntry] = [:]
+                for (exName, entry) in pairs {
+                    if let a = entry["A"] as? String, let b = entry["B"] as? String {
+                        let r = entry["rest"] as? Int
+                        seanceMap[exName] = SupersetEntry(a: a, b: b, rest: r)
+                    }
+                }
+                parsed[seance] = seanceMap
+            }
+            exerciseSupersets = parsed
         }
         // Programs
         if let rawPrograms = json["programs"] as? [[String: Any]] {
@@ -566,6 +661,18 @@ struct ProgrammeView: View {
         if let (eData, _) = try? await URLSession.authed.data(from: URL(string: "\(kBaseURL)/api/evening_schedule")!),
            let eJson = try? JSONSerialization.jsonObject(with: eData) as? [String: String] {
             await MainActor.run { eveningSchedule = eJson }
+        }
+        if let (wData, _) = try? await URLSession.authed.data(from: URL(string: "\(kBaseURL)/api/seance_data")!),
+           let wJson = try? JSONSerialization.jsonObject(with: wData) as? [String: Any],
+           let weights = wJson["weights"] as? [String: [String: Any]] {
+            await MainActor.run {
+                exerciseWeights = weights.compactMapValues { d in
+                    let w  = d["current_weight"] as? Double
+                    let r  = d["last_reps"]      as? String
+                    let dt = d["last_logged"]    as? String
+                    return (w, r, dt)
+                }
+            }
         }
     }
 
@@ -779,7 +886,23 @@ struct PeriodisationCard: View {
     let onReset: () -> Void
     var onApply: (() -> Void)? = nil
 
+    @State private var showTimeline = false
+
     private let totalWeeks = 11
+
+    private struct PhaseSegment {
+        let name: String
+        let shortScheme: String
+        let color: Color
+        let weeks: ClosedRange<Int>
+    }
+
+    private let segments: [PhaseSegment] = [
+        PhaseSegment(name: "Hypertrophie", shortScheme: "3-4×8-12", color: .orange,  weeks: 1...4),
+        PhaseSegment(name: "Force",        shortScheme: "4-5×4-6",  color: .red,     weeks: 5...8),
+        PhaseSegment(name: "Peak",         shortScheme: "5×1-3",    color: .yellow,  weeks: 9...10),
+        PhaseSegment(name: "Deload",       shortScheme: "3×10-12",  color: .green,   weeks: 11...11),
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -829,9 +952,76 @@ struct PeriodisationCard: View {
                         .font(.system(size: 12))
                         .foregroundColor(.white.opacity(0.65))
                     Spacer()
-                    Text("→ \(next)")
-                        .font(.system(size: 11))
-                        .foregroundColor(.gray)
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { showTimeline.toggle() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(showTimeline ? "Masquer" : "Plan complet")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.gray)
+                            Image(systemName: showTimeline ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(.gray)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                // Timeline expandable
+                if showTimeline {
+                    VStack(spacing: 8) {
+                        // Barre segmentée
+                        GeometryReader { geo in
+                            HStack(spacing: 2) {
+                                ForEach(segments, id: \.name) { seg in
+                                    let segCount = CGFloat(seg.weeks.count)
+                                    let totalCount = CGFloat(totalWeeks)
+                                    ZStack {
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .fill(seg.color.opacity(0.18))
+                                            .frame(width: geo.size.width * segCount / totalCount - 2)
+                                        HStack(spacing: 0) {
+                                            ForEach(seg.weeks, id: \.self) { w in
+                                                let isCurrentWeek = w == week
+                                                ZStack {
+                                                    if isCurrentWeek {
+                                                        RoundedRectangle(cornerRadius: 3)
+                                                            .fill(seg.color.opacity(0.5))
+                                                    }
+                                                    Text("\(w)")
+                                                        .font(.system(size: 9, weight: isCurrentWeek ? .black : .regular))
+                                                        .foregroundColor(isCurrentWeek ? .white : seg.color.opacity(0.7))
+                                                }
+                                                .frame(maxWidth: .infinity)
+                                            }
+                                        }
+                                        .frame(width: geo.size.width * segCount / totalCount - 2)
+                                    }
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 4)
+                                            .stroke(seg.weeks.contains(week) ? seg.color.opacity(0.7) : Color.clear, lineWidth: 1.5)
+                                    )
+                                }
+                            }
+                        }
+                        .frame(height: 28)
+
+                        // Légende
+                        HStack(spacing: 0) {
+                            ForEach(segments, id: \.name) { seg in
+                                VStack(alignment: .center, spacing: 2) {
+                                    Text(seg.name)
+                                        .font(.system(size: 8, weight: .bold))
+                                        .foregroundColor(seg.color.opacity(0.85))
+                                    Text(seg.shortScheme)
+                                        .font(.system(size: 8))
+                                        .foregroundColor(.gray)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
 
                 if let apply = onApply {
@@ -932,6 +1122,9 @@ struct ExerciseTarget: Identifiable {
     let seance: String
     let exercise: String
     let scheme: String
+    var lastWeight: Double? = nil
+    var lastReps: String? = nil
+    var lastDate: String? = nil
 }
 
 // MARK: - Editable Seance Card
@@ -963,6 +1156,8 @@ struct EditableSeanceProgramCard: View {
     var onPaste:              (() -> Void)? = nil
     var onSessionDragChanged: ((CGFloat) -> Void)? = nil
     var onSessionDragEnded:   (() -> Void)? = nil
+    var supersets: [String: SupersetEntry] = [:]
+    var exerciseWeights: [String: (weight: Double?, reps: String?, date: String?)] = [:]
 
     @State private var expanded    = true
     @State private var dragging:   String? = nil
@@ -978,6 +1173,15 @@ struct EditableSeanceProgramCard: View {
         case "Recovery":                     return .green
         default:                             return .gray
         }
+    }
+
+    private func trendFor(_ name: String) -> String? {
+        guard let entry = exerciseWeights[name], entry.weight != nil else { return nil }
+        guard let dateStr = entry.date, !dateStr.isEmpty else { return "→" }
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        guard let date = fmt.date(from: dateStr) else { return "→" }
+        let days = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 999
+        return days <= 7 ? "↑" : "→"
     }
 
     /// Exercises in user-defined order; unordered extras appended alphabetically.
@@ -1146,11 +1350,13 @@ struct EditableSeanceProgramCard: View {
 
                         // Exercise row (tap → edit, trash → delete)
                         ExerciseRow(
-                            name:     name,
-                            scheme:   scheme,
-                            color:    color,
-                            onTap:    { onEdit(name, scheme) },
-                            onDelete: { onDelete(name) }
+                            name:          name,
+                            scheme:        scheme,
+                            color:         color,
+                            onTap:         { onEdit(name, scheme) },
+                            onDelete:      { onDelete(name) },
+                            isSupersetted: supersets[name] != nil,
+                            trend:         trendFor(name)
                         )
                     }
                     .background(
@@ -1187,6 +1393,8 @@ struct ExerciseRow: View {
     let color: Color
     let onTap: () -> Void
     let onDelete: () -> Void
+    var isSupersetted: Bool = false
+    var trend: String? = nil
 
     var body: some View {
         Button(action: onTap) {
@@ -1195,6 +1403,19 @@ struct ExerciseRow: View {
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                if isSupersetted {
+                    Text("SS")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 5).padding(.vertical, 3)
+                        .background(Color.orange.opacity(0.15))
+                        .cornerRadius(4)
+                }
+                if let t = trend {
+                    Text(t)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(t == "↑" ? .green : t == "↓" ? .red : Color(white: 0.5))
+                }
                 Text(scheme)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(color)
@@ -1231,9 +1452,29 @@ struct AddExerciseSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var scheme = "3x8-12"
+    @State private var selectedGroup: String? = nil
+
+    private let muscleGroupOrder = ["Pecs", "Dos", "Jambes", "Épaules", "Biceps", "Triceps", "Fessiers", "Core"]
+
+    private func muscleGroup(for exercise: String) -> String {
+        let e = exercise.lowercased()
+        if ["bench","fly","chest","dip","pec","incline","pec"].contains(where: { e.contains($0) }) { return "Pecs" }
+        if ["row","pulldown","pull-up","pull up","lat","deadlift","rdl","back"].contains(where: { e.contains($0) }) { return "Dos" }
+        if ["squat","leg press","lunge","quad","hack"].contains(where: { e.contains($0) }) { return "Jambes" }
+        if ["curl","bicep"].contains(where: { e.contains($0) }) { return "Biceps" }
+        if ["tricep","pushdown","skull","extension"].contains(where: { e.contains($0) }) { return "Triceps" }
+        if ["press","lateral","shoulder","delt","ohp"].contains(where: { e.contains($0) }) { return "Épaules" }
+        if ["glute","hip thrust","fessier","hip hinge"].contains(where: { e.contains($0) }) { return "Fessiers" }
+        if ["plank","core","ab","crunch","sit-up"].contains(where: { e.contains($0) }) { return "Core" }
+        return "Autre"
+    }
 
     private var filtered: [String] {
-        name.isEmpty ? inventory : inventory.filter { $0.localizedCaseInsensitiveContains(name) }
+        var result = name.isEmpty ? inventory : inventory.filter { $0.localizedCaseInsensitiveContains(name) }
+        if let grp = selectedGroup {
+            result = result.filter { muscleGroup(for: $0) == grp }
+        }
+        return result
     }
 
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty && !scheme.isEmpty }
@@ -1260,6 +1501,39 @@ struct AddExerciseSheet: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
 
+                    // Muscle group filter chips
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            Button {
+                                selectedGroup = nil
+                            } label: {
+                                Text("Tous")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(selectedGroup == nil ? .black : .white.opacity(0.7))
+                                    .padding(.horizontal, 10).padding(.vertical, 5)
+                                    .background(selectedGroup == nil ? Color.orange : Color.white.opacity(0.08))
+                                    .cornerRadius(14)
+                            }
+                            .buttonStyle(.plain)
+                            ForEach(muscleGroupOrder, id: \.self) { grp in
+                                let active = selectedGroup == grp
+                                Button {
+                                    selectedGroup = active ? nil : grp
+                                } label: {
+                                    Text(grp)
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(active ? .black : .white.opacity(0.7))
+                                        .padding(.horizontal, 10).padding(.vertical, 5)
+                                        .background(active ? Color.orange : Color.white.opacity(0.08))
+                                        .cornerRadius(14)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                    }
+
                     // Scheme field
                     HStack {
                         Text("Schéma :")
@@ -1273,7 +1547,7 @@ struct AddExerciseSheet: View {
                             .cornerRadius(8)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 10)
+                    .padding(.bottom, 8)
 
                     // Inventory suggestions
                     if !filtered.isEmpty {
@@ -1290,6 +1564,9 @@ struct AddExerciseSheet: View {
                                         .foregroundColor(.white)
                                         .font(.system(size: 14))
                                     Spacer()
+                                    Text(muscleGroup(for: ex))
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.gray.opacity(0.6))
                                     if name == ex {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(.orange)
@@ -1338,6 +1615,26 @@ struct EditSchemeSheet: View {
 
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty && !scheme.isEmpty }
 
+    private var lastLogLabel: String? {
+        guard let w = target.lastWeight else { return nil }
+        let wStr = w.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(w)) kg" : "\(w) kg"
+        if let r = target.lastReps, !r.isEmpty {
+            return "\(wStr) × \(r)"
+        }
+        return wStr
+    }
+
+    private var lastDateLabel: String? {
+        guard let dt = target.lastDate, !dt.isEmpty else { return nil }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        guard let date = fmt.date(from: dt) else { return dt }
+        let days = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+        if days == 0 { return "aujourd'hui" }
+        if days == 1 { return "hier" }
+        return "il y a \(days) j"
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -1373,6 +1670,26 @@ struct EditSchemeSheet: View {
                             .background(Color(hex: "11111c"))
                             .cornerRadius(10)
                             .padding(.horizontal)
+                    }
+
+                    // Dernier log
+                    if let logLabel = lastLogLabel {
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                            Text("Dernier : \(logLabel)")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.gray)
+                            if let dateLabel = lastDateLabel {
+                                Text("· \(dateLabel)")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.gray.opacity(0.6))
+                            }
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, -8)
                     }
 
                     // Suggestions rapides
@@ -1429,6 +1746,11 @@ struct EditableWeekScheduleCard: View {
 
     private let none = "Repos"
 
+    private var todayDayName: String {
+        let idx = (Calendar.current.component(.weekday, from: Date()) + 5) % 7
+        return ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"][idx]
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -1459,6 +1781,7 @@ struct EditableWeekScheduleCard: View {
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 4), spacing: 6) {
                 ForEach(dayNames, id: \.self) { day in
                     let current = schedule[day] ?? none
+                    let isToday = day == todayDayName
                     Menu {
                         Button(none) {
                             schedule[day] = none
@@ -1472,9 +1795,16 @@ struct EditableWeekScheduleCard: View {
                         }
                     } label: {
                         VStack(spacing: 4) {
-                            Text(day)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.gray)
+                            HStack(spacing: 3) {
+                                Text(day)
+                                    .font(.system(size: 11, weight: isToday ? .bold : .medium))
+                                    .foregroundColor(isToday ? .orange : .gray)
+                                if isToday {
+                                    Circle()
+                                        .fill(Color.orange)
+                                        .frame(width: 4, height: 4)
+                                }
+                            }
                             Text(seanceShort(current))
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(current == none ? Color.gray.opacity(0.4) : seanceColor(current))
@@ -1483,8 +1813,12 @@ struct EditableWeekScheduleCard: View {
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 10)
-                        .background((current == none ? Color.gray : seanceColor(current)).opacity(0.1))
+                        .background((current == none ? Color.gray : seanceColor(current)).opacity(isToday ? 0.18 : 0.1))
                         .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(isToday ? Color.orange.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                        )
                     }
                 }
             }
@@ -1620,6 +1954,145 @@ struct EveningScheduleCard: View {
         case "Recovery":                     return .green
         default:                             return .indigo
         }
+    }
+}
+
+/// MARK: - Volume Card
+
+private struct VolumeCard: View {
+    let volumeByMuscle: [String: Int]
+    let mev: [String: Int]
+    let mav: [String: Int]
+    let alerts: [String]
+
+    @State private var expanded = false
+
+    private let muscleOrder = ["Pecs", "Dos", "Jambes", "Épaules", "Biceps", "Triceps", "Fessiers", "Core"]
+
+    private var sortedMuscles: [(String, Int)] {
+        muscleOrder.compactMap { m in
+            guard let v = volumeByMuscle[m] else { return nil }
+            return (m, v)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.purple)
+                    Text("VOLUME HEBDO")
+                        .font(.system(size: 10, weight: .black))
+                        .tracking(1.5)
+                        .foregroundColor(.purple)
+                }
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Color.purple.opacity(0.1))
+                .cornerRadius(6)
+
+                Spacer()
+
+                if !alerts.isEmpty {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.orange)
+                        Text("\(alerts.count) sous MEV")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.orange)
+                    }
+                }
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+                } label: {
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                        .padding(.leading, 6)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if expanded {
+                let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 2)
+                LazyVGrid(columns: columns, spacing: 6) {
+                    ForEach(sortedMuscles, id: \.0) { muscle, sets in
+                        let mevVal = mev[muscle] ?? 0
+                        let mavVal = mav[muscle] ?? 12
+                        let fraction = CGFloat(min(sets, mavVal)) / CGFloat(mavVal)
+                        let barColor: Color = sets < mevVal ? .red : sets <= mavVal ? .green : .orange
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(muscle)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.85))
+                                Spacer()
+                                Text("\(sets) sets")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(barColor)
+                            }
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(Color.white.opacity(0.06))
+                                        .frame(height: 5)
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(barColor)
+                                        .frame(width: geo.size.width * fraction, height: 5)
+                                    // MEV marker
+                                    let mevX = geo.size.width * CGFloat(mevVal) / CGFloat(mavVal)
+                                    Rectangle()
+                                        .fill(Color.white.opacity(0.3))
+                                        .frame(width: 1, height: 7)
+                                        .offset(x: min(mevX, geo.size.width - 1), y: -1)
+                                }
+                            }
+                            .frame(height: 5)
+                            HStack {
+                                Text("MEV \(mevVal)")
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.gray.opacity(0.5))
+                                Spacer()
+                                Text("MAV \(mavVal)")
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.gray.opacity(0.5))
+                            }
+                        }
+                        .padding(8)
+                        .background(barColor.opacity(0.06))
+                        .cornerRadius(8)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(barColor.opacity(0.2), lineWidth: 1))
+                    }
+                }
+
+                if !alerts.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(alerts, id: \.self) { alert in
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.orange)
+                                Text(alert)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.orange.opacity(0.85))
+                            }
+                        }
+                    }
+                    .padding(10)
+                    .background(Color.orange.opacity(0.07))
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(hex: "11111c"))
+        .cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.purple.opacity(0.2), lineWidth: 1))
     }
 }
 

@@ -347,3 +347,45 @@ struct WeeklyReport: Codable {
         focusNextWeek       = (try? c.decode([String].self, forKey: .focusNextWeek)) ?? []
     }
 }
+
+// MARK: - Stats Expansion Analytics Models
+
+struct ComplianceWeek: Codable, Identifiable {
+    var id: String { weekStart }
+    let weekStart: String
+    let planned: Int
+    let done: Int
+    var rate: Double { planned > 0 ? Double(done) / Double(planned) : 0 }
+
+    enum CodingKeys: String, CodingKey {
+        case weekStart = "week_start"
+        case planned, done
+    }
+}
+
+struct RPEProgressionData: Codable {
+    let lt7:  Double?
+    let r7_8: Double?
+    let r8_9: Double?
+    let r9_10: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case lt7   = "<7"
+        case r7_8  = "7-8"
+        case r8_9  = "8-9"
+        case r9_10 = "9-10"
+    }
+}
+
+struct RIREntry: Codable, Identifiable {
+    var id: String { exercise }
+    let exercise: String
+    let avgRir: Double
+    let nSets: Int
+
+    enum CodingKeys: String, CodingKey {
+        case exercise
+        case avgRir = "avg_rir"
+        case nSets  = "n_sets"
+    }
+}

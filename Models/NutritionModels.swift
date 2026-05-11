@@ -190,6 +190,48 @@ struct NutritionCorrelations: Decodable {
     }
 }
 
+// MARK: - Stats Expansion Nutrition Models
+
+struct MacroBucket: Codable {
+    let avgCal:   Double
+    let avgProt:  Double
+    let avgCarbs: Double
+    let avgFat:   Double
+
+    enum CodingKeys: String, CodingKey {
+        case avgCal   = "avg_cal"
+        case avgProt  = "avg_prot"
+        case avgCarbs = "avg_carbs"
+        case avgFat   = "avg_fat"
+    }
+}
+
+struct MacrosByDayType: Codable {
+    let training:  MacroBucket?
+    let rest:      MacroBucket?
+    let nTraining: Int
+    let nRest:     Int
+
+    enum CodingKeys: String, CodingKey {
+        case training, rest
+        case nTraining = "n_training"
+        case nRest     = "n_rest"
+    }
+}
+
+struct ProteinWeightPoint: Codable, Identifiable {
+    var id: String { date }
+    let date: String
+    let ratio: Double
+    let protG: Double
+    let weight: Double
+
+    enum CodingKeys: String, CodingKey {
+        case date, ratio, weight
+        case protG = "prot_g"
+    }
+}
+
 // MARK: - Shared key decoder
 struct AnyCodingKey: CodingKey {
     var stringValue: String

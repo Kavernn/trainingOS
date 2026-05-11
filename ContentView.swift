@@ -53,9 +53,9 @@ private struct iOSContentView: View {
             SeanceView()
                 .tag(2)
                 .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
-            NutritionView()
+            ProgrammeView()
                 .tag(3)
-                .tabItem { Label("Nutrition", systemImage: "fork.knife") }
+                .tabItem { Label("Programme", systemImage: "list.bullet.clipboard") }
             MoreView()
                 .tag(4)
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }

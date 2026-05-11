@@ -1489,6 +1489,18 @@ struct WorkoutSeanceView: View {
                         .font(.system(size: 11, weight: .medium))
                 }
                 .foregroundColor(.gray)
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        sessionSupersets.removeValue(forKey: entry.a)
+                    }
+                } label: {
+                    Text("Dissocier")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Color.secondary.opacity(0.12))
+                        .clipShape(Capsule())
+                }
             }
             .padding(.horizontal, 16)
 
@@ -1680,6 +1692,30 @@ struct WorkoutSeanceView: View {
             }
         }
         .padding(.horizontal, 16)
+    }
+
+    @ViewBuilder private var exerciseNavigator: some View {
+        if exercises.count > 1 {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(exercises.enumerated()), id: \.offset) { _, ex in
+                        let isLogged = vm.logResults[ex.0] != nil
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.35)) {
+                                scrollProxy?.scrollTo(ex.0, anchor: .top)
+                            }
+                        } label: {
+                            Circle()
+                                .fill(isLogged ? Color.green : Color.white.opacity(0.22))
+                                .frame(width: 8, height: 8)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 20)
+            }
+            .frame(height: 22)
+        }
     }
 
     var body: some View {
@@ -1878,26 +1914,8 @@ struct WorkoutSeanceView: View {
                     .animation(.spring(response: 0.45, dampingFraction: 0.8), value: advice.id)
                 }
 
-                let canFinish = !vm.logResults.isEmpty
-                Button(action: { preloadAIAnalysis(); showFinish = true }) {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                        Text("Terminer la séance").font(.system(size: 15, weight: .semibold))
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(canFinish ? Color.orange : Color(hex: "1a1a2e"))
-                    .foregroundColor(canFinish ? .white : .gray)
-                    .cornerRadius(14)
-                    .overlay(
-                        canFinish ? nil :
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                }
-                .disabled(!canFinish)
-                .padding(.horizontal, 16).padding(.bottom, 24)
             }
-            .padding(.bottom, timer.isVisible ? 90 : 24)
+            .padding(.bottom, 4)
             .background(
                 GeometryReader { geo in
                     Color.clear.preference(
@@ -1918,6 +1936,32 @@ struct WorkoutSeanceView: View {
             lastScrollY = offset
         }
         .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            let canFinish = !vm.logResults.isEmpty
+            VStack(spacing: 0) {
+                Divider().background(Color.white.opacity(0.08))
+                Button(action: { showFinishConfirm = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                        Text("Terminer la séance").font(.system(size: 15, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    .background(canFinish ? Color.orange : Color(hex: "1a1a2e"))
+                    .foregroundColor(canFinish ? .white : .gray)
+                    .cornerRadius(14)
+                    .overlay(
+                        canFinish ? nil :
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                }
+                .disabled(!canFinish)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .padding(.bottom, timer.isVisible ? 72 : 0)
+            }
+            .background(.ultraThinMaterial)
+        }
         .onAppear { scrollProxy = proxy }
         .sheet(isPresented: $showFinish) {
             FinishSessionSheet(
@@ -2008,6 +2052,18 @@ struct WorkoutSeanceView: View {
             Button("OK") { vm.commitWarning = nil }
         } message: {
             Text(vm.commitWarning ?? "")
+        }
+        .alert("Terminer la séance ?", isPresented: $showFinishConfirm) {
+            Button("Terminer") { preloadAIAnalysis(); showFinish = true }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            let logged = vm.logResults.count
+            let total = exercises.count
+            if logged < total {
+                Text("\(logged) / \(total) exercices loggués. Les exercices non loggués ne seront pas enregistrés.")
+            } else {
+                Text("Tous les exercices sont loggués.")
+            }
         }
         .sheet(item: $addTarget) { (sn: SeanceName) in
             AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: [:]) { ex, scheme in

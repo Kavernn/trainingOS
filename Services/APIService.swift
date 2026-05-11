@@ -233,7 +233,8 @@ class APIService: ObservableObject {
                     durationMin: Double? = nil, energyPre: Int? = nil,
                     secondSession: Bool = false, bonusSession: Bool = false,
                     sessionName: String? = nil,
-                    exerciseLogs: [[String: Any]] = []) async throws {
+                    exerciseLogs: [[String: Any]] = [],
+                    date: String? = nil) async throws {
         var body: [String: Any] = ["exos": exos, "rpe": rpe, "comment": comment]
         if let d = durationMin  { body["duration_min"] = d }
         if let e = energyPre    { body["energy_pre"] = e }
@@ -241,8 +242,9 @@ class APIService: ObservableObject {
         if bonusSession         { body["bonus_session"] = true }
         if let n = sessionName, !n.isEmpty { body["session_name"] = n }
         if !exerciseLogs.isEmpty { body["exercise_logs"] = exerciseLogs }
-        // Set optimistic flag immediately — works whether online or queued offline.
-        if !secondSession && !bonusSession {
+        if let d = date         { body["date"] = d }
+        // Only set optimistic flag for today — retroactive logs don't affect today's state.
+        if !secondSession && !bonusSession && date == nil {
             await MainActor.run { sessionLoggedToday = true }
         }
         if try await offlinePost(endpoint: "/api/log_session", payload: body) != nil {
@@ -756,13 +758,15 @@ class APIService: ObservableObject {
     }
 
     func addNutritionEntry(name: String, calories: Double, proteines: Double, glucides: Double,
-                           lipides: Double, mealType: String? = nil, source: String = "manual") async throws {
+                           lipides: Double, mealType: String? = nil, source: String = "manual",
+                           date: String? = nil) async throws {
         var payload: [String: Any] = [
             "nom": name, "calories": calories,
             "proteines": proteines, "glucides": glucides, "lipides": lipides,
             "source": source
         ]
         if let mt = mealType { payload["meal_type"] = mt }
+        if let d  = date     { payload["date"] = d }
         _ = try await offlinePost(endpoint: "/api/nutrition/add", payload: payload)
         BehaviorTracker.shared.record(.nutritionLog)
     }
@@ -947,9 +951,11 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode([MoodEmotion].self, from: data)
     }
 
-    func submitMood(score: Int, emotions: [String], notes: String?, triggers: [String]) async throws -> MoodEntry {
+    func submitMood(score: Int, emotions: [String], notes: String?, triggers: [String],
+                    date: String? = nil) async throws -> MoodEntry {
         var body: [String: Any] = ["score": score, "emotions": emotions, "triggers": triggers]
         if let notes { body["notes"] = notes }
+        if let d = date { body["date"] = d }
         guard let data = try await offlinePost(endpoint: "/api/mood/log", payload: body) else {
             throw APIError.queuedOffline
         }
@@ -1086,9 +1092,11 @@ class APIService: ObservableObject {
         return try JSONDecoder().decode(SleepStats.self, from: data)
     }
 
-    func logSleep(bedtime: String, wakeTime: String, quality: Int, notes: String?) async throws -> SleepEntry {
+    func logSleep(bedtime: String, wakeTime: String, quality: Int, notes: String?,
+                  date: String? = nil) async throws -> SleepEntry {
         var body: [String: Any] = ["bedtime": bedtime, "wake_time": wakeTime, "quality": quality]
         if let notes = notes, !notes.isEmpty { body["notes"] = notes }
+        if let d = date { body["date"] = d }
         guard let data = try await offlinePost(endpoint: "/api/sleep/log", payload: body) else {
             throw APIError.queuedOffline
         }
@@ -1111,6 +1119,15 @@ class APIService: ObservableObject {
         var req = URLRequest(url: url); req.timeoutInterval = 15
         let (data, _) = try await URLSession.authed.data(for: req)
         CacheService.shared.save(data, for: "stats_data")
+    }
+
+    // MARK: - Stats Wellness (Bien-être tab)
+    func fetchStatsWellness() async throws -> Data {
+        let url = URL(string: "\(baseURL)/api/stats_wellness")!
+        var req = URLRequest(url: url); req.timeoutInterval = 20
+        let (data, _) = try await URLSession.authed.data(for: req)
+        CacheService.shared.save(data, for: "stats_wellness")
+        return data
     }
 
     // MARK: - Morning Brief

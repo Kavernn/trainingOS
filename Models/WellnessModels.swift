@@ -365,3 +365,51 @@ struct PSSDueStatus: Codable {
         case message
     }
 }
+
+// MARK: - Stats Expansion Wellness Models
+
+struct MoodTrendPoint: Codable, Identifiable {
+    var id: String { date }
+    let date: String
+    let moodScore: Int?
+    let lifeStressScore: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case date
+        case moodScore       = "mood_score"
+        case lifeStressScore = "life_stress_score"
+    }
+}
+
+struct ScatterPoint: Codable, Identifiable {
+    let id: UUID
+    let x: Double
+    let y: Double
+    let date: String?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id   = UUID()
+        x    = (try? c.decode(Double.self, forKey: .x)) ?? 0
+        y    = (try? c.decode(Double.self, forKey: .y)) ?? 0
+        date = try? c.decode(String.self, forKey: .date)
+    }
+
+    enum CodingKeys: String, CodingKey { case x, y, date }
+}
+
+struct SelfCareDailyEntry: Codable, Identifiable {
+    var id: String { date }
+    let date: String
+    let count: Int
+}
+
+struct SelfCareComplianceData: Codable {
+    let rate30d: Double
+    let daily: [SelfCareDailyEntry]
+
+    enum CodingKeys: String, CodingKey {
+        case rate30d = "rate_30d"
+        case daily
+    }
+}
