@@ -84,11 +84,9 @@ def _get_day_intensity() -> str:
     """Return today's intensity: 'light' | 'moderate' | 'heavy' | 'rest'."""
     try:
         from planner import load_program, get_today
-        from blocks import get_strength_exercises
-        today_str   = get_today()
-        full_prog   = load_program()
-        session_def = full_prog.get(today_str, {})
-        if not get_strength_exercises(session_def):
+        today_str = get_today()
+        # No session key in program → rest day
+        if today_str not in load_program():
             return "rest"
         name = today_str.lower()
         if any(k in name for k in _HEAVY_SESSIONS):
