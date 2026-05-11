@@ -9,6 +9,7 @@ final class NutritionViewModel: ObservableObject {
     @Published var totals: NutritionTotals? = nil
     @Published var history: [NutritionDayHistory] = []
     @Published var effectiveCalories: Double? = nil
+    @Published var effectiveGlucides: Double? = nil
     @Published var todayType: String? = nil
     @Published var isLoading = true
     @Published var networkError: String? = nil
@@ -27,6 +28,7 @@ final class NutritionViewModel: ObservableObject {
             entries           = decoded.entries
             history           = decoded.history
             effectiveCalories = decoded.effectiveCalories
+            effectiveGlucides = decoded.effectiveGlucides
             todayType         = decoded.todayType
             networkError = nil
         } catch {

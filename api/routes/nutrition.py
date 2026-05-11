@@ -157,15 +157,25 @@ def api_nutrition_edit():
 def api_nutrition_settings():
     from nutrition import (save_settings as save_nutrition_settings)
     data = request.get_json(silent=True) or {}
-    tc_raw = data.get("training_calories")
-    rc_raw = data.get("rest_calories")
+
+    dtt_raw = data.get("day_type_targets")
+    day_type_targets = None
+    if isinstance(dtt_raw, dict):
+        day_type_targets = {}
+        for key in ("light", "moderate", "heavy", "rest"):
+            t = dtt_raw.get(key) or {}
+            if t:
+                day_type_targets[key] = {
+                    "calories": int(t.get("calories", 0)),
+                    "glucides": int(t.get("glucides", 0)),
+                }
+
     save_nutrition_settings(
-        int(data.get("limite_calories",    2200)),
-        int(data.get("objectif_proteines", 160)),
-        float(data.get("glucides", 0)),
-        float(data.get("lipides",  0)),
-        training_calories=int(tc_raw) if tc_raw is not None else None,
-        rest_calories=int(rc_raw)     if rc_raw is not None else None,
+        int(data.get("limite_calories",    2400)),
+        int(data.get("objectif_proteines", 180)),
+        float(data.get("glucides", 235)),
+        float(data.get("lipides",  75)),
+        day_type_targets=day_type_targets,
     )
     return jsonify({"success": True})
 
@@ -315,34 +325,28 @@ def api_log_meal_template(template_id):
 def api_nutrition_data():
     from nutrition import (load_settings as load_nutrition_settings,
                            get_today_entries, get_today_totals, get_recent_days,
-                           _is_training_day)
+                           _get_day_intensity)
     settings = load_nutrition_settings()
     entries  = get_today_entries()
     totals   = get_today_totals()
     days     = min(int(request.args.get("days", 7)), 90)
     history  = get_recent_days(days)
 
-    is_training  = _is_training_day()
-    today_type   = "training" if is_training else "rest"
-    tc = settings.get("training_calories")
-    rc = settings.get("rest_calories")
-    base = settings.get("limite_calories", 2200) or 2200
-    if tc and rc:
-        effective_calories = tc if is_training else rc
-    elif tc:
-        effective_calories = tc
-    elif rc:
-        effective_calories = rc
-    else:
-        effective_calories = base
+    intensity    = _get_day_intensity()
+    dtt          = settings.get("day_type_targets", {})
+    type_target  = dtt.get(intensity, {})
+
+    effective_calories = type_target.get("calories") or settings.get("limite_calories", 2400) or 2400
+    effective_glucides = type_target.get("glucides")  or settings.get("glucides", 235) or 235
 
     return jsonify({
         "settings":           settings,
         "entries":            entries,
         "totals":             totals,
         "history":            history,
-        "today_type":         today_type,
+        "today_type":         intensity,
         "effective_calories": effective_calories,
+        "effective_glucides": effective_glucides,
     })
 
 
@@ -354,8 +358,8 @@ def api_nutrition_correlations():
     from nutrition import get_recent_days, load_settings
 
     settings    = load_settings()
-    cal_target  = float(settings.get("limite_calories", 2200)    or 2200)
-    prot_target = float(settings.get("objectif_proteines", 160)  or 160)
+    cal_target  = float(settings.get("limite_calories", 2400)    or 2400)
+    prot_target = float(settings.get("objectif_proteines", 180)  or 180)
 
     nutr_days    = get_recent_days(90)
     nutr_by_date = {d["date"]: d for d in nutr_days}

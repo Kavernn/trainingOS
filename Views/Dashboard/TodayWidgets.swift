@@ -333,7 +333,7 @@ struct DailyMetricsRow: View {
     let moodDue: MoodDueStatus?
 
     private var calorieGoal: Double? {
-        nutritionSettings?.trainingCalories ?? nutritionSettings?.calories
+        nutritionSettings?.calories
     }
     private var caloriePct: Int? {
         guard let eaten = nutritionTotals.calories, let goal = calorieGoal, goal > 0 else { return nil }

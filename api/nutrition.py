@@ -34,43 +34,70 @@ def load_settings() -> dict:
     raw = db.get_nutrition_settings()
     if not isinstance(raw, dict):
         raw = {}
+
+    dtt_raw = raw.get("day_type_targets") or {}
+    if isinstance(dtt_raw, str):
+        import json as _json
+        try:    dtt_raw = _json.loads(dtt_raw)
+        except Exception: dtt_raw = {}
+
+    def _target(key: str, default_cal: int, default_gluc: int) -> dict:
+        t = dtt_raw.get(key) or {}
+        return {
+            "calories": int(t.get("calories") or default_cal),
+            "glucides": int(t.get("glucides") or default_gluc),
+        }
+
     return {
-        "limite_calories":    raw.get("limite_calories")    or raw.get("calorie_limit")    or 2200,
-        "objectif_proteines": raw.get("objectif_proteines") or raw.get("protein_target")   or 160,
-        "glucides":           raw.get("glucides") or 0,
-        "lipides":            raw.get("lipides")  or 0,
-        "training_calories":  raw.get("training_calories"),
-        "rest_calories":      raw.get("rest_calories"),
+        "limite_calories":    raw.get("limite_calories")    or raw.get("calorie_limit")    or 2400,
+        "objectif_proteines": raw.get("objectif_proteines") or raw.get("protein_target")   or 180,
+        "glucides":           raw.get("glucides") or 235,
+        "lipides":            raw.get("lipides")  or 75,
+        "day_type_targets": {
+            "light":    _target("light",    2200, 185),
+            "moderate": _target("moderate", 2400, 235),
+            "heavy":    _target("heavy",    2550, 270),
+            "rest":     _target("rest",     2100, 160),
+        },
     }
 
 
 def save_settings(limite_calories: int, objectif_proteines: int,
-                  glucides: float = 0, lipides: float = 0,
-                  training_calories: int | None = None,
-                  rest_calories: int | None = None):
+                  glucides: float = 235, lipides: float = 75,
+                  day_type_targets: dict | None = None):
     patch: dict = {
         "calorie_limit":  limite_calories,
         "protein_target": objectif_proteines,
         "glucides":       glucides,
         "lipides":        lipides,
     }
-    # Explicit None → clear the column; omitted → leave unchanged
-    patch["training_calories"] = training_calories
-    patch["rest_calories"]     = rest_calories
+    if day_type_targets is not None:
+        patch["day_type_targets"] = day_type_targets
     db.update_nutrition_settings(patch)
 
 
-def _is_training_day() -> bool:
-    """True if today's scheduled session has strength exercises."""
+_HEAVY_SESSIONS = frozenset({"legs b", "lower a"})
+_LIGHT_SESSIONS = frozenset({"upper a"})
+
+
+def _get_day_intensity() -> str:
+    """Return today's intensity: 'light' | 'moderate' | 'heavy' | 'rest'."""
     try:
         from planner import load_program, get_today
         from blocks import get_strength_exercises
         today_str   = get_today()
         full_prog   = load_program()
         session_def = full_prog.get(today_str, {})
-        return bool(get_strength_exercises(session_def))
+        if not get_strength_exercises(session_def):
+            return "rest"
+        name = today_str.lower()
+        if any(k in name for k in _HEAVY_SESSIONS):
+            return "heavy"
+        if any(k in name for k in _LIGHT_SESSIONS):
+            return "light"
+        return "moderate"
     except Exception:
-        return False
+        return "moderate"
 
 
 # ── Entries ───────────────────────────────────────────────────────────────────

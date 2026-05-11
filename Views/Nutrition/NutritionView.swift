@@ -13,9 +13,10 @@ struct NutritionView: View {
     @State private var historyPeriod = 7
     private var effectiveSettings: NutritionSettings? {
         guard let s = vm.settings else { return nil }
-        guard let eff = vm.effectiveCalories else { return s }
+        let eff     = vm.effectiveCalories ?? s.calories
+        let effGluc = vm.effectiveGlucides ?? s.glucides
         return NutritionSettings(calories: eff, proteines: s.proteines,
-                                 glucides: s.glucides, lipides: s.lipides)
+                                 glucides: effGluc, lipides: s.lipides)
     }
 
     var body: some View {
@@ -43,7 +44,7 @@ struct NutritionView: View {
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.08)
 
-                            if let dayType = vm.todayType, vm.settings?.hasDynamicGoals == true {
+                            if let dayType = vm.todayType {
                                 DayTypeBadge(type: dayType)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.1)
@@ -85,7 +86,7 @@ struct NutritionView: View {
 
                                 WeeklyNutritionChart(
                                     history: vm.history,
-                                    protTarget: vm.settings?.proteines ?? 160,
+                                    protTarget: vm.settings?.proteines ?? 180,
                                     calTarget: vm.settings?.calories
                                 )
                                 .padding(.horizontal, 16)
@@ -1324,26 +1325,34 @@ private struct MacroPreviewPill: View {
 // MARK: - Workout Bonus Badge
 
 struct DayTypeBadge: View {
-    let type: String  // "training" | "rest"
+    let type: String  // "light" | "moderate" | "heavy" | "rest"
 
-    private var isTraining: Bool { type == "training" }
+    private var config: (icon: String, label: String, color: Color) {
+        switch type {
+        case "heavy":    return ("dumbbell.fill",                              "Jour lourd · surplus léger",    .orange)
+        case "moderate": return ("figure.strengthtraining.traditional",        "Jour modéré · maintenance",     .yellow)
+        case "light":    return ("figure.arms.open",                           "Jour léger · léger déficit",    Color(hex: "00BCD4"))
+        default:         return ("moon.fill",                                  "Jour de repos · déficit",       .indigo)
+        }
+    }
 
     var body: some View {
+        let (icon, label, color) = config
         HStack(spacing: 8) {
-            Image(systemName: isTraining ? "dumbbell.fill" : "moon.fill")
+            Image(systemName: icon)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundColor(isTraining ? .orange : .indigo)
-            Text(isTraining ? "Jour d'entraînement · objectif augmenté" : "Jour de repos · objectif réduit")
+                .foregroundColor(color)
+            Text(label)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(isTraining ? .orange : .indigo)
+                .foregroundColor(color)
             Spacer()
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background((isTraining ? Color.orange : Color.indigo).opacity(0.1))
+        .background(color.opacity(0.1))
         .cornerRadius(10)
         .overlay(RoundedRectangle(cornerRadius: 10)
-            .stroke((isTraining ? Color.orange : Color.indigo).opacity(0.25), lineWidth: 1))
+            .stroke(color.opacity(0.25), lineWidth: 1))
     }
 }
 
@@ -1353,8 +1362,8 @@ struct DailyRemainingCard: View {
     let totals: NutritionTotals?
     let settings: NutritionSettings?
 
-    private var remainingCal: Double  { max((settings?.calories  ?? 2200) - (totals?.calories  ?? 0), 0) }
-    private var remainingProt: Double { max((settings?.proteines ?? 160)  - (totals?.proteines ?? 0), 0) }
+    private var remainingCal: Double  { max((settings?.calories  ?? 2400) - (totals?.calories  ?? 0), 0) }
+    private var remainingProt: Double { max((settings?.proteines ?? 180)  - (totals?.proteines ?? 0), 0) }
     private var allDone: Bool         { remainingCal <= 0 && remainingProt <= 0 }
 
     private var suggestion: (icon: String, text: String, color: Color) {
@@ -1419,8 +1428,8 @@ struct AdherenceScoreCard: View {
     let history: [NutritionDayHistory]
     let settings: NutritionSettings?
 
-    private var protTarget: Double { settings?.proteines ?? 160 }
-    private var calTarget:  Double { settings?.calories  ?? 2200 }
+    private var protTarget: Double { settings?.proteines ?? 180 }
+    private var calTarget:  Double { settings?.calories  ?? 2400 }
 
     private var successDays: Int {
         history.filter { $0.proteines >= protTarget * 0.9 && $0.calories <= calTarget * 1.1 }.count
@@ -1493,8 +1502,8 @@ struct NutritionPatternsCard: View {
     let history: [NutritionDayHistory]
     let settings: NutritionSettings?
 
-    private var calTarget:  Double { settings?.calories  ?? 2200 }
-    private var protTarget: Double { settings?.proteines ?? 160  }
+    private var calTarget:  Double { settings?.calories  ?? 2400 }
+    private var protTarget: Double { settings?.proteines ?? 180  }
 
     private var avgCal:  Double {
         history.isEmpty ? 0 : history.reduce(0) { $0 + $1.calories  } / Double(history.count)
@@ -1833,33 +1842,39 @@ struct NutritionSettingsSheet: View {
     var onSaved: () async -> Void
     @Environment(\.dismiss) private var dismiss
 
-    @State private var calories:       String
-    @State private var proteines:      String
-    @State private var glucides:       String
-    @State private var lipides:        String
-    @State private var dynamicEnabled: Bool
-    @State private var trainingCal:    String
-    @State private var restCal:        String
+    @State private var proteines:    String
+    @State private var lipides:      String
+    @State private var heavyCal:     String
+    @State private var heavyGluc:    String
+    @State private var moderateCal:  String
+    @State private var moderateGluc: String
+    @State private var lightCal:     String
+    @State private var lightGluc:    String
+    @State private var restCalT:     String
+    @State private var restGluc:     String
     @State private var isSaving  = false
     @State private var saveError: String? = nil
 
     init(settings: NutritionSettings?, onSaved: @escaping () async -> Void) {
         self.settings = settings
         self.onSaved  = onSaved
-        let fmt = { (v: Double?) -> String in v.map { "\(Int($0))" } ?? "" }
-        _calories       = State(initialValue: fmt(settings?.calories))
-        _proteines      = State(initialValue: fmt(settings?.proteines))
-        _glucides       = State(initialValue: fmt(settings?.glucides))
-        _lipides        = State(initialValue: fmt(settings?.lipides))
-        _dynamicEnabled = State(initialValue: settings?.hasDynamicGoals == true)
-        _trainingCal    = State(initialValue: fmt(settings?.trainingCalories))
-        _restCal        = State(initialValue: fmt(settings?.restCalories))
+        let fmt: (Double?) -> String = { v in v.map { "\(Int($0))" } ?? "" }
+        let dtt = settings?.dayTypeTargets
+        _proteines    = State(initialValue: fmt(settings?.proteines))
+        _lipides      = State(initialValue: fmt(settings?.lipides))
+        _heavyCal     = State(initialValue: dtt.map { "\(Int($0.heavy.calories))" }    ?? "2550")
+        _heavyGluc    = State(initialValue: dtt.map { "\(Int($0.heavy.glucides))" }    ?? "270")
+        _moderateCal  = State(initialValue: dtt.map { "\(Int($0.moderate.calories))" } ?? "2400")
+        _moderateGluc = State(initialValue: dtt.map { "\(Int($0.moderate.glucides))" } ?? "235")
+        _lightCal     = State(initialValue: dtt.map { "\(Int($0.light.calories))" }    ?? "2200")
+        _lightGluc    = State(initialValue: dtt.map { "\(Int($0.light.glucides))" }    ?? "185")
+        _restCalT     = State(initialValue: dtt.map { "\(Int($0.rest.calories))" }     ?? "2100")
+        _restGluc     = State(initialValue: dtt.map { "\(Int($0.rest.glucides))" }     ?? "160")
     }
 
     private var canSave: Bool {
-        guard Double(calories) != nil && Double(proteines) != nil else { return false }
-        if dynamicEnabled { return Double(trainingCal) != nil && Double(restCal) != nil }
-        return true
+        [proteines, lipides, heavyCal, heavyGluc, moderateCal, moderateGluc,
+         lightCal, lightGluc, restCalT, restGluc].allSatisfy { Double($0) != nil }
     }
 
     var body: some View {
@@ -1867,78 +1882,31 @@ struct NutritionSettingsSheet: View {
             ZStack {
                 Color(hex: "080810").ignoresSafeArea()
                 Form {
-                    Section(header: Text("OBJECTIF CALORIQUE")) {
-                        Toggle(isOn: $dynamicEnabled.animation()) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Objectifs différenciés")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 14, weight: .medium))
-                                Text("Entraînement vs repos")
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                            }
+                    Section(header: Text("MACROS FIXES (TOUS LES JOURS)")) {
+                        HStack {
+                            TextField("180", text: $proteines).keyboardType(.numberPad).foregroundColor(.white)
+                            Text("g protéines").foregroundColor(.blue).font(.system(size: 13))
                         }
-                        .tint(.orange)
-                        .onChange(of: dynamicEnabled) { enabled in
-                            if enabled && trainingCal.isEmpty && restCal.isEmpty {
-                                let base = Int(Double(calories) ?? 2200)
-                                trainingCal = "\(base + 200)"
-                                restCal     = "\(max(base - 200, 1500))"
-                            }
-                        }
-
-                        if dynamicEnabled {
-                            HStack {
-                                Image(systemName: "dumbbell.fill")
-                                    .foregroundColor(.orange)
-                                    .font(.system(size: 12))
-                                    .frame(width: 20)
-                                TextField("2400", text: $trainingCal)
-                                    .keyboardType(.numberPad).foregroundColor(.white)
-                                Text("kcal entraînement").foregroundColor(.gray).font(.system(size: 12))
-                            }
-                            HStack {
-                                Image(systemName: "moon.fill")
-                                    .foregroundColor(.indigo)
-                                    .font(.system(size: 12))
-                                    .frame(width: 20)
-                                TextField("2000", text: $restCal)
-                                    .keyboardType(.numberPad).foregroundColor(.white)
-                                Text("kcal repos").foregroundColor(.gray).font(.system(size: 12))
-                            }
-                        } else {
-                            HStack {
-                                TextField("2200", text: $calories)
-                                    .keyboardType(.numberPad).foregroundColor(.white)
-                                Text("kcal / jour").foregroundColor(.gray).font(.system(size: 13))
-                            }
+                        HStack {
+                            TextField("75", text: $lipides).keyboardType(.numberPad).foregroundColor(.white)
+                            Text("g lipides").foregroundColor(.pink).font(.system(size: 13))
                         }
                     }
                     .listRowBackground(Color(hex: "11111c"))
 
-                    Section {
-                        HStack {
-                            TextField("160", text: $proteines).keyboardType(.numberPad).foregroundColor(.white)
-                            Text("g protéines").foregroundColor(.gray).font(.system(size: 13))
-                        }
-                        HStack {
-                            TextField("250", text: $glucides).keyboardType(.numberPad).foregroundColor(.white)
-                            Text("g glucides").foregroundColor(.yellow).font(.system(size: 13))
-                        }
-                        HStack {
-                            TextField("65", text: $lipides).keyboardType(.numberPad).foregroundColor(.white)
-                            Text("g lipides").foregroundColor(.pink).font(.system(size: 13))
-                        }
-                        Button(action: {
-                            let base = dynamicEnabled ? (Double(trainingCal) ?? 2400) : (Double(calories) ?? 2200)
-                            autoFillMacros(kcal: base)
-                        }) {
-                            Label("Recalculer (30% prot · 45% glucides · 25% lip)", systemImage: "wand.and.stars")
-                                .font(.system(size: 12))
-                                .foregroundColor(.orange)
-                        }
-                    } header: {
-                        Text("OBJECTIFS MACROS (g / jour)")
+                    Section(header: Text("OBJECTIFS PAR TYPE DE JOURNÉE")) {
+                        DayTypeRow(icon: "dumbbell.fill",                       color: .orange,
+                                   label: "Lourd",    calPlaceholder: "2550",   glucPlaceholder: "270",
+                                   cal: $heavyCal,    gluc: $heavyGluc)
+                        DayTypeRow(icon: "figure.strengthtraining.traditional", color: .yellow,
+                                   label: "Modéré",   calPlaceholder: "2400",   glucPlaceholder: "235",
+                                   cal: $moderateCal, gluc: $moderateGluc)
+                        DayTypeRow(icon: "figure.arms.open",                    color: Color(hex: "00BCD4"),
+                                   label: "Léger",    calPlaceholder: "2200",   glucPlaceholder: "185",
+                                   cal: $lightCal,    gluc: $lightGluc)
+                        DayTypeRow(icon: "moon.fill",                           color: .indigo,
+                                   label: "Repos",    calPlaceholder: "2100",   glucPlaceholder: "160",
+                                   cal: $restCalT,    gluc: $restGluc)
                     }
                     .listRowBackground(Color(hex: "11111c"))
                 }
@@ -1969,29 +1937,26 @@ struct NutritionSettingsSheet: View {
         }
     }
 
-    private func autoFillMacros(kcal: Double) {
-        let protG  = Int((kcal * 0.30) / 4)
-        let carbG  = Int((kcal * 0.45) / 4)
-        let fatG   = Int((kcal * 0.25) / 9)
-        if (Int(proteines) ?? 0) == 0 { proteines = "\(protG)" }
-        glucides = "\(carbG)"
-        lipides  = "\(fatG)"
-    }
-
     private func save() async {
-        guard let cal  = Double(calories),
-              let prot = Double(proteines) else { return }
+        guard let prot = Double(proteines), let lip  = Double(lipides),
+              let hCal = Double(heavyCal),    let hGluc = Double(heavyGluc),
+              let mCal = Double(moderateCal), let mGluc = Double(moderateGluc),
+              let lCal = Double(lightCal),    let lGluc = Double(lightGluc),
+              let rCal = Double(restCalT),    let rGluc = Double(restGluc) else { return }
         isSaving = true
         saveError = nil
         do {
-            let tc: Double? = dynamicEnabled ? Double(trainingCal) : nil
-            let rc: Double? = dynamicEnabled ? Double(restCal)     : nil
             try await APIService.shared.updateNutritionSettings(
-                calories: cal, proteines: prot,
-                glucides: Double(glucides) ?? 0,
-                lipides:  Double(lipides)  ?? 0,
-                trainingCalories: tc,
-                restCalories: rc
+                calories:  mCal,
+                proteines: prot,
+                glucides:  mGluc,
+                lipides:   lip,
+                dayTypeTargets: [
+                    "light":    ["calories": Int(lCal), "glucides": Int(lGluc)],
+                    "moderate": ["calories": Int(mCal), "glucides": Int(mGluc)],
+                    "heavy":    ["calories": Int(hCal), "glucides": Int(hGluc)],
+                    "rest":     ["calories": Int(rCal), "glucides": Int(rGluc)],
+                ]
             )
             await onSaved()
             dismiss()
@@ -1999,6 +1964,45 @@ struct NutritionSettingsSheet: View {
             saveError = error.localizedDescription
         }
         isSaving = false
+    }
+}
+
+// MARK: - Day Type Row (settings sheet helper)
+
+private struct DayTypeRow: View {
+    let icon:            String
+    let color:           Color
+    let label:           String
+    let calPlaceholder:  String
+    let glucPlaceholder: String
+    @Binding var cal:    String
+    @Binding var gluc:   String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(label, systemImage: icon)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(color)
+            HStack(spacing: 8) {
+                TextField(calPlaceholder, text: $cal)
+                    .keyboardType(.numberPad)
+                    .foregroundColor(.white)
+                    .frame(width: 60)
+                Text("kcal")
+                    .foregroundColor(.gray)
+                    .font(.system(size: 12))
+                Spacer()
+                TextField(glucPlaceholder, text: $gluc)
+                    .keyboardType(.numberPad)
+                    .foregroundColor(.white)
+                    .frame(width: 50)
+                    .multilineTextAlignment(.trailing)
+                Text("g glucides")
+                    .foregroundColor(.yellow)
+                    .font(.system(size: 12))
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

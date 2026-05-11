@@ -2430,7 +2430,7 @@ struct ProteinComplianceView: View {
     let days: [NutritionDay]
     let target: NutritionSettings
 
-    private var protTarget: Double { target.proteines ?? 160 }
+    private var protTarget: Double { target.proteines ?? 180 }
 
     private struct DayStatus: Identifiable {
         let id: String

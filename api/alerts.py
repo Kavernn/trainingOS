@@ -45,7 +45,7 @@ def _time_str_mtl() -> str:
 # ---------------------------------------------------------------------------
 
 def detect_low_protein(settings: dict, recent_days: list[dict]) -> dict | None:
-    target = float(settings.get("objectif_proteines") or 160)
+    target = float(settings.get("objectif_proteines") or 180)
     threshold = target * 0.70
     today = _today_mtl()
 
@@ -77,7 +77,7 @@ def detect_low_protein(settings: dict, recent_days: list[dict]) -> dict | None:
 # ---------------------------------------------------------------------------
 
 def detect_under_calories(settings: dict, recent_days: list[dict]) -> dict | None:
-    target = float(settings.get("limite_calories") or 2200)
+    target = float(settings.get("limite_calories") or 2400)
     threshold = target * 0.75
     today = _today_mtl()
 

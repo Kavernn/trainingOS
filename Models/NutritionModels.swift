@@ -47,22 +47,34 @@ struct NutritionEntry: Codable, Identifiable {
     }
 }
 
+// MARK: - Day Type Targets
+struct DayTypeTargets: Codable {
+    let light:    DayTarget
+    let moderate: DayTarget
+    let heavy:    DayTarget
+    let rest:     DayTarget
+
+    struct DayTarget: Codable {
+        let calories: Double
+        let glucides: Double
+    }
+}
+
 // MARK: - Nutrition Settings
 struct NutritionSettings: Codable {
     let calories: Double?
     let proteines: Double?
     let glucides: Double?
     let lipides: Double?
-    let trainingCalories: Double?
-    let restCalories: Double?
+    let dayTypeTargets: DayTypeTargets?
 
-    var hasDynamicGoals: Bool { trainingCalories != nil && restCalories != nil }
+    var hasDynamicGoals: Bool { true }
 
     init(calories: Double?, proteines: Double?, glucides: Double?, lipides: Double?,
-         trainingCalories: Double? = nil, restCalories: Double? = nil) {
+         dayTypeTargets: DayTypeTargets? = nil) {
         self.calories = calories; self.proteines = proteines
         self.glucides = glucides; self.lipides = lipides
-        self.trainingCalories = trainingCalories; self.restCalories = restCalories
+        self.dayTypeTargets = dayTypeTargets
     }
 
     init(from decoder: Decoder) throws {
@@ -71,10 +83,9 @@ struct NutritionSettings: Codable {
                  ?? (try? c.decode(Double.self, forKey: .init("calories")))
         proteines = (try? c.decode(Double.self, forKey: .init("objectif_proteines")))
                  ?? (try? c.decode(Double.self, forKey: .init("proteines")))
-        glucides         = try? c.decode(Double.self, forKey: .init("glucides"))
-        lipides          = try? c.decode(Double.self, forKey: .init("lipides"))
-        trainingCalories = try? c.decode(Double.self, forKey: .init("training_calories"))
-        restCalories     = try? c.decode(Double.self, forKey: .init("rest_calories"))
+        glucides       = try? c.decode(Double.self, forKey: .init("glucides"))
+        lipides        = try? c.decode(Double.self, forKey: .init("lipides"))
+        dayTypeTargets = try? c.decode(DayTypeTargets.self, forKey: .init("day_type_targets"))
     }
 }
 
@@ -94,11 +105,13 @@ struct NutritionDataResponse: Decodable {
     var history: [NutritionDayHistory]
     var todayType: String?
     var effectiveCalories: Double?
+    var effectiveGlucides: Double?
 
     enum CodingKeys: String, CodingKey {
         case settings, totals, entries, history
-        case todayType = "today_type"
+        case todayType        = "today_type"
         case effectiveCalories = "effective_calories"
+        case effectiveGlucides = "effective_glucides"
     }
 }
 
