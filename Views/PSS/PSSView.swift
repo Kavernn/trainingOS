@@ -1,5 +1,8 @@
 import SwiftUI
 import Charts
+import OSLog
+
+private let logger = Logger(subsystem: "TrainingOS", category: "pss")
 
 // MARK: - Main View
 
@@ -557,7 +560,7 @@ struct PSSQuestionnaireSheet: View {
                 submittedRecord = record
                 withAnimation { currentPage = 1 }
             } catch {
-                print("[PSS] submit error: \(error)")
+                logger.error("PSS submit error: \(error, privacy: .public)")
             }
             isSaving = false
         }

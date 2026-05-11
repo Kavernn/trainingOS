@@ -2415,6 +2415,7 @@ struct MealTemplateEditorSheet: View {
     @State private var name: String
     @State private var items: [MealTemplateItem]
     @State private var isSaving = false
+    @State private var saveError: String? = nil
     @State private var showAddItem = false
     @State private var newItemName = ""
     @State private var newItemCal = ""
@@ -2547,6 +2548,9 @@ struct MealTemplateEditorSheet: View {
                         .disabled(name.isEmpty || items.isEmpty || isSaving)
                 }
             }
+            .alert("Erreur", isPresented: Binding(get: { saveError != nil }, set: { if !$0 { saveError = nil } })) {
+                Button("OK", role: .cancel) { saveError = nil }
+            } message: { Text(saveError ?? "") }
         }
     }
 
@@ -2561,9 +2565,11 @@ struct MealTemplateEditorSheet: View {
                     let created = try await APIService.shared.createMealTemplate(name: name, items: items)
                     onSaved(created)
                 }
-            } catch {}
+                dismiss()
+            } catch {
+                saveError = error.localizedDescription
+            }
             isSaving = false
-            dismiss()
         }
     }
 }

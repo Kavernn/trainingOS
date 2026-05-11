@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import OSLog
 
 @MainActor
 final class DashboardViewModel: ObservableObject {
@@ -18,6 +19,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var sleepStages: SleepStages?
     @Published var sleepWindow: SleepWindow?
 
+    private let logger = Logger(subsystem: "TrainingOS", category: "dashboard")
     // PERF-5: skip expensive analytics if already loaded today
     private var analyticsLoadedDate = ""
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
@@ -35,17 +37,17 @@ final class DashboardViewModel: ObservableObject {
     func loadAll() async {
         let today = todayStr
         // sequential — async let LIFO crash on iOS 26 beta
-        do { _ = try await APIService.shared.fetchDashboard() } catch { print("[Dashboard] fetchDashboard: \(error)") }
-        do { deload   = try await APIService.shared.fetchDeloadData()   } catch { print("[Dashboard] fetchDeload: \(error)") }
-        do { moodDue  = try await APIService.shared.checkMoodDue()  } catch { print("[Dashboard] checkMoodDue: \(error)") }
-        do { morningBrief   = try await APIService.shared.fetchMorningBrief() } catch { print("[Dashboard] fetchMorningBrief: \(error)") }
-        do { eveningSession = try await APIService.shared.fetchSeanceSoirData() } catch { print("[Dashboard] fetchSeanceSoir: \(error)") }
+        do { _ = try await APIService.shared.fetchDashboard() } catch { logger.error("fetchDashboard: \(error, privacy: .public)") }
+        do { deload   = try await APIService.shared.fetchDeloadData()   } catch { logger.error("fetchDeload: \(error, privacy: .public)") }
+        do { moodDue  = try await APIService.shared.checkMoodDue()  } catch { logger.error("checkMoodDue: \(error, privacy: .public)") }
+        do { morningBrief   = try await APIService.shared.fetchMorningBrief() } catch { logger.error("fetchMorningBrief: \(error, privacy: .public)") }
+        do { eveningSession = try await APIService.shared.fetchSeanceSoirData() } catch { logger.error("fetchSeanceSoir: \(error, privacy: .public)") }
         do {
             let log = try await APIService.shared.fetchRecoveryData()
             let entry = log.first(where: { $0.date == today })
             todaySleepLogged = entry?.sleepHours != nil
             todayRecovery    = entry
-        } catch { print("[Dashboard] fetchRecovery: \(error)") }
+        } catch { logger.error("fetchRecovery: \(error, privacy: .public)") }
 
         // PERF-5: insights / LSS / coach tip — once per day only
         if analyticsLoadedDate != today {

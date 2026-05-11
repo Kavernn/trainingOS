@@ -1,0 +1,45 @@
+import Foundation
+
+extension APIService {
+    // MARK: - Sommeil
+    func fetchSleepHistory(limit: Int = 20,
+                           offset: Int = 0) async throws -> PagedResponse<SleepEntry> {
+        let cacheKey = offset == 0 ? "sleep_history" : "sleep_history_\(offset)"
+        let url = URL(string: "\(baseURL)/api/sleep/history?limit=\(limit)&offset=\(offset)")!
+        let data = try await fetchWithCache(url: url, key: cacheKey)
+        return try JSONDecoder().decode(PagedResponse<SleepEntry>.self, from: data)
+    }
+
+    func fetchSleepToday() async throws -> SleepEntry? {
+        let url = URL(string: "\(baseURL)/api/sleep/today")!
+        let data = try await fetchWithCache(url: url, key: "sleep_today")
+        return try? JSONDecoder().decode(SleepEntry.self, from: data)
+    }
+
+    func fetchSleepStats() async throws -> SleepStats {
+        let url = URL(string: "\(baseURL)/api/sleep/stats")!
+        let data = try await fetchWithCache(url: url, key: "sleep_stats")
+        return try JSONDecoder().decode(SleepStats.self, from: data)
+    }
+
+    func logSleep(bedtime: String, wakeTime: String, quality: Int,
+                  notes: String?, date: String? = nil) async throws -> SleepEntry {
+        var body: [String: Any] = ["bedtime": bedtime, "wake_time": wakeTime, "quality": quality]
+        if let notes = notes, !notes.isEmpty { body["notes"] = notes }
+        if let d = date { body["date"] = d }
+        guard let data = try await offlinePost(endpoint: "/api/sleep/log", payload: body) else {
+            throw APIError.queuedOffline
+        }
+        CacheService.shared.clear(for: "sleep_history")
+        CacheService.shared.clear(for: "sleep_today")
+        CacheService.shared.clear(for: "sleep_stats")
+        return try JSONDecoder().decode(SleepEntry.self, from: data)
+    }
+
+    func deleteSleepEntry(id: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/sleep/delete", payload: ["id": id])
+        CacheService.shared.clear(for: "sleep_history")
+        CacheService.shared.clear(for: "sleep_today")
+        CacheService.shared.clear(for: "sleep_stats")
+    }
+}

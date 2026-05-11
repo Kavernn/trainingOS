@@ -106,6 +106,12 @@ struct StatsView: View {
     @State private var rpeProgression:     RPEProgressionData?         = nil
     @State private var rirByExercise:      [RIREntry]                  = []
 
+    // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
+    @State private var cachedCurrentStreak: Int = 0
+    @State private var cachedBestStreak: Int = 0
+    @State private var cachedWeeklyVolume: Double = 0
+    @State private var cachedPersonalRecords: [(String, Double)] = []
+
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int { sessions.count }
 
@@ -124,49 +130,9 @@ struct StatsView: View {
         return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
     }
 
-    var currentStreak: Int {
-        let fmt = DateFormatter.isoDate
-        let base = Date().timeIntervalSince1970
-        var count = 0
-        for i in 0..<365 {
-            let key = fmt.string(from: Date(timeIntervalSince1970: base - Double(i) * 86400.0))
-            if sessions[key] != nil { count += 1 }
-            else if i == 0 { /* today not yet logged — keep looking */ }
-            else { break }
-        }
-        return count
-    }
-
-    var bestStreak: Int {
-        let sorted = sessions.keys.compactMap { DateFormatter.isoDate.date(from: $0) }.sorted()
-        guard !sorted.isEmpty else { return 0 }
-        var best = 1; var cur = 1
-        for i in 1..<sorted.count {
-            let diff = Int(round((sorted[i].timeIntervalSince1970 - sorted[i-1].timeIntervalSince1970) / 86400.0))
-            if diff == 1 { cur += 1; best = max(best, cur) } else { cur = 1 }
-        }
-        return best
-    }
-
-    var weeklyVolume: Double {
-        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
-        let weekday = ((epochDays + 4) % 7) + 1
-        let daysSinceMonday = (weekday + 5) % 7
-        let mondayStr = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - Double(daysSinceMonday) * 86400.0))
-        // Primary: sessionVolume from sessions (server-computed, includes all exercises)
-        let fromSessions = sessions.compactMap { date, s -> Double? in
-            guard date >= mondayStr, let vol = s.sessionVolume, vol > 0 else { return nil }
-            return UnitSettings.shared.display(vol)
-        }.reduce(0, +)
-        if fromSessions > 0 { return fromSessions }
-        // Fallback: per-exercise history
-        return weights.values.flatMap { $0.history ?? [] }.compactMap { e -> Double? in
-            guard let date = e.date, date >= mondayStr else { return nil }
-            if let vol = e.exerciseVolume, vol > 0 { return UnitSettings.shared.display(vol) }
-            guard let w = e.weight, let r = e.reps else { return nil }
-            return UnitSettings.shared.display(w * totalReps(r))
-        }.reduce(0, +)
-    }
+    var currentStreak: Int { cachedCurrentStreak }
+    var bestStreak: Int    { cachedBestStreak }
+    var weeklyVolume: Double { cachedWeeklyVolume }
 
     var exercisesCount: Int { weights.filter { $0.value.history?.isEmpty == false }.count }
 
@@ -183,34 +149,7 @@ struct StatsView: View {
     }
 
     // ── Personal Records ─────────────────────────────────────────────
-    var personalRecords: [(String, Double)] {
-        weights.compactMap { name, data -> (String, Double)? in
-            let isBodyweight = inventoryTypes[name] == "bodyweight"
-            let best = data.history?.compactMap { e -> Double? in
-                // Bodyweight: only use explicitly stored 1RM (no estimation)
-                if isBodyweight {
-                    return (e.oneRM ?? 0) > 0 ? e.oneRM : nil
-                }
-                if let stored = e.oneRM, stored > 0 { return stored }
-                // Use best per-set estimate if available (more accurate than average)
-                if let sets = e.sets, !sets.isEmpty {
-                    return sets.compactMap { s -> Double? in
-                        let r = avgReps(s.reps)
-                        guard r >= 1, r <= 15, s.weight > 0 else { return nil }
-                        return s.weight * (1 + r / 30.0)
-                    }.max()
-                }
-                // Fallback: average weight/reps — cap at 15 reps (above is endurance, not strength)
-                guard let w = e.weight, w > 0, let r = e.reps else { return nil }
-                let avg = avgReps(r)
-                guard avg >= 1, avg <= 15 else { return nil }
-                return w * (1 + avg / 30.0)
-            }.max()
-            return best.map { (name, $0) }
-        }
-        .sorted { $0.1 > $1.1 }
-        .prefix(10).map { $0 }
-    }
+    var personalRecords: [(String, Double)] { cachedPersonalRecords }
 
     // ── Weekly charts ─────────────────────────────────────────────────
     private var last8Weeks: [String] {
@@ -869,6 +808,68 @@ struct StatsView: View {
         }
     }
 
+    private func recalcKPIs() {
+        let fmt = DateFormatter.isoDate
+        let base = Date().timeIntervalSince1970
+        var count = 0
+        for i in 0..<365 {
+            let key = fmt.string(from: Date(timeIntervalSince1970: base - Double(i) * 86400.0))
+            if sessions[key] != nil { count += 1 }
+            else if i == 0 { }
+            else { break }
+        }
+        cachedCurrentStreak = count
+
+        let sorted = sessions.keys.compactMap { fmt.date(from: $0) }.sorted()
+        if sorted.isEmpty {
+            cachedBestStreak = 0
+        } else {
+            var best = 1; var cur = 1
+            for i in 1..<sorted.count {
+                let diff = Int(round((sorted[i].timeIntervalSince1970 - sorted[i-1].timeIntervalSince1970) / 86400.0))
+                if diff == 1 { cur += 1; best = max(best, cur) } else { cur = 1 }
+            }
+            cachedBestStreak = best
+        }
+
+        let epochDays = (Int(base) + TimeZone.current.secondsFromGMT()) / 86400
+        let weekday = ((epochDays + 4) % 7) + 1
+        let daysSinceMonday = (weekday + 5) % 7
+        let mondayStr = fmt.string(from: Date(timeIntervalSince1970: base - Double(daysSinceMonday) * 86400.0))
+        let fromSessions = sessions.compactMap { date, s -> Double? in
+            guard date >= mondayStr, let vol = s.sessionVolume, vol > 0 else { return nil }
+            return UnitSettings.shared.display(vol)
+        }.reduce(0, +)
+        cachedWeeklyVolume = fromSessions > 0 ? fromSessions : weights.values.flatMap { $0.history ?? [] }.compactMap { e -> Double? in
+            guard let date = e.date, date >= mondayStr else { return nil }
+            if let vol = e.exerciseVolume, vol > 0 { return UnitSettings.shared.display(vol) }
+            guard let w = e.weight, let r = e.reps else { return nil }
+            return UnitSettings.shared.display(w * totalReps(r))
+        }.reduce(0, +)
+
+        cachedPersonalRecords = weights.compactMap { name, data -> (String, Double)? in
+            let isBodyweight = inventoryTypes[name] == "bodyweight"
+            let best = data.history?.compactMap { e -> Double? in
+                if isBodyweight { return (e.oneRM ?? 0) > 0 ? e.oneRM : nil }
+                if let stored = e.oneRM, stored > 0 { return stored }
+                if let sets = e.sets, !sets.isEmpty {
+                    return sets.compactMap { s -> Double? in
+                        let r = avgReps(s.reps)
+                        guard r >= 1, r <= 15, s.weight > 0 else { return nil }
+                        return s.weight * (1 + r / 30.0)
+                    }.max()
+                }
+                guard let w = e.weight, w > 0, let r = e.reps else { return nil }
+                let avg = avgReps(r)
+                guard avg >= 1, avg <= 15 else { return nil }
+                return w * (1 + avg / 30.0)
+            }.max()
+            return best.map { (name, $0) }
+        }
+        .sorted { $0.1 > $1.1 }
+        .prefix(10).map { $0 }
+    }
+
     private func applyStats(_ r: StatsAPIResponse) {
         weights            = r.weights
         sessions           = r.sessions
@@ -887,6 +888,7 @@ struct StatsView: View {
         hiitCompletion     = r.hiitCompletion ?? []
         macrosByDayType    = r.macrosByDayType
         proteinWeightRatio = r.proteinWeightRatio ?? []
+        recalcKPIs()
     }
 
     private func applyWellness(_ r: WellnessAPIResponse) {

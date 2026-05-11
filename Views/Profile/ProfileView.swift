@@ -73,7 +73,7 @@ struct ProfileView: View {
             .sheet(isPresented: $showAddWeight) {
                 BodyWeightSheet(editEntry: nil) { await loadBodyWeight() }
             }
-            .alert("Photo trop lourde", isPresented: Binding(get: { photoError != nil }, set: { if !$0 { photoError = nil } })) {
+            .alert("Erreur photo", isPresented: Binding(get: { photoError != nil }, set: { if !$0 { photoError = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(photoError ?? "") }
             .sheet(isPresented: $showExportShare) {
@@ -335,7 +335,9 @@ struct ProfileView: View {
             let (_, _) = try await URLSession.authed.data(for: req)
             profileImage = resized
             await api.fetchDashboard()
-        } catch {}
+        } catch {
+            photoError = error.localizedDescription
+        }
         isUploadingPhoto = false
     }
 }

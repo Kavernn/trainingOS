@@ -2441,6 +2441,7 @@ struct AddCardioSheet: View {
     @State private var notes       = ""
     @State private var isLogging      = false
     @State private var confirmDiscard = false
+    @State private var logError: String? = nil
 
     private var hasUnsavedData: Bool { !durationMin.isEmpty || !notes.isEmpty || rpe != 7 }
 
@@ -2540,6 +2541,9 @@ struct AddCardioSheet: View {
                 Button("Abandonner", role: .destructive) { dismiss() }
                 Button("Continuer", role: .cancel) {}
             }
+            .alert("Erreur", isPresented: Binding(get: { logError != nil }, set: { if !$0 { logError = nil } })) {
+                Button("OK", role: .cancel) { logError = nil }
+            } message: { Text(logError ?? "") }
         }
     }
 
@@ -2548,14 +2552,18 @@ struct AddCardioSheet: View {
     private func submit() {
         isLogging = true
         Task {
-            try? await APIService.shared.logCardio(
-                type: cardioType,
-                durationMin: Double(durationMin.replacingOccurrences(of: ",", with: ".")),
-                distanceKm: Double(distanceKm.replacingOccurrences(of: ",", with: ".")),
-                avgPace: nil, avgHr: nil, cadence: nil, calories: nil,
-                rpe: rpe, notes: notes
-            )
-            await MainActor.run { isLogging = false; onDone(); dismiss() }
+            do {
+                try await APIService.shared.logCardio(
+                    type: cardioType,
+                    durationMin: Double(durationMin.replacingOccurrences(of: ",", with: ".")),
+                    distanceKm: Double(distanceKm.replacingOccurrences(of: ",", with: ".")),
+                    avgPace: nil, avgHr: nil, cadence: nil, calories: nil,
+                    rpe: rpe, notes: notes
+                )
+                await MainActor.run { isLogging = false; onDone(); dismiss() }
+            } catch {
+                await MainActor.run { isLogging = false; logError = error.localizedDescription }
+            }
         }
     }
 }
@@ -2583,6 +2591,7 @@ struct AddHIITSheet: View {
     @State private var isLogging   = false
     @State private var showSavePrompt = false
     @State private var templateName   = ""
+    @State private var logError: String? = nil
 
     @AppStorage("hiit_templates") private var templatesData: String = "[]"
 
@@ -2730,6 +2739,9 @@ struct AddHIITSheet: View {
                 }
                 Button("Annuler", role: .cancel) {}
             }
+            .alert("Erreur", isPresented: Binding(get: { logError != nil }, set: { if !$0 { logError = nil } })) {
+                Button("OK", role: .cancel) { logError = nil }
+            } message: { Text(logError ?? "") }
         }
     }
 
@@ -2738,16 +2750,20 @@ struct AddHIITSheet: View {
     private func submit() {
         isLogging = true
         Task {
-            try? await APIService.shared.logHIIT(
-                sessionType: sessionType.isEmpty ? "HIIT" : sessionType,
-                rounds:     Int(rounds)   ?? 10,
-                workTime:   Int(workTime) ?? 20,
-                restTime:   Int(restTime) ?? 10,
-                rpe:        rpe,
-                notes:      notes,
-                secondSession: true
-            )
-            await MainActor.run { isLogging = false; onDone(); dismiss() }
+            do {
+                try await APIService.shared.logHIIT(
+                    sessionType: sessionType.isEmpty ? "HIIT" : sessionType,
+                    rounds:     Int(rounds)   ?? 10,
+                    workTime:   Int(workTime) ?? 20,
+                    restTime:   Int(restTime) ?? 10,
+                    rpe:        rpe,
+                    notes:      notes,
+                    secondSession: true
+                )
+                await MainActor.run { isLogging = false; onDone(); dismiss() }
+            } catch {
+                await MainActor.run { isLogging = false; logError = error.localizedDescription }
+            }
         }
     }
 }
@@ -3485,7 +3501,8 @@ struct AddHIITSheet: View {
         @State private var restTime = 20
         @State private var rpe: Double = 7
         @State private var notes = ""
-        
+        @State private var logError: String? = nil
+
         var body: some View {
             ScrollView {
                 VStack(spacing: 16) {
@@ -3528,17 +3545,24 @@ struct AddHIITSheet: View {
             .alert("HIIT enregistré ✅", isPresented: $vm.showSuccess) {
                 Button("OK") { Task { await vm.load() } }
             }
+            .alert("Erreur", isPresented: Binding(get: { logError != nil }, set: { if !$0 { logError = nil } })) {
+                Button("OK", role: .cancel) { logError = nil }
+            } message: { Text(logError ?? "") }
         }
-        
+
         private func logHIIT() {
             Task {
-                try? await APIService.shared.logHIIT(
-                    sessionType: sessionType, rounds: rounds,
-                    workTime: workTime, restTime: restTime, rpe: rpe, notes: notes
-                )
-                await vm.load()
-                await APIService.shared.fetchDashboard()
-                vm.showSuccess = true
+                do {
+                    try await APIService.shared.logHIIT(
+                        sessionType: sessionType, rounds: rounds,
+                        workTime: workTime, restTime: restTime, rpe: rpe, notes: notes
+                    )
+                    await vm.load()
+                    await APIService.shared.fetchDashboard()
+                    vm.showSuccess = true
+                } catch {
+                    logError = error.localizedDescription
+                }
             }
         }
     }

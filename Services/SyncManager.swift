@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import Combine
+import OSLog
 
 /// Watches network state and flushes pending mutations to the server
 /// whenever connectivity is restored.
@@ -23,6 +24,7 @@ final class SyncManager: ObservableObject {
     private var container: ModelContainer?
     private var mainContext: ModelContext?
     private var cancellables = Set<AnyCancellable>()
+    private let logger = Logger(subsystem: "TrainingOS", category: "sync")
 
     init() {}
 
@@ -136,7 +138,7 @@ final class SyncManager: ObservableObject {
         )
         if let zombies = try? context.fetch(zombieDescriptor), !zombies.isEmpty {
             zombies.forEach {
-                print("[SyncManager] Dropping zombie mutation — \($0.method) \($0.endpoint) (retries: \($0.retryCount))")
+                logger.warning("Dropping zombie mutation — \($0.method, privacy: .public) \($0.endpoint, privacy: .public) (retries: \($0.retryCount))")
                 context.delete($0)
             }
             try? context.save()
@@ -161,7 +163,7 @@ final class SyncManager: ObservableObject {
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             // 4xx client errors (except 429 rate-limit) = non-recoverable, discard cleanly
             if (400...499).contains(code) && code != 429 {
-                print("[SyncManager] Discarding non-recoverable mutation — \(mutation.method) \(mutation.endpoint) status \(code)")
+                logger.warning("Discarding non-recoverable mutation — \(mutation.method, privacy: .public) \(mutation.endpoint, privacy: .public) status \(code)")
                 return true
             }
             // 2xx = success; 409 (already_logged) = idempotent success

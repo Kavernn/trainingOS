@@ -1,5 +1,30 @@
 import SwiftUI
 
+private struct RecoveryStats {
+    var avgSleep: Double = 0
+    var avgSleepQuality: Double = 0
+    var avgRestHR: Double = 0
+    var avgSteps: Double = 0
+    var avgActiveEnergy: Double = 0
+    var avgHRV: Double = 0
+    var avgHRMorning: Double = 0
+    var avgHRPostWorkout: Double = 0
+    var avgHREvening: Double = 0
+
+    init(log: [RecoveryEntry]) {
+        func avg(_ vals: [Double]) -> Double { vals.isEmpty ? 0 : vals.reduce(0, +) / Double(vals.count) }
+        avgSleep         = avg(log.compactMap(\.sleepHours))
+        avgSleepQuality  = avg(log.compactMap(\.sleepQuality))
+        avgRestHR        = avg(log.compactMap(\.restingHr))
+        avgSteps         = avg(log.compactMap(\.steps).map(Double.init))
+        avgActiveEnergy  = avg(log.compactMap(\.activeEnergy))
+        avgHRV           = avg(log.compactMap(\.hrv))
+        avgHRMorning     = avg(log.compactMap(\.hrMorning))
+        avgHRPostWorkout = avg(log.compactMap(\.hrPostWorkout))
+        avgHREvening     = avg(log.compactMap(\.hrEvening))
+    }
+}
+
 struct RecoveryView: View {
     @EnvironmentObject private var appState: AppState
     @State private var log: [RecoveryEntry] = []
@@ -11,6 +36,7 @@ struct RecoveryView: View {
     @ObservedObject private var watchSync = WatchSyncService.shared
     @State private var isBackfilling = false
     @State private var backfillDone  = false
+    @State private var stats = RecoveryStats(log: [])
 
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
@@ -22,34 +48,16 @@ struct RecoveryView: View {
         log.contains { $0.date == todayStr }
     }
 
-    // KPIs
-    var avgSleep: Double {
-        let v = log.compactMap(\.sleepHours); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
-    }
-    var avgSleepQuality: Double {
-        let v = log.compactMap(\.sleepQuality); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
-    }
-    var avgRestHR: Double {
-        let v = log.compactMap(\.restingHr); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
-    }
-    var avgSteps: Double {
-        let v = log.compactMap(\.steps).map(Double.init); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
-    }
-    var avgActiveEnergy: Double {
-        let v = log.compactMap(\.activeEnergy); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
-    }
-    var avgHRV: Double {
-        let v = log.compactMap(\.hrv); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
-    }
-    var avgHRMorning: Double {
-        let v = log.compactMap(\.hrMorning); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
-    }
-    var avgHRPostWorkout: Double {
-        let v = log.compactMap(\.hrPostWorkout); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
-    }
-    var avgHREvening: Double {
-        let v = log.compactMap(\.hrEvening); return v.isEmpty ? 0 : v.reduce(0, +) / Double(v.count)
-    }
+    // KPIs — delegates to cached stats (computed once per loadData, not per render)
+    var avgSleep: Double         { stats.avgSleep }
+    var avgSleepQuality: Double  { stats.avgSleepQuality }
+    var avgRestHR: Double        { stats.avgRestHR }
+    var avgSteps: Double         { stats.avgSteps }
+    var avgActiveEnergy: Double  { stats.avgActiveEnergy }
+    var avgHRV: Double           { stats.avgHRV }
+    var avgHRMorning: Double     { stats.avgHRMorning }
+    var avgHRPostWorkout: Double { stats.avgHRPostWorkout }
+    var avgHREvening: Double     { stats.avgHREvening }
 
     var body: some View {
         NavigationStack {
@@ -264,6 +272,7 @@ struct RecoveryView: View {
     private func loadData() async {
         isLoading = true
         log = (try? await APIService.shared.fetchRecoveryData()) ?? []
+        stats = RecoveryStats(log: log)
         isLoading = false
     }
 
