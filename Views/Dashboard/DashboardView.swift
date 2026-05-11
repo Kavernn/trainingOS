@@ -2,7 +2,6 @@
 import SwiftUI
 import Charts
 import Combine
-import WeatherKit
 import CoreLocation
 
 struct DashboardView: View {
@@ -3240,18 +3239,41 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
     }
 
     private func fetchWeather(for location: CLLocation) async {
-        do {
-            let weather = try await WeatherService.shared.weather(for: location)
-            temperature = weather.currentWeather.temperature.converted(to: .celsius).value
-            conditionSymbol = weather.currentWeather.symbolName
-            lastUpdated = Date()
-        } catch {}
+        let lat = location.coordinate.latitude
+        let lon = location.coordinate.longitude
+        let urlStr = "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lon)&current=temperature_2m,weather_code&temperature_unit=celsius&forecast_days=1"
+        guard let url = URL(string: urlStr),
+              let (data, _) = try? await URLSession.shared.data(from: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let current = json["current"] as? [String: Any],
+              let temp = current["temperature_2m"] as? Double else { return }
+        temperature = temp
+        if let code = current["weather_code"] as? Int {
+            conditionSymbol = Self.symbol(for: code)
+        }
+        lastUpdated = Date()
     }
 
     private func reverseGeocode(_ location: CLLocation) async {
         let geocoder = CLGeocoder()
         if let placemark = try? await geocoder.reverseGeocodeLocation(location).first {
             cityName = placemark.locality ?? placemark.administrativeArea ?? ""
+        }
+    }
+
+    private static func symbol(for code: Int) -> String {
+        switch code {
+        case 0:           return "sun.max.fill"
+        case 1:           return "sun.haze.fill"
+        case 2:           return "cloud.sun.fill"
+        case 3:           return "cloud.fill"
+        case 45, 48:      return "cloud.fog.fill"
+        case 51, 53, 55:  return "cloud.drizzle.fill"
+        case 61, 63, 65:  return "cloud.rain.fill"
+        case 71, 73, 75:  return "cloud.snow.fill"
+        case 80, 81, 82:  return "cloud.heavyrain.fill"
+        case 95, 96, 99:  return "cloud.bolt.rain.fill"
+        default:          return "cloud.fill"
         }
     }
 }

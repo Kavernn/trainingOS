@@ -4,7 +4,6 @@
 <dict>
 	<key>com.apple.developer.healthkit</key>
 	<true/>
-	<key>com.apple.developer.weatherkit</key>
-	<true/>
+
 </dict>
 </plist>

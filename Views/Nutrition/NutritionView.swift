@@ -644,7 +644,7 @@ struct MacroBar: View {
                         Capsule().fill(Color(hex: "191926")).frame(height: 4)
                         Capsule()
                             .fill(color)
-                            .frame(width: geo.size.width * min(current / t, 1.0), height: 4)
+                            .frame(width: t > 0 ? geo.size.width * min(current / t, 1.0) : 0, height: 4)
                     }
                 }
                 .frame(height: 4)
