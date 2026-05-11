@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-05-10
+Dernière mise à jour : 2026-05-11
 
 ---
 
@@ -79,7 +79,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - Nutrition : édition d'entrée (EditNutritionSheet, endpoint /api/nutrition/edit)
 - Apple Watch sync (HealthKit → Supabase via WatchSyncService)
 - Life Stress Score (LSS) : 5 composantes (sommeil, HRV, FC repos, stress, fatigue)
-- ACWR (Acute:Chronic Workload Ratio)
+- ACWR (Acute:Chronic Workload Ratio) — EWMA (Blanch & Gabbett 2016), sRPE×durée, tiers de confiance, 33 tests
 - RecoveryView, BodyCompView, CardioView, SleepView
 - SleepView : bridge `recovery_log → sleep` quand `sleep_records` vide (fallback HealthKit, `source: "healthkit"`, `bedtime: "—"`, `quality: 0`)
 - MentalHealth suite (mood, journal, breathwork, PSS, self-care)

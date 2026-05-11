@@ -81,13 +81,69 @@ api/
 ├── sessions.py           — Log et récupération séances
 ├── planner.py            — Programme hebdomadaire
 ├── inventory.py          — Exercices et inventaire
-├── acwr.py               — Acute:Chronic Workload Ratio
+├── acwr.py               — Acute:Chronic Workload Ratio (EWMA, sRPE×durée)
 ├── life_stress_engine.py — Life Stress Score (LSS)
 ├── wearable.py           — Sync Apple Watch → Supabase
 ├── nutrition.py          — Journal alimentaire
 ├── body_weight.py        — Suivi poids corporel
 ├── morning_brief.py      — Brief matinal IA
 └── …                     — sleep, mood, journal, goals, hiit, cardio, etc.
+```
+
+---
+
+## ACWR — Charge aiguë/chronique (`acwr.py`)
+
+### Algorithme : EWMA (Blanch & Gabbett 2016)
+
+```
+EWMA_t = λ × load_t + (1 − λ) × EWMA_{t−1}
+λ = 2 / (N + 1)
+
+acute  : N=7  → λ=0.250  (half-life ≈ 2.4 jours)
+chronic: N=28 → λ≈0.069  (half-life ≈ 9.7 jours)
+ACWR = EWMA_acute / EWMA_chronic
+```
+
+Les deux EWMA sont **indépendants** — pas de couplage mathématique (contrairement aux rolling averages où acute ⊂ chronic).
+
+### Charge de séance
+
+| Données disponibles | Formule |
+|---|---|
+| sRPE + durée | `sRPE × duration_min` (Foster 2001) |
+| Tonnage seulement | `log(1 + tonnage_kg) × 10` (fallback) |
+
+### Garde-fous
+
+| Garde-fou | Valeur |
+|---|---|
+| Cap outliers | `mean + 3σ` (sur charges non-nulles, ≥5 points) |
+| Plancher chronique | `1.0 AU` (évite division par zéro) |
+| Clamp ratio | `[0.0, 3.0]` |
+| Confiance `"low"` | ratio forcé à 1.0 (< 7 jours) |
+
+### Zones
+
+| Ratio | Zone | Code |
+|---|---|---|
+| < 0.8 | Sous-charge | `under` |
+| 0.8–1.3 | Optimal | `optimal` |
+| 1.3–1.5 | Attention | `caution` |
+| > 1.5 | Surcharge | `danger` |
+
+### Réponse API (`GET /api/acwr`)
+
+```json
+{
+  "ratio": 1.12,
+  "acute_load": 145.3,
+  "chronic_load": 129.7,
+  "zone": { "code": "optimal", "label": "Zone optimale", "color": "#10B981", "recommendation": "…" },
+  "trend": [ { "week": "W1", "ratio": 0.95, "acute": 120, "chronic": 126 }, … ],
+  "confidence": "high",
+  "days_of_data": 42
+}
 ```
 
 ---

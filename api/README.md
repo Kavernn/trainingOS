@@ -158,7 +158,7 @@ All endpoints are unauthenticated (see #A1 in audit). JSON responses unless note
 | GET | `/api/insights` | AI-generated insights for dashboard |
 | GET | `/api/deload_status` | Deload recommendation |
 | POST | `/api/apply_deload` | Apply deload (–15% weights) |
-| GET | `/api/acwr` | Acute:Chronic Workload Ratio |
+| GET | `/api/acwr` | Acute:Chronic Workload Ratio (EWMA, sRPE×durée) — voir détail ci-dessous |
 | GET | `/api/coach/morning_brief` | Morning brief data |
 | GET | `/api/peak_prediction` | Peak performance prediction |
 | GET | `/api/insights/correlations` | Training–wellness correlations |
@@ -169,6 +169,44 @@ All endpoints are unauthenticated (see #A1 in audit). JSON responses unless note
 | GET | `/api/ai/coach/history` | Chat history |
 
 **Rate limit:** 10 AI calls/hour (shared across workers via Supabase `ai_rate_limit` table).
+
+### `GET /api/acwr` — Détail
+
+Retourne le ratio ACWR du jour calculé par EWMA (Blanch & Gabbett 2016).
+
+**Algorithme :** `EWMA_t = λ × load_t + (1−λ) × EWMA_{t−1}` avec λ=2/(N+1).
+**Charge :** sRPE × duration_min (Foster 2001) ; fallback log(tonnage)×10.
+**Historique fetché :** 90 jours.
+
+**Réponse :**
+```json
+{
+  "ratio": 1.12,
+  "acute_load": 145.3,
+  "chronic_load": 129.7,
+  "zone": {
+    "code": "optimal",
+    "label": "Zone optimale",
+    "color": "#10B981",
+    "recommendation": "Équilibre charge aiguë/chronique idéal."
+  },
+  "trend": [
+    { "week": "W1", "ratio": 0.95, "acute": 120, "chronic": 126 }
+  ],
+  "confidence": "high",
+  "days_of_data": 42
+}
+```
+
+**Codes zone :** `under` · `optimal` · `caution` · `danger` · `insufficient_data`
+
+**Tiers de confiance :**
+
+| `confidence` | Condition | Comportement iOS |
+|---|---|---|
+| `"low"` | < 7 jours | Ratio masqué, barre de progression |
+| `"moderate"` | 7–28 jours | Ratio + badge "ESTIMATION" |
+| `"high"` | > 28 jours | Affichage normal |
 
 ---
 

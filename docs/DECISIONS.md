@@ -116,3 +116,23 @@ Les agents doivent ajouter une entrée lors de tout changement architectural maj
 **Décision** : Rendu superset dans `SeanceView` via un enum `ExerciseRenderItem` (`.superset` / `.solo`) calculé une fois en computed property, plutôt que détection inline dans le `ForEach`.
 
 **Raison** : Évite le double-rendu de l'exercice B (qui apparaîtrait deux fois dans un ForEach naïf). La computed property construit la liste de render items en un seul passage (`Set<String> rendered`), garantissant un identifiant stable par item pour SwiftUI. Le fallback vers la liste plate quand `sessionSupersets` est vide préserve le comportement exact des anciennes sessions.
+
+---
+
+## 2026-05-11
+
+**Décision** : Remplacement de l'ACWR rolling average (7j/28j) par **EWMA (Exponentially Weighted Moving Average)** dans `api/acwr.py`.
+
+**Raison** : Les rolling averages souffrent de deux défauts critiques : (1) couplage mathématique — la fenêtre aiguë est un sous-ensemble de la fenêtre chronique, créant une dépendance artificielle ; (2) effet falaise — une charge "tombe" brutalement de la fenêtre 28 jours, créant un spike de ratio sans changement réel de comportement. L'EWMA (Blanch & Gabbett 2016) résout les deux : fenêtres aiguë/chronique entièrement indépendantes, décroissance continue les jours de repos, pondération exponentielle. λ = 2/(N+1), formule standard.
+
+---
+
+**Décision** : Charge de séance via **méthode sRPE × durée (Foster 2001)** plutôt que tonnage brut.
+
+**Raison** : Le tonnage mesure la charge externe uniquement. sRPE × durée capture la charge interne (effort perçu × temps), validée en musculation (Day et al. 2004) et agnostique de modalité — muscu, cardio et HIIT directement comparables. Fallback tonnage log-normalisé si sRPE/durée absents pour la rétrocompatibilité.
+
+---
+
+**Décision** : Tiers de confiance ACWR (`"low"` / `"moderate"` / `"high"`) exposés dans la réponse API et affichés côté iOS.
+
+**Raison** : Un ratio calculé sur 3 jours de données n'est pas interprétable. Le tier `"low"` (< 7 jours) masque le ratio et affiche une barre de progression ; `"moderate"` (7–28 jours) ajoute un badge "ESTIMATION" ; `"high"` (> 28 jours) affichage normal. Évite d'induire l'utilisateur en erreur pendant la période d'initialisation.
