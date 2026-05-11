@@ -30,6 +30,8 @@ struct ExerciseCard: View {
     @StateObject private var evm: ExerciseViewModel
     @ObservedObject private var units = UnitSettings.shared
     @AppStorage("exo_notes_data") private var exoNotesData: String = "{}"
+    @AppStorage("auto_start_rest_timer") private var autoStartTimer = false
+    @AppStorage("show_rir_column") private var showRIRColumn = false
     @State private var confirmSkip = false
     @State private var showAdvanced = false
     @State private var showPlateCalculator = false
@@ -198,6 +200,9 @@ struct ExerciseCard: View {
             onLogged?()
             triggerNotificationFeedback(.success)
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { showUndo = true }
+            if autoStartTimer, let secs = restSeconds, secs > 0 {
+                RestTimerManager.shared.start(seconds: secs, exerciseName: name)
+            }
             undoCountdown = 5
             undoTask?.cancel()
             undoTask = Task { @MainActor in
@@ -334,11 +339,13 @@ struct ExerciseCard: View {
                             )
                             .disabled(evm.setBySetMode && !isActive && !isDone)
                     }
-                    RPEHelper.RIRTiles(
-                        rir: $evm.sets[i].rir,
-                        disabled: evm.setBySetMode && !isActive && !isDone
-                    )
-                    .frame(width: 70)
+                    if showRIRColumn {
+                        RPEHelper.RIRTiles(
+                            rir: $evm.sets[i].rir,
+                            disabled: evm.setBySetMode && !isActive && !isDone
+                        )
+                        .frame(width: 70)
+                    }
 
                     if let p = prescription, !evm.sets[i].reps.isEmpty, let entered = Int(evm.sets[i].reps) {
                         Image(systemName: entered >= p.repMin ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
@@ -662,6 +669,18 @@ struct ExerciseCard: View {
                                 .font(.system(size: 9, weight: .semibold)).foregroundColor(.orange)
                                 .padding(.horizontal, 5).padding(.vertical, 2)
                                 .background(Color.orange.opacity(0.12)).clipShape(Capsule())
+                        }
+                        let hasCoaching = logResult == nil && (
+                            (suggestion?.suggestionType != "maintain" && suggestion != nil) ||
+                            (hint != nil && !(hint?.isEmpty ?? true))
+                        )
+                        if hasCoaching {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 8))
+                                .foregroundColor(.orange)
+                                .padding(3)
+                                .background(Color.orange.opacity(0.15))
+                                .clipShape(Circle())
                         }
                     }
                     Text(scheme).font(.system(size: 12)).foregroundColor(.gray)

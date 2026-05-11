@@ -1491,7 +1491,7 @@ struct WorkoutSeanceView: View {
                 .foregroundColor(.gray)
                 Button {
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                        sessionSupersets.removeValue(forKey: entry.a)
+                        _ = sessionSupersets.removeValue(forKey: entry.a)
                     }
                 } label: {
                     Text("Dissocier")
@@ -1874,6 +1874,8 @@ struct WorkoutSeanceView: View {
                 .cornerRadius(10)
                 .padding(.horizontal, 16)
                 .animation(.spring(response: 0.4), value: currentVolume)
+
+                exerciseNavigator
 
                 exerciseSection
 

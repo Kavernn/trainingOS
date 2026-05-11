@@ -19,8 +19,9 @@ import HealthKit
 class WatchSyncService: ObservableObject {
     static let shared = WatchSyncService()
 
-    @Published var isSyncing   = false
+    @Published var isSyncing          = false
     @Published var lastSyncDate: Date?
+    @Published var lastSyncCompleted: Date?
     @Published var lastError: String?
 
     private let syncInterval: TimeInterval = 30 * 60  // 30 min
@@ -88,7 +89,8 @@ class WatchSyncService: ObservableObject {
         // Backfill recent days if their recovery logs have no steps
         await backfillRecentDaysIfNeeded()
 
-        lastSyncDate = Date()
+        lastSyncDate      = Date()
+        lastSyncCompleted = Date()
         defaults.set(lastSyncDate, forKey: lastSyncKey)
     }
 
@@ -99,12 +101,14 @@ class WatchSyncService: ObservableObject {
 
         let existingLog = (try? await APIService.shared.fetchRecoveryData()) ?? []
 
-        // Build list of dates that need backfill (missing steps OR missing sleep)
+        // Build list of dates that need backfill (any core metric still missing)
         let datesToBackfill: [Date] = (1...7).compactMap { daysAgo -> Date? in
             let date = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - Double(daysAgo) * 86400)
             let dateStr = fmt.string(from: date)
             let entry = existingLog.first(where: { $0.date == dateStr })
-            return (entry?.steps == nil || entry?.sleepHours == nil) ? date : nil
+            let missing = entry?.steps == nil || entry?.sleepHours == nil
+                       || entry?.restingHr == nil || entry?.hrv == nil
+            return missing ? date : nil
         }
         guard !datesToBackfill.isEmpty else { return }
 
@@ -114,11 +118,14 @@ class WatchSyncService: ObservableObject {
         await withTaskGroup(of: WearableSnapshot?.self) { group in
             for date in datesToBackfill {
                 group.addTask {
-                    let t = await hkService.fetchSnapshotForDate(date)
+                    let t          = await hkService.fetchSnapshotForDate(date)
                     let sleepHours = await hkService.fetchSleep(for: date)
+                    let hrv        = await hkService.fetchHRV(for: date)
                     return WearableSnapshot(date: t.date, steps: t.steps, sleepHours: sleepHours,
-                                           restingHr: t.restingHr, hrv: nil, activeEnergy: nil,
-                                           bodyWeightLbs: nil, bodyFatPct: nil, workouts: [])
+                                           restingHr: t.restingHr, hrv: hrv, activeEnergy: nil,
+                                           bodyWeightLbs: nil, bodyFatPct: nil,
+                                           hrMorning: nil, hrPostWorkout: nil, hrEvening: nil,
+                                           workouts: [])
                 }
             }
             for await snap in group {
@@ -127,13 +134,9 @@ class WatchSyncService: ObservableObject {
         }
 
         for snap in snapshots {
-            guard snap.steps != nil || snap.sleepHours != nil else { continue }
-            let backfill = WearableSnapshot(
-                date: snap.date, steps: snap.steps, sleepHours: snap.sleepHours,
-                restingHr: snap.restingHr, hrv: nil, activeEnergy: nil,
-                bodyWeightLbs: nil, bodyFatPct: nil, workouts: []
-            )
-            try? await APIService.shared.syncWearableData(backfill)
+            guard snap.steps != nil || snap.sleepHours != nil
+               || snap.restingHr != nil || snap.hrv != nil else { continue }
+            try? await APIService.shared.syncWearableData(snap)
         }
     }
 

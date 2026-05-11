@@ -3197,6 +3197,7 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
     @Published var conditionSymbol: String = "cloud.fill"
     @Published var cityName: String = ""
     @Published var lastUpdated: Date? = nil
+    @Published var locationDenied: Bool = false
 
     private let locationManager = CLLocationManager()
 
@@ -3211,8 +3212,11 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
+            locationDenied = false
             locationManager.requestLocation()
-        default:
+        case .denied, .restricted:
+            locationDenied = true
+        @unknown default:
             break
         }
     }
@@ -3233,7 +3237,10 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
             guard let self else { return }
             let status = manager.authorizationStatus
             if status == .authorizedWhenInUse || status == .authorizedAlways {
+                locationDenied = false
                 manager.requestLocation()
+            } else if status == .denied || status == .restricted {
+                locationDenied = true
             }
         }
     }
@@ -3308,6 +3315,20 @@ struct WeatherChipView: View {
                         .foregroundColor(.gray.opacity(0.45))
                         .monospacedDigit()
                 }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color(hex: "11111c"))
+            .cornerRadius(14)
+        } else if vm.locationDenied {
+            HStack(spacing: 8) {
+                Image(systemName: "location.slash.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+                Text("Météo · Activer la localisation dans Réglages")
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray)
+                Spacer()
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)

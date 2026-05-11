@@ -2,6 +2,8 @@ import SwiftUI
 
 struct MoreView: View {
     @ObservedObject private var api = APIService.shared
+    @AppStorage("auto_start_rest_timer") private var autoStartTimer = false
+    @AppStorage("show_rir_column") private var showRIRColumn = false
 
     var body: some View {
         NavigationStack {
@@ -30,6 +32,19 @@ struct MoreView: View {
                         MoreRow(icon: "face.smiling.fill",     color: .mint,   title: "Santé Mentale")    { MentalHealthView() }
                     }
                     .listRowBackground(glassRowBG(.green))
+                    .listRowSeparatorTint(Color.white.opacity(0.06))
+
+                    Section("Préférences séance") {
+                        Toggle(isOn: $autoStartTimer) {
+                            Label("Timer auto après chaque set", systemImage: "timer")
+                        }
+                        .tint(.orange)
+                        Toggle(isOn: $showRIRColumn) {
+                            Label("Afficher la colonne RIR", systemImage: "gauge.medium")
+                        }
+                        .tint(.orange)
+                    }
+                    .listRowBackground(glassRowBG(.orange))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
                     Section("Réglages") {

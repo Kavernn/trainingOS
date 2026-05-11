@@ -256,6 +256,9 @@ struct RecoveryView: View {
             Button("OK", role: .cancel) {}
         } message: { Text(apiError ?? "") }
         .toast($toast)
+        .onChange(of: watchSync.lastSyncCompleted) { _, _ in
+            Task { await loadData() }
+        }
     }
 
     private func loadData() async {

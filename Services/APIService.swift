@@ -888,6 +888,9 @@ class APIService: ObservableObject {
         if let v = snapshot.restingHr     { body["resting_hr"]     = v }
         if let v = snapshot.hrv           { body["hrv"]            = v }
         if let v = snapshot.activeEnergy  { body["active_energy"]  = v }
+        if let v = snapshot.hrMorning     { body["hr_morning"]      = Int(v) }
+        if let v = snapshot.hrPostWorkout { body["hr_post_workout"] = Int(v) }
+        if let v = snapshot.hrEvening     { body["hr_evening"]      = Int(v) }
         // body_weight_lbs intentionally excluded — weight is manual-entry only
 
         let workouts: [[String: Any]] = snapshot.workouts.map { w in

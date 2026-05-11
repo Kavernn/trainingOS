@@ -317,6 +317,9 @@ class HealthKitService: ObservableObject {
         let wkts = await fetchAllWorkouts(days: 1)
         let bw   = await fetchLatestBodyWeight()
         let bf   = await fetchLatestBodyFat()
+        let hrM  = await fetchMorningHR(for: Date())
+        let hrP  = await fetchPostWorkoutHR(for: Date())
+        let hrE  = await fetchEveningHR(for: Date())
 
         let workouts = wkts.map { w -> WearableWorkout in
             let type: String
@@ -335,7 +338,8 @@ class HealthKitService: ObservableObject {
 
         return WearableSnapshot(date: today, steps: s, sleepHours: sl, restingHr: hr,
                                 hrv: h, activeEnergy: ae, bodyWeightLbs: bw,
-                                bodyFatPct: bf, workouts: workouts)
+                                bodyFatPct: bf, hrMorning: hrM, hrPostWorkout: hrP,
+                                hrEvening: hrE, workouts: workouts)
     }
 
     // MARK: - Background Delivery
@@ -437,7 +441,8 @@ class HealthKitService: ObservableObject {
     func fetchTodayHealthSnapshot() async -> WearableSnapshot {
         WearableSnapshot(date: "", steps: nil, sleepHours: nil, restingHr: nil,
                          hrv: nil, activeEnergy: nil, bodyWeightLbs: nil,
-                         bodyFatPct: nil, workouts: [])
+                         bodyFatPct: nil, hrMorning: nil, hrPostWorkout: nil,
+                         hrEvening: nil, workouts: [])
     }
     func enableBackgroundDelivery(onChange: @escaping () -> Void) async {}
 }

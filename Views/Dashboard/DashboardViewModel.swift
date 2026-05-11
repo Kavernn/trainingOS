@@ -22,6 +22,16 @@ final class DashboardViewModel: ObservableObject {
     private var analyticsLoadedDate = ""
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
+    init() {
+        NotificationCenter.default.addObserver(
+            forName: .sessionCompleted,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { await self?.loadAll() }
+        }
+    }
+
     func loadAll() async {
         let today = todayStr
         // sequential — async let LIFO crash on iOS 26 beta

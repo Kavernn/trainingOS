@@ -2069,7 +2069,8 @@ def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
     Only fills in fields that are not already set (manual entries take priority).
     Never overwrites: sleep_quality, soreness, notes.
     """
-    WEARABLE_KEYS = ("steps", "sleep_hours", "resting_hr", "hrv", "active_energy")
+    WEARABLE_KEYS = ("steps", "sleep_hours", "resting_hr", "hrv", "active_energy",
+                     "hr_morning", "hr_post_workout", "hr_evening")
     # Cumulative metrics grow throughout the day — always update from HealthKit
     # unless the entry was manually entered by the user.
     CUMULATIVE_KEYS = {"steps", "active_energy"}

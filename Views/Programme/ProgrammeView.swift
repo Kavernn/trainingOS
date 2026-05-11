@@ -167,6 +167,7 @@ struct ProgrammeView: View {
     // Multi-programmes
     @State private var programs: [ProgramInfo] = []
     @State private var selectedProgramId: String = ""
+    @State private var activeProgramId: String = ""
     @State private var allSessions: [String] = []         // toutes les sessions, tous programmes
     @State private var showCreateProgram = false
     @State private var newProgramName = ""
@@ -249,10 +250,11 @@ struct ProgrammeView: View {
                     ScrollView {
                         VStack(spacing: 16) {
                             // ── Onglets programmes ────────────────────────
-                            if !programs.isEmpty {
+                            if programs.count > 1 {
                                 ProgramTabsView(
                                     programs: programs,
                                     selectedId: $selectedProgramId,
+                                    activeId: activeProgramId,
                                     onAdd: { showCreateProgram = true },
                                     onRename: { p in
                                         renameProgramTarget = p
@@ -633,6 +635,7 @@ struct ProgrammeView: View {
         }
         if let pid = json["current_program_id"] as? String, !pid.isEmpty {
             if selectedProgramId.isEmpty { selectedProgramId = pid }
+            activeProgramId = pid
         }
         if let sessions = json["all_sessions"] as? [String] {
             allSessions = sessions
@@ -1069,31 +1072,48 @@ struct PeriodisationCard: View {
 private struct ProgramTabsView: View {
     let programs: [ProgramInfo]
     @Binding var selectedId: String
+    let activeId: String
     let onAdd: () -> Void
     let onRename: (ProgramInfo) -> Void
     let onDelete: (ProgramInfo) -> Void
 
+    private var sortedPrograms: [ProgramInfo] {
+        programs.sorted { a, _ in a.id == activeId }
+    }
+
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(programs) { prog in
+                ForEach(sortedPrograms) { prog in
                     let isSelected = selectedId == prog.id
-                    Text(prog.name)
-                        .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                        .foregroundColor(isSelected ? .black : .white.opacity(0.7))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .fill(isSelected ? Color.orange : Color.white.opacity(0.08))
-                        )
-                        .onTapGesture { selectedId = prog.id }
-                        .contextMenu {
-                            Button("Renommer") { onRename(prog) }
-                            Button("Supprimer", role: .destructive) { onDelete(prog) }
+                    let isActive   = prog.id == activeId
+
+                    HStack(spacing: 5) {
+                        if isActive {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 6, height: 6)
                         }
+                        Text(prog.name)
+                            .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                            .foregroundColor(
+                                isSelected ? .black
+                                : isActive  ? .white
+                                            : .white.opacity(0.55)
+                            )
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(isSelected ? Color.orange : Color.white.opacity(0.08))
+                    )
+                    .onTapGesture { selectedId = prog.id }
+                    .contextMenu {
+                        Button("Renommer") { onRename(prog) }
+                        Button("Supprimer", role: .destructive) { onDelete(prog) }
+                    }
                 }
-                // Bouton "+"
                 Button(action: onAdd) {
                     Image(systemName: "plus")
                         .font(.system(size: 13, weight: .semibold))

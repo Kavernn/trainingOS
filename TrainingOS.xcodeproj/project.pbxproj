@@ -1035,6 +1035,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Prendre une photo de profil ou scanner une étiquette nutritionnelle";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "VinceSeven lit vos données santé (pas, sommeil, fréquence cardiaque, HRV) pour remplir automatiquement vos entrées de récupération.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "VinceSeven peut écrire votre poids dans l'app Santé.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "VinceSeven utilise ta position pour afficher la météo locale.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choisir une photo de profil";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -1075,6 +1076,7 @@
 				INFOPLIST_KEY_NSCameraUsageDescription = "Prendre une photo de profil ou scanner une étiquette nutritionnelle";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "VinceSeven lit vos données santé (pas, sommeil, fréquence cardiaque, HRV) pour remplir automatiquement vos entrées de récupération.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "VinceSeven peut écrire votre poids dans l'app Santé.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "VinceSeven utilise ta position pour afficher la météo locale.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choisir une photo de profil";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

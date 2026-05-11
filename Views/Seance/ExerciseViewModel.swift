@@ -2,6 +2,10 @@ import SwiftUI
 import Combine
 import UserNotifications
 
+extension Notification.Name {
+    static let sessionCompleted = Notification.Name("trainingos.sessionCompleted")
+}
+
 // MARK: - Shared models (ex-private types in ExerciseCard)
 
 struct SetInput: Identifiable {
@@ -327,7 +331,9 @@ class SeanceViewModel: ObservableObject {
     @Published var logResults: [String: ExerciseLogResult] = [:] {
         didSet { persistDraftIfNeeded() }
     }
-    @Published var showSuccess = false
+    @Published var showSuccess = false {
+        didSet { if showSuccess { NotificationCenter.default.post(name: .sessionCompleted, object: nil) } }
+    }
     @Published var submitError: String?
     @Published var isResuming = false
     @Published var commitWarning: String?
