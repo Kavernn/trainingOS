@@ -7,6 +7,7 @@ struct DashboardView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var vm = DashboardViewModel()
     @StateObject private var weatherVM = WeatherViewModel()
+    @StateObject private var nhlService = NHLService()
     @ObservedObject private var api = APIService.shared
     @ObservedObject private var alertService = AlertService.shared
     @State private var showMoodSheet = false
@@ -40,7 +41,7 @@ struct DashboardView: View {
                 } else if let dash = api.dashboard {
                     VStack(spacing: 0) {
                         ScrollView(showsIndicators: false) {
-                            VStack(alignment: .leading, spacing: 18) {
+                            VStack(alignment: .leading, spacing: 14) {
                                 if let alert = alertService.visibleAlert {
                                     ProactiveBannerCard(alert: alert) {
                                         withAnimation(.easeOut(duration: 0.25)) {
@@ -54,43 +55,46 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0)
 
                                 WeatherChipView(vm: weatherVM)
-                                    .appearAnimation(delay: 0.003)
-
-                                if let score = vm.readinessScore {
-                                    ReadinessScoreCard(score: score, recovery: vm.todayRecovery)
-                                        .appearAnimation(delay: 0.005)
-                                }
+                                    .appearAnimation(delay: 0.05)
 
                                 TodayCardView(
                                     dash: dash,
                                     showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
                                     onOpenSession: onOpenSession
                                 )
-                                .appearAnimation(delay: 0.01)
+                                .appearAnimation(delay: 0.10)
 
-                                NavigationLink(destination: NutritionView()) {
-                                    NutritionStripView(totals: dash.nutritionTotals, settings: dash.nutritionSettings)
-                                }
-                                .buttonStyle(.plain)
-                                .appearAnimation(delay: 0.02)
+                                DailyStreakCard(sessions: dash.sessions)
+                                    .appearAnimation(delay: 0.15)
 
-                                if let rec = vm.todayRecovery,
-                                   rec.sleepHours != nil || rec.restingHr != nil || rec.hrv != nil || rec.steps != nil {
-                                    NavigationLink(destination: RecoveryView()) {
-                                        RecoverySnapshotView(recovery: rec)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .appearAnimation(delay: 0.03)
+                                HabsWidget(service: nhlService)
+                                    .appearAnimation(delay: 0.20)
+
+                                QuoteOfDayView()
+                                    .appearAnimation(delay: 0.25)
+
+                                if let goal = dash.profile.goal, !goal.isEmpty {
+                                    GoalReminderView(goal: goal)
+                                        .appearAnimation(delay: 0.30)
                                 }
+
+                                DailyMetricsRow(
+                                    readinessScore: vm.readinessScore,
+                                    recovery: vm.todayRecovery,
+                                    nutritionTotals: dash.nutritionTotals,
+                                    nutritionSettings: dash.nutritionSettings,
+                                    moodDue: vm.moodDue
+                                )
+                                .appearAnimation(delay: 0.35)
 
                                 WeekProgressStripView(dash: dash)
-                                    .appearAnimation(delay: 0.04)
+                                    .appearAnimation(delay: 0.40)
 
                                 if let report = vm.deload, report.fatigueLevel == 2 {
                                     DeloadBannerView(report: report) {
                                         await applyDeload(report: report)
                                     }
-                                    .appearAnimation(delay: 0.05)
+                                    .appearAnimation(delay: 0.45)
                                 }
                             }
                             .padding(.horizontal, 16)
@@ -104,6 +108,7 @@ struct DashboardView: View {
                             vm.morningBrief   = try? await APIService.shared.fetchMorningBrief()
                             vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
                             weatherVM.requestUpdate()
+                            await nhlService.fetch()
                         }
 
                         QuickLogBar(
@@ -141,12 +146,12 @@ struct DashboardView: View {
             }
             .navigationBarHidden(true)
         }
-        .task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal(); weatherVM.requestUpdate() }
+        .task { await vm.loadAll(); await nhlService.fetchIfNeeded(); lastRefresh = Date(); checkAndShowMorningReveal(); weatherVM.requestUpdate() }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 BehaviorTracker.shared.record(.appOpen)
                 if !api.isLoading, Date().timeIntervalSince(lastRefresh) > 300 {
-                    Task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
+                    Task { await vm.loadAll(); await nhlService.fetchIfNeeded(); lastRefresh = Date(); checkAndShowMorningReveal() }
                 }
             }
         }
