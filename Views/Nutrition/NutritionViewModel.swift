@@ -11,6 +11,7 @@ final class NutritionViewModel: ObservableObject {
     @Published var effectiveCalories: Double? = nil
     @Published var effectiveGlucides: Double? = nil
     @Published var todayType: String? = nil
+    @Published var todaySession: String? = nil
     @Published var isLoading = true
     @Published var networkError: String? = nil
 
@@ -30,6 +31,7 @@ final class NutritionViewModel: ObservableObject {
             effectiveCalories = decoded.effectiveCalories
             effectiveGlucides = decoded.effectiveGlucides
             todayType         = decoded.todayType
+            todaySession      = decoded.todaySession
             networkError = nil
         } catch {
             if entries.isEmpty { networkError = "Impossible de charger la nutrition" }

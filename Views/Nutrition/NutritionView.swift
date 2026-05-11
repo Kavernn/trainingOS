@@ -45,7 +45,7 @@ struct NutritionView: View {
                                 .appearAnimation(delay: 0.08)
 
                             if let dayType = vm.todayType {
-                                DayTypeBadge(type: dayType)
+                                DayTypeBadge(type: dayType, session: vm.todaySession)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.1)
                             }
@@ -1325,14 +1325,15 @@ private struct MacroPreviewPill: View {
 // MARK: - Workout Bonus Badge
 
 struct DayTypeBadge: View {
-    let type: String  // "light" | "moderate" | "heavy" | "rest"
+    let type: String       // "light" | "moderate" | "heavy" | "rest"
+    var session: String?   // e.g. "Upper A", "Legs B"
 
     private var config: (icon: String, label: String, color: Color) {
         switch type {
-        case "heavy":    return ("dumbbell.fill",                              "Jour lourd · surplus léger",    .orange)
-        case "moderate": return ("figure.strengthtraining.traditional",        "Jour modéré · maintenance",     .yellow)
-        case "light":    return ("figure.arms.open",                           "Jour léger · léger déficit",    Color(hex: "00BCD4"))
-        default:         return ("moon.fill",                                  "Jour de repos · déficit",       .indigo)
+        case "heavy":    return ("dumbbell.fill",                       "Lourd · surplus léger",   .orange)
+        case "moderate": return ("figure.strengthtraining.traditional", "Modéré · maintenance",    .yellow)
+        case "light":    return ("figure.arms.open",                    "Léger · léger déficit",   Color(hex: "00BCD4"))
+        default:         return ("moon.fill",                           "Repos · déficit",         .indigo)
         }
     }
 
@@ -1342,9 +1343,18 @@ struct DayTypeBadge: View {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(color)
-            Text(label)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(color)
+            if let s = session, !s.isEmpty {
+                Text(s)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                Text("· \(label)")
+                    .font(.system(size: 12))
+                    .foregroundColor(color)
+            } else {
+                Text(label)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(color)
+            }
             Spacer()
         }
         .padding(.horizontal, 14)

@@ -332,9 +332,9 @@ def api_nutrition_data():
     days     = min(int(request.args.get("days", 7)), 90)
     history  = get_recent_days(days)
 
-    intensity    = _get_day_intensity()
-    dtt          = settings.get("day_type_targets", {})
-    type_target  = dtt.get(intensity, {})
+    intensity, today_session = _get_day_intensity()
+    dtt         = settings.get("day_type_targets", {})
+    type_target = dtt.get(intensity, {})
 
     effective_calories = type_target.get("calories") or settings.get("limite_calories", 2400) or 2400
     effective_glucides = type_target.get("glucides")  or settings.get("glucides", 235) or 235
@@ -345,6 +345,7 @@ def api_nutrition_data():
         "totals":             totals,
         "history":            history,
         "today_type":         intensity,
+        "today_session":      today_session,
         "effective_calories": effective_calories,
         "effective_glucides": effective_glucides,
     })

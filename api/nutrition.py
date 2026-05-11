@@ -80,22 +80,31 @@ _HEAVY_SESSIONS = frozenset({"legs b", "lower a"})
 _LIGHT_SESSIONS = frozenset({"upper a"})
 
 
-def _get_day_intensity() -> str:
-    """Return today's intensity: 'light' | 'moderate' | 'heavy' | 'rest'."""
+def _get_day_intensity() -> tuple[str, str]:
+    """Return (intensity, session_name).
+
+    Intensity: 'light' | 'moderate' | 'heavy' | 'rest'.
+    Session name: actual session started today, or today's scheduled session.
+    """
     try:
-        from planner import load_program, get_today
-        today_str = get_today()
-        # No session key in program → rest day
-        if today_str not in load_program():
-            return "rest"
-        name = today_str.lower()
+        from planner import load_program, get_today, get_today_date
+        program = load_program()
+
+        # Prefer the session actually started today over the schedule
+        actual = db.get_workout_session_by_type(get_today_date(), "morning")
+        session_name = (actual or {}).get("session_name") or get_today()
+
+        if session_name not in program:
+            return "rest", session_name
+
+        name = session_name.lower()
         if any(k in name for k in _HEAVY_SESSIONS):
-            return "heavy"
+            return "heavy", session_name
         if any(k in name for k in _LIGHT_SESSIONS):
-            return "light"
-        return "moderate"
+            return "light", session_name
+        return "moderate", session_name
     except Exception:
-        return "moderate"
+        return "moderate", ""
 
 
 # ── Entries ───────────────────────────────────────────────────────────────────

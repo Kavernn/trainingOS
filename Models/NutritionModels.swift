@@ -104,12 +104,14 @@ struct NutritionDataResponse: Decodable {
     var entries: [NutritionEntry]
     var history: [NutritionDayHistory]
     var todayType: String?
+    var todaySession: String?
     var effectiveCalories: Double?
     var effectiveGlucides: Double?
 
     enum CodingKeys: String, CodingKey {
         case settings, totals, entries, history
         case todayType        = "today_type"
+        case todaySession     = "today_session"
         case effectiveCalories = "effective_calories"
         case effectiveGlucides = "effective_glucides"
     }
