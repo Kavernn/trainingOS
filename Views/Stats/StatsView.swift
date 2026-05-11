@@ -308,7 +308,7 @@ struct StatsView: View {
                 insights.append(("arrow.down.circle.fill", "Fréquence \(pct)% vs 4 semaines précédentes", .orange))
             }
         }
-        if let a = acwr, a.zone.code == "risk" || a.zone.code == "danger" {
+        if let a = acwr, a.zone.code == "caution" || a.zone.code == "danger" {
             insights.append(("exclamationmark.triangle.fill", "ACWR \(String(format: "%.2f", a.ratio)) — charge élevée, récupère", .red))
         }
         if currentStreak > 0 && currentStreak < bestStreak && currentStreak >= bestStreak - 2 {
@@ -954,46 +954,72 @@ struct ACWRCardView: View {
 
     private var zoneColor: Color {
         switch data.zone.code {
-        case "optimal": return .green
-        case "risk":    return .orange
-        case "danger":  return .red
-        case "under":   return .blue
-        default:        return .gray
+        case "optimal":  return .green
+        case "caution":  return .orange
+        case "danger":   return .red
+        case "under":    return .blue
+        default:         return .gray
         }
     }
 
+    private var isLowConfidence: Bool { data.confidence == "low" }
+    private var isEstimate: Bool { data.confidence == "moderate" }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("ACWR — CHARGE AIGUË/CHRONIQUE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-
-            HStack(alignment: .top, spacing: 16) {
-                // Big ratio
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(data.ratio > 0 ? String(format: "%.2f", data.ratio) : "—")
-                        .font(.system(size: 40, weight: .black))
-                        .foregroundColor(zoneColor)
-                    Text(data.zone.label)
-                        .font(.system(size: 11, weight: .bold))
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(zoneColor.opacity(0.2))
-                        .foregroundColor(zoneColor)
+            HStack {
+                Text("ACWR — CHARGE AIGUË/CHRONIQUE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if isEstimate {
+                    Text("ESTIMATION")
+                        .font(.system(size: 8, weight: .bold)).tracking(1)
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Color.orange.opacity(0.15))
+                        .foregroundColor(.orange)
                         .clipShape(Capsule())
                 }
+            }
 
-                Spacer()
-
-                // Loads
-                VStack(alignment: .trailing, spacing: 6) {
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("Aiguë (7j)").font(.system(size: 10)).foregroundColor(.gray)
-                        Text("\(data.acuteLoad, specifier: "%.0f")")
-                            .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+            if isLowConfidence {
+                // Pas assez d'historique — ne pas afficher le ratio
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Données insuffisantes")
+                        .font(.system(size: 20, weight: .bold)).foregroundColor(.gray)
+                    Text("\(data.daysOfData) / 28 jours de données")
+                        .font(.system(size: 12)).foregroundColor(.gray.opacity(0.6))
+                    ProgressView(value: Double(data.daysOfData), total: 28)
+                        .tint(.gray).frame(maxWidth: 160)
+                }
+            } else {
+                HStack(alignment: .top, spacing: 16) {
+                    // Ratio
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(format: "%.2f", data.ratio))
+                            .font(.system(size: 40, weight: .black))
+                            .foregroundColor(zoneColor)
+                        Text(data.zone.label)
+                            .font(.system(size: 11, weight: .bold))
+                            .padding(.horizontal, 8).padding(.vertical, 3)
+                            .background(zoneColor.opacity(0.2))
+                            .foregroundColor(zoneColor)
+                            .clipShape(Capsule())
                     }
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("Chronique (28j)").font(.system(size: 10)).foregroundColor(.gray)
-                        Text("\(data.chronicLoad, specifier: "%.0f")")
-                            .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+
+                    Spacer()
+
+                    // Loads
+                    VStack(alignment: .trailing, spacing: 6) {
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text("Aiguë (7j)").font(.system(size: 10)).foregroundColor(.gray)
+                            Text("\(data.acuteLoad, specifier: "%.0f") AU")
+                                .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                        }
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text("Chronique (28j)").font(.system(size: 10)).foregroundColor(.gray)
+                            Text("\(data.chronicLoad, specifier: "%.0f") AU")
+                                .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                        }
                     }
                 }
             }
@@ -1005,12 +1031,12 @@ struct ACWRCardView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            // 8-week trend sparkline
-            if data.trend.count > 1 {
+            // Sparkline — seulement si données suffisantes
+            if !isLowConfidence, data.trend.count > 1 {
                 ACWRSparkline(trend: data.trend)
             }
         }
-        .padding(16).glassCard(color: zoneColor, intensity: 0.05).cornerRadius(14)
+        .padding(16).glassCard(color: isLowConfidence ? .gray : zoneColor, intensity: 0.05).cornerRadius(14)
     }
 }
 

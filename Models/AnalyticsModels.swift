@@ -124,11 +124,14 @@ struct ACWRData: Codable {
     let chronicLoad: Double
     let zone: ACWRZone
     let trend: [ACWRWeek]
+    let confidence: String  // "low" | "moderate" | "high"
+    let daysOfData: Int
 
     enum CodingKeys: String, CodingKey {
-        case ratio, zone, trend
+        case ratio, zone, trend, confidence
         case acuteLoad   = "acute_load"
         case chronicLoad = "chronic_load"
+        case daysOfData  = "days_of_data"
     }
 }
 
