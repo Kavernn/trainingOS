@@ -88,11 +88,65 @@ All endpoints are unauthenticated (see #A1 in audit). JSON responses unless note
 
 | Method | Path | Body | Description |
 |--------|------|------|-------------|
-| GET | `/api/nutrition_data` | — | Entries, totals, settings, history |
+| GET | `/api/nutrition_data` | — | Entries, totals, settings, history + day-type targets |
 | POST | `/api/nutrition/add` | `{name, calories, proteines, glucides, lipides, meal_type, heure}` | Add nutrition entry |
 | POST | `/api/nutrition/edit` | `{entry_id, name, calories, proteines, glucides, lipides, meal_type}` | Edit entry |
 | POST | `/api/nutrition/delete` | `{entry_id}` | Delete entry |
-| POST | `/api/nutrition/settings` | `{limite_calories, objectif_proteines, glucides, lipides}` | Update daily targets |
+| POST | `/api/nutrition/settings` | `{limite_calories, objectif_proteines, glucides, lipides, day_type_targets}` | Update daily targets |
+
+### `GET /api/nutrition_data` — Détail réponse
+
+```json
+{
+  "settings": {
+    "limite_calories": 2400,
+    "objectif_proteines": 180,
+    "glucides": 235,
+    "lipides": 75,
+    "day_type_targets": {
+      "light":    { "calories": 2200, "glucides": 185 },
+      "moderate": { "calories": 2400, "glucides": 235 },
+      "heavy":    { "calories": 2550, "glucides": 270 },
+      "rest":     { "calories": 2100, "glucides": 160 }
+    }
+  },
+  "today_type": "light",
+  "today_session": "Upper A",
+  "effective_calories": 2200,
+  "effective_glucides": 185,
+  "totals": { "calories": 1450, "proteines": 120, "glucides": 140, "lipides": 52 },
+  "entries": [...],
+  "history": [...]
+}
+```
+
+**`today_type`** : `"light"` | `"moderate"` | `"heavy"` | `"rest"`
+
+Dérivé du `session_name` de la séance démarrée aujourd'hui (`workout_sessions`), avec fallback sur le schedule hebdomadaire. Classifier :
+
+| Session (substring) | Intensité |
+|---|---|
+| `"upper a"` | `light` |
+| `"legs b"`, `"lower a"` | `heavy` |
+| Toute autre séance avec clé dans le programme | `moderate` |
+| Pas de clé dans le programme | `rest` |
+
+### `POST /api/nutrition/settings` — Body complet
+
+```json
+{
+  "limite_calories": 2400,
+  "objectif_proteines": 180,
+  "glucides": 235,
+  "lipides": 75,
+  "day_type_targets": {
+    "light":    { "calories": 2200, "glucides": 185 },
+    "moderate": { "calories": 2400, "glucides": 235 },
+    "heavy":    { "calories": 2550, "glucides": 270 },
+    "rest":     { "calories": 2100, "glucides": 160 }
+  }
+}
+```
 
 ---
 

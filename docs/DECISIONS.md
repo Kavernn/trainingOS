@@ -136,3 +136,23 @@ Les agents doivent ajouter une entrée lors de tout changement architectural maj
 **Décision** : Tiers de confiance ACWR (`"low"` / `"moderate"` / `"high"`) exposés dans la réponse API et affichés côté iOS.
 
 **Raison** : Un ratio calculé sur 3 jours de données n'est pas interprétable. Le tier `"low"` (< 7 jours) masque le ratio et affiche une barre de progression ; `"moderate"` (7–28 jours) ajoute un badge "ESTIMATION" ; `"high"` (> 28 jours) affichage normal. Évite d'induire l'utilisateur en erreur pendant la période d'initialisation.
+
+---
+
+## 2026-05-11
+
+**Décision** : Cibles nutritionnelles en **4 niveaux d'intensité** (`light` / `moderate` / `heavy` / `rest`) stockées dans une colonne JSONB `day_type_targets` sur `nutrition_settings`, en remplacement du split binaire `training_calories` / `rest_calories`.
+
+**Raison** : Le split binaire entraînement/repos ne capture pas la variance glycémique réelle d'un programme UL/PPL. Un jour Legs B (composés lourds) et un jour Upper A (isolation) ont des besoins en glucides radicalement différents (~270 g vs ~185 g). Quatre niveaux permettent un carb cycling précis calqué sur l'intensité réelle de la séance. Une colonne JSONB évite de multiplier les colonnes scalaires (8 colonnes pour 4 niveaux × 2 macros).
+
+---
+
+**Décision** : Le classifier d'intensité lit `workout_sessions.session_name` (séance réellement démarrée) en priorité sur le schedule hebdomadaire.
+
+**Raison** : Si l'utilisateur swap deux jours (ex. fait Legs B un lundi au lieu de Upper A), les cibles nutritionnelles doivent s'adapter à ce qu'il fait réellement, pas à ce qui était planifié. Fallback sur le schedule si aucune séance n'a encore été démarrée aujourd'hui.
+
+---
+
+**Décision** : Classification par nom de session (substring match sur `_HEAVY_SESSIONS` / `_LIGHT_SESSIONS`) plutôt que par analyse des exercices (`get_strength_exercises`).
+
+**Raison** : `get_strength_exercises` retourne vide pour les sessions en format blocks (UL/PPL v2), ce qui classifiait tous les jours d'entraînement en `rest`. La classification par nom est robuste au format de stockage et reflète l'intention du programme (le nom "Legs B" implique lourd, "Upper A" implique léger) sans dépendre de la structure interne des données.

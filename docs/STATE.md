@@ -1,6 +1,6 @@
 # État du projet — TrainingOS
 
-Dernière mise à jour : 2026-05-11
+Dernière mise à jour : 2026-05-11 (nutrition carb cycling)
 
 ---
 
@@ -74,6 +74,15 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 - `CardInfoButton` + `InfoSheetView` : bouton ⓘ contextuel sur les cards LSS, déload, prévision 7j, volume landmarks (MEV/MAV/MRV), condition du jour
 - `ProactiveBannerCard` : bannière dismissable en tête du Dashboard pour les alertes proactives
 
+### Nutrition — Carb cycling 4 niveaux (2026-05-11)
+
+- **Cibles par type de journée** : `light` (2 200 kcal / 185 g glucides) · `moderate` (2 400 / 235 g) · `heavy` (2 550 / 270 g) · `rest` (2 100 / 160 g). Protéines 180 g et lipides 75 g fixes tous les jours.
+- **Classifier** (`api/nutrition.py`) : lit `workout_sessions.session_name` (séance réellement démarrée aujourd'hui) en priorité sur le schedule. Fallback schedule si rien démarré. Classification par substring : `"upper a"` → `light` · `"legs b"` / `"lower a"` → `heavy` · toute autre séance → `moderate` · pas de clé programme → `rest`.
+- **API** : `GET /api/nutrition_data` retourne `today_type` (4 valeurs), `today_session` (nom de la séance), `effective_calories` et `effective_glucides` calculés selon le type du jour.
+- **DB** : colonne JSONB `day_type_targets` ajoutée à `nutrition_settings` (migration 021). `training_calories` / `rest_calories` retirés.
+- **iOS** : `DayTypeTargets` + `DayTarget` structs dans `NutritionModels.swift`. `NutritionDataResponse` expose `effectiveGlucides` + `todaySession`. `effectiveSettings` override calories ET glucides. `DayTypeBadge` affiche le nom de la séance + niveau (4 couleurs). `NutritionSettingsSheet` redessiné : section macros fixes (prot/lip) + tableau 4 lignes cal+glucides.
+- **Macros cibles actuelles** (Vincent, 184.1 lbs, recomposition) : prot 180 g · lip 75 g · glucides cyclés selon intensité · ratio 2.15 g/kg protéines.
+
 ### Santé & récupération
 - Recovery modifiable (LogRecoverySheet avec prefillEntry, FAB adaptatif)
 - Nutrition : édition d'entrée (EditNutritionSheet, endpoint /api/nutrition/edit)
@@ -144,6 +153,7 @@ La version PWA/Capacitor a été abandonnée au profit d'une app Swift pure.
 | 012_workout_sessions_completed | `docs/migrations/012_workout_sessions_completed.sql` | ✅ Appliquée (2026-04-16) + backfill rpe IS NOT NULL |
 | 013_nutrition_scan | `docs/migrations/013_nutrition_scan.sql` | ✅ Appliquée |
 | 020_soft_delete_exercises | `docs/migrations/020_soft_delete_exercises.sql` | ✅ Appliquée (2026-05-10) |
+| 021_day_type_targets | `docs/migrations/021_day_type_targets.sql` | ✅ Appliquée (2026-05-11) |
 
 ---
 
