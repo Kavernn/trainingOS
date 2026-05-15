@@ -54,11 +54,14 @@ struct BonusSeanceView: View {
     @State private var inventory: [String] = []
     @State private var showAddExercise = false
     @State private var showFinish = false
+    @State private var showUnloggedWarning = false
+    @State private var confirmedFromWarning = false
     @State private var rpe: Double = 7
     @State private var comment = ""
     @State private var isLoading = true
     @ObservedObject private var timer = RestTimerManager.shared
     @State private var sessionStart = Date()
+    @State private var sessionStarted = false
     @State private var expandedExercises: Set<String> = []
     @State private var lastScrollY: CGFloat? = nil
 
@@ -141,6 +144,16 @@ struct BonusSeanceView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
 
+                        // Start banner
+                        if !sessionStarted {
+                            StartSessionBanner {
+                                sessionStart = Date()
+                                sessionStarted = true
+                            }
+                            .padding(.horizontal, 16)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+
                         // Exercise cards
                         if localExercises.isEmpty {
                             VStack(spacing: 12) {
@@ -166,7 +179,14 @@ struct BonusSeanceView: View {
 
                         // Terminer — visible dès qu'au moins 1 exercice est loggé
                         if !vm.logResults.isEmpty {
-                            Button { showFinish = true } label: {
+                            Button {
+                                let unlogged = orderedExercises.filter { vm.logResults[$0] == nil }
+                                if unlogged.isEmpty {
+                                    showFinish = true
+                                } else {
+                                    showUnloggedWarning = true
+                                }
+                            } label: {
                                 HStack {
                                     Image(systemName: "checkmark.circle.fill")
                                     Text("Terminer la séance")
@@ -215,6 +235,20 @@ struct BonusSeanceView: View {
             }
         }
         .task { await loadInventory() }
+        .sheet(isPresented: $showUnloggedWarning) {
+            WorkoutSummarySheet(
+                exercises: orderedExercises,
+                logResults: vm.logResults
+            ) {
+                confirmedFromWarning = true
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .onChange(of: showUnloggedWarning) { _, isShowing in
+            guard !isShowing, confirmedFromWarning else { return }
+            confirmedFromWarning = false
+            showFinish = true
+        }
         .sheet(isPresented: $showAddExercise) {
             AddExerciseSheet(
                 seance: "Bonus",

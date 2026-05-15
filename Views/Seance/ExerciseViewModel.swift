@@ -78,6 +78,7 @@ final class ExerciseViewModel: ObservableObject {
     @Published var isSkipped = false
     @Published var sessionNote: String = ""
 
+    @Published private(set) var draftSavedAt: Date? = nil
     private var cancellables = Set<AnyCancellable>()
 
     init(name: String, scheme: String, weightData: WeightData?, equipmentType: String = "machine",
@@ -169,6 +170,7 @@ final class ExerciseViewModel: ObservableObject {
         let draft = sets.map { DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe) }
         if let data = try? JSONEncoder().encode(draft) {
             UserDefaults.standard.set(data, forKey: draftKey)
+            draftSavedAt = Date()
         }
     }
 
@@ -472,6 +474,15 @@ class SeanceViewModel: ObservableObject {
             }
             BehaviorTracker.shared.record(.sessionEnd)
             showSuccess = true
+        }
+    }
+
+    func startSession() {
+        guard !sessionStarted else { return }
+        sessionStart = Date()
+        sessionStarted = true
+        if let date = seanceData?.todayDate {
+            SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
         }
     }
 

@@ -168,6 +168,7 @@ struct ProgrammeView: View {
     @State private var programs: [ProgramInfo] = []
     @State private var selectedProgramId: String = ""
     @State private var activeProgramId: String = ""
+    @State private var isSettingActive = false
     @State private var allSessions: [String] = []         // toutes les sessions, tous programmes
     @State private var showCreateProgram = false
     @State private var newProgramName = ""
@@ -266,6 +267,33 @@ struct ProgrammeView: View {
                                     }
                                 )
                                 .padding(.horizontal, 16)
+
+                                if !selectedProgramId.isEmpty, selectedProgramId != activeProgramId {
+                                    Button {
+                                        Task { await setActiveProgramme() }
+                                    } label: {
+                                        HStack(spacing: 8) {
+                                            if isSettingActive {
+                                                ProgressView().tint(.white).scaleEffect(0.8)
+                                            } else {
+                                                Image(systemName: "checkmark.seal.fill")
+                                                    .font(.system(size: 13))
+                                            }
+                                            Text("Définir comme programme actif")
+                                                .font(.system(size: 13, weight: .semibold))
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(Color.green.opacity(0.15))
+                                        .foregroundColor(.green)
+                                        .cornerRadius(10)
+                                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.green.opacity(0.3), lineWidth: 1))
+                                    }
+                                    .buttonStyle(.plain)
+                                    .disabled(isSettingActive)
+                                    .padding(.horizontal, 16)
+                                    .transition(.move(edge: .top).combined(with: .opacity))
+                                }
                             }
 
                             EditableWeekScheduleCard(
@@ -831,6 +859,32 @@ struct ProgrammeView: View {
                 selectedProgramId = pid
                 fullProgram = [:]
                 exerciseOrder = [:]
+            }
+        } catch {
+            await MainActor.run { lastSaveError = true }
+        }
+    }
+
+    private func setActiveProgramme() async {
+        guard !selectedProgramId.isEmpty else { return }
+        await MainActor.run { isSettingActive = true }
+        defer { Task { @MainActor in isSettingActive = false } }
+        guard let url = URL(string: "\(kBaseURL)/api/programs") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["action": "set_active", "program_id": selectedProgramId])
+        do {
+            let (_, resp) = try await URLSession.authed.data(for: req)
+            guard let http = resp as? HTTPURLResponse, http.statusCode < 400 else {
+                await MainActor.run { lastSaveError = true }
+                return
+            }
+            CacheService.shared.clear(for: "seance_data")
+            await MainActor.run {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    activeProgramId = selectedProgramId
+                }
             }
         } catch {
             await MainActor.run { lastSaveError = true }

@@ -1092,6 +1092,8 @@ struct WorkoutSeanceView: View {
     @State private var comment = ""
     @State private var showFinish = false
     @State private var showFinishConfirm = false
+    @State private var showUnloggedWarning = false
+    @State private var confirmedFromWarning = false
     @State private var showSummary = false
     @State private var ghostData: GhostData? = nil
     @State private var showGhost = true
@@ -1121,6 +1123,7 @@ struct WorkoutSeanceView: View {
     @State private var showCreateVariant = false
 
     @State private var addTarget: SeanceName?
+    @State private var showAddLocal = false   // session-only add (doesn't touch programme)
     @State private var editTarget: ExerciseTarget?
     @State private var isEditMode = false
     @State private var orderSaveError = false
@@ -1147,6 +1150,9 @@ struct WorkoutSeanceView: View {
 
     // Mid-workout intelligence
     @State private var dismissedAdviceId: String? = nil
+
+    // Session override (calendrier)
+    @State private var showSessionPicker = false
 
     // Optional add-ons
     @State private var showAddCardio = false
@@ -1379,6 +1385,23 @@ struct WorkoutSeanceView: View {
                 .cornerRadius(8)
                 .padding(.horizontal, 16)
             }
+
+            // Add exercise — session-local only, doesn't modify the programme
+            Button { showAddLocal = true } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill").foregroundColor(.orange.opacity(0.7))
+                    Text("Ajouter un exercice")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.orange.opacity(0.7))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.orange.opacity(0.06))
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.18), lineWidth: 1))
+            }
+            .buttonStyle(SpringButtonStyle())
+            .padding(.horizontal, 16)
         }
     }
 
@@ -1574,7 +1597,8 @@ struct WorkoutSeanceView: View {
             onSwap: {
                 swapPending = name
                 showSwapSheet = true
-            }
+            },
+            movementPattern: inventoryPatterns[name] ?? ""
         )
         card
             .id(name)
@@ -1726,10 +1750,20 @@ struct WorkoutSeanceView: View {
                 VStack(spacing: 6) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(data.today.uppercased())
-                                .font(.system(size: 13, weight: .black))
-                                .tracking(3)
-                                .foregroundColor(.orange)
+                            Button {
+                                showSessionPicker = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(data.today.uppercased())
+                                        .font(.system(size: 13, weight: .black))
+                                        .tracking(3)
+                                        .foregroundColor(.orange)
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(.orange.opacity(0.6))
+                                }
+                            }
+                            .buttonStyle(.plain)
                             if let meso = data.mesocycle {
                                 MesocycleChip(info: meso)
                             } else {
@@ -1739,21 +1773,22 @@ struct WorkoutSeanceView: View {
                             }
                         }
                         Spacer()
-                        TimelineView(.periodic(from: vm.sessionStart, by: 1)) { ctx in
-                            let elapsed = vm.sessionStarted
-                                ? max(0, ctx.date.timeIntervalSince(vm.sessionStart))
-                                : 0
-                            let mm = Int(elapsed) / 60
-                            let ss = Int(elapsed) % 60
-                            HStack(spacing: 3) {
-                                Image(systemName: "clock").font(.system(size: 10))
-                                Text(String(format: "%d:%02d", mm, ss))
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        if vm.sessionStarted {
+                            TimelineView(.periodic(from: vm.sessionStart, by: 1)) { ctx in
+                                let elapsed = max(0, ctx.date.timeIntervalSince(vm.sessionStart))
+                                let mm = Int(elapsed) / 60
+                                let ss = Int(elapsed) % 60
+                                HStack(spacing: 3) {
+                                    Image(systemName: "clock").font(.system(size: 10))
+                                    Text(String(format: "%d:%02d", mm, ss))
+                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                }
+                                .foregroundColor(.cyan.opacity(0.75))
+                                .padding(.horizontal, 7).padding(.vertical, 4)
+                                .background(Color.cyan.opacity(0.08))
+                                .cornerRadius(6)
                             }
-                            .foregroundColor(.cyan.opacity(0.75))
-                            .padding(.horizontal, 7).padding(.vertical, 4)
-                            .background(Color.cyan.opacity(0.08))
-                            .cornerRadius(6)
+                            .transition(.opacity)
                         }
                         Button {
                             withAnimation { showSummary.toggle() }
@@ -1839,6 +1874,13 @@ struct WorkoutSeanceView: View {
                     .cornerRadius(10)
                     .padding(.horizontal, 16)
                     .transition(.opacity)
+                }
+
+                // Start banner — shown on fresh session before first log
+                if !vm.sessionStarted && !vm.isResuming {
+                    StartSessionBanner { vm.startSession() }
+                        .padding(.horizontal, 16)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 // Ghost mode banner
@@ -1942,7 +1984,22 @@ struct WorkoutSeanceView: View {
             let canFinish = !vm.logResults.isEmpty
             VStack(spacing: 0) {
                 Divider().background(Color.white.opacity(0.08))
-                Button(action: { showFinishConfirm = true }) {
+                if !canFinish {
+                    Text("Loggue au moins 1 exercice pour terminer")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray.opacity(0.45))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 8)
+                        .transition(.opacity)
+                }
+                Button(action: {
+                    let unlogged = exercises.filter { vm.logResults[$0.0] == nil }
+                    if unlogged.isEmpty {
+                        showFinishConfirm = true
+                    } else {
+                        showUnloggedWarning = true
+                    }
+                }) {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
                         Text("Terminer la séance").font(.system(size: 15, weight: .semibold))
@@ -1958,13 +2015,29 @@ struct WorkoutSeanceView: View {
                     )
                 }
                 .disabled(!canFinish)
+                .animation(.easeInOut(duration: 0.2), value: canFinish)
                 .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .padding(.bottom, timer.isVisible ? 72 : 0)
+                .padding(.top, canFinish ? 10 : 6)
+                .padding(.bottom, timer.isVisible ? 72 : 10)
             }
             .background(.ultraThinMaterial)
         }
         .onAppear { scrollProxy = proxy }
+        .sheet(isPresented: $showUnloggedWarning) {
+            WorkoutSummarySheet(
+                exercises: exercises.map(\.0),
+                logResults: vm.logResults
+            ) {
+                confirmedFromWarning = true
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .onChange(of: showUnloggedWarning) { _, isShowing in
+            guard !isShowing, confirmedFromWarning else { return }
+            confirmedFromWarning = false
+            preloadAIAnalysis()
+            showFinish = true
+        }
         .sheet(isPresented: $showFinish) {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
@@ -2072,10 +2145,27 @@ struct WorkoutSeanceView: View {
                 Task { await addExercise(ex, scheme: scheme) }
             }
         }
+        .sheet(isPresented: $showAddLocal) {
+            AddExerciseSheet(seance: data.today, inventory: inventory, inventorySchemes: [:]) { ex, scheme in
+                // Local-only: adds to this session without modifying the programme
+                localProgram[ex] = scheme
+            }
+        }
         .sheet(item: $editTarget) { target in
             EditSchemeSheet(target: target) { newName, newScheme in
                 Task { await editExercise(oldName: target.exercise, newName: newName, scheme: newScheme) }
             }
+        }
+        .sheet(isPresented: $showSessionPicker) {
+            SessionPickerSheet(
+                currentSession: data.today,
+                availableSessions: Array(data.fullProgram.keys).sorted()
+            ) { selected in
+                Task {
+                    await setSessionOverride(selected)
+                }
+            }
+            .presentationDetents([.medium])
         }
         .sheet(isPresented: $showAddCardio) {
             AddCardioSheet { cardioCount += 1 }
@@ -2126,7 +2216,17 @@ struct WorkoutSeanceView: View {
             }
         }
         .onAppear {
-            Task { await loadInventory() }
+            Task {
+                await loadInventory()
+                await MainActor.run {
+                    guard expandedExercises.isEmpty else { return }
+                    let logged = Set(vm.logResults.keys)
+                    if let first = exercises.first(where: { !logged.contains($0.0) })?.0 {
+                        expandedExercises.insert(first)
+                        lastOpenedExercise = first
+                    }
+                }
+            }
             computeGhost()
             guard !didLoadPreCoaching else { return }
             didLoadPreCoaching = true
@@ -2309,6 +2409,17 @@ struct WorkoutSeanceView: View {
                 await MainActor.run { localProgram[oldName] = scheme }
             }
         }
+
+        private func setSessionOverride(_ session: String) async {
+            guard let url = URL(string: "\(APIService.shared.baseURL)/api/session_override") else { return }
+            var req = URLRequest(url: url)
+            req.httpMethod = "POST"
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.httpBody = try? JSONSerialization.data(withJSONObject: ["session": session])
+            _ = try? await URLSession.authed.data(for: req)
+            CacheService.shared.clear(for: "seance_data")
+            await vm.load()
+        }
 }
 
 // MARK: - Mesocycle Chip
@@ -2348,6 +2459,50 @@ struct MesocycleChip: View {
         .background(color.opacity(0.1))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.25), lineWidth: 1))
         .cornerRadius(6)
+    }
+}
+
+// MARK: - Start Session Banner
+
+struct StartSessionBanner: View {
+    let onStart: () -> Void
+    @State private var pressed = false
+
+    var body: some View {
+        Button(action: {
+            triggerNotificationFeedback(.success)
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { onStart() }
+        }) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.orange)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Commencer la séance")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.white)
+                    Text("Le chrono démarre maintenant")
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.orange.opacity(0.6))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color.orange.opacity(0.07))
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.orange.opacity(0.25), lineWidth: 1))
+        }
+        .buttonStyle(SpringButtonStyle(scale: 0.97))
     }
 }
 
@@ -2769,19 +2924,81 @@ struct AddHIITSheet: View {
 }
 
 
-    // MARK: - Summary Sheet (confirmation before commit)
+// MARK: - Session Picker Sheet
+struct SessionPickerSheet: View {
+    let currentSession: String
+    let availableSessions: [String]
+    let onSelect: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color(hex: "080810").ignoresSafeArea()
+                VStack(spacing: 0) {
+                    VStack(spacing: 6) {
+                        Text("Changer de séance")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.top, 20)
+                        Text("Séance active aujourd'hui")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                    }
+                    .padding(.bottom, 16)
+
+                    VStack(spacing: 0) {
+                        ForEach(availableSessions, id: \.self) { session in
+                            let isActive = session == currentSession
+                            Button {
+                                if !isActive {
+                                    onSelect(session)
+                                }
+                                dismiss()
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 17))
+                                        .foregroundColor(isActive ? .orange : .gray.opacity(0.4))
+                                    Text(session)
+                                        .font(.system(size: 15, weight: isActive ? .semibold : .regular))
+                                        .foregroundColor(isActive ? .white : .white.opacity(0.75))
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 14)
+                            }
+                            .buttonStyle(.plain)
+                            if session != availableSessions.last {
+                                Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 20)
+                            }
+                        }
+                    }
+                    .background(Color(hex: "11111c"))
+                    .cornerRadius(14)
+                    .padding(.horizontal, 20)
+
+                    Spacer()
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                }
+            }
+        }
+    }
+}
+
+
+    // MARK: - Unlogged Warning Sheet (shown before FinishSessionSheet when exercises are missing)
     struct WorkoutSummarySheet: View {
         let exercises: [String]
         let logResults: [String: ExerciseLogResult]
         var onConfirm: () -> Void
         @Environment(\.dismiss) private var dismiss
 
-        var loggedExercises: [(String, ExerciseLogResult)] {
-            exercises.compactMap { name in
-                guard let r = logResults[name] else { return nil }
-                return (name, r)
-            }
-        }
         var unloggedExercises: [String] {
             exercises.filter { logResults[$0] == nil }
         }
@@ -2790,104 +3007,71 @@ struct AddHIITSheet: View {
             NavigationStack {
                 ZStack {
                     Color(hex: "080810").ignoresSafeArea()
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            // Header
-                            VStack(spacing: 6) {
-                                Image(systemName: loggedExercises.count == exercises.count
-                                      ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(loggedExercises.count == exercises.count ? .green : .orange)
-                                Text("Récapitulatif")
-                                    .font(.system(size: 22, weight: .bold)).foregroundColor(.white)
-                                Text("\(loggedExercises.count) / \(exercises.count) exercices loggués")
-                                    .font(.system(size: 14)).foregroundColor(.gray)
-                            }
-                            .padding(.top, 20)
-
-                            // Logged exercises
-                            if !loggedExercises.isEmpty {
-                                VStack(alignment: .leading, spacing: 0) {
-                                    Text("LOGGUÉS")
-                                        .font(.system(size: 10, weight: .bold)).tracking(2)
-                                        .foregroundColor(.gray)
-                                        .padding(.horizontal, 16).padding(.bottom, 8)
-                                    VStack(spacing: 0) {
-                                        ForEach(loggedExercises, id: \.0) { name, result in
-                                            HStack {
-                                                Image(systemName: "checkmark.circle.fill")
-                                                    .font(.system(size: 14))
-                                                    .foregroundColor(.green)
-                                                Text(name)
-                                                    .font(.system(size: 14, weight: .medium))
-                                                    .foregroundColor(.white)
-                                                Spacer()
-                                                Text("\(String(format: "%.0f", result.weight))lbs · \(result.reps)")
-                                                    .font(.system(size: 13))
-                                                    .foregroundColor(.gray)
-                                            }
-                                            .padding(.horizontal, 16).padding(.vertical, 12)
-                                            if name != loggedExercises.last?.0 {
-                                                Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
-                                            }
-                                        }
-                                    }
-                                    .background(Color(hex: "11111c")).cornerRadius(14)
-                                    .padding(.horizontal, 20)
-                                }
-                            }
-
-                            // Unlogged exercises warning
-                            if !unloggedExercises.isEmpty {
-                                VStack(alignment: .leading, spacing: 0) {
-                                    Text("NON LOGGUÉS")
-                                        .font(.system(size: 10, weight: .bold)).tracking(2)
+                    VStack(spacing: 0) {
+                        ScrollView {
+                            VStack(spacing: 20) {
+                                // Header
+                                VStack(spacing: 10) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .font(.system(size: 44))
                                         .foregroundColor(.orange)
-                                        .padding(.horizontal, 16).padding(.bottom, 8)
-                                    VStack(spacing: 0) {
-                                        ForEach(unloggedExercises, id: \.self) { name in
-                                            HStack {
-                                                Image(systemName: "minus.circle")
-                                                    .font(.system(size: 14))
-                                                    .foregroundColor(.orange.opacity(0.7))
-                                                Text(name)
-                                                    .font(.system(size: 14))
-                                                    .foregroundColor(.gray)
-                                                Spacer()
-                                            }
-                                            .padding(.horizontal, 16).padding(.vertical, 12)
-                                            if name != unloggedExercises.last {
-                                                Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
-                                            }
+                                        .padding(.top, 28)
+                                    Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggué\(unloggedExercises.count > 1 ? "s" : "")")
+                                        .font(.system(size: 20, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Text("Ces exercices ne seront pas enregistrés.\nVeux-tu continuer quand même ?")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.gray)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .padding(.horizontal, 24)
+
+                                // Unlogged list
+                                VStack(spacing: 0) {
+                                    ForEach(unloggedExercises, id: \.self) { name in
+                                        HStack(spacing: 12) {
+                                            Image(systemName: "minus.circle")
+                                                .font(.system(size: 16))
+                                                .foregroundColor(.orange.opacity(0.6))
+                                            Text(name)
+                                                .font(.system(size: 15))
+                                                .foregroundColor(.white.opacity(0.75))
+                                            Spacer()
+                                        }
+                                        .padding(.horizontal, 20).padding(.vertical, 14)
+                                        if name != unloggedExercises.last {
+                                            Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 20)
                                         }
                                     }
-                                    .background(Color(hex: "11111c")).cornerRadius(14)
-                                    .padding(.horizontal, 20)
                                 }
-                            }
-
-                            // CTA
-                            VStack(spacing: 10) {
-                                Button(action: {
-                                    dismiss()
-                                    onConfirm()
-                                }) {
-                                    Text(loggedExercises.isEmpty
-                                         ? "Terminer sans exercices"
-                                         : "Confirmer et logger ces \(loggedExercises.count) exercice(s)")
-                                        .font(.system(size: 16, weight: .bold))
-                                        .frame(maxWidth: .infinity).padding(.vertical, 14)
-                                        .background(loggedExercises.isEmpty ? Color.gray.opacity(0.3) : Color.orange)
-                                        .foregroundColor(.white).cornerRadius(14)
-                                }
+                                .background(Color(hex: "11111c"))
+                                .cornerRadius(14)
                                 .padding(.horizontal, 20)
-
-                                Button("Continuer la séance", action: { dismiss() })
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.orange)
                             }
-                            .padding(.bottom, 32)
+                            .padding(.bottom, 16)
                         }
+
+                        // CTAs — pinned to bottom
+                        VStack(spacing: 10) {
+                            Divider().background(Color.white.opacity(0.07))
+                            Button(action: {
+                                onConfirm()
+                                dismiss()
+                            }) {
+                                Text("Terminer quand même")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .frame(maxWidth: .infinity).padding(.vertical, 14)
+                                    .background(Color.orange)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(14)
+                            }
+                            .padding(.horizontal, 20)
+                            Button("Retourner à la séance") { dismiss() }
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(.orange)
+                                .padding(.bottom, 20)
+                        }
+                        .background(Color(hex: "080810"))
                     }
                 }
                 .navigationBarTitleDisplayMode(.inline)
@@ -2918,6 +3102,7 @@ struct AddHIITSheet: View {
         @State private var pendingEnergy: Int? = nil
         @State private var aiAnalysis: String? = nil
         @State private var isLoadingAI = false
+        @State private var showExtras = false
 
         private var hasUnsavedData: Bool { !comment.isEmpty || energyPre != 3 }
 
@@ -2990,49 +3175,6 @@ struct AddHIITSheet: View {
                             }
                             .background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
 
-                            // Énergie pré-séance — affichage si pré-rempli, saisie sinon
-                            if let pre = preEnergy {
-                                HStack(spacing: 10) {
-                                    Text("ÉNERGIE AVANT").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                    Spacer()
-                                    HStack(spacing: 3) {
-                                        ForEach(1...5, id: \.self) { i in
-                                            Image(systemName: i <= pre ? "bolt.fill" : "bolt")
-                                                .font(.system(size: 16))
-                                                .foregroundColor(i <= pre ? energyColor(pre) : .gray.opacity(0.25))
-                                        }
-                                    }
-                                    Text(energyLabel(pre))
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(energyColor(pre))
-                                }
-                                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
-                            } else {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    HStack {
-                                        Text("ÉNERGIE AVANT LA SÉANCE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        Spacer()
-                                        Text(energyLabel(energyPre))
-                                            .font(.system(size: 13, weight: .bold))
-                                            .foregroundColor(energyColor(energyPre))
-                                    }
-                                    HStack(spacing: 8) {
-                                        ForEach(1...5, id: \.self) { i in
-                                            Button(action: { energyPre = i }) {
-                                                VStack(spacing: 4) {
-                                                    Image(systemName: i <= energyPre ? "bolt.fill" : "bolt")
-                                                        .font(.system(size: 20))
-                                                        .foregroundColor(i <= energyPre ? energyColor(energyPre) : .gray.opacity(0.3))
-                                                    Text("\(i)").font(.system(size: 9)).foregroundColor(.gray)
-                                                }
-                                            }
-                                            .frame(maxWidth: .infinity)
-                                        }
-                                    }
-                                }
-                                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
-                            }
-                            
                             // Effort global — saisie via RIR tiles
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("EFFORT GLOBAL").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
@@ -3057,45 +3199,108 @@ struct AddHIITSheet: View {
                             }
                             .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             
-                            // Notes
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("NOTES").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                TextField("Commentaire optionnel...", text: $comment, axis: .vertical)
-                                    .foregroundColor(.white).tint(.orange)
-                                    .lineLimit(3, reservesSpace: true)
-                                    .submitLabel(.done)
-                                    .onSubmit { hideKeyboard() }
-                                    .padding(12).background(Color(hex: "191926")).cornerRadius(10)
-                            }
-                            .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
-
-                            // IA analyse post-séance
-                            VStack(alignment: .leading, spacing: 8) {
-                                Button(action: loadAIAnalysis) {
-                                    HStack(spacing: 6) {
-                                        if isLoadingAI {
-                                            ProgressView().tint(.purple).scaleEffect(0.7)
-                                        } else {
-                                            Image(systemName: "brain.head.profile").font(.system(size: 13))
+                            // Énergie — affichage inline si déjà saisie pendant la séance
+                            if let pre = preEnergy {
+                                HStack(spacing: 10) {
+                                    Text("ÉNERGIE AVANT").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    Spacer()
+                                    HStack(spacing: 3) {
+                                        ForEach(1...5, id: \.self) { i in
+                                            Image(systemName: i <= pre ? "bolt.fill" : "bolt")
+                                                .font(.system(size: 16))
+                                                .foregroundColor(i <= pre ? energyColor(pre) : .gray.opacity(0.25))
                                         }
-                                        Text(isLoadingAI ? "Analyse en cours…" : aiAnalysis == nil ? "Analyse IA post-séance" : "Relancer l'analyse")
-                                            .font(.system(size: 13, weight: .medium))
                                     }
-                                    .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                    .background(Color.purple.opacity(0.12))
-                                    .foregroundColor(.purple)
-                                    .cornerRadius(10)
+                                    Text(energyLabel(pre))
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(energyColor(pre))
                                 }
-                                .disabled(isLoadingAI)
-
-                                if let analysis = aiAnalysis {
-                                    Text(analysis)
-                                        .font(.system(size: 13)).foregroundColor(.white.opacity(0.85))
-                                        .padding(12).background(Color.purple.opacity(0.08))
-                                        .cornerRadius(10)
-                                }
+                                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
                             }
-                            .padding(.horizontal, 20)
+
+                            // Extras collapsible (notes, IA — ou énergie si pas encore saisie)
+                            let extrasLabel = preEnergy != nil ? "Notes · Analyse IA" : "Énergie · Notes · Analyse IA"
+                            Button(action: { withAnimation(.easeInOut(duration: 0.2)) { showExtras.toggle() } }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: showExtras ? "chevron.up" : "chevron.down")
+                                        .font(.system(size: 10, weight: .semibold))
+                                    Text(showExtras ? "Masquer les options" : extrasLabel)
+                                        .font(.system(size: 12, weight: .medium))
+                                    Spacer()
+                                }
+                                .foregroundColor(.gray.opacity(0.6))
+                                .padding(.horizontal, 20)
+                            }
+                            .buttonStyle(.plain)
+
+                            if showExtras {
+                                // Énergie — uniquement si pas encore saisie (séance bonus)
+                                if preEnergy == nil {
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        HStack {
+                                            Text("ÉNERGIE AVANT LA SÉANCE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                            Spacer()
+                                            Text(energyLabel(energyPre))
+                                                .font(.system(size: 13, weight: .bold))
+                                                .foregroundColor(energyColor(energyPre))
+                                        }
+                                        HStack(spacing: 8) {
+                                            ForEach(1...5, id: \.self) { i in
+                                                Button(action: { energyPre = i }) {
+                                                    VStack(spacing: 4) {
+                                                        Image(systemName: i <= energyPre ? "bolt.fill" : "bolt")
+                                                            .font(.system(size: 20))
+                                                            .foregroundColor(i <= energyPre ? energyColor(energyPre) : .gray.opacity(0.3))
+                                                        Text("\(i)").font(.system(size: 9)).foregroundColor(.gray)
+                                                    }
+                                                }
+                                                .frame(maxWidth: .infinity)
+                                            }
+                                        }
+                                    }
+                                    .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+                                }
+
+                                // Notes
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("NOTES").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    TextField("Commentaire optionnel...", text: $comment, axis: .vertical)
+                                        .foregroundColor(.white).tint(.orange)
+                                        .lineLimit(3, reservesSpace: true)
+                                        .submitLabel(.done)
+                                        .onSubmit { hideKeyboard() }
+                                        .padding(12).background(Color(hex: "191926")).cornerRadius(10)
+                                }
+                                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+
+                                // IA analyse post-séance
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Button(action: loadAIAnalysis) {
+                                        HStack(spacing: 6) {
+                                            if isLoadingAI {
+                                                ProgressView().tint(.purple).scaleEffect(0.7)
+                                            } else {
+                                                Image(systemName: "brain.head.profile").font(.system(size: 13))
+                                            }
+                                            Text(isLoadingAI ? "Analyse en cours…" : aiAnalysis == nil ? "Analyse IA post-séance" : "Relancer l'analyse")
+                                                .font(.system(size: 13, weight: .medium))
+                                        }
+                                        .frame(maxWidth: .infinity).padding(.vertical, 10)
+                                        .background(Color.purple.opacity(0.12))
+                                        .foregroundColor(.purple)
+                                        .cornerRadius(10)
+                                    }
+                                    .disabled(isLoadingAI)
+
+                                    if let analysis = aiAnalysis {
+                                        Text(analysis)
+                                            .font(.system(size: 13)).foregroundColor(.white.opacity(0.85))
+                                            .padding(12).background(Color.purple.opacity(0.08))
+                                            .cornerRadius(10)
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                            }
 
                             // Soumission partielle — visible si des exercices ne sont pas loggués
                             if loggedCount < exercises.count && loggedCount > 0 {
