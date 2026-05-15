@@ -493,7 +493,7 @@ struct BodyWeightEntry: Codable, Identifiable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         date     = try c.decode(String.self, forKey: .date)
         weight   = (try? c.decode(Double.self, forKey: .weight))
-                ?? Double(try c.decode(String.self, forKey: .weight))
+                ?? Double((try? c.decode(String.self, forKey: .weight)) ?? "")
                 ?? 0
         bodyFat  = Self.decodeOptionalDouble(c, key: .bodyFat)
         waistCm  = Self.decodeOptionalDouble(c, key: .waistCm)
