@@ -70,7 +70,7 @@ struct IntelligenceView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
 
                 VStack(spacing: 0) {
                     // Hero: mission card only
@@ -2234,7 +2234,7 @@ struct ProgramPreviewSheet: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "080810").ignoresSafeArea()
+            Color.appBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Header
@@ -2402,7 +2402,7 @@ struct ProgramPreviewSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 14)
                 .background(
-                    Color(hex: "080810")
+                    Color.appBg
                         .shadow(color: .black.opacity(0.5), radius: 20, y: -8)
                 )
             }

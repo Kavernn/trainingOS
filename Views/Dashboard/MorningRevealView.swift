@@ -41,7 +41,7 @@ struct MorningRevealView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "080810").ignoresSafeArea()
+            Color.appBg.ignoresSafeArea()
 
             RadialGradient(
                 colors: [accentColor.opacity(showReveal ? 0.18 : 0), Color.clear],
@@ -148,7 +148,7 @@ struct MorningRevealView: View {
                     Button(action: onDismiss) {
                         Text("Commencer la journée")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(Color(hex: "080810"))
+                            .foregroundColor(Color.appBg)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(accentColor)

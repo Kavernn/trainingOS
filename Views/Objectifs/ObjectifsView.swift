@@ -378,7 +378,7 @@ struct SmartGoalCard: View {
                     .font(.system(size: 12)).foregroundColor(.gray)
             }
             .padding(16)
-            .background(RoundedRectangle(cornerRadius: 16).fill(Color(hex: "11111c")))
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color.appCard))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(goal.color.opacity(0.18), lineWidth: 1))
 
             if celebrate {
@@ -442,7 +442,7 @@ struct AddGoalSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 20) {
                         // Mode picker
@@ -736,7 +736,7 @@ struct EditGoalSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 VStack(spacing: 20) {
                     Text(obj.exercise)
                         .font(.system(size: 22, weight: .bold))

@@ -145,7 +145,9 @@ final class WearableAggregator {
 
     private init() {
         Task { @MainActor in
-            sources = [HealthKitWearable(), GarminWearable(), StravaWearable(), FitbitWearable()]
+            sources = [HealthKitWearable()]
+            // Garmin / Strava / Fitbit placeholders kept for future OAuth implementation —
+            // not included in sources until connected (isConnected always returns false).
         }
     }
 

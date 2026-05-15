@@ -64,7 +64,7 @@ struct MoreView: View {
 
     private func glassRowBG(_ color: Color) -> some View {
         ZStack {
-            Color(hex: "11111c")
+            Color.appCard
             LinearGradient(
                 colors: [color.opacity(0.04), .clear],
                 startPoint: .leading, endPoint: .trailing

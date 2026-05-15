@@ -264,7 +264,7 @@ struct ProteinProgressCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -317,7 +317,7 @@ struct WeeklyProteinChart: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 
@@ -378,7 +378,7 @@ struct WeeklyCalorieChart: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 
@@ -551,7 +551,7 @@ struct WeeklyNutritionChart: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -625,7 +625,7 @@ struct MacroSummaryCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -745,7 +745,7 @@ struct GroupedEntryList: View {
                             )
                         }
                     }
-                    .background(Color(hex: "11111c"))
+                    .background(Color.appCard)
                     .cornerRadius(10)
                 }
             }
@@ -803,7 +803,7 @@ struct NutritionEntryRow: View {
             }
         }
         .padding(12)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(10)
         .confirmationDialog("Supprimer \(entry.name ?? "cet aliment") ?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { onDelete() }
@@ -893,7 +893,7 @@ struct AddNutritionSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 Form {
                     Section("REPAS") {
                         Picker("", selection: $mealType) {
@@ -905,7 +905,7 @@ struct AddNutritionSheet: View {
                         .pickerStyle(.segmented)
                         .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     if !manualMode {
                         // ── Repas sauvegardés ────────────────────────────
@@ -954,7 +954,7 @@ struct AddNutritionSheet: View {
                                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             }
                         }
-                        .listRowBackground(Color(hex: "11111c"))
+                        .listRowBackground(Color.appCard)
 
                         // ── Chips catalogue ─────────────────────────────
                         Section(header: HStack {
@@ -991,7 +991,7 @@ struct AddNutritionSheet: View {
                                 .padding(.vertical, 6)
                                 .background(Color.white.opacity(0.06))
                                 .cornerRadius(8)
-                                .listRowBackground(Color(hex: "11111c"))
+                                .listRowBackground(Color.appCard)
 
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
@@ -1052,7 +1052,7 @@ struct AddNutritionSheet: View {
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                         }
-                        .listRowBackground(Color(hex: "11111c"))
+                        .listRowBackground(Color.appCard)
 
                     } else {
                         // ── Mode manuel ────────────────────────────────
@@ -1071,13 +1071,13 @@ struct AddNutritionSheet: View {
                                 TextField("Calories (kcal)", text: $manCal).keyboardType(.decimalPad).foregroundColor(.white)
                                 Text("kcal").foregroundColor(.gray).font(.system(size: 13))
                             }
-                        }.listRowBackground(Color(hex: "11111c"))
+                        }.listRowBackground(Color.appCard)
 
                         Section("MACROS (g) — optionnel") {
                             TextField("Protéines", text: $manProt).keyboardType(.decimalPad).foregroundColor(.white)
                             TextField("Glucides",  text: $manGluc).keyboardType(.decimalPad).foregroundColor(.white)
                             TextField("Lipides",   text: $manLip).keyboardType(.decimalPad).foregroundColor(.white)
-                        }.listRowBackground(Color(hex: "11111c"))
+                        }.listRowBackground(Color.appCard)
 
                         Section {
                             Button {
@@ -1093,7 +1093,7 @@ struct AddNutritionSheet: View {
                             }
                             .buttonStyle(.plain)
                         }
-                        .listRowBackground(Color(hex: "11111c"))
+                        .listRowBackground(Color.appCard)
                     }
 
                 }
@@ -1159,10 +1159,15 @@ struct AddNutritionSheet: View {
     private func logTemplate(_ template: MealTemplate) {
         isLoggingTemplate = true
         Task {
-            try? await APIService.shared.logMealTemplate(template.id, mealType: mealType)
-            await onSaved()
-            isLoggingTemplate = false
-            dismiss()
+            do {
+                try await APIService.shared.logMealTemplate(template.id, mealType: mealType)
+                await onSaved()
+                isLoggingTemplate = false
+                dismiss()
+            } catch {
+                barcodeError = "Erreur lors de l'enregistrement du repas — réessaie"
+                isLoggingTemplate = false
+            }
         }
     }
 
@@ -1258,17 +1263,17 @@ struct EditNutritionSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 Form {
                     Section("Aliment") {
                         TextField("Nom", text: $name).foregroundColor(.white)
                         TextField("Calories (kcal)", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
-                    }.listRowBackground(Color(hex: "11111c"))
+                    }.listRowBackground(Color.appCard)
                     Section("Macros (g)") {
                         TextField("Protéines", text: $proteines).keyboardType(.decimalPad).foregroundColor(.white)
                         TextField("Glucides",  text: $glucides).keyboardType(.decimalPad).foregroundColor(.white)
                         TextField("Lipides",   text: $lipides).keyboardType(.decimalPad).foregroundColor(.white)
-                    }.listRowBackground(Color(hex: "11111c"))
+                    }.listRowBackground(Color.appCard)
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -1451,7 +1456,7 @@ struct DailyRemainingCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -1525,7 +1530,7 @@ struct AdherenceScoreCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -1645,7 +1650,7 @@ struct NutritionPatternsCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -1709,7 +1714,7 @@ struct NutritionCorrelationsCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
         .task {
             guard let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition/correlations"),
@@ -1914,7 +1919,7 @@ struct NutritionSettingsSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 Form {
                     Section(header: Text("MACROS FIXES (TOUS LES JOURS)")) {
                         HStack {
@@ -1926,7 +1931,7 @@ struct NutritionSettingsSheet: View {
                             Text("g lipides").foregroundColor(.pink).font(.system(size: 13))
                         }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     Section(header: Text("OBJECTIFS PAR TYPE DE JOURNÉE")) {
                         DayTypeRow(icon: "dumbbell.fill",                       color: .orange,
@@ -1942,7 +1947,7 @@ struct NutritionSettingsSheet: View {
                                    label: "Repos",    calPlaceholder: "2100",   glucPlaceholder: "160",
                                    cal: $restCalT,    gluc: $restGluc)
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -2083,7 +2088,7 @@ struct ScanLabelSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 switch step {
                 case .capture:  captureView
                 case .analyzing: analyzingView
@@ -2215,7 +2220,7 @@ struct ScanLabelSheet: View {
                     TextField("Calories", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
                     Text("kcal").foregroundColor(.gray).font(.system(size: 13))
                 }
-            }.listRowBackground(Color(hex: "11111c"))
+            }.listRowBackground(Color.appCard)
 
             Section("MACROS") {
                 HStack {
@@ -2230,7 +2235,7 @@ struct ScanLabelSheet: View {
                     TextField("Lipides", text: $lipides).keyboardType(.decimalPad).foregroundColor(.white)
                     Text("g").foregroundColor(.gray).font(.system(size: 13))
                 }
-            }.listRowBackground(Color(hex: "11111c"))
+            }.listRowBackground(Color.appCard)
 
             if p(fibres) > 0 || p(sodium) > 0 {
                 Section("INFORMATIF") {
@@ -2244,7 +2249,7 @@ struct ScanLabelSheet: View {
                         Spacer()
                         Text("\(sodium)mg").foregroundColor(.white)
                     }
-                }.listRowBackground(Color(hex: "11111c"))
+                }.listRowBackground(Color.appCard)
             }
 
             Section("REPAS") {
@@ -2256,13 +2261,13 @@ struct ScanLabelSheet: View {
                 }
                 .pickerStyle(.segmented)
                 .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
-            }.listRowBackground(Color(hex: "11111c"))
+            }.listRowBackground(Color.appCard)
 
             Section {
                 Button("← Refaire le scan") {
                     withAnimation { step = .capture; errorMsg = nil }
                 }.foregroundColor(.gray)
-            }.listRowBackground(Color(hex: "11111c"))
+            }.listRowBackground(Color.appCard)
         }
         .scrollContentBackground(.hidden)
         .scrollDismissesKeyboard(.interactively)
@@ -2367,7 +2372,7 @@ struct MealTemplateListSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 if isLoading {
                     ProgressView().tint(.white)
                 } else if templates.isEmpty {
@@ -2399,7 +2404,7 @@ struct MealTemplateListSheet: View {
                                         .font(.system(size: 12)).foregroundColor(.gray)
                                 }
                             }
-                            .listRowBackground(Color(hex: "11111c"))
+                            .listRowBackground(Color.appCard)
                         }
                         .onDelete { idxs in
                             let toDelete = idxs.map { templates[$0] }
@@ -2478,13 +2483,13 @@ struct MealTemplateEditorSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 Form {
                     Section("NOM") {
                         TextField("Ex: Petit déjeuner protéiné", text: $name)
                             .foregroundColor(.white)
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     Section(header: HStack {
                         Text("ALIMENTS")
@@ -2515,7 +2520,7 @@ struct MealTemplateEditorSheet: View {
                         }
                         .onDelete { items.remove(atOffsets: $0) }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     if showAddItem {
                         Section("NOUVEL ALIMENT") {
@@ -2556,7 +2561,7 @@ struct MealTemplateEditorSheet: View {
                             .foregroundColor(.orange)
                             .disabled(newItemName.isEmpty)
                         }
-                        .listRowBackground(Color(hex: "11111c"))
+                        .listRowBackground(Color.appCard)
                     }
 
                     if !items.isEmpty {
@@ -2568,7 +2573,7 @@ struct MealTemplateEditorSheet: View {
                                     .font(.system(size: 13)).foregroundColor(.orange)
                             }
                         }
-                        .listRowBackground(Color(hex: "11111c"))
+                        .listRowBackground(Color.appCard)
                     }
                 }
                 .scrollContentBackground(.hidden)

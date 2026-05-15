@@ -158,4 +158,30 @@ class APIService: ObservableObject {
             }
         }
     }
+
+    // MARK: - Coach Memory (server-side sync)
+
+    func fetchCoachMemory() async throws -> [[String: Any]] {
+        guard let url = URL(string: "\(baseURL)/api/coach/memory") else { throw URLError(.badURL) }
+        let (data, resp) = try await URLSession.authed.data(for: URLRequest(url: url))
+        if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
+            throw APIError.serverError(http.statusCode, "fetchCoachMemory HTTP \(http.statusCode)")
+        }
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return json?["entries"] as? [[String: Any]] ?? []
+    }
+
+    func saveCoachMemory(_ entries: [[String: Any]]) async throws {
+        guard let url = URL(string: "\(baseURL)/api/coach/memory") else { throw URLError(.badURL) }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONSerialization.data(withJSONObject: ["entries": entries])
+        req.timeoutInterval = 15
+        let (data, resp) = try await URLSession.authed.data(for: req)
+        if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["error"] as? String
+            throw APIError.serverError(http.statusCode, msg ?? "saveCoachMemory HTTP \(http.statusCode)")
+        }
+    }
 }

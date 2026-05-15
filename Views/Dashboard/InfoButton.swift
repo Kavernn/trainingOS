@@ -33,7 +33,7 @@ struct InfoSheetView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(entries, id: \.term) { entry in
@@ -48,7 +48,7 @@ struct InfoSheetView: View {
                             }
                             .padding(14)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(hex: "11111c"))
+                            .background(Color.appCard)
                             .cornerRadius(12)
                         }
                     }

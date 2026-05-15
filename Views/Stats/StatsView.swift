@@ -538,7 +538,7 @@ struct StatsView: View {
                 }
                 Spacer()
             }
-            .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+            .padding(14).background(Color.appCard).cornerRadius(14)
             .padding(.horizontal, 16)
         }
 
@@ -731,7 +731,7 @@ struct StatsView: View {
                     .foregroundColor(.white).tint(.orange)
             }
             .padding(12)
-            .background(Color(hex: "11111c")).cornerRadius(12)
+            .background(Color.appCard).cornerRadius(12)
             .padding(.horizontal, 16)
 
             ForEach(exercisesWithHistory, id: \.0) { name, data in
@@ -1238,7 +1238,7 @@ struct BadgesView: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.15), lineWidth: 1))
         .cornerRadius(14)
     }
@@ -1518,7 +1518,7 @@ struct HIITStatsSection: View {
                     }
                     .frame(height: 60)
                 }
-                .padding(12).background(Color(hex: "11111c")).cornerRadius(10)
+                .padding(12).background(Color.appCard).cornerRadius(10)
             }
         }
         .padding(16).glassCard(color: .red, intensity: 0.04).cornerRadius(14)
@@ -1575,7 +1575,7 @@ struct RPEChartView: View {
                 }
             }
         }
-        .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+        .padding(16).background(Color.appCard).cornerRadius(14)
     }
 
     private func rpeColor(_ rpe: Double) -> Color { RPEHelper.color(for: rpe) }
@@ -1654,7 +1654,7 @@ struct ExerciseDetailView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 16) {
                         VStack(spacing: 4) {
@@ -1693,7 +1693,7 @@ struct ExerciseDetailView: View {
                                     Divider().background(Color.white.opacity(0.06))
                                 }
                             }
-                            .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+                            .padding(16).background(Color.appCard).cornerRadius(14)
                             .padding(.horizontal, 16)
                         }
                     }
@@ -1926,7 +1926,7 @@ struct EnergyTrendView: View {
                 Text("5 = Excellent").font(.system(size: 9)).foregroundColor(.green)
             }
         }
-        .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+        .padding(16).background(Color.appCard).cornerRadius(14)
     }
 
     private func energyColor(_ v: Int) -> Color { v >= 4 ? .green : v == 3 ? .yellow : .red }
@@ -2070,7 +2070,7 @@ struct NutritionComplianceChart: View {
                 }
             }
         }
-        .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+        .padding(16).background(Color.appCard).cornerRadius(14)
     }
 
     private func shortDate(_ d: String) -> String {
@@ -2119,7 +2119,7 @@ struct RPEDistributionView: View {
             }
             .frame(height: 100)
         }
-        .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+        .padding(16).background(Color.appCard).cornerRadius(14)
     }
 }
 
@@ -2236,7 +2236,7 @@ struct StrengthCurveChart: View {
                 .frame(height: 180)
             }
         }
-        .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+        .padding(16).background(Color.appCard).cornerRadius(14)
     }
 }
 
@@ -2419,7 +2419,7 @@ struct PRTrackerView: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -2506,7 +2506,7 @@ struct ProteinComplianceView: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 
@@ -2562,7 +2562,7 @@ struct MacrosBreakdownView: View {
                 }
             }
         }
-        .padding(16).background(Color(hex: "11111c")).cornerRadius(14)
+        .padding(16).background(Color.appCard).cornerRadius(14)
     }
 }
 
@@ -2655,7 +2655,7 @@ struct MuscleVolumeView: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -2813,7 +2813,7 @@ struct StatsTabBar: View {
             }
         }
         .padding(4)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -2869,7 +2869,7 @@ struct SmartInsightsBanner: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.25), lineWidth: 1))
     }
@@ -2911,7 +2911,7 @@ struct TonnageBarChartView: View {
             .frame(height: 90)
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 
@@ -2977,7 +2977,7 @@ struct PatternVolumeView: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 
@@ -3027,7 +3027,7 @@ struct ComplianceProgrammeView: View {
             .frame(height: 75)
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3102,7 +3102,7 @@ struct OneRMTrendView: View {
             .frame(height: 80)
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3154,7 +3154,7 @@ struct RPEProgressionView: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3189,7 +3189,7 @@ struct RIRByExerciseView: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3230,7 +3230,7 @@ struct HIITCompletionView: View {
             .frame(height: 70)
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3304,7 +3304,7 @@ struct RecoveryCompositeScoreView: View {
             .frame(height: 80)
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3395,7 +3395,7 @@ struct ScatterPlotView: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3451,7 +3451,7 @@ struct ProteinWeightRatioView: View {
                 .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3472,7 +3472,7 @@ struct MacrosDayTypeView: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 
@@ -3572,7 +3572,7 @@ struct MoodStressTrendView: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3614,7 +3614,7 @@ struct SelfCareStreaksView: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -3663,7 +3663,7 @@ struct PSSHistoryView: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 

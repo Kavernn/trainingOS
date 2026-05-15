@@ -79,7 +79,7 @@ struct SeanceSoirView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
 
                 if vm.isLoading {
                     ProgressView().tint(.indigo)

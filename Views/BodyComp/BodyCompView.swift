@@ -302,7 +302,7 @@ struct CompositionChartCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -376,7 +376,7 @@ struct WHRCard: View {
                 .font(.system(size: 11)).foregroundColor(.gray)
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -462,7 +462,7 @@ struct MeasurementsCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -573,7 +573,7 @@ struct ComparisonTableCard: View {
                 }
             }
             .padding(16)
-            .background(Color(hex: "11111c"))
+            .background(Color.appCard)
             .cornerRadius(14)
         )
     }
@@ -632,7 +632,7 @@ struct BodyWeightRow: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(10)
         .confirmationDialog("Supprimer cette entrée ?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { onDelete() }
@@ -667,7 +667,7 @@ struct BodyWeightSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
 
                 ScrollView {
                     VStack(spacing: 16) {
@@ -778,7 +778,7 @@ struct BodyWeightSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 8)
                 .buttonStyle(SpringButtonStyle())
-                .background(Color(hex: "080810").opacity(0.95))
+                .background(Color.appBg.opacity(0.95))
             }
             .navigationTitle(isEdit ? "Modifier" : "Ajouter poids")
             .navigationBarTitleDisplayMode(.inline)
@@ -1034,7 +1034,7 @@ struct WeightChartView: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }

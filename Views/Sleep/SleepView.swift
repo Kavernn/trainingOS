@@ -78,7 +78,7 @@ struct SleepView: View {
                                     }
                                     .padding(12)
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color(hex: "11111c"))
+                                    .background(Color.appCard)
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                 }
                             }
@@ -231,7 +231,7 @@ private struct SleepKPI: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
@@ -282,7 +282,7 @@ private struct SleepTodayCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -335,7 +335,7 @@ private struct SleepBarChart: View {
             .frame(height: 140)
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
@@ -395,7 +395,7 @@ private struct SleepHistoryRow: View {
             }
         }
         .padding(12)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 

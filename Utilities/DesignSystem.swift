@@ -11,7 +11,7 @@ struct GlassCard: ViewModifier {
             .background(
                 ZStack {
                     RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(Color(hex: "11111c"))
+                        .fill(Color.appCard)
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(
                             LinearGradient(
@@ -46,7 +46,7 @@ struct GlassCardAccent: ViewModifier {
             .background(
                 ZStack {
                     RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(Color(hex: "11111c"))
+                        .fill(Color.appCard)
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(
                             LinearGradient(
@@ -128,7 +128,7 @@ struct FAB: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color.orange, Color(hex: "e05500")],
+                            colors: [Color.orange, Color(red: 0.878, green: 0.333, blue: 0)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -238,7 +238,7 @@ struct AmbientBackground: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "080810")
+            Color.appBg
             RadialGradient(
                 colors: [color.opacity(0.12), .clear],
                 center: .topTrailing,

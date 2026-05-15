@@ -301,7 +301,7 @@ struct NavyCalculatorView: View {
         }
         .foregroundColor(.white)
         .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(Color(hex: "11111c").opacity(0.95))
+        .background(Color.appCard.opacity(0.95))
         .clipShape(Capsule())
         .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
     }

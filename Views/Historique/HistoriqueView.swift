@@ -433,7 +433,7 @@ struct TimelineRow: View {
             Spacer()
         }
         .padding(12)
-        .background(Color(hex: "11111c")).cornerRadius(12)
+        .background(Color.appCard).cornerRadius(12)
     }
 }
 
@@ -451,7 +451,7 @@ struct MonthPickerSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 VStack(spacing: 20) {
                     DatePicker("Mois", selection: $pickerDate, displayedComponents: [.date])
                         .datePickerStyle(.graphical)
@@ -605,7 +605,7 @@ struct MuscuSessionCard: View {
                 }
             }
         }
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
         .confirmationDialog("Supprimer cette séance ?", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -702,7 +702,7 @@ struct HIITSessionCard: View {
                 }
             }
         }
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.12), lineWidth: 1))
         .confirmationDialog("Supprimer cette séance HIIT ?", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -785,7 +785,7 @@ struct EditSessionSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 20) {
                         // RPE
@@ -804,7 +804,7 @@ struct EditSessionSheet: View {
                                 .tint(.orange)
                         }
                         .padding(16)
-                        .background(Color(hex: "11111c"))
+                        .background(Color.appCard)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
 
                         // Exercises
@@ -844,7 +844,7 @@ struct EditSessionSheet: View {
                                 }
                             }
                             .padding(16)
-                            .background(Color(hex: "11111c"))
+                            .background(Color.appCard)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
 
@@ -859,7 +859,7 @@ struct EditSessionSheet: View {
                                 .font(.system(size: 14))
                                 .foregroundColor(.white)
                                 .padding(12)
-                                .background(Color(hex: "11111c"))
+                                .background(Color.appCard)
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
@@ -925,14 +925,14 @@ struct EditHIITSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("ROUNDS").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
                             Stepper("\(rounds) rounds", value: $rounds, in: 1...20)
                                 .foregroundColor(.white)
-                                .padding(12).background(Color(hex: "11111c")).clipShape(RoundedRectangle(cornerRadius: 12))
+                                .padding(12).background(Color.appCard).clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
                         VStack(alignment: .leading, spacing: 8) {
@@ -948,7 +948,7 @@ struct EditHIITSheet: View {
                             Text("NOTES").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
                             TextField("Notes…", text: $notes, axis: .vertical)
                                 .lineLimit(3...5).font(.system(size: 14)).foregroundColor(.white)
-                                .padding(12).background(Color(hex: "11111c")).clipShape(RoundedRectangle(cornerRadius: 12))
+                                .padding(12).background(Color.appCard).clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
                         Button {

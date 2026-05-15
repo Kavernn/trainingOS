@@ -779,7 +779,7 @@ struct ExerciseCard: View {
             // MARK: Expanded content
             if isExpanded { expandedContent }
         }
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(borderColor, lineWidth: 1))
         .onAppear {

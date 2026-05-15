@@ -122,7 +122,7 @@ struct DashboardView: View {
                         .overlay(alignment: .top) {
                             Rectangle().fill(Color.white.opacity(0.07)).frame(height: 0.5)
                         }
-                        .background(Color(hex: "080810").opacity(0.96).ignoresSafeArea(edges: .bottom))
+                        .background(Color.appBg.opacity(0.96).ignoresSafeArea(edges: .bottom))
                     }
                 } else if let err = api.error {
                     VStack(spacing: 16) {
@@ -2528,7 +2528,7 @@ struct DataGapCard: View {
                 .foregroundColor(color.opacity(0.6))
         }
         .padding(12)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
     }

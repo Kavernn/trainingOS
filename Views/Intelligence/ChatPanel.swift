@@ -82,7 +82,7 @@ struct ChatPanel<Placeholder: View>: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 6)
                 }
-                .background(Color(hex: "080810"))
+                .background(Color.appBg)
             }
 
             Rectangle()
@@ -127,7 +127,7 @@ struct ChatPanel<Placeholder: View>: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
-            .background(Color(hex: "080810"))
+            .background(Color.appBg)
         }
         .frame(maxHeight: .infinity)
     }

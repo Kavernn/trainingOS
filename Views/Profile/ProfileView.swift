@@ -25,7 +25,7 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 if isLoading {
                     ProgressView().tint(.orange)
                 } else {
@@ -254,7 +254,7 @@ struct ProfileView: View {
             .padding(.top, 4)
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 
@@ -269,7 +269,7 @@ struct ProfileView: View {
                 }
             }
             .padding(16)
-            .background(Color(hex: "11111c"))
+            .background(Color.appCard)
             .cornerRadius(14)
             .padding(.horizontal, 16)
         }
@@ -406,7 +406,7 @@ struct ProfileStatCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
     }
 }
@@ -483,7 +483,7 @@ struct EditProfileSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 Form {
                     Section("Identité") {
                         LabeledContent("Nom") {
@@ -503,7 +503,7 @@ struct EditProfileSheet: View {
                                 .foregroundColor(.white)
                         }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
                     .foregroundColor(.gray)
 
                     Section("Mesures") {
@@ -528,7 +528,7 @@ struct EditProfileSheet: View {
                                 .foregroundColor(.white)
                         }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
                     .foregroundColor(.gray)
 
                     Section("Programme") {
@@ -543,7 +543,7 @@ struct EditProfileSheet: View {
                                 .foregroundColor(.white)
                         }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
                     .foregroundColor(.gray)
                 }
                 .scrollContentBackground(.hidden)

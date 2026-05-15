@@ -33,7 +33,7 @@ struct ProgressionSuggestionsSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()  // F10
+                Color.appBg.ignoresSafeArea()  // F10
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
 
@@ -189,11 +189,15 @@ struct ProgressionSuggestionsSheet: View {
         undoVisible = false
         applied.remove(info.name)
         Task {
-            try? await APIService.shared.applyProgression(
-                exerciseName: info.name,
-                suggestedWeight: info.weight,
-                suggestedScheme: nil
-            )
+            do {
+                try await APIService.shared.applyProgression(
+                    exerciseName: info.name,
+                    suggestedWeight: info.weight,
+                    suggestedScheme: nil
+                )
+            } catch {
+                print("[Progression] undo apply failed for \(info.name): \(error)")
+            }
         }
     }
 }

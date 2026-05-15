@@ -592,7 +592,7 @@ struct TimerStepperRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }

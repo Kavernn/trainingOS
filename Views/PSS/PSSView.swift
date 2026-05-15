@@ -349,7 +349,7 @@ struct PSSHistoryRow: View {
                 .padding([.horizontal, .bottom], 12)
             }
         }
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(12)
     }
 }
@@ -678,7 +678,7 @@ struct PSSQuestionCard: View {
             selectorRow
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(12)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -785,7 +785,7 @@ struct TriggerRatingSection: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(12)
     }
 }

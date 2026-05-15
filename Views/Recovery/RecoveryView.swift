@@ -295,21 +295,25 @@ struct RecoveryView: View {
 
             guard newRHR != nil || newHRV != nil else { continue }
 
-            try? await APIService.shared.logRecovery(
-                sleepHours:    entry.sleepHours,
-                sleepQuality:  entry.sleepQuality,
-                restingHr:     newRHR ?? entry.restingHr,
-                hrv:           newHRV ?? entry.hrv,
-                steps:         entry.steps,
-                soreness:      entry.soreness,
-                activeEnergy:  entry.activeEnergy,
-                hrMorning:     entry.hrMorning,
-                hrPostWorkout: entry.hrPostWorkout,
-                hrEvening:     entry.hrEvening,
-                notes:         entry.notes ?? "",
-                date:          dateStr
-            )
-            updated += 1
+            do {
+                try await APIService.shared.logRecovery(
+                    sleepHours:    entry.sleepHours,
+                    sleepQuality:  entry.sleepQuality,
+                    restingHr:     newRHR ?? entry.restingHr,
+                    hrv:           newHRV ?? entry.hrv,
+                    steps:         entry.steps,
+                    soreness:      entry.soreness,
+                    activeEnergy:  entry.activeEnergy,
+                    hrMorning:     entry.hrMorning,
+                    hrPostWorkout: entry.hrPostWorkout,
+                    hrEvening:     entry.hrEvening,
+                    notes:         entry.notes ?? "",
+                    date:          dateStr
+                )
+                updated += 1
+            } catch {
+                print("[Recovery] backfill failed for \(dateStr): \(error)")
+            }
         }
 
         await loadData()
@@ -405,7 +409,7 @@ struct RecoveryRow: View {
             .buttonStyle(.plain)
         }
         .padding(12)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(12)
         .confirmationDialog("Supprimer cette entrée ?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { onDelete() }
@@ -849,7 +853,7 @@ struct LogRecoverySheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 18) {
 
@@ -857,7 +861,7 @@ struct LogRecoverySheet: View {
                         DatePicker("Date", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
                             .datePickerStyle(.compact)
                             .colorScheme(.dark)
-                            .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+                            .padding(14).background(Color.appCard).cornerRadius(12)
 
                         // HealthKit auto-fill button
                         Button(action: fillFromHealthKit) {
@@ -898,7 +902,7 @@ struct LogRecoverySheet: View {
                                     .tint(.indigo)
                             }
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+                        .padding(14).background(Color.appCard).cornerRadius(12)
 
                         // Douleurs musculaires
                         VStack(alignment: .leading, spacing: 8) {
@@ -916,7 +920,7 @@ struct LogRecoverySheet: View {
                                 Text("10 = Sévère").font(.system(size: 9)).foregroundColor(.gray)
                             }
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+                        .padding(14).background(Color.appCard).cornerRadius(12)
 
                         // Activité
                         VStack(alignment: .leading, spacing: 8) {
@@ -930,7 +934,7 @@ struct LogRecoverySheet: View {
                                 Spacer().frame(maxWidth: .infinity)
                             }
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+                        .padding(14).background(Color.appCard).cornerRadius(12)
 
                         // Fréquence cardiaque
                         VStack(alignment: .leading, spacing: 8) {
@@ -947,7 +951,7 @@ struct LogRecoverySheet: View {
                                 Spacer().frame(maxWidth: .infinity)
                             }
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+                        .padding(14).background(Color.appCard).cornerRadius(12)
 
                         // Notes
                         VStack(alignment: .leading, spacing: 6) {

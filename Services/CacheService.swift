@@ -3,6 +3,23 @@ import Foundation
 final class CacheService {
     static let shared = CacheService()
 
+    // Bump this when any API response schema changes to auto-clear stale disk cache.
+    private static let schemaVersion = "v6"
+
+    /// Call once at app launch. Wipes all cache files if schema version changed.
+    static func invalidateIfVersionChanged() {
+        let key = "cache_schema_version"
+        guard UserDefaults.standard.string(forKey: key) != schemaVersion else { return }
+        let c = CacheService.shared
+        if let files = try? FileManager.default.contentsOfDirectory(
+            at: c.directory, includingPropertiesForKeys: nil
+        ) {
+            files.forEach { try? FileManager.default.removeItem(at: $0) }
+        }
+        c.mem.removeAllObjects()
+        UserDefaults.standard.set(schemaVersion, forKey: key)
+    }
+
     private let directory: URL
     private let mem: NSCache<NSString, NSData> = {
         let c = NSCache<NSString, NSData>()

@@ -67,7 +67,7 @@ struct InventaireView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 if isLoading {
                     InventaireSkeletonView()
                 } else {
@@ -139,7 +139,7 @@ struct InventaireView: View {
             }
         }
         .padding(12)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(12)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
@@ -200,7 +200,7 @@ struct InventaireView: View {
         List {
             ForEach(filtered, id: \.name) { item in
                 InventaireRow(item: item, isInProgram: inProgram.contains(item.name))
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
                     .listRowSeparatorTint(Color.white.opacity(0.07))
                     .contentShape(Rectangle())
                     .onTapGesture { editTarget = item }
@@ -477,14 +477,14 @@ struct InventoryFormSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 Form {
                     // ── Nom ──────────────────────────────────────
                     Section("Nom") {
                         TextField("Nom de l'exercice", text: $name)
                             .foregroundColor(.white)
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     // ── Type ─────────────────────────────────────
                     Section {
@@ -492,7 +492,7 @@ struct InventoryFormSheet: View {
                     } header: {
                         sectionHeader("Type d'équipement")
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     // ── Tracking ──────────────────────────────────
                     Section {
@@ -504,7 +504,7 @@ struct InventoryFormSheet: View {
                     } header: {
                         sectionHeader("Type de tracking")
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     // ── Catégorie ─────────────────────────────────
                     Section {
@@ -512,7 +512,7 @@ struct InventoryFormSheet: View {
                     } header: {
                         sectionHeader("Catégorie")
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     // ── Pattern mouvement ─────────────────────────
                     Section {
@@ -520,7 +520,7 @@ struct InventoryFormSheet: View {
                     } header: {
                         sectionHeader("Pattern de mouvement")
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     // ── Muscles ───────────────────────────────────
                     Section {
@@ -537,7 +537,7 @@ struct InventoryFormSheet: View {
                             }
                         }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     // ── Schéma ────────────────────────────────────
                     if trackingType == "time" {
@@ -580,7 +580,7 @@ struct InventoryFormSheet: View {
                         } header: {
                             sectionHeader("Configuration temps")
                         }
-                        .listRowBackground(Color(hex: "11111c"))
+                        .listRowBackground(Color.appCard)
                     } else {
                         Section("Schéma par défaut") {
                             TextField("ex: 4x6-8", text: $defaultScheme)
@@ -600,7 +600,7 @@ struct InventoryFormSheet: View {
                                 }
                             }
                         }
-                        .listRowBackground(Color(hex: "11111c"))
+                        .listRowBackground(Color.appCard)
                     }
 
                     // ── Paramètres numériques (reps seulement) ────
@@ -627,7 +627,7 @@ struct InventoryFormSheet: View {
                                 }
                             }
                         }
-                        .listRowBackground(Color(hex: "11111c"))
+                        .listRowBackground(Color.appCard)
                     }
 
                     // ── Profil de charge ──────────────────────────
@@ -636,7 +636,7 @@ struct InventoryFormSheet: View {
                     } header: {
                         sectionHeader("Profil de charge")
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     // ── Niveau ────────────────────────────────────
                     Section {
@@ -644,7 +644,7 @@ struct InventoryFormSheet: View {
                     } header: {
                         sectionHeader("Niveau")
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     // ── Repos ─────────────────────────────────────
                     Section {
@@ -685,7 +685,7 @@ struct InventoryFormSheet: View {
                     } header: {
                         sectionHeader("Temps de repos par défaut")
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)

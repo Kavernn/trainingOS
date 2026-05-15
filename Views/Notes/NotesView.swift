@@ -41,7 +41,7 @@ struct NotesView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 if api.isLoading {
                     ProgressView().tint(.orange)
                 } else {
@@ -146,7 +146,7 @@ struct NoteCard: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
                 .stroke(session.entry.comment?.isEmpty == false ? Color.blue.opacity(0.2) : Color.white.opacity(0.05), lineWidth: 1)

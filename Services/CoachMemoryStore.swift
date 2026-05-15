@@ -53,17 +53,18 @@ final class CoachMemoryStore: ObservableObject {
             entries[idx] = entry
         } else {
             entries.append(entry)
-            // Evict lowest-confidence entries if over limit
             if entries.count > maxEntries {
                 entries = Array(entries.sorted { $0.confidence > $1.confidence }.prefix(maxEntries))
             }
         }
         save()
+        pushToServer()
     }
 
     func delete(id: String) {
         entries.removeAll { $0.id == id }
         save()
+        pushToServer()
     }
 
     // MARK: - Context block injected into AI prompts
@@ -120,6 +121,46 @@ final class CoachMemoryStore: ObservableObject {
     private func save() {
         if let data = try? JSONEncoder().encode(entries) {
             UserDefaults.standard.set(data, forKey: storageKey)
+        }
+    }
+
+    // MARK: - Server Sync
+
+    /// Pull coach memory from server and merge (server wins for existing IDs).
+    func syncFromServer() async {
+        do {
+            let raw = try await APIService.shared.fetchCoachMemory()
+            let decoder = JSONDecoder()
+            let serverEntries = try raw.compactMap { dict -> CoachMemoryEntry? in
+                let d = try JSONSerialization.data(withJSONObject: dict)
+                return try? decoder.decode(CoachMemoryEntry.self, from: d)
+            }
+            await MainActor.run {
+                var merged = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })
+                for entry in serverEntries { merged[entry.id] = entry }
+                entries = Array(merged.values.sorted { $0.createdAt < $1.createdAt })
+                save()
+            }
+        } catch {
+            print("[CoachMemory] syncFromServer failed: \(error)")
+        }
+    }
+
+    /// Push current entries to server (background, non-blocking).
+    func pushToServer() {
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self else { return }
+            let current = await MainActor.run { self.entries }
+            do {
+                let encoder = JSONEncoder()
+                let raw = try current.compactMap { entry -> [String: Any]? in
+                    let d = try encoder.encode(entry)
+                    return try JSONSerialization.jsonObject(with: d) as? [String: Any]
+                }
+                try await APIService.shared.saveCoachMemory(raw)
+            } catch {
+                print("[CoachMemory] pushToServer failed: \(error)")
+            }
         }
     }
 }

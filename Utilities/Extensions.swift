@@ -26,6 +26,9 @@ extension View {
 }
 
 extension Color {
+    static let appBg   = Color(red: 0.031, green: 0.031, blue: 0.063)   // #080810
+    static let appCard = Color(red: 0.067, green: 0.067, blue: 0.110)   // #11111c
+
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0

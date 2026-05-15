@@ -13,7 +13,7 @@ struct FoodCatalogView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 if items.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "fork.knife.circle")
@@ -55,7 +55,7 @@ struct FoodCatalogView: View {
                                 .padding(.vertical, 4)
                             }
                             .buttonStyle(.plain)
-                            .listRowBackground(Color(hex: "11111c"))
+                            .listRowBackground(Color.appCard)
                         }
                         .onDelete { idx in
                             pendingDelete = idx
@@ -169,7 +169,7 @@ struct FoodItemFormView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 Form {
                     Section("ALIMENT") {
                         TextField("Nom", text: $name)
@@ -178,7 +178,7 @@ struct FoodItemFormView: View {
                             .submitLabel(.next)
                             .onSubmit { foodFocus = .qty }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     Section("QUANTITÉ DE RÉFÉRENCE") {
                         HStack {
@@ -193,7 +193,7 @@ struct FoodItemFormView: View {
                             .tint(.orange)
                         }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
 
                     Section("MACROS POUR CETTE QUANTITÉ") {
                         HStack {
@@ -217,7 +217,7 @@ struct FoodItemFormView: View {
                             Text("g").foregroundColor(.gray).font(.system(size: 13))
                         }
                     }
-                    .listRowBackground(Color(hex: "11111c"))
+                    .listRowBackground(Color.appCard)
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)

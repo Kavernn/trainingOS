@@ -244,7 +244,7 @@ struct ProgrammeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 if isLoading {
                     ProgressView().tint(.orange)
                 } else {
@@ -1156,7 +1156,7 @@ struct PeriodisationCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
         .cornerRadius(14)
     }
@@ -1496,7 +1496,7 @@ struct EditableSeanceProgramCard: View {
                 .onPreferenceChange(ProgramRowHeightKey.self) { rowHeights.merge($0) { $1 } }
             }
         }
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
         .cornerRadius(14)
     }
@@ -1597,7 +1597,7 @@ struct AddExerciseSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 VStack(spacing: 0) {
                     // Name field (also filters inventory)
                     HStack {
@@ -1611,7 +1611,7 @@ struct AddExerciseSheet: View {
                         }
                     }
                     .padding(10)
-                    .background(Color(hex: "11111c"))
+                    .background(Color.appCard)
                     .cornerRadius(10)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -1658,7 +1658,7 @@ struct AddExerciseSheet: View {
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white)
                             .padding(8)
-                            .background(Color(hex: "11111c"))
+                            .background(Color.appCard)
                             .cornerRadius(8)
                     }
                     .padding(.horizontal, 16)
@@ -1689,7 +1689,7 @@ struct AddExerciseSheet: View {
                                 }
                                 .padding(.vertical, 4)
                             }
-                            .listRowBackground(Color(hex: "11111c"))
+                            .listRowBackground(Color.appCard)
                         }
                         .listStyle(.plain)
                         .scrollContentBackground(.hidden)
@@ -1753,7 +1753,7 @@ struct EditSchemeSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810")
+                Color.appBg
                     .ignoresSafeArea()
                     .onTapGesture { hideKeyboard() }
                 VStack(spacing: 20) {
@@ -1767,7 +1767,7 @@ struct EditSchemeSheet: View {
                             .font(.system(size: 17))
                             .foregroundColor(.white)
                             .padding()
-                            .background(Color(hex: "11111c"))
+                            .background(Color.appCard)
                             .cornerRadius(10)
                             .padding(.horizontal)
                     }
@@ -1782,7 +1782,7 @@ struct EditSchemeSheet: View {
                             .font(.system(size: 17))
                             .foregroundColor(.white)
                             .padding()
-                            .background(Color(hex: "11111c"))
+                            .background(Color.appCard)
                             .cornerRadius(10)
                             .padding(.horizontal)
                     }
@@ -1817,7 +1817,7 @@ struct EditSchemeSheet: View {
                                         .foregroundColor(scheme == s ? .black : .white)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(scheme == s ? Color.orange : Color(hex: "11111c"))
+                                        .background(scheme == s ? Color.orange : Color.appCard)
                                         .cornerRadius(20)
                                 }
                             }
@@ -1939,7 +1939,7 @@ struct EditableWeekScheduleCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
     }
@@ -2042,7 +2042,7 @@ struct EveningScheduleCard: View {
             }
         }
         .padding(16)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.indigo.opacity(0.25), lineWidth: 1))
     }
@@ -2205,7 +2205,7 @@ private struct VolumeCard: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(14)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.purple.opacity(0.2), lineWidth: 1))
     }
@@ -2224,7 +2224,7 @@ struct CreateSeanceSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("NOM DE LA SÉANCE")
@@ -2236,7 +2236,7 @@ struct CreateSeanceSheet: View {
                             .font(.system(size: 17))
                             .foregroundColor(.white)
                             .padding()
-                            .background(Color(hex: "11111c"))
+                            .background(Color.appCard)
                             .cornerRadius(10)
                             .padding(.horizontal)
                     }
@@ -2250,7 +2250,7 @@ struct CreateSeanceSheet: View {
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(name == preset ? .black : .white)
                                         .padding(.horizontal, 12).padding(.vertical, 6)
-                                        .background(name == preset ? Color.orange : Color(hex: "11111c"))
+                                        .background(name == preset ? Color.orange : Color.appCard)
                                         .cornerRadius(20)
                                 }
                             }

@@ -49,6 +49,7 @@ struct TrainingOSApp: App {
             }
             .environmentObject(appState)
             .onAppear {
+                CacheService.invalidateIfVersionChanged()
                 if #unavailable(iOS 26) {
                     SyncManager.shared.setup(container: modelContainer)
                 }
@@ -57,6 +58,7 @@ struct TrainingOSApp: App {
                 }
                 Task {
                     await appState.loadProfile()
+                    await CoachMemoryStore.shared.syncFromServer()
                     guard !hkSetupDone else { return }
                     hkSetupDone = true
                     await HealthKitService.shared.requestAuthorization()

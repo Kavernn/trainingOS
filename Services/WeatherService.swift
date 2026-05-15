@@ -191,7 +191,7 @@ struct WeatherChipView: View {
                     .padding(.vertical, 8)
                 }
             }
-            .background(Color(hex: "11111c"))
+            .background(Color.appCard)
             .cornerRadius(14)
 
         } else if vm.locationDenied {
@@ -206,7 +206,7 @@ struct WeatherChipView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Color(hex: "11111c"))
+            .background(Color.appCard)
             .cornerRadius(14)
         }
     }

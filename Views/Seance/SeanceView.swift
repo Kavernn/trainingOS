@@ -9,10 +9,10 @@ struct SeanceView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
 
                 if vm.isLoading {
-                    ProgressView().tint(.orange)
+                    AppLoadingView()
                 } else if let data = vm.seanceData {
                     seanceContent(data: data)
                 } else if let err = vm.error {
@@ -247,7 +247,7 @@ struct AlreadyLoggedSeanceView: View {
                     }
                 }
                 .padding(16)
-                .background(Color(hex: "11111c"))
+                .background(Color.appCard)
                 .cornerRadius(16)
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.green.opacity(0.2), lineWidth: 1))
                 .padding(.horizontal, 16)
@@ -262,7 +262,7 @@ struct AlreadyLoggedSeanceView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
-                    .background(Color(hex: "11111c"))
+                    .background(Color.appCard)
                     .cornerRadius(16)
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.purple.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 16)
@@ -283,7 +283,7 @@ struct AlreadyLoggedSeanceView: View {
                             .lineSpacing(4)
                     }
                     .padding(16)
-                    .background(Color(hex: "11111c"))
+                    .background(Color.appCard)
                     .cornerRadius(16)
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.purple.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 16)
@@ -337,7 +337,7 @@ struct AlreadyLoggedSeanceView: View {
                     }
                 }
                 .padding(16)
-                .background(Color(hex: "11111c"))
+                .background(Color.appCard)
                 .cornerRadius(16)
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(tomorrowColor.opacity(0.15), lineWidth: 1))
                 .padding(.horizontal, 16)
@@ -614,7 +614,7 @@ struct PostSessionEditSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 12) {
                         if let err = saveError {
@@ -699,7 +699,7 @@ struct PostSessionEditSheet: View {
                 Slider(value: $edits[i].rpe, in: 1...10, step: 0.5).tint(.orange)
             }
         }
-        .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+        .padding(14).background(Color.appCard).cornerRadius(12)
         .padding(.horizontal, 16)
     }
 
@@ -821,7 +821,7 @@ struct ExtraSessionSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 if let bonus = bonusData, let session = selectedSession {
                     Group {
                         if session == "Yoga / Tai Chi" || session == "Recovery" {
@@ -926,7 +926,7 @@ struct ExtraSessionSheet: View {
                             }
                             .padding(.horizontal, 16)
                             .padding(.vertical, 14)
-                            .background(Color(hex: "11111c"))
+                            .background(Color.appCard)
                         }
                     }
                 }
@@ -981,7 +981,7 @@ struct FinishRemainingSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 WorkoutSeanceView(data: patchedData, vm: finishVM)
                     .safeAreaInset(edge: .top, spacing: 0) {
                         if !loggedExercises.isEmpty {
@@ -1015,7 +1015,7 @@ struct FinishRemainingSheet: View {
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 10)
-                                .background(Color(hex: "080810"))
+                                .background(Color.appBg)
                                 Divider().background(Color.white.opacity(0.06))
                             }
                         }
@@ -1335,7 +1335,7 @@ struct WorkoutSeanceView: View {
                 Divider().background(Color.white.opacity(0.04)).padding(.horizontal, 16)
             }
         }
-        .background(Color(hex: "11111c")).cornerRadius(14)
+        .background(Color.appCard).cornerRadius(14)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
         .padding(.horizontal, 16)
     }
@@ -1359,7 +1359,7 @@ struct WorkoutSeanceView: View {
                     .padding(.vertical, 12)
                 }
             }
-            .background(Color(hex: "11111c"))
+            .background(Color.appCard)
             .cornerRadius(14)
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
             .padding(.horizontal, 16)
@@ -1427,7 +1427,7 @@ struct WorkoutSeanceView: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
     }
 
@@ -1691,7 +1691,7 @@ struct WorkoutSeanceView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
-                    .background(cardioCount > 0 ? Color.green.opacity(0.12) : Color(hex: "11111c"))
+                    .background(cardioCount > 0 ? Color.green.opacity(0.12) : Color.appCard)
                     .foregroundColor(cardioCount > 0 ? .green : .blue)
                     .cornerRadius(12)
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(
@@ -1707,7 +1707,7 @@ struct WorkoutSeanceView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
-                    .background(hiitCount > 0 ? Color.green.opacity(0.12) : Color(hex: "11111c"))
+                    .background(hiitCount > 0 ? Color.green.opacity(0.12) : Color.appCard)
                     .foregroundColor(hiitCount > 0 ? .green : .red)
                     .cornerRadius(12)
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(
@@ -2605,7 +2605,7 @@ struct AddCardioSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
                         // Type
@@ -2624,7 +2624,7 @@ struct AddCardioSheet: View {
                                 }
                             }
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                        .padding(14).background(Color.appCard).cornerRadius(14)
 
                         // Durée + Distance
                         HStack(spacing: 12) {
@@ -2641,7 +2641,7 @@ struct AddCardioSheet: View {
                                     .padding(10).background(Color(hex: "191926")).cornerRadius(10)
                             }
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                        .padding(14).background(Color.appCard).cornerRadius(14)
 
                         // RPE
                         VStack(alignment: .leading, spacing: 6) {
@@ -2652,7 +2652,7 @@ struct AddCardioSheet: View {
                             }
                             Slider(value: $rpe, in: 1...10, step: 0.5).tint(rpeColor(rpe))
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                        .padding(14).background(Color.appCard).cornerRadius(14)
 
                         // Notes
                         VStack(alignment: .leading, spacing: 6) {
@@ -2664,7 +2664,7 @@ struct AddCardioSheet: View {
                                 .onSubmit { hideKeyboard() }
                                 .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                        .padding(14).background(Color.appCard).cornerRadius(14)
 
                         Button(action: submit) {
                             HStack {
@@ -2770,7 +2770,7 @@ struct AddHIITSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 14) {
                         // Saved templates
@@ -2796,7 +2796,7 @@ struct AddHIITSheet: View {
                                     }
                                 }
                             }
-                            .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                            .padding(14).background(Color.appCard).cornerRadius(14)
                         }
 
                         // Session type
@@ -2806,7 +2806,7 @@ struct AddHIITSheet: View {
                                 .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
                                 .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                        .padding(14).background(Color.appCard).cornerRadius(14)
 
                         // Rounds / Work / Rest
                         HStack(spacing: 10) {
@@ -2820,7 +2820,7 @@ struct AddHIITSheet: View {
                                 }
                             }
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                        .padding(14).background(Color.appCard).cornerRadius(14)
 
                         // RPE
                         VStack(alignment: .leading, spacing: 6) {
@@ -2831,7 +2831,7 @@ struct AddHIITSheet: View {
                             }
                             Slider(value: $rpe, in: 1...10, step: 0.5).tint(rpeColor(rpe))
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                        .padding(14).background(Color.appCard).cornerRadius(14)
 
                         // Notes
                         VStack(alignment: .leading, spacing: 6) {
@@ -2843,7 +2843,7 @@ struct AddHIITSheet: View {
                                 .onSubmit { hideKeyboard() }
                                 .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                         }
-                        .padding(14).background(Color(hex: "11111c")).cornerRadius(14)
+                        .padding(14).background(Color.appCard).cornerRadius(14)
 
                         // Save template button
                         Button {
@@ -2934,7 +2934,7 @@ struct SessionPickerSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 VStack(spacing: 0) {
                     VStack(spacing: 6) {
                         Text("Changer de séance")
@@ -2974,7 +2974,7 @@ struct SessionPickerSheet: View {
                             }
                         }
                     }
-                    .background(Color(hex: "11111c"))
+                    .background(Color.appCard)
                     .cornerRadius(14)
                     .padding(.horizontal, 20)
 
@@ -3006,7 +3006,7 @@ struct SessionPickerSheet: View {
         var body: some View {
             NavigationStack {
                 ZStack {
-                    Color(hex: "080810").ignoresSafeArea()
+                    Color.appBg.ignoresSafeArea()
                     VStack(spacing: 0) {
                         ScrollView {
                             VStack(spacing: 20) {
@@ -3044,7 +3044,7 @@ struct SessionPickerSheet: View {
                                         }
                                     }
                                 }
-                                .background(Color(hex: "11111c"))
+                                .background(Color.appCard)
                                 .cornerRadius(14)
                                 .padding(.horizontal, 20)
                             }
@@ -3071,7 +3071,7 @@ struct SessionPickerSheet: View {
                                 .foregroundColor(.orange)
                                 .padding(.bottom, 20)
                         }
-                        .background(Color(hex: "080810"))
+                        .background(Color.appBg)
                     }
                 }
                 .navigationBarTitleDisplayMode(.inline)
@@ -3111,7 +3111,7 @@ struct SessionPickerSheet: View {
         var body: some View {
             NavigationStack {
                 ZStack {
-                    Color(hex: "080810").ignoresSafeArea()
+                    Color.appBg.ignoresSafeArea()
                     ScrollView {
                         VStack(spacing: 16) {
                             VStack(spacing: 8) {
@@ -3134,7 +3134,7 @@ struct SessionPickerSheet: View {
                                 }
                                 Spacer()
                             }
-                            .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+                            .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
 
                             // Récap exercices — compact
                             VStack(alignment: .leading, spacing: 0) {
@@ -3173,7 +3173,7 @@ struct SessionPickerSheet: View {
                                     }
                                 }
                             }
-                            .background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+                            .background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
 
                             // Effort global — saisie via RIR tiles
                             VStack(alignment: .leading, spacing: 10) {
@@ -3197,7 +3197,7 @@ struct SessionPickerSheet: View {
                                     }
                                 }
                             }
-                            .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+                            .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
                             
                             // Énergie — affichage inline si déjà saisie pendant la séance
                             if let pre = preEnergy {
@@ -3215,7 +3215,7 @@ struct SessionPickerSheet: View {
                                         .font(.system(size: 13, weight: .bold))
                                         .foregroundColor(energyColor(pre))
                                 }
-                                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+                                .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
                             }
 
                             // Extras collapsible (notes, IA — ou énergie si pas encore saisie)
@@ -3258,7 +3258,7 @@ struct SessionPickerSheet: View {
                                             }
                                         }
                                     }
-                                    .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+                                    .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
                                 }
 
                                 // Notes
@@ -3271,7 +3271,7 @@ struct SessionPickerSheet: View {
                                         .onSubmit { hideKeyboard() }
                                         .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                                 }
-                                .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 20)
+                                .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
 
                                 // IA analyse post-séance
                                 VStack(alignment: .leading, spacing: 8) {
@@ -3432,7 +3432,7 @@ struct SessionPickerSheet: View {
         var body: some View {
             NavigationStack {
                 ZStack {
-                    Color(hex: "080810").ignoresSafeArea()
+                    Color.appBg.ignoresSafeArea()
                     ScrollView {
                         VStack(spacing: 20) {
 
@@ -3481,7 +3481,7 @@ struct SessionPickerSheet: View {
                                         .foregroundColor(.purple.opacity(0.5))
                                 }
                                 .padding(16)
-                                .background(Color(hex: "11111c")).cornerRadius(14)
+                                .background(Color.appCard).cornerRadius(14)
                                 .padding(.horizontal, 20)
                             }
 
@@ -3523,7 +3523,7 @@ struct SessionPickerSheet: View {
                                     }
                                 }
                             }
-                            .background(Color(hex: "11111c")).cornerRadius(14)
+                            .background(Color.appCard).cornerRadius(14)
                             .padding(.horizontal, 20)
 
                             // RPE + Energy
@@ -3536,7 +3536,7 @@ struct SessionPickerSheet: View {
                                     Text("/10").font(.system(size: 11)).foregroundColor(.gray)
                                 }
                                 .frame(maxWidth: .infinity).padding(16)
-                                .background(Color(hex: "11111c")).cornerRadius(14)
+                                .background(Color.appCard).cornerRadius(14)
 
                                 VStack(spacing: 6) {
                                     Text("ÉNERGIE AVANT").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
@@ -3552,7 +3552,7 @@ struct SessionPickerSheet: View {
                                         .foregroundColor(energyColor(snapshot.energyPre))
                                 }
                                 .frame(maxWidth: .infinity).padding(16)
-                                .background(Color(hex: "11111c")).cornerRadius(14)
+                                .background(Color.appCard).cornerRadius(14)
                             }
                             .padding(.horizontal, 20)
 
@@ -3570,7 +3570,7 @@ struct SessionPickerSheet: View {
                                     Spacer()
                                 }
                                 .padding(14)
-                                .background(Color(hex: "11111c")).cornerRadius(14)
+                                .background(Color.appCard).cornerRadius(14)
                                 .padding(.horizontal, 20)
                             }
 
@@ -3675,7 +3675,7 @@ struct SessionPickerSheet: View {
                 .padding(.bottom, 8)
             }
             .padding(.horizontal, 16)
-            .background(Color(hex: "080810"))
+            .background(Color.appBg)
         }
 
         private func energyColor(_ v: Int) -> Color {
@@ -3730,14 +3730,14 @@ struct SessionPickerSheet: View {
                         }
                         Slider(value: $rpe, in: 1...10, step: 0.5).tint(.orange)
                     }
-                    .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+                    .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
                     
                     VStack(alignment: .leading, spacing: 6) {
                         Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                         TextField("Notes optionnelles...", text: $notes, axis: .vertical)
                             .foregroundColor(.white).lineLimit(3, reservesSpace: true)
                     }
-                    .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+                    .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
                     
                     Button(action: logHIIT) {
                         Text("Enregistrer HIIT")
@@ -3808,14 +3808,18 @@ struct SessionPickerSheet: View {
                         .font(.system(size: 11)).foregroundColor(.gray)
                     if let w = suggestion.suggestedWeight {
                         Button("Appliquer") {
-                            applied = true
                             triggerImpact(style: .light)
                             Task {
-                                try? await APIService.shared.applyProgression(
-                                    exerciseName: suggestion.exerciseName,
-                                    suggestedWeight: w,
-                                    suggestedScheme: suggestion.suggestedScheme
-                                )
+                                do {
+                                    try await APIService.shared.applyProgression(
+                                        exerciseName: suggestion.exerciseName,
+                                        suggestedWeight: w,
+                                        suggestedScheme: suggestion.suggestedScheme
+                                    )
+                                    applied = true
+                                } catch {
+                                    print("[Progression] apply failed for \(suggestion.exerciseName): \(error)")
+                                }
                             }
                         }
                         .font(.system(size: 11, weight: .semibold)).foregroundColor(typeColor)
@@ -3901,7 +3905,7 @@ struct SessionPickerSheet: View {
                             }
                             Slider(value: $rpe, in: 1...10, step: 0.5).tint(color)
                         }
-                        .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+                        .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
@@ -3912,7 +3916,7 @@ struct SessionPickerSheet: View {
                                 .onSubmit { hideKeyboard() }
                                 .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                         }
-                        .padding(16).background(Color(hex: "11111c")).cornerRadius(14).padding(.horizontal, 16)
+                        .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
 
                         Button(action: logSession) {
                             Text("Enregistrer \(sessionType)")
@@ -3986,7 +3990,7 @@ struct SessionPickerSheet: View {
                     }
                 }
             }
-            .padding(14).background(Color(hex: "11111c")).cornerRadius(12)
+            .padding(14).background(Color.appCard).cornerRadius(12)
         }
     }
     
@@ -4221,7 +4225,7 @@ struct FloatingRestTimerCard: View {
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 32, style: .continuous)
-                .fill(Color(hex: "080810").opacity(0.72))
+                .fill(Color.appBg.opacity(0.72))
                 .overlay(
                     RoundedRectangle(cornerRadius: 32, style: .continuous)
                         .stroke(ringColor.opacity(0.3), lineWidth: 1)

@@ -122,7 +122,7 @@ struct BonusSeanceView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "080810").ignoresSafeArea()
+            Color.appBg.ignoresSafeArea()
             if isLoading {
                 ProgressView().tint(.orange)
             } else {

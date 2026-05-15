@@ -2340,6 +2340,25 @@ def update_profile(patch: dict) -> bool:
         return False
 
 
+def get_coach_memory() -> list:
+    """Return the coach memory entries stored in user_profile."""
+    profile = get_profile()
+    raw = profile.get("coach_memory")
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except Exception:
+            pass
+    return []
+
+
+def save_coach_memory(entries: list) -> bool:
+    """Persist coach memory entries into user_profile.coach_memory."""
+    return update_profile({"coach_memory": entries})
+
+
 # ---------------------------------------------------------------------------
 # Nutrition
 # ---------------------------------------------------------------------------

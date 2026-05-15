@@ -495,3 +495,28 @@ def api_ai_generated_program_approve():
         return jsonify({"error": "id manquant"}), 400
     ok = _db.update_generated_program(gp_id, "active", programme_id)
     return jsonify({"success": ok})
+
+
+# ---------------------------------------------------------------------------
+# Coach Memory — server-side persistence
+# ---------------------------------------------------------------------------
+
+@ai_coach_bp.route("/api/coach/memory", methods=["GET"])
+def get_coach_memory():
+    """Return the coach memory entries stored in user_profile."""
+    import db as _db
+    entries = _db.get_coach_memory()
+    return jsonify({"entries": entries})
+
+
+@ai_coach_bp.route("/api/coach/memory", methods=["POST"])
+def save_coach_memory():
+    """Persist coach memory entries. Replaces the full set."""
+    import db as _db
+    data    = request.get_json(silent=True) or {}
+    entries = data.get("entries")
+    if not isinstance(entries, list):
+        return jsonify({"error": "entries must be a list"}), 400
+    ok = _db.save_coach_memory(entries)
+    return jsonify({"success": ok})
+

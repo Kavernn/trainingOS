@@ -15,7 +15,7 @@ struct PRCelebrationView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "080810").ignoresSafeArea()
+            Color.appBg.ignoresSafeArea()
 
             RadialGradient(
                 colors: [Color.yellow.opacity(showContent ? 0.22 : 0), Color.clear],
@@ -133,7 +133,7 @@ struct PRCelebrationView: View {
                     Button(action: onDismiss) {
                         Text("Continuer")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(Color(hex: "080810"))
+                            .foregroundColor(Color.appBg)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
                             .background(Color.yellow)

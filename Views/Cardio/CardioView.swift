@@ -197,17 +197,21 @@ struct CardioView: View {
                     pace = String(format: "%d:%02d", min, sec)
                 }
 
-                try? await APIService.shared.logCardio(
-                    type: entry.type,
-                    durationMin: entry.durationMin,
-                    distanceKm: entry.distanceKm,
-                    avgPace: pace,
-                    avgHr: entry.avgHr,
-                    cadence: nil,
-                    calories: entry.calories,
-                    rpe: nil,
-                    notes: "Importé depuis Apple Santé"
-                )
+                do {
+                    try await APIService.shared.logCardio(
+                        type: entry.type,
+                        durationMin: entry.durationMin,
+                        distanceKm: entry.distanceKm,
+                        avgPace: pace,
+                        avgHr: entry.avgHr,
+                        cadence: nil,
+                        calories: entry.calories,
+                        rpe: nil,
+                        notes: "Importé depuis Apple Santé"
+                    )
+                } catch {
+                    print("[Cardio] HealthKit import failed: \(error)")
+                }
             }
 
             await loadData()
@@ -376,7 +380,7 @@ struct CardioRow: View {
             .buttonStyle(.plain)
         }
         .padding(12)
-        .background(Color(hex: "11111c"))
+        .background(Color.appCard)
         .cornerRadius(12)
         .confirmationDialog("Supprimer cette séance ?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { onDelete() }
@@ -468,7 +472,7 @@ struct LogCardioSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "080810").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 ScrollView {
                     VStack(spacing: 18) {
                         // Type picker
