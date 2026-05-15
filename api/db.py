@@ -2822,14 +2822,26 @@ def get_all_programs() -> list:
 
 
 def get_active_program_id() -> str | None:
-    """Return the program_id referenced by the weekly_schedule (morning slot).
+    """Return the active program_id.
 
-    This is the programme whose sessions are actually scheduled for the user.
-    Falls back to the oldest program if the schedule has no sessions linked.
+    Priority:
+    1. user_profile.active_program_id (explicit user choice)
+    2. weekly_schedule morning slot (legacy schedule-based detection)
+    3. Oldest program (default fallback)
     """
     if _client is None or MODE == "OFFLINE":
         return get_default_program_id()
 
+    # 1. Explicit choice stored in user_profile
+    try:
+        profile = get_profile()
+        pid = profile.get("active_program_id")
+        if pid:
+            return str(pid)
+    except Exception:
+        pass
+
+    # 2. Schedule-based detection
     def _do() -> str | None:
         resp = (
             _client.table("weekly_schedule")
@@ -2861,6 +2873,44 @@ def get_active_program_id() -> str | None:
         else:
             logger.error("get_active_program_id error: %s", e)
     return get_default_program_id()
+
+
+def set_active_program_id(program_id: str) -> bool:
+    """Persist the user's active programme choice in user_profile."""
+    return update_profile({"active_program_id": program_id})
+
+
+def get_session_override() -> dict | None:
+    """Return today's session override if it exists and matches today's date.
+
+    Returns {"date": "2026-05-15", "session": "Push B"} or None.
+    """
+    import json as _json
+    from datetime import date
+    profile = get_profile()
+    raw = profile.get("session_override")
+    if not raw:
+        return None
+    try:
+        override = _json.loads(raw) if isinstance(raw, str) else raw
+        if isinstance(override, dict) and override.get("date") == date.today().isoformat():
+            return override
+    except Exception:
+        pass
+    return None
+
+
+def set_session_override(session: str | None) -> bool:
+    """Store (or clear) a session override for today.
+
+    Pass session=None to clear the override.
+    """
+    import json as _json
+    from datetime import date
+    if session is None:
+        return update_profile({"session_override": None})
+    payload = {"date": date.today().isoformat(), "session": session}
+    return update_profile({"session_override": _json.dumps(payload)})
 
 
 def get_default_program_id() -> str | None:

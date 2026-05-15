@@ -744,6 +744,13 @@ def api_programs():
         ok = _db.delete_program(pid)
         return jsonify({"success": ok})
 
+    if action == "set_active":
+        pid = data.get("program_id", "")
+        if not pid:
+            return jsonify({"error": "program_id requis"}), 400
+        ok = _db.set_active_program_id(pid)
+        return jsonify({"success": ok})
+
     return jsonify({"error": "action inconnue"}), 400
 
 
@@ -1075,6 +1082,28 @@ def api_morning_schedule():
                 for day, seance in schedule.items()}
     ok = _db.set_relational_week_schedule(cleaned)
     return jsonify({"success": ok})
+
+
+@workout_bp.route("/api/session_override", methods=["GET", "POST", "DELETE"])
+def api_session_override():
+    """GET  → current override {"date": "...", "session": "..."} or {}
+    POST → {"session": "Push B"} to set today's override
+    DELETE → clear today's override
+    """
+    import db as _db
+    if request.method == "DELETE":
+        ok = _db.set_session_override(None)
+        return jsonify({"success": ok})
+    if request.method == "POST":
+        data    = request.get_json() or {}
+        session = (data.get("session") or "").strip()
+        if not session:
+            return jsonify({"error": "session requis"}), 400
+        ok = _db.set_session_override(session)
+        return jsonify({"success": ok})
+    # GET
+    override = _db.get_session_override()
+    return jsonify(override or {})
 
 
 @workout_bp.route("/api/progression_suggestions")

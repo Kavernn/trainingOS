@@ -168,6 +168,13 @@ def _montreal_now() -> datetime:
 
 def get_today() -> str:
     import db as _db
+    # Explicit user override for today (e.g. rescheduled session)
+    try:
+        override = _db.get_session_override()
+        if override and override.get("session"):
+            return override["session"]
+    except Exception:
+        pass
     schedule = _db.get_relational_week_schedule()
     if schedule:
         days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]

@@ -169,13 +169,16 @@ _MUSCLE_ALIASES: dict = {
     "quads":           "quadriceps",
     "quad":            "quadriceps",
     # Delts
-    "delts":           "deltoids",
-    "delt":            "deltoids",
-    "shoulders":       "deltoids",
-    "shoulder":        "deltoids",
-    "anterior deltoid":"deltoids",
-    "lateral deltoid": "deltoids",
-    "rear deltoid":    "deltoids",
+    "delts":              "deltoids",
+    "delt":               "deltoids",
+    "shoulders":          "deltoids",
+    "shoulder":           "deltoids",
+    "anterior deltoid":   "deltoids",
+    "lateral deltoid":    "deltoids",
+    # rear delt — canonical key matches MUSCLE_LANDMARKS
+    "rear deltoid":       "rear delt",
+    "rear delts":         "rear delt",
+    "posterior deltoid":  "rear delt",
     # Chest
     "pectorals":       "chest",
     "pectoral":        "chest",
