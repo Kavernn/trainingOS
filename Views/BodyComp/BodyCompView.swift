@@ -136,7 +136,7 @@ struct BodyCompView: View {
             }
 
             // Masse maigre / masse grasse si body fat dispo
-            if let bf = latest?.bodyFat, let w = latest?.weight {
+            if let bf = latest?.bodyFat, (3...60).contains(bf), let w = latest?.weight {
                 let lean = w * (1 - bf / 100)
                 let fat  = w * bf / 100
                 HStack(spacing: 8) {

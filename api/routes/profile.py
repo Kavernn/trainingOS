@@ -74,8 +74,9 @@ def api_update_profile_photo():
             ok = save_user_profile(profile)
             if ok:
                 return jsonify({"success": True, "photo_url": public_url})
-    except Exception:
-        pass  # Storage not configured — fall back to base64
+    except Exception as e:
+        import logging as _logging
+        _logging.getLogger("trainingos").warning("Photo Storage upload failed, falling back to base64: %s", e)
 
     # Fallback: store base64 directly
     profile["photo_b64"] = data_url

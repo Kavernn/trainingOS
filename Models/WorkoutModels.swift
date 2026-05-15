@@ -488,6 +488,28 @@ struct BodyWeightEntry: Codable, Identifiable {
         case thighsCm = "thighs_cm"
         case hipsCm   = "hips_cm"
     }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        date     = try c.decode(String.self, forKey: .date)
+        weight   = (try? c.decode(Double.self, forKey: .weight))
+                ?? Double(try c.decode(String.self, forKey: .weight))
+                ?? 0
+        bodyFat  = Self.decodeOptionalDouble(c, key: .bodyFat)
+        waistCm  = Self.decodeOptionalDouble(c, key: .waistCm)
+        armsCm   = Self.decodeOptionalDouble(c, key: .armsCm)
+        chestCm  = Self.decodeOptionalDouble(c, key: .chestCm)
+        thighsCm = Self.decodeOptionalDouble(c, key: .thighsCm)
+        hipsCm   = Self.decodeOptionalDouble(c, key: .hipsCm)
+    }
+
+    private static func decodeOptionalDouble(
+        _ c: KeyedDecodingContainer<CodingKeys>, key: CodingKeys
+    ) -> Double? {
+        if let v = try? c.decodeIfPresent(Double.self, forKey: key) { return v }
+        if let s = try? c.decodeIfPresent(String.self, forKey: key) { return Double(s) }
+        return nil
+    }
 }
 
 // MARK: - Cardio

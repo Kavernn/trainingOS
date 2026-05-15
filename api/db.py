@@ -113,95 +113,8 @@ def _sqlite_set(key: str, value: Any, dirty: int):
         _CONN.commit()
 
 
-def _sqlite_all_dirty() -> Dict[str, Dict[str, Any]]:
-    if _ON_VERCEL:
-        return {}
-    _ensure_sqlite()
-    with _SQL_LOCK:
-        cur = _CONN.execute("select key, value, updated_at from kv_local where dirty=1")
-        out = {}
-        for key, val, ts in cur.fetchall():
-            try:
-                out[key] = {"value": json.loads(val), "updated_at": ts}
-            except Exception:
-                logger.warning("_sqlite_all_dirty: corrupt JSON for key=%s, skipping", key)
-                out[key] = {"value": None, "updated_at": ts}
-        return out
 
 
-def _sqlite_upsert_clean(key: str, value: Any, updated_at_iso: Optional[str] = None):
-    """Enregistre en local avec dirty=0 (miroir d'un succès distant)."""
-    if _ON_VERCEL:
-        return
-    _ensure_sqlite()
-    with _SQL_LOCK:
-        _CONN.execute(
-            "insert into kv_local(key, value, updated_at, dirty) values(?,?,?,0) "
-            "on conflict(key) do update set value=excluded.value, updated_at=excluded.updated_at, dirty=0",
-            (key, json.dumps(value, ensure_ascii=False), updated_at_iso or _now_iso()),
-        )
-        _CONN.commit()
-
-
-# ---------------------------------------------------------------------------
-# Supabase helpers (legacy KV sync — only used by sync_now(), never in prod)
-# ---------------------------------------------------------------------------
-_TABLE = "kv"  # kept for backward-compat with sync_now(); kv table removed from Supabase
-
-def _get_online(key: str) -> Tuple[Optional[Any], Optional[str]]:
-    if not _client:
-        return None, None
-
-    def _do() -> Tuple[Optional[Any], Optional[str]]:
-        resp = _client.table(_TABLE).select("value,updated_at").eq("key", key).single().execute()
-        data = getattr(resp, "data", None)
-        if not data:
-            return None, None
-        return data.get("value"), data.get("updated_at")
-
-    try:
-        return _do()
-    except Exception as e:
-        if _is_disconnect(e) and _reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                logger.debug("GET retry error for key %s: %s", key, e2)
-                return None, None
-        logger.debug("GET error for key %s: %s", key, e)
-        return None, None
-
-
-def _set_online(key: str, value: Any) -> Tuple[bool, Optional[str]]:
-    if not _client:
-        logger.warning("Supabase client not initialized")
-        return False, None
-
-    def _do() -> Tuple[bool, Optional[str]]:
-        payload = {"key": key, "value": value}
-        logger.debug("Upsert attempt for key: %s", key)
-
-        resp = _client.table(_TABLE).upsert(payload).execute()
-
-        if hasattr(resp, 'data') and len(resp.data) > 0:
-            updated_at = resp.data[0].get("updated_at")
-            logger.debug("Supabase upsert success for key: %s", key)
-            return True, updated_at
-
-        logger.debug("Upsert sent for key: %s (no data returned)", key)
-        return True, _now_iso()
-
-    try:
-        return _do()
-    except Exception as e:
-        if _is_disconnect(e) and _reconnect():
-            try:
-                return _do()
-            except Exception as e2:
-                logger.error("Supabase retry error for key %s: %s — %s", key, type(e2).__name__, e2)
-                return False, None
-        logger.error("Supabase error for key %s: %s — %s", key, type(e).__name__, e)
-        return False, None
 
 
 def client():
@@ -209,74 +122,6 @@ def client():
     return _client
 
 
-# ---------------------------------------------------------------------------
-# Synchronisation manuelle: à appeler quand tu repasses ONLINE
-# ---------------------------------------------------------------------------
-def _compare_ts(ts_local: Optional[str], ts_remote: Optional[str]) -> int:
-    """
-    Compare des timestamps ISO (UTC). Retourne:
-      -1 si local < remote
-       0 si égal/incomparables
-      +1 si local > remote
-    """
-    if not ts_local or not ts_remote:
-        return 0
-    try:
-        a = datetime.fromisoformat(ts_local.replace("Z", "+00:00"))
-        b = datetime.fromisoformat(ts_remote.replace("Z", "+00:00"))
-        if a < b: return -1
-        if a > b: return +1
-        return 0
-    except Exception:
-        return 0
-
-
-def sync_now(verbose: bool = True) -> Dict[str, str]:
-    """
-    Pousse toutes les lignes locales dirty vers Supabase.
-    Règle de conflit: Last-Write-Wins via updated_at.
-      - Si local.updated_at >= remote.updated_at (ou remote absent) → push local
-      - Sinon → pull remote (local devient clean)
-    Retourne un dict {key: action} avec action ∈ {pushed, pulled, skipped, error}.
-    """
-    actions: Dict[str, str] = {}
-    if _ON_VERCEL:
-        if verbose: logger.info("[sync] Ignoré: environnement Vercel (ONLINE uniquement).")
-        return actions
-    if not _client:
-        if verbose: logger.info("[sync] Pas de client Supabase disponible.")
-        return actions
-
-    dirty_map = _sqlite_all_dirty()
-    if verbose: logger.info("[sync] Dirty keys: %s", list(dirty_map.keys()))
-
-    for key, local in dirty_map.items():
-        local_val = local["value"]
-        local_ts  = local["updated_at"]
-
-        remote_val, remote_ts = _get_online(key)
-
-        try:
-            # Décision LWW
-            if remote_val is None or _compare_ts(local_ts, remote_ts) >= 0:
-                ok, updated_at = _set_online(key, local_val)
-                if ok:
-                    _sqlite_upsert_clean(key, local_val, updated_at_iso=updated_at)
-                    actions[key] = "pushed"
-                else:
-                    actions[key] = "error"
-            else:
-                # Remote plus récent → pull
-                _sqlite_upsert_clean(key, remote_val, updated_at_iso=remote_ts)
-                actions[key] = "pulled"
-        except Exception as e:
-            logger.error("[sync] %s: exception during sync: %s", key, e)
-            actions[key] = "error"
-
-    if verbose:
-        for k, a in actions.items():
-            logger.info("[sync] %s: %s", k, a)
-    return actions
 
 
 # ===========================================================================
@@ -3383,6 +3228,9 @@ def get_relational_week_schedule() -> dict:
             session = row.get("program_sessions")
             if session and session.get("name"):
                 result[row["day_name"]] = session["name"]
+            else:
+                # Explicit Repos — must be included so callers don't fall back to hardcoded SCHEDULE
+                result[row["day_name"]] = "Repos"
         return result
 
     try:
@@ -3408,17 +3256,26 @@ def set_relational_week_schedule(schedule: dict) -> bool:
         return False
 
     def _do() -> bool:
+        active_pid = get_active_program_id()
         for day_name, session_name in schedule.items():
             session_id = None
             if session_name:
-                sess_resp = (
+                q = (
                     _client.table("program_sessions")
                     .select("id")
                     .eq("name", session_name)
-                    .execute()
                 )
+                if active_pid:
+                    q = q.eq("program_id", active_pid)
+                sess_resp = q.execute()
                 if sess_resp.data:
                     session_id = sess_resp.data[0]["id"]
+                else:
+                    logger.warning(
+                        "set_relational_week_schedule: session '%s' not found "
+                        "(program_id=%s) — day '%s' will be cleared",
+                        session_name, active_pid, day_name,
+                    )
             _client.table("weekly_schedule").upsert(
                 {"day_name": day_name, "session_id": session_id, "slot": "morning"},
                 on_conflict="day_name,slot",
@@ -3476,15 +3333,18 @@ def set_evening_week_schedule(schedule: dict) -> bool:
         return False
 
     def _do() -> bool:
+        active_pid = get_active_program_id()
         for day_name, session_name in schedule.items():
             session_id = None
             if session_name:
-                sess_resp = (
+                q = (
                     _client.table("program_sessions")
                     .select("id")
                     .eq("name", session_name)
-                    .execute()
                 )
+                if active_pid:
+                    q = q.eq("program_id", active_pid)
+                sess_resp = q.execute()
                 if sess_resp.data:
                     session_id = sess_resp.data[0]["id"]
             _client.table("weekly_schedule").upsert(

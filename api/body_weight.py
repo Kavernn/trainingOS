@@ -36,19 +36,15 @@ def log_body_weight(poids: float, note: str = "", body_fat: float = None, waist_
 def get_tendance(body_weight: list) -> str:
     if len(body_weight) < 2:
         return "Pas assez de données"
-    # Filter out likely lbs entries (>150 when profile uses kg)
-    kg_entries = [e for e in body_weight if e.get("poids", 0) <= 150]
-    if len(kg_entries) < 2:
-        return "Pas assez de données"
-    recent = kg_entries[:3]
-    older  = kg_entries[3:6]
+    recent = body_weight[:3]
+    older  = body_weight[3:6]
     if not older:
         return "Pas assez de données"
     avg_r = sum(e["poids"] for e in recent) / len(recent)
     avg_o = sum(e["poids"] for e in older)  / len(older)
     diff  = avg_r - avg_o
-    if diff > 0.3:  return f"↑ +{diff:.1f} kg"
-    if diff < -0.3: return f"↓ {diff:.1f} kg"
+    if diff > 0.5:  return f"↑ +{diff:.1f} lbs"
+    if diff < -0.5: return f"↓ {diff:.1f} lbs"
     return "→ Stable"
 
 

@@ -23,28 +23,26 @@ def api_set_goal():
 def api_body_weight():
     try:
         from body_weight import log_body_weight
-        data     = request.get_json(silent=True) or {}
+        from datetime import date as _date
+        data      = request.get_json(silent=True) or {}
         poids     = float(data.get("poids", 0))
         note      = data.get("note", "")
-        body_fat  = data.get("body_fat")
-        waist_cm  = data.get("waist_cm")
-        arms_cm   = data.get("arms_cm")
-        chest_cm  = data.get("chest_cm")
-        thighs_cm = data.get("thighs_cm")
-        hips_cm   = data.get("hips_cm")
-        for key, val in [("body_fat", body_fat), ("waist_cm", waist_cm),
-                         ("arms_cm", arms_cm), ("chest_cm", chest_cm),
-                         ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
-            if val is not None:
-                locals()[key]  # already set
-        body_fat  = float(body_fat)  if body_fat  is not None else None
-        waist_cm  = float(waist_cm)  if waist_cm  is not None else None
-        arms_cm   = float(arms_cm)   if arms_cm   is not None else None
-        chest_cm  = float(chest_cm)  if chest_cm  is not None else None
-        thighs_cm = float(thighs_cm) if thighs_cm is not None else None
-        hips_cm   = float(hips_cm)   if hips_cm   is not None else None
-        if not poids:
-            return jsonify({"error": "Poids invalide"}), 400
+        body_fat  = float(data.get("body_fat"))  if data.get("body_fat")  is not None else None
+        waist_cm  = float(data.get("waist_cm"))  if data.get("waist_cm")  is not None else None
+        arms_cm   = float(data.get("arms_cm"))   if data.get("arms_cm")   is not None else None
+        chest_cm  = float(data.get("chest_cm"))  if data.get("chest_cm")  is not None else None
+        thighs_cm = float(data.get("thighs_cm")) if data.get("thighs_cm") is not None else None
+        hips_cm   = float(data.get("hips_cm"))   if data.get("hips_cm")   is not None else None
+
+        if not poids or not (80 <= poids <= 500):
+            return jsonify({"error": "Poids invalide (80–500 lbs)"}), 400
+        if body_fat is not None and not (3 <= body_fat <= 60):
+            return jsonify({"error": "body_fat invalide (3–60%)"}), 400
+        for label, val in [("waist_cm", waist_cm), ("arms_cm", arms_cm),
+                           ("chest_cm", chest_cm), ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
+            if val is not None and not (20 <= val <= 250):
+                return jsonify({"error": f"{label} invalide (20–250 cm)"}), 400
+
         log_body_weight(poids, note, body_fat, waist_cm, arms_cm, chest_cm, thighs_cm, hips_cm)
         return jsonify({"success": True, "poids": poids})
     except Exception:
@@ -55,16 +53,29 @@ def api_body_weight():
 def api_update_body_weight():
     try:
         import db as _db
-        data      = request.get_json(silent=True) or {}
+        from datetime import date as _date
+        data        = request.get_json(silent=True) or {}
         target_date = data.get("date", "")
-        new_poids = float(data.get("poids", 0))
-        body_fat  = float(data.get("body_fat")) if data.get("body_fat") is not None else None
-        note      = data.get("note", "")
-        waist_cm  = float(data.get("waist_cm"))  if data.get("waist_cm")  is not None else None
-        arms_cm   = float(data.get("arms_cm"))   if data.get("arms_cm")   is not None else None
-        chest_cm  = float(data.get("chest_cm"))  if data.get("chest_cm")  is not None else None
-        thighs_cm = float(data.get("thighs_cm")) if data.get("thighs_cm") is not None else None
-        hips_cm   = float(data.get("hips_cm"))   if data.get("hips_cm")   is not None else None
+        new_poids   = float(data.get("poids", 0))
+        body_fat    = float(data.get("body_fat")) if data.get("body_fat") is not None else None
+        note        = data.get("note", "")
+        waist_cm    = float(data.get("waist_cm"))  if data.get("waist_cm")  is not None else None
+        arms_cm     = float(data.get("arms_cm"))   if data.get("arms_cm")   is not None else None
+        chest_cm    = float(data.get("chest_cm"))  if data.get("chest_cm")  is not None else None
+        thighs_cm   = float(data.get("thighs_cm")) if data.get("thighs_cm") is not None else None
+        hips_cm     = float(data.get("hips_cm"))   if data.get("hips_cm")   is not None else None
+
+        if not target_date or not ("2020-01-01" <= target_date <= _date.today().isoformat()):
+            return jsonify({"error": "date invalide"}), 400
+        if not new_poids or not (80 <= new_poids <= 500):
+            return jsonify({"error": "Poids invalide (80–500 lbs)"}), 400
+        if body_fat is not None and not (3 <= body_fat <= 60):
+            return jsonify({"error": "body_fat invalide (3–60%)"}), 400
+        for label, val in [("waist_cm", waist_cm), ("arms_cm", arms_cm),
+                           ("chest_cm", chest_cm), ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
+            if val is not None and not (20 <= val <= 250):
+                return jsonify({"error": f"{label} invalide (20–250 cm)"}), 400
+
         ok = _db.upsert_body_weight(
             target_date, new_poids, note=note,
             body_fat=body_fat, waist_cm=waist_cm, arms_cm=arms_cm,
