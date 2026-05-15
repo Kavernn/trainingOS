@@ -111,6 +111,14 @@ def save_sleep_entry(
     }
 
     db.upsert_sleep_record(entry)
+
+    # Keep recovery_log in sync so todaySleepLogged (reads recovery_log.sleep_hours) reflects this.
+    existing_rec = next((r for r in db.get_recovery_logs(limit=7) if r.get("date") == today), {})
+    existing_rec["date"]          = today
+    existing_rec["sleep_hours"]   = duration
+    existing_rec["sleep_quality"] = quality
+    db.upsert_recovery_log(existing_rec)
+
     return entry
 
 

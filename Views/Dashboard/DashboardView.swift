@@ -54,29 +54,12 @@ struct DashboardView: View {
                                 GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
                                     .appearAnimation(delay: 0)
 
-                                WeatherChipView(vm: weatherVM)
-                                    .appearAnimation(delay: 0.05)
-
                                 TodayCardView(
                                     dash: dash,
                                     showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
                                     onOpenSession: onOpenSession
                                 )
-                                .appearAnimation(delay: 0.10)
-
-                                DailyStreakCard(sessions: dash.sessions)
-                                    .appearAnimation(delay: 0.15)
-
-                                HabsWidget(service: nhlService)
-                                    .appearAnimation(delay: 0.20)
-
-                                QuoteOfDayView()
-                                    .appearAnimation(delay: 0.25)
-
-                                if let goal = dash.profile.goal, !goal.isEmpty {
-                                    GoalReminderView(goal: goal)
-                                        .appearAnimation(delay: 0.30)
-                                }
+                                .appearAnimation(delay: 0.05)
 
                                 DailyMetricsRow(
                                     readinessScore: vm.readinessScore,
@@ -85,17 +68,34 @@ struct DashboardView: View {
                                     nutritionSettings: dash.nutritionSettings,
                                     moodDue: vm.moodDue
                                 )
-                                .appearAnimation(delay: 0.35)
+                                .appearAnimation(delay: 0.10)
 
                                 WeekProgressStripView(dash: dash)
-                                    .appearAnimation(delay: 0.40)
+                                    .appearAnimation(delay: 0.15)
 
                                 if let report = vm.deload, report.fatigueLevel == 2 {
                                     DeloadBannerView(report: report) {
                                         await applyDeload(report: report)
                                     }
-                                    .appearAnimation(delay: 0.45)
+                                    .appearAnimation(delay: 0.20)
                                 }
+
+                                DailyStreakCard(sessions: dash.sessions)
+                                    .appearAnimation(delay: 0.25)
+
+                                if let goal = dash.profile.goal, !goal.isEmpty {
+                                    GoalReminderView(goal: goal)
+                                        .appearAnimation(delay: 0.30)
+                                }
+
+                                WeatherChipView(vm: weatherVM)
+                                    .appearAnimation(delay: 0.35)
+
+                                HabsWidget(service: nhlService)
+                                    .appearAnimation(delay: 0.40)
+
+                                QuoteOfDayView()
+                                    .appearAnimation(delay: 0.45)
                             }
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
@@ -174,7 +174,7 @@ struct DashboardView: View {
                     .padding(16)
                     Spacer()
                 }
-                .background(Color(hex: "0D0D14").ignoresSafeArea())
+                .background(Color.appBg.ignoresSafeArea())
                 .navigationTitle("Sommeil")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -199,7 +199,7 @@ struct DashboardView: View {
                         Button("Fermer") { showChecklist = false }
                     }
                 }
-                .background(Color(hex: "0D0D14").ignoresSafeArea())
+                .background(Color.appBg.ignoresSafeArea())
             }
             .presentationDetents([.medium, .large])
         }

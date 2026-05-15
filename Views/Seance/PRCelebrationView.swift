@@ -192,3 +192,53 @@ struct PRParticle: Identifiable {
         }
     }
 }
+
+// MARK: - Confetti (used in AlreadyLoggedSeanceView)
+struct ConfettiPiece: Identifiable {
+    let id = UUID()
+    var x: CGFloat
+    var y: CGFloat
+    var color: Color
+    var angle: Double
+    var size: CGFloat
+}
+
+struct ConfettiView: View {
+    private let colors: [Color] = [.orange, .green, .cyan, .yellow, .pink, .purple]
+    @State private var pieces: [ConfettiPiece] = []
+    @State private var animate = false
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(pieces) { p in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(p.color)
+                        .frame(width: p.size, height: p.size * 0.5)
+                        .position(x: p.x, y: animate ? geo.size.height + 40 : p.y)
+                        .rotationEffect(.degrees(p.angle + (animate ? 360 : 0)))
+                        .opacity(animate ? 0 : 1)
+                        .animation(
+                            .easeIn(duration: Double.random(in: 1.4...2.4))
+                            .delay(Double.random(in: 0...0.5)),
+                            value: animate
+                        )
+                }
+            }
+            .onAppear {
+                pieces = (0..<60).map { _ in
+                    ConfettiPiece(
+                        x: CGFloat.random(in: 0...geo.size.width),
+                        y: CGFloat.random(in: -20...geo.size.height * 0.4),
+                        color: colors.randomElement()!,
+                        angle: Double.random(in: 0...360),
+                        size: CGFloat.random(in: 6...12)
+                    )
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    animate = true
+                }
+            }
+        }
+    }
+}

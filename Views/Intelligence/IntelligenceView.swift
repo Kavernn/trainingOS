@@ -1225,8 +1225,8 @@ struct InsightsCard: View {
                 }
             }
 
-            if data.insights.isEmpty {
-                Text("Pas assez de données pour détecter des corrélations (min. 5 points par paire).")
+            if data.dataPoints < 10 || data.insights.isEmpty {
+                Text("Pas assez de données pour détecter des corrélations (min. 10 séances).")
                     .font(.system(size: 12))
                     .foregroundColor(.gray)
             } else {
@@ -1239,7 +1239,7 @@ struct InsightsCard: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "080d1a"))
+        .background(Color.appBg)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.blue.opacity(0.25), lineWidth: 1))
         .cornerRadius(12)
     }

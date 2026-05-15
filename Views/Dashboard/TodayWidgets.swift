@@ -65,7 +65,7 @@ struct DailyStreakCard: View {
         .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(cur > 0 ? Color.orange.opacity(0.07) : Color(hex: "13131E"))
+                .fill(cur > 0 ? Color.orange.opacity(0.07) : Color.appCard)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(cur > 0 ? Color.orange.opacity(0.22) : Color.white.opacity(0.06), lineWidth: 1)
@@ -122,7 +122,7 @@ struct HabsWidget: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(hex: "13131E"))
+                .fill(Color.appCard)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.06), lineWidth: 1))
         )
     }
@@ -272,7 +272,7 @@ struct QuoteOfDayView: View {
         .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(hex: "13131E"))
+                .fill(Color.appCard)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(
@@ -317,7 +317,7 @@ struct GoalReminderView: View {
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(hex: "13131E"))
+                .fill(Color.appCard)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.14), lineWidth: 1))
         )
     }
@@ -414,7 +414,7 @@ private struct MetricChip: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(hex: "13131E"))
+                .fill(Color.appCard)
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.06), lineWidth: 1))
         )
     }
