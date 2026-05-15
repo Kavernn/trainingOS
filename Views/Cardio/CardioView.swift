@@ -96,6 +96,7 @@ struct CardioView: View {
                         .padding(.vertical, 16)
                         .padding(.bottom, contentBottomPadding)
                     }
+                    .refreshable { await loadData() }
                 }
             }
             .navigationTitle("Cardio")

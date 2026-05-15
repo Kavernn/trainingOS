@@ -14,6 +14,7 @@ final class UnitSettings: ObservableObject {
     }
 
     var label: String { isKg ? "kg" : "lbs" }
+    var distanceUnit: String { isKg ? "KM" : "MI" }
 
     // Convert a stored-lbs value to the display value
     func display(_ lbs: Double) -> Double { isKg ? lbs * 0.453592 : lbs }

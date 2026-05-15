@@ -127,14 +127,32 @@ struct SleepView: View {
                         }
                     }
 
+                    if !isLoading && history.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "moon.zzz.fill")
+                                .font(.system(size: 48))
+                                .foregroundColor(.indigo.opacity(0.6))
+                            Text("Aucune donnée de sommeil")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.white)
+                            Text("Logger ta première nuit pour commencer à suivre ton sommeil.")
+                                .font(.system(size: 14))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 60)
+                    }
+
                     Spacer(minLength: 100)
                 }
             }
             .scrollDismissesKeyboard(.interactively)
+            .refreshable { await loadData() }
 
             if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                AppLoadingView()
             }
 
             // FAB
@@ -154,14 +172,16 @@ struct SleepView: View {
         .sheet(isPresented: $showLogSheet, onDismiss: { Task { await loadData() } }) {
             SleepLogSheet(existing: todayEntry)
         }
-        .alert("Supprimer cette nuit ?", isPresented: Binding(
+        .confirmationDialog("Supprimer cette nuit ?", isPresented: Binding(
             get: { entryToDelete != nil },
             set: { if !$0 { entryToDelete = nil } }
-        )) {
+        ), titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) {
                 if let e = entryToDelete { Task { await deleteEntry(e) } }
             }
             Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Cette entrée sera définitivement supprimée.")
         }
         .task { await loadData() }
         .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {

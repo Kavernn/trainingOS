@@ -37,7 +37,15 @@ struct DashboardView: View {
             ZStack {
                 AmbientBackground(color: todayAccentColor)
                 if api.isLoading && api.dashboard == nil {
-                    DashboardSkeletonView()
+                    VStack(spacing: 0) {
+                        DashboardSkeletonView()
+                        if api.isSlow {
+                            Text("Ça prend plus de temps que prévu…")
+                                .font(.system(size: 13))
+                                .foregroundColor(.gray)
+                                .padding(.top, 8)
+                        }
+                    }
                 } else if let dash = api.dashboard {
                     VStack(spacing: 0) {
                         ScrollView(showsIndicators: false) {
@@ -258,7 +266,7 @@ struct DashboardSkeletonView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 18) {
-                // Header
+                // Greeting
                 HStack {
                     VStack(alignment: .leading, spacing: 8) {
                         SkeletonBar(width: 80, height: 10)
@@ -270,7 +278,7 @@ struct DashboardSkeletonView: View {
                 }
                 .padding(.top, 12)
 
-                // TodayCard
+                // TodayCard (~120pt height)
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 10) {
                         SkeletonBar(width: 36, height: 36, radius: 18)
@@ -281,13 +289,14 @@ struct DashboardSkeletonView: View {
                         Spacer()
                     }
                     SkeletonBar(height: 48, radius: 12)
+                    SkeletonBar(width: 180, height: 12)
                 }
                 .padding(16)
                 .background(Color.white.opacity(0.04))
                 .cornerRadius(16)
 
-                // Recovery strip
-                HStack(spacing: 0) {
+                // DailyMetricsRow — 4 tiles
+                HStack(spacing: 8) {
                     ForEach(0..<4, id: \.self) { _ in
                         VStack(spacing: 6) {
                             SkeletonBar(width: 16, height: 16, radius: 8)
@@ -295,16 +304,17 @@ struct DashboardSkeletonView: View {
                             SkeletonBar(width: 28, height: 9)
                         }
                         .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.04))
+                        .cornerRadius(12)
                     }
                 }
-                .padding(.vertical, 12)
-                .background(Color.white.opacity(0.04))
-                .cornerRadius(16)
 
-                // Stats grid
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                    ForEach(0..<4, id: \.self) { _ in SkeletonBar(height: 60, radius: 12) }
-                }
+                // WeekProgressStrip
+                SkeletonBar(height: 48, radius: 12)
+
+                // DailyStreakCard
+                SkeletonBar(height: 60, radius: 14)
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)

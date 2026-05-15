@@ -42,6 +42,7 @@ class APIService: ObservableObject {
 
     @Published var dashboard: DashboardData?
     @Published var isLoading = false
+    @Published var isSlow = false
     @Published var error: String?
     /// Optimistic flag — set immediately when logSession is called (online OR offline queued).
     /// Prevents "Commencer la séance" from reappearing while the fresh dashboard is loading.
@@ -113,9 +114,15 @@ class APIService: ObservableObject {
             await MainActor.run { self.dashboard = decoded }
         }
 
-        await MainActor.run { isLoading = true; error = nil }
+        await MainActor.run { isLoading = true; isSlow = false; error = nil }
         var req = URLRequest(url: URL(string: "\(baseURL)/api/dashboard")!)
         req.timeoutInterval = 15
+        let slowTask = Task {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            if !Task.isCancelled {
+                await MainActor.run { self.isSlow = true }
+            }
+        }
         do {
             let data: Data
             do {
@@ -126,6 +133,8 @@ class APIService: ObservableObject {
                 guard let cached = CacheService.shared.load(for: "dashboard") else { throw error }
                 data = cached
             }
+            slowTask.cancel()
+            await MainActor.run { self.isSlow = false }
             let decoded = try JSONDecoder().decode(DashboardData.self, from: data)
             await MainActor.run {
                 self.dashboard = decoded
@@ -135,26 +144,20 @@ class APIService: ObservableObject {
             }
             NotificationScheduler.shared.scheduleMorningNotification(for: decoded)
         } catch let decodingError as DecodingError {
-            let msg: String
-            switch decodingError {
-            case .keyNotFound(let key, let ctx):
-                msg = "Clé manquante: \(key.stringValue) — \(ctx.codingPath.map(\.stringValue).joined(separator: "."))"
-            case .typeMismatch(let type, let ctx):
-                msg = "Type mismatch: attendu \(type) à \(ctx.codingPath.map(\.stringValue).joined(separator: "."))"
-            case .valueNotFound(let type, let ctx):
-                msg = "Valeur manquante: \(type) à \(ctx.codingPath.map(\.stringValue).joined(separator: "."))"
-            default:
-                msg = decodingError.localizedDescription
-            }
-            logger.error("❌ Dashboard decoding error: \(msg, privacy: .public)")
+            slowTask.cancel()
+            let _ = decodingError  // keep for logging
+            logger.error("❌ Dashboard decoding error: \(decodingError, privacy: .public)")
             await MainActor.run {
-                if self.dashboard == nil { self.error = msg }
+                if self.dashboard == nil { self.error = "Données incompatibles — mise à jour requise" }
                 self.isLoading = false
+                self.isSlow = false
             }
         } catch {
+            slowTask.cancel()
             await MainActor.run {
                 if self.dashboard == nil { self.error = error.localizedDescription }
                 self.isLoading = false
+                self.isSlow = false
             }
         }
     }

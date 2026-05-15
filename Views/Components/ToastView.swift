@@ -42,7 +42,7 @@ private struct ToastView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color(hex: "1c1c1e"), in: Capsule())
+        .background(Color.appCard, in: Capsule())
         .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
     }
 }

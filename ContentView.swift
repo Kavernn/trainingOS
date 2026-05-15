@@ -50,6 +50,7 @@ private struct iOSContentView: View {
             DashboardView(onOpenSession: { selectedTab = 2 })
                 .tag(1)
                 .tabItem { Label("Aujourd'hui", systemImage: "sun.horizon.fill") }
+                .badge(sync.pendingCount > 0 ? sync.pendingCount : 0)
             SeanceView()
                 .tag(2)
                 .tabItem { Label("Séance", systemImage: "dumbbell.fill") }

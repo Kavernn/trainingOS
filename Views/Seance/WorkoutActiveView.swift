@@ -82,6 +82,7 @@ struct WorkoutSeanceView: View {
     @State private var energyPre: Int = 3
     @State private var showEnergyPreSheet = false
     @AppStorage("energy_pre_date") private var energyPreDate = ""
+    @State private var energyConfirmed = false
 
     // Mid-workout intelligence
     @State private var dismissedAdviceId: String? = nil
@@ -99,6 +100,12 @@ struct WorkoutSeanceView: View {
     // AI analysis pre-load
     @State private var preloadedAIAnalysis: String? = nil
     @State private var isPreloadingAI = false
+
+    // Toast
+    @State private var toast: ToastMessage? = nil
+
+    // Swap inline banner (Fix #11)
+    @State private var lastSwap: (old: String, new: String)? = nil
 
     /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
     private var computedSessionRPE: Double {
@@ -132,7 +139,12 @@ struct WorkoutSeanceView: View {
                    let reply = json["response"] as? String {
                     await MainActor.run { preloadedAIAnalysis = reply; isPreloadingAI = false }
                 } else { await MainActor.run { isPreloadingAI = false } }
-            } catch { await MainActor.run { isPreloadingAI = false } }
+            } catch {
+                await MainActor.run {
+                    isPreloadingAI = false
+                    toast = ToastMessage(message: "Analyse IA indisponible", style: .error)
+                }
+            }
         }
     }
 
@@ -309,8 +321,14 @@ struct WorkoutSeanceView: View {
             if orderSaveError {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
-                    Text("Ordre non sauvegardé — réessaie").font(.system(size: 12)).foregroundColor(.red)
+                    Text("Ordre non sauvegardé").font(.system(size: 12)).foregroundColor(.red)
                     Spacer()
+                    Button("Réessayer") {
+                        orderSaveError = false
+                        Task { await saveOrder(exerciseOrder) }
+                    }
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.orange)
                     Button { orderSaveError = false } label: {
                         Image(systemName: "xmark").font(.system(size: 11)).foregroundColor(.gray)
                     }
@@ -773,6 +791,11 @@ struct WorkoutSeanceView: View {
                             Button {
                                 withAnimation { energyPre = val }
                                 energyPreDate = data.todayDate
+                                // Fix #15 — transient confirmation checkmark
+                                energyConfirmed = true
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    withAnimation { energyConfirmed = false }
+                                }
                             } label: {
                                 Image(systemName: val <= energyPre ? "bolt.fill" : "bolt")
                                     .font(.system(size: 15))
@@ -781,7 +804,12 @@ struct WorkoutSeanceView: View {
                             .buttonStyle(.plain)
                         }
                         Spacer()
-                        if energyPreDate == data.todayDate {
+                        if energyConfirmed {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 13))
+                                .foregroundColor(.green)
+                                .transition(.scale.combined(with: .opacity))
+                        } else if energyPreDate == data.todayDate {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.system(size: 10)).foregroundColor(.green.opacity(0.6))
                         }
@@ -799,10 +827,26 @@ struct WorkoutSeanceView: View {
                         Image(systemName: "arrow.clockwise.circle.fill")
                             .font(.system(size: 15))
                             .foregroundColor(.cyan)
-                        Text("Continuer la séance — \(vm.logResults.count) exercice(s) déjà loggué(s)")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.cyan)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Continuer la séance")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.cyan)
+                            Text("Tu as déjà loggé \(vm.logResults.count) exercice(s). Continue ou recommence depuis le début.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         Spacer()
+                        Button("Recommencer") {
+                            withAnimation {
+                                vm.logResults.removeAll()
+                            }
+                        }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.red.opacity(0.8))
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Color.red.opacity(0.1))
+                        .cornerRadius(6)
                     }
                     .padding(.horizontal, 12).padding(.vertical, 10)
                     .background(Color.cyan.opacity(0.08))
@@ -853,6 +897,38 @@ struct WorkoutSeanceView: View {
                 .animation(.spring(response: 0.4), value: currentVolume)
 
                 exerciseNavigator
+
+                // Swap confirmation banner (Fix #11)
+                if let swap = lastSwap {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.left.arrow.right.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.orange)
+                        Text("\(swap.old) → \(swap.new)")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer()
+                        Button("Annuler") {
+                            Task {
+                                await performSwap(original: swap.new, replacement: swap.old)
+                                lastSwap = nil
+                            }
+                        }
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.orange)
+                        Button { withAnimation { lastSwap = nil } } label: {
+                            Image(systemName: "xmark").font(.system(size: 11)).foregroundColor(.gray)
+                        }
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Color.orange.opacity(0.08))
+                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+                    .padding(.horizontal, 16)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
                 exerciseSection
 
@@ -1191,6 +1267,7 @@ struct WorkoutSeanceView: View {
             let updated = fresh[data.today] ?? [:]
             if !updated.isEmpty { sessionSupersets = updated }
         }
+        .toast($toast)
         } // end ScrollViewReader
     }
 
@@ -1317,6 +1394,14 @@ struct WorkoutSeanceView: View {
             swapConversions[replacement]  = conversion
             // Clear any in-progress log for the original
             vm.logResults.removeValue(forKey: original)
+            // Show toast + undo banner (Fix #11)
+            toast = ToastMessage(message: "Remplacé : \(original) → \(replacement)", style: .info)
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                lastSwap = (old: original, new: replacement)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                withAnimation { lastSwap = nil }
+            }
         }
     }
 
@@ -1570,7 +1655,7 @@ struct AddCardioSheet: View {
                                     .padding(10).background(Color(hex: "191926")).cornerRadius(10)
                             }
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("DISTANCE (KM)").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                Text("DISTANCE (\(UnitSettings.shared.distanceUnit))").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                                 TextField("—", text: $distanceKm).keyboardType(.decimalPad)
                                     .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
                                     .padding(10).background(Color(hex: "191926")).cornerRadius(10)
@@ -1630,6 +1715,8 @@ struct AddCardioSheet: View {
             .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
                 Button("Abandonner", role: .destructive) { dismiss() }
                 Button("Continuer", role: .cancel) {}
+            } message: {
+                Text("Toutes tes notes et configurations seront perdues.")
             }
             .alert("Erreur", isPresented: Binding(get: { logError != nil }, set: { if !$0 { logError = nil } })) {
                 Button("OK", role: .cancel) { logError = nil }
@@ -1640,6 +1727,7 @@ struct AddCardioSheet: View {
     private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     private func submit() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         isLogging = true
         Task {
             do {
@@ -1687,6 +1775,13 @@ struct AddHIITSheet: View {
 
     private var templates: [HIITTemplate] {
         (try? JSONDecoder().decode([HIITTemplate].self, from: Data(templatesData.utf8))) ?? []
+    }
+
+    private var isHIITValid: Bool {
+        let r = Int(rounds) ?? 0
+        let w = Int(workTime) ?? 0
+        let rest = Int(restTime) ?? -1
+        return (1...30).contains(r) && (5...300).contains(w) && (0...300).contains(rest)
     }
 
     private func saveTemplates(_ list: [HIITTemplate]) {
@@ -1745,14 +1840,32 @@ struct AddHIITSheet: View {
 
                         // Rounds / Work / Rest
                         HStack(spacing: 10) {
-                            ForEach([("RONDES", $rounds), ("TRAVAIL (s)", $workTime), ("REPOS (s)", $restTime)], id: \.0) { label, binding in
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                                    TextField("—", text: binding).keyboardType(.numberPad)
-                                        .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
-                                        .multilineTextAlignment(.center)
-                                        .padding(10).background(Color(hex: "191926")).cornerRadius(10)
-                                }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("RONDES").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                TextField("—", text: $rounds).keyboardType(.numberPad)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                                Text("Entre 1 et 30 rounds")
+                                    .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                            }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("TRAVAIL (s)").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                TextField("—", text: $workTime).keyboardType(.numberPad)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                                Text("Entre 5 et 300s")
+                                    .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                            }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("REPOS (s)").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                TextField("—", text: $restTime).keyboardType(.numberPad)
+                                    .font(.system(size: 20, weight: .bold)).foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .padding(10).background(Color(hex: "191926")).cornerRadius(10)
+                                Text("Entre 0 et 300s")
+                                    .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
                             }
                         }
                         .padding(14).background(Color.appCard).cornerRadius(14)
@@ -1799,9 +1912,10 @@ struct AddHIITSheet: View {
                                 Text("Enregistrer HIIT").font(.system(size: 15, weight: .semibold))
                             }
                             .frame(maxWidth: .infinity).padding(.vertical, 14)
-                            .background(Color.red).foregroundColor(.white).cornerRadius(14)
+                            .background(isLogging || !isHIITValid ? Color.red.opacity(0.4) : Color.red)
+                            .foregroundColor(.white).cornerRadius(14)
                         }
-                        .disabled(isLogging)
+                        .disabled(isLogging || !isHIITValid)
                         .padding(.bottom, 24)
                     }
                     .padding(.horizontal, 16).padding(.top, 16)
@@ -1838,6 +1952,7 @@ struct AddHIITSheet: View {
     private func rpeColor(_ v: Double) -> Color { RPEHelper.color(for: v) }
 
     private func submit() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         isLogging = true
         Task {
             do {

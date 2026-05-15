@@ -178,6 +178,7 @@ struct FinishSessionSheet: View {
     @State private var pendingEnergy: Int? = nil
     @State private var aiAnalysis: String? = nil
     @State private var isLoadingAI = false
+    @State private var aiError = false
     @State private var showExtras = false
 
     private var hasUnsavedData: Bool { !comment.isEmpty || energyPre != 3 }
@@ -237,10 +238,6 @@ struct FinishSessionSheet: View {
                                         Text("\(UnitSettings.shared.format(r.weight)) · \(r.reps)")
                                             .font(.system(size: 12))
                                             .foregroundColor(.gray)
-                                    } else {
-                                        Text("Non loggué")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.orange.opacity(0.5))
                                     }
                                 }
                                 .padding(.horizontal, 16).padding(.vertical, 8)
@@ -261,6 +258,9 @@ struct FinishSessionSheet: View {
                                 set: { rpe = RPEHelper.rirToRPE($0) }
                             )
                             RPEHelper.RIRTiles(rir: selectedRIR, showLabels: true)
+                            Text("RPE estimé : \(String(format: "%.1f", 10.0 - Double(RPEHelper.rirFromRPE(rpe))))")
+                                .font(.system(size: 12))
+                                .foregroundColor(.gray)
                             Text(RPEHelper.feedback(for: rpe))
                                 .font(.system(size: 12))
                                 .foregroundColor(RPEHelper.color(for: rpe))
@@ -368,6 +368,12 @@ struct FinishSessionSheet: View {
                                 }
                                 .disabled(isLoadingAI)
 
+                                if aiError {
+                                    Text("Analyse IA indisponible — réessaie")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.red.opacity(0.8))
+                                }
+
                                 if let analysis = aiAnalysis {
                                     Text(analysis)
                                         .font(.system(size: 13)).foregroundColor(.white.opacity(0.85))
@@ -423,6 +429,8 @@ struct FinishSessionSheet: View {
             .confirmationDialog("Abandonner la saisie ?", isPresented: $confirmDiscard, titleVisibility: .visible) {
                 Button("Abandonner", role: .destructive) { dismiss() }
                 Button("Continuer", role: .cancel) {}
+            } message: {
+                Text("Toutes tes notes et configurations seront perdues.")
             }
             .confirmationDialog("Enregistrer la séance ?", isPresented: $showConfirmSubmit, titleVisibility: .visible) {
                 Button("Enregistrer") {
@@ -444,6 +452,7 @@ struct FinishSessionSheet: View {
     private func loadAIAnalysis() {
         guard !isLoadingAI else { return }
         isLoadingAI = true
+        aiError = false
         let exoSummary = logResults.map { k, v in
             "\(k): \(v.reps) @ \(String(format: "%.0f", v.weight))lbs RPE\(String(format: "%.1f", v.rpe ?? rpe))"
         }.joined(separator: ", ")
@@ -463,7 +472,7 @@ struct FinishSessionSheet: View {
                    let reply = json["response"] as? String {
                     await MainActor.run { aiAnalysis = reply; isLoadingAI = false }
                 } else { await MainActor.run { isLoadingAI = false } }
-            } catch { await MainActor.run { isLoadingAI = false } }
+            } catch { await MainActor.run { isLoadingAI = false; aiError = true } }
         }
     }
 
@@ -868,6 +877,20 @@ struct CoachingChip: View {
             }
             .padding(.horizontal, 10).padding(.vertical, 5)
             .background(Color.green.opacity(0.1)).cornerRadius(8)
+        } else if suggestion.suggestionType == "maintain" {
+            HStack(spacing: 6) {
+                Image(systemName: "equal.circle")
+                    .font(.system(size: 12)).foregroundColor(.gray.opacity(0.7))
+                Text("Pas de changement recommandé")
+                    .font(.system(size: 12, weight: .medium)).foregroundColor(.gray.opacity(0.8))
+                Spacer()
+                Button("OK") { ignored = true }
+                    .font(.system(size: 11)).foregroundColor(.gray)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(Color.gray.opacity(0.06))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.gray.opacity(0.15), lineWidth: 1))
+            .cornerRadius(8)
         } else {
             HStack(spacing: 8) {
                 Image(systemName: typeIcon)
