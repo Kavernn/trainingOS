@@ -2,6 +2,14 @@ import SwiftUI
 import Combine
 import CoreLocation
 
+struct DayForecast: Identifiable {
+    let id = UUID()
+    let date: Date
+    let maxTemp: Double
+    let minTemp: Double
+    let symbol: String
+}
+
 @MainActor
 final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var temperature: Double? = nil
@@ -9,6 +17,10 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
     @Published var cityName: String = ""
     @Published var lastUpdated: Date? = nil
     @Published var locationDenied: Bool = false
+    @Published var forecast: [DayForecast] = []
+
+    var todayMax: Double? { forecast.first?.maxTemp }
+    var todayMin: Double? { forecast.first?.minTemp }
 
     private let locationManager = CLLocationManager()
 
@@ -57,20 +69,37 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
     }
 
     private func fetchWeather(for location: CLLocation) async {
-        // 10min cache — skip re-fetch if data is recent
         if let lastUpdated, Date().timeIntervalSince(lastUpdated) < 600 { return }
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
-        let urlStr = "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lon)&current=temperature_2m,weather_code&temperature_unit=celsius&forecast_days=1"
+        let urlStr = "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lon)&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=celsius&forecast_days=7&timezone=auto"
         guard let url = URL(string: urlStr),
               let (data, _) = try? await URLSession.shared.data(from: url),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let current = json["current"] as? [String: Any],
-              let temp = current["temperature_2m"] as? Double else { return }
-        temperature = temp
-        if let code = current["weather_code"] as? Int {
-            conditionSymbol = Self.symbol(for: code)
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+
+        if let current = json["current"] as? [String: Any],
+           let temp = current["temperature_2m"] as? Double {
+            temperature = temp
+            if let code = current["weather_code"] as? Int {
+                conditionSymbol = Self.symbol(for: code)
+            }
         }
+
+        if let daily = json["daily"] as? [String: Any],
+           let times  = daily["time"]             as? [String],
+           let maxArr = daily["temperature_2m_max"] as? [Double],
+           let minArr = daily["temperature_2m_min"] as? [Double],
+           let codes  = daily["weather_code"]      as? [Int] {
+            let fmt = ISO8601DateFormatter()
+            fmt.formatOptions = [.withFullDate]
+            forecast = zip(times.indices, times).compactMap { i, dateStr -> DayForecast? in
+                guard i < maxArr.count, i < minArr.count, i < codes.count,
+                      let date = fmt.date(from: dateStr) else { return nil }
+                return DayForecast(date: date, maxTemp: maxArr[i], minTemp: minArr[i],
+                                   symbol: Self.symbol(for: codes[i]))
+            }
+        }
+
         lastUpdated = Date()
     }
 
@@ -103,36 +132,68 @@ struct WeatherChipView: View {
 
     var body: some View {
         if let temp = vm.temperature {
-            HStack(spacing: 12) {
-                Image(systemName: vm.conditionSymbol)
-                    .font(.system(size: 20, weight: .medium))
-                    .symbolRenderingMode(.multicolor)
-                    .frame(width: 28)
+            VStack(spacing: 0) {
+                // — Ligne actuelle —
+                HStack(spacing: 10) {
+                    Image(systemName: vm.conditionSymbol)
+                        .font(.system(size: 22, weight: .medium))
+                        .symbolRenderingMode(.multicolor)
+                        .frame(width: 30)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(String(format: "%.0f°C", temp))
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.white)
-                    if !vm.cityName.isEmpty {
-                        Text(vm.cityName)
-                            .font(.system(size: 11))
-                            .foregroundColor(.gray)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(String(format: "%.0f°", temp))
+                            .font(.system(size: 22, weight: .black))
+                            .foregroundColor(.white)
+                        if !vm.cityName.isEmpty {
+                            Text(vm.cityName)
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                        }
+                    }
+
+                    Spacer()
+
+                    if let hi = vm.todayMax, let lo = vm.todayMin {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.up")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.orange.opacity(0.8))
+                                Text(String(format: "%.0f°", hi))
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.85))
+                            }
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.down")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.cyan.opacity(0.8))
+                                Text(String(format: "%.0f°", lo))
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.55))
+                            }
+                        }
                     }
                 }
+                .padding(.horizontal, 14)
+                .padding(.top, 12)
+                .padding(.bottom, vm.forecast.isEmpty ? 12 : 10)
 
-                Spacer()
-
-                if let updated = vm.lastUpdated {
-                    Text(updated, style: .relative)
-                        .font(.system(size: 9))
-                        .foregroundColor(.gray.opacity(0.45))
-                        .monospacedDigit()
+                // — Strip hebdomadaire —
+                if !vm.forecast.isEmpty {
+                    Divider().background(Color.white.opacity(0.06)).padding(.horizontal, 10)
+                    HStack(spacing: 0) {
+                        ForEach(Array(vm.forecast.enumerated()), id: \.1.id) { idx, day in
+                            DayColumn(day: day, isToday: idx == 0)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 8)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
             .background(Color(hex: "11111c"))
             .cornerRadius(14)
+
         } else if vm.locationDenied {
             HStack(spacing: 8) {
                 Image(systemName: "location.slash.fill")
@@ -147,6 +208,40 @@ struct WeatherChipView: View {
             .padding(.vertical, 10)
             .background(Color(hex: "11111c"))
             .cornerRadius(14)
+        }
+    }
+}
+
+private struct DayColumn: View {
+    let day: DayForecast
+    let isToday: Bool
+
+    private var dayLabel: String {
+        if isToday { return "Auj" }
+        let fmt = DateFormatter()
+        fmt.locale = Locale(identifier: "fr_CA")
+        fmt.dateFormat = "EEE"
+        return fmt.string(from: day.date).capitalized.prefix(3).description
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(dayLabel)
+                .font(.system(size: 10, weight: isToday ? .bold : .regular))
+                .foregroundColor(isToday ? .orange : .gray.opacity(0.6))
+
+            Image(systemName: day.symbol)
+                .font(.system(size: 14))
+                .symbolRenderingMode(.multicolor)
+                .frame(height: 16)
+
+            Text(String(format: "%.0f°", day.maxTemp))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(isToday ? .white : .white.opacity(0.75))
+
+            Text(String(format: "%.0f°", day.minTemp))
+                .font(.system(size: 10))
+                .foregroundColor(.white.opacity(0.35))
         }
     }
 }

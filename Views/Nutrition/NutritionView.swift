@@ -45,9 +45,14 @@ struct NutritionView: View {
                                 .appearAnimation(delay: 0.08)
 
                             if let dayType = vm.todayType {
-                                DayTypeBadge(type: dayType, session: vm.todaySession)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.1)
+                                DayTypeBadge(
+                                    type: dayType,
+                                    session: vm.todaySession,
+                                    effectiveCal: vm.effectiveCalories,
+                                    effectiveGluc: vm.effectiveGlucides
+                                )
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.1)
                             }
 
                             WorkoutTimingCard(todayType: vm.todayType, totals: vm.totals, settings: effectiveSettings)
@@ -1325,8 +1330,10 @@ private struct MacroPreviewPill: View {
 // MARK: - Workout Bonus Badge
 
 struct DayTypeBadge: View {
-    let type: String       // "light" | "moderate" | "heavy" | "rest"
-    var session: String?   // e.g. "Upper A", "Legs B"
+    let type: String
+    var session: String?
+    var effectiveCal: Double?
+    var effectiveGluc: Double?
 
     private var config: (icon: String, label: String, color: Color) {
         switch type {
@@ -1343,17 +1350,34 @@ struct DayTypeBadge: View {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(color)
-            if let s = session, !s.isEmpty {
-                Text(s)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white)
-                Text("· \(label)")
-                    .font(.system(size: 12))
-                    .foregroundColor(color)
-            } else {
-                Text(label)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(color)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 4) {
+                    if let s = session, !s.isEmpty {
+                        Text(s)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("· \(label)")
+                            .font(.system(size: 12))
+                            .foregroundColor(color)
+                    } else {
+                        Text(label)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(color)
+                    }
+                }
+                if let cal = effectiveCal, let gluc = effectiveGluc {
+                    HStack(spacing: 8) {
+                        Text("\(Int(cal)) kcal")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.75))
+                        Text("·")
+                            .font(.system(size: 10))
+                            .foregroundColor(.gray.opacity(0.5))
+                        Text("\(Int(gluc))g glucides")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.55))
+                    }
+                }
             }
             Spacer()
         }

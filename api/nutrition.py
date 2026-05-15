@@ -76,8 +76,9 @@ def save_settings(limite_calories: int, objectif_proteines: int,
     db.update_nutrition_settings(patch)
 
 
-_HEAVY_SESSIONS = frozenset({"legs b", "lower a"})
-_LIGHT_SESSIONS = frozenset({"upper a"})
+_HEAVY_SESSIONS = frozenset({"legs b", "lower a", "lower", "legs", "squat", "deadlift"})
+_LIGHT_SESSIONS = frozenset({"upper a", "push a", "pull a"})
+_REST_KEYWORDS  = frozenset({"repos", "rest", "recovery", "yoga", "stretch", "off", "cardio léger"})
 
 
 def _get_day_intensity() -> tuple[str, str]:
@@ -85,23 +86,33 @@ def _get_day_intensity() -> tuple[str, str]:
 
     Intensity: 'light' | 'moderate' | 'heavy' | 'rest'.
     Session name: actual session started today, or today's scheduled session.
+    Order: pattern match first, then program membership for rest detection.
     """
     try:
         from planner import load_program, get_today, get_today_date
-        program = load_program()
 
         # Prefer the session actually started today over the schedule
         actual = db.get_workout_session_by_type(get_today_date(), "morning")
         session_name = (actual or {}).get("session_name") or get_today()
 
-        if session_name not in program:
-            return "rest", session_name
+        if not session_name:
+            return "rest", ""
 
         name = session_name.lower()
+
+        # Pattern match first — before any program lookup
         if any(k in name for k in _HEAVY_SESSIONS):
             return "heavy", session_name
         if any(k in name for k in _LIGHT_SESSIONS):
             return "light", session_name
+        if any(k in name for k in _REST_KEYWORDS):
+            return "rest", session_name
+
+        # Only use program membership as fallback for ambiguous names
+        program = load_program()
+        if session_name not in program:
+            return "rest", session_name
+
         return "moderate", session_name
     except Exception:
         return "moderate", ""
