@@ -100,6 +100,8 @@
 		PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */; };
 		SWAP0002SWAP0002SWAP0002 /* ExerciseSwapSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */; };
 		VAR00002VAR00002VAR00002 /* CreateVariantSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */; };
+		WAV00002WAV00002WAV00002 /* WorkoutActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WAV00001WAV00001WAV00001 /* WorkoutActiveView.swift */; };
+		SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */; };
 		APIWO002APIWO002APIWO002 /* APIService+Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIWO001APIWO001APIWO001 /* APIService+Workout.swift */; };
 		APIPR002APIPR002APIPR002 /* APIService+Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIPR001APIPR001APIPR001 /* APIService+Profile.swift */; };
 		APIGO002APIGO002APIGO002 /* APIService+Goals.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIGO001APIGO001APIGO001 /* APIService+Goals.swift */; };
@@ -230,6 +232,8 @@
 		PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestionsSheet.swift; sourceTree = "<group>"; };
 		SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseSwapSheet.swift; sourceTree = "<group>"; };
 		VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateVariantSheet.swift; sourceTree = "<group>"; };
+		WAV00001WAV00001WAV00001 /* WorkoutActiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActiveView.swift; sourceTree = "<group>"; };
+		SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupportViews.swift; sourceTree = "<group>"; };
 		APIWO001APIWO001APIWO001 /* APIService+Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Workout.swift"; sourceTree = "<group>"; };
 		APIPR001APIPR001APIPR001 /* APIService+Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Profile.swift"; sourceTree = "<group>"; };
 		APIGO001APIGO001APIGO001 /* APIService+Goals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Goals.swift"; sourceTree = "<group>"; };
@@ -559,6 +563,8 @@
 			isa = PBXGroup;
 			children = (
 				D665E4422F5D98B8002AE470 /* SeanceView.swift */,
+				WAV00001WAV00001WAV00001 /* WorkoutActiveView.swift */,
+				SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */,
 				AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */,
 				BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */,
 				PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */,
@@ -792,6 +798,8 @@
 			files = (
 				D665E4472F5D98BA002AE470 /* ContentView.swift in Sources */,
 				D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */,
+				WAV00002WAV00002WAV00002 /* WorkoutActiveView.swift in Sources */,
+				SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */,
 				AA11001B2F5D98BA002AE470 /* SeanceSoirView.swift in Sources */,
 				BB3300012F5D98BA002AE471 /* BonusSeanceView.swift in Sources */,
 				D665E4492F5D98BA002AE470 /* HistoriqueView.swift in Sources */,
