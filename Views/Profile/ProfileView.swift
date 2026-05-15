@@ -507,15 +507,7 @@ struct EditProfileSheet: View {
                     .foregroundColor(.gray)
 
                     Section("Mesures") {
-                        LabeledContent("Unité de poids") {
-                            Picker("", selection: $units.isKg) {
-                                Text("lbs").tag(false)
-                                Text("kg").tag(true)
-                            }
-                            .pickerStyle(.segmented)
-                            .frame(width: 120)
-                        }
-                        LabeledContent("Poids (\(units.label))") {
+                        LabeledContent("Poids (lbs)") {
                             TextField("0.0", text: $weight)
                                 .keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing)
