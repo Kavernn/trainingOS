@@ -260,6 +260,12 @@ struct IntelligenceView: View {
     private var patternsSectionView: some View {
         VStack(alignment: .leading, spacing: 16) {
 
+            // ── Plateau Detection ─────────────────────────────────────────────
+            PlateauSection()
+                .background(Color.appCard)
+                .cornerRadius(14)
+                .padding(.horizontal, 16)
+
             // ── Workout DNA ───────────────────────────────────────────────────
             WorkoutDNASection()
                 .background(Color.appCard)
