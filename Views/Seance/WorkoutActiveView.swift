@@ -1076,20 +1076,25 @@ struct WorkoutSeanceView: View {
                     }
                 }) {
                     HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                        Text("Terminer la séance").font(.system(size: 15, weight: .semibold))
+                        if vm.isFinishing {
+                            ProgressView().tint(.white).scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "checkmark.circle.fill")
+                        }
+                        Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
+                            .font(.system(size: 15, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(canFinish ? Color.orange : Color(hex: "1a1a2e"))
-                    .foregroundColor(canFinish ? .white : .gray)
+                    .background(canFinish && !vm.isFinishing ? Color.orange : Color(hex: "1a1a2e"))
+                    .foregroundColor(canFinish && !vm.isFinishing ? .white : .gray)
                     .cornerRadius(14)
                     .overlay(
-                        canFinish ? nil :
+                        canFinish && !vm.isFinishing ? nil :
                             RoundedRectangle(cornerRadius: 14)
                                 .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                     )
                 }
-                .disabled(!canFinish)
+                .disabled(!canFinish || vm.isFinishing)
                 .animation(.easeInOut(duration: 0.2), value: canFinish)
                 .padding(.horizontal, 16)
                 .padding(.top, canFinish ? 10 : 6)

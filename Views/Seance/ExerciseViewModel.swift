@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import UIKit
 import UserNotifications
 
 extension Notification.Name {
@@ -343,6 +344,7 @@ class SeanceViewModel: ObservableObject {
     @Published var submitError: String?
     @Published var isResuming = false
     @Published var commitWarning: String?
+    @Published private(set) var isFinishing = false
     @Published var prCelebrations: [(name: String, oneRM: Double)] = []
 
     var sessionStart = Date()
@@ -418,6 +420,20 @@ class SeanceViewModel: ObservableObject {
     }
 
     func finish(rpe: Double, comment: String, durationMin: Double? = nil, energyPre: Int? = nil, sessionName: String? = nil, bonusSession: Bool = false) async {
+        guard !isFinishing else { return }
+        isFinishing = true
+
+        // Ask iOS for extra background time so the multi-step save (exercise POSTs + session POST)
+        // completes even if the user backgrounds the app immediately after tapping "Terminer".
+        var bgTask = UIBackgroundTaskIdentifier.invalid
+        bgTask = UIApplication.shared.beginBackgroundTask {
+            UIApplication.shared.endBackgroundTask(bgTask)
+        }
+        defer {
+            isFinishing = false
+            UIApplication.shared.endBackgroundTask(bgTask)
+        }
+
         let exos = logResults.values.map { "\($0.name) \($0.weight)lbs \($0.reps)" }
         let exerciseLogs: [[String: Any]] = logResults.values.map {
             ["exercise": $0.name, "weight": $0.weight, "reps": $0.reps]
