@@ -43,6 +43,7 @@ struct NutritionView: View {
                                     .padding(.horizontal, 16)
                             }
 
+
                             // N-D1: banner when nutritional settings are not configured
                             if showSettingsBanner {
                                 HStack(spacing: 10) {
@@ -120,17 +121,20 @@ struct NutritionView: View {
                             if !vm.history.isEmpty {
                                 HStack(spacing: 6) {
                                     ForEach([7, 30, 90], id: \.self) { p in
+                                        let sel    = historyPeriod == p
+                                        let bg: Color     = sel ? Color.orange.opacity(0.18) : .clear
+                                        let fg: Color     = sel ? .orange : .gray
+                                        let stroke: Color = sel ? Color.orange.opacity(0.4)  : .clear
                                         Button("\(p)j") {
                                             withAnimation { historyPeriod = p }
                                             Task { await vm.loadData(days: p, silent: true) }
                                         }
                                         .font(.system(size: 12, weight: .semibold))
                                         .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(historyPeriod == p ? Color.orange.opacity(0.18) : Color.clear)
-                                        .foregroundColor(historyPeriod == p ? .orange : .gray)
+                                        .background(bg)
+                                        .foregroundColor(fg)
                                         .cornerRadius(7)
-                                        .overlay(RoundedRectangle(cornerRadius: 7)
-                                            .stroke(historyPeriod == p ? Color.orange.opacity(0.4) : Color.clear, lineWidth: 1))
+                                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(stroke, lineWidth: 1))
                                     }
                                     Spacer()
                                 }
@@ -173,6 +177,7 @@ struct NutritionView: View {
                         .padding(.vertical, 16)
                     }
                     .scrollDismissesKeyboard(.interactively)
+                    .refreshable { await vm.loadData() }
                 }
             }
             .navigationTitle("Nutrition")
@@ -1431,6 +1436,7 @@ struct AddNutritionSheet: View {
                     mealType: mealType
                 )
             }
+            triggerNotificationFeedback(.success)
             await onSaved()
             isSaving = false
             dismiss()
