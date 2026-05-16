@@ -76,25 +76,27 @@ final class DashboardViewModel: ObservableObject {
 
         // Phase 2: all independent secondary calls in parallel.
         // withTaskGroup is safe on iOS 26 beta (async let parallel has LIFO crash).
+        // @MainActor in each task: properties are MainActor-isolated.
+        // Network awaits still suspend and yield the actor, so fetches run concurrently.
         var secondaryFailures = 0
         await withTaskGroup(of: Int.self) { group in
-            group.addTask {
+            group.addTask { @MainActor in
                 do { self.deload = try await APIService.shared.fetchDeloadData(); return 0 }
                 catch { self.logger.error("fetchDeload: \(error, privacy: .public)"); return 1 }
             }
-            group.addTask {
+            group.addTask { @MainActor in
                 do { self.moodDue = try await APIService.shared.checkMoodDue(); return 0 }
                 catch { self.logger.error("checkMoodDue: \(error, privacy: .public)"); return 1 }
             }
-            group.addTask {
+            group.addTask { @MainActor in
                 do { self.morningBrief = try await APIService.shared.fetchMorningBrief(); return 0 }
                 catch { self.logger.error("fetchMorningBrief: \(error, privacy: .public)"); return 1 }
             }
-            group.addTask {
+            group.addTask { @MainActor in
                 do { self.eveningSession = try await APIService.shared.fetchSeanceSoirData(); return 0 }
                 catch { self.logger.error("fetchSeanceSoir: \(error, privacy: .public)"); return 1 }
             }
-            group.addTask {
+            group.addTask { @MainActor in
                 do {
                     let log = try await APIService.shared.fetchRecoveryData()
                     let entry = log.first(where: { $0.date == today })
@@ -106,15 +108,15 @@ final class DashboardViewModel: ObservableObject {
                     return 1
                 }
             }
-            group.addTask {
+            group.addTask { @MainActor in
                 self.sleepStages = await HealthKitService.shared.fetchLastNightSleepStages()
                 return 0
             }
-            group.addTask {
+            group.addTask { @MainActor in
                 self.sleepWindow = await HealthKitService.shared.fetchLastNightSleepWindow()
                 return 0
             }
-            group.addTask {
+            group.addTask { @MainActor in
                 await AlertService.shared.fetch()
                 return 0
             }
@@ -126,11 +128,11 @@ final class DashboardViewModel: ObservableObject {
         // Analytics — once per calendar day
         if analyticsLoadedDate != today {
             await withTaskGroup(of: Void.self) { group in
-                group.addTask { self.insights  = (try? await APIService.shared.fetchInsights()) ?? [] }
-                group.addTask { self.lssTrend  = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? [] }
-                group.addTask { self.coachTip  = try? await APIService.shared.fetchDailyCoachTip() }
-                group.addTask { self.smartDay  = try? await APIService.shared.fetchSmartDay() }
-                group.addTask { self.weeklyReport = try? await APIService.shared.fetchWeeklyReport() }
+                group.addTask { @MainActor in self.insights  = (try? await APIService.shared.fetchInsights()) ?? [] }
+                group.addTask { @MainActor in self.lssTrend  = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? [] }
+                group.addTask { @MainActor in self.coachTip  = try? await APIService.shared.fetchDailyCoachTip() }
+                group.addTask { @MainActor in self.smartDay  = try? await APIService.shared.fetchSmartDay() }
+                group.addTask { @MainActor in self.weeklyReport = try? await APIService.shared.fetchWeeklyReport() }
             }
             analyticsLoadedDate = today
         }
