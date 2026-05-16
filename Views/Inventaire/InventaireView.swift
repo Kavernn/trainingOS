@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 private let kBaseURL = "https://training-os-rho.vercel.app"
 
@@ -43,6 +44,7 @@ struct InventaireView: View {
     @State private var inProgram: Set<String> = []
     @State private var isLoading = true
     @State private var searchText = ""
+    @State private var debouncedSearch = ""
     @State private var selectedType = "Tous"
     @State private var selectedCategory = "Tous"
     @State private var filterProgram = false
@@ -59,7 +61,7 @@ struct InventaireView: View {
             (selectedType == "Tous" || item.type == selectedType) &&
             (selectedCategory == "Tous" || item.category == selectedCategory) &&
             (!filterProgram || inProgram.contains(item.name)) &&
-            (searchText.isEmpty || item.name.localizedCaseInsensitiveContains(searchText))
+            (debouncedSearch.isEmpty || item.name.localizedCaseInsensitiveContains(debouncedSearch))
         }
         .sorted { $0.name < $1.name }
     }
@@ -107,6 +109,16 @@ struct InventaireView: View {
             }
         }
         .task { await loadData() }
+        .onChange(of: searchText) { _, new in
+            if new.isEmpty {
+                debouncedSearch = ""
+            } else {
+                Task {
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                    if searchText == new { debouncedSearch = new }
+                }
+            }
+        }
         .confirmationDialog(
             inProgram.contains(pendingDelete ?? "")
                 ? "Cet exercice est dans ton programme — le supprimer le retirera de toutes tes séances."

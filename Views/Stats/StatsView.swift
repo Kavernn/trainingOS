@@ -398,7 +398,7 @@ struct StatsView: View {
                         }
 
                         ScrollView(showsIndicators: false) {
-                            VStack(spacing: 16) {
+                            LazyVStack(spacing: 16) {
                                 if selectedTab == 0, !smartInsights.isEmpty {
                                     SmartInsightsBanner(insights: smartInsights)
                                         .padding(.horizontal, 16)
@@ -1377,13 +1377,11 @@ struct PersonalRecordsView: View {
                             .foregroundColor(.white)
                             .lineLimit(1)
                         Spacer()
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(Color(hex: "191926")).frame(height: 6)
-                                Capsule()
-                                    .fill(prColor(i))
-                                    .frame(width: geo.size.width * (record.1 / maxORM), height: 6)
-                            }
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                            Capsule()
+                                .fill(prColor(i))
+                                .frame(width: 80 * (record.1 / maxORM), height: 6)
                         }
                         .frame(width: 80, height: 6)
                         Text(units.format(record.1, decimals: 0))
@@ -1470,27 +1468,29 @@ struct Top5VolumeView: View {
             Text("TOP 5 — VOLUME CUMULÉ")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
 
-            VStack(spacing: 8) {
-                ForEach(Array(data.enumerated()), id: \.0) { i, item in
-                    HStack(spacing: 10) {
-                        Text(item.0)
-                            .font(.system(size: 12, weight: .medium)).foregroundColor(.white)
-                            .lineLimit(1).frame(width: 120, alignment: .leading)
-                        GeometryReader { geo in
+            GeometryReader { outer in
+                VStack(spacing: 8) {
+                    ForEach(Array(data.enumerated()), id: \.0) { i, item in
+                        HStack(spacing: 10) {
+                            Text(item.0)
+                                .font(.system(size: 12, weight: .medium)).foregroundColor(.white)
+                                .lineLimit(1).frame(width: 120, alignment: .leading)
+                            let barW = outer.size.width - 184
                             ZStack(alignment: .leading) {
                                 Capsule().fill(Color(hex: "191926")).frame(height: 8)
                                 Capsule()
                                     .fill(barColor(i))
-                                    .frame(width: geo.size.width * (item.1 / maxVol), height: 8)
+                                    .frame(width: barW * (item.1 / maxVol), height: 8)
                             }
+                            .frame(height: 8)
+                            Text(formatK(item.1))
+                                .font(.system(size: 11, weight: .bold)).foregroundColor(barColor(i))
+                                .frame(width: 44, alignment: .trailing)
                         }
-                        .frame(height: 8)
-                        Text(formatK(item.1))
-                            .font(.system(size: 11, weight: .bold)).foregroundColor(barColor(i))
-                            .frame(width: 44, alignment: .trailing)
                     }
                 }
             }
+            .frame(height: CGFloat(data.count) * (8 + 8) - 8)
         }
         .padding(16).glassCard().cornerRadius(14)
     }
@@ -2317,39 +2317,41 @@ struct MuscleBreakdownView: View {
         VStack(alignment: .leading, spacing: 12) {
             SectionLabel(title: "MUSCLES TRAVAILLÉS", icon: "figure.strengthtraining.traditional")
 
-            VStack(spacing: 8) {
-                ForEach(sorted, id: \.0) { muscle, entry in
-                    HStack(spacing: 10) {
-                        Text(muscle.capitalized)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: 110, alignment: .leading)
+            GeometryReader { outer in
+                VStack(spacing: 8) {
+                    ForEach(sorted, id: \.0) { muscle, entry in
+                        HStack(spacing: 10) {
+                            Text(muscle.capitalized)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 110, alignment: .leading)
 
-                        GeometryReader { geo in
+                            let barW = outer.size.width - 168
                             ZStack(alignment: .leading) {
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(Color.white.opacity(0.06))
                                 RoundedRectangle(cornerRadius: 4)
                                     .fill(freshnessColor(daysSince(entry.lastDate)).opacity(0.7))
-                                    .frame(width: geo.size.width * CGFloat(entry.volume / maxVolume))
+                                    .frame(width: barW * CGFloat(entry.volume / maxVolume))
                             }
-                        }
-                        .frame(height: 8)
+                            .frame(height: 8)
 
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(formatVol(entry.volume))
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.8))
-                            if let days = daysSince(entry.lastDate) {
-                                Text(days == 0 ? "auj." : "\(days)j")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(freshnessColor(days))
+                            VStack(alignment: .trailing, spacing: 1) {
+                                Text(formatVol(entry.volume))
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.8))
+                                if let days = daysSince(entry.lastDate) {
+                                    Text(days == 0 ? "auj." : "\(days)j")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(freshnessColor(days))
+                                }
                             }
+                            .frame(width: 38, alignment: .trailing)
                         }
-                        .frame(width: 38, alignment: .trailing)
                     }
                 }
             }
+            .frame(height: CGFloat(sorted.count) * (8 + 8) - 8)
 
             HStack(spacing: 16) {
                 legendDot(.orange, "≤ 2j")
@@ -2424,40 +2426,42 @@ struct PRTrackerView: View {
                     .font(.system(size: 13)).foregroundColor(.gray).italic()
             } else {
                 let maxW = prs.map(\.prWeight).max() ?? 1
-                VStack(spacing: 8) {
-                    ForEach(prs) { pr in
-                        HStack(spacing: 10) {
-                            // Nom
-                            Text(pr.name)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .frame(width: 130, alignment: .leading)
+                GeometryReader { outer in
+                    VStack(spacing: 8) {
+                        ForEach(prs) { pr in
+                            HStack(spacing: 10) {
+                                // Nom
+                                Text(pr.name)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .frame(width: 130, alignment: .leading)
 
-                            // Barre
-                            GeometryReader { geo in
+                                // Barre
+                                let barW = outer.size.width - 225
                                 ZStack(alignment: .leading) {
                                     Capsule().fill(Color(hex: "191926")).frame(height: 6)
                                     Capsule()
                                         .fill(pr.isRecent ? Color.yellow : Color.orange.opacity(0.6))
-                                        .frame(width: geo.size.width * (pr.prWeight / maxW), height: 6)
+                                        .frame(width: barW * (pr.prWeight / maxW), height: 6)
                                 }
-                            }
-                            .frame(height: 6)
+                                .frame(height: 6)
 
-                            // Poids + date
-                            VStack(alignment: .trailing, spacing: 1) {
-                                Text("\(UnitSettings.shared.display(pr.prWeight), specifier: "%.1f") \(UnitSettings.shared.label)")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(pr.isRecent ? .yellow : .orange)
-                                Text(shortDate(pr.prDate))
-                                    .font(.system(size: 9))
-                                    .foregroundColor(.gray)
+                                // Poids + date
+                                VStack(alignment: .trailing, spacing: 1) {
+                                    Text("\(UnitSettings.shared.display(pr.prWeight), specifier: "%.1f") \(UnitSettings.shared.label)")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(pr.isRecent ? .yellow : .orange)
+                                    Text(shortDate(pr.prDate))
+                                        .font(.system(size: 9))
+                                        .foregroundColor(.gray)
+                                }
+                                .frame(width: 75, alignment: .trailing)
                             }
-                            .frame(width: 75, alignment: .trailing)
                         }
                     }
                 }
+                .frame(height: CGFloat(prs.count) * (6 + 8) - 8)
             }
         }
         .padding(16)
@@ -2663,16 +2667,17 @@ struct MuscleVolumeView: View {
                     .font(.system(size: 13)).foregroundColor(.gray).italic()
             } else {
                 let maxVol = sorted.first?.1 ?? 1
-                VStack(spacing: 8) {
-                    ForEach(sorted, id: \.0) { muscle, volume in
-                        HStack(spacing: 10) {
-                            Text(muscle.capitalized)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
-                                .frame(width: 110, alignment: .leading)
+                GeometryReader { outer in
+                    VStack(spacing: 8) {
+                        ForEach(sorted, id: \.0) { muscle, volume in
+                            HStack(spacing: 10) {
+                                Text(muscle.capitalized)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .frame(width: 110, alignment: .leading)
 
-                            GeometryReader { geo in
+                                let barW = outer.size.width - 202
                                 ZStack(alignment: .leading) {
                                     Capsule().fill(Color(hex: "191926")).frame(height: 6)
                                     Capsule()
@@ -2682,18 +2687,19 @@ struct MuscleVolumeView: View {
                                                 startPoint: .leading, endPoint: .trailing
                                             )
                                         )
-                                        .frame(width: geo.size.width * (volume / maxVol), height: 6)
+                                        .frame(width: barW * (volume / maxVol), height: 6)
                                 }
-                            }
-                            .frame(height: 6)
+                                .frame(height: 6)
 
-                            Text("\(UnitSettings.shared.display(volume), specifier: "%.0f") \(UnitSettings.shared.label)")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(.blue.opacity(0.8))
-                                .frame(width: 72, alignment: .trailing)
+                                Text("\(UnitSettings.shared.display(volume), specifier: "%.0f") \(UnitSettings.shared.label)")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.blue.opacity(0.8))
+                                    .frame(width: 72, alignment: .trailing)
+                            }
                         }
                     }
                 }
+                .frame(height: CGFloat(sorted.count) * (6 + 8) - 8)
             }
         }
         .padding(16)
@@ -2754,52 +2760,53 @@ struct VolumeLandmarksCard: View {
                 legendDot(.red,    "> MRV")
             }
 
-            VStack(spacing: 7) {
-                ForEach(sorted, id: \.0) { muscle, lm in
-                    HStack(spacing: 8) {
-                        Text(muscle.capitalized)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: 100, alignment: .leading)
-                            .lineLimit(1)
+            GeometryReader { outer in
+                VStack(spacing: 7) {
+                    ForEach(sorted, id: \.0) { muscle, lm in
+                        let barW = outer.size.width - 190
+                        let ratio = min(Double(lm.weeklySets) / Double(lm.mrv), 1.2)
+                        HStack(spacing: 8) {
+                            Text(muscle.capitalized)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 100, alignment: .leading)
+                                .lineLimit(1)
 
-                        // Progress bar: filled to weekly_sets/mrv, marker at MEV and MAV
-                        GeometryReader { geo in
-                            let w = geo.size.width
-                            let ratio = min(Double(lm.weeklySets) / Double(lm.mrv), 1.2)
+                            // Progress bar: filled to weekly_sets/mrv, marker at MEV and MAV
                             ZStack(alignment: .leading) {
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(Color.white.opacity(0.06))
                                     .frame(height: 8)
                                 RoundedRectangle(cornerRadius: 3)
                                     .fill(zoneColor(lm.zone).opacity(0.8))
-                                    .frame(width: min(w * ratio, w), height: 8)
+                                    .frame(width: min(barW * ratio, barW), height: 8)
                                 // MEV marker
                                 Rectangle()
                                     .fill(Color.white.opacity(0.4))
                                     .frame(width: 1, height: 12)
-                                    .offset(x: w * Double(lm.mev) / Double(lm.mrv))
+                                    .offset(x: barW * Double(lm.mev) / Double(lm.mrv))
                                 // MAV marker
                                 Rectangle()
                                     .fill(Color.white.opacity(0.25))
                                     .frame(width: 1, height: 12)
-                                    .offset(x: min(w * Double(lm.mav) / Double(lm.mrv), w - 1))
+                                    .offset(x: min(barW * Double(lm.mav) / Double(lm.mrv), barW - 1))
                             }
+                            .frame(height: 12)
+
+                            Text("\(lm.weeklySets)")
+                                .font(.system(size: 12, weight: .black))
+                                .foregroundColor(zoneColor(lm.zone))
+                                .frame(width: 22, alignment: .trailing)
+
+                            Text(zoneLabel(lm.zone))
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(zoneColor(lm.zone).opacity(0.8))
+                                .frame(width: 44, alignment: .trailing)
                         }
-                        .frame(height: 12)
-
-                        Text("\(lm.weeklySets)")
-                            .font(.system(size: 12, weight: .black))
-                            .foregroundColor(zoneColor(lm.zone))
-                            .frame(width: 22, alignment: .trailing)
-
-                        Text(zoneLabel(lm.zone))
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(zoneColor(lm.zone).opacity(0.8))
-                            .frame(width: 44, alignment: .trailing)
                     }
                 }
             }
+            .frame(height: CGFloat(sorted.count) * (12 + 7) - 7)
 
             Text("MEV · MAV · MRV d'après Renaissance Periodization (Israetel et al.)")
                 .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
@@ -3000,23 +3007,27 @@ struct PatternVolumeView: View {
                         .foregroundColor(pushPullBalance)
                 }
             }
-            ForEach(entries, id: \.0) { name, vol, color in
-                let pct = maxVal > 0 ? vol / maxVal : 0
-                HStack(spacing: 8) {
-                    Text(name)
-                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
-                        .frame(width: 42, alignment: .leading)
-                    GeometryReader { geo in
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(color.opacity(0.7))
-                            .frame(width: geo.size.width * CGFloat(pct))
+            GeometryReader { outer in
+                VStack(spacing: 10) {
+                    ForEach(entries, id: \.0) { name, vol, color in
+                        let pct = maxVal > 0 ? vol / maxVal : 0
+                        let barW = outer.size.width - 102
+                        HStack(spacing: 8) {
+                            Text(name)
+                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                                .frame(width: 42, alignment: .leading)
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(color.opacity(0.7))
+                                .frame(width: barW * CGFloat(pct), height: 14)
+                            Spacer(minLength: 0)
+                            Text(_formatK(units.display(vol)))
+                                .font(.system(size: 10)).foregroundColor(.gray)
+                                .frame(width: 44, alignment: .trailing)
+                        }
                     }
-                    .frame(height: 14)
-                    Text(_formatK(units.display(vol)))
-                        .font(.system(size: 10)).foregroundColor(.gray)
-                        .frame(width: 44, alignment: .trailing)
                 }
             }
+            .frame(height: CGFloat(entries.count) * (14 + 10) - 10)
         }
         .padding(14)
         .background(Color.appCard)
@@ -3169,31 +3180,34 @@ struct RPEProgressionView: View {
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             Text("Gain de charge moyen sur la séance suivante par zone d'intensité")
                 .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
-            ForEach(buckets, id: \.0) { name, val, color in
-                HStack(spacing: 8) {
-                    Text("RPE \(name)")
-                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
-                        .frame(width: 60, alignment: .leading)
-                    GeometryReader { geo in
+            GeometryReader { outer in
+                VStack(spacing: 10) {
+                    ForEach(buckets, id: \.0) { name, val, color in
                         let pct = val.map { abs($0) / max(maxAbs, 1) } ?? 0
-                        let width = geo.size.width * CGFloat(pct)
                         let c = (val ?? 0) >= 0 ? color : Color.red
-                        HStack(spacing: 0) {
-                            RoundedRectangle(cornerRadius: 3).fill(c).frame(width: max(width, 2), height: 14)
-                            Spacer()
+                        let barW = outer.size.width - 126
+                        HStack(spacing: 8) {
+                            Text("RPE \(name)")
+                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                                .frame(width: 60, alignment: .leading)
+                            HStack(spacing: 0) {
+                                RoundedRectangle(cornerRadius: 3).fill(c).frame(width: max(barW * CGFloat(pct), 2), height: 14)
+                                Spacer(minLength: 0)
+                            }
+                            .frame(height: 14)
+                            if let v = val {
+                                Text(v >= 0 ? "+\(String(format: "%.1f", v))%" : "\(String(format: "%.1f", v))%")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor((v) >= 0 ? .green : .red)
+                                    .frame(width: 50, alignment: .trailing)
+                            } else {
+                                Text("—").font(.system(size: 10)).foregroundColor(.gray).frame(width: 50, alignment: .trailing)
+                            }
                         }
-                    }
-                    .frame(height: 14)
-                    if let v = val {
-                        Text(v >= 0 ? "+\(String(format: "%.1f", v))%" : "\(String(format: "%.1f", v))%")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor((v) >= 0 ? .green : .red)
-                            .frame(width: 50, alignment: .trailing)
-                    } else {
-                        Text("—").font(.system(size: 10)).foregroundColor(.gray).frame(width: 50, alignment: .trailing)
                     }
                 }
             }
+            .frame(height: CGFloat(buckets.count) * (14 + 10) - 10)
         }
         .padding(14)
         .background(Color.appCard)
@@ -3212,23 +3226,27 @@ struct RIRByExerciseView: View {
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             Text("Reps In Reserve — distance à l'échec musculaire")
                 .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
-            ForEach(entries.prefix(8)) { e in
-                let pct = maxRIR > 0 ? e.avgRir / maxRIR : 0
-                let c: Color = e.avgRir <= 1 ? .red : e.avgRir <= 2 ? .orange : .green
-                HStack(spacing: 8) {
-                    Text(e.exercise)
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
-                        .frame(maxWidth: 120, alignment: .leading).lineLimit(1)
-                    GeometryReader { geo in
-                        RoundedRectangle(cornerRadius: 3).fill(c.opacity(0.7))
-                            .frame(width: geo.size.width * CGFloat(pct), height: 12)
+            GeometryReader { outer in
+                VStack(spacing: 10) {
+                    ForEach(entries.prefix(8)) { e in
+                        let pct = maxRIR > 0 ? e.avgRir / maxRIR : 0
+                        let c: Color = e.avgRir <= 1 ? .red : e.avgRir <= 2 ? .orange : .green
+                        let barW = outer.size.width - 164
+                        HStack(spacing: 8) {
+                            Text(e.exercise)
+                                .font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
+                                .frame(width: 120, alignment: .leading).lineLimit(1)
+                            RoundedRectangle(cornerRadius: 3).fill(c.opacity(0.7))
+                                .frame(width: barW * CGFloat(pct), height: 12)
+                            Spacer(minLength: 0)
+                            Text(String(format: "%.1f", e.avgRir))
+                                .font(.system(size: 10, weight: .bold)).foregroundColor(c)
+                                .frame(width: 28, alignment: .trailing)
+                        }
                     }
-                    .frame(height: 12)
-                    Text(String(format: "%.1f", e.avgRir))
-                        .font(.system(size: 10, weight: .bold)).foregroundColor(c)
-                        .frame(width: 28, alignment: .trailing)
                 }
             }
+            .frame(height: CGFloat(min(entries.count, 8)) * (12 + 10) - 10)
         }
         .padding(14)
         .background(Color.appCard)
