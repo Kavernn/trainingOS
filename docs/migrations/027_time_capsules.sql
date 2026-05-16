@@ -14,3 +14,6 @@ CREATE TABLE IF NOT EXISTS time_capsules (
 
 CREATE INDEX IF NOT EXISTS idx_time_capsules_unlock_at  ON time_capsules (unlock_at);
 CREATE INDEX IF NOT EXISTS idx_time_capsules_is_opened  ON time_capsules (is_opened);
+
+ALTER TABLE time_capsules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all_time_capsules" ON time_capsules FOR ALL USING (true) WITH CHECK (true);
