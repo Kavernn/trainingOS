@@ -267,15 +267,43 @@ def get_exercise_id_include_deleted(name: str) -> Optional[str]:
 
 
 def get_or_create_exercise_id(name: str) -> Optional[str]:
-    """Return exercise UUID; create a minimal exercise row when missing."""
+    """Return exercise UUID; reactivate soft-deleted rows instead of creating duplicates.
+
+    Priority:
+    1. Active exercise with this name → return id
+    2. Soft-deleted exercise with this name → clear deleted_at, return id (preserves history)
+    3. No row → create new minimal exercise row
+    """
     if _client is None or MODE == "OFFLINE":
         return None
     clean_name = (name or "").strip()
     if not clean_name:
         return None
+
+    # 1 — active row
     existing_id = get_exercise_id(clean_name)
     if existing_id:
         return existing_id
+
+    # 2 — soft-deleted row: reactivate to preserve exercise_logs history
+    try:
+        resp = (
+            _client.table("exercises")
+            .select("id")
+            .eq("name", clean_name)
+            .not_.is_("deleted_at", "null")
+            .limit(1)
+            .execute()
+        )
+        if resp.data:
+            ex_id = resp.data[0]["id"]
+            _client.table("exercises").update({"deleted_at": None}).eq("id", ex_id).execute()
+            logger.info("get_or_create_exercise_id: reactivated soft-deleted exercise %r (%s)", clean_name, ex_id)
+            return ex_id
+    except Exception as e:
+        logger.warning("get_or_create_exercise_id soft-delete check failed for %r: %s", clean_name, e)
+
+    # 3 — create new
     try:
         created = upsert_exercise({"name": clean_name})
         return created.get("id") if isinstance(created, dict) else None
@@ -567,6 +595,33 @@ def complete_workout_session(date: str, patch: Optional[dict] = None) -> bool:
         return False
 
     def _do() -> bool:
+        # Warn when completing a session that has no exercise logs — likely a
+        # crash-during-write scenario where exercise data was lost.
+        try:
+            session_row = (
+                _client.table("workout_sessions")
+                .select("id")
+                .eq("date", date)
+                .eq("session_type", "morning")
+                .single()
+                .execute()
+            )
+            if session_row.data:
+                log_check = (
+                    _client.table("exercise_logs")
+                    .select("id", count="exact")
+                    .eq("session_id", session_row.data["id"])
+                    .limit(1)
+                    .execute()
+                )
+                if (log_check.count or 0) == 0:
+                    logger.warning(
+                        "complete_workout_session: completing session %s on %s with zero exercise_logs",
+                        session_row.data["id"], date,
+                    )
+        except Exception:
+            pass  # guard should never block completion
+
         data = {"completed": True}
         if patch:
             for k, v in patch.items():
@@ -2347,12 +2402,16 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
 
 
 def insert_nutrition_entry(data: dict) -> dict:
-    """Insert a nutrition entry. Returns the saved entry (with id)."""
+    """Insert a nutrition entry. Returns the saved entry (with id).
+
+    Uses upsert on_conflict="id" so retries (network lag, double-tap) are safe:
+    same UUID → same row, no calorie duplication.
+    """
     if _client is None or MODE == "OFFLINE":
         return data
 
     def _do() -> dict:
-        resp = _client.table("nutrition_entries").insert(data).execute()
+        resp = _client.table("nutrition_entries").upsert(data, on_conflict="id").execute()
         return resp.data[0] if resp.data else data
 
     try:
@@ -3456,12 +3515,17 @@ def get_pss_records(pss_type: Optional[str] = None, limit: int = 0) -> List[dict
 
 
 def insert_pss_record(entry: dict) -> Optional[dict]:
-    """Insert a PSS record. Returns saved record or None."""
+    """Upsert a PSS record. Returns saved record or None.
+
+    Uses on_conflict="date,type" so resubmitting the same questionnaire
+    on the same day updates the existing record instead of creating a duplicate.
+    Requires migration 025_pss_unique_date_type.sql.
+    """
     if _client is None or MODE == "OFFLINE":
         return None
 
     def _do() -> Optional[dict]:
-        resp = _client.table("pss_records").insert(entry).execute()
+        resp = _client.table("pss_records").upsert(entry, on_conflict="date,type").execute()
         return resp.data[0] if resp.data else None
 
     try:

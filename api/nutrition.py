@@ -145,7 +145,7 @@ def add_entry(nom: str, calories: float, proteines: float = 0,
     except Exception:
         pass
     entry = {
-        "id":        str(uuid.uuid4())[:8],
+        "id":        str(uuid.uuid4()),
         "date":      _today_mtl(),
         "nom":       nom,
         "calories":  round(calories),
