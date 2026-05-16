@@ -1987,14 +1987,14 @@ struct EveningScheduleCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "moon.stars.fill")
                         .font(.system(size: 12))
-                        .foregroundColor(.indigo)
+                        .foregroundColor(.blue)
                     Text("SOIR")
                         .font(.system(size: 10, weight: .black))
                         .tracking(2)
-                        .foregroundColor(.indigo)
+                        .foregroundColor(.blue)
                 }
                 .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Color.indigo.opacity(0.12))
+                .background(Color.blue.opacity(0.12))
                 .cornerRadius(6)
 
                 VStack(alignment: .leading, spacing: 1) {
@@ -2044,7 +2044,7 @@ struct EveningScheduleCard: View {
         .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.indigo.opacity(0.25), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.blue.opacity(0.25), lineWidth: 1))
     }
 
     private func shortLabel(_ s: String) -> String {
@@ -2067,7 +2067,7 @@ struct EveningScheduleCard: View {
         case "Legs":                         return .yellow
         case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
-        default:                             return .indigo
+        default:                             return .blue
         }
     }
 }

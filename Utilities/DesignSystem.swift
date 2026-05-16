@@ -1,39 +1,22 @@
 import SwiftUI
 
-// MARK: - Glass Card Modifier
+// MARK: - Card Modifiers
 struct GlassCard: ViewModifier {
-    var color: Color = .white
+    var color: Color = .white   // kept for call-site compatibility, unused
     var intensity: Double = 0.06
     var cornerRadius: CGFloat = 16
 
     func body(content: Content) -> some View {
         content
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(Color.appCard)
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(
-                            LinearGradient(
-                                colors: [color.opacity(intensity), .clear],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color.appCard)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(
-                        LinearGradient(
-                            colors: [.white.opacity(0.07), .white.opacity(0)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
+                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.22), radius: 10, x: 0, y: 5)
+            .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -44,31 +27,14 @@ struct GlassCardAccent: ViewModifier {
     func body(content: Content) -> some View {
         content
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(Color.appCard)
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .fill(
-                            LinearGradient(
-                                colors: [accent.opacity(0.12), accent.opacity(0.03), .clear],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color.appCard)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(
-                        LinearGradient(
-                            colors: [accent.opacity(0.35), accent.opacity(0.05)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
+                    .stroke(accent.opacity(0.25), lineWidth: 1)
             )
-            .shadow(color: accent.opacity(0.15), radius: 20, x: 0, y: 8)
+            .shadow(color: accent.opacity(0.10), radius: 12, x: 0, y: 4)
     }
 }
 
@@ -172,14 +138,10 @@ struct SectionLabel: View {
     }
 }
 
-// MARK: - Glow Text
+// MARK: - Glow Text (no-op — removed flashy shadow effect)
 struct GlowText: ViewModifier {
     let color: Color
-    func body(content: Content) -> some View {
-        content
-            .shadow(color: color.opacity(0.6), radius: 8, x: 0, y: 0)
-            .shadow(color: color.opacity(0.3), radius: 16, x: 0, y: 0)
-    }
+    func body(content: Content) -> some View { content }
 }
 
 extension View {
@@ -240,16 +202,10 @@ struct AmbientBackground: View {
         ZStack {
             Color.appBg
             RadialGradient(
-                colors: [color.opacity(0.12), .clear],
+                colors: [color.opacity(0.08), .clear],
                 center: .topTrailing,
                 startRadius: 0,
-                endRadius: 300
-            )
-            RadialGradient(
-                colors: [Color.purple.opacity(0.05), .clear],
-                center: .bottomLeading,
-                startRadius: 0,
-                endRadius: 250
+                endRadius: 280
             )
         }
         .ignoresSafeArea()

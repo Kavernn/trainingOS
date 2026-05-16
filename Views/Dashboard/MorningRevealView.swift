@@ -169,7 +169,7 @@ struct MorningRevealView: View {
     private var activeFlagChips: [(icon: String, text: String, color: Color)] {
         var chips: [(icon: String, text: String, color: Color)] = []
         if morningBrief.flags.sleepDeprivation {
-            chips.append((icon: "moon.zzz.fill", text: "Manque de sommeil", color: .indigo))
+            chips.append((icon: "moon.zzz.fill", text: "Manque de sommeil", color: .blue))
         }
         if morningBrief.flags.hrvDrop {
             chips.append((icon: "waveform.path.ecg", text: "HRV en baisse", color: .orange))
@@ -202,7 +202,7 @@ private struct RevealComponentsRow: View {
     var body: some View {
         HStack(spacing: 10) {
             if let v = components.sleepQuality {
-                RevealComponentChip(icon: "moon.fill", label: "Sommeil", quality: v, color: v > 0.6 ? .indigo : .orange)
+                RevealComponentChip(icon: "moon.fill", label: "Sommeil", quality: v, color: v > 0.6 ? .blue : .orange)
             }
             if let v = components.hrvTrend {
                 RevealComponentChip(icon: "waveform.path.ecg", label: "HRV", quality: v, color: v > 0.6 ? .green : .orange)

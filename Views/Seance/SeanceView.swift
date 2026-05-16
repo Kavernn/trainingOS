@@ -870,7 +870,7 @@ struct ExtraSessionSheet: View {
         case "Legs":                         return .yellow
         case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
-        default:                             return .indigo
+        default:                             return .blue
         }
     }
 

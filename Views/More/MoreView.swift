@@ -8,7 +8,7 @@ struct MoreView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .purple)
+                AmbientBackground(color: .orange)
 
                 List {
                     Section("Entraînement") {
@@ -28,7 +28,7 @@ struct MoreView: View {
                         MoreRow(icon: "fork.knife",             color: .orange, title: "Nutrition")        { NutritionView() }
                         MoreRow(icon: "figure.run",             color: .teal,   title: "Cardio")           { CardioView() }
                         MoreRow(icon: "bed.double.fill",        color: .purple, title: "Sommeil")          { SleepView() }
-                        MoreRow(icon: "moon.zzz.fill",         color: .indigo, title: "Récupération")     { RecoveryView() }
+                        MoreRow(icon: "moon.zzz.fill",         color: .blue, title: "Récupération")     { RecoveryView() }
                         MoreRow(icon: "face.smiling.fill",     color: .mint,   title: "Santé Mentale")    { MentalHealthView() }
                     }
                     .listRowBackground(glassRowBG(.green))
@@ -63,13 +63,7 @@ struct MoreView: View {
     }
 
     private func glassRowBG(_ color: Color) -> some View {
-        ZStack {
-            Color.appCard
-            LinearGradient(
-                colors: [color.opacity(0.04), .clear],
-                startPoint: .leading, endPoint: .trailing
-            )
-        }
+        Color.appCard
     }
 }
 

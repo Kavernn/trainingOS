@@ -252,20 +252,6 @@ struct ObjectifCard: View {
             .cornerRadius(16)
             .scaleEffect(celebrate ? 1.03 : 1.0)
 
-            // Sparkles overlay on achievement
-            if celebrate {
-                ForEach(0..<6, id: \.self) { i in
-                    Image(systemName: "sparkle")
-                        .font(.system(size: CGFloat([10, 14, 8, 12, 10, 8][i])))
-                        .foregroundColor(.green.opacity(0.7))
-                        .offset(
-                            x: CGFloat([-40, 40, -60, 60, 0, -20][i]),
-                            y: CGFloat([-20, -15, 5, 10, -30, 20][i])
-                        )
-                        .opacity(celebrate ? 1 : 0)
-                        .animation(.easeOut(duration: 0.6).delay(Double(i) * 0.05), value: celebrate)
-                }
-            }
         }
         .onAppear {
             if obj.achieved {
@@ -381,17 +367,6 @@ struct SmartGoalCard: View {
             .background(RoundedRectangle(cornerRadius: 16).fill(Color.appCard))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(goal.color.opacity(0.18), lineWidth: 1))
 
-            if celebrate {
-                ForEach(0..<6, id: \.self) { i in
-                    Image(systemName: "sparkle")
-                        .font(.system(size: CGFloat([10, 14, 8, 12, 10, 8][i])))
-                        .foregroundColor(goal.color.opacity(0.7))
-                        .offset(x: CGFloat([-40, 40, -60, 60, 0, -20][i]),
-                                y: CGFloat([-20, -15, 5, 10, -30, 20][i]))
-                        .opacity(celebrate ? 1 : 0)
-                        .animation(.easeOut(duration: 0.6).delay(Double(i) * 0.05), value: celebrate)
-                }
-            }
         }
         .confirmationDialog("Supprimer cet objectif ?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { onDelete() }

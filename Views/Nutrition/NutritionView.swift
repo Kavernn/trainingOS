@@ -1564,7 +1564,7 @@ struct DayTypeBadge: View {
         case "heavy":    return ("dumbbell.fill",                       "Lourd · surplus léger",   .orange)
         case "moderate": return ("figure.strengthtraining.traditional", "Modéré · maintenance",    .yellow)
         case "light":    return ("figure.arms.open",                    "Léger · léger déficit",   Color(hex: "00BCD4"))
-        default:         return ("moon.fill",                           "Repos · déficit",         .indigo)
+        default:         return ("moon.fill",                           "Repos · déficit",         .blue)
         }
     }
 
@@ -2201,7 +2201,7 @@ struct WorkoutTimingCard: View {
         if (19...23).contains(hour) && protDeficit > 20 {
             return Guidance(
                 icon: "moon.stars.fill",
-                color: .indigo,
+                color: .blue,
                 title: "Protéines avant de dormir",
                 body: "Il te manque \(Int(protDeficit))g de protéines. Skyr ou cottage cheese pour la nuit."
             )
@@ -2312,7 +2312,7 @@ struct NutritionSettingsSheet: View {
                         DayTypeRow(icon: "figure.arms.open",                    color: Color(hex: "00BCD4"),
                                    label: "Léger",    calPlaceholder: "2200",   glucPlaceholder: "185",
                                    cal: $lightCal,    gluc: $lightGluc)
-                        DayTypeRow(icon: "moon.fill",                           color: .indigo,
+                        DayTypeRow(icon: "moon.fill",                           color: .blue,
                                    label: "Repos",    calPlaceholder: "2100",   glucPlaceholder: "160",
                                    cal: $restCalT,    gluc: $restGluc)
                     }

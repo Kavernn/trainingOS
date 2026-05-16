@@ -274,7 +274,7 @@ struct HealthKPIGrid: View {
             }
             if let sleep = summary.sleepDuration {
                 let delta = yesterday?.sleepDuration.map { sleep - $0 }
-                HealthKPICard(value: String(format: "%.1fh", sleep), label: "Sommeil", color: .indigo,
+                HealthKPICard(value: String(format: "%.1fh", sleep), label: "Sommeil", color: .blue,
                               delta: delta.map { deltaDouble($0, unit: "h", invertGood: false) })
             }
             if let hr = effectiveHR {
@@ -510,7 +510,7 @@ struct WeeklySleepChart: View {
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
                     let pct = maxH > 0 ? item.1 / maxH : 0
-                    let color: Color = item.1 >= 7 ? .indigo : (item.1 >= 5 ? .orange : .red)
+                    let color: Color = item.1 >= 7 ? .blue : (item.1 >= 5 ? .orange : .red)
                     let isLast = i == data.count - 1
                     VStack(spacing: 3) {
                         Text(String(format: "%.0fh", item.1))
@@ -530,7 +530,7 @@ struct WeeklySleepChart: View {
             }
             .frame(height: 80)
         }
-        .padding(14).glassCard(color: .indigo, intensity: 0.05).cornerRadius(14)
+        .padding(14).glassCard(color: .blue, intensity: 0.05).cornerRadius(14)
         .sheet(item: $selectedDay) { day in
             HealthDayDetailSheet(day: day)
         }
@@ -885,7 +885,7 @@ struct HealthDayDetailSheet: View {
             List {
                 if let sleep = day.sleepDuration {
                     Section("Sommeil") {
-                        DetailMetricRow(icon: "moon.fill", color: .indigo, label: "Durée",
+                        DetailMetricRow(icon: "moon.fill", color: .blue, label: "Durée",
                                         value: String(format: "%.1fh", sleep))
                         if let q = day.sleepQuality {
                             DetailMetricRow(icon: "star.fill", color: .yellow, label: "Qualité",

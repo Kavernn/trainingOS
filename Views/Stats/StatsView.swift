@@ -332,7 +332,7 @@ struct StatsView: View {
         if let overdue = overdueList.first {
             insights.append(("exclamationmark.circle.fill",
                              "\(overdue.0.capitalized) pas entraîné depuis \(overdue.1) jours",
-                             .indigo))
+                             .blue))
         }
         return Array(insights.prefix(4))
     }
@@ -652,7 +652,7 @@ struct StatsView: View {
                 xLabel: "Qualité sommeil (J-1)",
                 yLabel: "Volume séance (J)",
                 title: "SOMMEIL → PERFORMANCE",
-                color: .indigo
+                color: .blue
             )
             .padding(.horizontal, 16)
         }
@@ -2018,7 +2018,7 @@ struct RecoveryScoreChart: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.indigo, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(Color.blue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(Array(scores.enumerated()), id: \.0) { i, entry in
                             let x = CGFloat(i) * step
@@ -2058,7 +2058,7 @@ struct RecoveryScoreChart: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .indigo, intensity: 0.05).cornerRadius(14)
+        .padding(16).glassCard(color: .blue, intensity: 0.05).cornerRadius(14)
     }
 }
 

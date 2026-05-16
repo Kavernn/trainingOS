@@ -12,7 +12,7 @@ struct MentalHealthDashboardView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .purple)
+            AmbientBackground(color: .orange)
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 18) {
@@ -58,7 +58,7 @@ struct MentalHealthDashboardView: View {
                       unit: "%", color: s.selfCareRate >= 0.7 ? .green : .orange)
             Divider().background(Color.white.opacity(0.1))
             MHKPICell(label: "Journal", value: "\(s.journalEntries)",
-                      unit: "entrées", color: .indigo)
+                      unit: "entrées", color: .blue)
         }
         .frame(height: 72)
         .glassCard()
@@ -96,9 +96,9 @@ struct MentalHealthDashboardView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(s.insights, id: \.self) { insight in
                         HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "sparkle")
-                                .foregroundColor(.yellow)
-                                .font(.caption)
+                            Image(systemName: "circle.fill")
+                                .foregroundColor(.orange.opacity(0.6))
+                                .font(.system(size: 5))
                             Text(insight)
                                 .font(.subheadline)
                         }

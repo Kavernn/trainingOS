@@ -13,7 +13,7 @@ struct SleepView: View {
     @State private var entryToDelete: SleepEntry?
     @State private var apiError: String? = nil
 
-    private let accentColor = Color.indigo
+    private let accentColor = Color.orange
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -131,7 +131,7 @@ struct SleepView: View {
                         VStack(spacing: 16) {
                             Image(systemName: "moon.zzz.fill")
                                 .font(.system(size: 48))
-                                .foregroundColor(.indigo.opacity(0.6))
+                                .foregroundColor(.orange.opacity(0.5))
                             Text("Aucune donnée de sommeil")
                                 .font(.system(size: 17, weight: .semibold))
                                 .foregroundColor(.white)
@@ -369,8 +369,8 @@ private struct SleepBarChart: View {
         switch category {
         case "insuffisant": return .red
         case "court":       return .yellow
-        case "optimal":     return .indigo
-        default:            return .blue
+        case "optimal":     return .orange
+        default:            return .gray
         }
     }
 }
@@ -453,7 +453,7 @@ struct SleepLogSheet: View {
 
     private let qualityLabels = ["", "Très mauvais", "Mauvais", "Moyen", "Bon", "Excellent"]
     private let qualityEmojis = ["", "😫", "😕", "😐", "😊", "🌟"]
-    private let accentColor   = Color.indigo
+    private let accentColor   = Color.orange
 
     var body: some View {
         NavigationStack {

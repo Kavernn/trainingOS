@@ -62,7 +62,7 @@ struct RecoveryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .indigo)
+                AmbientBackground(color: .orange)
                 if isLoading {
                     AppLoadingView()
                 } else {
@@ -124,7 +124,7 @@ struct RecoveryView: View {
                             // KPI grid — récupération
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                                 KPICard(value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
-                                        label: "Sommeil moy.", color: .indigo)
+                                        label: "Sommeil moy.", color: .blue)
                                 KPICard(value: avgSleepQuality > 0 ? String(format: "%.1f/10", avgSleepQuality) : "—",
                                         label: "Qualité moy.", color: .purple)
                                 KPICard(value: avgRestHR > 0 ? String(format: "%.0f bpm", avgRestHR) : "—",
@@ -358,7 +358,7 @@ struct RecoveryRow: View {
                 HStack(spacing: 10) {
                     if let h = entry.sleepHours {
                         Label(String(format: "%.1fh", h), systemImage: "moon.fill")
-                            .font(.system(size: 11)).foregroundColor(.indigo)
+                            .font(.system(size: 11)).foregroundColor(.blue)
                     }
                     if let q = entry.sleepQuality {
                         Label(String(format: "%.0f/10", q), systemImage: "star.fill")
@@ -392,8 +392,8 @@ struct RecoveryRow: View {
                     Image(systemName: "pencil")
                         .font(.system(size: 12))
                         .frame(width: 30, height: 30)
-                        .background(Color.indigo.opacity(0.12))
-                        .foregroundColor(.indigo)
+                        .background(Color.orange.opacity(0.12))
+                        .foregroundColor(.blue)
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .buttonStyle(.plain)
@@ -734,7 +734,7 @@ struct SleepChart: View {
                 ForEach(Array(entries.enumerated()), id: \.0) { i, e in
                     let h = e.sleepHours ?? 0
                     let pct = maxH > 0 ? h / maxH : 0
-                    let color: Color = h >= 7 ? .indigo : (h >= 5 ? .orange : .red)
+                    let color: Color = h >= 7 ? .blue : (h >= 5 ? .orange : .red)
                     VStack(spacing: 2) {
                         if h > 0 {
                             Text(String(format: "%.0fh", h))
@@ -751,7 +751,7 @@ struct SleepChart: View {
             // Legend
             HStack(spacing: 12) {
                 HStack(spacing: 4) {
-                    Circle().fill(Color.indigo).frame(width: 6, height: 6)
+                    Circle().fill(Color.blue).frame(width: 6, height: 6)
                     Text("≥7h").font(.system(size: 9)).foregroundColor(.gray)
                 }
                 HStack(spacing: 4) {
@@ -764,7 +764,7 @@ struct SleepChart: View {
                 }
             }
         }
-        .padding(16).glassCard(color: .indigo, intensity: 0.05).cornerRadius(14)
+        .padding(16).glassCard(color: .blue, intensity: 0.05).cornerRadius(14)
     }
 }
 
@@ -897,10 +897,10 @@ struct LogRecoverySheet: View {
                                     Text("QUALITÉ").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                     Spacer()
                                     Text(String(format: "%.0f / 10", sleepQuality))
-                                        .font(.system(size: 13, weight: .bold)).foregroundColor(.indigo)
+                                        .font(.system(size: 13, weight: .bold)).foregroundColor(.blue)
                                 }
                                 Slider(value: $sleepQuality, in: 1...10, step: 1)
-                                    .tint(.indigo)
+                                    .tint(.orange)
                             }
                         }
                         .padding(14).background(Color.appCard).cornerRadius(12)
@@ -972,7 +972,7 @@ struct LogRecoverySheet: View {
                             }
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
-                        .background(Color.indigo).cornerRadius(14)
+                        .background(Color.orange).cornerRadius(14)
                         .buttonStyle(SpringButtonStyle())
                     }
                     .padding(20)

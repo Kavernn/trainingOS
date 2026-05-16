@@ -527,7 +527,7 @@ struct SleepPromptCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "moon.zzz.fill")
                     .font(.system(size: 16))
-                    .foregroundColor(.indigo)
+                    .foregroundColor(.blue)
                 Text("Ton sommeil cette nuit")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.white)
@@ -598,7 +598,7 @@ struct SleepPromptCard: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
-                .background(Color.indigo)
+                .background(Color.orange)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
@@ -615,8 +615,8 @@ struct SleepPromptCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.indigo.opacity(0.08))
-                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.indigo.opacity(0.25), lineWidth: 1))
+                .fill(Color.blue.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.blue.opacity(0.25), lineWidth: 1))
         )
         .task { await tryHealthKitImport() }
     }
@@ -1722,7 +1722,7 @@ struct ReadinessStripView: View {
                         VStack(spacing: 0) {
                             Text(String(format: "%.1fh", sleep))
                                 .font(.system(size: 14, weight: .black))
-                                .foregroundColor(.indigo)
+                                .foregroundColor(.blue)
                             Text("Sommeil")
                                 .font(.system(size: 8)).foregroundColor(.gray)
                         }
@@ -1892,7 +1892,7 @@ struct RecoverySnapshotView: View {
     var body: some View {
         HStack(spacing: 0) {
             if let sleep = recovery.sleepHours {
-                SnapMetric(icon: "moon.zzz.fill", value: String(format: "%.1fh", sleep), label: "Sommeil", color: .indigo)
+                SnapMetric(icon: "moon.zzz.fill", value: String(format: "%.1fh", sleep), label: "Sommeil", color: .blue)
             }
             if let rhr = recovery.restingHr {
                 SnapMetric(icon: "heart.fill", value: "\(Int(rhr))", label: "FC repos", color: .red)
@@ -1906,7 +1906,7 @@ struct RecoverySnapshotView: View {
             }
         }
         .padding(.vertical, 12)
-        .glassCard(color: .indigo, intensity: 0.05)
+        .glassCard(color: .blue, intensity: 0.05)
         .cornerRadius(16)
     }
 }
@@ -2063,9 +2063,9 @@ struct MorningBriefCardView: View {
             }
             if hour >= 20 {
                 HStack(spacing: 5) {
-                    Image(systemName: "moon.stars.fill").font(.system(size: 10)).foregroundColor(.indigo)
+                    Image(systemName: "moon.stars.fill").font(.system(size: 10)).foregroundColor(.blue)
                     Text("Séance tardive — pense à bien récupérer après")
-                        .font(.system(size: 11)).foregroundColor(.indigo.opacity(0.8))
+                        .font(.system(size: 11)).foregroundColor(.blue.opacity(0.8))
                 }
             }
 
@@ -2081,7 +2081,7 @@ struct MorningBriefCardView: View {
                     NavigationLink(destination: RecoveryView()) {
                         Text("Compléter →")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.indigo)
+                            .foregroundColor(.blue)
                     }
                 }
             }
@@ -2115,7 +2115,7 @@ struct MorningBriefCardView: View {
     private var flagChips: [FlagChip] {
         var chips: [FlagChip] = []
         if data.flags.hrvDrop        { chips.append(.init(icon: "waveform.path.ecg", label: "HRV bas",          color: .orange)) }
-        if data.flags.sleepDeprivation { chips.append(.init(icon: "moon.zzz.fill",  label: "Manque sommeil",   color: .indigo)) }
+        if data.flags.sleepDeprivation { chips.append(.init(icon: "moon.zzz.fill",  label: "Manque sommeil",   color: .blue)) }
         if data.flags.trainingOverload { chips.append(.init(icon: "flame.fill",      label: "Surcharge",       color: .red)) }
         return chips
     }
@@ -2370,7 +2370,7 @@ struct SoirCardView: View {
         case "Legs":                         return .yellow
         case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
-        default:                             return .indigo
+        default:                             return .blue
         }
     }
 
@@ -2551,7 +2551,7 @@ struct DataGapSection: View {
                         NavigationLink(destination: RecoveryView()) {
                             DataGapCard(
                                 icon: "moon.zzz.fill",
-                                color: .indigo,
+                                color: .blue,
                                 title: "Récupération du jour",
                                 subtitle: "Sommeil, FC repos, HRV, courbatures"
                             )
@@ -2765,7 +2765,7 @@ struct WeeklyReportView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .purple)
+            AmbientBackground(color: .orange)
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     // Header
@@ -2789,7 +2789,7 @@ struct WeeklyReportView: View {
                             WeeklyKPI(value: String(format: "%.1f/10", r), label: "Récup. moy.", icon: "heart.fill", color: .green)
                         }
                         if let s = report.avgSleepHours {
-                            WeeklyKPI(value: String(format: "%.1fh", s), label: "Sommeil moy.", icon: "moon.fill", color: .indigo)
+                            WeeklyKPI(value: String(format: "%.1fh", s), label: "Sommeil moy.", icon: "moon.fill", color: .blue)
                         }
                         if let steps = report.avgSteps {
                             WeeklyKPI(value: "\(steps / 1000)k", label: "Pas/jour", icon: "figure.walk", color: .teal)
@@ -3126,7 +3126,7 @@ struct SleepStagingBar: View {
             HStack {
                 Image(systemName: "moon.zzz.fill")
                     .font(.system(size: 12))
-                    .foregroundColor(.indigo)
+                    .foregroundColor(.blue)
                 Text("PHASES DE SOMMEIL")
                     .font(.system(size: 9, weight: .bold)).tracking(1.5)
                     .foregroundColor(.gray)
@@ -3146,7 +3146,7 @@ struct SleepStagingBar: View {
                         .fill(Color.purple)
                         .frame(width: max(0, geo.size.width * CGFloat(stages.remHours / total)))
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.indigo.opacity(0.6))
+                        .fill(Color.blue.opacity(0.6))
                         .frame(maxWidth: .infinity)
                 }
                 .frame(height: 10)
@@ -3158,7 +3158,7 @@ struct SleepStagingBar: View {
             HStack(spacing: 16) {
                 StageLegendItem(color: Color(red: 0.2, green: 0.3, blue: 0.9), label: "Profond", hours: stages.deepHours)
                 StageLegendItem(color: .purple, label: "REM", hours: stages.remHours)
-                StageLegendItem(color: .indigo.opacity(0.7), label: "Léger", hours: stages.coreHours)
+                StageLegendItem(color: .blue.opacity(0.7), label: "Léger", hours: stages.coreHours)
             }
         }
         .padding(14)

@@ -77,7 +77,7 @@ struct JournalView: View {
                                         ProgressView().scaleEffect(0.8)
                                     } else {
                                         Text("Charger plus…")
-                                            .font(.subheadline).foregroundColor(.indigo)
+                                            .font(.subheadline).foregroundColor(.blue)
                                     }
                                     Spacer()
                                 }
@@ -101,7 +101,7 @@ struct JournalView: View {
                 Image(systemName: "square.and.pencil")
                     .font(.title2).foregroundColor(.white)
                     .padding(18)
-                    .background(Color.indigo)
+                    .background(Color.blue)
                     .clipShape(Circle())
                     .shadow(radius: 4)
             }
@@ -388,9 +388,9 @@ struct JournalEntrySheet: View {
                 }
                 Section {
                     Toggle(isOn: $moodEnabled.animation(.easeInOut(duration: 0.2))) {
-                        Label("Humeur du moment", systemImage: "face.smiling").foregroundColor(.indigo)
+                        Label("Humeur du moment", systemImage: "face.smiling").foregroundColor(.blue)
                     }
-                    .tint(.indigo)
+                    .tint(.blue)
                     if moodEnabled {
                         VStack(spacing: 12) {
                             Text("\(moodInt)")

@@ -45,7 +45,7 @@ struct MentalHealthView: View {
                                 MHMenuCard(icon: "face.smiling.fill", color: .yellow, title: "Humeur", subtitle: moodSubtitle)
                             }
                             NavigationLink { JournalView() } label: {
-                                MHMenuCard(icon: "book.fill", color: .indigo, title: "Journal", subtitle: journalSubtitle)
+                                MHMenuCard(icon: "book.fill", color: .blue, title: "Journal", subtitle: journalSubtitle)
                             }
                             NavigationLink { BreathworkView() } label: {
                                 MHMenuCard(icon: "lungs.fill", color: .green, title: "Respiration", subtitle: bwSubtitle)

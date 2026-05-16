@@ -376,8 +376,8 @@ struct IntelligenceView: View {
                             .foregroundColor(Color(white: 0.4))
                     }
                     .padding(14)
-                    .background(Color.indigo.opacity(0.1))
-                    .foregroundColor(.indigo)
+                    .background(Color.blue.opacity(0.1))
+                    .foregroundColor(.blue)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .padding(.horizontal, 16)
@@ -439,7 +439,7 @@ struct IntelligenceView: View {
                 Button { generateProgram() } label: {
                     HStack(spacing: 6) {
                         if isGeneratingProgram {
-                            ProgressView().tint(.indigo).scaleEffect(0.75)
+                            ProgressView().tint(.blue).scaleEffect(0.75)
                         } else {
                             Image(systemName: "calendar.badge.plus").font(.system(size: 13))
                         }
@@ -447,8 +447,8 @@ struct IntelligenceView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(Color.indigo.opacity(0.15))
-                    .foregroundColor(.indigo)
+                    .background(Color.blue.opacity(0.15))
+                    .foregroundColor(.blue)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
                 .disabled(isGeneratingProgram)
@@ -1317,7 +1317,7 @@ struct CorrelationRow: View {
     var accentColor: Color {
         switch insight.color {
         case "blue":   return .blue
-        case "indigo": return .indigo
+        case "indigo": return .blue
         case "green":  return .green
         case "teal":   return .teal
         case "yellow": return .yellow
@@ -1934,11 +1934,11 @@ private struct TodayMetricsRow: View {
             } else if let sleep = recovery?.sleepHours {
                 MetricMiniCard(
                     icon: "moon.zzz.fill",
-                    iconColor: .indigo,
+                    iconColor: .blue,
                     value: String(format: "%.1fh", sleep),
                     label: "sommeil",
                     fill: min(sleep / 8.0, 1.0),
-                    fillColor: .indigo,
+                    fillColor: .blue,
                     compact: false
                 )
             }
@@ -2070,7 +2070,7 @@ private struct SmartInsightsSection: View {
             if let sleep = recovery?.sleepHours, sleep < 6.5 {
                 result.append(SmartInsight(
                     icon: "moon.zzz.fill",
-                    color: .indigo,
+                    color: .blue,
                     title: "Récupération limitée",
                     detail: "\(String(format: "%.1f", sleep))h cette nuit — adapte l'intensité"
                 ))
@@ -2144,7 +2144,7 @@ private let coachTopics: [CoachTopic] = [
     ),
     CoachTopic(
         icon: "moon.zzz.fill",
-        color: .indigo,
+        color: .blue,
         title: "Récupération",
         subtitle: "HRV, sommeil, fatigue",
         query: "Évalue ma récupération actuelle à partir de mes données HRV et sommeil. Dois-je réduire mon volume ou puis-je pousser ?"
@@ -2390,15 +2390,15 @@ struct ProgramPreviewSheet: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Label("Justification", systemImage: "lightbulb.fill")
                                         .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.indigo)
+                                        .foregroundColor(.blue)
                                     Text(content.globalRationale)
                                         .font(.system(size: 12))
                                         .foregroundColor(.gray)
                                 }
                                 .padding(14)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.indigo.opacity(0.07))
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.indigo.opacity(0.2), lineWidth: 1))
+                                .background(Color.blue.opacity(0.07))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.blue.opacity(0.2), lineWidth: 1))
                                 .cornerRadius(12)
                             }
                         }
@@ -2455,7 +2455,7 @@ struct ProgramPreviewSheet: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(
-                                    LinearGradient(colors: [.indigo, .purple],
+                                    LinearGradient(colors: [.blue, .purple],
                                                    startPoint: .leading, endPoint: .trailing)
                                 )
                                 .foregroundColor(.white)
@@ -2556,11 +2556,11 @@ private struct DayCard: View {
                 HStack(spacing: 10) {
                     ZStack {
                         Circle()
-                            .fill(Color.indigo.opacity(0.15))
+                            .fill(Color.blue.opacity(0.15))
                             .frame(width: 32, height: 32)
                         Text("\(day.day)")
                             .font(.system(size: 13, weight: .black))
-                            .foregroundColor(.indigo)
+                            .foregroundColor(.blue)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(day.name)
@@ -2603,7 +2603,7 @@ private struct DayCard: View {
             }
         }
         .background(Color(hex: "0d0d1a"))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.indigo.opacity(0.15), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.blue.opacity(0.15), lineWidth: 1))
         .cornerRadius(14)
     }
 }
@@ -2652,7 +2652,7 @@ private struct ProgramExerciseRow: View {
                 } label: {
                     Image(systemName: "info.circle")
                         .font(.system(size: 14))
-                        .foregroundColor(showRationale ? .indigo : .gray.opacity(0.5))
+                        .foregroundColor(showRationale ? .blue : .gray.opacity(0.5))
                 }
             }
             .padding(.horizontal, 14)

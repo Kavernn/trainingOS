@@ -19,7 +19,7 @@ struct PSSView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground(color: .purple)
+            AmbientBackground(color: .orange)
 
                 if isLoading {
                     AppLoadingView()
@@ -1025,7 +1025,7 @@ struct LSSCompactCard: View {
             // Components row
             HStack(spacing: 12) {
                 if let sleep = lss.components.sleepQuality {
-                    LSSComponentPill(icon: "moon.fill", color: .indigo, label: "Sommeil", value: Int(sleep))
+                    LSSComponentPill(icon: "moon.fill", color: .blue, label: "Sommeil", value: Int(sleep))
                 }
                 if let hrv = lss.components.hrvTrend {
                     LSSComponentPill(icon: "waveform.path.ecg", color: .green, label: "HRV", value: Int(hrv))

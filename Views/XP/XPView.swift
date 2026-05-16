@@ -90,11 +90,11 @@ struct XPView: View {
         if bwRatio >= 1.5 {
             badges.append(Badge(id: "force.bw1.5", icon: "scalemass.fill", label: "1.5× poids corps",
                                 desc: "Charge max = \(String(format: "%.0f", maxLift)) lbs, soit 1.5× ton poids.",
-                                color: .indigo, unlocked: true, progress: nil, progressLabel: nil, category: .force))
+                                color: .blue, unlocked: true, progress: nil, progressLabel: nil, category: .force))
         } else if bwRatio > 0 {
             badges.append(Badge(id: "force.bw1.5", icon: "scalemass.fill", label: "1.5× poids corps",
                                 desc: "Charge max = \(String(format: "%.0f", maxLift)) lbs. Objectif : \(String(format: "%.0f", (profileWeight ?? 0) * 1.5)) lbs.",
-                                color: .indigo, unlocked: false,
+                                color: .blue, unlocked: false,
                                 progress: min(1.0, bwRatio / 1.5),
                                 progressLabel: "\(Int(bwRatio * 100))%", category: .force))
         }
@@ -134,7 +134,7 @@ struct XPView: View {
         if let dur = avgDur {
             badges.append(Badge(id: "style.iron", icon: "clock.badge.fill",
                                 label: "Iron session", desc: "Séances longues et denses (moy. > 90 min).",
-                                color: .indigo, unlocked: dur > 90, progress: nil, progressLabel: "\(Int(dur))min moy.", category: .style))
+                                color: .blue, unlocked: dur > 90, progress: nil, progressLabel: "\(Int(dur))min moy.", category: .style))
             badges.append(Badge(id: "style.efficient", icon: "bolt.badge.checkmark.fill",
                                 label: "Efficace", desc: "Résultats en < 55 min (moy. séances).",
                                 color: .teal, unlocked: dur < 55 && avgRPE.map { $0 >= 7 } ?? false,
@@ -372,8 +372,7 @@ struct BadgeCell: View {
                     .foregroundColor(.gray.opacity(0.5))
             }
         }
-        .scaleEffect(badge.unlocked ? 1.0 : 0.88)
-        .opacity(badge.unlocked ? 1.0 : 0.5)
+        .opacity(badge.unlocked ? 1.0 : 0.35)
     }
 }
 
