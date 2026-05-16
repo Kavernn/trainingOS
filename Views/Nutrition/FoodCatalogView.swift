@@ -9,60 +9,87 @@ struct FoodCatalogView: View {
     @State private var editTarget: FoodItem? = nil
     @State private var pendingDelete: IndexSet? = nil
     @State private var showDeleteConfirm = false
+    // N-D7: track sync failures
+    @State private var syncFailed = false
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
-                if items.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "fork.knife.circle")
-                            .font(.system(size: 48))
-                            .foregroundColor(.gray.opacity(0.35))
-                        Text("Catalogue vide")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.gray)
-                        Text("Tape + pour ajouter un aliment")
-                            .font(.system(size: 13))
-                            .foregroundColor(.gray.opacity(0.6))
-                    }
-                } else {
-                    List {
-                        ForEach(items) { item in
-                            Button { editTarget = item } label: {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        HStack {
-                                            Text(item.name)
-                                                .font(.system(size: 14, weight: .semibold))
-                                                .foregroundColor(.white)
-                                            Spacer()
-                                            Text("pour \(formatQty(item.refQty)) \(item.refUnit)")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.gray)
-                                        }
-                                        HStack(spacing: 12) {
-                                            macroChip("\(Int(item.calories)) kcal", .orange)
-                                            macroChip("\(fmt(item.proteines))g P", .blue)
-                                            macroChip("\(fmt(item.glucides))g C", .yellow)
-                                            macroChip("\(fmt(item.lipides))g L", .pink)
-                                        }
-                                    }
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 12, weight: .semibold))
-                                        .foregroundColor(.gray.opacity(0.35))
-                                }
-                                .padding(.vertical, 4)
+                VStack(spacing: 0) {
+                    // N-D7: sync failure banner
+                    if syncFailed {
+                        HStack(spacing: 10) {
+                            Image(systemName: "exclamationmark.icloud.fill")
+                                .foregroundColor(.orange)
+                            Text("Modifications non synchronisées")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                            Spacer()
+                            Button {
+                                Task { await syncCatalog(items) }
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .foregroundColor(.orange)
                             }
-                            .buttonStyle(.plain)
-                            .listRowBackground(Color.appCard)
                         }
-                        .onDelete { idx in
-                            pendingDelete = idx
-                            showDeleteConfirm = true
-                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(Color.orange.opacity(0.1))
                     }
-                    .scrollContentBackground(.hidden)
+
+                    if items.isEmpty {
+                        Spacer()
+                        VStack(spacing: 12) {
+                            Image(systemName: "fork.knife.circle")
+                                .font(.system(size: 48))
+                                .foregroundColor(.gray.opacity(0.35))
+                            Text("Catalogue vide")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.gray)
+                            Text("Tape + pour ajouter un aliment")
+                                .font(.system(size: 13))
+                                .foregroundColor(.gray.opacity(0.6))
+                        }
+                        Spacer()
+                    } else {
+                        List {
+                            ForEach(items) { item in
+                                Button { editTarget = item } label: {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            HStack {
+                                                Text(item.name)
+                                                    .font(.system(size: 14, weight: .semibold))
+                                                    .foregroundColor(.white)
+                                                Spacer()
+                                                Text("pour \(formatQty(item.refQty)) \(item.refUnit)")
+                                                    .font(.system(size: 12))
+                                                    .foregroundColor(.gray)
+                                            }
+                                            HStack(spacing: 12) {
+                                                macroChip("\(Int(item.calories)) kcal", .orange)
+                                                macroChip("\(fmt(item.proteines))g P", .blue)
+                                                macroChip("\(fmt(item.glucides))g C", .yellow)
+                                                macroChip("\(fmt(item.lipides))g L", .pink)
+                                            }
+                                        }
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(.gray.opacity(0.35))
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                                .buttonStyle(.plain)
+                                .listRowBackground(Color.appCard)
+                            }
+                            .onDelete { idx in
+                                pendingDelete = idx
+                                showDeleteConfirm = true
+                            }
+                        }
+                        .scrollContentBackground(.hidden)
+                    }
                 }
             }
             .navigationTitle("Catalogue")
@@ -82,7 +109,7 @@ struct FoodCatalogView: View {
                     if let idx = pendingDelete {
                         items.remove(atOffsets: idx)
                         FoodCatalogStore.save(items)
-                        Task { await APIService.shared.saveFoodCatalog(items) }
+                        Task { await syncCatalog(items) }
                     }
                 }
                 Button("Annuler", role: .cancel) { pendingDelete = nil }
@@ -91,7 +118,7 @@ struct FoodCatalogView: View {
                 FoodItemFormView(existing: nil) { newItem in
                     items.append(newItem)
                     FoodCatalogStore.save(items)
-                    Task { await APIService.shared.saveFoodCatalog(items) }
+                    Task { await syncCatalog(items) }
                 }
             }
             .sheet(item: $editTarget) { item in
@@ -99,10 +126,30 @@ struct FoodCatalogView: View {
                     if let idx = items.firstIndex(where: { $0.id == updated.id }) {
                         items[idx] = updated
                         FoodCatalogStore.save(items)
-                        Task { await APIService.shared.saveFoodCatalog(items) }
+                        Task { await syncCatalog(items) }
                     }
                 }
             }
+        }
+    }
+
+    // N-D7: wrapped save with error tracking
+    private func syncCatalog(_ current: [FoodItem]) async {
+        guard let url = URL(string: "\(APIService.shared.baseURL)/api/food_catalog"),
+              let body = FoodCatalogStore.encodeForAPI(current) else {
+            syncFailed = true; return
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+        req.timeoutInterval = 15
+        do {
+            let (_, resp) = try await URLSession.authed.data(for: req)
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            syncFailed = !(200..<300).contains(code)
+        } catch {
+            syncFailed = true
         }
     }
 
@@ -191,6 +238,12 @@ struct FoodItemFormView: View {
                             }
                             .pickerStyle(.menu)
                             .tint(.orange)
+                        }
+                        // N-D8: inline validation for refQty
+                        if !refQty.isEmpty && Double(refQty.replacingOccurrences(of: ",", with: ".")) == nil {
+                            Text("Doit être un nombre")
+                                .font(.caption)
+                                .foregroundColor(.red)
                         }
                     }
                     .listRowBackground(Color.appCard)

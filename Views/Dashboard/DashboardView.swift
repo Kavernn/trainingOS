@@ -14,9 +14,18 @@ struct DashboardView: View {
     @State private var showChecklist = false
     @State private var showSleepSheet = false
     @State private var lastRefresh: Date = .distantPast
-    @State private var sleepPromptDismissedThisSession = false
+    // D-D5: single source of truth — date ISO "2026-05-15" stored in AppStorage
+    @AppStorage("sleepPromptDismissedDate") private var sleepPromptDismissedDate = ""
     @State private var actionErrorMessage: String? = nil
     @State private var showMorningReveal = false
+    // D-D4: show MorningReveal again without triggering hideForToday
+    @State private var showMorningRevealReview = false
+    // D-D8: persist deload applied date to suppress re-appearance on refresh
+    @AppStorage("deloadAppliedDate") private var deloadAppliedDate = ""
+    // D-B3: deload applying state for timeout tracking
+    @State private var showDeloadTimeoutAlert = false
+    // D-D6: sleep dismiss confirmation
+    @State private var showSleepDismissConfirm = false
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -24,12 +33,9 @@ struct DashboardView: View {
         DateFormatter.isoDate.string(from: Date())
     }
     private var shouldShowSleepPrompt: Bool {
-        // todaySleepLogged = vérité serveur (fonctionne cross-appareils)
-        // UserDefaults = cache local pour éviter un flash après dismissal
-        // sleepPromptDismissedThisSession = disparition animée dans la session courante
-        !sleepPromptDismissedThisSession &&
+        // D-D5: single AppStorage flag — compare stored date to today
         !vm.todaySleepLogged &&
-        UserDefaults.standard.string(forKey: "sleepPromptDate") != todayStr
+        sleepPromptDismissedDate != todayStr
     }
 
     var body: some View {
@@ -39,17 +45,58 @@ struct DashboardView: View {
                 if api.isLoading && api.dashboard == nil {
                     VStack(spacing: 0) {
                         DashboardSkeletonView()
+                        // D-B2: show retry button alongside slow-load message
                         if api.isSlow {
-                            Text("Ça prend plus de temps que prévu…")
-                                .font(.system(size: 13))
-                                .foregroundColor(.gray)
-                                .padding(.top, 8)
+                            VStack(spacing: 10) {
+                                Text("Ça prend plus de temps que prévu…")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.gray)
+                                Button {
+                                    api.isLoading = false
+                                    Task { await vm.loadAll() }
+                                } label: {
+                                    Text("Réessayer")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 20).padding(.vertical, 9)
+                                        .background(Color.orange)
+                                        .cornerRadius(18)
+                                }
+                                .buttonStyle(SpringButtonStyle())
+                            }
+                            .padding(.top, 8)
                         }
                     }
                 } else if let dash = api.dashboard {
                     VStack(spacing: 0) {
                         ScrollView(showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 14) {
+                                // D-D1: partial load warning banner
+                                if vm.partialLoadWarning {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .foregroundColor(.orange)
+                                            .font(.system(size: 13))
+                                        Text("Certaines données n'ont pas pu être chargées")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.white.opacity(0.8))
+                                        Spacer()
+                                        Button {
+                                            Task { await vm.loadAll() }
+                                        } label: {
+                                            Image(systemName: "arrow.clockwise")
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundColor(.orange)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .padding(.horizontal, 12).padding(.vertical, 9)
+                                    .background(Color.orange.opacity(0.10))
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                                    .cornerRadius(10)
+                                    .appearAnimation(delay: 0)
+                                }
+
                                 if let alert = alertService.visibleAlert {
                                     ProactiveBannerCard(alert: alert) {
                                         withAnimation(.easeOut(duration: 0.25)) {
@@ -74,7 +121,8 @@ struct DashboardView: View {
                                     recovery: vm.todayRecovery,
                                     nutritionTotals: dash.nutritionTotals,
                                     nutritionSettings: dash.nutritionSettings,
-                                    moodDue: vm.moodDue
+                                    moodDue: vm.moodDue,
+                                    readinessIsLocal: vm.readinessIsLocal
                                 )
                                 .appearAnimation(delay: 0.10)
 
@@ -86,6 +134,22 @@ struct DashboardView: View {
                                         await applyDeload(report: report)
                                     }
                                     .appearAnimation(delay: 0.20)
+                                } else if let report = vm.deload, report.fatigueLevel == 1 {
+                                    // D-D7: fatigue level 1 — lighter chip, not the full red banner
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .foregroundColor(.yellow)
+                                            .font(.system(size: 12))
+                                        Text("Fatigue légère détectée — surveille ton volume cette semaine")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.white.opacity(0.85))
+                                        Spacer()
+                                    }
+                                    .padding(.horizontal, 12).padding(.vertical, 9)
+                                    .background(Color.yellow.opacity(0.08))
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow.opacity(0.2), lineWidth: 1))
+                                    .cornerRadius(10)
+                                    .appearAnimation(delay: 0.20)
                                 }
 
                                 DailyStreakCard(sessions: dash.sessions)
@@ -96,11 +160,39 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.30)
                                 }
 
+                                // D-D4: allow user to re-read morning brief without re-triggering hideForToday
+                                if let brief = vm.morningBrief {
+                                    Button {
+                                        showMorningRevealReview = true
+                                    } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "sunrise.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.orange)
+                                            Text("Revoir le résumé du matin")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(.gray)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .sheet(isPresented: $showMorningRevealReview) {
+                                        MorningRevealView(morningBrief: brief) {
+                                            showMorningRevealReview = false
+                                        }
+                                    }
+                                    .appearAnimation(delay: 0.32)
+                                }
+
                                 WeatherChipView(vm: weatherVM)
                                     .appearAnimation(delay: 0.35)
 
-                                HabsWidget(service: nhlService)
-                                    .appearAnimation(delay: 0.40)
+                                // D-C3: hide widget entirely during off-season
+                                if !nhlService.isOffSeason {
+                                    HabsWidget(service: nhlService)
+                                        .appearAnimation(delay: 0.40)
+                                }
 
                                 QuoteOfDayView()
                                     .appearAnimation(delay: 0.45)

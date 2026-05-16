@@ -11,10 +11,11 @@ struct PSSView: View {
     @State private var dueStatus: PSSDueStatus?
     @State private var isLoading = true
     @State private var showSheet = false
-    @State private var isShortMode = false  // false = PSS-10, true = PSS-4
+    @AppStorage("pss.shortMode") private var isShortMode = false  // P-D6: persisted — false = PSS-10, true = PSS-4
     @State private var lssToday: LifeStressScore? = nil
     @State private var lssTrend: [LifeStressScore] = []
     @State private var showBreathworkAfter = false  // shown after moderate/high PSS result
+    @State private var lssError = false             // P-D4: LSS fetch error flag
 
     var body: some View {
         ZStack {
@@ -36,34 +37,33 @@ struct PSSView: View {
                                 .appearAnimation(delay: 0.03)
                             }
 
-                            // Breathwork suggestion after moderate/high result
-                            if showBreathworkAfter {
-                                NavigationLink { BreathworkView() } label: {
-                                    HStack(spacing: 10) {
-                                        Image(systemName: "lungs.fill").font(.system(size: 16)).foregroundColor(.green)
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text("Décompresser — cohérence cardiaque")
-                                                .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
-                                            Text("5 min recommandées après un score élevé")
-                                                .font(.system(size: 11)).foregroundColor(.gray)
-                                        }
-                                        Spacer()
-                                        Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(.gray)
-                                    }
-                                    .padding(14)
-                                    .glassCard(color: .green, intensity: 0.07)
-                                    .cornerRadius(14)
-                                }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.02)
-                            }
+                            // P-C1: Breathwork CTA removed from main view — kept only in results page
 
-                            // LSS compact card
+                            // LSS compact card — P-D4: error fallback
                             if let lss = lssToday {
                                 LSSCompactCard(lss: lss, trend: lssTrend)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.04)
+                            } else if lssError {
+                                // P-D4: LSS error state with retry
+                                HStack(spacing: 10) {
+                                    Image(systemName: "exclamationmark.triangle")
+                                        .font(.system(size: 14)).foregroundColor(.orange)
+                                    Text("Données de stress momentané indisponibles")
+                                        .font(.system(size: 13)).foregroundColor(.gray)
+                                    Spacer()
+                                    Button {
+                                        Task { await reloadLSS() }
+                                    } label: {
+                                        Image(systemName: "arrow.clockwise")
+                                            .font(.system(size: 14)).foregroundColor(.purple)
+                                    }
+                                }
+                                .padding(14)
+                                .glassCard(color: .orange, intensity: 0.05)
+                                .cornerRadius(14)
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.04)
                             }
 
                             // KPIs
@@ -73,12 +73,23 @@ struct PSSView: View {
                                     .appearAnimation(delay: 0.05)
                             }
 
-                            // PSS trend chart (only if >= 3 full records)
+                            // PSS trend chart (only if >= 3 full records) — P-D5: else message
                             let fullRecords = history.filter { $0.type == "full" }
                             if fullRecords.count >= 3 {
                                 PSSTrendChart(records: fullRecords)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.07)
+                            } else {
+                                // P-D5: placeholder when fewer than 3 records
+                                VStack(spacing: 4) {
+                                    Text("Le graphique s'affichera après 3 questionnaires")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text("\(fullRecords.count)/3 complétés")
+                                        .font(.caption2)
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .padding(.vertical, 8)
                             }
 
                             // Historique
@@ -128,6 +139,8 @@ struct PSSView: View {
                     await loadData()
                 })
             }
+            // P-D2: re-evaluate isDue on every appear (not just initial load)
+            .onAppear { Task { await loadData() } }
         .task { await loadData() }
     }
 
@@ -136,9 +149,19 @@ struct PSSView: View {
         // sequential — async let LIFO crash on iOS 26 beta
         history   = (try? await APIService.shared.fetchPSSHistory()) ?? []
         dueStatus = try? await APIService.shared.checkPSSDue(type: "full")
-        lssToday  = try? await APIService.shared.fetchLifeStressScore()
-        lssTrend  = (try? await APIService.shared.fetchLifeStressTrend(days: 14)) ?? []
+        await reloadLSS()
         isLoading  = false
+    }
+
+    // P-D4: isolated LSS reload for retry button
+    private func reloadLSS() async {
+        do {
+            lssToday = try await APIService.shared.fetchLifeStressScore()
+            lssTrend = (try? await APIService.shared.fetchLifeStressTrend(days: 14)) ?? []
+            lssError = false
+        } catch {
+            lssError = true
+        }
     }
 }
 
@@ -283,6 +306,7 @@ struct PSSHistoryRow: View {
                                 .background(Color.gray.opacity(0.12))
                                 .cornerRadius(4)
                         }
+                        // TODO: P-D7 — API ne retourne pas l'heure de soumission, seul `date` (YYYY-MM-DD) est disponible
                         Text(record.date)
                             .font(.system(size: 11)).foregroundColor(.gray)
                     }
@@ -398,12 +422,20 @@ struct PSSQuestionnaireSheet: View {
     @State private var submittedRecord: PSSRecord?
     @State private var isSaving = false
     @State private var isLoadingQ = true
+    @State private var submitError: String?           // P-B1: error feedback
+    @State private var showFallback = false           // P-B2: spinner timeout fallback
+    @State private var showDraftAlert = false         // P-D1: draft restore prompt
+    @State private var pendingDraftResponses: [Int: Int]? = nil  // P-D1: decoded draft
 
     private let responseLabels = ["Jamais", "Presque\njamais", "Parfois", "Assez\nsouvent", "Très\nsouvent"]
 
     private var allAnswered: Bool {
         questions.allSatisfy { responses[$0.id] != nil }
     }
+
+    // P-D1: UserDefaults keys
+    private let draftResponsesKey = "pss.draft.responses"
+    private let draftDateKey = "pss.draft.date"
 
     var body: some View {
         NavigationStack {
@@ -425,6 +457,31 @@ struct PSSQuestionnaireSheet: View {
                     Button("Fermer") { dismiss() }
                         .foregroundColor(.gray)
                 }
+            }
+            // P-B1: submit error alert
+            .alert("Erreur d'envoi", isPresented: Binding(
+                get: { submitError != nil },
+                set: { if !$0 { submitError = nil } }
+            )) {
+                Button("OK") { submitError = nil }
+            } message: {
+                Text(submitError ?? "")
+            }
+            // P-D1: draft restore alert
+            .alert("Questionnaire en cours", isPresented: $showDraftAlert) {
+                Button("Reprendre") {
+                    if let draft = pendingDraftResponses {
+                        responses = draft
+                    }
+                    pendingDraftResponses = nil
+                }
+                Button("Recommencer", role: .destructive) {
+                    clearDraft()
+                    responses = [:]
+                    pendingDraftResponses = nil
+                }
+            } message: {
+                Text("Tu avais commencé un questionnaire. Reprendre ?")
             }
         }
         .task { await loadQuestions() }
@@ -475,6 +532,7 @@ struct PSSQuestionnaireSheet: View {
                         labels: responseLabels
                     ) { val in
                         responses[q.id] = val
+                        saveDraft()  // P-D1: persist on each answer
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 12)
@@ -526,8 +584,36 @@ struct PSSQuestionnaireSheet: View {
                 PSSResultsContent(record: record, notes: $notes, onFinish: {
                     Task { await onSaved(submittedRecord); dismiss() }
                 })
+            } else if showFallback {
+                // P-B2: timeout fallback
+                VStack(spacing: 16) {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 44)).foregroundColor(.green.opacity(0.6))
+                    Text("Résultats envoyés")
+                        .font(.system(size: 18, weight: .semibold)).foregroundColor(.white)
+                    Text("Données disponibles après rechargement")
+                        .font(.system(size: 13)).foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                    Button("Fermer") { dismiss() }
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 32).padding(.vertical, 14)
+                        .background(Color.purple.opacity(0.7))
+                        .cornerRadius(14)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(40)
             } else {
+                // P-B2: spinner with 10s timeout
                 ProgressView().tint(.purple)
+                    .onAppear {
+                        Task {
+                            try? await Task.sleep(nanoseconds: 10_000_000_000)
+                            if submittedRecord == nil {
+                                showFallback = true
+                            }
+                        }
+                    }
             }
         }
     }
@@ -539,11 +625,41 @@ struct PSSQuestionnaireSheet: View {
         questions = (try? await APIService.shared.fetchPSSQuestions(isShort: isShort)) ?? []
         userTriggers = (UserDefaults.standard.array(forKey: "pss_triggers") as? [String]) ?? []
         isLoadingQ = false
+        checkForDraft()  // P-D1: check for existing draft after questions loaded
+    }
+
+    // P-D1: check for today's draft
+    private func checkForDraft() {
+        let today = Calendar.current.startOfDay(for: Date())
+        guard let savedDate = UserDefaults.standard.object(forKey: draftDateKey) as? Date,
+              Calendar.current.isDate(savedDate, inSameDayAs: today),
+              let data = UserDefaults.standard.data(forKey: draftResponsesKey),
+              let decoded = try? JSONDecoder().decode([Int: Int].self, from: data),
+              !decoded.isEmpty else {
+            return
+        }
+        pendingDraftResponses = decoded
+        showDraftAlert = true
+    }
+
+    // P-D1: save current responses to UserDefaults
+    private func saveDraft() {
+        guard let data = try? JSONEncoder().encode(responses) else { return }
+        let today = Calendar.current.startOfDay(for: Date())
+        UserDefaults.standard.set(data, forKey: draftResponsesKey)
+        UserDefaults.standard.set(today, forKey: draftDateKey)
+    }
+
+    // P-D1: clear draft after successful submit
+    private func clearDraft() {
+        UserDefaults.standard.removeObject(forKey: draftResponsesKey)
+        UserDefaults.standard.removeObject(forKey: draftDateKey)
     }
 
     private func submitQuestionnaire() {
+        guard !isSaving else { return }  // P-D3: guard against double-tap
         guard allAnswered else { return }
-        isSaving = true
+        isSaving = true  // P-D3: set before async call
 
         let orderedResponses = questions.map { responses[$0.id] ?? 0 }
         let ratings = triggerRatings.isEmpty ? [:] : triggerRatings
@@ -558,11 +674,13 @@ struct PSSQuestionnaireSheet: View {
                     triggerRatings: ratings
                 )
                 submittedRecord = record
+                clearDraft()  // P-D1: clear draft on success
                 withAnimation { currentPage = 1 }
             } catch {
                 logger.error("PSS submit error: \(error, privacy: .public)")
+                submitError = "Erreur d'envoi — vérifie ta connexion et réessaie"  // P-B1
             }
-            isSaving = false
+            isSaving = false  // P-D3: reset in both success and failure paths
         }
     }
 }
@@ -583,7 +701,7 @@ struct PSSResultsContent: View {
 
                 insightsSection
 
-                // Breathwork CTA for non-low scores
+                // P-C1: Breathwork CTA kept only here (post-questionnaire context)
                 if record.category != "low" {
                     NavigationLink { BreathworkView() } label: {
                         HStack(spacing: 10) {
@@ -657,6 +775,15 @@ struct PSSResultsContent: View {
                 .padding(12)
                 .background(Color.white.opacity(0.05))
                 .cornerRadius(10)
+                // P-C2: enforce 500 char limit
+                .onChange(of: notes) { _, new in
+                    if new.count > 500 { notes = String(new.prefix(500)) }
+                }
+            // P-C2: character counter
+            Text("\(notes.count)/500")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 16)
         .appearAnimation(delay: 0.14)

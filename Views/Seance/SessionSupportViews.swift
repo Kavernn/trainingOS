@@ -458,7 +458,8 @@ struct FinishSessionSheet: View {
             "\(k): \(v.reps) @ \(String(format: "%.0f", v.weight))lbs RPE\(String(format: "%.1f", v.rpe ?? rpe))"
         }.joined(separator: ", ")
         let prompt = "Séance terminée en \(Int(elapsedMin)) min. Exercices: \(exoSummary). RPE global: \(String(format: "%.1f", rpe)). Donne une analyse courte (3-4 phrases) : points positifs, point à améliorer, conseil pour la prochaine séance."
-        Task {
+        // W-B4 — 10-second timeout; show "Analyse indisponible" instead of infinite spinner
+        let apiTask = Task {
             do {
                 let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
                 var req = URLRequest(url: url)
@@ -474,6 +475,18 @@ struct FinishSessionSheet: View {
                     await MainActor.run { aiAnalysis = reply; isLoadingAI = false }
                 } else { await MainActor.run { isLoadingAI = false } }
             } catch { await MainActor.run { isLoadingAI = false; aiError = true } }
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            if !apiTask.isCancelled {
+                apiTask.cancel()
+                await MainActor.run {
+                    if isLoadingAI {
+                        isLoadingAI = false
+                        aiError = true
+                    }
+                }
+            }
         }
     }
 
@@ -962,8 +975,8 @@ struct SpecialSeanceView: View {
     @AppStorage("special_session_logged_date") private var loggedDate: String = ""
 
     private var alreadyLoggedToday: Bool {
-        // Server is source of truth — if server says not logged, allow re-log
-        // (handles case where local AppStorage is stale after a failed network call)
+        // W-D5 — Server is source of truth: both local AND server must agree.
+        // If server says not logged, always show the form (even if AppStorage is stale).
         let localSaysLogged = loggedDate == DateFormatter.isoDate.string(from: Date())
         let serverSaysLogged = vm.seanceData?.alreadyLogged ?? false
         return localSaysLogged && serverSaysLogged

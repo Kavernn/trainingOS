@@ -34,7 +34,8 @@ final class NutritionViewModel: ObservableObject {
             todaySession      = decoded.todaySession
             networkError = nil
         } catch {
-            if entries.isEmpty { networkError = "Impossible de charger la nutrition" }
+            // N-B2: always set networkError on failure, even when entries exist
+            networkError = "Impossible de charger la nutrition"
         }
         isLoading = false
     }

@@ -111,6 +111,11 @@ struct ProgressionSuggestionsSheet: View {
             .navigationTitle("Coaching — \(sessionName)")   // F1
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // W-C4 — leading cancel button to dismiss without applying any suggestion
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Fermer") { onDone() }
+                        .foregroundColor(.gray)
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(allHandled ? "Terminer" : "Passer") { onDone() }
                         .foregroundColor(allHandled ? .cyan : .gray)

@@ -38,6 +38,34 @@ struct SeanceView: View {
             AlreadyLoggedSeanceView(data: data, vm: vm)
         } else if data.today == "Yoga / Tai Chi" || data.today == "Recovery" {
             SpecialSeanceView(sessionType: data.today, vm: vm)
+        } else if (data.fullProgram[data.today] ?? [:]).isEmpty {
+            // W-B1 — no exercises in active programme: show empty state instead of broken session layout
+            VStack(spacing: 16) {
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(.gray.opacity(0.4))
+                Text("Aucun programme actif pour aujourd'hui")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                Text("Assigne un programme ou configure les exercices pour \(data.today).")
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+                NavigationLink(destination: ProgrammeView()) {
+                    Text("Voir les programmes")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color.orange.opacity(0.12))
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             WorkoutSeanceView(data: data, vm: vm)
         }
@@ -287,6 +315,26 @@ struct AlreadyLoggedSeanceView: View {
                     .cornerRadius(16)
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.purple.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 16)
+                } else {
+                    // W-D10 — retry button when AI brief failed to load
+                    Button {
+                        Task { await loadPostWorkoutBrief() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 13))
+                            Text("Recharger le bilan")
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .foregroundColor(.purple.opacity(0.8))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(Color.purple.opacity(0.08))
+                        .cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.2), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
                 }
 
                 // ── Aperçu demain ────────────────────────────────────────
@@ -535,7 +583,8 @@ struct AlreadyLoggedSeanceView: View {
     }
 
     private func loadPostWorkoutBrief() async {
-        guard postWorkoutBrief == nil, !isLoadingBrief else { return }
+        // W-D10 — allow retry: only skip if already loading, not if brief is nil (failed state)
+        guard !isLoadingBrief else { return }
         guard let session = todaySession else { return }
         isLoadingBrief = true
         defer { isLoadingBrief = false }
@@ -577,6 +626,9 @@ struct PostSessionEditSheet: View {
     @State private var edits: [ExerciseEdit] = []
     @State private var isSaving = false
     @State private var saveError: String? = nil
+    // W-D6 — snapshot for unsaved-changes detection on Annuler
+    @State private var editsSnapshot: [ExerciseEdit] = []
+    @State private var showDiscardConfirm = false
 
     private var exoNames: [String] {
         let session = APIService.shared.dashboard?.sessions[data.todayDate]
@@ -646,11 +698,40 @@ struct PostSessionEditSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    // W-D6 — confirm discard if edits were made
+                    Button("Annuler") {
+                        if hasUnsavedEdits {
+                            showDiscardConfirm = true
+                        } else {
+                            dismiss()
+                        }
+                    }
+                    .foregroundColor(.orange)
                 }
             }
+            .confirmationDialog("Abandonner les modifications ?", isPresented: $showDiscardConfirm, titleVisibility: .visible) {
+                Button("Abandonner", role: .destructive) { dismiss() }
+                Button("Continuer à éditer", role: .cancel) {}
+            }
         }
-        .onAppear { buildEdits() }
+        .onAppear {
+            buildEdits()
+            // W-D6 — snapshot must be taken after buildEdits() populates edits
+            DispatchQueue.main.async { editsSnapshot = edits }
+        }
+    }
+
+    // W-D6 — detect if the user has modified anything since the sheet opened
+    private var hasUnsavedEdits: Bool {
+        guard edits.count == editsSnapshot.count else { return true }
+        for (a, b) in zip(edits, editsSnapshot) {
+            if a.sets.count != b.sets.count { return true }
+            for (sa, sb) in zip(a.sets, b.sets) {
+                if sa.weight != sb.weight || sa.reps != sb.reps { return true }
+            }
+            if a.rpe != b.rpe { return true }
+        }
+        return false
     }
 
     @ViewBuilder

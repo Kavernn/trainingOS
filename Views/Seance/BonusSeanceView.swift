@@ -56,6 +56,9 @@ struct BonusSeanceView: View {
     @State private var showFinish = false
     @State private var showUnloggedWarning = false
     @State private var confirmedFromWarning = false
+    // W-B3 — quit without saving, with confirmation
+    @State private var showQuitConfirm = false
+    @Environment(\.dismiss) private var dismiss
     @State private var rpe: Double = 7
     @State private var comment = ""
     @State private var isLoading = true
@@ -199,8 +202,23 @@ struct BonusSeanceView: View {
                                 .cornerRadius(14)
                             }
                             .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
                         }
+
+                        // W-B3 — always-visible quit button (no data loss if tapped)
+                        Button {
+                            showQuitConfirm = true
+                        } label: {
+                            Text("Quitter sans sauvegarder")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.red.opacity(0.7))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.red.opacity(0.07))
+                                .cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2), lineWidth: 1))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
                     }
                     .background(
                         GeometryReader { geo in
@@ -293,6 +311,19 @@ struct BonusSeanceView: View {
             Button("OK") { vm.submitError = nil }
         } message: {
             Text(vm.submitError ?? "")
+        }
+        // W-B3 — quit confirmation
+        .confirmationDialog("Quitter ?", isPresented: $showQuitConfirm, titleVisibility: .visible) {
+            Button("Quitter", role: .destructive) {
+                vm.logResults.removeAll()
+                if let date = vm.seanceData?.todayDate {
+                    SessionDraftStore.clear(date: date, sessionType: vm.draftSessionType)
+                }
+                dismiss()
+            }
+            Button("Continuer", role: .cancel) {}
+        } message: {
+            Text("Les données non soumises seront perdues.")
         }
     }
 

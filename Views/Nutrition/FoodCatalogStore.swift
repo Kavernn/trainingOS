@@ -54,6 +54,13 @@ enum FoodCatalogStore {
         UserDefaults.standard.set(data, forKey: key)
     }
 
+    // N-D7: track whether last cloud sync failed so FoodCatalogView can show a warning
+    static let syncFailedKey = "food_catalog_sync_failed"
+    static var syncFailed: Bool {
+        get { UserDefaults.standard.bool(forKey: syncFailedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: syncFailedKey) }
+    }
+
     // MARK: - API codec (snake_case ↔ camelCase)
 
     private static var apiEncoder: JSONEncoder {

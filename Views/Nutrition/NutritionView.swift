@@ -12,6 +12,12 @@ struct NutritionView: View {
     @State private var toast: ToastMessage? = nil
     @State private var historyPeriod = 7
     @State private var macroGap: MacroGap? = nil
+    // N-D1: banner when settings are missing
+    @State private var showSettingsBanner = false
+    // N-D4: pending delete for undo (5s window)
+    @State private var pendingDelete: NutritionEntry? = nil
+    @State private var pendingDeleteTimer: Task<Void, Never>? = nil
+    @State private var showUndoBanner = false
     private var effectiveSettings: NutritionSettings? {
         guard let s = vm.settings else { return nil }
         let eff     = vm.effectiveCalories ?? s.calories
@@ -24,7 +30,8 @@ struct NutritionView: View {
         NavigationStack {
             ZStack {
                 AmbientBackground(color: .orange)
-                if vm.isLoading {
+                // N-B1: AppLoadingView only on first load (entries empty); otherwise show content
+                if vm.isLoading && vm.entries.isEmpty {
                     AppLoadingView()
                 } else {
                     ScrollView(showsIndicators: false) {
@@ -34,6 +41,28 @@ struct NutritionView: View {
                                     onRetry: { Task { await vm.loadData() } },
                                     onDismiss: { vm.networkError = nil })
                                     .padding(.horizontal, 16)
+                            }
+
+                            // N-D1: banner when nutritional settings are not configured
+                            if showSettingsBanner {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                        .foregroundColor(.yellow)
+                                    Text("Objectifs nutritionnels non configurés")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(.white)
+                                    Spacer()
+                                    Button("Configurer") { showSettings = true }
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundColor(.orange)
+                                }
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 10)
+                                .background(Color.yellow.opacity(0.1))
+                                .cornerRadius(10)
+                                .overlay(RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.yellow.opacity(0.3), lineWidth: 1))
+                                .padding(.horizontal, 16)
                             }
 
                             // Hero calories + macros
@@ -64,7 +93,25 @@ struct NutritionView: View {
                             GroupedEntryList(
                                 entries: vm.entries,
                                 onEdit: { editTarget = $0 },
-                                onDelete: { entry in Task { await vm.deleteEntry(entry); toast = ToastMessage(message: "Aliment supprimé", style: .success) } }
+                                onDelete: { entry in
+                                    // N-D4: undo delete — cancel any pending delete first, confirm previous one
+                                    if let prev = pendingDelete {
+                                        pendingDeleteTimer?.cancel()
+                                        Task { await vm.deleteEntry(prev) }
+                                    }
+                                    pendingDeleteTimer?.cancel()
+                                    pendingDelete = entry
+                                    // Optimistically remove from view
+                                    vm.entries.removeAll { $0.entryId == entry.entryId }
+                                    withAnimation { showUndoBanner = true }
+                                    pendingDeleteTimer = Task {
+                                        try? await Task.sleep(nanoseconds: 5_000_000_000) // 5s
+                                        guard !Task.isCancelled else { return }
+                                        await vm.deleteEntry(entry)
+                                        pendingDelete = nil
+                                        await MainActor.run { withAnimation { showUndoBanner = false } }
+                                    }
+                                }
                             )
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.15)
@@ -139,8 +186,13 @@ struct NutritionView: View {
                         Button { showSettings = true } label: {
                             Image(systemName: "gearshape").foregroundColor(.orange)
                         }
-                        Button(action: { Task { await vm.loadData() } }) {
-                            Image(systemName: "arrow.clockwise").foregroundColor(.orange)
+                        // N-D6: show ProgressView while reloading, button otherwise
+                        if vm.isLoading && !vm.entries.isEmpty {
+                            ProgressView().tint(.orange)
+                        } else {
+                            Button(action: { Task { await vm.loadData() } }) {
+                                Image(systemName: "arrow.clockwise").foregroundColor(.orange)
+                            }
                         }
                     }
                 }
@@ -152,7 +204,9 @@ struct NutritionView: View {
                 }
             }
             .sheet(isPresented: $showAdd) {
-                AddNutritionSheet {
+                AddNutritionSheet(onLogged: { templateName in
+                    toast = ToastMessage(message: "Repas '\(templateName)' ajouté ✓", style: .success)
+                }) {
                     await vm.loadData()
                     await AlertService.shared.fetch()
                 }
@@ -168,9 +222,45 @@ struct NutritionView: View {
                     .padding(.trailing, 20)
                     .padding(.bottom, fabBottomPadding)
             }
+            // N-D4: undo delete banner
+            .overlay(alignment: .bottom) {
+                if showUndoBanner {
+                    HStack(spacing: 12) {
+                        Image(systemName: "trash").foregroundColor(.red)
+                        Text("Aliment supprimé")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Button("Annuler") {
+                            // Cancel the pending delete and reload
+                            pendingDeleteTimer?.cancel()
+                            pendingDeleteTimer = nil
+                            let entry = pendingDelete
+                            pendingDelete = nil
+                            withAnimation { showUndoBanner = false }
+                            Task {
+                                // TODO: N-D4 — réinsertion via API non disponible; recharge les données
+                                await vm.loadData(silent: true)
+                            }
+                        }
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.orange)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color.appCard)
+                    .cornerRadius(12)
+                    .shadow(color: .black.opacity(0.2), radius: 8, y: 4)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, fabBottomPadding + 60)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
         .task {
             await vm.loadData(days: historyPeriod)
+            // N-D1: show banner if settings are nil after load
+            showSettingsBanner = vm.settings == nil
             if let url = URL(string: "\(APIService.shared.baseURL)/api/macro_gap"),
                let (d, _) = try? await URLSession.authed.data(from: url),
                let gap = try? JSONDecoder().decode(MacroGap.self, from: d) {
@@ -783,7 +873,10 @@ struct NutritionEntryRow: View {
                         .font(.system(size: 12))
                         .foregroundColor(mealTypeColor(mt))
                 } else {
-                    Color.clear
+                    // N-C4: fallback icon instead of Color.clear
+                    Image(systemName: "fork.knife")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.tertiary)
                 }
             }
             .frame(width: 18)
@@ -866,6 +959,14 @@ struct AddNutritionSheet: View {
     @State private var templates: [MealTemplate] = []
     @State private var showManageTemplates = false
     @State private var isLoggingTemplate = false
+    // N-B4: attempted save feedback
+    @State private var didAttemptSave = false
+    // N-D5: callback for template log feedback
+    var onLogged: ((String) -> Void)? = nil
+    // N-D2: confirm discard when leaving manual mode
+    @State private var showDiscardManualAlert = false
+    // N-D9: template loading state
+    @State private var isLoadingTemplates = true
 
     private var filteredCatalog: [FoodItem] {
         searchText.isEmpty ? catalog : catalog.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
@@ -934,7 +1035,10 @@ struct AddNutritionSheet: View {
                             .buttonStyle(.plain)
                             .textCase(nil)
                         }) {
-                            if templates.isEmpty {
+                            // N-D9: show spinner while templates are loading
+                            if isLoadingTemplates {
+                                HStack { Spacer(); ProgressView().tint(.gray); Spacer() }
+                            } else if templates.isEmpty {
                                 Button { showManageTemplates = true } label: {
                                     Label("Créer un repas sauvegardé…", systemImage: "fork.knife")
                                         .font(.system(size: 13))
@@ -1007,6 +1111,22 @@ struct AddNutritionSheet: View {
                                 .cornerRadius(8)
                                 .listRowBackground(Color.appCard)
 
+                            // N-B3: empty search state
+                            if !searchText.isEmpty && filteredCatalog.isEmpty {
+                                VStack(spacing: 10) {
+                                    Text("Aucun résultat pour \"\(searchText)\"")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.gray)
+                                    Button("Saisir manuellement") {
+                                        withAnimation { manualMode = true }
+                                    }
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.orange)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .listRowBackground(Color.appCard)
+                            } else {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     ForEach(filteredCatalog) { item in
@@ -1033,6 +1153,7 @@ struct AddNutritionSheet: View {
                                 .padding(.vertical, 4)
                             }
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                            } // end N-B3
 
                             // ── Quantité inline (apparaît dès la sélection) ──
                             if let item = selected {
@@ -1094,11 +1215,17 @@ struct AddNutritionSheet: View {
                         }.listRowBackground(Color.appCard)
 
                         Section {
+                            // N-D2: confirm discard when manual fields are filled
                             Button {
-                                withAnimation {
-                                    manualMode = false
-                                    manName = ""; manCal = ""
-                                    barcodeNote = ""
+                                let hasData = !manName.isEmpty || !manCal.isEmpty
+                                if hasData {
+                                    showDiscardManualAlert = true
+                                } else {
+                                    withAnimation {
+                                        manualMode = false
+                                        manName = ""; manCal = ""
+                                        barcodeNote = ""
+                                    }
                                 }
                             } label: {
                                 Label("Retour au catalogue", systemImage: "list.bullet")
@@ -1106,8 +1233,46 @@ struct AddNutritionSheet: View {
                                     .foregroundColor(.gray)
                             }
                             .buttonStyle(.plain)
+                            .confirmationDialog("Revenir au catalogue effacera les données saisies.", isPresented: $showDiscardManualAlert, titleVisibility: .visible) {
+                                Button("Effacer et revenir", role: .destructive) {
+                                    withAnimation {
+                                        manualMode = false
+                                        manName = ""; manCal = ""
+                                        barcodeNote = ""
+                                    }
+                                }
+                                Button("Rester en mode manuel", role: .cancel) {}
+                            }
                         }
                         .listRowBackground(Color.appCard)
+                    }
+
+                    // N-B4: error message when user taps Ajouter while form invalid
+                    if didAttemptSave && !canSave {
+                        Section {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundColor(.red)
+                                if !manualMode && selected == nil {
+                                    Text("Sélectionne un aliment dans le catalogue")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.red)
+                                } else if !manualMode && (quantity.isEmpty || p(quantity) <= 0) {
+                                    Text("Entre une quantité valide (nombre > 0)")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.red)
+                                } else if manualMode && manName.isEmpty {
+                                    Text("Entre le nom de l'aliment")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.red)
+                                } else if manualMode && manCal.isEmpty {
+                                    Text("Entre les calories (kcal)")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.red)
+                                }
+                            }
+                        }
+                        .listRowBackground(Color.red.opacity(0.08))
                     }
 
                 }
@@ -1124,16 +1289,25 @@ struct AddNutritionSheet: View {
                     }
                 }
             }
-            .navigationTitle("Ajouter aliment")
+            // N-C2: title reflects current mode
+            .navigationTitle(manualMode ? "Saisie manuelle" : "Ajouter aliment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }.foregroundColor(.orange)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Ajouter") { save() }
-                        .foregroundColor(.orange).fontWeight(.semibold)
-                        .disabled(!canSave || isSaving)
+                    // N-B4: always-tappable button that validates inline
+                    Button("Ajouter") {
+                        if canSave {
+                            save()
+                        } else {
+                            didAttemptSave = true
+                        }
+                    }
+                    .foregroundColor(canSave ? .orange : .gray)
+                    .fontWeight(.semibold)
+                    .disabled(isSaving)
                 }
             }
             .sheet(isPresented: $showCatalog, onDismiss: {
@@ -1143,10 +1317,12 @@ struct AddNutritionSheet: View {
             }
             .task {
                 // sequential — async let LIFO crash on iOS 26 beta
+                // N-D9: isLoadingTemplates starts true, set false after fetch
                 let remote = await APIService.shared.fetchFoodCatalog()
                 let tmpl   = await APIService.shared.fetchMealTemplates()
                 if !remote.isEmpty { catalog = remote; FoodCatalogStore.save(remote) }
                 templates = tmpl
+                isLoadingTemplates = false
             }
             .sheet(isPresented: $showManageTemplates, onDismiss: {
                 Task { templates = await APIService.shared.fetchMealTemplates() }
@@ -1158,11 +1334,20 @@ struct AddNutritionSheet: View {
                     handleBarcode(code)
                 }
             }
+            // N-D3: barcode error with retry and manual entry options
             .alert("Produit introuvable", isPresented: Binding(
                 get: { barcodeError != nil },
                 set: { if !$0 { barcodeError = nil } }
             ), presenting: barcodeError) { _ in
-                Button("OK") { barcodeError = nil }
+                Button("Réessayer") {
+                    barcodeError = nil
+                    showBarcodeScanner = true
+                }
+                Button("Saisir manuellement") {
+                    barcodeError = nil
+                    withAnimation { manualMode = true }
+                }
+                Button("Annuler", role: .cancel) { barcodeError = nil }
             } message: { err in
                 Text(err)
             }
@@ -1175,6 +1360,8 @@ struct AddNutritionSheet: View {
         Task {
             do {
                 try await APIService.shared.logMealTemplate(template.id, mealType: mealType)
+                // N-D5: notify parent with template name for toast feedback
+                onLogged?(template.name)
                 await onSaved()
                 isLoggingTemplate = false
                 dismiss()
@@ -1262,6 +1449,8 @@ struct EditNutritionSheet: View {
     @State private var proteines: String
     @State private var glucides: String
     @State private var lipides: String
+    // N-D10: editable mealType
+    @State private var mealType: String
     @State private var isSaving = false
 
     init(entry: NutritionEntry, onSaved: @escaping () async -> Void) {
@@ -1272,6 +1461,7 @@ struct EditNutritionSheet: View {
         _proteines = State(initialValue: entry.proteines.map { String(format: "%.1f", $0) } ?? "")
         _glucides  = State(initialValue: entry.glucides.map { String(format: "%.1f", $0) } ?? "")
         _lipides   = State(initialValue: entry.lipides.map { String(format: "%.1f", $0) } ?? "")
+        _mealType  = State(initialValue: entry.mealType ?? "matin")
     }
 
     var body: some View {
@@ -1279,6 +1469,20 @@ struct EditNutritionSheet: View {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 Form {
+                    // N-D10: editable mealType
+                    Section("Repas") {
+                        Picker("Repas", selection: $mealType) {
+                            Text("Matin").tag("matin")
+                            Text("Midi").tag("midi")
+                            Text("Soir").tag("soir")
+                            Text("Collation").tag("collation")
+                            Text("Pré-workout").tag("pre_workout")
+                            Text("Post-workout").tag("post_workout")
+                        }
+                        .pickerStyle(.menu)
+                        .foregroundColor(.white)
+                        .tint(.orange)
+                    }.listRowBackground(Color.appCard)
                     Section("Aliment") {
                         TextField("Nom", text: $name).foregroundColor(.white)
                         TextField("Calories (kcal)", text: $calories).keyboardType(.decimalPad).foregroundColor(.white)
@@ -1312,7 +1516,8 @@ struct EditNutritionSheet: View {
         guard let eid = entry.entryId,
               let cal = Double(calories.replacingOccurrences(of: ",", with: ".")) else { return }
         isSaving = true
-        var body: [String: Any] = ["id": eid, "nom": name, "calories": cal]
+        // N-D10: include mealType in update payload
+        var body: [String: Any] = ["id": eid, "nom": name, "calories": cal, "meal_type": mealType]
         if let v = Double(proteines.replacingOccurrences(of: ",", with: ".")) { body["proteines"] = v }
         if let v = Double(glucides.replacingOccurrences(of: ",", with: "."))  { body["glucides"]  = v }
         if let v = Double(lipides.replacingOccurrences(of: ",", with: "."))   { body["lipides"]   = v }
@@ -1417,7 +1622,8 @@ struct DailyRemainingCard: View {
 
     private var remainingCal: Double  { max((settings?.calories  ?? 2400) - (totals?.calories  ?? 0), 0) }
     private var remainingProt: Double { max((settings?.proteines ?? 180)  - (totals?.proteines ?? 0), 0) }
-    private var allDone: Bool         { remainingCal <= 0 && remainingProt <= 0 }
+    // N-C1: only mark as done when settings are actually configured
+    private var allDone: Bool         { settings != nil && remainingCal <= 0 && remainingProt <= 0 }
 
     private var suggestion: (icon: String, text: String, color: Color) {
         if allDone           { return ("checkmark.seal.fill", "Objectifs atteints !", .green) }
@@ -1438,7 +1644,13 @@ struct DailyRemainingCard: View {
                 Spacer()
             }
 
-            if allDone {
+            if settings == nil {
+                // N-C1: settings not configured — don't show fake "Objectifs atteints !"
+                Label("Configure tes objectifs pour suivre ta progression", systemImage: "gearshape.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+                    .frame(maxWidth: .infinity)
+            } else if allDone {
                 Label("Objectifs atteints !", systemImage: "checkmark.seal.fill")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.green)

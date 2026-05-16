@@ -142,13 +142,26 @@ struct HabsWidget: View {
         } else if let next = service.nextGame {
             nextGameFull(next)
         } else if service.failed {
-            Text("Données indisponibles")
-                .font(.system(size: 12))
-                .foregroundColor(.gray.opacity(0.6))
+            // D-D11: show retry button instead of dead-end text
+            HStack(spacing: 8) {
+                Text("Données indisponibles")
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray.opacity(0.6))
+                Spacer()
+                Button {
+                    Task { await service.fetch() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.gray)
+                }
+                .buttonStyle(.plain)
+            }
+        } else if service.isOffSeason {
+            // D-C3: hide widget content entirely during off-season (widget hidden at call site)
+            EmptyView()
         } else if !service.isLoading {
-            Text("Hors-saison")
-                .font(.system(size: 12))
-                .foregroundColor(.gray.opacity(0.6))
+            EmptyView()
         }
     }
 
@@ -289,37 +302,44 @@ struct QuoteOfDayView: View {
 
 // MARK: - Goal Reminder
 
+// D-C2: GoalReminderView is now a NavigationLink to ObjectifsView
 struct GoalReminderView: View {
     let goal: String
 
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color.orange.opacity(0.12))
-                    .frame(width: 36, height: 36)
-                Image(systemName: "target")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.orange)
+        NavigationLink(destination: ObjectifsView()) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.12))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "target")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.orange)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Objectif")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.gray)
+                    Text(goal)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.gray.opacity(0.5))
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Objectif")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.gray)
-                Text(goal)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-            }
-            Spacer()
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.14), lineWidth: 1))
+            )
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.appCard)
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.14), lineWidth: 1))
-        )
+        .buttonStyle(.plain)
     }
 }
 
@@ -331,6 +351,8 @@ struct DailyMetricsRow: View {
     let nutritionTotals: NutritionTotals
     let nutritionSettings: NutritionSettings?
     let moodDue: MoodDueStatus?
+    // D-D14: show asterisk when score is computed locally (HRV/server data unavailable)
+    var readinessIsLocal: Bool = false
 
     private var calorieGoal: Double? {
         nutritionSettings?.calories
@@ -354,7 +376,8 @@ struct DailyMetricsRow: View {
                     icon: "heart.fill",
                     value: readinessScore.map { "\($0)" } ?? "–",
                     unit: readinessScore != nil ? "/100" : "",
-                    label: "Préparation",
+                    // D-D14: asterisk when score is locally computed
+                    label: readinessIsLocal ? "Préparation*" : "Préparation",
                     color: readinessColor
                 )
             }

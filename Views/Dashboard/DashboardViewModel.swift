@@ -18,11 +18,22 @@ final class DashboardViewModel: ObservableObject {
     @Published var weeklyReport: WeeklyReport?
     @Published var sleepStages: SleepStages?
     @Published var sleepWindow: SleepWindow?
+    // D-D1: banner when 2+ secondary calls fail
+    @Published var partialLoadWarning = false
 
     private let logger = Logger(subsystem: "TrainingOS", category: "dashboard")
     // PERF-5: skip expensive analytics if already loaded today
     private var analyticsLoadedDate = ""
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
+
+    // D-D2: localize raw API error strings
+    func localizeAPIError(_ raw: String) -> String {
+        let lower = raw.lowercased()
+        if lower.contains("timeout") || lower.contains("timed out") { return "Connexion lente, réessaie" }
+        if lower.contains("401") || lower.contains("unauthorized") { return "Session expirée, reconnecte-toi" }
+        if lower.contains("network") || lower.contains("internet") { return "Pas de connexion internet" }
+        return "Une erreur est survenue — réessaie"
+    }
 
     init() {
         NotificationCenter.default.addObserver(
@@ -36,18 +47,66 @@ final class DashboardViewModel: ObservableObject {
 
     func loadAll() async {
         let today = todayStr
+        partialLoadWarning = false
+
+        // D-B1: wrap full load in a 15-second timeout
+        // We race the actual work against a timeout sentinel
+        let workFinished = ActorFlag()
+        let loadTask = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoad(today: today)
+            await workFinished.set()
+        }
+
+        try? await Task.sleep(nanoseconds: 15_000_000_000)
+        let didFinish = await workFinished.value
+        if !didFinish {
+            loadTask.cancel()
+            // Only surface timeout error if dashboard still hasn't loaded
+            if APIService.shared.dashboard == nil {
+                APIService.shared.isLoading = false
+                APIService.shared.error = "Connexion trop lente — tire vers le bas pour réessayer"
+            }
+        }
+    }
+
+    private func performLoad(today: String) async {
         // sequential — async let LIFO crash on iOS 26 beta
         do { _ = try await APIService.shared.fetchDashboard() } catch { logger.error("fetchDashboard: \(error, privacy: .public)") }
-        do { deload   = try await APIService.shared.fetchDeloadData()   } catch { logger.error("fetchDeload: \(error, privacy: .public)") }
-        do { moodDue  = try await APIService.shared.checkMoodDue()  } catch { logger.error("checkMoodDue: \(error, privacy: .public)") }
-        do { morningBrief   = try await APIService.shared.fetchMorningBrief() } catch { logger.error("fetchMorningBrief: \(error, privacy: .public)") }
-        do { eveningSession = try await APIService.shared.fetchSeanceSoirData() } catch { logger.error("fetchSeanceSoir: \(error, privacy: .public)") }
+
+        // D-D1: count secondary call failures
+        var secondaryFailures = 0
+
+        do { deload = try await APIService.shared.fetchDeloadData() } catch {
+            logger.error("fetchDeload: \(error, privacy: .public)")
+            secondaryFailures += 1
+        }
+        do { moodDue = try await APIService.shared.checkMoodDue() } catch {
+            logger.error("checkMoodDue: \(error, privacy: .public)")
+            secondaryFailures += 1
+        }
+        do { morningBrief = try await APIService.shared.fetchMorningBrief() } catch {
+            logger.error("fetchMorningBrief: \(error, privacy: .public)")
+            secondaryFailures += 1
+        }
+        do { eveningSession = try await APIService.shared.fetchSeanceSoirData() } catch {
+            logger.error("fetchSeanceSoir: \(error, privacy: .public)")
+            secondaryFailures += 1
+        }
         do {
             let log = try await APIService.shared.fetchRecoveryData()
             let entry = log.first(where: { $0.date == today })
             todaySleepLogged = entry?.sleepHours != nil
             todayRecovery    = entry
-        } catch { logger.error("fetchRecovery: \(error, privacy: .public)") }
+        } catch {
+            logger.error("fetchRecovery: \(error, privacy: .public)")
+            secondaryFailures += 1
+        }
+
+        // D-D1: warn if 2+ secondary calls failed
+        if secondaryFailures >= 2 {
+            partialLoadWarning = true
+        }
 
         // PERF-5: insights / LSS / coach tip — once per day only
         if analyticsLoadedDate != today {
@@ -72,6 +131,13 @@ final class DashboardViewModel: ObservableObject {
 
     func refreshMoodDue() async {
         moodDue = try? await APIService.shared.checkMoodDue()
+    }
+
+    // D-B1: Whether readiness score comes from local computation (fallback)
+    // Used by D-D14 to show "Calculé localement" indicator
+    var readinessIsLocal: Bool {
+        guard let s = smartDay?.recoveryScore, s > 0 else { return true }
+        return false
     }
 
     // Readiness score 0–100. Uses server value when available, falls back to local computation.
@@ -103,4 +169,10 @@ final class DashboardViewModel: ObservableObject {
         guard totalW >= 0.25 else { return nil }
         return Int((weighted / totalW) * 100)
     }
+}
+
+// D-B1: Simple actor flag for racing load vs timeout
+private actor ActorFlag {
+    private(set) var value = false
+    func set() { value = true }
 }

@@ -31,7 +31,11 @@ struct WorkoutSeanceView: View {
     @State private var confirmedFromWarning = false
     @State private var showSummary = false
     @State private var ghostData: GhostData? = nil
-    @State private var showGhost = true
+    // W-C3 — showGhost persists per session so the dismissed banner doesn't reappear
+    @State private var showGhost: Bool = {
+        // Default: show. Will be corrected in onAppear with session-specific key.
+        return true
+    }()
     @State private var ghostBeaten = false
 
     // Programme edit
@@ -110,6 +114,9 @@ struct WorkoutSeanceView: View {
     // Readiness score
     @State private var readiness: ReadinessScore? = nil
 
+    // W-D11 — abandon session
+    @State private var showAbandonAlert = false
+
     /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
     private var computedSessionRPE: Double {
         let vals = vm.logResults.values.compactMap(\.rpe)
@@ -127,7 +134,9 @@ struct WorkoutSeanceView: View {
             "\(k): \(v.reps) @ \(String(format: "%.0f", v.weight))lbs RPE\(String(format: "%.1f", v.rpe ?? rpeVal))"
         }.joined(separator: ", ")
         let prompt = "Séance terminée en \(Int(elapsed)) min. Exercices: \(summary). RPE global: \(String(format: "%.1f", rpeVal)). Donne une analyse courte (3-4 phrases) : points positifs, point à améliorer, conseil pour la prochaine séance."
-        Task {
+
+        // W-B4 — apply 10-second timeout; set analysis to nil and stop spinner if exceeded
+        let apiTask = Task {
             do {
                 let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
                 var req = URLRequest(url: url)
@@ -146,6 +155,18 @@ struct WorkoutSeanceView: View {
                 await MainActor.run {
                     isPreloadingAI = false
                     toast = ToastMessage(message: "Analyse IA indisponible", style: .error)
+                }
+            }
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            if !apiTask.isCancelled {
+                apiTask.cancel()
+                await MainActor.run {
+                    if isPreloadingAI {
+                        isPreloadingAI = false
+                        preloadedAIAnalysis = nil
+                    }
                 }
             }
         }
@@ -762,6 +783,17 @@ struct WorkoutSeanceView: View {
                                 .foregroundColor(isEditMode ? .green : .orange)
                         }
                         .padding(.leading, 8)
+                        // W-D11 — abandon session button
+                        if vm.sessionStarted {
+                            Button {
+                                showAbandonAlert = true
+                            } label: {
+                                Image(systemName: "xmark.circle")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.red.opacity(0.6))
+                            }
+                            .padding(.leading, 8)
+                        }
                     }
                     // Progress
                     let done = vm.logResults.count
@@ -811,6 +843,12 @@ struct WorkoutSeanceView: View {
                             }
                             .buttonStyle(.plain)
                         }
+                        // W-D8 — on resume, indicate that energy can be updated
+                        if vm.isResuming && energyPreDate == data.todayDate && !energyConfirmed {
+                            Text("Mise à jour ?")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.yellow.opacity(0.6))
+                        }
                         Spacer()
                         if energyConfirmed {
                             Image(systemName: "checkmark.circle.fill")
@@ -839,7 +877,8 @@ struct WorkoutSeanceView: View {
                             Text("Continuer la séance")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.cyan)
-                            Text("Tu as déjà loggé \(vm.logResults.count) exercice(s). Continue ou recommence depuis le début.")
+                            // W-D2 — show how many exercises are already logged
+                            Text("\(vm.logResults.count) exercice(s) déjà sauvegardé(s). Continue ou recommence depuis le début.")
                                 .font(.system(size: 11))
                                 .foregroundColor(.gray)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -848,6 +887,7 @@ struct WorkoutSeanceView: View {
                         Button("Recommencer") {
                             withAnimation {
                                 vm.logResults.removeAll()
+                                vm.isResuming = false
                             }
                         }
                         .font(.system(size: 11, weight: .semibold))
@@ -861,6 +901,17 @@ struct WorkoutSeanceView: View {
                     .cornerRadius(10)
                     .padding(.horizontal, 16)
                     .transition(.opacity)
+                    .onAppear {
+                        // W-D2 — scroll to first unlogged exercise on resume
+                        let logged = Set(vm.logResults.keys)
+                        if let firstUnlogged = exercises.first(where: { !logged.contains($0.0) })?.0 {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                withAnimation(.easeInOut(duration: 0.35)) {
+                                    scrollProxy?.scrollTo(firstUnlogged, anchor: .top)
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Start banner — shown on fresh session before first log
@@ -876,7 +927,11 @@ struct WorkoutSeanceView: View {
                         ghost: ghost,
                         currentVolume: currentVolume,
                         beaten: ghostBeaten,
-                        onDismiss: { withAnimation { showGhost = false } }
+                        onDismiss: {
+                            withAnimation { showGhost = false }
+                            // W-C3 — persist dismissal so banner doesn't reappear on resume
+                            UserDefaults.standard.set(true, forKey: "ghostDismissed_\(data.today)")
+                        }
                     )
                     .padding(.horizontal, 16)
                     .onChange(of: currentVolume) {
@@ -1092,6 +1147,8 @@ struct WorkoutSeanceView: View {
             guard success else { return }
             triggerNotificationFeedback(.success)
             vm.showSuccess = false
+            // W-D1 — clear resume banner on session completion
+            vm.isResuming = false
             if !vm.prCelebrations.isEmpty {
                 showPRCelebration = true
             } else {
@@ -1159,6 +1216,19 @@ struct WorkoutSeanceView: View {
             } else {
                 Text("Tous les exercices sont loggués.")
             }
+        }
+        // W-D11 — abandon session alert
+        .alert("Abandonner la séance ?", isPresented: $showAbandonAlert) {
+            Button("Abandonner", role: .destructive) {
+                vm.logResults.removeAll()
+                vm.isResuming = false
+                if let date = vm.seanceData?.todayDate {
+                    SessionDraftStore.clear(date: date, sessionType: vm.draftSessionType)
+                }
+            }
+            Button("Continuer", role: .cancel) {}
+        } message: {
+            Text("Toutes les données non soumises seront perdues.")
         }
         .sheet(item: $addTarget) { (sn: SeanceName) in
             AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: [:]) { ex, scheme in
@@ -1236,6 +1306,10 @@ struct WorkoutSeanceView: View {
             }
         }
         .onAppear {
+            // W-C3 — restore ghost dismissal state for this session
+            if UserDefaults.standard.bool(forKey: "ghostDismissed_\(data.today)") {
+                showGhost = false
+            }
             Task {
                 await loadInventory()
                 await loadReadiness()
@@ -1414,7 +1488,16 @@ struct WorkoutSeanceView: View {
             // Clear any in-progress log for the original
             vm.logResults.removeValue(forKey: original)
             // Show toast + undo banner (Fix #11)
-            toast = ToastMessage(message: "Remplacé : \(original) → \(replacement)", style: .info)
+            // W-D4 — if a weight conversion was applied, show conversion details in toast
+            if let conv = conversion.convert(originalWeight), conv > 0 && (fetchedData?.currentWeight ?? 0) == 0 {
+                let u = UnitSettings.shared
+                toast = ToastMessage(
+                    message: "Charge convertie : \(u.format(originalWeight)) → \(u.format(conv))",
+                    style: .info
+                )
+            } else {
+                toast = ToastMessage(message: "Remplacé : \(original) → \(replacement)", style: .info)
+            }
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 lastSwap = (old: original, new: replacement)
             }

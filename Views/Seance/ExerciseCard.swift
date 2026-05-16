@@ -467,7 +467,8 @@ struct ExerciseCard: View {
                 Text("REPS")
                     .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.gray)
                     .frame(width: 140, alignment: .center)
-                if showRIRColumn {
+                // W-C2 — hide RIR column for time-based exercises
+                if showRIRColumn && !isTimeBased {
                     VStack(spacing: 1) {
                         Text("RIR")
                             .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
@@ -537,7 +538,8 @@ struct ExerciseCard: View {
                         )
                         .frame(width: 140)
                     }
-                    if showRIRColumn {
+                    // W-C2 — hide RIR tiles for time-based exercises
+                    if showRIRColumn && !isTimeBased {
                         RPEHelper.RIRTiles(
                             rir: $evm.sets[i].rir,
                             disabled: evm.setBySetMode && !isActive && !isDone
@@ -1142,6 +1144,7 @@ struct ExerciseCard: View {
             }
         }
         if evm.currentWeight > 0 {
+            // W-D3 — only show RECOMMANDÉ when there's a real non-zero weight
             HStack {
                 Text("RECOMMANDÉ")
                     .font(.system(size: 9, weight: .semibold)).tracking(1).foregroundColor(.gray)
@@ -1149,6 +1152,12 @@ struct ExerciseCard: View {
                 Text(units.format(evm.currentWeight))
                     .font(.system(size: 13, weight: .bold)).foregroundColor(.orange.opacity(0.7))
             }
+        } else if !alreadyLogged {
+            // W-D3 — first use: neutral placeholder instead of "RECOMMANDÉ 0.0"
+            Text("Entre ta charge de départ")
+                .font(.system(size: 11))
+                .foregroundColor(.gray.opacity(0.45))
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
         if !isTimeBased && !evm.warmupSets.isEmpty {
             Button {
@@ -1187,13 +1196,23 @@ struct ExerciseCard: View {
             .disabled(evm.sets.count <= 1).buttonStyle(.plain)
             Text("\(evm.sets.count) set\(evm.sets.count > 1 ? "s" : "")")
                 .font(.system(size: 11, weight: .medium)).foregroundColor(.gray)
+            // W-C1 — show "Max" label and accessibility hint when set limit is reached
             Button {
                 if evm.sets.count < 12 { evm.sets.append(SetInput()) }
             } label: {
-                Image(systemName: "plus.circle").font(.system(size: 20))
-                    .foregroundColor(evm.sets.count < 12 ? .green.opacity(0.55) : .gray.opacity(0.2))
+                HStack(spacing: 4) {
+                    Image(systemName: "plus.circle").font(.system(size: 20))
+                        .foregroundColor(evm.sets.count < 12 ? .green.opacity(0.55) : .gray.opacity(0.2))
+                    if evm.sets.count >= 12 {
+                        Text("Max")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.gray.opacity(0.4))
+                    }
+                }
             }
-            .disabled(evm.sets.count >= 12).buttonStyle(.plain)
+            .disabled(evm.sets.count >= 12)
+            .accessibilityLabel(evm.sets.count >= 12 ? "Maximum 12 séries atteint" : "Ajouter une série")
+            .buttonStyle(.plain)
             Spacer()
         }
         .padding(.top, 2)
@@ -1219,6 +1238,27 @@ struct ExerciseCard: View {
         .padding(.top, 4)
         logSection
         logStatusRow
+        // W-B2 — network error banner
+        if let err = evm.logError {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(.red)
+                Text(err)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.red)
+                Spacer()
+                Button {
+                    evm.logError = nil
+                } label: {
+                    Image(systemName: "xmark").font(.system(size: 10)).foregroundColor(.gray)
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 8)
+            .background(Color.red.opacity(0.1))
+            .cornerRadius(8)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.red.opacity(0.2), lineWidth: 1))
+        }
     }
 
     @ViewBuilder private var advancedFields: some View {

@@ -95,6 +95,9 @@ struct ChecklistCardView: View {
     @State private var isHidden = false
     @State private var showComplete = false
     @State private var minimized = true
+    // D-D9: pending hide task for undo window
+    @State private var pendingHideTask: Task<Void, Never>? = nil
+    @State private var showUndoComplete = false
 
     var body: some View {
         if isHidden { EmptyView() } else {
@@ -204,13 +207,28 @@ struct ChecklistCardView: View {
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
+    // D-C4 + D-D9: 5s delay with undo button before hiding
     private var completionMessage: some View {
-        Text("✅ Perfect. Good to go amigo")
-            .font(.system(size: 14, weight: .bold))
-            .foregroundColor(.green)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .transition(.scale.combined(with: .opacity))
+        HStack(spacing: 12) {
+            Text("✅ Perfect. Good to go amigo")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.green)
+            Spacer()
+            if showUndoComplete {
+                Button("Annuler") {
+                    pendingHideTask?.cancel()
+                    pendingHideTask = nil
+                    withAnimation { showComplete = false; showUndoComplete = false }
+                }
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.orange)
+                .buttonStyle(.plain)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .transition(.scale.combined(with: .opacity))
     }
 
     // MARK: – Rows (unchanged)
@@ -330,10 +348,17 @@ struct ChecklistCardView: View {
     private func checkCompletion(_ s: [String: Bool]) {
         let done = kAllIDs.allSatisfy { s[$0] == true }
         guard done else { return }
-        withAnimation { showComplete = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation(.easeInOut(duration: 0.35)) { isHidden = true }
-            ChecklistStore.hideToday()
+        withAnimation { showComplete = true; showUndoComplete = true }
+        // D-D9/D-C4: 5s undo window before hiding
+        pendingHideTask?.cancel()
+        pendingHideTask = Task {
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.35)) { isHidden = true }
+                showUndoComplete = false
+                ChecklistStore.hideToday()
+            }
         }
     }
 }

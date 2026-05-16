@@ -79,6 +79,8 @@ final class ExerciseViewModel: ObservableObject {
     @Published var sessionNote: String = ""
 
     @Published private(set) var draftSavedAt: Date? = nil
+    // W-B2 — expose network log errors so ExerciseCard can display a banner
+    @Published var logError: String? = nil
     private var cancellables = Set<AnyCancellable>()
 
     init(name: String, scheme: String, weightData: WeightData?, equipmentType: String = "machine",
@@ -98,9 +100,10 @@ final class ExerciseViewModel: ObservableObject {
         self.prescription    = prescription
         self.suggestion      = suggestion
 
+        // W-D9 — reduced debounce from 1.5s to 0.5s for faster draft saves
         $sets
             .dropFirst()
-            .debounce(for: .seconds(1.5), scheduler: RunLoop.main)
+            .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
             .sink { [weak self] _ in self?.saveDraft() }
             .store(in: &cancellables)
     }
@@ -282,6 +285,7 @@ final class ExerciseViewModel: ObservableObject {
         if isEditing { isLogged = false }
         isLogged  = true
         isEditing = false
+        logError  = nil   // W-B2 — clear any prior error on successful log
         clearDraft()
 
         if isTimeBased {
@@ -447,6 +451,10 @@ class SeanceViewModel: ObservableObject {
             return
         } catch {
             submitError = "Erreur lors de l'enregistrement : \(error.localizedDescription)"
+            // W-D7 — clear stale drafts even on non-409 failures; logResults holds the data in memory
+            if let date = seanceData?.todayDate {
+                SessionDraftStore.clear(date: date, sessionType: draftSessionType)
+            }
             await APIService.shared.fetchDashboard()
             return
         }

@@ -180,22 +180,17 @@ struct MorningRevealView: View {
         return chips
     }
 
+    // D-D3: async sequential reveal so each step waits for the previous one,
+    // preventing overlap on slow devices with hardcoded DispatchQueue delays.
     private func runRevealSequence() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-            withAnimation(.spring(response: 0.65, dampingFraction: 0.72)) {
-                showReveal = true
-            }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_400_000_000)
+            withAnimation(.spring(response: 0.65, dampingFraction: 0.72)) { showReveal = true }
             pulse = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            withAnimation(.easeOut(duration: 0.45)) {
-                showDetails = true
-            }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
-            withAnimation(.easeOut(duration: 0.35)) {
-                showButton = true
-            }
+            try? await Task.sleep(nanoseconds: 1_100_000_000)
+            withAnimation(.easeOut(duration: 0.45)) { showDetails = true }
+            try? await Task.sleep(nanoseconds: 700_000_000)
+            withAnimation(.easeOut(duration: 0.35)) { showButton = true }
         }
     }
 }
