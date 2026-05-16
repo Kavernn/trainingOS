@@ -238,14 +238,13 @@ struct DashboardView: View {
     }
 
     var todayAccentColor: Color {
-        switch api.dashboard?.today {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery":                     return .green
-        default:                             return .blue
-        }
+        let low = (api.dashboard?.today ?? "").lowercased()
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .green }
+        if low.contains("pull")  { return .cyan }
+        if low.contains("push") || low.contains("upper") { return .orange }
+        if low.contains("legs") || low.contains("lower") { return .yellow }
+        if low.contains("yoga")  { return .purple }
+        return .blue
     }
 
     private func applyDeload(report: DeloadReport) async -> Bool {
@@ -756,20 +755,19 @@ struct GreetingHeaderView: View {
     }
 
     var todayColor: Color {
-        switch dash.today {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery":                     return .green
-        default:                             return .blue
-        }
+        let low = dash.today.lowercased()
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .green }
+        if low.contains("pull")  { return .cyan }
+        if low.contains("push") || low.contains("upper") { return .orange }
+        if low.contains("legs") || low.contains("lower") { return .yellow }
+        if low.contains("yoga")  { return .purple }
+        return .blue
     }
 
     var todayIcon: String {
         let low = dash.today.lowercased()
-        if low.contains("yoga") { return "figure.mind.and.body" }
-        if low.contains("recovery") { return "heart.fill" }
+        if low.contains("yoga")  { return "figure.mind.and.body" }
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return "moon.fill" }
         if low.contains("upper") || low.contains("lower") ||
            low.contains("push") || low.contains("pull") ||
            low.contains("legs") || low.contains("full body") { return "dumbbell.fill" }
@@ -891,20 +889,19 @@ struct TodayCardView: View {
     }
 
     var todayColor: Color {
-        switch dash.today {
-        case "Push A", "Push B":             return .orange
-        case "Pull A", "Pull B + Full Body": return .cyan
-        case "Legs":                         return .yellow
-        case "Yoga / Tai Chi":               return .purple
-        case "Recovery":                     return .green
-        default:                             return .gray
-        }
+        let low = dash.today.lowercased()
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .green }
+        if low.contains("pull")  { return .cyan }
+        if low.contains("push") || low.contains("upper") { return .orange }
+        if low.contains("legs") || low.contains("lower") { return .yellow }
+        if low.contains("yoga")  { return .purple }
+        return .blue
     }
 
     var todayIcon: String {
         let low = dash.today.lowercased()
-        if low.contains("yoga") { return "figure.mind.and.body" }
-        if low.contains("recovery") { return "heart.fill" }
+        if low.contains("yoga")  { return "figure.mind.and.body" }
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return "moon.fill" }
         if low.contains("upper") || low.contains("lower") ||
            low.contains("push") || low.contains("pull") ||
            low.contains("legs") || low.contains("full body") { return "dumbbell.fill" }
