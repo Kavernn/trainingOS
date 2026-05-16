@@ -86,6 +86,7 @@ from routes.body_budget  import body_budget_bp
 from routes.patterns     import patterns_bp
 from routes.readiness    import readiness_bp
 from routes.time_capsule import time_capsule_bp
+from routes.workout_dna  import workout_dna_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -100,6 +101,7 @@ app.register_blueprint(body_budget_bp)
 app.register_blueprint(patterns_bp)
 app.register_blueprint(readiness_bp)
 app.register_blueprint(time_capsule_bp)
+app.register_blueprint(workout_dna_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────
