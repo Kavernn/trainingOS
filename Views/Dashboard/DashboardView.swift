@@ -159,6 +159,11 @@ struct DashboardView: View {
                                 DailyStreakCard(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.25)
 
+                                if let phoenix = vm.phoenixScore {
+                                    PhoenixCard(score: phoenix)
+                                        .appearAnimation(delay: 0.27)
+                                }
+
                                 BodyBudgetCard(budget: vm.bodyBudget)
                                     .appearAnimation(delay: 0.28)
 

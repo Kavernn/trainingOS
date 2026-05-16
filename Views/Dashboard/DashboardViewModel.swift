@@ -20,6 +20,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var sleepWindow: SleepWindow?
     @Published var bodyBudget: BodyBudgetResponse?
     @Published var readinessData: ReadinessResponse?
+    @Published var phoenixScore: PhoenixScore?
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
 
@@ -137,6 +138,7 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in self.weeklyReport = try? await APIService.shared.fetchWeeklyReport() }
                 group.addTask { @MainActor in self.bodyBudget    = try? await APIService.shared.fetchBodyBudget() }
                 group.addTask { @MainActor in self.readinessData = try? await APIService.shared.fetchReadiness() }
+                group.addTask { @MainActor in self.phoenixScore  = try? await APIService.shared.fetchPhoenixScore() }
             }
             analyticsLoadedDate = today
         }

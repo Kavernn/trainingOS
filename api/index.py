@@ -88,6 +88,8 @@ from routes.readiness    import readiness_bp
 from routes.time_capsule import time_capsule_bp
 from routes.workout_dna  import workout_dna_bp
 from routes.plateau      import plateau_bp
+from routes.ritual       import ritual_bp
+from routes.phoenix      import phoenix_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -104,6 +106,8 @@ app.register_blueprint(readiness_bp)
 app.register_blueprint(time_capsule_bp)
 app.register_blueprint(workout_dna_bp)
 app.register_blueprint(plateau_bp)
+app.register_blueprint(ritual_bp)
+app.register_blueprint(phoenix_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────
