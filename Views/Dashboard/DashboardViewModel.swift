@@ -19,6 +19,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var sleepStages: SleepStages?
     @Published var sleepWindow: SleepWindow?
     @Published var bodyBudget: BodyBudgetResponse?
+    @Published var readinessData: ReadinessResponse?
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
 
@@ -134,7 +135,8 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in self.coachTip     = try? await APIService.shared.fetchDailyCoachTip() }
                 group.addTask { @MainActor in self.smartDay     = try? await APIService.shared.fetchSmartDay() }
                 group.addTask { @MainActor in self.weeklyReport = try? await APIService.shared.fetchWeeklyReport() }
-                group.addTask { @MainActor in self.bodyBudget   = try? await APIService.shared.fetchBodyBudget() }
+                group.addTask { @MainActor in self.bodyBudget    = try? await APIService.shared.fetchBodyBudget() }
+                group.addTask { @MainActor in self.readinessData = try? await APIService.shared.fetchReadiness() }
             }
             analyticsLoadedDate = today
         }

@@ -114,7 +114,8 @@ struct DashboardView: View {
                                 TodayCardView(
                                     dash: dash,
                                     showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
-                                    onOpenSession: onOpenSession
+                                    onOpenSession: onOpenSession,
+                                    readiness: vm.readinessData
                                 )
                                 .appearAnimation(delay: 0.05)
 
@@ -222,6 +223,7 @@ struct DashboardView: View {
                             vm.morningBrief   = try? await APIService.shared.fetchMorningBrief()
                             vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
                             vm.bodyBudget     = try? await APIService.shared.fetchBodyBudget()
+                            vm.readinessData  = try? await APIService.shared.fetchReadiness()
                             weatherVM.requestUpdate()
                             await nhlService.fetch()
                         }
@@ -986,6 +988,8 @@ struct TodayCardView: View {
     let dash: DashboardData
     var showGreatDayBadge: Bool = false
     var onOpenSession: (() -> Void)? = nil
+    var readiness: ReadinessResponse? = nil
+    @State private var showReadinessSheet = false
     @ObservedObject private var api = APIService.shared
 
     /// Source de vérité : flag serveur OU session dans le dict OU flag optimiste local.
@@ -1132,6 +1136,13 @@ struct TodayCardView: View {
                     }
                 }
 
+                // ── Readiness badge ──────────────────────────────────
+                if readiness != nil {
+                    ReadinessBadge(readiness: readiness)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                }
+
                 if dash.today == "Repos" {
                     NavigationLink(destination: BonusSeanceView()) {
                         HStack(spacing: 8) {
@@ -1157,7 +1168,10 @@ struct TodayCardView: View {
                 } else {
                     Group {
                         if let onOpenSession {
-                            Button(action: onOpenSession) {
+                            Button(action: {
+                                if readiness != nil { showReadinessSheet = true }
+                                else { onOpenSession() }
+                            }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
                                     Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
@@ -1204,6 +1218,11 @@ struct TodayCardView: View {
         }
         .glassCardAccent(isLoggedToday ? .green : todayColor)
         .cornerRadius(16)
+        .sheet(isPresented: $showReadinessSheet) {
+            if let r = readiness {
+                ReadinessSheet(readiness: r) { onOpenSession?() }
+            }
+        }
     }
 }
 

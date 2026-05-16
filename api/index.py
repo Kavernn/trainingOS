@@ -84,6 +84,7 @@ from routes.wellness     import wellness_bp
 from routes.coach_tip    import coach_tip_bp
 from routes.body_budget  import body_budget_bp
 from routes.patterns     import patterns_bp
+from routes.readiness    import readiness_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -96,6 +97,7 @@ app.register_blueprint(wellness_bp)
 app.register_blueprint(coach_tip_bp)
 app.register_blueprint(body_budget_bp)
 app.register_blueprint(patterns_bp)
+app.register_blueprint(readiness_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────
