@@ -209,12 +209,12 @@ struct NutritionView: View {
                 }
             }
             .sheet(isPresented: $showAdd) {
-                AddNutritionSheet(onLogged: { templateName in
-                    toast = ToastMessage(message: "Repas '\(templateName)' ajouté ✓", style: .success)
-                }) {
+                AddNutritionSheet(onSaved: {
                     await vm.loadData()
                     await AlertService.shared.fetch()
-                }
+                }, onLogged: { templateName in
+                    toast = ToastMessage(message: "Repas '\(templateName)' ajouté ✓", style: .success)
+                })
             }
             .sheet(item: $editTarget) { entry in
                 EditNutritionSheet(entry: entry) { await vm.loadData() }
