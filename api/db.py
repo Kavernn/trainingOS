@@ -5175,3 +5175,115 @@ def get_exercise_logs_with_category(days: int = 90) -> list[dict]:
                 return []
         logger.error("get_exercise_logs_with_category error: %s", e)
         return []
+
+
+# ── Daily Ritual ─────────────────────────────────────────────────────────────
+
+def get_ritual_today(date_str: str) -> Optional[dict]:
+    """Return today's daily_ritual row or None."""
+    if _client is None or MODE == "OFFLINE":
+        return None
+
+    def _do() -> Optional[dict]:
+        resp = (
+            _client.table("daily_ritual")
+            .select("*")
+            .eq("date", date_str)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_ritual_today retry: %s", e2)
+                return None
+        logger.error("get_ritual_today error: %s", e)
+        return None
+
+
+def upsert_ritual(data: dict) -> bool:
+    """Insert or update a daily_ritual row by date."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+
+    def _do() -> bool:
+        resp = (
+            _client.table("daily_ritual")
+            .upsert(data, on_conflict="date")
+            .execute()
+        )
+        return bool(resp.data)
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_ritual retry: %s", e2)
+                return False
+        logger.error("upsert_ritual error: %s", e)
+        return False
+
+
+def get_ritual_history(limit: int = 365) -> List[dict]:
+    """Return all ritual rows ordered by date DESC."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            _client.table("daily_ritual")
+            .select("date, outcome, intention, carry_count, carried_from")
+            .order("date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_ritual_history retry: %s", e2)
+                return []
+        logger.error("get_ritual_history error: %s", e)
+        return []
+
+
+def get_ritual_demons() -> List[dict]:
+    """Return all survived (unresolved) intentions, oldest first."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            _client.table("daily_ritual")
+            .select("date, intention, carry_count, carried_from, truth")
+            .eq("outcome", "survived")
+            .order("date", desc=False)
+            .execute()
+        )
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_ritual_demons retry: %s", e2)
+                return []
+        logger.error("get_ritual_demons error: %s", e)
+        return []

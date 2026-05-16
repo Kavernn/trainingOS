@@ -11,6 +11,12 @@ struct MoreView: View {
                 AmbientBackground(color: .orange)
 
                 List {
+                    Section("Rituel") {
+                        MoreRow(icon: "flame.fill", color: Color(hex: "FF2D20"), title: "Rituel quotidien") { RitualView() }
+                    }
+                    .listRowBackground(glassRowBG(Color(hex: "FF2D20")))
+                    .listRowSeparatorTint(Color.white.opacity(0.06))
+
                     Section("Entraînement") {
                         MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")        { StatsView() }
                         MoreRow(icon: "target",                color: .orange, title: "Objectifs")    { ObjectifsView() }

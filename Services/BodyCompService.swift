@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 // ── Staleness ────────────────────────────────────────────────────────────────
 
@@ -112,8 +113,8 @@ final class BodyCompService: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         // fetchProfilData returns legacy_weight_pending — decode raw to capture it
-        guard let url = URL(string: "\(APIConfig.baseURL)/api/profil_data") else { return }
-        guard let data = try? await APIService.shared.fetchRaw(url: url, key: "profil_data") else { return }
+        guard let url = URL(string: "\(APIConfig.base)/api/profil_data") else { return }
+        guard let data = try? await APIService.shared.fetchWithCache(url: url, key: "profil_data") else { return }
 
         struct ProfilRaw: Decodable {
             let bodyWeight: [BodyWeightEntry]

@@ -618,39 +618,14 @@ def api_weekly_report():
 
 
 def _compute_push_pull_ratio(since_date: str) -> dict:
-    """Compute push vs pull volume ratio for a given period."""
+    """Compute push vs pull volume ratio using inventory pattern tags (28 days)."""
     import db as _db
-    from weights import load_weights
     try:
-        weights = load_weights()
-        # Bulk-fetch exercise info to avoid N+1
-        all_names = [n for n, data in weights.items()
-                     if any(str(e.get("date", "")) >= since_date for e in (data.get("history") or []))]
-        ex_info_bulk = _db.get_exercises_info_bulk(all_names)
+        pv = _db.get_pattern_volume(28)
+        push_vol = float(pv.get("push",  0))
+        pull_vol = float(pv.get("pull",  0))
+        legs_vol = float(pv.get("squat", 0)) + float(pv.get("hinge", 0))
 
-        push_vol = 0.0
-        pull_vol = 0.0
-        legs_vol = 0.0
-        other_vol = 0.0
-        for name, data in weights.items():
-            hist = [e for e in (data.get("history") or []) if str(e.get("date", "")) >= since_date]
-            if not hist:
-                continue
-            ex_info = ex_info_bulk.get(name) or {}
-            cat = (ex_info.get("category") or "").lower()
-            vol = sum(
-                (e.get("weight") or 0) * _total_reps_str(e.get("reps") or "")
-                for e in hist
-            )
-            if "push" in cat or cat in ("chest", "shoulders", "triceps"):
-                push_vol += vol
-            elif "pull" in cat or cat in ("back", "biceps", "lats"):
-                pull_vol += vol
-            elif cat == "legs":
-                legs_vol += vol
-            else:
-                other_vol += vol
-        total = push_vol + pull_vol
         ratio = round(push_vol / pull_vol, 2) if pull_vol > 0 else None
         imbalance = None
         if ratio is not None:
