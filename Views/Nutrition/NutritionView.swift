@@ -817,7 +817,7 @@ struct GroupedEntryList: View {
             if entries.isEmpty {
                 EmptyStateView(icon: "fork.knife", title: "Aucun aliment enregistré")
             } else {
-                ForEach(grouped, id: \.key) { group in
+                ForEach(Array(grouped.enumerated()), id: \.element.key) { idx, group in
                     let totalKcal = group.items.compactMap(\.calories).reduce(0, +)
                     let totalProt = group.items.compactMap(\.proteines).reduce(0, +)
                     let color = mealColors[group.key] ?? .gray
@@ -856,6 +856,7 @@ struct GroupedEntryList: View {
                     }
                     .background(Color.appCard)
                     .cornerRadius(10)
+                    .appearAnimation(delay: Double(idx) * 0.06)
                 }
             }
         }
@@ -1625,6 +1626,8 @@ struct DayTypeBadge: View {
 struct DailyRemainingCard: View {
     let totals: NutritionTotals?
     let settings: NutritionSettings?
+    @State private var prevAllDone = false
+    @State private var goalScale: CGFloat = 1.0
 
     private var remainingCal: Double  { max((settings?.calories  ?? 2400) - (totals?.calories  ?? 0), 0) }
     private var remainingProt: Double { max((settings?.proteines ?? 180)  - (totals?.proteines ?? 0), 0) }
@@ -1661,6 +1664,16 @@ struct DailyRemainingCard: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.green)
                     .frame(maxWidth: .infinity)
+                    .scaleEffect(goalScale)
+                    .onChange(of: allDone) { done in
+                        if done && !prevAllDone {
+                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                            triggerNotificationFeedback(.success)
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.5)) { goalScale = 1.35 }
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7).delay(0.15)) { goalScale = 1.0 }
+                        }
+                        prevAllDone = done
+                    }
             } else {
                 HStack(alignment: .center, spacing: 16) {
                     VStack(spacing: 2) {

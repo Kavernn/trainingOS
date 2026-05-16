@@ -90,6 +90,7 @@ struct HistoriqueView: View {
                                 if selectedTab == 0 {
                                     if muscuSessions.isEmpty {
                                         EmptyHistoriqueView(label: "Aucune séance loggée")
+
                                     } else {
                                         ForEach(muscuSessions) { session in
                                             MuscuSessionCard(
@@ -150,6 +151,7 @@ struct HistoriqueView: View {
                             }
                             .padding(.vertical, 8)
                         }
+                        .refreshable { await loadData() }
                     }
                 }
             }

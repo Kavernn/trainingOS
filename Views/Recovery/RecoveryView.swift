@@ -1065,6 +1065,8 @@ struct LogRecoverySheet: View {
                     notes:         notes,
                     date:          dateStr
                 )
+                triggerNotificationFeedback(.success)
+                triggerImpact(style: .medium)
                 await onSaved()
                 isSaving = false
                 dismiss()

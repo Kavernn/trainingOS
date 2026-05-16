@@ -533,6 +533,7 @@ struct PSSQuestionnaireSheet: View {
                     ) { val in
                         responses[q.id] = val
                         saveDraft()  // P-D1: persist on each answer
+                        triggerImpact(style: .light)
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 12)
@@ -675,6 +676,8 @@ struct PSSQuestionnaireSheet: View {
                 )
                 submittedRecord = record
                 clearDraft()  // P-D1: clear draft on success
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                triggerNotificationFeedback(.success)
                 withAnimation { currentPage = 1 }
             } catch {
                 logger.error("PSS submit error: \(error, privacy: .public)")
@@ -941,6 +944,7 @@ struct PSSScoreRing: View {
                     Text("\(record.score)")
                         .font(.system(size: 44, weight: .black))
                         .foregroundColor(record.categoryColor)
+                        .contentTransition(.numericText())
                     Text("/ \(record.maxScore)")
                         .font(.system(size: 14)).foregroundColor(.gray)
                 }

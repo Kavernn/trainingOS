@@ -4,6 +4,10 @@ import SwiftUI
 
 struct DailyStreakCard: View {
     let sessions: [String: SessionEntry]
+    @State private var prevStreak = 0
+    @State private var milestoneScale: CGFloat = 1.0
+
+    private static let milestones: Set<Int> = [3, 7, 14, 21, 30, 50, 100]
 
     private var streaks: (current: Int, best: Int) {
         let fmt = DateFormatter.isoDate
@@ -39,23 +43,34 @@ struct DailyStreakCard: View {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(cur > 0 ? "🔥" : "💪")
                         .font(.system(size: 20))
+                        .scaleEffect(milestoneScale)
                     Text("\(cur)")
                         .font(.system(size: 34, weight: .black, design: .rounded))
                         .foregroundColor(cur > 0 ? .orange : .white)
+                        .contentTransition(.numericText())
                     Text("jour\(cur != 1 ? "s" : "")")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(.gray)
                         .padding(.bottom, 3)
                 }
-                Text(cur == 0 ? "Lance-toi aujourd'hui" : "consécutif\(cur != 1 ? "s" : "")")
-                    .font(.system(size: 11))
-                    .foregroundColor(.gray)
+                // Milestone label at streak milestones (3, 7, 14, 21, 30, 50, 100)
+                if DailyStreakCard.milestones.contains(cur) {
+                    Text("🎉 \(cur) jours — milestone !")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.orange)
+                        .transition(.scale.combined(with: .opacity))
+                } else {
+                    Text(cur == 0 ? "Lance-toi aujourd'hui" : "consécutif\(cur != 1 ? "s" : "")")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
                 Text("\(best)")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(.white.opacity(0.4))
+                    .contentTransition(.numericText())
                 Text("record")
                     .font(.system(size: 10))
                     .foregroundColor(.gray.opacity(0.5))
@@ -71,6 +86,21 @@ struct DailyStreakCard: View {
                         .stroke(cur > 0 ? Color.orange.opacity(0.22) : Color.white.opacity(0.06), lineWidth: 1)
                 )
         )
+        .onAppear { prevStreak = cur }
+        .onChange(of: cur) { newVal in
+            if DailyStreakCard.milestones.contains(newVal) && newVal > prevStreak {
+                // Milestone haptic + bounce animation
+                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                triggerNotificationFeedback(.success)
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.5)) {
+                    milestoneScale = 1.4
+                }
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7).delay(0.15)) {
+                    milestoneScale = 1.0
+                }
+            }
+            prevStreak = newVal
+        }
     }
 }
 

@@ -3229,6 +3229,7 @@ struct ReadinessScoreCard: View {
                     Text("\(score)")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
+                        .contentTransition(.numericText())
                     Text("/ 100")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.gray)

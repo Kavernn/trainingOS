@@ -348,6 +348,8 @@ struct ChecklistCardView: View {
     private func checkCompletion(_ s: [String: Bool]) {
         let done = kAllIDs.allSatisfy { s[$0] == true }
         guard done else { return }
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+        triggerNotificationFeedback(.success)
         withAnimation { showComplete = true; showUndoComplete = true }
         // D-D9/D-C4: 5s undo window before hiding
         pendingHideTask?.cancel()

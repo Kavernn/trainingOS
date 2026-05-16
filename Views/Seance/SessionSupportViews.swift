@@ -513,6 +513,8 @@ struct FinishSessionSheet: View {
 struct SessionRecapSheet: View {
     let snapshot: SessionRecapSnapshot
     @Environment(\.dismiss) private var dismiss
+    @State private var animateHeader = false
+    @State private var showConfetti = false
 
     private var totalSets: Int {
         snapshot.logResults.values.reduce(0) { $0 + $1.sets.count }
@@ -535,27 +537,41 @@ struct SessionRecapSheet: View {
                 ScrollView {
                     VStack(spacing: 20) {
 
-                        // Header
+                        // Header — spring-animated entry + celebration haptic
                         VStack(spacing: 10) {
                             ZStack {
                                 Circle()
                                     .fill(Color.orange.opacity(0.12))
                                     .frame(width: 96, height: 96)
+                                    .scaleEffect(animateHeader ? 1.0 : 0.4)
                                 Image(systemName: "trophy.fill")
                                     .font(.system(size: 46))
                                     .foregroundColor(.orange)
+                                    .scaleEffect(animateHeader ? 1.0 : 0.3)
+                                    .opacity(animateHeader ? 1.0 : 0.0)
                             }
                             Text("Séance complète !")
                                 .font(.system(size: 24, weight: .black))
                                 .foregroundColor(.white)
+                                .opacity(animateHeader ? 1.0 : 0.0)
+                                .offset(y: animateHeader ? 0 : 10)
                             Text(snapshot.sessionName)
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.orange)
                                 .padding(.horizontal, 14).padding(.vertical, 5)
                                 .background(Color.orange.opacity(0.1))
                                 .cornerRadius(20)
+                                .opacity(animateHeader ? 1.0 : 0.0)
                         }
                         .padding(.top, 24)
+                        .onAppear {
+                            withAnimation(.spring(response: 0.55, dampingFraction: 0.68)) {
+                                animateHeader = true
+                            }
+                            showConfetti = true
+                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                            triggerNotificationFeedback(.success)
+                        }
 
                         // Stats row
                         HStack(spacing: 10) {
@@ -573,6 +589,7 @@ struct SessionRecapSheet: View {
                                         .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                     Text(UnitSettings.shared.format(totalVolume))
                                         .font(.system(size: 28, weight: .black)).foregroundColor(.white)
+                                        .contentTransition(.numericText())
                                 }
                                 Spacer()
                                 Image(systemName: "chart.bar.fill")
@@ -679,8 +696,15 @@ struct SessionRecapSheet: View {
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
                                 .background(Color.orange).foregroundColor(.white).cornerRadius(14)
                         }
+                        .buttonStyle(SpringButtonStyle())
                         .padding(.horizontal, 20).padding(.bottom, 32)
                     }
+                }
+                // Confetti overlay
+                if showConfetti {
+                    ConfettiView()
+                        .allowsHitTesting(false)
+                        .ignoresSafeArea()
                 }
             }
             .navigationTitle("Récapitulatif")
@@ -693,6 +717,7 @@ struct SessionRecapSheet: View {
             Text(value)
                 .font(.system(size: 20, weight: .black))
                 .foregroundColor(.white)
+                .contentTransition(.numericText())
             Text(label)
                 .font(.system(size: 9, weight: .bold)).tracking(1.5)
                 .foregroundColor(.gray)
