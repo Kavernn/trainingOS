@@ -11,6 +11,7 @@ struct NutritionView: View {
     @State private var showSettings = false
     @State private var toast: ToastMessage? = nil
     @State private var historyPeriod = 7
+    @State private var macroGap: MacroGap? = nil
     private var effectiveSettings: NutritionSettings? {
         guard let s = vm.settings else { return nil }
         let eff     = vm.effectiveCalories ?? s.calories
@@ -114,6 +115,12 @@ struct NutritionView: View {
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.28)
 
+                            if let gap = macroGap, gap.gaps.protein > 10 || gap.gaps.carbs > 20 {
+                                MacroGapCard(gap: gap)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.30)
+                            }
+
                             Spacer(minLength: 80)
                         }
                         .padding(.vertical, 16)
@@ -162,7 +169,14 @@ struct NutritionView: View {
                     .padding(.bottom, fabBottomPadding)
             }
         }
-        .task { await vm.loadData(days: historyPeriod) }
+        .task {
+            await vm.loadData(days: historyPeriod)
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/macro_gap"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let gap = try? JSONDecoder().decode(MacroGap.self, from: d) {
+                macroGap = gap
+            }
+        }
         .toast($toast)
     }
 
@@ -1655,11 +1669,113 @@ struct NutritionPatternsCard: View {
     }
 }
 
+// MARK: - Macro Gap Card
+
+struct MacroGapCard: View {
+    let gap: MacroGap
+
+    private var primaryColor: Color {
+        switch gap.primaryGap {
+        case "protein": return .green
+        case "carbs":   return .orange
+        default:        return .yellow
+        }
+    }
+
+    private var primaryLabel: String {
+        switch gap.primaryGap {
+        case "protein": return "Protéines"
+        case "carbs":   return "Glucides"
+        default:        return "Calories"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "fork.knife").foregroundColor(primaryColor)
+                Text("SUGGESTIONS MACRO GAP")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text("Manque en \(primaryLabel)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(primaryColor)
+            }
+
+            // Gap summary
+            HStack(spacing: 12) {
+                if gap.gaps.protein > 5 {
+                    MacroGapChip(label: "P", value: Int(gap.gaps.protein), unit: "g", color: .green)
+                }
+                if gap.gaps.carbs > 10 {
+                    MacroGapChip(label: "G", value: Int(gap.gaps.carbs), unit: "g", color: .orange)
+                }
+                if gap.gaps.fat > 5 {
+                    MacroGapChip(label: "L", value: Int(gap.gaps.fat), unit: "g", color: .yellow)
+                }
+                if gap.gaps.calories > 100 {
+                    MacroGapChip(label: "Kcal", value: Int(gap.gaps.calories), unit: "", color: .red)
+                }
+                Spacer()
+            }
+
+            if !gap.foodSuggestions.isEmpty {
+                Text("ALIMENTS SUGGÉRÉS")
+                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+
+                ForEach(Array(gap.foodSuggestions.prefix(4).enumerated()), id: \.offset) { _, item in
+                    if let name = item["name"]?.value {
+                        HStack(spacing: 8) {
+                            Text(name)
+                                .font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+                                .lineLimit(1)
+                            Spacer()
+                            if let prot = item["protein_per_100g"]?.value, let d = Double(prot) {
+                                Text(String(format: "%.0fg prot/100g", d))
+                                    .font(.system(size: 11)).foregroundColor(.green)
+                            } else if let carb = item["carbs_per_100g"]?.value, let d = Double(carb) {
+                                Text(String(format: "%.0fg gluc/100g", d))
+                                    .font(.system(size: 11)).foregroundColor(.orange)
+                            } else if let cal = item["calories_per_100g"]?.value, let d = Double(cal) {
+                                Text(String(format: "%.0f kcal/100g", d))
+                                    .font(.system(size: 11)).foregroundColor(.yellow)
+                            }
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 7)
+                        .background(Color.white.opacity(0.04))
+                        .cornerRadius(8)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+}
+
+struct MacroGapChip: View {
+    let label: String
+    let value: Int
+    let unit: String
+    let color: Color
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+            Text("\(value)\(unit)").font(.system(size: 14, weight: .black)).foregroundColor(color)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
+    }
+}
+
 // MARK: - Nutrition Correlations Card
 
 struct NutritionCorrelationsCard: View {
     let settings: NutritionSettings?
     @State private var data: NutritionCorrelations? = nil
+    @State private var timingData: NutritionTimingData? = nil
     @State private var isLoading = true
 
     var body: some View {
@@ -1712,6 +1828,41 @@ struct NutritionCorrelationsCard: View {
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.leading)
             }
+
+            // Nutrition timing block
+            if let timing = timingData, timing.trainingDaysAnalyzed >= 5 {
+                Divider().opacity(0.2)
+                Text("TIMING PRÉ/POST SÉANCE")
+                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                HStack(spacing: 12) {
+                    if let prot = timing.preWorkout.avgProtein {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("PRÉ-WORKOUT").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            Text(String(format: "%.0fg prot", prot))
+                                .font(.system(size: 13, weight: .black)).foregroundColor(.green)
+                            if let cal = timing.preWorkout.avgCalories {
+                                Text(String(format: "%.0f kcal", cal))
+                                    .font(.system(size: 10)).foregroundColor(.gray)
+                            }
+                        }
+                    }
+                    if let prot = timing.postWorkout.avgProtein {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("POST-WORKOUT").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            Text(String(format: "%.0fg prot", prot))
+                                .font(.system(size: 13, weight: .black)).foregroundColor(.orange)
+                            if let cal = timing.postWorkout.avgCalories {
+                                Text(String(format: "%.0f kcal", cal))
+                                    .font(.system(size: 10)).foregroundColor(.gray)
+                            }
+                        }
+                    }
+                    Spacer()
+                }
+                Text(timing.insight)
+                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(16)
         .background(Color.appCard)
@@ -1723,6 +1874,12 @@ struct NutritionCorrelationsCard: View {
             else { isLoading = false; return }
             data = decoded
             isLoading = false
+            // Load timing analysis in parallel
+            if let tUrl = URL(string: "\(APIService.shared.baseURL)/api/nutrition_timing"),
+               let (tRaw, _) = try? await URLSession.authed.data(from: tUrl),
+               let tDecoded = try? JSONDecoder().decode(NutritionTimingData.self, from: tRaw) {
+                timingData = tDecoded
+            }
         }
     }
 

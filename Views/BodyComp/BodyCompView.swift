@@ -8,6 +8,7 @@ struct BodyCompView: View {
     @State private var isLoading = true
     @State private var sheetEntry: BodyWeightEntry? = nil
     @State private var showSheet = false
+    @State private var projection: BodyProjectionData? = nil
 
     var latest: BodyWeightEntry? { bodyWeight.first }
 
@@ -77,7 +78,14 @@ struct BodyCompView: View {
                                     .appearAnimation(delay: 0.25)
                             }
 
-                            // 7 — Historique
+                            // 7 — Projection objectifs
+                            if let proj = projection, !proj.projections.isEmpty {
+                                BodyProjectionCard(projection: proj)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.28)
+                            }
+
+                            // 8 — Historique
                             historySection
                         }
                         .padding(.vertical, 16)
@@ -185,6 +193,14 @@ struct BodyCompView: View {
         isLoading = true
         if let (p, bw, t) = try? await APIService.shared.fetchProfilData() {
             profile = p; bodyWeight = bw; tendance = t
+        }
+        // Load body projection asynchronously
+        Task {
+            guard let url = URL(string: "\(APIService.shared.baseURL)/api/body_projection"),
+                  let (data, _) = try? await URLSession.authed.data(from: url),
+                  let proj = try? JSONDecoder().decode(BodyProjectionData.self, from: data)
+            else { return }
+            await MainActor.run { projection = proj }
         }
         isLoading = false
     }
@@ -1036,5 +1052,88 @@ struct WeightChartView: View {
         .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
+    }
+}
+
+// MARK: - Body Projection Card
+
+struct BodyProjectionCard: View {
+    let projection: BodyProjectionData
+
+    private func formatDate(_ iso: String?) -> String {
+        guard let iso else { return "—" }
+        guard let d = DateFormatter.isoDate.date(from: iso) else { return iso }
+        let f = DateFormatter()
+        f.dateFormat = "MMMM yyyy"
+        f.locale = Locale(identifier: "fr_CA")
+        return f.string(from: d)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .foregroundColor(.cyan)
+                Text("PROJECTIONS OBJECTIFS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            }
+
+            ForEach(projection.projections) { proj in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        let isBodyFat = proj.goalType == "body_fat"
+                        Text(isBodyFat ? "Masse grasse" : "Masse maigre")
+                            .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                        Spacer()
+                        if let date = proj.projectedDate {
+                            Text(formatDate(date))
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.cyan)
+                        } else {
+                            Text("Tendance insuffisante")
+                                .font(.system(size: 11)).foregroundColor(.gray)
+                        }
+                    }
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("ACTUEL")
+                                .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            let unit = proj.goalType == "body_fat" ? "%" : " lbs"
+                            Text(String(format: "%.1f\(unit)", proj.current))
+                                .font(.system(size: 15, weight: .black)).foregroundColor(.white)
+                        }
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 10)).foregroundColor(.gray)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("OBJECTIF")
+                                .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            let unit = proj.goalType == "body_fat" ? "%" : " lbs"
+                            Text(String(format: "%.1f\(unit)", proj.target))
+                                .font(.system(size: 15, weight: .black)).foregroundColor(.cyan)
+                        }
+                        Spacer()
+                        if let r2 = proj.r2 {
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text("FIABILITÉ")
+                                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                Text(String(format: "%.0f%%", r2 * 100))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(r2 >= 0.7 ? .green : r2 >= 0.4 ? .yellow : .orange)
+                            }
+                        }
+                    }
+                    let rate = proj.slopePerWeek
+                    let rateStr = rate < 0 ? String(format: "%.2f/sem", rate) : String(format: "+%.2f/sem", rate)
+                    Text("Tendance : \(rateStr)")
+                        .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+                }
+                .padding(12)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(10)
+            }
+        }
+        .padding(16)
+        .background(Color.appCard)
+        .cornerRadius(16)
     }
 }

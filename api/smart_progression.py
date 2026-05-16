@@ -50,6 +50,21 @@ def _parse_scheme(scheme: str) -> tuple[int, int]:
         return 0, 0
 
 
+def _parse_scheme_full(scheme: str) -> tuple[int, int, int]:
+    """Parse '3x8-12' → (num_sets=3, rep_min=8, top_reps=12). Returns (0,0,0) on failure."""
+    try:
+        parts = scheme.strip().split("x")
+        rep_part = parts[1] if len(parts) > 1 else parts[0]
+        if "-" in rep_part:
+            lo, hi = rep_part.split("-")
+            return int(parts[0]), int(lo), int(hi)
+        val = int(rep_part)
+        return int(parts[0]), val, val
+    except Exception:
+        logger.warning("_parse_scheme_full: malformed scheme %r", scheme)
+        return 0, 0, 0
+
+
 def _to_int(v) -> int:
     try:
         return int(v)
@@ -108,8 +123,15 @@ def _hit_rate(sets: list[dict], top_reps: int) -> float:
     return sum(1 for s in sets if _to_int(s.get("reps")) >= top_reps) / len(sets)
 
 
-def _increment_for_category(category: str) -> float:
-    """Weight increment in lbs."""
+def _increment_for_profile(load_profile: str, category: str) -> float:
+    """Weight increment in lbs, refined by load profile.
+
+    isolation → 2.5 lbs (small muscles, light loads)
+    legs      → 10 lbs (large compound, plates in pairs)
+    upper compound → 5 lbs
+    """
+    if load_profile == "isolation":
+        return 2.5
     return 10.0 if category == "legs" else 5.0
 
 
@@ -192,13 +214,16 @@ def _suggest_for_exercise(
             "fatigue_warning": False,
         }
 
-    target_sets, top_reps = _parse_scheme(default_scheme)
+    target_sets, rep_min, top_reps = _parse_scheme_full(default_scheme)
     if top_reps == 0:
         return None
 
     threshold = 1.0 if load_profile == "isolation" else 0.9
     hit       = _hit_rate(working, top_reps)
     plateau   = _plateau_count(history, cur_max_w) if cur_max_w else 0
+
+    def _w_str(w: float) -> str:
+        return str(int(w)) if w == int(w) else str(w)
 
     if hit >= threshold and cur_max_w is not None:
         if plateau >= 3:
@@ -239,8 +264,12 @@ def _suggest_for_exercise(
                     "fatigue_warning": False,
                 }
         else:
-            increment = _increment_for_category(category)
+            increment = _increment_for_profile(load_profile, category)
             new_w     = cur_max_w + increment
+            reason    = (
+                f"Dernière fois : {target_sets}×{top_reps} à {_w_str(cur_max_w)} lbs"
+                f" — rep max atteint — monte à {_w_str(new_w)} lbs, objectif {rep_min}"
+            )
             return {
                 "exercise_name":   name,
                 "load_profile":    load_profile,
@@ -249,26 +278,33 @@ def _suggest_for_exercise(
                 "suggested_weight": new_w,
                 "current_scheme":  default_scheme,
                 "suggested_scheme": default_scheme,
-                "reason":          f"{target_sets}×{top_reps} accompli → +{int(increment)} lbs. Objectif : {default_scheme}",
+                "reason":          reason,
                 "fatigue_warning": False,
             }
     else:
-        # Progression en reps au même poids (surcharge progressive sans augmenter le poids)
-        if (prev_max_w is not None and cur_max_w == prev_max_w
-                and cur_avg > prev_avg + 0.9):
-            delta = max(1, int(round(cur_avg - prev_avg)))
-            w_str = str(int(cur_max_w)) if cur_max_w == int(cur_max_w) else str(cur_max_w)
-            return {
-                "exercise_name":   name,
-                "load_profile":    load_profile,
-                "suggestion_type": "rep_progress",
-                "current_weight":  cur_max_w,
-                "suggested_weight": cur_max_w,
-                "current_scheme":  default_scheme,
-                "suggested_scheme": default_scheme,
-                "reason":          f"↑ +{delta} rep{'s' if delta > 1 else ''} à {w_str} lbs — objectif {top_reps} reps.",
-                "fatigue_warning": False,
-            }
+        # Prospective rep target — always show, regardless of previous session reps.
+        # Gives the user a concrete "+1 rep" target before they start the set.
+        if cur_max_w is not None and working:
+            last_reps_list = [_to_int(s.get("reps")) for s in working]
+            valid_reps = [r for r in last_reps_list if r > 0]
+            if valid_reps:
+                avg_last   = sum(valid_reps) / len(valid_reps)
+                next_r     = min(int(avg_last) + 1, top_reps)
+                n          = len(valid_reps)
+                return {
+                    "exercise_name":   name,
+                    "load_profile":    load_profile,
+                    "suggestion_type": "rep_progress",
+                    "current_weight":  cur_max_w,
+                    "suggested_weight": cur_max_w,
+                    "current_scheme":  default_scheme,
+                    "suggested_scheme": default_scheme,
+                    "reason":          (
+                        f"Dernière fois : {n}×{int(avg_last)} à {_w_str(cur_max_w)} lbs"
+                        f" — objectif : {n}×{next_r} minimum"
+                    ),
+                    "fatigue_warning": False,
+                }
         return {
             "exercise_name":   name,
             "load_profile":    load_profile,

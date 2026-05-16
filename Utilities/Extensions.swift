@@ -23,6 +23,15 @@ extension View {
 #endif
     }
 
+    /// Dismisses the keyboard when the user taps on any non-interactive background area.
+    /// Buttons and text fields in the foreground still consume their own taps normally.
+    func dismissKeyboardOnTap() -> some View {
+        background(
+            Color.clear
+                .contentShape(Rectangle())
+                .onTapGesture { hideKeyboard() }
+        )
+    }
 }
 
 extension Color {

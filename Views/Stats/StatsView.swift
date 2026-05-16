@@ -105,6 +105,9 @@ struct StatsView: View {
     @State private var sleepScatter:       [ScatterPoint]              = []
     @State private var rpeProgression:     RPEProgressionData?         = nil
     @State private var rirByExercise:      [RIREntry]                  = []
+    @State private var pushPullRatio:      WeeklyReportPushPull?       = nil
+    @State private var sorenessThreshold:  SorenessThreshold?          = nil
+    @State private var hrvBaseline:        HRVBaseline?                = nil
 
     // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
     @State private var cachedCurrentStreak: Int = 0
@@ -519,6 +522,16 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
+        if let ppr = pushPullRatio {
+            PushPullRatioCard(data: ppr)
+                .padding(.horizontal, 16)
+        }
+
+        if let st = sorenessThreshold, st.thresholdVol != nil {
+            SorenessThresholdCard(data: st)
+                .padding(.horizontal, 16)
+        }
+
         Spacer(minLength: 32)
     }
 
@@ -709,6 +722,11 @@ struct StatsView: View {
 
         if !pssHistory.isEmpty {
             PSSHistoryView(records: pssHistory)
+                .padding(.horizontal, 16)
+        }
+
+        if let hrv = hrvBaseline, hrv.baseline != nil {
+            HRVBaselineCard(data: hrv)
                 .padding(.horizontal, 16)
         }
 
@@ -945,6 +963,30 @@ struct StatsView: View {
             sessionDates: Array(sessions.keys),
             currentStreak: currentStreak
         )
+
+        // Load push:pull ratio + soreness threshold
+        Task {
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/weekly_report"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let r = try? JSONDecoder().decode(WeeklyReport.self, from: d),
+               let ppr = r.pushPullRatio {
+                await MainActor.run { pushPullRatio = ppr }
+            }
+        }
+        Task {
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/soreness_threshold"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let r = try? JSONDecoder().decode(SorenessThreshold.self, from: d) {
+                await MainActor.run { sorenessThreshold = r }
+            }
+        }
+        Task {
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/hrv_baseline"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let r = try? JSONDecoder().decode(HRVBaseline.self, from: d) {
+                await MainActor.run { hrvBaseline = r }
+            }
+        }
     }
 }
 
@@ -3679,4 +3721,192 @@ struct PSSHistoryView: View {
 #Preview {
     StatsView()
         .environmentObject(AppState.shared)
+}
+
+// MARK: - Push/Pull Ratio Card
+
+struct PushPullRatioCard: View {
+    let data: WeeklyReportPushPull
+
+    private var imbalanceColor: Color {
+        guard let imb = data.imbalance else { return .green }
+        return imb.contains("dominant") ? .orange : .green
+    }
+
+    private var imbalanceText: String {
+        switch data.imbalance {
+        case "push_dominant": return "Trop de PUSH — ajoute des tirages"
+        case "pull_dominant": return "Trop de PULL — équilibre avec des poussées"
+        default:              return "Ratio équilibré ✓"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "arrow.left.arrow.right").foregroundColor(.orange)
+                Text("RATIO PUSH / PULL")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let ratio = data.ratio {
+                    Text(String(format: "%.2f", ratio))
+                        .font(.system(size: 16, weight: .black))
+                        .foregroundColor(imbalanceColor)
+                }
+            }
+
+            let total = data.pushVolume + data.pullVolume + data.legsVolume
+            if total > 0 {
+                VStack(spacing: 6) {
+                    ForEach([
+                        ("PUSH", data.pushVolume, Color.orange),
+                        ("PULL", data.pullVolume, Color.blue),
+                        ("LEGS", data.legsVolume, Color.green),
+                    ], id: \.0) { label, vol, color in
+                        HStack(spacing: 8) {
+                            Text(label)
+                                .font(.system(size: 10, weight: .bold)).tracking(1)
+                                .foregroundColor(.gray)
+                                .frame(width: 36, alignment: .leading)
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.06)).frame(height: 8)
+                                    RoundedRectangle(cornerRadius: 3).fill(color)
+                                        .frame(width: geo.size.width * CGFloat(vol / total), height: 8)
+                                }
+                            }
+                            .frame(height: 8)
+                            Text(_formatK(vol) + " lbs")
+                                .font(.system(size: 10)).foregroundColor(.gray)
+                                .frame(width: 60, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+
+            Text(imbalanceText)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(imbalanceColor)
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Soreness Threshold Card
+
+struct SorenessThresholdCard: View {
+    let data: SorenessThreshold
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "bolt.heart.fill").foregroundColor(.red)
+                Text("SEUIL COURBATURES PERSONNEL")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            }
+
+            if let msg = data.message {
+                Text(msg)
+                    .font(.system(size: 13)).foregroundColor(.white.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 16) {
+                if let low = data.avgSorenessLowVol {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("FAIBLE VOL").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(String(format: "%.1f/10", low))
+                            .font(.system(size: 15, weight: .black)).foregroundColor(.green)
+                    }
+                }
+                if let high = data.avgSorenessHighVol {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("FORT VOL").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(String(format: "%.1f/10", high))
+                            .font(.system(size: 15, weight: .black)).foregroundColor(.red)
+                    }
+                }
+                if let thresh = data.thresholdVol {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("SEUIL").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(_formatK(thresh) + " lbs")
+                            .font(.system(size: 15, weight: .black)).foregroundColor(.orange)
+                    }
+                }
+                Spacer()
+            }
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - HRV Baseline Card
+
+struct HRVBaselineCard: View {
+    let data: HRVBaseline
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "waveform.path.ecg")
+                    .foregroundColor(data.flagRest ? .red : .cyan)
+                Text("BASELINE HRV PERSONNALISÉE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if data.flagRest {
+                    Text("⚠️ REPOS")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Color.red.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+
+            HStack(spacing: 16) {
+                if let baseline = data.baseline {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("BASELINE 28J").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(String(format: "%.0f ms", baseline))
+                            .font(.system(size: 18, weight: .black)).foregroundColor(.cyan)
+                    }
+                }
+                if let sd = data.sd {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("±SD").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(String(format: "%.0f ms", sd))
+                            .font(.system(size: 18, weight: .black)).foregroundColor(.gray)
+                    }
+                }
+                if let today = data.todayHrv {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AUJOURD'HUI").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(String(format: "%.0f ms", today))
+                            .font(.system(size: 18, weight: .black))
+                            .foregroundColor(data.flagRest ? .red : .green)
+                    }
+                }
+                Spacer()
+            }
+
+            if let msg = data.message {
+                Text(msg)
+                    .font(.system(size: 12)).foregroundColor(.red.opacity(0.9))
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if let dev = data.deviation {
+                Text(dev >= 0 ? String(format: "+%.0f ms vs baseline", dev) : String(format: "%.0f ms vs baseline", dev))
+                    .font(.system(size: 11)).foregroundColor(dev >= 0 ? .green : .orange)
+            }
+
+            Text("\(data.dataPoints) jours de données")
+                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
 }

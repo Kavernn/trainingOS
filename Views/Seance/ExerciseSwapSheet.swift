@@ -133,6 +133,7 @@ struct ExerciseSwapSheet: View {
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
+                    .scrollDismissesKeyboard(.immediately)
                 }
             }
             .navigationTitle("Changer l'exercice")

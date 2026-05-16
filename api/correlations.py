@@ -38,9 +38,16 @@ _PAIRS = [
     ("soreness_rpe", "Courbatures → RPE",           "soreness",      "rpe",            0, "bolt.heart.fill",        "orange"),
     ("protein_sore", "Protéines → Récupération",    "protein",       "soreness",       1, "fork.knife",             "purple"),
     ("rhr_rpe",      "FC Repos → Performance",      "resting_hr",    "rpe",            1, "heart.fill",             "red"),
-    ("sleep_hrv",    "Sommeil → HRV",               "sleep_hours",   "hrv",            0, "waveform.path.ecg",      "cyan"),
-    ("rhr_hrv",      "FC Repos ↔ HRV",              "resting_hr",    "hrv",            0, "heart.text.square.fill", "pink"),
-    ("energy_sore",  "Énergie Active → Courbatures","active_energy", "soreness",       1, "flame.fill",             "orange"),
+    ("sleep_hrv",      "Sommeil → HRV",                "sleep_hours",   "hrv",            0, "waveform.path.ecg",      "cyan"),
+    ("rhr_hrv",        "FC Repos ↔ HRV",               "resting_hr",    "hrv",            0, "heart.text.square.fill", "pink"),
+    ("energy_sore",    "Énergie Active → Courbatures", "active_energy", "soreness",       1, "flame.fill",             "orange"),
+    # Nouvelles corrélations — données déjà collectées
+    ("energy_pre_rpe", "Énergie pré-séance → RPE",     "energy_pre",    "rpe",            0, "bolt.fill",              "yellow"),
+    ("energy_pre_vol", "Énergie pré-séance → Volume",  "energy_pre",    "session_volume", 0, "bolt.fill",              "orange"),
+    ("pss_rpe",        "Stress PSS → Performance",     "pss_score",     "rpe",            3, "brain.head.profile",     "purple"),
+    ("mood_volume",    "Humeur → Volume séance",        "mood_score",    "session_volume", 0, "face.smiling.fill",      "teal"),
+    ("soreness_vol",   "Courbatures → Volume (seuil)", "soreness",      "session_volume", 0, "bolt.heart.fill",        "red"),
+    ("sleep_volume",   "Sommeil → Volume séance",      "sleep_hours",   "session_volume", 1, "moon.fill",              "indigo"),
 ]
 
 MIN_R = 0.35   # seuil de signification
@@ -100,6 +107,16 @@ def _load_by_date(days: int) -> dict[str, dict]:
         score = entry.get("score")
         if score is not None:
             by_date[d]["mood_score"] = score
+
+    # pss_records → daily stress score
+    for entry in db.get_pss_records(limit=days + 10):
+        d = str(entry.get("date") or entry.get("created_at") or "")[:10]
+        if d not in by_date:
+            continue
+        # pss_score or score field
+        score = entry.get("pss_score") or entry.get("score")
+        if score is not None:
+            by_date[d]["pss_score"] = float(score)
 
     return by_date
 
@@ -251,6 +268,54 @@ def _describe(pair_id: str, r: float, xs: list[float], ys: list[float]) -> str:
         return (
             f"> {threshold} kcal actives → courbatures {sign}{delta} pts "
             f"le lendemain (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "energy_pre_rpe":
+        delta = round(avg_high - avg_low, 1)
+        sign = "+" if delta > 0 else ""
+        threshold = round(median_x, 1)
+        return (
+            f"Énergie pré-séance ≥ {threshold}/5 → RPE {sign}{delta} pts "
+            f"en séance (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "energy_pre_vol":
+        delta = round(avg_high - avg_low, 0)
+        sign = "+" if delta > 0 else ""
+        threshold = round(median_x, 1)
+        return (
+            f"Énergie pré-séance ≥ {threshold}/5 → volume {sign}{int(delta)} lbs "
+            f"en séance (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "pss_rpe":
+        threshold = int(round(median_x, 0))
+        delta = round(avg_high - avg_low, 1)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"Stress PSS > {threshold} → RPE {sign}{delta} pts "
+            f"3 jours plus tard (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "mood_volume":
+        delta = round(avg_high - avg_low, 0)
+        sign = "+" if delta > 0 else ""
+        threshold = round(median_x, 1)
+        return (
+            f"Humeur ≥ {threshold}/10 → volume {sign}{int(delta)} lbs "
+            f"en séance (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "soreness_vol":
+        threshold = int(round(median_x, 0))
+        delta = round(avg_low - avg_high, 0)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"Courbatures > {threshold}/10 → volume {sign}{int(delta)} lbs "
+            f"en moins (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "sleep_volume":
+        threshold = round(median_x, 1)
+        delta = round(avg_high - avg_low, 0)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"Dormir ≥ {threshold}h → volume {sign}{int(delta)} lbs "
+            f"de plus le lendemain (r={r:+.2f}, n={n})"
         )
     direction = "positive" if r > 0 else "négative"
     return f"Corrélation {direction} (r={r:+.2f}, n={n})"

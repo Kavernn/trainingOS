@@ -134,6 +134,7 @@ struct CreateVariantSheet: View {
             }
             .padding(20)
         }
+        .dismissKeyboardOnTap()
     }
 
     // MARK: - Preview / Confirmation

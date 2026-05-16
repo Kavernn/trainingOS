@@ -312,6 +312,7 @@ struct WeeklyReport: Codable {
     let weeklyScore:         Int?
     let prs:                 [String]
     let focusNextWeek:       [String]
+    let pushPullRatio:       WeeklyReportPushPull?
 
     enum CodingKeys: String, CodingKey {
         case weekStart           = "week_start"
@@ -329,6 +330,7 @@ struct WeeklyReport: Codable {
         case weeklyScore         = "weekly_score"
         case prs
         case focusNextWeek       = "focus_next_week"
+        case pushPullRatio       = "push_pull_ratio"
     }
 
     init(from decoder: Decoder) throws {
@@ -348,6 +350,7 @@ struct WeeklyReport: Codable {
         weeklyScore         = try? c.decode(Int.self, forKey: .weeklyScore)
         prs                 = (try? c.decode([String].self, forKey: .prs)) ?? []
         focusNextWeek       = (try? c.decode([String].self, forKey: .focusNextWeek)) ?? []
+        pushPullRatio       = try? c.decode(WeeklyReportPushPull.self, forKey: .pushPullRatio)
     }
 }
 
@@ -390,5 +393,274 @@ struct RIREntry: Codable, Identifiable {
         case exercise
         case avgRir = "avg_rir"
         case nSets  = "n_sets"
+    }
+}
+
+// MARK: - Readiness Score
+struct ReadinessScore: Codable {
+    let score: Double?
+    let label: String
+    let color: String
+    let components: [String: Double]?
+    let hrvBaseline: Double?
+    let dataSources: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case score, label, color, components
+        case hrvBaseline  = "hrv_baseline"
+        case dataSources  = "data_sources"
+    }
+}
+
+// MARK: - Push/Pull Ratio
+struct PushPullRatio: Codable {
+    let pushVolume: Double
+    let pullVolume: Double
+    let legsVolume: Double
+    let ratio: Double?
+    let imbalance: String?   // "push_dominant" | "pull_dominant" | nil
+
+    enum CodingKeys: String, CodingKey {
+        case ratio, imbalance
+        case pushVolume  = "push_volume"
+        case pullVolume  = "pull_volume"
+        case legsVolume  = "legs_volume"
+    }
+}
+
+// MARK: - Body Projection
+struct BodyProjectionData: Codable {
+    let bodyFat:   LinearReg?
+    let leanMass:  LinearReg?
+    let bodyWeight: LinearReg?
+    let projections: [BodyGoalProjection]
+    let bfSeries:   [BodyDataPoint]
+    let leanSeries: [BodyDataPoint]
+
+    enum CodingKeys: String, CodingKey {
+        case projections
+        case bodyFat    = "body_fat"
+        case leanMass   = "lean_mass"
+        case bodyWeight = "body_weight"
+        case bfSeries   = "bf_series"
+        case leanSeries = "lean_series"
+    }
+}
+
+struct LinearReg: Codable {
+    let slopePerDay:    Double
+    let currentValue:   Double
+    let r2:             Double?
+
+    enum CodingKeys: String, CodingKey {
+        case r2
+        case slopePerDay  = "slope_per_day"
+        case currentValue = "current_value"
+    }
+}
+
+struct BodyGoalProjection: Codable, Identifiable {
+    var id: String { goalType }
+    let goalType:       String
+    let target:         Double
+    let current:        Double
+    let slopePerWeek:   Double
+    let r2:             Double?
+    let projectedDate:  String?
+
+    enum CodingKeys: String, CodingKey {
+        case target, current, r2
+        case goalType      = "goal_type"
+        case slopePerWeek  = "slope_per_week"
+        case projectedDate = "projected_date"
+    }
+}
+
+struct BodyDataPoint: Codable, Identifiable {
+    var id: String { date }
+    let date:  String
+    let value: Double
+}
+
+// MARK: - Pain Journal
+struct PainJournalEntry: Codable, Identifiable {
+    var id: String { (date ?? "") + (exercise ?? "") }
+    let date:        String?
+    let sessionName: String?
+    let exercise:    String?
+    let painZone:    String?
+    let weight:      Double?
+    let reps:        String?
+
+    enum CodingKeys: String, CodingKey {
+        case date, exercise, weight, reps
+        case sessionName = "session_name"
+        case painZone    = "pain_zone"
+    }
+}
+
+struct PainExerciseSummary: Codable, Identifiable {
+    var id: String { exercise }
+    let exercise:  String
+    let count:     Int
+    let zones:     [String]
+    let lastDate:  String?
+
+    enum CodingKeys: String, CodingKey {
+        case exercise, count, zones
+        case lastDate = "last_date"
+    }
+}
+
+struct PainJournalResponse: Codable {
+    let entries:    [PainJournalEntry]
+    let byExercise: [PainExerciseSummary]
+
+    enum CodingKeys: String, CodingKey {
+        case entries
+        case byExercise = "by_exercise"
+    }
+}
+
+// MARK: - Overtraining Risk
+struct OvertrainingRisk: Codable {
+    let riskScore:      Int
+    let level:          String   // "low" | "moderate" | "high"
+    let flags:          [String]
+    let recommendation: String
+
+    enum CodingKeys: String, CodingKey {
+        case level, flags, recommendation
+        case riskScore = "risk_score"
+    }
+}
+
+// MARK: - Mesocycle Status
+struct MesocycleStatus: Codable {
+    let currentWeek:       Int
+    let weekInCycle:       Int
+    let weeksSinceDeload:  Int
+    let phase:             String
+    let phaseLabel:        String
+    let description:       String
+    let icon:              String
+    let rpeTarget:         String
+    let volGuidance:       String
+    let lastDeloadDate:    String?
+    let nextDeloadInWeeks: Int
+
+    enum CodingKeys: String, CodingKey {
+        case phase, description, icon
+        case currentWeek      = "current_week"
+        case weekInCycle      = "week_in_cycle"
+        case weeksSinceDeload = "weeks_since_deload"
+        case phaseLabel       = "phase_label"
+        case rpeTarget        = "rpe_target"
+        case volGuidance      = "vol_guidance"
+        case lastDeloadDate   = "last_deload_date"
+        case nextDeloadInWeeks = "next_deload_in_weeks"
+    }
+}
+
+// MARK: - 1RM Programming
+struct OneRMExercise: Codable, Identifiable {
+    var id: String { exercise }
+    let exercise:      String
+    let estimated1rm:  Double
+    let currentWeight: Double?
+    let pctOf1rm:      Double?
+    let table:         [OneRMTableEntry]
+
+    enum CodingKeys: String, CodingKey {
+        case exercise, table
+        case estimated1rm  = "estimated_1rm"
+        case currentWeight = "current_weight"
+        case pctOf1rm      = "pct_of_1rm"
+    }
+}
+
+struct OneRMTableEntry: Codable, Identifiable {
+    var id: Int { pct }
+    let pct:    Int
+    let weight: Double
+}
+
+struct OneRMResponse: Codable {
+    let exercises: [OneRMExercise]
+}
+
+// MARK: - Macro Gap
+struct MacroGap: Codable {
+    let date:        String
+    let targets:     MacroValues
+    let actual:      MacroValues
+    let gaps:        MacroValues
+    let primaryGap:  String
+    let foodSuggestions:    [[String: SafeString]]
+    let templateSuggestions: [[String: SafeString]]
+
+    enum CodingKeys: String, CodingKey {
+        case date, targets, actual, gaps
+        case primaryGap          = "primary_gap"
+        case foodSuggestions     = "food_suggestions"
+        case templateSuggestions = "template_suggestions"
+    }
+}
+
+struct MacroValues: Codable {
+    let calories: Double
+    let protein:  Double
+    let carbs:    Double
+    let fat:      Double
+}
+
+// MARK: - HRV Baseline
+struct HRVBaseline: Codable {
+    let baseline:   Double?
+    let sd:         Double?
+    let todayHrv:   Double?
+    let deviation:  Double?
+    let flagRest:   Bool
+    let dataPoints: Int
+    let message:    String?
+
+    enum CodingKeys: String, CodingKey {
+        case baseline, sd, deviation, message
+        case todayHrv   = "today_hrv"
+        case flagRest   = "flag_rest"
+        case dataPoints = "data_points"
+    }
+}
+
+// MARK: - Soreness Threshold
+struct SorenessThreshold: Codable {
+    let medianVolume:          Double?
+    let avgSorenessLowVol:     Double?
+    let avgSorenessHighVol:    Double?
+    let thresholdVol:          Double?
+    let message:               String?
+
+    enum CodingKeys: String, CodingKey {
+        case message
+        case medianVolume       = "median_volume"
+        case avgSorenessLowVol  = "avg_soreness_low_vol"
+        case avgSorenessHighVol = "avg_soreness_high_vol"
+        case thresholdVol       = "threshold_vol"
+    }
+}
+
+// MARK: - WeeklyReport extension
+struct WeeklyReportPushPull: Codable {
+    let pushVolume: Double
+    let pullVolume: Double
+    let legsVolume: Double
+    let ratio:      Double?
+    let imbalance:  String?
+
+    enum CodingKeys: String, CodingKey {
+        case ratio, imbalance
+        case pushVolume = "push_volume"
+        case pullVolume = "pull_volume"
+        case legsVolume = "legs_volume"
     }
 }

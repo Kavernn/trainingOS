@@ -416,6 +416,7 @@ struct FinishSessionSheet: View {
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
+                .dismissKeyboardOnTap()
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -832,6 +833,7 @@ struct HIITSeanceView: View {
                 .padding(.horizontal, 16).padding(.bottom, 24)
             }
         }
+        .dismissKeyboardOnTap()
         .alert("HIIT enregistré ✅", isPresented: $vm.showSuccess) {
             Button("OK") { Task { await vm.load() } }
         }
@@ -1027,6 +1029,7 @@ struct SpecialSeanceView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
         .alert("Séance enregistrée ✅", isPresented: $vm.showSuccess) {
             Button("OK") { Task { await vm.load() } }
         }

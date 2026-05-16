@@ -107,6 +107,9 @@ struct WorkoutSeanceView: View {
     // Swap inline banner (Fix #11)
     @State private var lastSwap: (old: String, new: String)? = nil
 
+    // Readiness score
+    @State private var readiness: ReadinessScore? = nil
+
     /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
     private var computedSessionRPE: Double {
         let vals = vm.logResults.values.compactMap(\.rpe)
@@ -783,6 +786,11 @@ struct WorkoutSeanceView: View {
                             alignment: .leading
                         )
 
+                    // Readiness chip
+                    if let r = readiness, let score = r.score {
+                        ReadinessChip(score: score, label: r.label, color: r.color)
+                    }
+
                     // Énergie inline — remplace la modal bloquante
                     HStack(spacing: 6) {
                         Text("ÉNERGIE")
@@ -991,6 +999,7 @@ struct WorkoutSeanceView: View {
             lastScrollY = offset
         }
         .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
         .safeAreaInset(edge: .bottom, spacing: 0) {
             let canFinish = !vm.logResults.isEmpty
             VStack(spacing: 0) {
@@ -1229,6 +1238,7 @@ struct WorkoutSeanceView: View {
         .onAppear {
             Task {
                 await loadInventory()
+                await loadReadiness()
                 await MainActor.run {
                     guard expandedExercises.isEmpty else { return }
                     let logged = Set(vm.logResults.keys)
@@ -1288,6 +1298,15 @@ struct WorkoutSeanceView: View {
     private func restSeconds(for name: String) -> Int? {
         let rest = inventoryRest.isEmpty ? data.inventoryRest : inventoryRest
         return rest[name]
+    }
+
+    // MARK: - Readiness
+
+    private func loadReadiness() async {
+        guard let url = URL(string: "\(APIService.shared.baseURL)/api/readiness") else { return }
+        guard let (data, _) = try? await URLSession.authed.data(from: url),
+              let r = try? JSONDecoder().decode(ReadinessScore.self, from: data) else { return }
+        await MainActor.run { readiness = r }
     }
 
     // MARK: - Programme mutations
@@ -1479,6 +1498,46 @@ struct MesocycleChip: View {
         .background(color.opacity(0.1))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(color.opacity(0.25), lineWidth: 1))
         .cornerRadius(6)
+    }
+}
+
+// MARK: - Readiness Chip
+
+struct ReadinessChip: View {
+    let score: Double
+    let label: String
+    let color: String
+
+    private var swiftColor: Color {
+        switch color {
+        case "green":  return .green
+        case "yellow": return .yellow
+        case "orange": return .orange
+        case "red":    return .red
+        default:       return .gray
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "bolt.heart.fill")
+                .font(.system(size: 10))
+                .foregroundColor(swiftColor)
+            Text("READINESS")
+                .font(.system(size: 9, weight: .bold)).tracking(1)
+                .foregroundColor(.gray)
+            Text(String(format: "%.1f", score))
+                .font(.system(size: 11, weight: .black, design: .monospaced))
+                .foregroundColor(swiftColor)
+            Text("· \(label)")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(swiftColor.opacity(0.8))
+            Spacer()
+        }
+        .padding(.horizontal, 10).padding(.vertical, 6)
+        .background(swiftColor.opacity(0.06))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(swiftColor.opacity(0.2), lineWidth: 1))
+        .cornerRadius(8)
     }
 }
 

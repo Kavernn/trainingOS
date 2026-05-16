@@ -205,6 +205,38 @@ struct NutritionCorrelations: Decodable {
     }
 }
 
+// MARK: - Nutrition Timing
+
+struct NutritionTimingData: Codable {
+    let trainingDaysAnalyzed: Int
+    let preWorkout:  TimingWindow
+    let postWorkout: TimingWindow
+    let insight:     String
+
+    enum CodingKeys: String, CodingKey {
+        case insight
+        case trainingDaysAnalyzed = "training_days_analyzed"
+        case preWorkout           = "pre_workout"
+        case postWorkout          = "post_workout"
+    }
+}
+
+struct TimingWindow: Codable {
+    let mealCount:  Int
+    let avgCalories: Double?
+    let avgProtein:  Double?
+    let avgCarbs:    Double?
+    let topFoods:   [String]
+
+    enum CodingKeys: String, CodingKey {
+        case topFoods   = "top_foods"
+        case mealCount  = "meal_count"
+        case avgCalories = "avg_calories"
+        case avgProtein  = "avg_protein"
+        case avgCarbs    = "avg_carbs"
+    }
+}
+
 // MARK: - Stats Expansion Nutrition Models
 
 struct MacroBucket: Codable {

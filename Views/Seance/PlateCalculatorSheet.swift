@@ -158,6 +158,7 @@ struct PlateCalculatorSheet: View {
                     }
                     .padding(16)
                 }
+                .dismissKeyboardOnTap()
             }
             .navigationTitle("Calculateur de disques")
             .navigationBarTitleDisplayMode(.inline)

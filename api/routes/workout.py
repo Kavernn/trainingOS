@@ -989,6 +989,12 @@ def api_seance_data():
         exercise_suggestions = _sp.generate_exercise_suggestions_bulk(
             today_exercises, weights, ex_info_bulk
         )
+        # Pre-fill current_weight with the suggested weight for increase_weight suggestions
+        # so the iOS placeholder already shows the new load without requiring "Appliquer".
+        for ex_name, sug in exercise_suggestions.items():
+            if sug.get("suggestion_type") == "increase_weight" and sug.get("suggested_weight"):
+                if ex_name in weights:
+                    weights[ex_name] = {**weights[ex_name], "current_weight": sug["suggested_weight"]}
 
     return jsonify({
         "today": today_str,

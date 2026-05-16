@@ -4042,7 +4042,7 @@ def update_exercise_current_weight(name: str, weight: float) -> bool:
 # ---------------------------------------------------------------------------
 
 def get_sessions_for_correlations(days: int = 60) -> Dict[str, dict]:
-    """Return {date: {rpe, session_volume}} for the last N days."""
+    """Return {date: {rpe, session_volume, energy_pre}} for the last N days."""
     if _client is None or MODE == "OFFLINE":
         return {}
     from datetime import date as _date, timedelta
@@ -4052,14 +4052,14 @@ def get_sessions_for_correlations(days: int = 60) -> Dict[str, dict]:
     def _do_sessions() -> None:
         resp = (
             _client.table("workout_sessions")
-            .select("date, rpe")
+            .select("date, rpe, energy_pre")
             .gte("date", cutoff)
             .execute()
         )
         for row in (resp.data or []):
             d = str(row.get("date", ""))[:10]
             if d:
-                result[d] = {"rpe": row.get("rpe")}
+                result[d] = {"rpe": row.get("rpe"), "energy_pre": row.get("energy_pre")}
 
     def _do_volume() -> None:
         resp = (
@@ -4965,4 +4965,144 @@ def get_self_care_streaks_computed() -> list[dict]:
         return result
     except Exception as e:
         logger.error("get_self_care_streaks_computed error: %s", e)
+        return []
+
+
+# ---------------------------------------------------------------------------
+# Pain journal
+# ---------------------------------------------------------------------------
+
+def get_pain_journal(limit: int = 100) -> list[dict]:
+    """Return exercise_logs with pain_zone != null, newest first."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+
+    def _do() -> list[dict]:
+        resp = (
+            _client.table("exercise_logs")
+            .select("pain_zone, weight, reps, workout_sessions(date, session_name), exercises(name)")
+            .not_.is_("pain_zone", "null")
+            .order("workout_sessions(date)", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        rows = resp.data or []
+        result = []
+        for r in rows:
+            sess = r.get("workout_sessions") or {}
+            ex   = r.get("exercises") or {}
+            result.append({
+                "date":         sess.get("date"),
+                "session_name": sess.get("session_name"),
+                "exercise":     ex.get("name"),
+                "pain_zone":    r.get("pain_zone"),
+                "weight":       r.get("weight"),
+                "reps":         r.get("reps"),
+            })
+        return result
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_pain_journal retry error: %s", e2)
+                return []
+        logger.error("get_pain_journal error: %s", e)
+        return []
+
+
+def get_sessions_with_energy_pre(days: int = 90) -> list[dict]:
+    """Return [{date, energy_pre, rpe, session_volume}] for correlation analysis."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    from datetime import date as _date, timedelta
+    cutoff = (_date.today() - timedelta(days=days)).isoformat()
+
+    def _do() -> list[dict]:
+        resp = (
+            _client.table("workout_sessions")
+            .select("date, energy_pre, rpe")
+            .gte("date", cutoff)
+            .not_.is_("energy_pre", "null")
+            .execute()
+        )
+        rows = resp.data or []
+        # Get volume from v_session_volume
+        vol_resp = (
+            _client.table("v_session_volume")
+            .select("date, total_volume")
+            .gte("date", cutoff)
+            .execute()
+        )
+        vol_by_date = {str(r["date"])[:10]: r.get("total_volume") for r in (vol_resp.data or [])}
+        result = []
+        for r in rows:
+            d = str(r.get("date", ""))[:10]
+            result.append({
+                "date":           d,
+                "energy_pre":     r.get("energy_pre"),
+                "rpe":            r.get("rpe"),
+                "session_volume": vol_by_date.get(d),
+            })
+        return result
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_sessions_with_energy_pre retry error: %s", e2)
+                return []
+        logger.error("get_sessions_with_energy_pre error: %s", e)
+        return []
+
+
+def get_exercise_logs_with_category(days: int = 90) -> list[dict]:
+    """Return exercise_logs with exercise category for push/pull ratio computation."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    from datetime import date as _date, timedelta
+    cutoff = (_date.today() - timedelta(days=days)).isoformat()
+
+    def _do() -> list[dict]:
+        resp = (
+            _client.table("exercise_logs")
+            .select("weight, reps, sets_json, workout_sessions(date), exercises(name, category, load_profile)")
+            .gte("workout_sessions(date)", cutoff)
+            .execute()
+        )
+        rows = resp.data or []
+        result = []
+        for r in rows:
+            sess = r.get("workout_sessions") or {}
+            ex   = r.get("exercises") or {}
+            d = str(sess.get("date", ""))[:10]
+            if not d:
+                continue
+            result.append({
+                "date":         d,
+                "exercise":     ex.get("name"),
+                "category":     ex.get("category"),
+                "load_profile": ex.get("load_profile"),
+                "weight":       r.get("weight", 0),
+                "reps":         r.get("reps", ""),
+                "sets_json":    r.get("sets_json"),
+            })
+        return result
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_exercise_logs_with_category retry error: %s", e2)
+                return []
+        logger.error("get_exercise_logs_with_category error: %s", e)
         return []
