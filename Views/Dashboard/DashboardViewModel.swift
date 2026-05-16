@@ -35,8 +35,10 @@ final class DashboardViewModel: ObservableObject {
         return "Une erreur est survenue — réessaie"
     }
 
+    private var sessionObserver: (any NSObjectProtocol)?
+
     init() {
-        NotificationCenter.default.addObserver(
+        sessionObserver = NotificationCenter.default.addObserver(
             forName: .sessionCompleted,
             object: nil,
             queue: .main
@@ -45,88 +47,93 @@ final class DashboardViewModel: ObservableObject {
         }
     }
 
+    deinit {
+        if let sessionObserver { NotificationCenter.default.removeObserver(sessionObserver) }
+    }
+
     func loadAll() async {
         let today = todayStr
         partialLoadWarning = false
 
-        // D-B1: wrap full load in a 15-second timeout
-        // We race the actual work against a timeout sentinel
-        let workFinished = ActorFlag()
-        let loadTask = Task { [weak self] in
-            guard let self else { return }
-            await self.performLoad(today: today)
-            await workFinished.set()
-        }
-
-        try? await Task.sleep(nanoseconds: 15_000_000_000)
-        let didFinish = await workFinished.value
-        if !didFinish {
-            loadTask.cancel()
-            // Only surface timeout error if dashboard still hasn't loaded
+        // D-B1: timeout safety net — runs concurrently, fires only if performLoad hangs
+        let timeoutTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 15_000_000_000)
+            guard !Task.isCancelled, let self else { return }
             if APIService.shared.dashboard == nil {
                 APIService.shared.isLoading = false
                 APIService.shared.error = "Connexion trop lente — tire vers le bas pour réessayer"
             }
         }
+
+        await performLoad(today: today)
+        timeoutTask.cancel()
     }
 
     private func performLoad(today: String) async {
-        // sequential — async let LIFO crash on iOS 26 beta
-        do { _ = try await APIService.shared.fetchDashboard() } catch { logger.error("fetchDashboard: \(error, privacy: .public)") }
+        // Phase 1: dashboard first — populates skeleton UI immediately
+        do { _ = try await APIService.shared.fetchDashboard() }
+        catch { logger.error("fetchDashboard: \(error, privacy: .public)") }
 
-        // D-D1: count secondary call failures
+        // Phase 2: all independent secondary calls in parallel.
+        // withTaskGroup is safe on iOS 26 beta (async let parallel has LIFO crash).
         var secondaryFailures = 0
+        await withTaskGroup(of: Int.self) { group in
+            group.addTask {
+                do { self.deload = try await APIService.shared.fetchDeloadData(); return 0 }
+                catch { self.logger.error("fetchDeload: \(error, privacy: .public)"); return 1 }
+            }
+            group.addTask {
+                do { self.moodDue = try await APIService.shared.checkMoodDue(); return 0 }
+                catch { self.logger.error("checkMoodDue: \(error, privacy: .public)"); return 1 }
+            }
+            group.addTask {
+                do { self.morningBrief = try await APIService.shared.fetchMorningBrief(); return 0 }
+                catch { self.logger.error("fetchMorningBrief: \(error, privacy: .public)"); return 1 }
+            }
+            group.addTask {
+                do { self.eveningSession = try await APIService.shared.fetchSeanceSoirData(); return 0 }
+                catch { self.logger.error("fetchSeanceSoir: \(error, privacy: .public)"); return 1 }
+            }
+            group.addTask {
+                do {
+                    let log = try await APIService.shared.fetchRecoveryData()
+                    let entry = log.first(where: { $0.date == today })
+                    self.todaySleepLogged = entry?.sleepHours != nil
+                    self.todayRecovery    = entry
+                    return 0
+                } catch {
+                    self.logger.error("fetchRecovery: \(error, privacy: .public)")
+                    return 1
+                }
+            }
+            group.addTask {
+                self.sleepStages = await HealthKitService.shared.fetchLastNightSleepStages()
+                return 0
+            }
+            group.addTask {
+                self.sleepWindow = await HealthKitService.shared.fetchLastNightSleepWindow()
+                return 0
+            }
+            group.addTask {
+                await AlertService.shared.fetch()
+                return 0
+            }
+            for await failures in group { secondaryFailures += failures }
+        }
 
-        do { deload = try await APIService.shared.fetchDeloadData() } catch {
-            logger.error("fetchDeload: \(error, privacy: .public)")
-            secondaryFailures += 1
-        }
-        do { moodDue = try await APIService.shared.checkMoodDue() } catch {
-            logger.error("checkMoodDue: \(error, privacy: .public)")
-            secondaryFailures += 1
-        }
-        do { morningBrief = try await APIService.shared.fetchMorningBrief() } catch {
-            logger.error("fetchMorningBrief: \(error, privacy: .public)")
-            secondaryFailures += 1
-        }
-        do { eveningSession = try await APIService.shared.fetchSeanceSoirData() } catch {
-            logger.error("fetchSeanceSoir: \(error, privacy: .public)")
-            secondaryFailures += 1
-        }
-        do {
-            let log = try await APIService.shared.fetchRecoveryData()
-            let entry = log.first(where: { $0.date == today })
-            todaySleepLogged = entry?.sleepHours != nil
-            todayRecovery    = entry
-        } catch {
-            logger.error("fetchRecovery: \(error, privacy: .public)")
-            secondaryFailures += 1
-        }
+        if secondaryFailures >= 2 { partialLoadWarning = true }
 
-        // D-D1: warn if 2+ secondary calls failed
-        if secondaryFailures >= 2 {
-            partialLoadWarning = true
-        }
-
-        // PERF-5: insights / LSS / coach tip — once per day only
+        // Analytics — once per calendar day
         if analyticsLoadedDate != today {
-            // Collect all results before assigning — batches into one SwiftUI render pass
-            let iResult  = (try? await APIService.shared.fetchInsights()) ?? []
-            let tResult  = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? []
-            let cResult  = try? await APIService.shared.fetchDailyCoachTip()
-            let sdResult = try? await APIService.shared.fetchSmartDay()
-            let wrResult = try? await APIService.shared.fetchWeeklyReport()
-            insights     = iResult
-            lssTrend     = tResult
-            coachTip     = cResult
-            smartDay     = sdResult
-            weeklyReport = wrResult
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { self.insights  = (try? await APIService.shared.fetchInsights()) ?? [] }
+                group.addTask { self.lssTrend  = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? [] }
+                group.addTask { self.coachTip  = try? await APIService.shared.fetchDailyCoachTip() }
+                group.addTask { self.smartDay  = try? await APIService.shared.fetchSmartDay() }
+                group.addTask { self.weeklyReport = try? await APIService.shared.fetchWeeklyReport() }
+            }
             analyticsLoadedDate = today
         }
-
-        sleepStages  = await HealthKitService.shared.fetchLastNightSleepStages()
-        sleepWindow  = await HealthKitService.shared.fetchLastNightSleepWindow()
-        await AlertService.shared.fetch()
     }
 
     func refreshMoodDue() async {
@@ -169,10 +176,4 @@ final class DashboardViewModel: ObservableObject {
         guard totalW >= 0.25 else { return nil }
         return Int((weighted / totalW) * 100)
     }
-}
-
-// D-B1: Simple actor flag for racing load vs timeout
-private actor ActorFlag {
-    private(set) var value = false
-    func set() { value = true }
 }

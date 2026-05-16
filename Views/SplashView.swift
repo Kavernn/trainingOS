@@ -417,7 +417,7 @@ struct SplashView: View {
         }
         .opacity(allOpacity)
         .ignoresSafeArea()
-        .onReceive(Timer.publish(every: 0.016, on: .main, in: .common).autoconnect()) { _ in
+        .onReceive(Timer.publish(every: 0.033, on: .main, in: .common).autoconnect()) { _ in
             updateParticles()
         }
         .onAppear {
@@ -645,8 +645,8 @@ struct SplashView: View {
         // ── Progress bar
         animateProgress()
 
-        // ── Sortie (t=6.5s)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6.50) {
+        // ── Sortie (t=3.2s)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.20) {
             withAnimation(.easeOut(duration: 0.7)) { allOpacity = 0 }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) { onFinish() }
         }
@@ -777,11 +777,10 @@ struct SplashView: View {
     // MARK: - Progress
     private func animateProgress() {
         let steps: [(w: CGFloat, pct: Int, delay: Double)] = [
-            (0.38,  38, 1.30),
-            (0.61,  61, 2.50),
-            (0.84,  84, 3.60),
-            (0.95,  95, 4.50),
-            (1.00, 100, 5.60)
+            (0.40,  40, 1.20),
+            (0.70,  70, 1.90),
+            (0.90,  90, 2.50),
+            (1.00, 100, 2.90)
         ]
         for step in steps {
             DispatchQueue.main.asyncAfter(deadline: .now() + step.delay) {

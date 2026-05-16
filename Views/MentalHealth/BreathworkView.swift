@@ -225,6 +225,7 @@ struct BreathworkTimerView: View {
             .padding(.bottom, 40)
         }
         .onAppear { secondsLeft = currentPhase.seconds }
+        .onDisappear { pauseTimer() }
     }
 
     private var phaseInstruction: String {

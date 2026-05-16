@@ -91,6 +91,7 @@ struct ChatBubble: View {
 
 struct TypingIndicator: View {
     @State private var phase = 0
+    @State private var timer: Timer? = nil
 
     var body: some View {
         HStack(spacing: 4) {
@@ -105,9 +106,13 @@ struct TypingIndicator: View {
         .background(Color.appCard)
         .cornerRadius(18)
         .onAppear {
-            Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
                 phase = (phase + 1) % 3
             }
+        }
+        .onDisappear {
+            timer?.invalidate()
+            timer = nil
         }
     }
 }
