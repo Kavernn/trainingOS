@@ -58,8 +58,9 @@ final class NHLService: ObservableObject {
     @Published private(set) var liveGame: HabsGame?
     @Published private(set) var lastGame: HabsGame?
     @Published private(set) var nextGame: HabsGame?
-    @Published private(set) var isLoading = false
-    @Published private(set) var failed = false
+    @Published private(set) var isLoading   = false
+    @Published private(set) var failed      = false
+    @Published private(set) var isOffSeason = false
 
     private var lastFetch: Date = .distantPast
 
@@ -119,9 +120,10 @@ final class NHLService: ObservableObject {
             }
         }
 
-        liveGame = liveResult
-        lastGame = completed.last
-        nextGame = upcoming.min(by: { $0.date < $1.date })?.game
+        liveGame    = liveResult
+        lastGame    = completed.last
+        nextGame    = upcoming.min(by: { $0.date < $1.date })?.game
+        isOffSeason = liveResult == nil && completed.isEmpty && upcoming.isEmpty
     }
 
     private func periodLabel(_ p: NHLAPIPeriod?) -> String {

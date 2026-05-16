@@ -13,6 +13,7 @@ struct DashboardView: View {
     @State private var showMoodSheet = false
     @State private var showChecklist = false
     @State private var showSleepSheet = false
+    @State private var sleepPromptDismissedThisSession = false
     @State private var lastRefresh: Date = .distantPast
     // D-D5: single source of truth — date ISO "2026-05-15" stored in AppStorage
     @AppStorage("sleepPromptDismissedDate") private var sleepPromptDismissedDate = ""
@@ -159,6 +160,14 @@ struct DashboardView: View {
                                     GoalReminderView(goal: goal)
                                         .appearAnimation(delay: 0.30)
                                 }
+
+                                if let tip = vm.coachTip {
+                                    CoachTipCard(tip: tip)
+                                        .appearAnimation(delay: 0.33)
+                                }
+
+                                XPChipView(sessions: dash.sessions)
+                                    .appearAnimation(delay: 0.36)
 
                                 // D-D4: allow user to re-read morning brief without re-triggering hideForToday
                                 if let brief = vm.morningBrief {

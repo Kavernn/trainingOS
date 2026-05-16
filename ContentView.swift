@@ -5,7 +5,7 @@ import UIKit
 struct ContentView: View {
     @ObservedObject private var network = NetworkMonitor.shared
     @ObservedObject private var sync    = SyncManager.shared
-    @State private var selectedTab   = 0
+    @State private var selectedTab   = 1
 
     init() {
         // iOS 26+: skip UIKit appearance — Liquid Glass manages bar styling natively.

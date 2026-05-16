@@ -6,7 +6,8 @@ struct OnboardingView: View {
     @State private var step = 0
     @State private var name = ""
     @State private var goal = "Prise de masse"
-    @State private var isSaving = false
+    @State private var isSaving    = false
+    @State private var hkRequesting = false
 
     // Defaults — user updates later in Profile
     private let sex      = "M"
@@ -34,15 +35,18 @@ struct OnboardingView: View {
                 if step == 0 { splashStep.transition(.asymmetric(insertion: .opacity, removal: .opacity)) }
                 if step == 1 { goalStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
                 if step == 2 { nameStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
+                if step == 3 { healthKitStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
             }
             .animation(.easeInOut(duration: 0.3), value: step)
         }
         .overlay(alignment: .topTrailing) {
-            Button("Passer") { onComplete() }
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(Color(white: 0.4))
-                .padding(.trailing, 20)
-                .padding(.top, 56)
+            if step < 3 {
+                Button("Passer") { onComplete() }
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(Color(white: 0.4))
+                    .padding(.trailing, 20)
+                    .padding(.top, 56)
+            }
         }
     }
 
@@ -176,6 +180,62 @@ struct OnboardingView: View {
         }
     }
 
+    // MARK: Step 3 — HealthKit
+
+    private var healthKitStep: some View {
+        VStack(spacing: 0) {
+            Spacer()
+            VStack(spacing: 24) {
+                ZStack {
+                    Circle().fill(Color.red.opacity(0.12)).frame(width: 90, height: 90)
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 40, weight: .semibold))
+                        .foregroundColor(.red)
+                }
+                VStack(spacing: 10) {
+                    Text("Récupération auto")
+                        .font(.system(size: 34, weight: .black))
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                    Text("Connecte Apple Santé pour importer\nautomatiquement ton sommeil, HRV\net tes calories brûlées.")
+                        .font(.system(size: 15))
+                        .foregroundColor(Color(white: 0.45))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(3)
+                }
+            }
+            Spacer()
+            VStack(spacing: 12) {
+                Button {
+                    hkRequesting = true
+                    Task {
+                        await HealthKitService.shared.requestAuthorization()
+                        await MainActor.run { onComplete() }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if hkRequesting { ProgressView().tint(.black).scaleEffect(0.85) }
+                        Text(hkRequesting ? "Connexion…" : "Connecter Apple Santé →")
+                            .font(.system(size: 17, weight: .bold))
+                    }
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(Color.red)
+                    .cornerRadius(16)
+                }
+                .disabled(hkRequesting)
+
+                Button("Passer pour l'instant") { onComplete() }
+                    .font(.system(size: 15))
+                    .foregroundColor(Color(white: 0.4))
+                    .padding(.vertical, 8)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 56)
+        }
+    }
+
     // MARK: Submit
 
     private func submit() {
@@ -195,7 +255,10 @@ struct OnboardingView: View {
             } catch {
                 // Network failure: profile syncs later via SyncManager
             }
-            await MainActor.run { onComplete() }
+            await MainActor.run {
+                isSaving = false
+                withAnimation { step = 3 }
+            }
         }
     }
 }

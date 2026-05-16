@@ -473,6 +473,63 @@ private struct MetricChip: View {
     }
 }
 
+// MARK: - XP Chip
+
+struct XPChipView: View {
+    let sessions: [String: SessionEntry]
+
+    private var xp: Int { sessions.count * 100 }
+    private var level: Int { max(1, xp / 1500 + 1) }
+    private var xpInLevel: Int { xp % 1500 }
+    private var progress: CGFloat { CGFloat(xpInLevel) / 1500.0 }
+
+    private var levelTitle: String {
+        switch level {
+        case 1: return "Débutant"
+        case 2: return "Athlète"
+        case 3: return "Warrior"
+        case 4: return "Élite"
+        case 5: return "Champion"
+        default: return "Légende"
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color.yellow.opacity(0.18)).frame(width: 36, height: 36)
+                Image(systemName: "star.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.yellow)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    Text("Niveau \(level) · \(levelTitle)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Text("\(xpInLevel) / 1500 XP")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.45))
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 3).fill(Color.yellow.opacity(0.12)).frame(height: 5)
+                        RoundedRectangle(cornerRadius: 3).fill(Color.yellow)
+                            .frame(width: geo.size.width * min(progress, 1.0), height: 5)
+                    }
+                }
+                .frame(height: 5)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color.yellow.opacity(0.05))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.15), lineWidth: 1))
+        .cornerRadius(14)
+    }
+}
+
 // MARK: - Quotes Data
 
 struct DailyQuote {
