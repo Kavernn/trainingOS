@@ -72,6 +72,16 @@ def _gather_context() -> str:
     except Exception:
         pass
 
+    # --- PSS (dernier score de stress) ---
+    try:
+        pss_records = _db.get_pss_records(limit=1)
+        if pss_records:
+            score = pss_records[0].get("pss_score") or pss_records[0].get("score")
+            if score is not None:
+                lines.append(f"Stress PSS (dernier): {int(score)}/40")
+    except Exception:
+        pass
+
     return "\n".join(lines) if lines else "Données insuffisantes."
 
 

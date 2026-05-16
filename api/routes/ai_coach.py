@@ -164,7 +164,8 @@ def api_ai_coach():
             "Tu établis des corrélations entre entraînement, nutrition, récupération et santé mentale.\n"
             "Tu es direct, précis, et toujours actionnable.\n"
             "Tu te souviens des conversations précédentes et tu fais des suivis explicites.\n"
-            "Tu es le meilleur coach au monde — tu le prouves à chaque message.\n\n"
+            "Si tu n'as pas de données précises sur un point, dis-le clairement et demande "
+            "les informations manquantes — n'improvise jamais avec des chiffres inventés.\n\n"
             "Structure implicite de chaque réponse (sans labels) :\n"
             "→ Observation ancrée dans les données réelles (date, chiffre, exercice nommé)\n"
             "→ Corrélation avec un autre pilier (nutrition / récup / mental / volume)\n"
@@ -178,9 +179,53 @@ def api_ai_coach():
             "- Si tu n'as pas assez de données pour répondre précisément, dis-le et demande."
         )
 
+        # Correlations block — top 3 significant Pearson pairs
+        corr_block = ""
+        try:
+            from correlations import get_correlations
+            corr_data = get_correlations(days=60)
+            top_corrs = corr_data.get("insights", [])[:3]
+            if top_corrs:
+                lines = ["CORRÉLATIONS PERSONNELLES VALIDÉES (données réelles — cite-les):"]
+                for c in top_corrs:
+                    lines.append(f"  • {c['description']}")
+                corr_block = "\n".join(lines)
+        except Exception:
+            pass
+
+        # Progression suggestions block — from smart_progression engine
+        prog_block = ""
+        try:
+            from smart_progression import generate_suggestions
+            recent = _db.get_workout_sessions(limit=1)
+            if recent:
+                s = recent[0]
+                suggs = generate_suggestions(
+                    session_date=s.get("date", ""),
+                    session_type=s.get("session_type", "morning"),
+                    session_name=s.get("session_name", ""),
+                )
+                actionable = [sg for sg in suggs if sg.get("suggestion_type") != "maintain"][:5]
+                if actionable:
+                    lines = ["SUGGESTIONS DE PROGRESSION (moteur analytique — cite-les dans ta réponse):"]
+                    for sg in actionable:
+                        name = sg.get("exercise_name", "")
+                        st   = sg.get("suggestion_type", "")
+                        reason = sg.get("reason", "")
+                        sw   = sg.get("suggested_weight")
+                        sw_str = f" → {sw} lbs" if sw else ""
+                        lines.append(f"  • {name}{sw_str} [{st}]: {reason}")
+                    prog_block = "\n".join(lines)
+        except Exception:
+            pass
+
         system_parts = [system_base]
         if context:
             system_parts.append(f"DONNÉES ATHLÈTE EN TEMPS RÉEL:\n{context}")
+        if corr_block:
+            system_parts.append(corr_block)
+        if prog_block:
+            system_parts.append(prog_block)
         if history_block:
             system_parts.append(history_block)
         system = "\n\n".join(system_parts)
@@ -239,8 +284,40 @@ def api_ai_post_workout():
         ctx_lines = [f"Séance du jour ({date}) : {session_type}"]
         if rpe is not None:
             ctx_lines.append(f"RPE : {rpe}/10")
-        if exos:
+
+        # Try to fetch detailed exercise logs (weights + reps) from DB
+        detailed_exos = []
+        try:
+            import json as _json_inner
+            s_row = _db.get_workout_session_by_type(date, "morning") or _db.get_workout_session_by_type(date, "evening")
+            if s_row:
+                logs = _db.get_exercise_logs_for_session_with_names(s_row["id"])
+                for log in logs:
+                    name = log.get("exercise_name", "")
+                    sets_data = log.get("sets_json") or []
+                    if isinstance(sets_data, str):
+                        try:
+                            sets_data = _json_inner.loads(sets_data)
+                        except Exception:
+                            sets_data = []
+                    if sets_data:
+                        sets_str = " / ".join(
+                            f"{s.get('weight','?')}lbs×{s.get('reps','?')}" for s in sets_data
+                        )
+                        detailed_exos.append(f"{name}: {sets_str}")
+                    elif log.get("weight") is not None:
+                        detailed_exos.append(f"{name}: {log['weight']}lbs×{log.get('reps','?')}")
+                    else:
+                        detailed_exos.append(name)
+        except Exception:
+            pass
+
+        if detailed_exos:
+            ctx_lines.append("Exercices (poids×reps par série) :")
+            ctx_lines.extend(f"  {e}" for e in detailed_exos)
+        elif exos:
             ctx_lines.append(f"Exercices : {', '.join(exos)}")
+
         if comment:
             ctx_lines.append(f"Commentaire : {comment}")
 
@@ -390,6 +467,10 @@ def api_ai_generate_program():
                 "- Semaine 4 = deload: 50-60% du volume des semaines précédentes\n"
                 "- Utilise les exercices du programme actuel comme base\n"
                 "- Propose de nouveaux exercices si un groupe manque de variété\n\n"
+                "RANGES DE REPS PAR CATÉGORIE (obligatoire):\n"
+                "- compound_heavy (squat, deadlift, bench, row lourd) : reps='4-6' ou '6-8', rest_sec=180-240\n"
+                "- compound_hypertrophy (presses, tractions, rowing modéré) : reps='8-12', rest_sec=90-120\n"
+                "- isolation (curls, extensions, élévations latérales) : reps='12-15', rest_sec=60-90\n\n"
                 "STRUCTURE DES PHASES:\n"
                 "- Semaine 1: accumulation (volume modéré, apprentissage)\n"
                 "- Semaine 2: intensification (volume +1 set/exo)\n"

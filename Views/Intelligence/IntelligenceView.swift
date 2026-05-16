@@ -791,8 +791,8 @@ struct IntelligenceView: View {
             if let v = c.sleepQuality    { t += " som:\(String(format: "%.0f", v))" }
             if let v = c.hrvTrend        { t += " hrv:\(String(format: "%.0f", v))" }
             if let v = c.rhrTrend        { t += " rhr:\(String(format: "%.0f", v))" }
-            if let v = c.subjectiveStress { t += " str:\(String(format: "%.0f", v))" }
-            if let v = c.trainingFatigue { t += " fat:\(String(format: "%.0f", v))" }
+            if let v = c.subjectiveStress { t += " stress:\(String(format: "%.0f", v))" }
+            if let v = c.trainingFatigue { t += " fatigue:\(String(format: "%.0f", v))" }
             var flags: [String] = []
             if lss.flags.hrvDrop          { flags.append("!hrv") }
             if lss.flags.sleepDeprivation { flags.append("!som") }
@@ -828,7 +828,7 @@ struct IntelligenceView: View {
                 var row = dd
                 if let exos = s.exos, !exos.isEmpty { row += " \(exos.joined(separator: "+"))" }
                 if let rpe = s.rpe        { row += " RPE:\(String(format: "%.1f", rpe))" }
-                if let sets = s.totalSets { row += " \(sets)s" }
+                if let sets = s.totalSets { row += " sets:\(sets)" }
                 if let dur = s.durationMin { row += " \(dur)m" }
                 lines.append("  \(row)")
             }
@@ -843,7 +843,7 @@ struct IntelligenceView: View {
             if let v = r.sleepQuality { t += " q:\(String(format: "%.0f", v))" }
             if let v = r.hrv          { t += " hrv:\(String(format: "%.0f", v))" }
             if let v = r.restingHr    { t += " rhr:\(String(format: "%.0f", v))" }
-            if let v = r.soreness     { t += " cor:\(String(format: "%.0f", v))" }
+            if let v = r.soreness     { t += " soreness:\(String(format: "%.0f", v))" }
             return t
         }
         if !recov.isEmpty { lines.append("récup: " + recov.joined(separator: " | ")) }

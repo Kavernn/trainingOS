@@ -69,7 +69,65 @@ def api_acwr():
 @analytics_bp.route("/api/coach/morning_brief")
 def api_morning_brief():
     from morning_brief import get_morning_brief
-    return jsonify(get_morning_brief())
+    import db as _db
+    brief = get_morning_brief()
+
+    # Enhance the hardcoded Python message with a Claude-generated personalized one
+    try:
+        import os
+        import anthropic as _anthropic
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if api_key and brief.get("lss") is not None:
+            ctx_parts = [
+                f"LSS (Life Stress Score): {brief['lss']:.0f}/100",
+                f"Séance prévue: {brief['session_today']} (intensité: {brief['session_intensity']})",
+                f"Recommandation système: {brief['recommendation']}",
+            ]
+            active_flags = [k for k, v in (brief.get("flags") or {}).items() if v]
+            if active_flags:
+                ctx_parts.append(f"Alertes: {', '.join(active_flags)}")
+            if brief.get("adjustments"):
+                ctx_parts.append(f"Ajustements suggérés: {', '.join(brief['adjustments'])}")
+            try:
+                sessions = _db.get_workout_sessions(limit=3)
+                if sessions:
+                    last = sessions[0]
+                    ctx_parts.append(
+                        f"Dernière séance: {last.get('date','?')} — "
+                        f"{last.get('session_name') or last.get('session_type','?')} "
+                        f"RPE {last.get('rpe','?')}/10"
+                    )
+            except Exception:
+                pass
+            try:
+                nutrition = _db.get_nutrition_entries_recent(n=1)
+                if nutrition:
+                    n = nutrition[0]
+                    ctx_parts.append(
+                        f"Nutrition hier: {n.get('calories','?')} kcal, "
+                        f"{n.get('proteines','?')}g protéines"
+                    )
+            except Exception:
+                pass
+
+            client = _anthropic.Anthropic(api_key=api_key)
+            msg = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=80,
+                system=(
+                    "Tu es un coach sportif. En une seule phrase (max 20 mots), "
+                    "génère un message d'encouragement matinal personnalisé basé sur les données. "
+                    "Cite UN chiffre concret (LSS, RPE, ou intensité). "
+                    "Style direct, énergisant. Tutoiement. Français uniquement. "
+                    "Pas de ponctuation finale superflue."
+                ),
+                messages=[{"role": "user", "content": "\n".join(ctx_parts)}],
+            )
+            brief["message"] = msg.content[0].text.strip()
+    except Exception:
+        pass  # fallback to Python-generated message
+
+    return jsonify(brief)
 
 
 @analytics_bp.route("/api/peak_prediction")
