@@ -63,8 +63,9 @@ def _gather_context() -> str:
         profile = _db.get_profile()
         if profile:
             info = []
-            if profile.get("weight"):
-                info.append(f"poids {profile['weight']} lbs")
+            bw_logs = _db.get_body_weight_logs(limit=1)
+            if bw_logs and bw_logs[0].get("weight"):
+                info.append(f"poids {bw_logs[0]['weight']} lbs")
             if profile.get("goal"):
                 info.append(f"objectif: {profile['goal']}")
             if info:

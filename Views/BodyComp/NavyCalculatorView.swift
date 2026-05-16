@@ -94,6 +94,13 @@ struct NavyCalculatorView: View {
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: savedAt)
+        .task { await prefillWeight() }
+    }
+
+    private func prefillWeight() async {
+        guard let (_, bw, _) = try? await APIService.shared.fetchProfilData(),
+              let last = bw.last else { return }
+        weightLbs = last.weight
     }
 
     // MARK: - Input card

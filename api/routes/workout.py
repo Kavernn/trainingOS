@@ -14,7 +14,6 @@ def api_log():
         from goals import check_goals_achieved
         from deload import get_cached_fatigue_score
         from volume import calc_set_volume, calc_exercise_volume
-        from user_profile import load_user_profile
         from utils import _today_mtl
         import db as _db
 
@@ -97,11 +96,7 @@ def api_log():
         # Resolve volume weight for bodyweight exercises
         if equipment_type == "bodyweight" and weight == 0:
             bw_logs = _db.get_body_weight_logs(limit=1)
-            if bw_logs and bw_logs[0].get("weight"):
-                volume_weight = float(bw_logs[0]["weight"])
-            else:
-                profile = load_user_profile()
-                volume_weight = float(profile.get("weight") or 0)
+            volume_weight = float(bw_logs[0]["weight"]) if bw_logs and bw_logs[0].get("weight") else 0.0
         else:
             volume_weight = weight
 
