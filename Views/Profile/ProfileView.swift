@@ -16,27 +16,32 @@ func dnaArchetypeAccent(_ key: String) -> Color {
 }
 
 struct ProfileView: View {
-    @ObservedObject private var api = APIService.shared
-    @State private var bodyWeight: [BodyWeightEntry] = []
-    @State private var tendance = ""
-    @State private var isLoading = true
-    @State private var showEdit = false
-    @State private var showAddWeight = false
-    @State private var showPhotoOptions = false
-    @State private var showPhotoPicker = false
-    @State private var showCamera = false
+    @ObservedObject private var api      = APIService.shared
+    @ObservedObject private var bodyComp = BodyCompService.shared
+
+    @State private var isLoading          = true
+    @State private var showEdit           = false
+    @State private var showAddWeight      = false
+    @State private var showPhotoOptions   = false
+    @State private var showPhotoPicker    = false
+    @State private var showCamera         = false
     @State private var selectedPhoto: PhotosPickerItem? = nil
     @State private var profileImage: UIImage? = nil
-    @State private var isUploadingPhoto = false
+    @State private var isUploadingPhoto   = false
     @State private var photoError: String? = nil
-    @State private var isExporting = false
-    @State private var exportURL: URL? = nil
-    @State private var showExportShare = false
+    @State private var isExporting        = false
+    @State private var exportURL: URL?    = nil
+    @State private var showExportShare    = false
     @State private var dna: WorkoutDNAResponse? = nil
     @State private var totalSessions: Int = 0
-    @State private var memberSinceText: String = ""
+    @State private var memberSinceText    = ""
+    @State private var weeklyTonnage: [WeeklyTonnageEntry] = []
+    @State private var pssHistory: [PSSRecord] = []
+    @State private var allTimeVolumeLbs: Double = 0
 
     var profile: UserProfile? { api.dashboard?.profile }
+
+    // MARK: - Computed
 
     private var sessionsThisMonth: Int {
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM"
@@ -48,21 +53,69 @@ struct ProfileView: View {
         totalSessions > 0 ? totalSessions : (api.dashboard?.sessions.count ?? 0)
     }
 
-    private var currentStreak: Int  { dna?.consistency.currentStreak  ?? 0 }
-    private var longestStreak: Int  { dna?.consistency.longestStreak  ?? 0 }
+    private var currentStreak: Int { dna?.consistency.currentStreak ?? 0 }
+
+    private var weightDelta30d: Double? {
+        let sorted = bodyComp.history.sorted { $0.date < $1.date }
+        guard let latest = sorted.last else { return nil }
+        let cutoff = Calendar.current.date(byAdding: .day, value: -28, to: Date()) ?? Date()
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        guard let ref = sorted.last(where: {
+            guard let d = fmt.date(from: $0.date) else { return false }
+            return d <= cutoff && $0.date != latest.date
+        }) else { return nil }
+        return latest.weight - ref.weight
+    }
+
+    private var allTimeVolumeFormatted: String {
+        if allTimeVolumeLbs >= 1_000_000 {
+            return String(format: "%.1fM lbs", allTimeVolumeLbs / 1_000_000)
+        }
+        let fmt = NumberFormatter()
+        fmt.numberStyle = .decimal
+        fmt.groupingSeparator = " "
+        fmt.maximumFractionDigits = 0
+        return (fmt.string(from: NSNumber(value: allTimeVolumeLbs)) ?? "\(Int(allTimeVolumeLbs))") + " lbs"
+    }
+
+    private var volumeTrend: (pct: Double, positive: Bool)? {
+        let items = weeklyTonnage.suffix(4)
+        guard items.count >= 2,
+              let last = items.last?.totalVolume,
+              let first = items.first?.totalVolume,
+              first > 0 else { return nil }
+        let pct = (last - first) / first * 100
+        return (abs(pct), pct >= 0)
+    }
+
+    private var pssTrend: (delta: Int, positive: Bool)? {
+        let items = pssHistory.sorted { $0.date < $1.date }.suffix(4)
+        guard items.count >= 2,
+              let last = items.last?.score,
+              let first = items.first?.score else { return nil }
+        return (abs(last - first), last <= first)
+    }
+
+    private var isProfileIncomplete: Bool {
+        let p = profile
+        return p?.name == nil || p?.height == nil || p?.age == nil
+    }
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
+                AmbientBackground(color: .orange).ignoresSafeArea()
                 if isLoading {
-                    ProgressView().tint(.orange)
+                    AppLoadingView()
                 } else {
                     profileScrollContent
                 }
             }
             .navigationTitle("Profil")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Modifier") { showEdit = true }
@@ -70,15 +123,12 @@ struct ProfileView: View {
                         .foregroundColor(.orange)
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        Task { await exportData() }
-                    } label: {
+                    Button { Task { await exportData() } } label: {
                         if isExporting {
                             ProgressView().scaleEffect(0.75).tint(.gray)
                         } else {
                             Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 14))
-                                .foregroundColor(.gray)
+                                .font(.system(size: 14)).foregroundColor(.gray)
                         }
                     }
                     .disabled(isExporting)
@@ -97,13 +147,14 @@ struct ProfileView: View {
             .sheet(isPresented: $showEdit) {
                 EditProfileSheet(profile: profile) {
                     await api.fetchDashboard()
-                    await loadBodyWeight()
+                    await BodyCompService.shared.refresh()
                 }
             }
             .sheet(isPresented: $showAddWeight) {
-                BodyWeightSheet(editEntry: nil) { await loadBodyWeight() }
+                BodyWeightSheet(editEntry: nil) { await BodyCompService.shared.refresh() }
             }
-            .alert("Erreur photo", isPresented: Binding(get: { photoError != nil }, set: { if !$0 { photoError = nil } })) {
+            .alert("Erreur photo",
+                   isPresented: Binding(get: { photoError != nil }, set: { if !$0 { photoError = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(photoError ?? "") }
             .sheet(isPresented: $showExportShare) {
@@ -113,34 +164,505 @@ struct ProfileView: View {
         .task { await loadData() }
     }
 
-    private var isProfileIncomplete: Bool {
-        let p = profile
-        return p?.name == nil || p?.weight == nil || p?.height == nil
-            || p?.age == nil || p?.goal == nil || p?.level == nil
-    }
-
-    // MARK: - Scroll content
+    // MARK: - Scroll Content
 
     private var profileScrollContent: some View {
-        ScrollView {
-            VStack(spacing: 16) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 20) {
                 if isProfileIncomplete { incompleteProfileBanner }
-                avatarSection
-                    .padding(.top, isProfileIncomplete ? 4 : 20)
-                statsSnapshotSection
-                identityGrid
-                    .padding(.horizontal, 16)
-                prsVitrineSection
-                weightSparklineSection
-                    .padding(.horizontal, 16)
-                goalsSection
-                Spacer(minLength: 24)
+                headerSection
+                statsGridSection
+                bodyCompCard
+                prsCard
+                trendsSection
+                settingsCard
+                Spacer(minLength: contentBottomPadding)
             }
+            .padding(.top, 12)
+            .padding(.bottom, 20)
         }
-        .scrollDismissesKeyboard(.interactively)
     }
 
-    // MARK: - Incomplete profile banner
+    // MARK: - Section 1 — Header
+
+    private var headerSection: some View {
+        VStack(spacing: 10) {
+            ZStack(alignment: .bottomTrailing) {
+                profilePhotoView
+                Button(action: { showPhotoOptions = true }) {
+                    ZStack {
+                        Circle().fill(Color.orange).frame(width: 30, height: 30)
+                            .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
+                        if isUploadingPhoto {
+                            ProgressView().tint(.white).scaleEffect(0.6)
+                        } else {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                        }
+                    }
+                }
+                .offset(x: 4, y: 4)
+            }
+            .padding(.bottom, 2)
+
+            Text(profile?.name ?? "Athlète")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(.white)
+
+            if !memberSinceText.isEmpty {
+                Text(memberSinceText)
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+            }
+
+            headerBadgesRow
+        }
+        .padding(.top, 8)
+    }
+
+    private var headerBadgesRow: some View {
+        HStack(spacing: 8) {
+            if let dna {
+                let accent = dnaArchetypeAccent(dna.archetype.key)
+                HStack(spacing: 5) {
+                    Image(systemName: "waveform.path.ecg")
+                        .font(.system(size: 10, weight: .bold))
+                    Text(dna.archetype.label.uppercased())
+                        .font(.system(size: 11, weight: .bold)).tracking(0.5)
+                }
+                .foregroundColor(accent)
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(accent.opacity(0.15))
+                .clipShape(Capsule())
+            }
+            if let goal = profile?.goal, !goal.isEmpty {
+                Text(goal)
+                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Color.white.opacity(0.07))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.top, 2)
+    }
+
+    @ViewBuilder
+    private var profilePhotoView: some View {
+        if let img = profileImage {
+            Image(uiImage: img).resizable().scaledToFill()
+                .frame(width: 88, height: 88).clipShape(Circle())
+                .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
+        } else if let urlStr = profile?.photoUrl, let url = URL(string: urlStr) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let img):
+                    img.resizable().scaledToFill()
+                        .frame(width: 88, height: 88).clipShape(Circle())
+                        .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
+                case .failure:
+                    initialsCircle
+                default:
+                    Circle().fill(Color.orange.opacity(0.08)).frame(width: 88, height: 88)
+                        .overlay(ProgressView().tint(.orange).scaleEffect(0.7))
+                }
+            }
+        } else if let b64 = profile?.photoB64,
+                  let data = Data(base64Encoded: b64.components(separatedBy: ",").last ?? ""),
+                  let img = UIImage(data: data) {
+            Image(uiImage: img).resizable().scaledToFill()
+                .frame(width: 88, height: 88).clipShape(Circle())
+                .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
+        } else {
+            initialsCircle
+        }
+    }
+
+    private var initialsCircle: some View {
+        ZStack {
+            Circle()
+                .fill(LinearGradient(
+                    colors: [Color.orange.opacity(0.6), Color.red.opacity(0.4)],
+                    startPoint: .topLeading, endPoint: .bottomTrailing))
+                .frame(width: 88, height: 88)
+                .overlay(Circle().stroke(Color.white.opacity(0.1), lineWidth: 2))
+            Text(profile?.name?.prefix(1).uppercased() ?? "?")
+                .font(.system(size: 38, weight: .black)).foregroundColor(.white)
+        }
+    }
+
+    // MARK: - Section 2 — Stats Grid
+
+    private var statsGridSection: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            ProfileStatSquare(
+                value: displayTotalSessions > 0 ? "\(displayTotalSessions)" : "—",
+                label: "SÉANCES", icon: "dumbbell.fill", color: .orange,
+                hasData: displayTotalSessions > 0
+            )
+            ProfileStatSquare(
+                value: currentStreak > 0 ? "\(currentStreak)j" : "—",
+                label: "STREAK", icon: "flame.fill", color: .red,
+                hasData: currentStreak > 0
+            )
+            ProfileStatSquare(
+                value: allTimeVolumeLbs > 0 ? allTimeVolumeFormatted : "—",
+                label: "VOLUME ALL-TIME", icon: "scalemass.fill", color: .blue,
+                hasData: allTimeVolumeLbs > 0
+            )
+            ProfileStatSquare(
+                value: "\(sessionsThisMonth)",
+                label: "SÉANCES CE MOIS", icon: "calendar", color: .green,
+                hasData: true
+            )
+        }
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Section 3 — Body Composition
+
+    private var bodyCompCard: some View {
+        let heightCm   = profile?.height ?? 178.0
+        let navyResult = bodyComp.getNavyBodyFat(heightCm: heightCm)
+        let latest     = bodyComp.latest
+        let delta      = weightDelta30d
+        let histSorted = bodyComp.history.sorted { $0.date < $1.date }
+
+        return NavigationLink(destination: BodyCompView()) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Text("BODY COMP")
+                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12)).foregroundColor(.gray.opacity(0.5))
+                }
+
+                if let latest {
+                    HStack(spacing: 0) {
+                        bodyCompWeightCol(latest: latest, delta: delta)
+                        Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 52)
+                        bodyCompFatCol(navyResult: navyResult)
+                        Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 52)
+                        weightSparklineMini(histSorted)
+                            .frame(width: 72, height: 44)
+                            .padding(.leading, 14)
+                    }
+                    Text("Données du \(formattedShortDate(latest.date))")
+                        .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                } else {
+                    bodyCompEmptyState
+                }
+            }
+            .padding(16)
+            .background(Color.appCard)
+            .cornerRadius(16)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .padding(.horizontal, 16)
+    }
+
+    private func bodyCompWeightCol(latest: BodyWeightEntry, delta: Double?) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(String(format: "%.1f lbs", latest.weight))
+                .font(.system(size: 22, weight: .black)).foregroundColor(.white)
+            if let d = delta {
+                HStack(spacing: 3) {
+                    Image(systemName: d > 0 ? "arrow.up" : "arrow.down")
+                        .font(.system(size: 9, weight: .bold))
+                    Text(String(format: "%.1f lbs", abs(d)))
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundColor(d <= 0 ? .green : .orange)
+            }
+            Text("POIDS").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func bodyCompFatCol(navyResult: NavyBodyFatResult?) -> some View {
+        let cat      = navyResult?.category()
+        let catColor = cat?.color ?? Color.clear
+        let catLabel = cat?.label ?? ""
+        let pctStr   = navyResult.map { String(format: "%.1f%%", $0.pct) } ?? "—"
+        return VStack(alignment: .leading, spacing: 4) {
+            Text(pctStr)
+                .font(.system(size: 22, weight: .black))
+                .foregroundColor(navyResult != nil ? catColor : .white.opacity(0.3))
+            if navyResult != nil {
+                Text(catLabel)
+                    .font(.system(size: 11, weight: .semibold)).foregroundColor(catColor.opacity(0.8))
+            } else {
+                Text("Incomplet").font(.system(size: 10)).foregroundColor(.orange.opacity(0.7))
+            }
+            Text("% MG NAVY").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+    }
+
+    private var bodyCompEmptyState: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "scalemass")
+                .font(.system(size: 28)).foregroundColor(.gray.opacity(0.4))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Aucune donnée de poids")
+                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.white.opacity(0.6))
+                Button("Ajouter maintenant") { showAddWeight = true }
+                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.orange)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func weightSparklineMini(_ sorted: [BodyWeightEntry]) -> some View {
+        let pts = Array(sorted.suffix(90))
+        if pts.count >= 3 {
+            let weights = pts.map(\.weight)
+            let minW    = (weights.min() ?? 0) - 1
+            let maxW    = (weights.max() ?? 1) + 1
+            Canvas { ctx, size in
+                let step = size.width / CGFloat(max(pts.count - 1, 1))
+                let ys: [CGFloat] = weights.map { w in
+                    size.height * (1 - CGFloat((w - minW) / (maxW - minW)))
+                }
+                var line = Path()
+                line.move(to: CGPoint(x: 0, y: ys[0]))
+                for (i, y) in ys.dropFirst().enumerated() {
+                    line.addLine(to: CGPoint(x: CGFloat(i + 1) * step, y: y))
+                }
+                ctx.stroke(line, with: .color(.orange.opacity(0.8)),
+                           style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+                var fill = line
+                fill.addLine(to: CGPoint(x: size.width, y: size.height))
+                fill.addLine(to: CGPoint(x: 0, y: size.height))
+                fill.closeSubpath()
+                ctx.fill(fill, with: .color(.orange.opacity(0.12)))
+            }
+        } else {
+            Text("—").font(.system(size: 11)).foregroundColor(.gray.opacity(0.4))
+                .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    // MARK: - Section 4 — PRs
+
+    @ViewBuilder
+    private var prsCard: some View {
+        if let lifts = dna?.signatureLifts, !lifts.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Text("RECORDS PERSONNELS")
+                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Spacer()
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 12)).foregroundColor(.yellow.opacity(0.8))
+                }
+                .padding(.bottom, 12)
+
+                ForEach(Array(lifts.prefix(5).enumerated()), id: \.offset) { idx, lift in
+                    if idx > 0 {
+                        Divider().background(Color.white.opacity(0.06)).padding(.vertical, 2)
+                    }
+                    prRow(lift)
+                }
+            }
+            .padding(16)
+            .background(Color.appCard)
+            .cornerRadius(16)
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private func prRow(_ lift: DNASignatureLift) -> some View {
+        let prLbs     = lift.prKg * 2.20462
+        let dateLabel = shortDate(lift.prDate)
+        return HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(lift.name)
+                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                    .lineLimit(1)
+                Text(dateLabel)
+                    .font(.system(size: 11)).foregroundColor(.gray)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(String(format: "%.0f lbs × %d", prLbs, lift.prReps))
+                    .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                if lift.progressionPct > 0 {
+                    Text("+\(Int(lift.progressionPct))%")
+                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.green)
+                }
+            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11)).foregroundColor(.gray.opacity(0.4))
+        }
+        .padding(.vertical, 6)
+    }
+
+    // MARK: - Section 5 — Tendances
+
+    private var trendsSection: some View {
+        HStack(spacing: 10) {
+            trendCard(
+                title: "VOLUME HEBDO",
+                chart: AnyView(volumeBarchartView),
+                trendLabel: volumeTrendLabel,
+                trendPositive: volumeTrend?.positive,
+                isEmpty: weeklyTonnage.count < 2
+            )
+            trendCard(
+                title: "STRESS PERÇU",
+                chart: AnyView(pssSparklineView),
+                trendLabel: pssTrendLabel,
+                trendPositive: pssTrend?.positive,
+                isEmpty: pssHistory.count < 2
+            )
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private func trendCard(title: String, chart: AnyView, trendLabel: String, trendPositive: Bool?, isEmpty: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+
+            if isEmpty {
+                RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 1, dash: [4]))
+                    .frame(height: 44)
+                    .overlay(
+                        Text("Pas assez de données")
+                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                    )
+            } else {
+                chart
+            }
+
+            if !trendLabel.isEmpty {
+                let trendColor: Color = trendPositive == nil ? .gray : (trendPositive! ? .green : .red)
+                Text(trendLabel)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(trendColor)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+
+    private var volumeBarchartView: some View {
+        let items = Array(weeklyTonnage.suffix(4))
+        let maxV  = items.map(\.totalVolume).max() ?? 1
+        return Canvas { ctx, size in
+            let count   = CGFloat(items.count)
+            let spacing = CGFloat(6)
+            let barW    = (size.width - spacing * (count - 1)) / count
+            for (i, entry) in items.enumerated() {
+                let h    = CGFloat(entry.totalVolume / maxV) * size.height
+                let x    = CGFloat(i) * (barW + spacing)
+                let rect = CGRect(x: x, y: size.height - h, width: barW, height: h)
+                let isLast = i == items.count - 1
+                ctx.fill(Path(roundedRect: rect, cornerRadius: 3),
+                         with: .color(.orange.opacity(isLast ? 0.9 : 0.45)))
+            }
+        }
+        .frame(height: 44)
+    }
+
+    private var pssSparklineView: some View {
+        let items  = Array(pssHistory.sorted { $0.date < $1.date }.suffix(4))
+        let scores = items.map { Double($0.score) }
+        let minS   = scores.min() ?? 0
+        let maxS   = max(scores.max() ?? 1, minS + 1)
+        let improving  = (scores.last ?? 0) <= (scores.first ?? 0)
+        let lineColor: Color = improving ? .green : .red
+        return Canvas { ctx, size in
+            guard scores.count >= 2 else { return }
+            let step = size.width / CGFloat(scores.count - 1)
+            let pts: [CGPoint] = scores.enumerated().map { i, s in
+                CGPoint(x: CGFloat(i) * step,
+                        y: size.height * (1 - CGFloat((s - minS) / (maxS - minS))))
+            }
+            var line = Path()
+            line.move(to: pts[0])
+            pts.dropFirst().forEach { line.addLine(to: $0) }
+            ctx.stroke(line, with: .color(lineColor.opacity(0.9)),
+                       style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            var fill = line
+            if let last = pts.last, let first = pts.first {
+                fill.addLine(to: CGPoint(x: last.x, y: size.height))
+                fill.addLine(to: CGPoint(x: first.x, y: size.height))
+                fill.closeSubpath()
+            }
+            ctx.fill(fill, with: .color(lineColor.opacity(0.12)))
+        }
+        .frame(height: 44)
+    }
+
+    private var volumeTrendLabel: String {
+        guard let t = volumeTrend else { return "" }
+        return (t.positive ? "↑" : "↓") + String(format: " %.0f%%", t.pct) + " vs mois préc."
+    }
+
+    private var pssTrendLabel: String {
+        guard let t = pssTrend else {
+            return pssHistory.sorted { $0.date < $1.date }.last?.categoryLabel ?? ""
+        }
+        return t.positive ? "↓ En amélioration" : "↑ En hausse"
+    }
+
+    // MARK: - Section 6 — Settings
+
+    private var settingsCard: some View {
+        VStack(spacing: 0) {
+            settingsRow(icon: "scalemass.fill",      color: .orange,  label: "Unités",         detail: "lbs",  action: nil)
+            settingsDivider
+            settingsRow(icon: "square.and.arrow.up", color: .green,   label: "Export données", detail: nil,    action: {
+                Task { await exportData() }
+            })
+            settingsDivider
+            settingsRow(icon: "person.crop.circle",  color: .purple,  label: "Compte",         detail: nil,    action: {
+                showEdit = true
+            })
+        }
+        .background(Color.appCard)
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
+    }
+
+    private var settingsDivider: some View {
+        Divider().background(Color.white.opacity(0.06)).padding(.leading, 46)
+    }
+
+    private func settingsRow(icon: String, color: Color, label: String, detail: String?, action: (() -> Void)?) -> some View {
+        let row = HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(color.opacity(0.18))
+                    .frame(width: 30, height: 30)
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(color)
+            }
+            Text(label).font(.system(size: 15)).foregroundColor(.white)
+            Spacer()
+            if let detail {
+                Text(detail).font(.system(size: 13)).foregroundColor(.gray)
+            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12)).foregroundColor(.gray.opacity(0.4))
+        }
+        .padding(.horizontal, 14).padding(.vertical, 14)
+
+        if let action {
+            return AnyView(Button(action: action) { row }.buttonStyle(PlainButtonStyle()))
+        } else {
+            return AnyView(row)
+        }
+    }
+
+    // MARK: - Incomplete banner
 
     private var incompleteProfileBanner: some View {
         Button(action: { showEdit = true }) {
@@ -150,208 +672,47 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Complète ton profil")
                         .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
-                    Text("Poids, taille, niveau requis pour les suggestions IA")
+                    Text("Taille, âge requis pour les suggestions IA")
                         .font(.system(size: 12)).foregroundColor(.gray)
                 }
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12)).foregroundColor(.gray)
+                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray)
             }
             .padding(14)
             .background(Color.orange.opacity(0.12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.3), lineWidth: 1))
             .cornerRadius(12)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
+        .padding(.horizontal, 16).padding(.top, 4)
     }
 
-    // MARK: - Avatar
+    // MARK: - Helpers
 
-    private var avatarSection: some View {
-        VStack(spacing: 10) {
-            ZStack(alignment: .bottomTrailing) {
-                profilePhoto
-                Button(action: { showPhotoOptions = true }) {
-                    ZStack {
-                        Circle().fill(Color.orange).frame(width: 28, height: 28)
-                        if isUploadingPhoto {
-                            ProgressView().tint(.white).scaleEffect(0.6)
-                        } else {
-                            Image(systemName: "camera.fill")
-                                .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
-                        }
-                    }
-                }
-                .offset(x: 4, y: 4)
-            }
-            Text(profile?.name ?? "Athlète")
-                .font(.system(size: 24, weight: .bold)).foregroundColor(.white)
-            if let goal = profile?.goal {
-                Text(goal).font(.system(size: 13)).foregroundColor(.gray)
-            }
-            profileBadgesRow
-        }
+    private func formattedShortDate(_ iso: String) -> String {
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        guard let date = df.date(from: String(iso.prefix(10))) else { return iso }
+        let out = DateFormatter(); out.dateFormat = "d MMM yyyy"
+        out.locale = Locale(identifier: "fr_FR")
+        return out.string(from: date)
     }
 
-    private var profileBadgesRow: some View {
-        HStack(spacing: 8) {
-            if let dna {
-                let accent = dnaArchetypeAccent(dna.archetype.key)
-                HStack(spacing: 5) {
-                    Image(systemName: "waveform.path.ecg")
-                        .font(.system(size: 10, weight: .bold))
-                    Text(dna.archetype.label.uppercased())
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(0.5)
-                }
-                .foregroundColor(accent)
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(accent.opacity(0.15))
-                .clipShape(Capsule())
-            }
-            if !memberSinceText.isEmpty {
-                HStack(spacing: 4) {
-                    Image(systemName: "calendar.badge.clock")
-                        .font(.system(size: 10))
-                    Text(memberSinceText)
-                        .font(.system(size: 11))
-                }
-                .foregroundColor(.gray)
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(Color.white.opacity(0.07))
-                .clipShape(Capsule())
-            }
-        }
-        .padding(.top, 2)
+    private func shortDate(_ iso: String) -> String {
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        guard let date = df.date(from: String(iso.prefix(10))) else { return iso }
+        let out = DateFormatter(); out.dateFormat = "d MMM"
+        out.locale = Locale(identifier: "fr_FR")
+        return out.string(from: date)
     }
 
-    @ViewBuilder
-    private var profilePhoto: some View {
-        if let img = profileImage {
-            Image(uiImage: img).resizable().scaledToFill()
-                .frame(width: 96, height: 96).clipShape(Circle())
-        } else if let urlStr = profile?.photoUrl, let url = URL(string: urlStr) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let img):
-                    img.resizable().scaledToFill()
-                        .frame(width: 96, height: 96).clipShape(Circle())
-                case .failure:
-                    photoPlaceholder
-                default:
-                    Circle().fill(Color.orange.opacity(0.08))
-                        .frame(width: 96, height: 96)
-                        .overlay(ProgressView().tint(.orange).scaleEffect(0.7))
-                }
-            }
-        } else if let b64 = profile?.photoB64,
-                  let data = Data(base64Encoded: b64.components(separatedBy: ",").last ?? ""),
-                  let img = UIImage(data: data) {
-            Image(uiImage: img).resizable().scaledToFill()
-                .frame(width: 96, height: 96).clipShape(Circle())
-        } else {
-            photoPlaceholder
-        }
-    }
-
-    private var photoPlaceholder: some View {
-        ZStack {
-            Circle().fill(Color.orange.opacity(0.15)).frame(width: 96, height: 96)
-            Text(profile?.name?.prefix(1).uppercased() ?? "?")
-                .font(.system(size: 44, weight: .black)).foregroundColor(.orange)
-        }
-    }
-
-    // MARK: - Stats Snapshot
-
-    private var statsSnapshotSection: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                ProfileSnapshotPill(
-                    label: "Séances", value: "\(displayTotalSessions)",
-                    icon: "dumbbell.fill", color: .orange)
-                if currentStreak > 0 {
-                    ProfileSnapshotPill(
-                        label: "Streak", value: "\(currentStreak)j",
-                        icon: "flame.fill", color: .red)
-                }
-                if longestStreak > 0 {
-                    ProfileSnapshotPill(
-                        label: "Record", value: "\(longestStreak)j",
-                        icon: "trophy.fill", color: .yellow)
-                }
-                ProfileSnapshotPill(
-                    label: "Ce mois", value: "\(sessionsThisMonth)",
-                    icon: "calendar", color: .green)
-                if let sessPerWeek = dna?.consistency.sessionsPerWeek {
-                    ProfileSnapshotPill(
-                        label: "/ semaine", value: String(format: "%.1f", sessPerWeek),
-                        icon: "chart.bar.fill", color: .blue)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 2)
-        }
-    }
-
-    // MARK: - Identity Grid
-
-    private var identityGrid: some View {
-        let units = UnitSettings.shared
-        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            if let w = bodyWeight.sorted(by: { $0.date < $1.date }).last?.weight {
-                ProfileStatCard(icon: "scalemass.fill", label: "Poids", value: units.format(w), color: .orange)
-            }
-            if let h = profile?.height {
-                ProfileStatCard(icon: "ruler.fill", label: "Taille", value: "\(Int(h)) cm", color: .blue)
-            }
-            if let age = profile?.age {
-                ProfileStatCard(icon: "calendar", label: "Âge", value: "\(age) ans", color: .purple)
-            }
-            if let level = profile?.level {
-                ProfileStatCard(icon: "chart.bar.fill", label: "Niveau", value: level, color: .green)
-            }
-        }
-    }
-
-    // MARK: - PRs Vitrine
-
-    @ViewBuilder
-    private var prsVitrineSection: some View {
-        if let lifts = dna?.signatureLifts, !lifts.isEmpty {
-            PRsVitrineCard(lifts: Array(lifts.prefix(3)))
-                .padding(.horizontal, 16)
-        }
-    }
-
-    // MARK: - Weight Sparkline
-
-    private var weightSparklineSection: some View {
-        WeightSparklineCard(
-            bodyWeight: bodyWeight,
-            tendance: tendance,
-            onAdd: { showAddWeight = true }
-        )
-    }
-
-    // MARK: - Goals
-
-    @ViewBuilder
-    private var goalsSection: some View {
-        if let goals = api.dashboard?.goals, !goals.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("OBJECTIFS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                ForEach(goals.sorted(by: { $0.key < $1.key }), id: \.key) { ex, progress in
-                    GoalProgressRow(exercise: ex, progress: progress)
-                }
-            }
-            .padding(16)
-            .background(Color.appCard)
-            .cornerRadius(14)
-            .padding(.horizontal, 16)
-        }
+    private func buildMemberSince(isoDate: String) -> String {
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        guard let date = df.date(from: String(isoDate.prefix(10))) else { return "" }
+        let months = Calendar.current.dateComponents([.month], from: date, to: Date()).month ?? 0
+        let out = DateFormatter(); out.dateFormat = "MMMM yyyy"
+        out.locale = Locale(identifier: "fr_FR")
+        let label = out.string(from: date).capitalized
+        if months < 1 { return "Nouveau membre" }
+        return "Membre depuis \(label)"
     }
 
     // MARK: - Load
@@ -359,28 +720,31 @@ struct ProfileView: View {
     private func loadData() async {
         isLoading = true
         await api.fetchDashboard()
-        await loadBodyWeight()
-        dna = try? await APIService.shared.fetchWorkoutDNA()
+        await BodyCompService.shared.refresh()
+        dna       = try? await APIService.shared.fetchWorkoutDNA()
+        pssHistory = (try? await APIService.shared.fetchPSSHistory()) ?? []
+        try? await APIService.shared.fetchStatsData()
         loadStatsSnapshot()
         isLoading = false
     }
 
     private func loadStatsSnapshot() {
-        struct Snap: Decodable { let sessions: [String: SessionEntry] }
+        struct Snap: Decodable {
+            let sessions: [String: SessionEntry]
+            let weeklyTonnage: [WeeklyTonnageEntry]?
+            enum CodingKeys: String, CodingKey {
+                case sessions
+                case weeklyTonnage = "weekly_tonnage"
+            }
+        }
         guard let data = CacheService.shared.load(for: "stats_data"),
               let r = try? JSONDecoder().decode(Snap.self, from: data) else { return }
-        totalSessions = r.sessions.count
+        totalSessions    = r.sessions.count
+        allTimeVolumeLbs = r.sessions.values.compactMap(\.sessionVolume).reduce(0, +)
+        weeklyTonnage    = (r.weeklyTonnage ?? []).sorted { $0.weekStart < $1.weekStart }
         if let first = r.sessions.keys.sorted().first {
             memberSinceText = buildMemberSince(isoDate: first)
         }
-    }
-
-    private func buildMemberSince(isoDate: String) -> String {
-        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-        guard let date = df.date(from: String(isoDate.prefix(10))) else { return "" }
-        let months = Calendar.current.dateComponents([.month], from: date, to: Date()).month ?? 0
-        if months < 1 { return "Nouveau membre" }
-        return "Membre depuis \(months) mois"
     }
 
     private func exportData() async {
@@ -391,22 +755,12 @@ struct ProfileView: View {
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("trainingos_export_\(DateFormatter.isoDate.string(from: Date())).json")
         try? data.write(to: tmp)
-        await MainActor.run {
-            exportURL = tmp
-            showExportShare = true
-        }
-    }
-
-    private func loadBodyWeight() async {
-        if let (_, bw, t) = try? await APIService.shared.fetchProfilData() {
-            bodyWeight = bw
-            tendance = t
-        }
+        await MainActor.run { exportURL = tmp; showExportShare = true }
     }
 
     private func loadSelectedPhoto() async {
-        guard let item = selectedPhoto else { return }
-        guard let data = try? await item.loadTransferable(type: Data.self),
+        guard let item = selectedPhoto,
+              let data = try? await item.loadTransferable(type: Data.self),
               let image = UIImage(data: data) else { return }
         await uploadPhoto(image)
     }
@@ -439,149 +793,37 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - PRs Vitrine Card
+// MARK: - Stat Square Card
 
-private struct PRsVitrineCard: View {
-    let lifts: [DNASignatureLift]
+struct ProfileStatSquare: View {
+    let value: String
+    let label: String
+    let icon: String
+    let color: Color
+    let hasData: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("PERSONAL RECORDS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                Spacer()
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 13)).foregroundColor(.yellow)
-            }
-            ForEach(Array(lifts.enumerated()), id: \.offset) { idx, lift in
-                PRRow(lift: lift)
-                if idx < lifts.count - 1 {
-                    Divider().background(Color.white.opacity(0.06))
-                }
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(color.opacity(hasData ? 1 : 0.35))
+            Text(value)
+                .font(.system(size: 26, weight: .black))
+                .foregroundColor(.white.opacity(hasData ? 1 : 0.3))
+                .lineLimit(1).minimumScaleFactor(0.6)
+            Text(label)
+                .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                .foregroundColor(.gray)
         }
-        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
         .background(Color.appCard)
         .cornerRadius(14)
+        .opacity(hasData ? 1 : 0.7)
     }
 }
 
-private struct PRRow: View {
-    let lift: DNASignatureLift
-
-    private var prDateFormatted: String {
-        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-        guard let date = df.date(from: String(lift.prDate.prefix(10))) else { return lift.prDate }
-        let out = DateFormatter()
-        out.dateFormat = "d MMM yyyy"
-        out.locale = Locale(identifier: "fr_FR")
-        return out.string(from: date)
-    }
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(lift.name)
-                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
-                Text(prDateFormatted)
-                    .font(.system(size: 11)).foregroundColor(.gray)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 3) {
-                let prLbs = lift.prKg * 2.20462
-                Text("\(UnitSettings.shared.format(prLbs)) × \(lift.prReps)")
-                    .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
-                if lift.progressionPct > 0 {
-                    Text("+\(lift.progressionPct, specifier: "%.0f")%")
-                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.green)
-                }
-            }
-        }
-        .padding(.vertical, 4)
-    }
-}
-
-// MARK: - Weight Sparkline Card
-
-private struct WeightSparklineCard: View {
-    let bodyWeight: [BodyWeightEntry]
-    let tendance: String
-    let onAdd: () -> Void
-
-    private var sorted: [BodyWeightEntry] { bodyWeight.sorted { $0.date < $1.date } }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("POIDS CORPOREL")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                Spacer()
-                if !tendance.isEmpty {
-                    Text(tendance).font(.system(size: 12, weight: .semibold)).foregroundColor(.orange)
-                }
-            }
-            if sorted.isEmpty {
-                Text("Aucune donnée")
-                    .font(.system(size: 13)).foregroundColor(.gray).italic().padding(.vertical, 4)
-            } else {
-                currentWeightRow
-                if sorted.count >= 2 { sparkline }
-            }
-            Button(action: onAdd) {
-                Label("Ajouter poids", systemImage: "plus.circle.fill")
-                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.orange)
-            }
-            .padding(.top, 2)
-        }
-        .padding(16)
-        .background(Color.appCard)
-        .cornerRadius(14)
-    }
-
-    private var currentWeightRow: some View {
-        let last = sorted.last!
-        return HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(UnitSettings.shared.format(last.weight))
-                .font(.system(size: 32, weight: .black)).foregroundColor(.orange)
-            if let bf = last.bodyFat {
-                Text(String(format: "%.1f%% gras", bf))
-                    .font(.system(size: 13)).foregroundColor(.blue).padding(.bottom, 3)
-            }
-        }
-    }
-
-    private var sparkline: some View {
-        let pts = Array(sorted.suffix(30).enumerated())
-        let weights = pts.map(\.element.weight)
-        let minW = (weights.min() ?? 0)
-        let maxW = (weights.max() ?? 1)
-        let pad  = max((maxW - minW) * 0.15, 2.0)
-        return Chart(pts, id: \.offset) { item in
-            LineMark(
-                x: .value("", item.offset),
-                y: .value("", item.element.weight)
-            )
-            .foregroundStyle(.orange)
-            .interpolationMethod(.catmullRom)
-            AreaMark(
-                x: .value("", item.offset),
-                yStart: .value("", minW - pad),
-                yEnd: .value("", item.element.weight)
-            )
-            .foregroundStyle(LinearGradient(
-                colors: [.orange.opacity(0.28), .clear],
-                startPoint: .top, endPoint: .bottom
-            ))
-            .interpolationMethod(.catmullRom)
-        }
-        .chartXAxis(.hidden)
-        .chartYAxis(.hidden)
-        .chartYScale(domain: (minW - pad)...(maxW + pad))
-        .frame(height: 64)
-    }
-}
-
-// MARK: - Snapshot Pill
+// MARK: - Subviews kept for external usage
 
 struct ProfileSnapshotPill: View {
     let label: String
@@ -591,17 +833,70 @@ struct ProfileSnapshotPill: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 16)).foregroundColor(color)
-            Text(value)
-                .font(.system(size: 18, weight: .bold)).foregroundColor(.white)
-            Text(label)
-                .font(.system(size: 10)).foregroundColor(.gray)
+            Image(systemName: icon).font(.system(size: 16)).foregroundColor(color)
+            Text(value).font(.system(size: 18, weight: .bold)).foregroundColor(.white)
+            Text(label).font(.system(size: 10)).foregroundColor(.gray)
         }
-        .frame(width: 76)
-        .padding(.vertical, 14)
-        .background(Color.appCard)
-        .cornerRadius(14)
+        .frame(width: 76).padding(.vertical, 14)
+        .background(Color.appCard).cornerRadius(14)
+    }
+}
+
+struct ProfileStatCard: View {
+    let icon: String
+    let label: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Image(systemName: icon).font(.system(size: 20)).foregroundColor(color)
+            Text(value).font(.system(size: 18, weight: .bold)).foregroundColor(.white)
+            Text(label).font(.system(size: 11)).foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity).padding(.vertical, 16)
+        .background(Color.appCard).cornerRadius(14)
+    }
+}
+
+struct GoalProgressRow: View {
+    let exercise: String
+    let progress: GoalProgress
+    @ObservedObject private var units = UnitSettings.shared
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Text(exercise).font(.system(size: 13)).foregroundColor(.white)
+                Spacer()
+                Text("\(units.format(progress.current)) / \(units.format(progress.goal))")
+                    .font(.system(size: 12))
+                    .foregroundColor(progress.achieved ? .green : .gray)
+            }
+            GeometryReader { geo in
+                let pct = progress.goal > 0 ? min(progress.current / progress.goal, 1.0) : 0
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(hex: "191926")).frame(height: 4)
+                    Capsule()
+                        .fill(progress.achieved ? Color.green : Color.orange)
+                        .frame(width: geo.size.width * pct, height: 4)
+                }
+            }
+            .frame(height: 4)
+        }
+    }
+}
+
+struct ProfileRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack {
+            Text(label).foregroundColor(.gray)
+            Spacer()
+            Text(value).foregroundColor(.white).fontWeight(.semibold)
+        }
     }
 }
 
@@ -656,68 +951,6 @@ extension UIImage {
     }
 }
 
-// MARK: - Subviews
-
-struct ProfileStatCard: View {
-    let icon: String
-    let label: String
-    let value: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: icon).font(.system(size: 20)).foregroundColor(color)
-            Text(value).font(.system(size: 18, weight: .bold)).foregroundColor(.white)
-            Text(label).font(.system(size: 11)).foregroundColor(.gray)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(Color.appCard)
-        .cornerRadius(14)
-    }
-}
-
-struct GoalProgressRow: View {
-    let exercise: String
-    let progress: GoalProgress
-    @ObservedObject private var units = UnitSettings.shared
-
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack {
-                Text(exercise).font(.system(size: 13)).foregroundColor(.white)
-                Spacer()
-                Text("\(units.format(progress.current)) / \(units.format(progress.goal))")
-                    .font(.system(size: 12))
-                    .foregroundColor(progress.achieved ? .green : .gray)
-            }
-            GeometryReader { geo in
-                let pct = progress.goal > 0 ? min(progress.current / progress.goal, 1.0) : 0
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color(hex: "191926")).frame(height: 4)
-                    Capsule()
-                        .fill(progress.achieved ? Color.green : Color.orange)
-                        .frame(width: geo.size.width * pct, height: 4)
-                }
-            }
-            .frame(height: 4)
-        }
-    }
-}
-
-struct ProfileRow: View {
-    let label: String
-    let value: String
-
-    var body: some View {
-        HStack {
-            Text(label).foregroundColor(.gray)
-            Spacer()
-            Text(value).foregroundColor(.white).fontWeight(.semibold)
-        }
-    }
-}
-
 // MARK: - Edit Sheet
 
 struct EditProfileSheet: View {
@@ -762,28 +995,23 @@ struct EditProfileSheet: View {
                                 .multilineTextAlignment(.trailing).foregroundColor(.white)
                         }
                         LabeledContent("Âge") {
-                            TextField("0", text: $age)
-                                .keyboardType(.numberPad)
+                            TextField("0", text: $age).keyboardType(.numberPad)
                                 .multilineTextAlignment(.trailing).foregroundColor(.white)
                         }
                     }
-                    .listRowBackground(Color.appCard)
-                    .foregroundColor(.gray)
+                    .listRowBackground(Color.appCard).foregroundColor(.gray)
 
                     Section("Mesures") {
                         LabeledContent("Poids (lbs)") {
-                            TextField("0.0", text: $weight)
-                                .keyboardType(.decimalPad)
+                            TextField("0.0", text: $weight).keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing).foregroundColor(.white)
                         }
                         LabeledContent("Taille (cm)") {
-                            TextField("0", text: $height)
-                                .keyboardType(.numberPad)
+                            TextField("0", text: $height).keyboardType(.numberPad)
                                 .multilineTextAlignment(.trailing).foregroundColor(.white)
                         }
                     }
-                    .listRowBackground(Color.appCard)
-                    .foregroundColor(.gray)
+                    .listRowBackground(Color.appCard).foregroundColor(.gray)
 
                     Section("Programme") {
                         LabeledContent("Objectif") {
@@ -795,8 +1023,7 @@ struct EditProfileSheet: View {
                                 .multilineTextAlignment(.trailing).foregroundColor(.white)
                         }
                     }
-                    .listRowBackground(Color.appCard)
-                    .foregroundColor(.gray)
+                    .listRowBackground(Color.appCard).foregroundColor(.gray)
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
