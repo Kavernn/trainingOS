@@ -375,8 +375,11 @@ def delete_exercise_by_name(name: str) -> bool:
 # Workout sessions
 # ---------------------------------------------------------------------------
 
-def get_workout_sessions(limit: int = 100) -> List[dict]:
-    """Return list of workout sessions ordered by date DESC."""
+def get_workout_sessions(limit: int = 100, offset: int = 0) -> List[dict]:
+    """Return list of workout sessions ordered by date DESC.
+
+    Uses DB-level LIMIT/OFFSET so callers never fetch more rows than needed.
+    """
     if _client is None or MODE == "OFFLINE":
         return []
 
@@ -385,7 +388,7 @@ def get_workout_sessions(limit: int = 100) -> List[dict]:
             _client.table("workout_sessions")
             .select("*")
             .order("date", desc=True)
-            .limit(limit)
+            .range(offset, offset + limit - 1)
             .execute()
         )
         return resp.data or []

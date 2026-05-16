@@ -256,9 +256,23 @@ def api_historique_data():
     offset = int(request.args.get("offset", 0))
     month  = request.args.get("month")  # "YYYY-MM" filter
 
-    sessions = _db.get_workout_sessions(limit=500)
-    ex_by_session = _db.get_exercise_history_grouped_by_session()
-    hiit_log = _db.get_hiit_logs(limit=500)
+    # Fetch sessions from DB with real LIMIT/OFFSET pushed to Supabase.
+    # For the month-filter path we still need all sessions in that month,
+    # so we fetch a generous cap there.  For paginated requests we fetch
+    # `limit * 2 + 10` rows so that after deduplication / bonus-merge we
+    # always have enough rows to fill the requested page.
+    if month:
+        # Month filter: fetch up to 200 sessions (a full month is typically <60)
+        sessions = _db.get_workout_sessions(limit=200, offset=0)
+    else:
+        sessions = _db.get_workout_sessions(limit=limit * 2 + 10, offset=offset)
+
+    # Collect session IDs to scope exercise history — avoids a full-table scan.
+    page_session_ids = [s.get("id") for s in sessions if s.get("id")]
+    ex_by_session = _db.get_exercise_history_grouped_by_session(
+        session_ids=page_session_ids if page_session_ids else None
+    )
+    hiit_log = _db.get_hiit_logs(limit=30)
 
     # Deduplicate rows by (date, session_type).
     # In some environments old duplicates can exist (missing/late unique constraint),
@@ -382,14 +396,16 @@ def api_historique_data():
             "has_more":     False,
         })
 
-    total = len(session_list)
-    page  = session_list[offset:offset + limit]
+    # For the paginated path the DB already returned only the window we need
+    # (offset was pushed to the query); take up to `limit` entries from the
+    # deduplicated list.
+    page = session_list[:limit]
 
     return jsonify({
         "session_list": page,
-        "hiit_list":    hiit_log[:30],
-        "total":        total,
-        "has_more":     offset + limit < total,
+        "hiit_list":    hiit_log,
+        "total":        len(page),
+        "has_more":     len(session_list) > limit,
     })
 
 
