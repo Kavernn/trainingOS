@@ -41,7 +41,7 @@ struct WorkoutDNASection: View {
             // Header row
             HStack {
                 HStack(spacing: 6) {
-                    Image(systemName: "dna")
+                    Image(systemName: "waveform.path.ecg")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(dna.map { archetypeAccent($0.archetype.key) } ?? .gray)
                     Text("WORKOUT DNA")
@@ -840,7 +840,7 @@ private struct DNAEmptyState: View {
     let onLoad: () -> Void
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: "dna").font(.system(size: 26)).foregroundColor(.gray.opacity(0.35))
+            Image(systemName: "waveform.path.ecg").font(.system(size: 26)).foregroundColor(.gray.opacity(0.35))
             Text("Pas encore assez de données")
                 .font(.system(size: 13, weight: .medium)).foregroundColor(.gray)
             Button(action: onLoad) {

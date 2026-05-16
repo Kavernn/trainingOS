@@ -18,7 +18,7 @@ def load_body_weight() -> list:
 
 
 def log_body_weight(poids: float, note: str = "", body_fat: float = None, waist_cm: float = None,
-                    arms_cm: float = None, chest_cm: float = None,
+                    neck_cm: float = None, arms_cm: float = None, chest_cm: float = None,
                     thighs_cm: float = None, hips_cm: float = None):
     today = datetime.now().strftime("%Y-%m-%d")
     db.upsert_body_weight(
@@ -26,6 +26,7 @@ def log_body_weight(poids: float, note: str = "", body_fat: float = None, waist_
         note=note or "",
         body_fat=body_fat,
         waist_cm=waist_cm,
+        neck_cm=neck_cm,
         arms_cm=arms_cm,
         chest_cm=chest_cm,
         thighs_cm=thighs_cm,

@@ -473,6 +473,7 @@ struct BodyWeightEntry: Codable, Identifiable {
     let weight: Double
     let bodyFat: Double?
     let waistCm: Double?
+    let neckCm: Double?
     let armsCm: Double?
     let chestCm: Double?
     let thighsCm: Double?
@@ -483,6 +484,7 @@ struct BodyWeightEntry: Codable, Identifiable {
         case weight   = "poids"
         case bodyFat  = "body_fat"
         case waistCm  = "waist_cm"
+        case neckCm   = "neck_cm"
         case armsCm   = "arms_cm"
         case chestCm  = "chest_cm"
         case thighsCm = "thighs_cm"
@@ -497,6 +499,7 @@ struct BodyWeightEntry: Codable, Identifiable {
                 ?? 0
         bodyFat  = Self.decodeOptionalDouble(c, key: .bodyFat)
         waistCm  = Self.decodeOptionalDouble(c, key: .waistCm)
+        neckCm   = Self.decodeOptionalDouble(c, key: .neckCm)
         armsCm   = Self.decodeOptionalDouble(c, key: .armsCm)
         chestCm  = Self.decodeOptionalDouble(c, key: .chestCm)
         thighsCm = Self.decodeOptionalDouble(c, key: .thighsCm)

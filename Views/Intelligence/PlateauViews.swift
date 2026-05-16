@@ -180,7 +180,7 @@ struct PlateauDetailSheet: View {
                 }
                 .padding(.bottom, 32)
             }
-            .background(Color.appBackground.ignoresSafeArea())
+            .background(Color.appBg.ignoresSafeArea())
             .navigationTitle(alert.exerciseName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -379,7 +379,7 @@ struct DeloadPlanSheet: View {
                 }
                 .padding(.bottom, 40)
             }
-            .background(Color.appBackground.ignoresSafeArea())
+            .background(Color.appBg.ignoresSafeArea())
             .navigationTitle(alert.deloadTypeLabel)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

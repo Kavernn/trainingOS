@@ -3027,7 +3027,7 @@ struct PatternVolumeView: View {
                     }
                 }
             }
-            .frame(height: CGFloat(entries.count) * (14 + 10) - 10)
+            .frame(height: max(0, CGFloat(entries.count) * (14 + 10) - 10))
         }
         .padding(14)
         .background(Color.appCard)

@@ -1740,6 +1740,7 @@ def upsert_body_weight(
     note: str = "",
     body_fat: Optional[float] = None,
     waist_cm: Optional[float] = None,
+    neck_cm: Optional[float] = None,
     arms_cm: Optional[float] = None,
     chest_cm: Optional[float] = None,
     thighs_cm: Optional[float] = None,
@@ -1752,7 +1753,8 @@ def upsert_body_weight(
     def _do() -> bool:
         payload: dict = {"date": date, "weight": weight, "note": note}
         for field, val in [("body_fat", body_fat), ("waist_cm", waist_cm),
-                           ("arms_cm", arms_cm), ("chest_cm", chest_cm),
+                           ("neck_cm", neck_cm), ("arms_cm", arms_cm),
+                           ("chest_cm", chest_cm),
                            ("thighs_cm", thighs_cm), ("hips_cm", hips_cm)]:
             if val is not None:
                 payload[field] = val

@@ -11,10 +11,14 @@ def api_profil_data():
     profile     = load_user_profile()
     body_weight = load_body_weight()
     tendance    = get_tendance(body_weight)
+    legacy_weight_pending = bool(
+        profile and profile.get("weight") and not body_weight
+    )
     return jsonify({
-        "profile":     profile,
-        "body_weight": body_weight,
-        "tendance":    tendance,
+        "profile":               profile,
+        "body_weight":           body_weight,
+        "tendance":              tendance,
+        "legacy_weight_pending": legacy_weight_pending,
     })
 
 

@@ -668,6 +668,7 @@ struct BodyWeightSheet: View {
     @State private var weightStr = ""
     @State private var bodyFatStr = ""
     @State private var waistStr = ""
+    @State private var neckStr = ""
     @State private var armsStr = ""
     @State private var chestStr = ""
     @State private var thighsStr = ""
@@ -763,6 +764,7 @@ struct BodyWeightSheet: View {
                                 .foregroundColor(.gray)
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                                 MesureField(label: "TAILLE", placeholder: "82", text: $waistStr)
+                                MesureField(label: "COU",    placeholder: "38", text: $neckStr)
                                 MesureField(label: "BRAS", placeholder: "34", text: $armsStr)
                                 MesureField(label: "POITRINE", placeholder: "100", text: $chestStr)
                                 MesureField(label: "CUISSES", placeholder: "56", text: $thighsStr)
@@ -826,6 +828,7 @@ struct BodyWeightSheet: View {
                 weightStr  = String(format: "%.1f", e.weight)
                 bodyFatStr = e.bodyFat.map  { String(format: "%.1f", $0) } ?? ""
                 waistStr   = e.waistCm.map  { String(format: "%.0f", $0) } ?? ""
+                neckStr    = e.neckCm.map   { String(format: "%.0f", $0) } ?? ""
                 armsStr    = e.armsCm.map   { String(format: "%.0f", $0) } ?? ""
                 chestStr   = e.chestCm.map  { String(format: "%.0f", $0) } ?? ""
                 thighsStr  = e.thighsCm.map { String(format: "%.0f", $0) } ?? ""
@@ -867,6 +870,7 @@ struct BodyWeightSheet: View {
                     try await APIService.shared.updateBodyWeight(
                         date: e.date, oldWeight: e.weight, newWeight: w,
                         bodyFat: parse(bodyFatStr), waistCm: parse(waistStr),
+                        neckCm: parse(neckStr),
                         armsCm: parse(armsStr), chestCm: parse(chestStr),
                         thighsCm: parse(thighsStr), hipsCm: parse(hipsStr)
                     )
@@ -874,6 +878,7 @@ struct BodyWeightSheet: View {
                     try await APIService.shared.addBodyWeight(
                         date: DateFormatter.isoDate.string(from: Date()), weight: w,
                         bodyFat: parse(bodyFatStr), waistCm: parse(waistStr),
+                        neckCm: parse(neckStr),
                         armsCm: parse(armsStr), chestCm: parse(chestStr),
                         thighsCm: parse(thighsStr), hipsCm: parse(hipsStr)
                     )

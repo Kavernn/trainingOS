@@ -17,39 +17,45 @@ extension APIService {
         return (r.profile, r.bodyWeight, r.tendance)
     }
 
-    func addBodyWeight(date: String, weight: Double, bodyFat: Double?, waistCm: Double?,
+    func addBodyWeight(date: String, weight: Double, bodyFat: Double?,
+                       waistCm: Double?, neckCm: Double? = nil,
                        armsCm: Double? = nil, chestCm: Double? = nil,
                        thighsCm: Double? = nil, hipsCm: Double? = nil) async throws {
         var body: [String: Any] = ["poids": weight]
         if let v = bodyFat  { body["body_fat"]  = v }
         if let v = waistCm  { body["waist_cm"]  = v }
+        if let v = neckCm   { body["neck_cm"]   = v }
         if let v = armsCm   { body["arms_cm"]   = v }
         if let v = chestCm  { body["chest_cm"]  = v }
         if let v = thighsCm { body["thighs_cm"] = v }
         if let v = hipsCm   { body["hips_cm"]   = v }
         _ = try await offlinePost(endpoint: "/api/body_weight", payload: body)
         CacheService.shared.clear(for: "profil_data")
+        await BodyCompService.shared.refresh()
     }
 
     func updateBodyWeight(date: String, oldWeight: Double, newWeight: Double,
-                          bodyFat: Double?, waistCm: Double?,
+                          bodyFat: Double?, waistCm: Double?, neckCm: Double? = nil,
                           armsCm: Double? = nil, chestCm: Double? = nil,
                           thighsCm: Double? = nil, hipsCm: Double? = nil) async throws {
         var body: [String: Any] = ["date": date, "old_poids": oldWeight, "poids": newWeight]
         if let v = bodyFat  { body["body_fat"]  = v }
         if let v = waistCm  { body["waist_cm"]  = v }
+        if let v = neckCm   { body["neck_cm"]   = v }
         if let v = armsCm   { body["arms_cm"]   = v }
         if let v = chestCm  { body["chest_cm"]  = v }
         if let v = thighsCm { body["thighs_cm"] = v }
         if let v = hipsCm   { body["hips_cm"]   = v }
         _ = try await offlinePost(endpoint: "/api/body_weight/update", payload: body)
         CacheService.shared.clear(for: "profil_data")
+        await BodyCompService.shared.refresh()
     }
 
     func deleteBodyWeight(date: String, weight: Double) async throws {
         _ = try await offlinePost(endpoint: "/api/body_weight/delete",
                                   payload: ["date": date, "poids": weight])
         CacheService.shared.clear(for: "profil_data")
+        await BodyCompService.shared.refresh()
     }
 
     func updateProfile(name: String?, weight: Double?, height: Double?, age: Int?,
