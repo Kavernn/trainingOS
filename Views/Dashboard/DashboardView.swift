@@ -158,6 +158,9 @@ struct DashboardView: View {
                                 DailyStreakCard(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.25)
 
+                                BodyBudgetCard(budget: vm.bodyBudget)
+                                    .appearAnimation(delay: 0.28)
+
                                 if let goal = dash.profile.goal, !goal.isEmpty {
                                     GoalReminderView(goal: goal)
                                         .appearAnimation(delay: 0.30)
@@ -218,6 +221,7 @@ struct DashboardView: View {
                             vm.moodDue        = try? await APIService.shared.checkMoodDue()
                             vm.morningBrief   = try? await APIService.shared.fetchMorningBrief()
                             vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
+                            vm.bodyBudget     = try? await APIService.shared.fetchBodyBudget()
                             weatherVM.requestUpdate()
                             await nhlService.fetch()
                         }

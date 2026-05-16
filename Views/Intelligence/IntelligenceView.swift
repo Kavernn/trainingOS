@@ -49,6 +49,10 @@ struct IntelligenceView: View {
     @State private var oneRMData: OneRMResponse? = nil
     @State private var isLoadingOvertraining = false
 
+    // Pattern engine
+    @State private var patternData: PatternResponse? = nil
+    @State private var isLoadingPatterns = false
+
     // Tab-switch callback injected from ContentView
     var onOpenSession: (() -> Void)? = nil
 
@@ -255,68 +259,119 @@ struct IntelligenceView: View {
     @ViewBuilder
     private var patternsSectionView: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if isLoadingCorrelations {
-                SkeletonBar(height: 120, radius: 16).padding(.horizontal, 16)
-            } else if let corr = correlations {
-                InsightsCard(data: corr, onDismiss: { correlations = nil; showInsights = false })
+
+            // ── Pattern du jour ───────────────────────────────────────────────
+            if isLoadingPatterns {
+                PatternCardSkeleton()
                     .padding(.horizontal, 16)
-            } else {
-                Button { loadInsights() } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "chart.dots.scatter").font(.system(size: 14))
-                        Text("Analyser les corrélations").font(.system(size: 14, weight: .medium))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.purple.opacity(0.12))
-                    .foregroundColor(.purple)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            } else if let daily = patternData?.daily {
+                PatternDailyCard(pattern: daily) {
+                    Task { await togglePin(pattern: daily) }
+                }
+                .padding(.horizontal, 16)
+            } else if patternData != nil {
+                // No daily pattern (data insufficient)
+                HStack(spacing: 8) {
+                    Image(systemName: "chart.dots.scatter")
+                        .foregroundColor(.purple.opacity(0.5))
+                    Text("Pas encore assez de données — reviens dans quelques semaines.")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(white: 0.45))
                 }
                 .padding(.horizontal, 16)
             }
 
-            if !memoryStore.entries.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("PATTERNS DÉTECTÉS")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(Color(white: 0.45))
-                        .padding(.horizontal, 16)
+            // ── Patterns suivis (pinned) ───────────────────────────────────
+            if let pinned = patternData?.pinned, !pinned.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "pin.fill")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.purple)
+                        Text("MES PATTERNS SUIVIS")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(Color(white: 0.45))
+                    }
+                    .padding(.horizontal, 16)
 
-                    ForEach(memoryStore.entries.prefix(8), id: \.id) { entry in
-                        HStack(alignment: .top, spacing: 10) {
-                            Image(systemName: entry.type.icon)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.purple)
-                                .frame(width: 22)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.type.rawValue)
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.purple.opacity(0.7))
-                                Text(entry.content)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(Color(white: 0.82))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer()
+                    ForEach(pinned) { pattern in
+                        PatternPinnedChip(pattern: pattern) {
+                            Task { await unpin(pattern: pattern) }
                         }
-                        .padding(12)
-                        .background(Color.white.opacity(0.03))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
                         .padding(.horizontal, 16)
                     }
                 }
-            } else {
-                Text("Aucun pattern détecté — reviens après quelques semaines.")
-                    .font(.system(size: 13))
+            }
+
+            // ── Corrélations rapides (existing engine) ────────────────────
+            VStack(alignment: .leading, spacing: 10) {
+                Text("CORRÉLATIONS GLOBALES")
+                    .font(.system(size: 11, weight: .bold))
                     .foregroundColor(Color(white: 0.45))
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+
+                if isLoadingCorrelations {
+                    SkeletonBar(height: 100, radius: 14).padding(.horizontal, 16)
+                } else if let corr = correlations {
+                    InsightsCard(data: corr, onDismiss: { correlations = nil; showInsights = false })
+                        .padding(.horizontal, 16)
+                } else {
+                    Button { loadInsights() } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "chart.dots.scatter").font(.system(size: 13))
+                            Text("Analyser les corrélations").font(.system(size: 13, weight: .medium))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(Color.purple.opacity(0.10))
+                        .foregroundColor(.purple)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .padding(.horizontal, 16)
+                }
             }
         }
         .padding(.top, 8)
         .padding(.bottom, 28)
         .onAppear {
+            if patternData == nil && !isLoadingPatterns { loadPatterns() }
             if correlations == nil && !isLoadingCorrelations { loadInsights() }
+        }
+    }
+
+    private func loadPatterns() {
+        guard !isLoadingPatterns else { return }
+        isLoadingPatterns = true
+        Task {
+            let result = try? await APIService.shared.fetchPatterns()
+            await MainActor.run {
+                patternData      = result
+                isLoadingPatterns = false
+            }
+        }
+    }
+
+    private func togglePin(pattern: PatternEntry) async {
+        do {
+            if pattern.pinned {
+                try await APIService.shared.unpinPattern(id: pattern.id)
+            } else {
+                try await APIService.shared.pinPattern(id: pattern.id)
+            }
+            let refreshed = try? await APIService.shared.fetchPatterns()
+            await MainActor.run { patternData = refreshed }
+        } catch {
+            print("[Patterns] togglePin error: \(error)")
+        }
+    }
+
+    private func unpin(pattern: PatternEntry) async {
+        do {
+            try await APIService.shared.unpinPattern(id: pattern.id)
+            let refreshed = try? await APIService.shared.fetchPatterns()
+            await MainActor.run { patternData = refreshed }
+        } catch {
+            print("[Patterns] unpin error: \(error)")
         }
     }
 

@@ -18,6 +18,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var weeklyReport: WeeklyReport?
     @Published var sleepStages: SleepStages?
     @Published var sleepWindow: SleepWindow?
+    @Published var bodyBudget: BodyBudgetResponse?
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
 
@@ -128,11 +129,12 @@ final class DashboardViewModel: ObservableObject {
         // Analytics — once per calendar day
         if analyticsLoadedDate != today {
             await withTaskGroup(of: Void.self) { group in
-                group.addTask { @MainActor in self.insights  = (try? await APIService.shared.fetchInsights()) ?? [] }
-                group.addTask { @MainActor in self.lssTrend  = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? [] }
-                group.addTask { @MainActor in self.coachTip  = try? await APIService.shared.fetchDailyCoachTip() }
-                group.addTask { @MainActor in self.smartDay  = try? await APIService.shared.fetchSmartDay() }
+                group.addTask { @MainActor in self.insights     = (try? await APIService.shared.fetchInsights()) ?? [] }
+                group.addTask { @MainActor in self.lssTrend     = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? [] }
+                group.addTask { @MainActor in self.coachTip     = try? await APIService.shared.fetchDailyCoachTip() }
+                group.addTask { @MainActor in self.smartDay     = try? await APIService.shared.fetchSmartDay() }
                 group.addTask { @MainActor in self.weeklyReport = try? await APIService.shared.fetchWeeklyReport() }
+                group.addTask { @MainActor in self.bodyBudget   = try? await APIService.shared.fetchBodyBudget() }
             }
             analyticsLoadedDate = today
         }
