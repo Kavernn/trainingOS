@@ -10,80 +10,6 @@ logger = logging.getLogger("trainingos.planner")
 
 
 # ---------------------------------------------------------------------------
-# Default program (new block format)
-# ---------------------------------------------------------------------------
-
-DEFAULT_PROGRAM = {
-    "Push A": {
-        "blocks": [
-            make_strength_block({
-                "Bench Press":       "4x5-7",
-                "Overhead Press":    "3x6-8",
-                "Incline DB Press":  "3x8-10",
-                "Lateral Raises":    "3x12-15",
-                "Triceps Extension": "3x10-12",
-            }, order=0)
-        ]
-    },
-    "Pull A": {
-        "blocks": [
-            make_strength_block({
-                "Barbell Row":  "4x6-8",
-                "Lat Pulldown": "3x8-10",
-                "Seated Row":   "3x10-12",
-                "Face Pull":    "3x15",
-                "Hammer Curl":  "3x10-12",
-            }, order=0)
-        ]
-    },
-    "Legs": {
-        "blocks": [
-            make_strength_block({
-                "Back Squat":        "4x5-7",
-                "Leg Press":         "3x10-12",
-                "Leg Curl":          "3x10-12",
-                "Romanian Deadlift": "3x8-10",
-                "Calf Raise":        "3x12-15",
-                "Abs":               "3x12-15",
-            }, order=0)
-        ]
-    },
-    "Push B": {
-        "blocks": [
-            make_strength_block({
-                "Incline DB Press":  "4x8-10",
-                "DB Bench Press":    "3x10-12",
-                "Overhead Press":    "3x8-10",
-                "Lateral Raises":    "4x12-15",
-                "Triceps Extension": "3x12-15",
-            }, order=0)
-        ]
-    },
-    "Pull B + Full Body": {
-        "blocks": [
-            make_strength_block({
-                "Deadlift":     "3x5",
-                "T-Bar Row":    "4x8-10",
-                "Lat Pulldown": "3x10-12",
-                "Face Pull":    "3x15",
-                "Hammer Curl":  "3x12-15",
-            }, order=0)
-        ]
-    },
-}
-
-SCHEDULE = {
-    0: "Push A",
-    1: "Pull A",
-    2: "Legs",
-    3: "Push B",
-    4: "Pull B + Full Body",
-    5: "Yoga / Tai Chi",
-    6: "Recovery",
-}
-
-
-# ---------------------------------------------------------------------------
 # Migration
 # ---------------------------------------------------------------------------
 
@@ -106,18 +32,15 @@ def _migrate_session(data) -> dict:
 def load_program() -> dict:
     """Load the program from relational tables (source of truth).
 
-    Returns the program as-is from Supabase.
-    On connection error (None), returns DEFAULT_PROGRAM as a read-only fallback
-    WITHOUT saving — never overwrites user data due to a transient error.
-    Does NOT auto-seed or auto-save — the seeding was one-time migration logic.
+    Returns {} if Supabase is unavailable — never falls back to hardcoded data.
     """
     import db as _db
     program_id = _db.get_active_program_id()
     program = _db.get_full_program(program_id=program_id)
 
     if program is None:
-        logger.warning("load_program: Supabase unavailable, returning DEFAULT_PROGRAM as read-only fallback")
-        return dict(DEFAULT_PROGRAM)
+        logger.error("load_program: Supabase unavailable — returning empty program")
+        return {}
 
     return program
 
@@ -176,11 +99,12 @@ def get_today() -> str:
     except Exception:
         pass
     schedule = _db.get_relational_week_schedule()
+    days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+    day_key = days[_montreal_now().weekday()]
     if schedule:
-        days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-        day_key = days[_montreal_now().weekday()]
-        return schedule.get(day_key, SCHEDULE[_montreal_now().weekday()])
-    return SCHEDULE[_montreal_now().weekday()]
+        return schedule.get(day_key, "Repos")
+    logger.error("get_today: relational schedule unavailable — returning Repos")
+    return "Repos"
 
 
 def get_today_date() -> str:
@@ -189,12 +113,7 @@ def get_today_date() -> str:
 
 def get_week_schedule() -> Dict[str, str]:
     import db as _db
-    schedule = _db.get_relational_week_schedule()
-    if schedule:
-        return schedule
-    # Fallback to hardcoded schedule
-    days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
-    return {days[i]: SCHEDULE[i] for i in range(7)}
+    return _db.get_relational_week_schedule() or {}
 
 
 def get_evening_schedule() -> Dict[str, str]:
