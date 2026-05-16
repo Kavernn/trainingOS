@@ -2762,7 +2762,7 @@ struct WeeklyReportTeaser: View {
                 HStack(spacing: 16) {
                     Label("\(report.sessionCount) séances", systemImage: "flame.fill")
                     if report.prCount > 0 {
-                        Label("\(report.prCount) PR", systemImage: "trophy.fill")
+                        Label("\(report.prCount) limite\(report.prCount > 1 ? "s" : "") détruite\(report.prCount > 1 ? "s" : "")", systemImage: "trophy.fill")
                             .foregroundColor(.yellow)
                     }
                     if report.totalVolumeLbs > 0 {
@@ -2793,7 +2793,7 @@ struct WeeklyReportView: View {
     private var shareText: String {
         var lines = ["📊 Rapport semaine TrainingOS"]
         lines.append("Séances : \(report.sessionCount)")
-        if report.prCount > 0 { lines.append("🏆 PRs : \(report.prCount)") }
+        if report.prCount > 0 { lines.append("🏆 Limites détruites : \(report.prCount)") }
         if report.totalVolumeLbs > 0 {
             lines.append("Volume : \(Int(report.totalVolumeLbs / 1000))k lbs")
         }
@@ -2821,7 +2821,7 @@ struct WeeklyReportView: View {
                     // KPI grid
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                         WeeklyKPI(value: "\(report.sessionCount)", label: "Séances", icon: "flame.fill", color: .orange)
-                        WeeklyKPI(value: "\(report.prCount)", label: "PRs battus", icon: "trophy.fill", color: .yellow)
+                        WeeklyKPI(value: "\(report.prCount)", label: "Limites détruites", icon: "trophy.fill", color: .yellow)
                         if report.totalVolumeLbs > 0 {
                             WeeklyKPI(value: "\(Int(report.totalVolumeLbs / 1000))k", label: "Volume (lbs)", icon: "scalemass.fill", color: .cyan)
                         }

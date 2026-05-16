@@ -306,18 +306,19 @@ struct StatsView: View {
         if prev4 > 0 {
             let pct = Int(round(Double(last4 - prev4) / Double(prev4) * 100))
             if pct >= 10 {
-                insights.append(("arrow.up.circle.fill", "Fréquence +\(pct)% vs 4 semaines précédentes", .green))
+                insights.append(("arrow.up.circle.fill", "Fréquence +\(pct)% vs les 4 semaines précédentes. Tu accélères.", .green))
             } else if pct <= -15 {
-                insights.append(("arrow.down.circle.fill", "Fréquence \(pct)% vs 4 semaines précédentes", .orange))
+                insights.append(("arrow.down.circle.fill", "Fréquence \(pct)% vs les 4 semaines précédentes. Le rythme faiblit.", .orange))
             }
         }
         if let a = acwr, a.zone.code == "caution" || a.zone.code == "danger" {
-            insights.append(("exclamationmark.triangle.fill", "ACWR \(String(format: "%.2f", a.ratio)) — charge élevée, récupère", .red))
+            insights.append(("exclamationmark.triangle.fill", "ACWR \(String(format: "%.2f", a.ratio)) — tu surcharges ta base. La fatigue s'accumule.", .red))
         }
         if currentStreak > 0 && currentStreak < bestStreak && currentStreak >= bestStreak - 2 {
-            insights.append(("flame.fill", "À \(bestStreak - currentStreak) séance(s) de ton meilleur streak !", .orange))
+            let gap = bestStreak - currentStreak
+            insights.append(("flame.fill", "Streak: \(currentStreak) jours — \(gap) de ton record. À portée.", .orange))
         } else if currentStreak >= 7 {
-            insights.append(("flame.fill", "Streak de \(currentStreak) jours — continue !", .orange))
+            insights.append(("flame.fill", "Streak: \(currentStreak) jours. Record: \(bestStreak). Reste en course.", .orange))
         }
         // Muscle gap: show the most overdue muscle if 7+ days without training
         let todayStr = DateFormatter.isoDate.string(from: Date())
@@ -331,7 +332,7 @@ struct StatsView: View {
             .sorted { $0.1 > $1.1 }
         if let overdue = overdueList.first {
             insights.append(("exclamationmark.circle.fill",
-                             "\(overdue.0.capitalized) pas entraîné depuis \(overdue.1) jours",
+                             "\(overdue.0.capitalized) absent depuis \(overdue.1) jours. Le groupe régresse.",
                              .blue))
         }
         return Array(insights.prefix(4))
@@ -1305,9 +1306,27 @@ struct WeekComparisonCard: View {
         return (d > 0 ? "+\(d)" : "\(d)", d > 0 ? .green : .red)
     }
 
+    private var weekVerdict: (text: String, color: Color) {
+        let volumeUp = thisWeekVolume >= lastWeekVolume * 0.98
+        let sessionsUp = thisWeekSessions >= lastWeekSessions
+        let hasData = lastWeekVolume > 0 || lastWeekSessions > 0
+
+        guard hasData else { return ("Pas encore assez de données.", .gray) }
+
+        if volumeUp && sessionsUp {
+            return ("Volume en hausse, sessions stables ou en hausse. Tu montes.", .green)
+        } else if !volumeUp && !sessionsUp {
+            return ("Volume en baisse, sessions en baisse. Le relâchement s'installe.", .red)
+        } else if volumeUp && !sessionsUp {
+            return ("Moins de séances, plus de volume par séance. Tu condenses.", .orange)
+        } else {
+            return ("Plus de séances, volume en baisse. L'intensité recule.", .orange)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("CETTE SEMAINE VS DERNIÈRE")
+            Text("TOI VS TOI — SEMAINE PASSÉE")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             HStack(spacing: 0) {
                 // Header
@@ -1349,6 +1368,13 @@ struct WeekComparisonCard: View {
                 }
                 .frame(maxWidth: .infinity)
             }
+
+            // Verdict
+            let verdict = weekVerdict
+            Rectangle().fill(Color.white.opacity(0.06)).frame(height: 0.5)
+            Text(verdict.text)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(verdict.color)
         }
         .padding(16).glassCard().cornerRadius(14)
     }
@@ -3008,17 +3034,17 @@ struct PatternVolumeView: View {
                 }
             }
             GeometryReader { outer in
+                let barW = max(0, outer.size.width - 102)
                 VStack(spacing: 10) {
                     ForEach(entries, id: \.0) { name, vol, color in
-                        let pct = maxVal > 0 ? vol / maxVal : 0
-                        let barW = outer.size.width - 102
+                        let pct = CGFloat(maxVal > 0 ? vol / maxVal : 0)
                         HStack(spacing: 8) {
                             Text(name)
                                 .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
                                 .frame(width: 42, alignment: .leading)
                             RoundedRectangle(cornerRadius: 4)
                                 .fill(color.opacity(0.7))
-                                .frame(width: barW * CGFloat(pct), height: 14)
+                                .frame(width: max(0, barW * pct), height: 14)
                             Spacer(minLength: 0)
                             Text(_formatK(units.display(vol)))
                                 .font(.system(size: 10)).foregroundColor(.gray)
@@ -3027,7 +3053,7 @@ struct PatternVolumeView: View {
                     }
                 }
             }
-            .frame(height: max(0, CGFloat(entries.count) * (14 + 10) - 10))
+            .frame(height: entries.isEmpty ? 0 : CGFloat(entries.count) * 24 - 10)
         }
         .padding(14)
         .background(Color.appCard)
@@ -3659,7 +3685,10 @@ struct SelfCareStreaksView: View {
             }
             ForEach(Array(streaks.prefix(6)), id: \.habitId) { s in
                 HStack(spacing: 10) {
-                    Text(s.habitIcon).font(.system(size: 16))
+                    Image(systemName: s.habitIcon)
+                        .font(.system(size: 16))
+                        .foregroundColor(.orange)
+                        .frame(width: 20)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(s.habitName).font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
                         Text("Meilleure série : \(s.longestStreak) jours")

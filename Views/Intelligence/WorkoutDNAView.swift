@@ -650,7 +650,7 @@ private struct SignatureLiftRow: View {
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.white)
                 if lift.progressionPct > 0 {
-                    Text("+\(Int(lift.progressionPct))%")
+                    Text("↑ \(Int(lift.progressionPct))% sur l'ancienne limite")
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundColor(.green)
                 }

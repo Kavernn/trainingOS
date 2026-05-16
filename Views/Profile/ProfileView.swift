@@ -451,7 +451,7 @@ struct ProfileView: View {
         if let lifts = dna?.signatureLifts, !lifts.isEmpty {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
-                    Text("RECORDS PERSONNELS")
+                    Text("LIMITES DÉTRUITES")
                         .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                     Spacer()
                     Image(systemName: "trophy.fill")
@@ -481,7 +481,7 @@ struct ProfileView: View {
                 Text(lift.name)
                     .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
                     .lineLimit(1)
-                Text(dateLabel)
+                Text("Détruite le \(dateLabel)")
                     .font(.system(size: 11)).foregroundColor(.gray)
             }
             Spacer()
@@ -489,7 +489,7 @@ struct ProfileView: View {
                 Text(String(format: "%.0f lbs × %d", prLbs, lift.prReps))
                     .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
                 if lift.progressionPct > 0 {
-                    Text("+\(Int(lift.progressionPct))%")
+                    Text("↑ \(Int(lift.progressionPct))% — ancienne limite")
                         .font(.system(size: 11, weight: .semibold)).foregroundColor(.green)
                 }
             }
@@ -602,14 +602,16 @@ struct ProfileView: View {
 
     private var volumeTrendLabel: String {
         guard let t = volumeTrend else { return "" }
-        return (t.positive ? "↑" : "↓") + String(format: " %.0f%%", t.pct) + " vs mois préc."
+        let arrow = t.positive ? "↑" : "↓"
+        let verdict = t.positive ? "Tu montes." : "Le rythme faiblit."
+        return "\(arrow) \(String(format: "%.0f", t.pct))% vs mois préc. \(verdict)"
     }
 
     private var pssTrendLabel: String {
         guard let t = pssTrend else {
             return pssHistory.sorted { $0.date < $1.date }.last?.categoryLabel ?? ""
         }
-        return t.positive ? "↓ En amélioration" : "↑ En hausse"
+        return t.positive ? "Stress en baisse. Tu récupères." : "Stress en hausse. Surveille la charge."
     }
 
     // MARK: - Section 6 — Settings

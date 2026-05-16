@@ -80,7 +80,7 @@ struct PRCelebrationView: View {
 
                         // Label + PRs
                         VStack(spacing: 14) {
-                            Text(prs.count == 1 ? "RECORD PERSONNEL" : "RECORDS PERSONNELS")
+                            Text(prs.count == 1 ? "LIMITE DÉTRUITE" : "LIMITES DÉTRUITES")
                                 .font(.system(size: 11, weight: .black)).tracking(3)
                                 .foregroundColor(.yellow.opacity(0.7))
 
@@ -94,7 +94,7 @@ struct PRCelebrationView: View {
                                     Image(systemName: "arrow.up.right")
                                         .font(.system(size: 13, weight: .bold))
                                         .foregroundColor(.yellow)
-                                    Text("1RM estimé : \(units.format(pr.oneRM))")
+                                    Text("Nouvelle frontière : \(units.format(pr.oneRM))")
                                         .font(.system(size: 17, weight: .bold))
                                         .foregroundColor(.yellow)
                                 }

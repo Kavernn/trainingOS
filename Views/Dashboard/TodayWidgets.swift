@@ -53,25 +53,35 @@ struct DailyStreakCard: View {
                         .foregroundColor(.gray)
                         .padding(.bottom, 3)
                 }
-                // Milestone label at streak milestones (3, 7, 14, 21, 30, 50, 100)
-                if DailyStreakCard.milestones.contains(cur) {
-                    Text("🎉 \(cur) jours — milestone !")
+                if cur == 0 {
+                    Text("Lance-toi aujourd'hui")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                } else if cur >= best && best > 0 {
+                    Text("Record en cours. Nouvelle frontière.")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.orange)
                         .transition(.scale.combined(with: .opacity))
                 } else {
-                    Text(cur == 0 ? "Lance-toi aujourd'hui" : "consécutif\(cur != 1 ? "s" : "")")
-                        .font(.system(size: 11))
-                        .foregroundColor(.gray)
+                    let gap = best - cur
+                    if gap <= 5 {
+                        Text("\(gap) jour\(gap != 1 ? "s" : "") de ton record. À portée.")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.orange.opacity(0.75))
+                    } else {
+                        Text("consécutif\(cur != 1 ? "s" : "")")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
                 }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
                 Text("\(best)")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(.white.opacity(0.4))
+                    .foregroundColor(cur >= best && best > 0 ? .orange.opacity(0.6) : .white.opacity(0.35))
                     .contentTransition(.numericText())
-                Text("record")
+                Text(cur >= best && best > 0 ? "détruit" : "à battre")
                     .font(.system(size: 10))
                     .foregroundColor(.gray.opacity(0.5))
             }

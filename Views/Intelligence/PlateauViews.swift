@@ -63,7 +63,7 @@ struct PlateauSection: View {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundColor(.green.opacity(0.7))
                 .font(.system(size: 13))
-            Text("Progression normale — aucun plateau détecté")
+            Text("Aucun adversaire actif. Tu progresses.")
                 .font(.system(size: 13))
                 .foregroundColor(Color(white: 0.45))
         }
@@ -218,8 +218,8 @@ struct PlateauDetailSheet: View {
                 .font(.system(size: 20, weight: .bold))
                 .foregroundColor(.white)
             let weeksText = alert.plateauWeeks == 1
-                ? "Stagnation détectée depuis 1 semaine"
-                : "Stagnation détectée depuis \(alert.plateauWeeks) semaines"
+                ? "Tu n'as pas progressé depuis 1 semaine."
+                : "Tu n'as pas progressé depuis \(alert.plateauWeeks) semaines."
             Text(weeksText)
                 .font(.system(size: 14))
                 .foregroundColor(Color(white: 0.5))
@@ -289,7 +289,7 @@ struct PlateauDetailSheet: View {
 
     private var solutionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("LA SOLUTION")
+            Text("LA DÉCISION")
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(Color(white: 0.4))
             HStack(spacing: 12) {
@@ -331,7 +331,7 @@ struct PlateauDetailSheet: View {
                 }
             }
             Button(action: snooze) {
-                Text("Pas maintenant — rappeler dans 7 jours")
+                Text("Ignorer — rappeler dans 7 jours")
                     .font(.system(size: 13))
                     .foregroundColor(Color(white: 0.4))
             }
