@@ -40,7 +40,15 @@ struct ContentView: View {
 private struct iOSContentView: View {
     @ObservedObject var network: NetworkMonitor
     @ObservedObject var sync: SyncManager
+    @ObservedObject private var api = APIService.shared
     @Binding var selectedTab: Int
+
+    private var seanceBadge: Int {
+        guard let dash = api.dashboard else { return 0 }
+        let low = dash.today.lowercased()
+        let isRest = low.contains("repos") || low.contains("rest") || low.contains("recovery")
+        return (!dash.alreadyLoggedToday && !isRest) ? 1 : 0
+    }
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -54,6 +62,7 @@ private struct iOSContentView: View {
             SeanceView()
                 .tag(2)
                 .tabItem { Label("Séance", systemImage: "dumbbell.fill") }
+                .badge(seanceBadge)
             ProgrammeView()
                 .tag(3)
                 .tabItem { Label("Programme", systemImage: "list.bullet.clipboard") }

@@ -383,6 +383,7 @@ struct DailyMetricsRow: View {
     let moodDue: MoodDueStatus?
     // D-D14: show asterisk when score is computed locally (HRV/server data unavailable)
     var readinessIsLocal: Bool = false
+    var onMoodTap: (() -> Void)? = nil
 
     private var calorieGoal: Double? {
         nutritionSettings?.calories
@@ -424,13 +425,20 @@ struct DailyMetricsRow: View {
             }
             .buttonStyle(.plain)
 
-            MetricChip(
-                icon: "brain.head.profile",
-                value: moodDue.map { $0.isDue ? "!" : "✓" } ?? "–",
-                unit: "",
-                label: moodDue.map { $0.isDue ? "À logger" : "Loggé" } ?? "Mental",
-                color: moodDue.map { $0.isDue ? Color.yellow : Color.green } ?? .gray
-            )
+            Group {
+                let chip = MetricChip(
+                    icon: "brain.head.profile",
+                    value: moodDue.map { $0.isDue ? "!" : "✓" } ?? "–",
+                    unit: "",
+                    label: moodDue.map { $0.isDue ? "À logger" : "Loggé" } ?? "Mental",
+                    color: moodDue.map { $0.isDue ? Color.yellow : Color.green } ?? .gray
+                )
+                if let onMoodTap {
+                    Button(action: onMoodTap) { chip }.buttonStyle(.plain)
+                } else {
+                    chip
+                }
+            }
         }
     }
 }
@@ -495,38 +503,44 @@ struct XPChipView: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(Color.yellow.opacity(0.18)).frame(width: 36, height: 36)
-                Image(systemName: "star.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.yellow)
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 4) {
-                    Text("Niveau \(level) · \(levelTitle)")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.white)
-                    Spacer()
-                    Text("\(xpInLevel) / 1500 XP")
-                        .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.45))
+        NavigationLink(destination: XPView()) {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(Color.yellow.opacity(0.18)).frame(width: 36, height: 36)
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.yellow)
                 }
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 3).fill(Color.yellow.opacity(0.12)).frame(height: 5)
-                        RoundedRectangle(cornerRadius: 3).fill(Color.yellow)
-                            .frame(width: geo.size.width * min(progress, 1.0), height: 5)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Text("Niveau \(level) · \(levelTitle)")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Text("\(xpInLevel) / 1500 XP")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.45))
                     }
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3).fill(Color.yellow.opacity(0.12)).frame(height: 5)
+                            RoundedRectangle(cornerRadius: 3).fill(Color.yellow)
+                                .frame(width: geo.size.width * min(progress, 1.0), height: 5)
+                        }
+                    }
+                    .frame(height: 5)
                 }
-                .frame(height: 5)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.yellow.opacity(0.4))
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color.yellow.opacity(0.05))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.15), lineWidth: 1))
+            .cornerRadius(14)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(Color.yellow.opacity(0.05))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.yellow.opacity(0.15), lineWidth: 1))
-        .cornerRadius(14)
+        .buttonStyle(.plain)
     }
 }
 

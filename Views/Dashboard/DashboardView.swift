@@ -27,6 +27,7 @@ struct DashboardView: View {
     @State private var showDeloadTimeoutAlert = false
     // D-D6: sleep dismiss confirmation
     @State private var showSleepDismissConfirm = false
+    @State private var showNutritionAddSheet = false
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -123,7 +124,8 @@ struct DashboardView: View {
                                     nutritionTotals: dash.nutritionTotals,
                                     nutritionSettings: dash.nutritionSettings,
                                     moodDue: vm.moodDue,
-                                    readinessIsLocal: vm.readinessIsLocal
+                                    readinessIsLocal: vm.readinessIsLocal,
+                                    onMoodTap: { showMoodSheet = true }
                                 )
                                 .appearAnimation(delay: 0.10)
 
@@ -186,7 +188,7 @@ struct DashboardView: View {
                                         .padding(.vertical, 8)
                                     }
                                     .buttonStyle(.plain)
-                                    .sheet(isPresented: $showMorningRevealReview) {
+                                    .fullScreenCover(isPresented: $showMorningRevealReview) {
                                         MorningRevealView(morningBrief: brief) {
                                             showMorningRevealReview = false
                                         }
@@ -221,12 +223,13 @@ struct DashboardView: View {
                         }
 
                         QuickLogBar(
-                            alreadyLogged: dash.alreadyLoggedToday,
-                            sleepLogged:   vm.todaySleepLogged,
-                            moodDone:      vm.moodDue?.isDue == false,
-                            onSleepTap:    { showSleepSheet = true },
-                            onMoodTap:     { showMoodSheet  = true },
-                            onSessionTap:  { onOpenSession?() }
+                            alreadyLogged:  dash.alreadyLoggedToday,
+                            sleepLogged:    vm.todaySleepLogged,
+                            moodDone:       vm.moodDue?.isDue == false,
+                            onSleepTap:     { showSleepSheet = true },
+                            onMoodTap:      { showMoodSheet  = true },
+                            onSessionTap:   { onOpenSession?() },
+                            onNutritionTap: { showNutritionAddSheet = true }
                         )
                         .overlay(alignment: .top) {
                             Rectangle().fill(Color.white.opacity(0.07)).frame(height: 0.5)
@@ -326,6 +329,11 @@ struct DashboardView: View {
                     UserDefaults.standard.set(todayStr, forKey: "morningRevealDate")
                     showMorningReveal = false
                 }
+            }
+        }
+        .sheet(isPresented: $showNutritionAddSheet) {
+            AddNutritionSheet {
+                Task { await vm.loadAll() }
             }
         }
     }
@@ -2944,27 +2952,14 @@ struct QuickLogBar: View {
     var onSleepTap: () -> Void
     var onMoodTap: () -> Void
     var onSessionTap: () -> Void
+    var onNutritionTap: (() -> Void)? = nil
 
     var body: some View {
         HStack(spacing: 10) {
-            QuickLogChip(icon: "dumbbell.fill",     label: "Séance",    done: alreadyLogged, color: .orange,                                         action: onSessionTap)
-            QuickLogChip(icon: "moon.fill",          label: "Sommeil",   done: sleepLogged,   color: Color(red: 0.45, green: 0.35, blue: 0.95),       action: onSleepTap)
-            QuickLogChip(icon: "face.smiling.fill",  label: "Humeur",    done: moodDone,      color: .yellow,                                          action: onMoodTap)
-            NavigationLink(destination: NutritionView()) {
-                HStack(spacing: 6) {
-                    Image(systemName: "fork.knife")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.green)
-                    Text("Nutrition")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.white)
-                }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(Color.green.opacity(0.12))
-                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.green.opacity(0.3), lineWidth: 1))
-                .cornerRadius(20)
-            }
-            .buttonStyle(.plain)
+            QuickLogChip(icon: "dumbbell.fill",    label: "Séance",  done: alreadyLogged, color: .orange,                                   action: onSessionTap)
+            QuickLogChip(icon: "moon.fill",         label: "Sommeil", done: sleepLogged,  color: Color(red: 0.45, green: 0.35, blue: 0.95), action: onSleepTap)
+            QuickLogChip(icon: "face.smiling.fill", label: "Humeur",  done: moodDone,     color: .yellow,                                   action: onMoodTap)
+            QuickLogChip(icon: "fork.knife",        label: "Repas +", done: false,        color: .green,                                    action: onNutritionTap ?? {})
             Spacer(minLength: 0)
         }
     }

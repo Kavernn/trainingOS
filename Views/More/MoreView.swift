@@ -12,11 +12,12 @@ struct MoreView: View {
 
                 List {
                     Section("Entraînement") {
-                        MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")      { StatsView() }
-                        MoreRow(icon: "target",                color: .orange, title: "Objectifs")  { ObjectifsView() }
-                        MoreRow(icon: "timer",                 color: .orange, title: "Timer")      { TimerView() }
-                        MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")       { HIITHistoriqueView() }
-                        MoreRow(icon: "calendar",              color: .teal,   title: "Historique") { HistoriqueView() }
+                        MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")        { StatsView() }
+                        MoreRow(icon: "target",                color: .orange, title: "Objectifs")    { ObjectifsView() }
+                        MoreRow(icon: "timer",                 color: .orange, title: "Timer")        { TimerView() }
+                        MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")         { HIITHistoriqueView() }
+                        MoreRow(icon: "calendar",              color: .teal,   title: "Historique")   { HistoriqueView() }
+                        MoreRow(icon: "star.fill",             color: .yellow, title: "XP & Niveau")  { XPView() }
                     }
                     .listRowBackground(glassRowBG(.blue))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
@@ -28,7 +29,8 @@ struct MoreView: View {
                         MoreRow(icon: "fork.knife",             color: .orange, title: "Nutrition")        { NutritionView() }
                         MoreRow(icon: "figure.run",             color: .teal,   title: "Cardio")           { CardioView() }
                         MoreRow(icon: "bed.double.fill",        color: .purple, title: "Sommeil")          { SleepView() }
-                        MoreRow(icon: "moon.zzz.fill",         color: .blue, title: "Récupération")     { RecoveryView() }
+                        MoreRow(icon: "moon.zzz.fill",         color: .blue,   title: "Récupération")     { RecoveryView() }
+                        MoreRow(icon: "brain.head.profile",    color: .purple, title: "Stress (PSS)")     { PSSView() }
                         MoreRow(icon: "face.smiling.fill",     color: .mint,   title: "Santé Mentale")    { MentalHealthView() }
                     }
                     .listRowBackground(glassRowBG(.green))
@@ -49,6 +51,7 @@ struct MoreView: View {
 
                     Section("Réglages") {
                         MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Inventaire") { InventaireView() }
+                        MoreRow(icon: "note.text",        color: .blue,   title: "Notes")      { NotesView() }
                         MoreRow(icon: "person.fill",      color: .purple, title: "Profil")     { ProfileView() }
                     }
                     .listRowBackground(glassRowBG(.gray))

@@ -426,6 +426,7 @@ struct PSSQuestionnaireSheet: View {
     @State private var showFallback = false           // P-B2: spinner timeout fallback
     @State private var showDraftAlert = false         // P-D1: draft restore prompt
     @State private var pendingDraftResponses: [Int: Int]? = nil  // P-D1: decoded draft
+    @State private var showDismissConfirm = false
 
     private let responseLabels = ["Jamais", "Presque\njamais", "Parfois", "Assez\nsouvent", "Très\nsouvent"]
 
@@ -454,9 +455,21 @@ struct PSSQuestionnaireSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }
-                        .foregroundColor(.gray)
+                    Button("Fermer") {
+                        if !responses.isEmpty && currentPage == 0 {
+                            showDismissConfirm = true
+                        } else {
+                            dismiss()
+                        }
+                    }
+                    .foregroundColor(.gray)
                 }
+            }
+            .confirmationDialog("Abandonner le questionnaire ?", isPresented: $showDismissConfirm, titleVisibility: .visible) {
+                Button("Abandonner", role: .destructive) { clearDraft(); dismiss() }
+                Button("Continuer", role: .cancel) {}
+            } message: {
+                Text("Tes réponses en cours seront perdues.")
             }
             // P-B1: submit error alert
             .alert("Erreur d'envoi", isPresented: Binding(
