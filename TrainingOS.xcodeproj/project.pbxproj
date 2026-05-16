@@ -28,6 +28,7 @@
 		5450ED0F7A5A0D2B1CEB3523 /* PatternCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DF8F30F1E302A54E9E32B5D /* PatternCardView.swift */; };
 		5A44338B0F2FFA0E8ED715D2 /* APIService+Readiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8130286D3B05F35EC783FDF9 /* APIService+Readiness.swift */; };
 		663379608FE0A821EC0F7D89 /* CardioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAD71080385415CDA19C0F0A /* CardioView.swift */; };
+		67BBB69F927BC316802B8758 /* APIService+TimeCapsule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51D25C3758A0A6DEB7E93A6C /* APIService+TimeCapsule.swift */; };
 		7674B3B36F2A226C98AE4815 /* TrainingOSUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D883D22AF81F48D1A03A9157 /* TrainingOSUITests.swift */; };
 		7ACF294B2ADCEC68F9444BAC /* PatternModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E163D5411790B6DA5108E310 /* PatternModels.swift */; };
 		7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */; };
@@ -54,6 +55,7 @@
 		AA1100052F5D98BA002AE470 /* UnitSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100062F5D98BA002AE470 /* UnitSettings.swift */; };
 		AA11001B2F5D98BA002AE470 /* SeanceSoirView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11001A2F5D98BA002AE470 /* SeanceSoirView.swift */; };
 		AA4E3B1AEDA6E4FEB259CD9F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4D4DE4EE839463B0D4AB746 /* Foundation.framework */; };
+		AB0CAE533C2329F302A8DE75 /* TimeCapsuleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A76154790AE80AF270345B19 /* TimeCapsuleModels.swift */; };
 		APICA002APICA002APICA002 /* APIService+Cardio.swift in Sources */ = {isa = PBXBuildFile; fileRef = APICA001APICA001APICA001 /* APIService+Cardio.swift */; };
 		APIGO002APIGO002APIGO002 /* APIService+Goals.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIGO001APIGO001APIGO001 /* APIService+Goals.swift */; };
 		APIME002APIME002APIME002 /* APIService+Mental.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIME001APIME001APIME001 /* APIService+Mental.swift */; };
@@ -71,6 +73,7 @@
 		BC0000012F5D98BA002AE470 /* BodyCompEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000022F5D98BA002AE470 /* BodyCompEntry.swift */; };
 		BC0000032F5D98BA002AE470 /* NavyCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000042F5D98BA002AE470 /* NavyCalculatorView.swift */; };
 		BC0000052F5D98BA002AE470 /* BodyCompHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000062F5D98BA002AE470 /* BodyCompHistoryView.swift */; };
+		CB06CF7205FA40FC222D9EC5 /* TimeCapsuleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A645EDCDCB52F3D681701B2 /* TimeCapsuleViews.swift */; };
 		CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3300012F5D98BA002AE472 /* PSSView.swift */; };
 		CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */; };
 		D60EC6EA2F76B1F2003A5209 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D60EC6E92F76B1F2003A5209 /* NotificationService.swift */; };
@@ -160,6 +163,7 @@
 		387B78078AEB4A1E9AA577C1 /* SleepView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SleepView.swift; sourceTree = "<group>"; };
 		4BD5FB27DA5D308C889BDBF9 /* ReadinessModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReadinessModels.swift; sourceTree = "<group>"; };
 		4F922AFAAF1C2226DC78C22E /* BodyBudgetModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyBudgetModels.swift; sourceTree = "<group>"; };
+		51D25C3758A0A6DEB7E93A6C /* APIService+TimeCapsule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+TimeCapsule.swift"; sourceTree = "<group>"; };
 		552F808C866A877BFC051570 /* WellnessModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WellnessModels.swift; sourceTree = "<group>"; };
 		55B033EEBE81776A77969C32 /* APIService+Patterns.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Patterns.swift"; sourceTree = "<group>"; };
 		5F9FC27F6F10E2BBE5805E5F /* ToastView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
@@ -167,10 +171,12 @@
 		76F5880EE01F89F628060F5D /* GoalsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GoalsModels.swift; sourceTree = "<group>"; };
 		8130286D3B05F35EC783FDF9 /* APIService+Readiness.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Readiness.swift"; sourceTree = "<group>"; };
 		85B27AF055DB8AC84A8CEA39 /* BodyBudgetView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyBudgetView.swift; sourceTree = "<group>"; };
+		8A645EDCDCB52F3D681701B2 /* TimeCapsuleViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimeCapsuleViews.swift; sourceTree = "<group>"; };
 		8DF8F30F1E302A54E9E32B5D /* PatternCardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PatternCardView.swift; sourceTree = "<group>"; };
 		9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AppLoadingView.swift; sourceTree = "<group>"; };
 		9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReadinessView.swift; sourceTree = "<group>"; };
 		A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRCelebrationView.swift; sourceTree = "<group>"; };
+		A76154790AE80AF270345B19 /* TimeCapsuleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimeCapsuleModels.swift; sourceTree = "<group>"; };
 		A8115703CA371513172F372F /* DashboardViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		A937EBC71FB17046EDA80FA1 /* NutritionModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NutritionModels.swift; sourceTree = "<group>"; };
 		A9F578FC8AECBFD3FF6B65C2 /* TrainingOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -440,6 +446,7 @@
 				AA00100B2F5D98B8002AE470 /* IntelligenceView.swift */,
 				AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */,
 				8DF8F30F1E302A54E9E32B5D /* PatternCardView.swift */,
+				8A645EDCDCB52F3D681701B2 /* TimeCapsuleViews.swift */,
 			);
 			path = Intelligence;
 			sourceTree = "<group>";
@@ -514,6 +521,7 @@
 				4F922AFAAF1C2226DC78C22E /* BodyBudgetModels.swift */,
 				E163D5411790B6DA5108E310 /* PatternModels.swift */,
 				4BD5FB27DA5D308C889BDBF9 /* ReadinessModels.swift */,
+				A76154790AE80AF270345B19 /* TimeCapsuleModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -550,6 +558,7 @@
 				CD9E6AAF315054167C4627AE /* APIService+BodyBudget.swift */,
 				55B033EEBE81776A77969C32 /* APIService+Patterns.swift */,
 				8130286D3B05F35EC783FDF9 /* APIService+Readiness.swift */,
+				51D25C3758A0A6DEB7E93A6C /* APIService+TimeCapsule.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -939,6 +948,9 @@
 				B40E23156FF67C93658260BD /* BodyBudgetView.swift in Sources */,
 				39E47AF550F83D00EBE09ED6 /* ReadinessView.swift in Sources */,
 				5450ED0F7A5A0D2B1CEB3523 /* PatternCardView.swift in Sources */,
+				AB0CAE533C2329F302A8DE75 /* TimeCapsuleModels.swift in Sources */,
+				67BBB69F927BC316802B8758 /* APIService+TimeCapsule.swift in Sources */,
+				CB06CF7205FA40FC222D9EC5 /* TimeCapsuleViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

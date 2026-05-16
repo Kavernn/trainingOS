@@ -303,6 +303,12 @@ struct IntelligenceView: View {
                 }
             }
 
+            // ── Time Capsule ──────────────────────────────────────────────
+            TimeCapsuleSection()
+                .background(Color.appCard)
+                .cornerRadius(14)
+                .padding(.horizontal, 16)
+
             // ── Corrélations rapides (existing engine) ────────────────────
             VStack(alignment: .leading, spacing: 10) {
                 Text("CORRÉLATIONS GLOBALES")
