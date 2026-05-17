@@ -417,7 +417,7 @@ struct SplashView: View {
         }
         .opacity(allOpacity)
         .ignoresSafeArea()
-        .onReceive(Timer.publish(every: 0.033, on: .main, in: .common).autoconnect()) { _ in
+        .onReceive(Timer.publish(every: 0.050, on: .main, in: .common).autoconnect()) { _ in
             updateParticles()
         }
         .onAppear {
@@ -823,7 +823,7 @@ struct SplashView: View {
             particles[i].position.y      += particles[i].velocity.height
             particles[i].velocity.height += 0.44
             particles[i].rotation        += particles[i].velocity.width * 2
-            particles[i].opacity         -= 0.010
+            particles[i].opacity         -= 0.016
         }
         particles.removeAll { $0.opacity <= 0 }
     }

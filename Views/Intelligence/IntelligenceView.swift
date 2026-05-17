@@ -789,34 +789,41 @@ struct IntelligenceView: View {
                 sessionsData    = decoded.sessions
             }
         } else {
-            // Fallback: individual network calls (sequential — async let in parallel
-            // triggers asyncLet_finish_after_task_completion LIFO crash on iOS 26 beta)
-            let recovery = try? await APIService.shared.fetchRecoveryData()
-            let weights  = try? await APIService.shared.fetchWeights()
-            await MainActor.run {
-                recoveryData = recovery ?? []
-                weightsData  = weights ?? [:]
+            // Parallel via withTaskGroup — safe on iOS 26 beta (async let has LIFO crash).
+            // @MainActor in each task: network awaits yield the actor, fetches run concurrently.
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { @MainActor in
+                    self.recoveryData = (try? await APIService.shared.fetchRecoveryData()) ?? []
+                }
+                group.addTask { @MainActor in
+                    self.weightsData = (try? await APIService.shared.fetchWeights()) ?? [:]
+                }
             }
         }
 
-        // 2. ACWR + LSS
-        let acwrResult = try? await APIService.shared.fetchACWR()
-        let lssResult  = try? await APIService.shared.fetchLifeStressScore()
-        await MainActor.run {
-            acwrData = acwrResult
-            lssData  = lssResult
-        }
-
-        // 3. Nutrition history + cardio data + mesocycle + mental health
-        let hist       = try? await APIService.shared.fetchNutritionHistory()
-        let cardio     = try? await APIService.shared.fetchCardioData()
-        let seanceData = try? await APIService.shared.fetchSeanceData()
-        let mental     = try? await APIService.shared.fetchMentalHealthSummary(days: 7)
-        await MainActor.run {
-            if let h = hist,       !h.isEmpty { nutritionHistory = h; showNutritionInsight = true }
-            if let c = cardio                 { cardioData = c }
-            if let m = seanceData?.mesocycle  { mesocycleInfo = m }
-            if let m = mental                 { mentalData = m }
+        // 2+3: ACWR, LSS, nutrition, cardio, mesocycle, mental — all parallel
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { @MainActor in
+                self.acwrData = try? await APIService.shared.fetchACWR()
+            }
+            group.addTask { @MainActor in
+                self.lssData = try? await APIService.shared.fetchLifeStressScore()
+            }
+            group.addTask { @MainActor in
+                if let h = try? await APIService.shared.fetchNutritionHistory(), !h.isEmpty {
+                    self.nutritionHistory = h
+                    self.showNutritionInsight = true
+                }
+            }
+            group.addTask { @MainActor in
+                if let c = try? await APIService.shared.fetchCardioData() { self.cardioData = c }
+            }
+            group.addTask { @MainActor in
+                if let m = (try? await APIService.shared.fetchSeanceData())?.mesocycle { self.mesocycleInfo = m }
+            }
+            group.addTask { @MainActor in
+                if let m = try? await APIService.shared.fetchMentalHealthSummary(days: 7) { self.mentalData = m }
+            }
         }
 
         // 4. Weekly memory auto-analysis (no-op if run < 7 days ago)
