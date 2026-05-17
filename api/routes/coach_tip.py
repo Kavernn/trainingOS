@@ -83,6 +83,24 @@ def _gather_context() -> str:
     except Exception:
         pass
 
+    # --- Spirit (7 derniers jours — metadata uniquement, zéro contenu) ---
+    try:
+        spirit = _db.get_spirit_metadata(days=7)
+        parts = []
+        bw = spirit.get("breathwork_count", 0)
+        med = spirit.get("meditation_count", 0)
+        jrn = spirit.get("journal_count", 0)
+        if bw:  parts.append(f"breathwork x{bw}")
+        if med: parts.append(f"méditation x{med}")
+        if jrn: parts.append(f"journal x{jrn}")
+        bw_streak = spirit.get("breathwork_streak", 0)
+        if bw_streak >= 2:
+            parts.append(f"streak breathwork {bw_streak}j")
+        if parts:
+            lines.append("Spirit (7j) : " + ", ".join(parts))
+    except Exception:
+        pass
+
     return "\n".join(lines) if lines else "Données insuffisantes."
 
 
@@ -109,7 +127,7 @@ def api_daily_tip():
                 "Rappel : la surcharge progressive inclut l'augmentation des reps ET du poids — 8×15 lbs après 6×15 lbs est un vrai progrès. "
                 "Réponds UNIQUEMENT avec un objet JSON valide (pas de texte autour) au format exact :\n"
                 '{"title": "titre court (max 6 mots)", "body": "conseil en 1-2 phrases max", '
-                '"domain": "nutrition|training|recovery|sleep"}\n'
+                '"domain": "nutrition|training|recovery|sleep|spirit"}\n'
                 "Le domain doit correspondre au sujet principal du conseil. "
                 "Utilise le tutoiement. Réponds en français."
             ),

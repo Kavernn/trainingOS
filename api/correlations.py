@@ -48,6 +48,14 @@ _PAIRS = [
     ("mood_volume",    "Humeur → Volume séance",        "mood_score",    "session_volume", 0, "face.smiling.fill",      "teal"),
     ("soreness_vol",   "Courbatures → Volume (seuil)", "soreness",      "session_volume", 0, "bolt.heart.fill",        "red"),
     ("sleep_volume",   "Sommeil → Volume séance",      "sleep_hours",   "session_volume", 1, "moon.fill",              "indigo"),
+    # Spirit pillar
+    ("meditate_rpe",          "Méditation → Performance",        "meditation_done", "rpe",            0, "brain.head.profile", "teal"),
+    ("breathwork_volume",     "Breathwork → Volume séance",      "breathwork_done", "session_volume", 0, "wind",               "cyan"),
+    ("breathwork_pss",        "Breathwork → Stress PSS (3j)",    "breathwork_done", "pss_score",      3, "wind",               "mint"),
+    ("meditate_sore",         "Méditation → Récupération (J+1)", "meditation_done", "soreness",       1, "moon.zzz.fill",      "indigo"),
+    # War Room pillar (only produces signal if user logs battles)
+    ("war_reset_rpe",         "Reset → RPE lendemain",           "is_reset_day",    "rpe",            1, "flame.fill",         "red"),
+    ("war_reset_breathwork",  "Reset → Breathwork (même jour)",  "is_reset_day",    "breathwork_done",0, "flame.fill",         "orange"),
 ]
 
 MIN_R = 0.35   # seuil de signification
@@ -113,10 +121,42 @@ def _load_by_date(days: int) -> dict[str, dict]:
         d = str(entry.get("date") or entry.get("created_at") or "")[:10]
         if d not in by_date:
             continue
-        # pss_score or score field
         score = entry.get("pss_score") or entry.get("score")
         if score is not None:
             by_date[d]["pss_score"] = float(score)
+
+    # Spirit — breathwork_done and meditation_done (binary 0/1 per calendar day)
+    # Fill zeros first so "no session" is explicitly 0, not missing
+    for d in by_date:
+        by_date[d]["breathwork_done"] = 0.0
+        by_date[d]["meditation_done"] = 0.0
+        by_date[d]["is_reset_day"]    = 0.0
+    if db._client:
+        cutoff_spirit = (today - timedelta(days=days + 5)).isoformat()
+        try:
+            resp = db._client.table("breathwork_sessions").select("started_at").gte("started_at", cutoff_spirit + "T00:00:00").execute()
+            for row in (resp.data or []):
+                d = str(row.get("started_at") or "")[:10]
+                if d in by_date:
+                    by_date[d]["breathwork_done"] = 1.0
+        except Exception:
+            pass
+        try:
+            resp = db._client.table("meditation_sessions").select("started_at").gte("started_at", cutoff_spirit + "T00:00:00").eq("completed", True).execute()
+            for row in (resp.data or []):
+                d = str(row.get("started_at") or "")[:10]
+                if d in by_date:
+                    by_date[d]["meditation_done"] = 1.0
+        except Exception:
+            pass
+        try:
+            resp = db._client.table("war_room_battles").select("date, status").gte("date", cutoff_spirit).execute()
+            for row in (resp.data or []):
+                d = str(row.get("date") or "")[:10]
+                if d in by_date and row.get("status") == "lost":
+                    by_date[d]["is_reset_day"] = 1.0
+        except Exception:
+            pass
 
     return by_date
 
@@ -316,6 +356,48 @@ def _describe(pair_id: str, r: float, xs: list[float], ys: list[float]) -> str:
         return (
             f"Dormir ≥ {threshold}h → volume {sign}{int(delta)} lbs "
             f"de plus le lendemain (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "meditate_rpe":
+        delta = round(avg_high - avg_low, 1)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"Les jours où tu médites, ton RPE est {sign}{delta} pts "
+            f"en séance (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "breathwork_volume":
+        delta = round(avg_high - avg_low, 0)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"Les jours de breathwork, ton volume séance est {sign}{int(delta)} lbs "
+            f"{'plus élevé' if delta >= 0 else 'plus bas'} (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "breathwork_pss":
+        delta = round(avg_low - avg_high, 1)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"Les jours de breathwork, ton PSS est {sign}{delta} pts "
+            f"plus bas 3 jours après (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "meditate_sore":
+        delta = round(avg_low - avg_high, 1)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"Les jours où tu médites, tes courbatures sont {sign}{delta} pts "
+            f"plus basses le lendemain (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "war_reset_rpe":
+        delta = round(avg_high - avg_low, 1)
+        sign = "+" if delta > 0 else ""
+        return (
+            f"Les jours de reset, ton RPE est {sign}{delta} pts "
+            f"plus {'élevé' if delta >= 0 else 'bas'} le lendemain (r={r:+.2f}, n={n})"
+        )
+    if pair_id == "war_reset_breathwork":
+        pct_reset_bw = round(avg_high * 100)
+        pct_normal_bw = round(avg_low * 100)
+        return (
+            f"Les jours de reset, tu fais du breathwork dans {pct_reset_bw}% des cas "
+            f"vs {pct_normal_bw}% les autres jours (r={r:+.2f}, n={n})"
         )
     direction = "positive" if r > 0 else "négative"
     return f"Corrélation {direction} (r={r:+.2f}, n={n})"

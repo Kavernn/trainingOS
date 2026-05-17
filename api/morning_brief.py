@@ -24,17 +24,32 @@ def get_morning_brief():
 
     rec, msg, adjustments = _evaluate(lss, intensity, flags)
 
+    # Spirit signals — yesterday's practice (metadata only)
+    breathwork_yesterday = False
+    meditation_yesterday = False
+    try:
+        from datetime import date, timedelta
+        import db as _db
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        spirit = _db.get_spirit_metadata(days=2)
+        breathwork_yesterday = yesterday in spirit.get("days_with_breathwork", [])
+        meditation_yesterday = yesterday in spirit.get("days_with_meditation", [])
+    except Exception:
+        pass
+
     return {
-        "date":              get_today_date(),
-        "session_today":     today,
-        "session_intensity": intensity,
-        "lss":               lss,
-        "recommendation":    rec,      # "go" | "go_caution" | "reduce" | "defer"
-        "message":           msg,
-        "adjustments":       adjustments,
-        "flags":             flags,
-        "data_coverage":     lss_data.get("data_coverage", 0),
-        "components":        components,
+        "date":                  get_today_date(),
+        "session_today":         today,
+        "session_intensity":     intensity,
+        "lss":                   lss,
+        "recommendation":        rec,      # "go" | "go_caution" | "reduce" | "defer"
+        "message":               msg,
+        "adjustments":           adjustments,
+        "flags":                 flags,
+        "data_coverage":         lss_data.get("data_coverage", 0),
+        "components":            components,
+        "breathwork_yesterday":  breathwork_yesterday,
+        "meditation_yesterday":  meditation_yesterday,
     }
 
 

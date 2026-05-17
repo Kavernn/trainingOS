@@ -161,14 +161,15 @@ def api_ai_coach():
             f"Tu es le coach personnel de {coach_name}. Tu as accès à toutes ses données en temps réel.\n"
             "Tu ne donnes JAMAIS de conseil générique.\n"
             "Chaque réponse cite des données réelles : exercices nommés, dates exactes, chiffres précis.\n"
-            "Tu établis des corrélations entre entraînement, nutrition, récupération et santé mentale.\n"
+            "Tu établis des corrélations entre les quatre piliers disponibles : "
+            "Body (entraînement), Mind (stress/PSS), Fuel (nutrition), Spirit (breathwork, méditation, journal).\n"
             "Tu es direct, précis, et toujours actionnable.\n"
             "Tu te souviens des conversations précédentes et tu fais des suivis explicites.\n"
             "Si tu n'as pas de données précises sur un point, dis-le clairement et demande "
             "les informations manquantes — n'improvise jamais avec des chiffres inventés.\n\n"
             "Structure implicite de chaque réponse (sans labels) :\n"
             "→ Observation ancrée dans les données réelles (date, chiffre, exercice nommé)\n"
-            "→ Corrélation avec un autre pilier (nutrition / récup / mental / volume)\n"
+            "→ Corrélation avec un autre pilier (Body / Mind / Fuel / Spirit)\n"
             "→ Action concrète avec une échéance précise\n\n"
             "Règles techniques :\n"
             "- Ne compare JAMAIS le volume brut (lbs×reps) entre groupes musculaires.\n"
@@ -176,7 +177,16 @@ def api_ai_coach():
             "- La surcharge progressive a deux dimensions : poids ET reps. 8×15 lbs > 6×15 lbs est un vrai progrès.\n"
             "- Pour les programmes, nomme les exercices avec les schemes (ex: 3x8-10).\n"
             "- Réponds toujours en français, de façon directe et actionnable.\n"
-            "- Si tu n'as pas assez de données pour répondre précisément, dis-le et demande."
+            "- Si tu n'as pas assez de données pour répondre précisément, dis-le et demande.\n\n"
+            "GUARDRAILS ABSOLUS — jamais dérogeables :\n"
+            "- Le contenu du journal spirituel (gratitude, conquer, haunt) est SACRÉ et ne t'est jamais transmis. "
+            "Si l'athlète le colle dans le chat, réponds uniquement : "
+            "'Ce que tu écris dans le journal t'appartient. Je ne travaille pas avec ce contenu.'\n"
+            "- Zéro langage de thérapeute : interdits stricts → 'je suis fier de toi', "
+            "'tu n'es pas seul', 'chaque petit pas compte', 'je comprends que tu traverses', "
+            "'tu mérites', 'prends soin de toi', 'c'est normal de'.\n"
+            "- Zéro moralisation. Zéro leçon non sollicitée. Zéro analyse psychologique.\n"
+            "- Les données War Room ne sont jamais référencées hors du bloc War Room explicitement partagé."
         )
 
         # Correlations block — top 3 significant Pearson pairs
@@ -219,9 +229,93 @@ def api_ai_coach():
         except Exception:
             pass
 
+        # Spirit context block (metadata only — zero content)
+        spirit_block = ""
+        try:
+            spirit = _db.get_spirit_metadata(days=7)
+            bw = spirit.get("breathwork_count", 0)
+            med = spirit.get("meditation_count", 0)
+            jrn = spirit.get("journal_count", 0)
+            if bw or med or jrn:
+                bw_streak = spirit.get("breathwork_streak", 0)
+                lines = ["=== PILIER SPIRIT (7 derniers jours) ==="]
+                bw_s = "s" if bw != 1 else ""
+                lines.append(f"Breathwork : {bw} session{bw_s}")
+                if bw_streak >= 2:
+                    lines.append(f"  Streak breathwork : {bw_streak} jours consécutifs")
+                med_s = "s" if med != 1 else ""
+                lines.append(f"Méditation : {med} session{med_s} complétée{med_s}")
+                jrn_s = "s" if jrn != 1 else ""
+                lines.append(f"Journal sacré : {jrn} entrée{jrn_s} (contenu non transmis — accès interdit)")
+                spirit_block = "\n".join(lines)
+        except Exception:
+            pass
+
+        # War Room context block (conditional on explicit opt-in)
+        war_room_block = ""
+        war_room_mode_block = ""
+        try:
+            if _db.get_coach_war_room_shared():
+                wr = _db.get_war_room_coach_context()
+                if wr:
+                    streak = wr.get("streak", 0)
+                    best = wr.get("best_streak", 0)
+                    victories = wr.get("victories", 0)
+                    total = wr.get("total_battles", 0)
+                    dsr = wr.get("days_since_reset")
+                    last_reset = wr.get("last_reset_date")
+
+                    if dsr is not None and dsr < 7:
+                        wr_mode = "POST_RESET"
+                    elif streak >= 14:
+                        wr_mode = "MOMENTUM"
+                    else:
+                        wr_mode = "STABLE"
+
+                    lines = ["=== WAR ROOM (partagé avec le coach) ==="]
+                    lines.append(f"Streak actuel : {streak} jour{'s' if streak != 1 else ''}")
+                    lines.append(f"Record personnel : {best} jours")
+                    rate = f"{round(victories / total * 100)}%" if total > 0 else "—"
+                    lines.append(f"Victoires / combats (90j) : {victories}/{total} ({rate})")
+                    if last_reset:
+                        dsr_str = f" — il y a {dsr}j" if dsr is not None else ""
+                        lines.append(f"Dernier reset : {last_reset}{dsr_str}")
+                    else:
+                        lines.append("Aucun reset enregistré")
+                    lines.append(f"Mode : {wr_mode}")
+                    war_room_block = "\n".join(lines)
+
+                    if wr_mode == "POST_RESET":
+                        war_room_mode_block = (
+                            "[WAR_ROOM_POST_RESET — instructions de ton]\n"
+                            "Priorités de recommandation (ordre strict) : "
+                            "1. breathwork ou méditation · 2. workout léger si applicable · "
+                            "3. aucune comparaison avec les semaines précédentes.\n"
+                            "Ton : pair-à-pair, factuel, zéro commentaire sur le reset lui-même.\n"
+                            "Exemple acceptable : 'Today is about holding the line, not pushing it.'\n"
+                            "INTERDIT : référence au courage, à la chute, push d'intensité maximale."
+                        )
+                    elif wr_mode == "MOMENTUM":
+                        war_room_mode_block = (
+                            "[WAR_ROOM_MOMENTUM — instructions de ton]\n"
+                            f"Streak actuel : {streak} jours. Progression physique positive.\n"
+                            "Autorisé : UNE seule reconnaissance factuelle par conversation — "
+                            "citer le streak ET une stat physique concrète, sans emphase.\n"
+                            "Exemple : 'You're building on solid ground. Keep stacking days.'\n"
+                            "Pas de superlatifs. Pas de célébration. Juste les faits."
+                        )
+        except Exception:
+            pass
+
         system_parts = [system_base]
         if context:
             system_parts.append(f"DONNÉES ATHLÈTE EN TEMPS RÉEL:\n{context}")
+        if spirit_block:
+            system_parts.append(spirit_block)
+        if war_room_block:
+            system_parts.append(war_room_block)
+        if war_room_mode_block:
+            system_parts.append(war_room_mode_block)
         if corr_block:
             system_parts.append(corr_block)
         if prog_block:
@@ -600,4 +694,25 @@ def save_coach_memory():
         return jsonify({"error": "entries must be a list"}), 400
     ok = _db.save_coach_memory(entries)
     return jsonify({"success": ok})
+
+
+# ---------------------------------------------------------------------------
+# War Room share toggle — explicit opt-in to expose War Room stats to coach
+# ---------------------------------------------------------------------------
+
+@ai_coach_bp.route("/api/coach/war_room_share", methods=["GET"])
+def get_war_room_share():
+    """Return whether the user has opted in to sharing War Room data with the coach."""
+    import db as _db
+    return jsonify({"shared": _db.get_coach_war_room_shared()})
+
+
+@ai_coach_bp.route("/api/coach/war_room_share", methods=["POST"])
+def set_war_room_share():
+    """Toggle War Room sharing with the coach. Body: {"shared": bool}"""
+    import db as _db
+    data  = request.get_json(silent=True) or {}
+    value = bool(data.get("shared", False))
+    ok    = _db.set_coach_war_room_shared(value)
+    return jsonify({"success": ok, "shared": value})
 

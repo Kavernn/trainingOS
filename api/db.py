@@ -6139,3 +6139,104 @@ def get_prev_season_had_reset(current_season_id: str) -> bool:
     except Exception as e:
         logger.error("get_prev_season_had_reset error: %s", e)
         return False
+
+
+# ── Coach — Spirit metadata (counts only, zero content) ───────────────────────
+
+def get_spirit_metadata(days: int = 7) -> dict:
+    """Return Spirit pillar metadata for the last N days.
+    Counts and dates only — journal content is never queried or returned."""
+    from datetime import date as _date, timedelta as _td
+    today = _date.today()
+    cutoff = (today - _td(days=days)).isoformat()
+    result: dict = {
+        "breathwork_count": 0,
+        "meditation_count": 0,
+        "journal_count": 0,
+        "breathwork_streak": 0,
+        "days_with_breathwork": [],
+        "days_with_meditation": [],
+        "days_with_journal": [],
+    }
+    if _client is None or MODE == "OFFLINE":
+        return result
+    try:
+        resp = _client.table("breathwork_sessions").select("started_at").gte("started_at", cutoff + "T00:00:00").execute()
+        bw_dates: set[str] = set()
+        for row in (resp.data or []):
+            d = str(row.get("started_at") or "")[:10]
+            if d >= cutoff:
+                bw_dates.add(d)
+        result["breathwork_count"] = len(resp.data or [])
+        result["days_with_breathwork"] = sorted(bw_dates)
+        streak = 0
+        d = today
+        while d.isoformat() in bw_dates:
+            streak += 1
+            d -= _td(days=1)
+        result["breathwork_streak"] = streak
+    except Exception as e:
+        logger.error("get_spirit_metadata breathwork error: %s", e)
+    try:
+        resp = _client.table("meditation_sessions").select("started_at").gte("started_at", cutoff + "T00:00:00").eq("completed", True).execute()
+        med_dates: set[str] = set()
+        for row in (resp.data or []):
+            d = str(row.get("started_at") or "")[:10]
+            if d >= cutoff:
+                med_dates.add(d)
+        result["meditation_count"] = len(resp.data or [])
+        result["days_with_meditation"] = sorted(med_dates)
+    except Exception as e:
+        logger.error("get_spirit_metadata meditation error: %s", e)
+    try:
+        resp = _client.table("spirit_journal").select("date").gte("date", cutoff).execute()
+        jrn_dates = [str(row.get("date") or "")[:10] for row in (resp.data or []) if row.get("date")]
+        result["journal_count"] = len(jrn_dates)
+        result["days_with_journal"] = sorted(jrn_dates)
+    except Exception as e:
+        logger.error("get_spirit_metadata journal error: %s", e)
+    return result
+
+
+def get_war_room_coach_context() -> Optional[dict]:
+    """Return War Room stats for coach context.
+    NEVER includes trigger content, arsenal text, or pattern analysis."""
+    from datetime import date as _date, timedelta as _td
+    if _client is None or MODE == "OFFLINE":
+        return None
+    try:
+        config = get_war_room_config() or {}
+        battles = get_war_room_battles(limit=180)
+        cutoff = (_date.today() - _td(days=90)).isoformat()
+        recent = [b for b in battles if b.get("date", "") >= cutoff]
+        victories = sum(1 for b in recent if b.get("status") == "victory")
+        total = len(recent)
+        lost = [b for b in battles if b.get("status") == "lost"]
+        last_reset_date = lost[0].get("date") if lost else None
+        days_since_reset: Optional[int] = None
+        if last_reset_date:
+            try:
+                days_since_reset = (_date.today() - _date.fromisoformat(last_reset_date)).days
+            except Exception:
+                pass
+        return {
+            "streak":           int(config.get("victory_streak") or 0),
+            "best_streak":      int(config.get("best_streak") or 0),
+            "victories":        victories,
+            "total_battles":    total,
+            "last_reset_date":  last_reset_date,
+            "days_since_reset": days_since_reset,
+        }
+    except Exception as e:
+        logger.error("get_war_room_coach_context error: %s", e)
+        return None
+
+
+def get_coach_war_room_shared() -> bool:
+    """Return whether user has opted in to sharing War Room data with the coach."""
+    return bool(get_profile().get("coach_war_room_shared", False))
+
+
+def set_coach_war_room_shared(value: bool) -> bool:
+    """Toggle War Room sharing with the coach."""
+    return update_profile({"coach_war_room_shared": value})
