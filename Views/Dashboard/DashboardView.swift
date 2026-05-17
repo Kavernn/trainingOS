@@ -196,7 +196,7 @@ struct DashboardView: View {
                                 if let ritual = vm.ritualToday,
                                    ritual.morningDone && !ritual.eveningDone,
                                    Calendar.current.component(.hour, from: Date()) >= 18 {
-                                    EveningRitualEntryCard(intention: ritual.intention ?? "")
+                                    EveningRitualEntryCard(ritual: ritual)
                                         .appearAnimation(delay: 0.37)
                                 }
 
@@ -3402,7 +3402,7 @@ private struct ReadinessMetricRow: View {
 // MARK: - Evening Ritual Entry Card
 
 private struct EveningRitualEntryCard: View {
-    let intention: String
+    let ritual: RitualToday
     @State private var showRitualEvening = false
 
     var body: some View {
@@ -3422,7 +3422,7 @@ private struct EveningRitualEntryCard: View {
                         .font(.system(size: 9, weight: .black))
                         .foregroundColor(Color(hex: "E8441A").opacity(0.8))
                         .tracking(0.5)
-                    if !intention.isEmpty {
+                    if let intention = ritual.intention, !intention.isEmpty {
                         Text("« \(intention) »")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundColor(.white.opacity(0.75))
@@ -3456,7 +3456,7 @@ private struct EveningRitualEntryCard: View {
         }
         .buttonStyle(.plain)
         .fullScreenCover(isPresented: $showRitualEvening) {
-            RitualEveningView()
+            RitualEveningView(ritual: ritual, onSaved: { _ in })
         }
     }
 }
