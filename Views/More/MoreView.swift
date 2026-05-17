@@ -17,7 +17,7 @@ struct MoreView: View {
                     .listRowBackground(glassRowBG(Color(hex: "FF2D20")))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
-                    Section("Entraînement") {
+                    Section("Combat") {
                         MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")        { StatsView() }
                         MoreRow(icon: "target",                color: .orange, title: "Objectifs")    { ObjectifsView() }
                         MoreRow(icon: "timer",                 color: .orange, title: "Timer")        { TimerView() }
@@ -28,23 +28,23 @@ struct MoreView: View {
                     .listRowBackground(glassRowBG(.blue))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
-                    Section("Corps & Santé") {
-                        MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Health Dashboard") { HealthDashboardView() }
-                        MoreRow(icon: "scalemass.fill",         color: .green,  title: "Body Comp")        { BodyCompView() }
+                    Section("Corps") {
+                        MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Tableau santé") { HealthDashboardView() }
+                        MoreRow(icon: "scalemass.fill",         color: .green,  title: "Composition")      { BodyCompView() }
                         MoreRow(icon: "ruler.fill",             color: .teal,   title: "Calculateur Navy") { NavyCalculatorView() }
                         MoreRow(icon: "fork.knife",             color: .orange, title: "Nutrition")        { NutritionView() }
                         MoreRow(icon: "figure.run",             color: .teal,   title: "Cardio")           { CardioView() }
                         MoreRow(icon: "bed.double.fill",        color: .purple, title: "Sommeil")          { SleepView() }
                         MoreRow(icon: "moon.zzz.fill",         color: .blue,   title: "Récupération")     { RecoveryView() }
-                        MoreRow(icon: "brain.head.profile",    color: .purple, title: "Stress (PSS)")     { PSSView() }
+                        MoreRow(icon: "brain.head.profile",    color: .purple, title: "Charge mentale (PSS)") { PSSView() }
                         MoreRow(icon: "face.smiling.fill",     color: .mint,   title: "Santé Mentale")    { MentalHealthView() }
                     }
                     .listRowBackground(glassRowBG(.green))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
-                    Section("Préférences séance") {
+                    Section("Session") {
                         Toggle(isOn: $autoStartTimer) {
-                            Label("Timer auto après chaque set", systemImage: "timer")
+                            Label("Timer automatique entre les sets", systemImage: "timer")
                         }
                         .tint(.orange)
                         Toggle(isOn: $showRIRColumn) {

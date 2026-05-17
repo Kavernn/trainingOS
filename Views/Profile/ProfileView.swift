@@ -698,9 +698,9 @@ struct ProfileView: View {
                 Image(systemName: "person.crop.circle.badge.exclamationmark.fill")
                     .font(.system(size: 22)).foregroundColor(.orange)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Complète ton profil")
+                    Text("Profil incomplet — l'IA travaille à l'aveugle.")
                         .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
-                    Text("Taille, âge requis pour les suggestions IA")
+                    Text("Taille et âge nécessaires pour calibrer les recommandations.")
                         .font(.system(size: 12)).foregroundColor(.gray)
                 }
                 Spacer()
@@ -739,8 +739,8 @@ struct ProfileView: View {
         let out = DateFormatter(); out.dateFormat = "MMMM yyyy"
         out.locale = Locale(identifier: "fr_FR")
         let label = out.string(from: date).capitalized
-        if months < 1 { return "Nouveau membre" }
-        return "Membre depuis \(label)"
+        if months < 1 { return "Jour 1." }
+        return "En combat depuis \(label)"
     }
 
     // MARK: - Load
@@ -1057,7 +1057,7 @@ struct EditProfileSheet: View {
                 .scrollDismissesKeyboard(.interactively)
                 .tint(.orange)
             }
-            .navigationTitle("Modifier profil")
+            .navigationTitle("Ton identité")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -1086,7 +1086,7 @@ struct EditProfileSheet: View {
                         if isSaving {
                             ProgressView().tint(.orange)
                         } else {
-                            Text("Sauvegarder").fontWeight(.semibold).foregroundColor(.orange)
+                            Text("Confirmer").fontWeight(.semibold).foregroundColor(.orange)
                         }
                     }
                     .disabled(isSaving)

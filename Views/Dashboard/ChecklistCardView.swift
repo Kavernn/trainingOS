@@ -130,7 +130,7 @@ struct ChecklistCardView: View {
     private var header: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("AVANT DE PARTIR")
+                Text("AVANT LE COMBAT")
                     .font(.system(size: 10, weight: .black))
                     .tracking(2)
                     .foregroundColor(.orange)
@@ -152,7 +152,7 @@ struct ChecklistCardView: View {
                         ChecklistStore.isMinimized = false
                     }
                 } label: {
-                    Text("Je pars")
+                    Text("En route.")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
@@ -210,7 +210,7 @@ struct ChecklistCardView: View {
     // D-C4 + D-D9: 5s delay with undo button before hiding
     private var completionMessage: some View {
         HStack(spacing: 12) {
-            Text("✅ Perfect. Good to go amigo")
+            Text("Tout coché. Lance-toi.")
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(.green)
             Spacer()

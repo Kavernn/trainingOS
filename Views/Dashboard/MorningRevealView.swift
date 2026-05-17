@@ -61,7 +61,7 @@ struct MorningRevealView: View {
                         ProgressView()
                             .tint(.white.opacity(0.4))
                             .scaleEffect(1.1)
-                        Text("Analyse de ta forme du jour...")
+                        Text("Lecture du terrain...")
                             .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white.opacity(0.35))
                     }
@@ -146,7 +146,7 @@ struct MorningRevealView: View {
 
                 if showButton {
                     Button(action: onDismiss) {
-                        Text("Commencer la journée")
+                        Text("Partir au combat")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(Color.appBg)
                             .frame(maxWidth: .infinity)

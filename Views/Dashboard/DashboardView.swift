@@ -50,14 +50,14 @@ struct DashboardView: View {
                         // D-B2: show retry button alongside slow-load message
                         if api.isSlow {
                             VStack(spacing: 10) {
-                                Text("Ça prend plus de temps que prévu…")
+                                Text("Connexion lente. Attends ou relance.")
                                     .font(.system(size: 13))
                                     .foregroundColor(.gray)
                                 Button {
                                     api.isLoading = false
                                     Task { await vm.loadAll() }
                                 } label: {
-                                    Text("Réessayer")
+                                    Text("Relancer")
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 20).padding(.vertical, 9)
@@ -144,7 +144,7 @@ struct DashboardView: View {
                                         Image(systemName: "exclamationmark.triangle.fill")
                                             .foregroundColor(.yellow)
                                             .font(.system(size: 12))
-                                        Text("Fatigue légère détectée — surveille ton volume cette semaine")
+                                        Text("Fatigue légère. Réduis le volume — ne joue pas avec le feu.")
                                             .font(.system(size: 12))
                                             .foregroundColor(.white.opacity(0.85))
                                         Spacer()
@@ -189,7 +189,7 @@ struct DashboardView: View {
                                             Image(systemName: "sunrise.fill")
                                                 .font(.system(size: 11))
                                                 .foregroundColor(.orange)
-                                            Text("Revoir le résumé du matin")
+                                            Text("Relire le briefing")
                                                 .font(.system(size: 12, weight: .medium))
                                                 .foregroundColor(.gray)
                                         }
@@ -498,10 +498,10 @@ struct MoodCardView: View {
                         .foregroundColor(.yellow)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("HUMEUR DU JOUR")
+                    Text("ÉTAT INTERNE")
                         .font(.system(size: 9, weight: .bold)).tracking(2)
                         .foregroundColor(.gray)
-                    Text("Comment tu te sens aujourd'hui ?")
+                    Text("Aujourd'hui — où tu en es ?")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.white)
                 }
@@ -1913,7 +1913,7 @@ struct MorningBriefCompactView: View {
             Text("Brief du matin")
                 .font(.system(size: 9, weight: .bold)).tracking(2)
                 .foregroundColor(.gray)
-            Text("Tout est vert — vas-y.")
+            Text("Terrain favorable. Attaque.")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.green)
             Spacer()
@@ -2109,7 +2109,7 @@ struct MorningBriefCardView: View {
             if hour >= 20 {
                 HStack(spacing: 5) {
                     Image(systemName: "moon.stars.fill").font(.system(size: 10)).foregroundColor(.blue)
-                    Text("Séance tardive — pense à bien récupérer après")
+                    Text("Séance tardive. Le sommeil qui suit compte double.")
                         .font(.system(size: 11)).foregroundColor(.blue.opacity(0.8))
                 }
             }
@@ -2120,7 +2120,7 @@ struct MorningBriefCardView: View {
                     Image(systemName: "exclamationmark.circle")
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
-                    Text("Données partielles — \(Int(data.dataCoverage * 100))% des métriques disponibles")
+                    Text("Vision réduite — \(Int(data.dataCoverage * 100))% des données disponibles.")
                         .font(.system(size: 10))
                         .foregroundColor(.gray)
                     NavigationLink(destination: RecoveryView()) {

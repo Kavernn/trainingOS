@@ -49,11 +49,11 @@ struct NutritionView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .foregroundColor(.yellow)
-                                    Text("Objectifs nutritionnels non configurés")
+                                    Text("Cibles nutritionnelles non définies — l'app calcule dans le vide.")
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(.white)
                                     Spacer()
-                                    Button("Configurer") { showSettings = true }
+                                    Button("Définir les cibles") { showSettings = true }
                                         .font(.system(size: 13, weight: .semibold))
                                         .foregroundColor(.orange)
                                 }
@@ -232,11 +232,11 @@ struct NutritionView: View {
                 if showUndoBanner {
                     HStack(spacing: 12) {
                         Image(systemName: "trash").foregroundColor(.red)
-                        Text("Aliment supprimé")
+                        Text("Supprimé.")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white)
                         Spacer()
-                        Button("Annuler") {
+                        Button("Restaurer") {
                             // Cancel the pending delete and reload
                             pendingDeleteTimer?.cancel()
                             pendingDeleteTimer = nil
@@ -297,12 +297,12 @@ struct ProteinProgressCard: View {
     var body: some View {
         VStack(spacing: 14) {
             HStack {
-                Text("PROTÉINES DU JOUR")
+                Text("PROTÉINES")
                     .font(.system(size: 10, weight: .bold))
                     .tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
-                Text("Objectif : \(Int(target))g")
+                Text("Cible : \(Int(target))g")
                     .font(.system(size: 11))
                     .foregroundColor(.gray)
             }
@@ -331,11 +331,11 @@ struct ProteinProgressCard: View {
                 VStack(alignment: .leading, spacing: 12) {
                     // Message statut
                     if isOver {
-                        Label("Dépassé de \(Int(current - target))g", systemImage: "exclamationmark.triangle.fill")
+                        Label("+\(Int(current - target))g au-delà de la cible.", systemImage: "exclamationmark.triangle.fill")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.red)
                     } else if isReached {
-                        Label("Objectif atteint !", systemImage: "checkmark.circle.fill")
+                        Label("Cible atteinte.", systemImage: "checkmark.circle.fill")
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.green)
                     } else {
@@ -346,7 +346,7 @@ struct ProteinProgressCard: View {
                             Text("\(Int(remaining))g")
                                 .font(.system(size: 32, weight: .black))
                                 .foregroundColor(.blue)
-                            Text("à atteindre")
+                            Text("restants")
                                 .font(.system(size: 11))
                                 .foregroundColor(.gray)
                         }

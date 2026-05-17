@@ -676,7 +676,7 @@ struct StatsView: View {
             VStack(spacing: 12) {
                 Image(systemName: "fork.knife.circle")
                     .font(.system(size: 40)).foregroundColor(.gray)
-                Text("Pas assez de données nutrition")
+                Text("Données nutritionnelles insuffisantes.")
                     .foregroundColor(.gray)
             }
             .frame(maxWidth: .infinity)
@@ -1910,7 +1910,7 @@ struct BodyFatChartView: View {
                     }
                 }
             } else {
-                Text("Pas assez de données").font(.system(size: 12)).foregroundColor(.gray)
+                Text("Données insuffisantes — continue à logger.").font(.system(size: 12)).foregroundColor(.gray)
             }
         }
         .padding(16).glassCard(color: .purple, intensity: 0.04).cornerRadius(14)
@@ -2252,7 +2252,7 @@ struct StrengthCurveChart: View {
             }
 
             if points.count < 2 {
-                Text("Pas assez de données")
+                Text("Données insuffisantes — continue à logger.")
                     .font(.system(size: 13)).foregroundColor(.gray)
                     .frame(maxWidth: .infinity, minHeight: 140, alignment: .center)
             } else {
@@ -2448,7 +2448,7 @@ struct PRTrackerView: View {
             }
 
             if prs.isEmpty {
-                Text("Aucune donnée disponible")
+                Text("Aucune donnée.")
                     .font(.system(size: 13)).foregroundColor(.gray).italic()
             } else {
                 let maxW = prs.map(\.prWeight).max() ?? 1
@@ -2689,7 +2689,7 @@ struct MuscleVolumeView: View {
                 .foregroundColor(.gray)
 
             if sorted.isEmpty {
-                Text("Aucune donnée disponible")
+                Text("Aucune donnée.")
                     .font(.system(size: 13)).foregroundColor(.gray).italic()
             } else {
                 let maxVol = sorted.first?.1 ?? 1
