@@ -8,10 +8,26 @@ struct PhoenixScore: Codable {
     let isFoundation: Bool
     let rawDelta: Double
 
+    private static let foundationAxes = PhoenixAxes(
+        workout:   PhoenixAxisData(delta: 0),
+        stress:    PhoenixAxisData(delta: 0),
+        nutrition: PhoenixAxisData(delta: 0),
+        spirit:    nil
+    )
+
     enum CodingKeys: String, CodingKey {
         case score, state, axes
         case isFoundation = "is_foundation"
         case rawDelta     = "raw_delta"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c        = try decoder.container(keyedBy: CodingKeys.self)
+        score        = (try? c.decode(Double.self,       forKey: .score))        ?? 0.0
+        state        = (try? c.decode(String.self,       forKey: .state))        ?? "foundation"
+        axes         = (try? c.decode(PhoenixAxes.self,  forKey: .axes))         ?? Self.foundationAxes
+        isFoundation = (try? c.decode(Bool.self,         forKey: .isFoundation)) ?? true
+        rawDelta     = (try? c.decode(Double.self,       forKey: .rawDelta))     ?? 0.0
     }
 
     var phoenixState: PhoenixState {

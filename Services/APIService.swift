@@ -59,7 +59,8 @@ class APIService: ObservableObject {
                 var req = URLRequest(url: url)
                 req.timeoutInterval = 15
                 req.cachePolicy = .reloadIgnoringLocalCacheData
-                if let (fresh, _) = try? await URLSession.authed.data(for: req) {
+                if let (fresh, resp) = try? await URLSession.authed.data(for: req),
+                   (200...299).contains((resp as? HTTPURLResponse)?.statusCode ?? 0) {
                     CacheService.shared.save(fresh, for: key)
                 }
             }
@@ -68,13 +69,12 @@ class APIService: ObservableObject {
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
         req.cachePolicy = .reloadIgnoringLocalCacheData
-        do {
-            let (data, _) = try await URLSession.authed.data(for: req)
-            CacheService.shared.save(data, for: key)
-            return data
-        } catch {
-            throw error
+        let (data, response) = try await URLSession.authed.data(for: req)
+        guard (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0) else {
+            throw URLError(.badServerResponse)
         }
+        CacheService.shared.save(data, for: key)
+        return data
     }
 
     // MARK: - Offline-safe POST helper

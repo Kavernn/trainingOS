@@ -38,6 +38,25 @@ struct PatternEntry: Codable, Identifiable {
         case isNew      = "is_new"
         case warRoom    = "war_room"
     }
+
+    init(from decoder: Decoder) throws {
+        let c       = try decoder.container(keyedBy: CodingKeys.self)
+        id          = try c.decode(String.self,       forKey: .id)
+        family      = try c.decode(String.self,       forKey: .family)
+        subLabel    = try c.decode(String.self,       forKey: .subLabel)
+        headline    = try c.decode(String.self,       forKey: .headline)
+        confidence  = try c.decode(String.self,       forKey: .confidence)
+        effectPct   = try c.decode(Double.self,       forKey: .effectPct)
+        n           = try c.decode(Int.self,          forKey: .n)
+        barA        = try c.decode(PatternBar.self,   forKey: .barA)
+        barB        = try c.decode(PatternBar.self,   forKey: .barB)
+        icon        = try c.decode(String.self,       forKey: .icon)
+        color       = try c.decode(String.self,       forKey: .color)
+        pinned      = try c.decode(Bool.self,         forKey: .pinned)
+        isNew       = (try? c.decode(Bool.self,       forKey: .isNew)) ?? false
+        warRoom     = (try? c.decode(Bool.self,       forKey: .warRoom)) ?? false
+        trend       = try? c.decode(PatternTrend.self, forKey: .trend)
+    }
 }
 
 struct PatternBar: Codable {

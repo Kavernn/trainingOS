@@ -59,17 +59,20 @@ struct TimeCapsuleSection: View {
             }
         }
         .task { await loadCapsules() }
-        .sheet(isPresented: $showCreate, onDismiss: {
-            Task { await loadCapsules() }
-        }) {
-            TimeCapsuleCreateView { Task { await loadCapsules() } }
-        }
-        .fullScreenCover(item: $revealCapsule) { capsule in
-            TimeCapsuleRevealView(capsule: capsule) {
-                revealCapsule = nil
-                Task { await loadCapsules() }
-            }
-        }
+        .background(
+            EmptyView()
+                .sheet(isPresented: $showCreate, onDismiss: {
+                    Task { await loadCapsules() }
+                }) {
+                    TimeCapsuleCreateView { Task { await loadCapsules() } }
+                }
+                .fullScreenCover(item: $revealCapsule) { capsule in
+                    TimeCapsuleRevealView(capsule: capsule) {
+                        revealCapsule = nil
+                        Task { await loadCapsules() }
+                    }
+                }
+        )
     }
 
     private func loadCapsules() async {
@@ -243,6 +246,7 @@ struct TimeCapsuleCreateView: View {
     @State private var step             = 1
     @State private var snapshot: CapsuleSnapshot? = nil
     @State private var isLoadingSnap    = false
+    @State private var snapFailed       = false
     @State private var message          = ""
     @State private var selectedDuration = 3
     @State private var isSealing        = false
@@ -291,18 +295,24 @@ struct TimeCapsuleCreateView: View {
                         .foregroundColor(.gray)
                 }
 
-                if isLoadingSnap || snapshot == nil {
+                if isLoadingSnap {
                     VStack(spacing: 0) {
                         ForEach(0..<5, id: \.self) { _ in
                             Capsule().fill(Color.white.opacity(0.05)).frame(height: 38).padding(.vertical, 5)
                         }
                     }
                     .padding(.horizontal, 4)
+                } else if snapFailed {
+                    Text("Impossible de charger le snapshot. Vérifie ta connexion.")
+                        .font(.system(size: 13))
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 20)
                 } else if let snap = snapshot {
                     SnapshotPreviewCard(snapshot: snap)
                 }
 
-                GoldCTAButton(title: "Continuer →", disabled: isLoadingSnap || snapshot == nil) {
+                GoldCTAButton(title: "Continuer →", disabled: isLoadingSnap || (snapshot == nil && !snapFailed)) {
                     step = 2
                 }
             }
@@ -467,7 +477,12 @@ struct TimeCapsuleCreateView: View {
 
     private func loadSnapshot() async {
         isLoadingSnap = true
-        snapshot      = try? await APIService.shared.fetchCapsuleSnapshot()
+        snapFailed    = false
+        do {
+            snapshot = try await APIService.shared.fetchCapsuleSnapshot()
+        } catch {
+            snapFailed = true
+        }
         isLoadingSnap = false
     }
 
