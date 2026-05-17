@@ -90,6 +90,7 @@ from routes.workout_dna  import workout_dna_bp
 from routes.plateau      import plateau_bp
 from routes.ritual       import ritual_bp
 from routes.phoenix      import phoenix_bp
+from routes.graveyard    import graveyard_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -108,6 +109,7 @@ app.register_blueprint(workout_dna_bp)
 app.register_blueprint(plateau_bp)
 app.register_blueprint(ritual_bp)
 app.register_blueprint(phoenix_bp)
+app.register_blueprint(graveyard_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────

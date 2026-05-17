@@ -618,6 +618,11 @@ struct ProfileView: View {
 
     private var settingsCard: some View {
         VStack(spacing: 0) {
+            NavigationLink(destination: GraveyardView()) {
+                graveyardRow
+            }
+            .buttonStyle(PlainButtonStyle())
+            settingsDivider
             settingsRow(icon: "scalemass.fill",      color: .orange,  label: "Unités",         detail: "lbs",  action: nil)
             settingsDivider
             settingsRow(icon: "square.and.arrow.up", color: .green,   label: "Export données", detail: nil,    action: {
@@ -631,6 +636,27 @@ struct ProfileView: View {
         .background(Color.appCard)
         .cornerRadius(16)
         .padding(.horizontal, 16)
+    }
+
+    private var graveyardRow: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(Color(hex: "2A1800"))
+                    .frame(width: 30, height: 30)
+                Image(systemName: "cross.case.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(hex: "FF6600"))
+            }
+            Text("Graveyard")
+                .font(.system(size: 15))
+                .foregroundColor(.white)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12))
+                .foregroundColor(.gray.opacity(0.4))
+        }
+        .padding(.horizontal, 14).padding(.vertical, 14)
     }
 
     private var settingsDivider: some View {
