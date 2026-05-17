@@ -2,6 +2,7 @@ import SwiftUI
 import Combine
 import PhotosUI
 import Charts
+import LocalAuthentication
 
 // Archetype accent — mirrors WorkoutDNAView, accessible app-wide from this file
 func dnaArchetypeAccent(_ key: String) -> Color {
@@ -38,6 +39,11 @@ struct ProfileView: View {
     @State private var weeklyTonnage: [WeeklyTonnageEntry] = []
     @State private var pssHistory: [PSSRecord] = []
     @State private var allTimeVolumeLbs: Double = 0
+    @State private var phoenix: PhoenixScore?   = nil
+    @State private var oath: OathModel?         = nil
+    @State private var oathUnlocked             = false
+    @State private var warRoomVictoryStreak: Int = 0
+    @State private var warRoomEnabled           = false
 
     var profile: UserProfile? { api.dashboard?.profile }
 
@@ -53,7 +59,8 @@ struct ProfileView: View {
         totalSessions > 0 ? totalSessions : (api.dashboard?.sessions.count ?? 0)
     }
 
-    private var currentStreak: Int { dna?.consistency.currentStreak ?? 0 }
+    private var currentStreak: Int  { dna?.consistency.currentStreak  ?? 0 }
+    private var longestStreak: Int  { dna?.consistency.longestStreak  ?? 0 }
 
     private var weightDelta30d: Double? {
         let sorted = bodyComp.history.sorted { $0.date < $1.date }
@@ -171,10 +178,12 @@ struct ProfileView: View {
             VStack(spacing: 20) {
                 if isProfileIncomplete { incompleteProfileBanner }
                 headerSection
+                if let px = phoenix { phoenixScoreCard(px) }
                 statsGridSection
                 bodyCompCard
                 prsCard
                 trendsSection
+                oathCard
                 settingsCard
                 Spacer(minLength: contentBottomPadding)
             }
@@ -212,7 +221,7 @@ struct ProfileView: View {
             if !memberSinceText.isEmpty {
                 Text(memberSinceText)
                     .font(.system(size: 13))
-                    .foregroundColor(.gray)
+                    .foregroundColor(.gray.opacity(0.8))
             }
 
             headerBadgesRow
@@ -233,6 +242,19 @@ struct ProfileView: View {
                 .foregroundColor(accent)
                 .padding(.horizontal, 10).padding(.vertical, 5)
                 .background(accent.opacity(0.15))
+                .clipShape(Capsule())
+            }
+            if let px = phoenix {
+                let state = px.phoenixState
+                HStack(spacing: 4) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 9, weight: .bold))
+                    Text(state.label.uppercased())
+                        .font(.system(size: 11, weight: .bold)).tracking(0.5)
+                }
+                .foregroundColor(state.scoreColor)
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(state.scoreColor.opacity(0.15))
                 .clipShape(Capsule())
             }
             if let goal = profile?.goal, !goal.isEmpty {
@@ -290,35 +312,118 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Section 2 — Stats Grid
+    // MARK: - Section 2 — Phoenix Score
+
+    private func phoenixScoreCard(_ px: PhoenixScore) -> some View {
+        let state   = px.phoenixState
+        let color   = state.scoreColor
+        let delta7d = px.rawDelta
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("PHOENIX SCORE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 13)).foregroundColor(color.opacity(0.7))
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text("\(Int(px.score))")
+                    .font(.system(size: 52, weight: .black))
+                    .foregroundColor(color)
+                    .shadow(color: color.opacity(state.glowOpacity), radius: state.glowRadius)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(state.label.uppercased())
+                        .font(.system(size: 12, weight: .bold)).tracking(1)
+                        .foregroundColor(color)
+                    if delta7d != 0 {
+                        HStack(spacing: 3) {
+                            Image(systemName: delta7d >= 0 ? "arrow.up" : "arrow.down")
+                                .font(.system(size: 9, weight: .bold))
+                            Text(String(format: "%.1f cette semaine", abs(delta7d)))
+                                .font(.system(size: 11))
+                        }
+                        .foregroundColor(delta7d >= 0 ? .green : .red)
+                    }
+                }
+                Spacer()
+            }
+
+            HStack(spacing: 0) {
+                phoenixAxisChip(icon: "dumbbell.fill",   label: "FORCE",      delta: px.axes.workout.delta,   color: .orange)
+                Divider().background(Color.white.opacity(0.08)).padding(.vertical, 4)
+                phoenixAxisChip(icon: "brain.head.profile", label: "MENTAL",  delta: px.axes.stress.delta,    color: .purple)
+                Divider().background(Color.white.opacity(0.08)).padding(.vertical, 4)
+                phoenixAxisChip(icon: "fork.knife",      label: "NUTRITION",  delta: px.axes.nutrition.delta, color: .green)
+            }
+            .background(Color.white.opacity(0.04))
+            .cornerRadius(10)
+        }
+        .padding(16)
+        .background(state.cardBackground)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(color.opacity(0.15), lineWidth: 1))
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
+    }
+
+    private func phoenixAxisChip(icon: String, label: String, delta: Double, color: Color) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(color.opacity(0.8))
+            if delta != 0 {
+                HStack(spacing: 2) {
+                    Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
+                        .font(.system(size: 8, weight: .bold))
+                    Text(String(format: "%.1f", abs(delta)))
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundColor(delta >= 0 ? .green : .red)
+            } else {
+                Text("—").font(.system(size: 10)).foregroundColor(.gray.opacity(0.4))
+            }
+            Text(label)
+                .font(.system(size: 8, weight: .bold)).tracking(0.5)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Section 3 — Stats Grid
 
     private var statsGridSection: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             ProfileStatSquare(
                 value: displayTotalSessions > 0 ? "\(displayTotalSessions)" : "—",
                 label: "SÉANCES", icon: "dumbbell.fill", color: .orange,
+                subtitle: nil,
                 hasData: displayTotalSessions > 0
             )
             ProfileStatSquare(
                 value: currentStreak > 0 ? "\(currentStreak)j" : "—",
                 label: "STREAK", icon: "flame.fill", color: .red,
+                subtitle: longestStreak > 0 ? "record \(longestStreak)j" : nil,
+                isRecord: currentStreak > 0 && currentStreak >= longestStreak,
                 hasData: currentStreak > 0
             )
             ProfileStatSquare(
                 value: allTimeVolumeLbs > 0 ? allTimeVolumeFormatted : "—",
                 label: "VOLUME ALL-TIME", icon: "scalemass.fill", color: .blue,
+                subtitle: nil,
                 hasData: allTimeVolumeLbs > 0
             )
             ProfileStatSquare(
                 value: "\(sessionsThisMonth)",
-                label: "SÉANCES CE MOIS", icon: "calendar", color: .green,
+                label: "JOURS ACTIFS CE MOIS", icon: "calendar", color: .green,
+                subtitle: nil,
                 hasData: true
             )
         }
         .padding(.horizontal, 16)
     }
 
-    // MARK: - Section 3 — Body Composition
+    // MARK: - Section 4 — Body Composition
 
     private var bodyCompCard: some View {
         let heightCm   = profile?.height ?? 178.0
@@ -444,7 +549,7 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Section 4 — PRs
+    // MARK: - Section 5 — PRs
 
     @ViewBuilder
     private var prsCard: some View {
@@ -499,7 +604,7 @@ struct ProfileView: View {
         .padding(.vertical, 6)
     }
 
-    // MARK: - Section 5 — Tendances
+    // MARK: - Section 6 — Tendances
 
     private var trendsSection: some View {
         HStack(spacing: 10) {
@@ -614,20 +719,128 @@ struct ProfileView: View {
         return t.positive ? "Stress en baisse. Tu récupères." : "Stress en hausse. Surveille la charge."
     }
 
-    // MARK: - Section 6 — Settings
+    // MARK: - Section 7 — Oath
+
+    @ViewBuilder
+    private var oathCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label("MON SERMENT", systemImage: "shield.fill")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .labelStyle(.titleAndIcon)
+                Spacer()
+                if !oathUnlocked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 11)).foregroundColor(.gray.opacity(0.5))
+                }
+            }
+            .padding(.bottom, 12)
+
+            if let oath {
+                if oathUnlocked {
+                    Text(oath.text)
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(.white.opacity(0.85))
+                        .lineSpacing(5)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+
+                    if warRoomEnabled && warRoomVictoryStreak > 0 {
+                        HStack(spacing: 6) {
+                            Image(systemName: "flame.fill").foregroundColor(.orange)
+                                .font(.system(size: 11))
+                            Text("War Room — \(warRoomVictoryStreak)j de victoires consécutives")
+                                .font(.system(size: 12, weight: .semibold)).foregroundColor(.orange)
+                        }
+                        .padding(.top, 10)
+                    }
+                } else {
+                    VStack(spacing: 10) {
+                        oathRedactedPreview(oath.text)
+                        Button(action: authenticateOath) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "faceid")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("Tenir mon serment")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11))
+                            }
+                            .foregroundColor(.orange)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: "shield")
+                        .font(.system(size: 22)).foregroundColor(.gray.opacity(0.35))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Tu n'as pas encore prononcé ton serment.")
+                            .font(.system(size: 13)).foregroundColor(.white.opacity(0.5))
+                        NavigationLink(destination: OathGateView()) {
+                            Text("Écrire mon serment →")
+                                .font(.system(size: 12, weight: .semibold)).foregroundColor(.orange)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(hex: "0F0F0F"))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.07), lineWidth: 1))
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
+        .animation(.easeInOut(duration: 0.35), value: oathUnlocked)
+    }
+
+    private func oathRedactedPreview(_ text: String) -> some View {
+        let words = text.split(separator: " ")
+        let preview = words.prefix(12).joined(separator: " ")
+        return Text(preview.isEmpty ? "···" : preview + " ···")
+            .font(.system(size: 14))
+            .foregroundColor(.clear)
+            .overlay(
+                Text(preview.isEmpty ? "···" : preview + " ···")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.15))
+                    .blur(radius: 5)
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func authenticateOath() {
+        let ctx = LAContext()
+        var err: NSError?
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &err) else {
+            oathUnlocked = true; return
+        }
+        ctx.evaluatePolicy(.deviceOwnerAuthentication,
+                           localizedReason: "Accéder à ton serment") { ok, _ in
+            DispatchQueue.main.async { if ok { oathUnlocked = true } }
+        }
+    }
+
+    // MARK: - Section 8 — Settings
 
     private var settingsCard: some View {
         VStack(spacing: 0) {
-            NavigationLink(destination: GraveyardView()) {
-                graveyardRow
-            }
-            .buttonStyle(PlainButtonStyle())
+            settingsRow(icon: "trophy.fill",         color: .yellow,  label: "Objectif & niveau",
+                        detail: profile?.goal.flatMap { $0.isEmpty ? nil : $0 },
+                        action: { showEdit = true })
             settingsDivider
             settingsRow(icon: "scalemass.fill",      color: .orange,  label: "Unités",         detail: "lbs",  action: nil)
+            settingsDivider
+            settingsRow(icon: "bell.fill",           color: .blue,    label: "Notifications",  detail: nil,    action: nil)
             settingsDivider
             settingsRow(icon: "square.and.arrow.up", color: .green,   label: "Export données", detail: nil,    action: {
                 Task { await exportData() }
             })
+            settingsDivider
+            NavigationLink(destination: GraveyardView()) {
+                graveyardRow
+            }
+            .buttonStyle(PlainButtonStyle())
             settingsDivider
             settingsRow(icon: "person.crop.circle",  color: .purple,  label: "Compte",         detail: nil,    action: {
                 showEdit = true
@@ -739,8 +952,8 @@ struct ProfileView: View {
         let out = DateFormatter(); out.dateFormat = "MMMM yyyy"
         out.locale = Locale(identifier: "fr_FR")
         let label = out.string(from: date).capitalized
-        if months < 1 { return "Jour 1." }
-        return "En combat depuis \(label)"
+        if months < 1 { return "Warrior since today." }
+        return "Warrior since \(label)"
     }
 
     // MARK: - Load
@@ -749,9 +962,22 @@ struct ProfileView: View {
         isLoading = true
         await api.fetchDashboard()
         await BodyCompService.shared.refresh()
-        dna       = try? await APIService.shared.fetchWorkoutDNA()
-        pssHistory = (try? await APIService.shared.fetchPSSHistory()) ?? []
+        async let dnaFetch       = APIService.shared.fetchWorkoutDNA()
+        async let pssFetch       = APIService.shared.fetchPSSHistory()
+        async let phoenixFetch   = APIService.shared.fetchPhoenixScore()
+        async let oathFetch      = APIService.shared.getCurrentOath()
+        async let warConfigFetch = APIService.shared.getWarRoomConfig()
         try? await APIService.shared.fetchStatsData()
+        dna        = try? await dnaFetch
+        pssHistory = (try? await pssFetch) ?? []
+        phoenix    = try? await phoenixFetch
+        oath       = try? await oathFetch
+        if let config = try? await warConfigFetch, config.warStartDate != nil {
+            warRoomEnabled = true
+            if let summary = try? await APIService.shared.getWarRoomSummary() {
+                warRoomVictoryStreak = summary.victoryStreak
+            }
+        }
         loadStatsSnapshot()
         isLoading = false
     }
@@ -828,17 +1054,30 @@ struct ProfileStatSquare: View {
     let label: String
     let icon: String
     let color: Color
+    var subtitle: String? = nil
+    var isRecord: Bool    = false
     let hasData: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(color.opacity(hasData ? 1 : 0.35))
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(color.opacity(hasData ? 1 : 0.35))
+                if isRecord {
+                    Image(systemName: "trophy.fill")
+                        .font(.system(size: 10)).foregroundColor(.yellow)
+                }
+            }
             Text(value)
                 .font(.system(size: 26, weight: .black))
-                .foregroundColor(.white.opacity(hasData ? 1 : 0.3))
+                .foregroundColor(isRecord ? .yellow : .white.opacity(hasData ? 1 : 0.3))
                 .lineLimit(1).minimumScaleFactor(0.6)
+            if let sub = subtitle {
+                Text(sub)
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray.opacity(0.6))
+            }
             Text(label)
                 .font(.system(size: 9, weight: .bold)).tracking(1.5)
                 .foregroundColor(.gray)
