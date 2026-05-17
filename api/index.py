@@ -91,6 +91,8 @@ from routes.plateau      import plateau_bp
 from routes.ritual       import ritual_bp
 from routes.phoenix      import phoenix_bp
 from routes.graveyard    import graveyard_bp
+from routes.war_room     import war_room_bp
+from routes.spirit       import spirit_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -110,6 +112,8 @@ app.register_blueprint(plateau_bp)
 app.register_blueprint(ritual_bp)
 app.register_blueprint(phoenix_bp)
 app.register_blueprint(graveyard_bp)
+app.register_blueprint(war_room_bp)
+app.register_blueprint(spirit_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────

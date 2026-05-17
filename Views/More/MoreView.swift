@@ -11,8 +11,9 @@ struct MoreView: View {
                 AmbientBackground(color: .orange)
 
                 List {
-                    Section("Rituel") {
-                        MoreRow(icon: "flame.fill", color: Color(hex: "FF2D20"), title: "Rituel quotidien") { RitualView() }
+                    Section("Rituel & Esprit") {
+                        MoreRow(icon: "flame.fill",  color: Color(hex: "FF2D20"), title: "Rituel quotidien") { RitualView() }
+                        MoreRow(icon: "wind",        color: Color.moonlight.opacity(0.7), title: "The Void") { SpiritView() }
                     }
                     .listRowBackground(glassRowBG(Color(hex: "FF2D20")))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
@@ -59,6 +60,7 @@ struct MoreView: View {
                         MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Inventaire") { InventaireView() }
                         MoreRow(icon: "note.text",        color: .blue,   title: "Notes")      { NotesView() }
                         MoreRow(icon: "person.fill",      color: .purple, title: "Profil")     { ProfileView() }
+                        MoreRow(icon: "lock.shield.fill", color: Color.forge, title: "War Room") { WarRoomGateView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
                     .listRowSeparatorTint(Color.white.opacity(0.06))

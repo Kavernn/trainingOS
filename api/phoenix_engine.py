@@ -160,6 +160,34 @@ def compute() -> dict:
     stress_delta,    stress_details    = _stress_axis(last7, prior7)
     nutrition_delta, nutrition_details = _nutrition_axis(last7, prior7)
 
+    # Optional resilience axis (War Room integration)
+    resilience_delta  = 0.0
+    resilience_details: dict = {"has_baseline": False}
+    use_resilience = False
+    try:
+        import db as _db
+        config = _db.get_war_room_config() or {}
+        if config.get("integration_phoenix"):
+            import war_room_engine as _wr
+            resilience_delta, resilience_details = _wr.resilience_axis(last7, prior7)
+            use_resilience = True
+    except Exception:
+        pass
+
+    # Optional spirit axis (Spirit Pillar integration)
+    spirit_delta  = 0.0
+    spirit_details: dict = {"has_baseline": False}
+    use_spirit = False
+    try:
+        import db as _db2
+        scfg = _db2.get_spirit_config() or {}
+        if scfg.get("integration_phoenix"):
+            import spirit_engine as _se
+            spirit_delta, spirit_details = _se.compute_spirit_axis(last7, prior7)
+            use_spirit = True
+    except Exception:
+        pass
+
     has_baseline = (
         workout_details.get("has_baseline")
         or stress_details.get("has_baseline")
@@ -167,29 +195,57 @@ def compute() -> dict:
     )
 
     if not has_baseline:
+        axes = {
+            "workout":   {"delta": 0.0, "details": workout_details},
+            "stress":    {"delta": 0.0, "details": stress_details},
+            "nutrition": {"delta": 0.0, "details": nutrition_details},
+        }
+        if use_resilience:
+            axes["resilience"] = {"delta": 0.0, "details": resilience_details}
+        if use_spirit:
+            axes["spirit"] = {"delta": 0.0, "details": spirit_details}
         return {
-            "score": 0.0,
-            "state": "foundation",
-            "axes": {
-                "workout":   {"delta": 0.0, "details": workout_details},
-                "stress":    {"delta": 0.0, "details": stress_details},
-                "nutrition": {"delta": 0.0, "details": nutrition_details},
-            },
-            "is_foundation": True,
-            "raw_delta": 0.0,
+            "score": 0.0, "state": "foundation",
+            "axes": axes, "is_foundation": True, "raw_delta": 0.0,
         }
 
-    raw_delta = workout_delta * 0.50 + stress_delta * 0.25 + nutrition_delta * 0.25
+    # Weight distribution depends on active optional axes
+    n_optional = (1 if use_resilience else 0) + (1 if use_spirit else 0)
+    if n_optional == 0:
+        raw_delta = workout_delta * 0.50 + stress_delta * 0.25 + nutrition_delta * 0.25
+    elif n_optional == 1:
+        opt_delta = resilience_delta if use_resilience else spirit_delta
+        raw_delta = (
+            workout_delta   * 0.43
+            + stress_delta    * 0.21
+            + nutrition_delta * 0.21
+            + opt_delta       * 0.15
+        )
+    else:
+        raw_delta = (
+            workout_delta    * 0.38
+            + stress_delta     * 0.18
+            + nutrition_delta  * 0.18
+            + resilience_delta * 0.13
+            + spirit_delta     * 0.13
+        )
+
     scaled = _soft_scale(raw_delta)
+
+    axes = {
+        "workout":   {"delta": round(workout_delta, 1),   "details": workout_details},
+        "stress":    {"delta": round(stress_delta, 1),    "details": stress_details},
+        "nutrition": {"delta": round(nutrition_delta, 1), "details": nutrition_details},
+    }
+    if use_resilience:
+        axes["resilience"] = {"delta": round(resilience_delta, 1), "details": resilience_details}
+    if use_spirit:
+        axes["spirit"] = {"delta": round(spirit_delta, 1), "details": spirit_details}
 
     return {
         "score": round(scaled, 1),
         "state": _map_state(scaled),
-        "axes": {
-            "workout":   {"delta": round(workout_delta, 1),   "details": workout_details},
-            "stress":    {"delta": round(stress_delta, 1),    "details": stress_details},
-            "nutrition": {"delta": round(nutrition_delta, 1), "details": nutrition_details},
-        },
+        "axes": axes,
         "is_foundation": False,
         "raw_delta": round(raw_delta, 1),
     }

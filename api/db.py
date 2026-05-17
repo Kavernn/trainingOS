@@ -5287,3 +5287,416 @@ def get_ritual_demons() -> List[dict]:
                 return []
         logger.error("get_ritual_demons error: %s", e)
         return []
+
+
+# ── War Room ──────────────────────────────────────────────────────────────────
+
+def get_war_room_config() -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = _client.table("war_room_config").select("*").eq("id", 1).maybe_single().execute()
+        return resp.data
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_war_room_config retry: %s", e2)
+                return None
+        logger.error("get_war_room_config error: %s", e)
+        return None
+
+
+def upsert_war_room_config(data: dict) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    payload = {**data, "id": 1}
+    def _do():
+        _client.table("war_room_config").upsert(payload, on_conflict="id").execute()
+        return True
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_war_room_config retry: %s", e2)
+                return False
+        logger.error("upsert_war_room_config error: %s", e)
+        return False
+
+
+def get_war_room_battles(limit: int = 90) -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("war_room_battles")
+            .select("id, date, status, notes, created_at")
+            .order("date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_war_room_battles retry: %s", e2)
+                return []
+        logger.error("get_war_room_battles error: %s", e)
+        return []
+
+
+def upsert_war_room_battle(data: dict) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    def _do():
+        _client.table("war_room_battles").upsert(data, on_conflict="date").execute()
+        return True
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_war_room_battle retry: %s", e2)
+                return False
+        logger.error("upsert_war_room_battle error: %s", e)
+        return False
+
+
+def get_war_room_triggers(limit: int = 90) -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("war_room_triggers")
+            .select("id, date, logged_at, context, context_note, intensity, yielded, held_with")
+            .order("logged_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_war_room_triggers retry: %s", e2)
+                return []
+        logger.error("get_war_room_triggers error: %s", e)
+        return []
+
+
+def insert_war_room_trigger(data: dict) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = _client.table("war_room_triggers").insert(data).execute()
+        return (resp.data or [None])[0]
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_war_room_trigger retry: %s", e2)
+                return None
+        logger.error("insert_war_room_trigger error: %s", e)
+        return None
+
+
+def get_war_room_arsenal() -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("war_room_arsenal")
+            .select("id, label, category, use_count, last_used_at, sort_order, active")
+            .eq("active", True)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_war_room_arsenal retry: %s", e2)
+                return []
+        logger.error("get_war_room_arsenal error: %s", e)
+        return []
+
+
+def insert_war_room_arsenal_item(data: dict) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = _client.table("war_room_arsenal").insert(data).execute()
+        return (resp.data or [None])[0]
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("insert_war_room_arsenal_item retry: %s", e2)
+                return None
+        logger.error("insert_war_room_arsenal_item error: %s", e)
+        return None
+
+
+def delete_war_room_arsenal_item(item_id: str) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    def _do():
+        resp = _client.table("war_room_arsenal").update({"active": False}).eq("id", item_id).execute()
+        return bool(resp.data)
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("delete_war_room_arsenal_item retry: %s", e2)
+                return False
+        logger.error("delete_war_room_arsenal_item error: %s", e)
+        return False
+
+
+def increment_arsenal_use(item_id: str) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    def _do():
+        row = _client.table("war_room_arsenal").select("use_count").eq("id", item_id).maybe_single().execute()
+        current = (row.data or {}).get("use_count", 0)
+        _client.table("war_room_arsenal").update({
+            "use_count":    current + 1,
+            "last_used_at": datetime.now(timezone.utc).isoformat(),
+        }).eq("id", item_id).execute()
+        return True
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("increment_arsenal_use retry: %s", e2)
+                return False
+        logger.error("increment_arsenal_use error: %s", e)
+        return False
+
+
+# ── Spirit Pillar ─────────────────────────────────────────────────────────────
+
+def get_spirit_config() -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = _client.table("spirit_config").select("*").eq("id", 1).maybe_single().execute()
+        return resp.data
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_spirit_config retry: %s", e2)
+                return None
+        logger.error("get_spirit_config error: %s", e)
+        return None
+
+
+def upsert_spirit_config(data: dict) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    payload = {**data, "id": 1}
+    def _do():
+        _client.table("spirit_config").upsert(payload, on_conflict="id").execute()
+        return True
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("upsert_spirit_config retry: %s", e2)
+                return False
+        logger.error("upsert_spirit_config error: %s", e)
+        return False
+
+
+def log_breathwork_session(data: dict) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = _client.table("breathwork_sessions").insert(data).execute()
+        return (resp.data or [None])[0]
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("log_breathwork_session retry: %s", e2)
+                return None
+        logger.error("log_breathwork_session error: %s", e)
+        return None
+
+
+def get_breathwork_sessions(limit: int = 60) -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("breathwork_sessions")
+            .select("id, protocol, duration_sec, cycles, started_at, triggered_from")
+            .order("started_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_breathwork_sessions retry: %s", e2)
+                return []
+        logger.error("get_breathwork_sessions error: %s", e)
+        return []
+
+
+def log_meditation_session(data: dict) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = _client.table("meditation_sessions").insert(data).execute()
+        return (resp.data or [None])[0]
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("log_meditation_session retry: %s", e2)
+                return None
+        logger.error("log_meditation_session error: %s", e)
+        return None
+
+
+def get_meditation_sessions(limit: int = 60) -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("meditation_sessions")
+            .select("id, planned_sec, actual_sec, bell_interval, started_at, completed")
+            .order("started_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_meditation_sessions retry: %s", e2)
+                return []
+        logger.error("get_meditation_sessions error: %s", e)
+        return []
+
+
+def save_spirit_journal_entry(data: dict) -> bool:
+    if _client is None or MODE == "OFFLINE":
+        return False
+    def _do():
+        _client.table("spirit_journal").upsert(data, on_conflict="date").execute()
+        return True
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("save_spirit_journal_entry retry: %s", e2)
+                return False
+        logger.error("save_spirit_journal_entry error: %s", e)
+        return False
+
+
+def get_spirit_journal_entries(limit: int = 30) -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("spirit_journal")
+            .select("id, date")
+            .order("date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_spirit_journal_entries retry: %s", e2)
+                return []
+        logger.error("get_spirit_journal_entries error: %s", e)
+        return []
+
+
+def get_spirit_journal_entry(entry_date: str) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = (
+            _client.table("spirit_journal")
+            .select("id, date, grateful_for, conquered, haunting, created_at")
+            .eq("date", entry_date)
+            .maybe_single()
+            .execute()
+        )
+        return resp.data
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_spirit_journal_entry retry: %s", e2)
+                return None
+        logger.error("get_spirit_journal_entry error: %s", e)
+        return None

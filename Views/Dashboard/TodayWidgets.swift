@@ -256,13 +256,11 @@ struct HabsWidget: View {
 
     private func statsRow(_ stats: HabsGameStats) -> some View {
         HStack(spacing: 0) {
-            statCol(label: "Tirs", value: "\(stats.habsShots) – \(stats.oppShots)")
+            statCol(label: "Tirs",    value: "\(stats.habsShots) – \(stats.oppShots)")
             Spacer()
-            statCol(label: "Coups", value: "\(stats.habsHits) – \(stats.oppHits)")
+            statCol(label: "Coups",   value: "\(stats.habsHits) – \(stats.oppHits)")
             Spacer()
-            statCol(label: "JP", value: "\(stats.habsPP) – \(stats.oppPP)")
-            Spacer()
-            statCol(label: "MÀJ", value: "\(stats.habsFaceoff) – \(stats.oppFaceoff)")
+            statCol(label: "Bloqués", value: "\(stats.habsBlocked) – \(stats.oppBlocked)")
         }
         .padding(.top, 2)
         .padding(.horizontal, 2)

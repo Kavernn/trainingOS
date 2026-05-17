@@ -34,26 +34,39 @@ private struct NHLAPIClock: Codable {
 }
 
 private struct NHLBoxscore: Codable {
-    let teamGameStats: [NHLGameStat]?
+    let awayTeam: NHLBoxscoreTeam
+    let homeTeam: NHLBoxscoreTeam
+    let playerByGameStats: NHLPlayerByGameStats?
 }
 
-private struct NHLGameStat: Codable {
-    let category: String
-    let awayValue: String
-    let homeValue: String
+private struct NHLBoxscoreTeam: Codable {
+    let sog: Int?
+}
+
+private struct NHLPlayerByGameStats: Codable {
+    let awayTeam: NHLTeamPlayers
+    let homeTeam: NHLTeamPlayers
+}
+
+private struct NHLTeamPlayers: Codable {
+    let forwards: [NHLPlayerStat]
+    let defense: [NHLPlayerStat]
+}
+
+private struct NHLPlayerStat: Codable {
+    let hits: Int?
+    let blockedShots: Int?
 }
 
 // MARK: - Public model
 
 struct HabsGameStats {
-    let habsShots: String
-    let oppShots: String
-    let habsHits: String
-    let oppHits: String
-    let habsPP: String
-    let oppPP: String
-    let habsFaceoff: String
-    let oppFaceoff: String
+    let habsShots: Int
+    let oppShots: Int
+    let habsHits: Int
+    let oppHits: Int
+    let habsBlocked: Int
+    let oppBlocked: Int
 }
 
 struct HabsGame {
@@ -177,24 +190,24 @@ final class NHLService: ObservableObject {
     private func fetchBoxscore(gameId: Int, isMTLHome: Bool) async -> HabsGameStats? {
         guard let url = URL(string: "https://api-web.nhle.com/v1/gamecenter/\(gameId)/boxscore") else { return nil }
         guard let (data, _) = try? await URLSession.shared.data(from: url),
-              let boxscore = try? JSONDecoder().decode(NHLBoxscore.self, from: data),
-              let gameStats = boxscore.teamGameStats else { return nil }
+              let box = try? JSONDecoder().decode(NHLBoxscore.self, from: data) else { return nil }
 
-        func val(_ category: String, habs: Bool) -> String {
-            guard let stat = gameStats.first(where: { $0.category == category }) else { return "–" }
-            return isMTLHome ? (habs ? stat.homeValue : stat.awayValue)
-                             : (habs ? stat.awayValue : stat.homeValue)
+        let habsTeam   = isMTLHome ? box.homeTeam : box.awayTeam
+        let oppTeam    = isMTLHome ? box.awayTeam : box.homeTeam
+        let habsPlayers = isMTLHome ? box.playerByGameStats?.homeTeam : box.playerByGameStats?.awayTeam
+        let oppPlayers  = isMTLHome ? box.playerByGameStats?.awayTeam : box.playerByGameStats?.homeTeam
+
+        func sum(_ team: NHLTeamPlayers?, _ kp: KeyPath<NHLPlayerStat, Int?>) -> Int {
+            ((team?.forwards ?? []) + (team?.defense ?? [])).reduce(0) { $0 + ($1[keyPath: kp] ?? 0) }
         }
 
         return HabsGameStats(
-            habsShots:    val("sog", habs: true),
-            oppShots:     val("sog", habs: false),
-            habsHits:     val("hits", habs: true),
-            oppHits:      val("hits", habs: false),
-            habsPP:       val("powerPlayConversion", habs: true),
-            oppPP:        val("powerPlayConversion", habs: false),
-            habsFaceoff:  val("faceoffWinningPctg", habs: true),
-            oppFaceoff:   val("faceoffWinningPctg", habs: false)
+            habsShots:   habsTeam.sog ?? 0,
+            oppShots:    oppTeam.sog  ?? 0,
+            habsHits:    sum(habsPlayers, \.hits),
+            oppHits:     sum(oppPlayers,  \.hits),
+            habsBlocked: sum(habsPlayers, \.blockedShots),
+            oppBlocked:  sum(oppPlayers,  \.blockedShots)
         )
     }
 
