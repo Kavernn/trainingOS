@@ -7,6 +7,8 @@ struct GraveyardView: View {
     @State private var isLoading = true
     @State private var selectedTombstone: Tombstone?
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         ZStack {
             Color(hex: "0B0B0B").ignoresSafeArea()
@@ -52,7 +54,7 @@ struct GraveyardView: View {
             if let inception = r.inceptionDate {
                 Text("depuis \(frenchDate(inception))")
                     .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.35))
+                    .foregroundColor(.white.opacity(0.6))
             }
         }
         .frame(maxWidth: .infinity)
@@ -70,11 +72,11 @@ struct GraveyardView: View {
                 HStack {
                     Text(monthYear)
                         .font(.system(size: 10, weight: .black)).tracking(2)
-                        .foregroundColor(.white.opacity(0.25))
+                        .foregroundColor(.white.opacity(0.55))
                     Spacer()
                     Text("\(items.count) limite\(items.count > 1 ? "s" : "")")
                         .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.2))
+                        .foregroundColor(.white.opacity(0.5))
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
@@ -85,8 +87,12 @@ struct GraveyardView: View {
                         .padding(.horizontal, 16)
                         .padding(.bottom, 10)
                         .onTapGesture { selectedTombstone = tombstone }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(tombstoneLabel(tombstone))
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { selectedTombstone = tombstone }
                         // Tombstones fraîches arrivent après les vieilles — encore chaudes
-                        .appearAnimationHot(delay: tombstone.daysSinceDeath < 7 ? 0.8 : 0)
+                        .appearAnimationHot(delay: reduceMotion ? 0 : (tombstone.daysSinceDeath < 7 ? 0.8 : 0))
                 }
             }
         }
@@ -127,7 +133,7 @@ struct GraveyardView: View {
                 .foregroundColor(.white.opacity(0.5))
             Text("Tu n'as pas encore tué quoi que ce soit.\nContinue — les limites viennent.")
                 .font(.system(size: 14))
-                .foregroundColor(.white.opacity(0.3))
+                .foregroundColor(.white.opacity(0.55))
                 .multilineTextAlignment(.center)
         }
         .padding(40)
@@ -138,8 +144,15 @@ struct GraveyardView: View {
             ProgressView().tint(.white.opacity(0.3))
             Text("Exhumation en cours…")
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.25))
+                .foregroundColor(.white.opacity(0.5))
         }
+    }
+
+    private func tombstoneLabel(_ t: Tombstone) -> String {
+        var parts = [t.title, t.epitaph]
+        parts.append("Mort le \(frenchDate(t.deathDate)).")
+        parts.append(t.daysSinceDeath < 7 ? "Limite fraîche." : t.daysSinceDeath < 30 ? "Limite récente." : "Limite ancienne.")
+        return parts.joined(separator: " ")
     }
 
     private func frenchDate(_ iso: String) -> String {
