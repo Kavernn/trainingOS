@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 import Combine
 import OSLog
 
@@ -19,10 +18,9 @@ final class SyncManager: ObservableObject {
     @Published private(set) var pendingCount: Int = 0
     @Published private(set) var isSyncing = false
     @Published var offlineToast: String? = nil
-    @Published private(set) var zombieDropCount: Int = 0  // ROB-5: mutations permanently dropped
+    @Published private(set) var zombieDropCount: Int = 0
 
-    private var container: ModelContainer?
-    private var mainContext: ModelContext?
+    private let queue = UserDefaultsSyncQueue()
     private var cancellables = Set<AnyCancellable>()
     private let logger = Logger(subsystem: "TrainingOS", category: "sync")
 
@@ -30,20 +28,16 @@ final class SyncManager: ObservableObject {
 
     // MARK: - Setup
 
-    /// Call once from TrainingOSApp with the shared ModelContainer.
-    func setup(container: ModelContainer) {
-        self.container = container
-        mainContext = ModelContext(container)
+    /// Call once from TrainingOSApp. No ModelContainer needed — queue is UserDefaults-backed.
+    func setup() {
         refreshPendingCount()
 
-        // Flush immediately on startup if already online
         if isOnlineProvider() {
             Task { await flushQueue() }
         }
 
-        // Auto-sync when coming back online
         NetworkMonitor.shared.$isOnline
-            .filter { $0 }                         // only when transitioning to online
+            .filter { $0 }
             .debounce(for: .seconds(1), scheduler: RunLoop.main)
             .sink { [weak self] _ in
                 Task { await self?.flushQueue() }
@@ -54,11 +48,9 @@ final class SyncManager: ObservableObject {
     // MARK: - Enqueue
 
     /// Persist a mutation for later delivery.
-    func enqueue(endpoint: String, payload: [String: Any]) {
-        guard let context = mainContext else { return }
-        let mutation = PendingMutation(endpoint: endpoint, payload: payload)
-        context.insert(mutation)
-        try? context.save()
+    func enqueue(endpoint: String, method: String = "POST", payload: [String: Any]) {
+        let mutation = PendingMutation(endpoint: endpoint, method: method, payload: payload)
+        queue.append(mutation)
         pendingCount += 1
         showOfflineToast()
     }
@@ -84,20 +76,17 @@ final class SyncManager: ObservableObject {
 
     /// Send all pending mutations in FIFO order. Safe to call multiple times.
     func flushQueue() async {
-        guard let container, !isSyncing else { return }
+        guard !isSyncing else { return }
         guard isOnlineProvider() else { return }
 
         isSyncing = true
         defer { isSyncing = false }
 
-        let context = ModelContext(container)
         let cap = maxRetries
-        let descriptor = FetchDescriptor<PendingMutation>(
-            predicate: #Predicate { !$0.isSynced && $0.retryCount < cap },
-            sortBy: [SortDescriptor(\.createdAt)]
-        )
+        var pending = queue.load().filter { !$0.isSynced && $0.retryCount < cap }
+        pending.sort { $0.createdAt < $1.createdAt }
 
-        guard let pending = try? context.fetch(descriptor), !pending.isEmpty else {
+        guard !pending.isEmpty else {
             refreshPendingCount()
             return
         }
@@ -105,7 +94,7 @@ final class SyncManager: ObservableObject {
         let sessionEndpoints: Set<String> = ["/api/log", "/api/log_session", "/api/log_hiit"]
         var syncedSessionMutation = false
 
-        for mutation in pending {
+        for var mutation in pending {
             let success = await send(mutation: mutation)
             if success {
                 mutation.isSynced   = true
@@ -114,7 +103,7 @@ final class SyncManager: ObservableObject {
             } else {
                 mutation.retryCount += 1
             }
-            try? context.save()
+            queue.update(mutation)
         }
 
         if syncedSessionMutation {
@@ -124,24 +113,15 @@ final class SyncManager: ObservableObject {
 
         // Purge synced mutations older than 7 days
         let cutoff = Date().addingTimeInterval(-7 * 86_400)
-        let purgeDescriptor = FetchDescriptor<PendingMutation>(
-            predicate: #Predicate { $0.isSynced && $0.createdAt < cutoff }
-        )
-        if let toDelete = try? context.fetch(purgeDescriptor) {
-            toDelete.forEach { context.delete($0) }
-            try? context.save()
-        }
+        queue.removeAll { $0.isSynced && $0.createdAt < cutoff }
 
-        // Purge zombie mutations (exhausted retries) — never synced, never will be
-        let zombieDescriptor = FetchDescriptor<PendingMutation>(
-            predicate: #Predicate { !$0.isSynced && $0.retryCount >= cap }
-        )
-        if let zombies = try? context.fetch(zombieDescriptor), !zombies.isEmpty {
+        // Purge zombie mutations (exhausted retries)
+        let zombies = queue.load().filter { !$0.isSynced && $0.retryCount >= cap }
+        if !zombies.isEmpty {
             zombies.forEach {
                 logger.warning("Dropping zombie mutation — \($0.method, privacy: .public) \($0.endpoint, privacy: .public) (retries: \($0.retryCount))")
-                context.delete($0)
             }
-            try? context.save()
+            queue.removeAll { !$0.isSynced && $0.retryCount >= cap }
             zombieDropCount += zombies.count
             showZombieToast(count: zombies.count)
         }
@@ -155,18 +135,18 @@ final class SyncManager: ObservableObject {
         guard let url = URL(string: baseURL + mutation.endpoint) else { return false }
         var req = URLRequest(url: url)
         req.httpMethod      = mutation.method
-        req.httpBody        = mutation.payloadData
+        req.httpBody        = mutation.method == "DELETE" ? nil : mutation.payloadData
         req.timeoutInterval = 15
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if mutation.method != "DELETE" {
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         do {
             let (_, response) = try await URLSession.authed.data(for: req)
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
-            // 4xx client errors (except 429 rate-limit) = non-recoverable, discard cleanly
             if (400...499).contains(code) && code != 429 {
                 logger.warning("Discarding non-recoverable mutation — \(mutation.method, privacy: .public) \(mutation.endpoint, privacy: .public) status \(code)")
                 return true
             }
-            // 2xx = success; 409 (already_logged) = idempotent success
             return (200...299).contains(code) || code == 409
         } catch {
             return false
@@ -174,11 +154,6 @@ final class SyncManager: ObservableObject {
     }
 
     private func refreshPendingCount() {
-        guard let context = mainContext else { return }
-        let cap = maxRetries
-        let descriptor = FetchDescriptor<PendingMutation>(
-            predicate: #Predicate { !$0.isSynced && $0.retryCount < cap }
-        )
-        pendingCount = (try? context.fetchCount(descriptor)) ?? 0
+        pendingCount = queue.pendingCount(maxRetries: maxRetries)
     }
 }

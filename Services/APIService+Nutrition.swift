@@ -121,7 +121,7 @@ extension APIService {
         }
         guard let data = try await offlinePost(endpoint: "/api/meal_templates",
                                                payload: ["name": name, "items": itemDicts]) else {
-            throw APIError.serverError(0, "offline")
+            throw APIError.queuedOffline
         }
         return try JSONDecoder().decode(Resp.self, from: data).template
     }

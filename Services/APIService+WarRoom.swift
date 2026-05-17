@@ -37,7 +37,7 @@ extension APIService {
         let data = try await offlinePost(endpoint: "/api/war_room/battle", payload: body)
         CacheService.shared.clear(for: "war_room_summary")
         CacheService.shared.clear(for: "war_room_battles")
-        guard let data else { throw URLError(.badServerResponse) }
+        guard let data else { throw APIError.queuedOffline }
         let resp = try JSONDecoder().decode(BattleUpsertResponse.self, from: data)
         return resp.summary
     }
@@ -91,14 +91,7 @@ extension APIService {
     }
 
     func deleteArsenalItem(_ id: String) async throws {
-        guard let url = URL(string: "\(baseURL)/api/war_room/arsenal/\(id)") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "DELETE"
-        req.timeoutInterval = 15
-        let (_, resp) = try await URLSession.authed.data(for: req)
-        if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-            throw APIError.serverError(http.statusCode, "deleteArsenalItem HTTP \(http.statusCode)")
-        }
+        _ = try await offlinePost(endpoint: "/api/war_room/arsenal/\(id)", method: "DELETE", payload: [:])
         CacheService.shared.clear(for: "war_room_arsenal")
     }
 

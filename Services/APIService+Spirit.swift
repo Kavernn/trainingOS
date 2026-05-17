@@ -68,9 +68,8 @@ extension APIService {
 
     func getSpiritJournalEntry(date: String) async throws -> SpiritJournalEntry? {
         guard let url = URL(string: "\(baseURL)/api/spirit/journal/\(date)") else { return nil }
-        var req = URLRequest(url: url)
-        req.timeoutInterval = 15
-        let (data, _) = try await URLSession.authed.data(for: req)
+        let cacheKey = "spirit_journal_\(date)"
+        let data = try await fetchWithCache(url: url, key: cacheKey)
         if data.isEmpty || data == Data("{}".utf8) { return nil }
         return try? JSONDecoder().decode(SpiritJournalEntry.self, from: data)
     }

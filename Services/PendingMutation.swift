@@ -1,22 +1,16 @@
 import Foundation
-import SwiftData
 
 /// One API mutation that needs to be sent to the server.
-/// Persisted locally so it survives app restarts and offline periods.
-@Model
-final class PendingMutation {
-
-    // MARK: - Stored properties
+/// Stored in UserDefaults (JSON) so it survives app restarts and offline periods.
+struct PendingMutation: Codable {
 
     var id:          UUID
-    var endpoint:    String   // e.g. "/api/log"
-    var method:      String   // always "POST" for now
-    var payloadData: Data     // JSON-encoded body
+    var endpoint:    String
+    var method:      String
+    var payloadData: Data
     var createdAt:   Date
     var retryCount:  Int
     var isSynced:    Bool
-
-    // MARK: - Init
 
     init(endpoint: String, method: String = "POST", payload: [String: Any]) {
         self.id          = UUID()
@@ -27,8 +21,6 @@ final class PendingMutation {
         self.retryCount  = 0
         self.isSynced    = false
     }
-
-    // MARK: - Helpers
 
     var payloadDict: [String: Any]? {
         try? JSONSerialization.jsonObject(with: payloadData) as? [String: Any]

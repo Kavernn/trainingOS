@@ -177,36 +177,40 @@ struct RitualEveningView: View {
         Task {
             do {
                 let r = try await APIService.shared.saveRitualEvening(outcome: outcome)
-
-                if outcome == "burned" {
-                    // Flash then reveal
-                    await MainActor.run {
-                        withAnimation(.easeIn(duration: 0.15)) { flashOpacity = 0.6 }
-                    }
-                    try? await Task.sleep(nanoseconds: 180_000_000)
-                    await MainActor.run {
-                        withAnimation(.easeOut(duration: 0.35)) { flashOpacity = 0 }
-                    }
-                    try? await Task.sleep(nanoseconds: 200_000_000)
-                }
-
-                await MainActor.run {
-                    result     = r
-                    showResult = true
-                    isSaving   = false
-                }
-
-                // Refresh parent after 2.5s
-                try? await Task.sleep(nanoseconds: 2_500_000_000)
-                if let updated = try? await APIService.shared.fetchRitualToday() {
-                    await MainActor.run { onSaved(updated) }
-                }
+                await showEveningResult(r, outcome: outcome)
+            } catch APIError.queuedOffline {
+                // Queued — show a synthetic result so the user isn't left hanging
+                let synthetic = RitualEveningResult(
+                    ok: true, outcome: outcome,
+                    phoenixStreak: 0, phoenixBest: 0, phoenixTotalBurned: 0
+                )
+                await showEveningResult(synthetic, outcome: outcome)
             } catch {
                 await MainActor.run {
                     selectedOutcome = nil
                     isSaving        = false
                 }
             }
+        }
+    private func showEveningResult(_ r: RitualEveningResult, outcome: String) async {
+        if outcome == "burned" {
+            await MainActor.run {
+                withAnimation(.easeIn(duration: 0.15)) { flashOpacity = 0.6 }
+            }
+            try? await Task.sleep(nanoseconds: 180_000_000)
+            await MainActor.run {
+                withAnimation(.easeOut(duration: 0.35)) { flashOpacity = 0 }
+            }
+            try? await Task.sleep(nanoseconds: 200_000_000)
+        }
+        await MainActor.run {
+            result     = r
+            showResult = true
+            isSaving   = false
+        }
+        try? await Task.sleep(nanoseconds: 2_500_000_000)
+        if let updated = try? await APIService.shared.fetchRitualToday() {
+            await MainActor.run { onSaved(updated) }
         }
     }
 }

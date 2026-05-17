@@ -84,13 +84,15 @@ class APIService: ObservableObject {
     // Returns non-nil Data on a successful server response.
     // Returns nil when the mutation was queued offline (not an error).
     // Throws APIError.serverError on 4xx/5xx, or URLError on bad config.
-    func offlinePost(endpoint: String, payload: [String: Any]) async throws -> Data? {
+    func offlinePost(endpoint: String, method: String = "POST", payload: [String: Any]) async throws -> Data? {
         guard let url = URL(string: APIConfig.base + endpoint) else { throw URLError(.badURL) }
         var req = URLRequest(url: url)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        req.httpMethod      = method
         req.timeoutInterval = 15
+        if method != "DELETE" {
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        }
         do {
             let (data, response) = try await URLSession.authed.data(for: req)
             if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
@@ -101,7 +103,7 @@ class APIService: ObservableObject {
         } catch let err as APIError {
             throw err
         } catch {
-            await MainActor.run { SyncManager.shared.enqueue(endpoint: endpoint, payload: payload) }
+            await MainActor.run { SyncManager.shared.enqueue(endpoint: endpoint, method: method, payload: payload) }
             return nil  // nil = queued offline, distinct from any server response
         }
     }

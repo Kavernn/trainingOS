@@ -26,7 +26,7 @@ extension APIService {
         let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: ["outcome": outcome])
         CacheService.shared.clear(for: "ritual_today")
         CacheService.shared.clear(for: "ritual_streak")
-        guard let data else { throw URLError(.badServerResponse) }
+        guard let data else { throw APIError.queuedOffline }
         return try JSONDecoder().decode(RitualEveningResult.self, from: data)
     }
 }
