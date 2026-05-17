@@ -4,7 +4,7 @@ import UserNotifications
 
 @main
 struct TrainingOSApp: App {
-    @ObservedObject private var appState = AppState.shared
+    @StateObject private var appState = AppState.shared
     @State private var showSplash = true
     @State private var hkSetupDone = false
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
