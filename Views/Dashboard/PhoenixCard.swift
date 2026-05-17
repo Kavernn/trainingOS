@@ -7,6 +7,7 @@ struct PhoenixCard: View {
     var dayDelta: Double? = nil
 
     @State private var seeds = PhoenixSeed.generate(count: 40)
+    @State private var isVisible = false
 
     var body: some View {
         let state = score.phoenixState
@@ -29,7 +30,8 @@ struct PhoenixCard: View {
     @ViewBuilder
     private func phoenixCanvas(state: PhoenixState) -> some View {
         let capturedSeeds = seeds
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { tl in
+        // Throttle to 1/min when off-screen (TabView keeps views alive between tabs)
+        TimelineView(isVisible ? .animation(minimumInterval: 1.0 / 30.0) : .everyMinute) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             Canvas { ctx, size in
                 drawPhoenixFrame(&ctx, size: size, seeds: capturedSeeds, state: state, t: t)
@@ -37,6 +39,8 @@ struct PhoenixCard: View {
         }
         .frame(height: 130)
         .clipped()
+        .onAppear  { isVisible = true }
+        .onDisappear { isVisible = false }
     }
 
     @ViewBuilder
