@@ -4,6 +4,7 @@ import SwiftUI
 
 struct PhoenixCard: View {
     let score: PhoenixScore
+    var dayDelta: Double? = nil
 
     @State private var seeds = PhoenixSeed.generate(count: 40)
 
@@ -62,6 +63,19 @@ struct PhoenixCard: View {
                         .foregroundColor(state.scoreColor)
                 }
                 .padding(.top, 2)
+
+                if let delta = dayDelta, abs(delta) >= 0.1 {
+                    let dSign = delta >= 0 ? "+" : ""
+                    let dColor: Color = delta >= 0 ? .green : Color(hex: "FF5555")
+                    HStack(spacing: 3) {
+                        Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
+                            .font(.system(size: 9, weight: .bold))
+                        Text("\(dSign)\(String(format: "%.1f", delta)) vs hier")
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .foregroundColor(dColor.opacity(0.85))
+                    .padding(.bottom, 4)
+                }
             }
         }
         .padding(.vertical, 14)

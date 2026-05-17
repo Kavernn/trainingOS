@@ -11,6 +11,7 @@ final class AppState: ObservableObject {
     let units  = UnitSettings.shared
 
     @Published var userProfile: UserProfile? = nil
+    @Published var pendingDeepLink: String? = nil
 
     var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 

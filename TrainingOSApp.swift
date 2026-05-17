@@ -2,6 +2,40 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 
+// MARK: - Notification delegate (deep links from notification taps)
+
+private final class AppNotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = AppNotificationDelegate()
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let id = response.notification.request.identifier
+        DispatchQueue.main.async {
+            if id.hasPrefix("event.phoenix") || id.hasPrefix("event.dna") {
+                AppState.shared.pendingDeepLink = "intelligence"
+            } else if id.hasPrefix("event.season") || id.hasPrefix("event.capsule") {
+                AppState.shared.pendingDeepLink = "intelligence"
+            } else if id.hasPrefix("war_room") {
+                AppState.shared.pendingDeepLink = "warroom"
+            } else if id.hasPrefix("event.graveyard") {
+                AppState.shared.pendingDeepLink = "intelligence"
+            }
+        }
+        completionHandler()
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .sound])
+    }
+}
+
 @main
 struct TrainingOSApp: App {
     @StateObject private var appState = AppState.shared
@@ -53,6 +87,7 @@ struct TrainingOSApp: App {
                 if #unavailable(iOS 26) {
                     SyncManager.shared.setup(container: modelContainer)
                 }
+                UNUserNotificationCenter.current().delegate = AppNotificationDelegate.shared
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
                     if granted { NotificationService.scheduleAll() }
                 }
