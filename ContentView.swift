@@ -74,6 +74,9 @@ private struct iOSContentView: View {
         .overlay(alignment: .bottom) { offlineToast }
         .tint(.orange)
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToIntelligence)) { _ in
+            selectedTab = 0
+        }
     }
 
     @ViewBuilder private var offlineBanner: some View {

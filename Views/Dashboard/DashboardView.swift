@@ -191,6 +191,20 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.35)
                                 }
 
+                                // Evening ritual entrypoint — visible after 18h when morning done but evening not
+                                if let ritual = vm.ritualToday,
+                                   ritual.morningDone && !ritual.eveningDone,
+                                   Calendar.current.component(.hour, from: Date()) >= 18 {
+                                    EveningRitualEntryCard(intention: ritual.intention ?? "")
+                                        .appearAnimation(delay: 0.37)
+                                }
+
+                                // Breathwork nudge — visible when latest LSS score is low (stress high)
+                                if let lss = vm.lssTrend.last, lss.score < 50 {
+                                    BreathworkNudgeCard()
+                                        .appearAnimation(delay: 0.38)
+                                }
+
                                 XPChipView(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.36)
 
@@ -3345,6 +3359,112 @@ private struct ReadinessMetricRow: View {
             Text(value)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.white)
+        }
+    }
+}
+
+// MARK: - Evening Ritual Entry Card
+
+private struct EveningRitualEntryCard: View {
+    let intention: String
+    @State private var showRitualEvening = false
+
+    var body: some View {
+        Button { showRitualEvening = true } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "1a0a0a"))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(Color(hex: "E8441A"))
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("FERME TA JOURNÉE")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(Color(hex: "E8441A").opacity(0.8))
+                        .tracking(0.5)
+                    if !intention.isEmpty {
+                        Text("« \(intention) »")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white.opacity(0.75))
+                            .lineLimit(1)
+                    } else {
+                        Text("Tu avais posé une intention ce matin.")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                }
+
+                Spacer()
+
+                Text("BURNED / SURVIVED")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(Color(hex: "E8441A"))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(hex: "E8441A").opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            .padding(13)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color(hex: "E8441A").opacity(0.3), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .fullScreenCover(isPresented: $showRitualEvening) {
+            RitualEveningView()
+        }
+    }
+}
+
+// MARK: - Breathwork Nudge Card
+
+private struct BreathworkNudgeCard: View {
+    @State private var dismissed = false
+
+    var body: some View {
+        if !dismissed {
+            HStack(spacing: 10) {
+                Image(systemName: "wind")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.teal)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Stress élevé détecté")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.85))
+                    Text("5 min de cohérence cardiaque maintenant.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.55))
+                }
+
+                Spacer()
+
+                Button { dismissed = true } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                        .padding(6)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(0.03))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.teal.opacity(0.2), lineWidth: 1)
+                    )
+            )
         }
     }
 }

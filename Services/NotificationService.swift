@@ -173,6 +173,160 @@ enum NotificationService {
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
+    // MARK: - Event: Phoenix state change
+
+    /// Fires once when the user's Phoenix state changes (e.g. Braises → Flamme).
+    /// De-duplicated via UserDefaults — won't fire again for the same state.
+    static func notifyPhoenixStateChange(newState: String, newLabel: String) {
+        let key = "notif.phoenix.state"
+        let last = UserDefaults.standard.string(forKey: key) ?? ""
+        guard last != newState else { return }
+        UserDefaults.standard.set(newState, forKey: key)
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            let center = UNUserNotificationCenter.current()
+            let id = "event.phoenix.state"
+            center.removePendingNotificationRequests(withIdentifiers: [id])
+
+            let content = UNMutableNotificationContent()
+            content.title = "Phoenix : \(newLabel)"
+            let bodies: [String: String] = [
+                "supernova":      "Tu as atteint le sommet — SUPERNOVA.",
+                "envol":          "Ton Phoenix prend son envol. Garde l'altitude.",
+                "flamme":         "La flamme est allumée. Tu construis sur du solide.",
+                "braises_chaudes":"Le feu couve. Maintiens la pression.",
+                "braises":        "Les braises rougeoient. Quelques jours de plus.",
+                "cendres":        "Retour aux cendres. La reconstruction commence maintenant.",
+                "foundation":     "Fondation posée. Tout commence ici.",
+            ]
+            content.body  = bodies[newState] ?? "Ton score Phoenix a changé."
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+    }
+
+    // MARK: - Event: New graveyard tombstone
+
+    /// Fires once when the graveyard grows — de-duplicated by total count.
+    static func notifyNewTombstone(totalCount: Int, latestTombstone: Tombstone) {
+        let key = "notif.graveyard.count"
+        let last = UserDefaults.standard.integer(forKey: key)
+        guard totalCount > last, last > 0 else {
+            // Update stored count without notifying on first load
+            UserDefaults.standard.set(totalCount, forKey: key)
+            return
+        }
+        UserDefaults.standard.set(totalCount, forKey: key)
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            let center = UNUserNotificationCenter.current()
+            let id = "event.graveyard.tombstone"
+            center.removePendingNotificationRequests(withIdentifiers: [id])
+
+            let content = UNMutableNotificationContent()
+            content.title = "Nouvelle tombe dans ton cimetière"
+            content.body  = latestTombstone.epitaph
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+    }
+
+    // MARK: - Event: Season milestones (D30, D60, D75)
+
+    /// Schedules calendar-exact notifications for season milestones if not yet passed.
+    static func scheduleSeasonMilestones(seasonStartISO: String, seasonNumber: Int) {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        guard let start = f.date(from: String(seasonStartISO.prefix(10))) else { return }
+        let center = UNUserNotificationCenter.current()
+
+        let milestones: [(Int, String, String)] = [
+            (30, "event.season.d30.\(seasonNumber)", "S\(seasonNumber) — Jour 30/90 : Le premier tiers est fait. Tu tiens."),
+            (60, "event.season.d60.\(seasonNumber)", "S\(seasonNumber) — Jour 60/90 : Deux tiers. La finale approche."),
+            (75, "event.season.d75.\(seasonNumber)", "S\(seasonNumber) — Jour 75/90 : 15 jours. Cette saison se joue maintenant."),
+        ]
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            for (day, id, body) in milestones {
+                let fireDate = Calendar.current.date(byAdding: .day, value: day - 1, to: start)!
+                guard fireDate > Date() else { continue }
+                center.removePendingNotificationRequests(withIdentifiers: [id])
+                let content = UNMutableNotificationContent()
+                content.title = "Saison en cours"
+                content.body  = body
+                content.sound = .default
+                var dc = Calendar.current.dateComponents([.year, .month, .day], from: fireDate)
+                dc.hour = 9; dc.minute = 0
+                let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
+                center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+            }
+        }
+    }
+
+    // MARK: - Event: DNA archetype change
+
+    /// Fires once when the user's archetype changes — de-duplicated by archetype key.
+    static func notifyDNAArchetypeChange(newKey: String, newLabel: String) {
+        let storageKey = "notif.dna.archetype"
+        let last = UserDefaults.standard.string(forKey: storageKey) ?? ""
+        guard !last.isEmpty, last != newKey else {
+            UserDefaults.standard.set(newKey, forKey: storageKey)
+            return
+        }
+        UserDefaults.standard.set(newKey, forKey: storageKey)
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            let center = UNUserNotificationCenter.current()
+            let id = "event.dna.archetype"
+            center.removePendingNotificationRequests(withIdentifiers: [id])
+            let content = UNMutableNotificationContent()
+            content.title = "Ton ADN a évolué"
+            content.body  = "Tu es maintenant un \(newLabel). Ton profil d'entraînement a changé."
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+    }
+
+    // MARK: - Event: Time Capsule unlocking soon (≤7 days)
+
+    /// Schedules a one-shot notification for each capsule unlocking within 7 days.
+    static func scheduleTimeCapsuleSoon(capsules: [TimeCapsule]) {
+        let center = UNUserNotificationCenter.current()
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        let now = Date()
+        let sevenDays = 7.0 * 86400
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            for capsule in capsules {
+                let unlockISO = capsule.unlockAt
+                guard let unlockDate = f.date(from: String(unlockISO.prefix(10))) else { continue }
+                let interval = unlockDate.timeIntervalSince(now)
+                guard interval > 0 && interval <= sevenDays else { continue }
+                let id = "event.capsule.soon.\(capsule.id)"
+                center.removePendingNotificationRequests(withIdentifiers: [id])
+                let daysLeft = max(1, Int(interval / 86400))
+                let content = UNMutableNotificationContent()
+                content.title = "Ta capsule temporelle s'ouvre bientôt"
+                content.body  = daysLeft == 1
+                    ? "Ta capsule temporelle s'ouvre demain. Prépare-toi."
+                    : "Ta capsule temporelle s'ouvre dans \(daysLeft) jours."
+                content.sound = .default
+                // Fire at 9:00 on the day that is 7 days before unlock
+                var dc = Calendar.current.dateComponents([.year, .month, .day], from: now)
+                dc.hour = 9; dc.minute = 0
+                let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
+                center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+            }
+        }
+    }
+
     // MARK: - Helper
 
     private static func nextOccurrence(hour: Int, minute: Int, fromNow: Bool) -> TimeInterval {

@@ -23,6 +23,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var phoenixScore: PhoenixScore?
     @Published var activeSeason: Season?
     @Published var dailyPattern: PatternEntry?
+    @Published var ritualToday: RitualToday?
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
 
@@ -127,8 +128,18 @@ final class DashboardViewModel: ObservableObject {
             }
             // Phoenix Score in Phase 2 — critical metric, shown at top of dashboard
             group.addTask { @MainActor in
-                do { self.phoenixScore = try await APIService.shared.fetchPhoenixScore(); return 0 }
-                catch { self.logger.error("fetchPhoenixScore: \(error, privacy: .public)"); return 1 }
+                do {
+                    let score = try await APIService.shared.fetchPhoenixScore()
+                    self.phoenixScore = score
+                    NotificationService.notifyPhoenixStateChange(
+                        newState: score.state,
+                        newLabel: score.phoenixState.label
+                    )
+                    return 0
+                } catch {
+                    self.logger.error("fetchPhoenixScore: \(error, privacy: .public)")
+                    return 1
+                }
             }
             group.addTask { @MainActor in
                 do {
@@ -137,6 +148,15 @@ final class DashboardViewModel: ObservableObject {
                     return 0
                 } catch {
                     self.logger.error("fetchPatterns: \(error, privacy: .public)")
+                    return 1
+                }
+            }
+            group.addTask { @MainActor in
+                do {
+                    self.ritualToday = try await APIService.shared.fetchRitualToday()
+                    return 0
+                } catch {
+                    self.logger.error("fetchRitualToday: \(error, privacy: .public)")
                     return 1
                 }
             }
@@ -155,7 +175,38 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in self.weeklyReport = try? await APIService.shared.fetchWeeklyReport() }
                 group.addTask { @MainActor in self.bodyBudget    = try? await APIService.shared.fetchBodyBudget() }
                 group.addTask { @MainActor in self.readinessData = try? await APIService.shared.fetchReadiness() }
-                group.addTask { @MainActor in self.activeSeason  = try? await APIService.shared.getActiveSeason() }
+                group.addTask { @MainActor in
+                    let season = try? await APIService.shared.getActiveSeason()
+                    self.activeSeason = season
+                    if let s = season {
+                        NotificationService.scheduleSeasonMilestones(
+                            seasonStartISO: s.startedAt,
+                            seasonNumber: s.number
+                        )
+                    }
+                }
+                group.addTask { @MainActor in
+                    if let graveyard = try? await APIService.shared.fetchGraveyard(),
+                       let latest = graveyard.tombstones.first {
+                        NotificationService.notifyNewTombstone(
+                            totalCount: graveyard.totalCount,
+                            latestTombstone: latest
+                        )
+                    }
+                }
+                group.addTask { @MainActor in
+                    if let dna = try? await APIService.shared.fetchWorkoutDNA() {
+                        NotificationService.notifyDNAArchetypeChange(
+                            newKey: dna.archetype.key,
+                            newLabel: dna.archetype.label
+                        )
+                    }
+                }
+                group.addTask { @MainActor in
+                    if let capsules = try? await APIService.shared.fetchTimeCapsules() {
+                        NotificationService.scheduleTimeCapsuleSoon(capsules: capsules)
+                    }
+                }
             }
             analyticsLoadedDate = today
         }
