@@ -71,12 +71,12 @@ struct WarRoomGateView: View {
     private func authenticate() {
         let ctx = LAContext()
         var error: NSError?
-        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
             unlocked = true
             checkOath()
             return
         }
-        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Accès War Room") { success, _ in
+        ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Accès War Room") { success, _ in
             DispatchQueue.main.async {
                 if success {
                     unlocked = true

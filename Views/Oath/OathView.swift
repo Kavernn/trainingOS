@@ -67,11 +67,11 @@ struct OathGateView: View {
     private func authenticate() {
         let ctx = LAContext()
         var error: NSError?
-        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
             unlocked = true
             return
         }
-        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Accéder à ton serment") { ok, _ in
+        ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Accéder à ton serment") { ok, _ in
             DispatchQueue.main.async {
                 if ok { unlocked = true } else { authFailed = true }
             }
