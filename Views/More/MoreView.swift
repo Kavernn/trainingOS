@@ -60,7 +60,8 @@ struct MoreView: View {
                         MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Inventaire") { InventaireView() }
                         MoreRow(icon: "note.text",        color: .blue,   title: "Notes")      { NotesView() }
                         MoreRow(icon: "person.fill",      color: .purple, title: "Profil")     { ProfileView() }
-                        MoreRow(icon: "lock.shield.fill", color: Color.forge, title: "War Room") { WarRoomGateView() }
+                        MoreRow(icon: "lock.shield.fill", color: Color.forge, title: "War Room")  { WarRoomGateView() }
+                        MoreRow(icon: "seal.fill",        color: .black,  title: "Mon serment") { OathGateView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
                     .listRowSeparatorTint(Color.white.opacity(0.06))

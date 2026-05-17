@@ -2,9 +2,10 @@ import SwiftUI
 import LocalAuthentication
 
 struct WarRoomGateView: View {
-    @State private var unlocked   = false
-    @State private var authFailed = false
-    @State private var pulse      = false
+    @State private var unlocked      = false
+    @State private var authFailed    = false
+    @State private var pulse         = false
+    @State private var showOathSetup = false
 
     var body: some View {
         ZStack {
@@ -19,6 +20,11 @@ struct WarRoomGateView: View {
         }
         .animation(.easeInOut(duration: 0.35), value: unlocked)
         .onAppear { authenticate() }
+        .fullScreenCover(isPresented: $showOathSetup) {
+            OathWriteView(existingOath: nil) {
+                showOathSetup = false
+            }
+        }
     }
 
     private var lockScreen: some View {
@@ -67,12 +73,26 @@ struct WarRoomGateView: View {
         var error: NSError?
         guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
             unlocked = true
+            checkOath()
             return
         }
         ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Accès War Room") { success, _ in
             DispatchQueue.main.async {
-                if success { unlocked = true }
-                else       { authFailed = true }
+                if success {
+                    unlocked = true
+                    self.checkOath()
+                } else {
+                    authFailed = true
+                }
+            }
+        }
+    }
+
+    private func checkOath() {
+        Task {
+            let oath = try? await APIService.shared.getCurrentOath()
+            await MainActor.run {
+                if oath == nil { showOathSetup = true }
             }
         }
     }

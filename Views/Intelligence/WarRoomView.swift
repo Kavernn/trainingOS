@@ -6,6 +6,7 @@ struct WarRoomView: View {
     @State private var tab: WarRoomTab = .counter
     @State private var showTriggerSheet  = false
     @State private var showAddArsenal    = false
+    @State private var showOath          = false
 
     var body: some View {
         NavigationStack {
@@ -43,16 +44,26 @@ struct WarRoomView: View {
                         .tracking(3)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        WarRoomSettingsView(vm: vm)
-                    } label: {
-                        Image(systemName: "slider.horizontal.3")
-                            .foregroundStyle(Color.secondary)
+                    HStack(spacing: 16) {
+                        Button { showOath = true } label: {
+                            Image(systemName: "text.quote")
+                                .foregroundStyle(Color.secondary)
+                                .font(.system(size: 14))
+                        }
+                        NavigationLink {
+                            WarRoomSettingsView(vm: vm)
+                        } label: {
+                            Image(systemName: "slider.horizontal.3")
+                                .foregroundStyle(Color.secondary)
+                        }
                     }
                 }
             }
         }
         .task { await vm.loadAll() }
+        .sheet(isPresented: $showOath) {
+            OathGateView()
+        }
         .sheet(isPresented: $showTriggerSheet, onDismiss: { Task { await vm.loadAll() } }) {
             TriggerLogView(vm: vm)
         }
@@ -139,13 +150,15 @@ enum WarRoomTab: CaseIterable {
 
 @MainActor
 class WarRoomViewModel: ObservableObject {
-    @Published var summary:  WarRoomSummary?
-    @Published var battles:  [WarRoomBattle]  = []
-    @Published var triggers: [WarRoomTrigger] = []
-    @Published var arsenal:  [WarRoomArsenalItem] = []
-    @Published var patterns: WarRoomPatterns?
-    @Published var warMap:   [WarMapMonth]    = []
-    @Published var isLoading = false
+    @Published var summary:        WarRoomSummary?
+    @Published var battles:        [WarRoomBattle]      = []
+    @Published var triggers:       [WarRoomTrigger]     = []
+    @Published var arsenal:        [WarRoomArsenalItem] = []
+    @Published var patterns:       WarRoomPatterns?
+    @Published var warMap:         [WarMapMonth]        = []
+    @Published var currentOath:    OathModel?           = nil
+    @Published var streakJustReset = false
+    @Published var isLoading       = false
     @Published var error: String?
 
     private let api = APIService.shared
@@ -158,8 +171,13 @@ class WarRoomViewModel: ObservableObject {
             g.addTask { await self.loadBattles() }
             g.addTask { await self.loadTriggers() }
             g.addTask { await self.loadArsenal() }
+            g.addTask { await self.loadOath() }
         }
         isLoading = false
+    }
+
+    func loadOath() async {
+        currentOath = try? await api.getCurrentOath()
     }
 
     func loadSummary() async {
@@ -187,8 +205,12 @@ class WarRoomViewModel: ObservableObject {
     }
 
     func logBattle(_ status: BattleStatus) async {
+        let prevStreak = summary?.victoryStreak ?? 0
         let today = ISO8601DateFormatter().string(from: Date()).prefix(10).description
         if let s = try? await api.upsertBattle(date: today, status: status) {
+            if status == .lost && prevStreak > 0 && s.victoryStreak == 0 {
+                streakJustReset = true
+            }
             summary = s
         }
         await loadBattles()

@@ -30,6 +30,10 @@
 		SP004001AA00300B2F5DBBBB /* SpiritBreathworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */; };
 		SP005001AA00300B2F5DBBBB /* SpiritMeditationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */; };
 		SP006001AA00300B2F5DBBBB /* SpiritJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */; };
+		OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA001000AA00300B2F5DCCCC /* OathModels.swift */; };
+		OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */; };
+		OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA003000AA00300B2F5DCCCC /* OathView.swift */; };
+		OA004001AA00300B2F5DCCCC /* OathWriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA004000AA00300B2F5DCCCC /* OathWriteView.swift */; };
 		06A75775DE3F7E6F442B218A /* BodyCompService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F1EC5F94087F4D7DE3F244 /* BodyCompService.swift */; };
 		07171A309411F9E238113A1B /* RitualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12186D7E0477FF4F0975C7DA /* RitualView.swift */; };
 		07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68B8535D55F4B109509F146 /* MorningRevealView.swift */; };
@@ -214,6 +218,10 @@
 		SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritBreathworkView.swift; sourceTree = "<group>"; };
 		SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritMeditationView.swift; sourceTree = "<group>"; };
 		SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritJournalView.swift; sourceTree = "<group>"; };
+		OA001000AA00300B2F5DCCCC /* OathModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathModels.swift; sourceTree = "<group>"; };
+		OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Oath.swift"; sourceTree = "<group>"; };
+		OA003000AA00300B2F5DCCCC /* OathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathView.swift; sourceTree = "<group>"; };
+		OA004000AA00300B2F5DCCCC /* OathWriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathWriteView.swift; sourceTree = "<group>"; };
 		2CCC113F806D404EB7F7D565 /* BehaviorTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehaviorTracker.swift; sourceTree = "<group>"; };
 		325289C855B34EF58D37849F /* CoachMemoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMemoryStore.swift; sourceTree = "<group>"; };
 		32F1EC5F94087F4D7DE3F244 /* BodyCompService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompService.swift; sourceTree = "<group>"; };
@@ -614,6 +622,7 @@
 				106008F1BB4042C0803D076D /* GraveyardModels.swift */,
 				WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */,
 				SP001000AA00300B2F5DBBBB /* SpiritModels.swift */,
+				OA001000AA00300B2F5DCCCC /* OathModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -659,6 +668,7 @@
 				28FC68105F9D4BDE956144F3 /* APIService+Graveyard.swift */,
 				WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */,
 				SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */,
+				OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -764,6 +774,7 @@
 				FF11000A2F5D98BA002AE470 /* SplashView.swift */,
 				7422762B7F37251A1E7B0E06 /* Components */,
 				SP000000AA00300B2F5DBBBB /* Spirit */,
+				OA000000AA00300B2F5DCCCC /* Oath */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -777,6 +788,15 @@
 				SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */,
 			);
 			path = Spirit;
+			sourceTree = "<group>";
+		};
+		OA000000AA00300B2F5DCCCC /* Oath */ = {
+			isa = PBXGroup;
+			children = (
+				OA003000AA00300B2F5DCCCC /* OathView.swift */,
+				OA004000AA00300B2F5DCCCC /* OathWriteView.swift */,
+			);
+			path = Oath;
 			sourceTree = "<group>";
 		};
 		DD44000F2F5D98BA002AE473 /* MentalHealth */ = {
@@ -1099,6 +1119,10 @@
 				SP004001AA00300B2F5DBBBB /* SpiritBreathworkView.swift in Sources */,
 				SP005001AA00300B2F5DBBBB /* SpiritMeditationView.swift in Sources */,
 				SP006001AA00300B2F5DBBBB /* SpiritJournalView.swift in Sources */,
+				OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */,
+				OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */,
+				OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */,
+				OA004001AA00300B2F5DCCCC /* OathWriteView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

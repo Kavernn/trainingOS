@@ -5700,3 +5700,133 @@ def get_spirit_journal_entry(entry_date: str) -> Optional[dict]:
                 return None
         logger.error("get_spirit_journal_entry error: %s", e)
         return None
+
+
+# ─────────────────────────────────────────────
+# Oath
+# ─────────────────────────────────────────────
+
+def get_current_oath() -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = (
+            _client.table("oaths")
+            .select("id, text, version, word_count, written_at, superseded_at")
+            .is_("superseded_at", "null")
+            .order("written_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_current_oath retry: %s", e2)
+                return None
+        logger.error("get_current_oath error: %s", e)
+        return None
+
+
+def get_oath_versions() -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("oaths")
+            .select("id, text, version, word_count, written_at, superseded_at")
+            .order("written_at", desc=True)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_oath_versions retry: %s", e2)
+                return []
+        logger.error("get_oath_versions error: %s", e)
+        return []
+
+
+def save_oath(text: str, word_count: int) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    from datetime import datetime, timezone
+    now_iso = datetime.now(timezone.utc).isoformat()
+    def _do():
+        # Find current version number
+        existing = get_current_oath()
+        next_version = (existing["version"] + 1) if existing else 1
+        # Supersede current oath
+        if existing:
+            _client.table("oaths").update({"superseded_at": now_iso}).eq("id", existing["id"]).execute()
+        # Insert new oath
+        resp = (
+            _client.table("oaths")
+            .insert({"text": text, "version": next_version, "word_count": word_count})
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("save_oath retry: %s", e2)
+                return None
+        logger.error("save_oath error: %s", e)
+        return None
+
+
+def log_oath_recall(oath_id: str, trigger: str) -> None:
+    if _client is None or MODE == "OFFLINE":
+        return
+    def _do():
+        payload: dict = {"trigger": trigger}
+        if oath_id:
+            payload["oath_id"] = oath_id
+        _client.table("oath_recalls").insert(payload).execute()
+    try:
+        _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                _do()
+            except Exception as e2:
+                logger.error("log_oath_recall retry: %s", e2)
+        logger.error("log_oath_recall error: %s", e)
+
+
+def get_oath_recalls(limit: int = 20) -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("oath_recalls")
+            .select("id, oath_id, trigger, shown_at")
+            .order("shown_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_oath_recalls retry: %s", e2)
+                return []
+        logger.error("get_oath_recalls error: %s", e)
+        return []
