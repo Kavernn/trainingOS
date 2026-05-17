@@ -9,6 +9,7 @@ private struct NHLMonthSchedule: Codable {
 }
 
 private struct NHLAPIGame: Codable {
+    let id: Int
     let gameDate: String
     let startTimeUTC: String?
     let gameState: String
@@ -32,7 +33,28 @@ private struct NHLAPIClock: Codable {
     let timeRemaining: String?
 }
 
+private struct NHLBoxscore: Codable {
+    let teamGameStats: [NHLGameStat]?
+}
+
+private struct NHLGameStat: Codable {
+    let category: String
+    let awayValue: String
+    let homeValue: String
+}
+
 // MARK: - Public model
+
+struct HabsGameStats {
+    let habsShots: String
+    let oppShots: String
+    let habsHits: String
+    let oppHits: String
+    let habsPP: String
+    let oppPP: String
+    let habsFaceoff: String
+    let oppFaceoff: String
+}
 
 struct HabsGame {
     enum Status {
@@ -44,6 +66,15 @@ struct HabsGame {
     let opponent: String
     let habsScore: Int?
     let oppScore: Int?
+    let stats: HabsGameStats?
+
+    init(status: Status, opponent: String, habsScore: Int?, oppScore: Int?, stats: HabsGameStats? = nil) {
+        self.status = status
+        self.opponent = opponent
+        self.habsScore = habsScore
+        self.oppScore = oppScore
+        self.stats = stats
+    }
 
     var habsWon: Bool? {
         guard case .final_ = status, let h = habsScore, let o = oppScore else { return nil }
@@ -77,16 +108,26 @@ final class NHLService: ObservableObject {
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let schedule = try JSONDecoder().decode(NHLMonthSchedule.self, from: data)
-            process(schedule.games ?? [])
+            let (liveId, lastId) = process(schedule.games ?? [])
+
+            if let (id, isMTLHome) = liveId, let g = liveGame {
+                let stats = await fetchBoxscore(gameId: id, isMTLHome: isMTLHome)
+                liveGame = HabsGame(status: g.status, opponent: g.opponent, habsScore: g.habsScore, oppScore: g.oppScore, stats: stats)
+            }
+            if let (id, isMTLHome) = lastId, let g = lastGame {
+                let stats = await fetchBoxscore(gameId: id, isMTLHome: isMTLHome)
+                lastGame = HabsGame(status: g.status, opponent: g.opponent, habsScore: g.habsScore, oppScore: g.oppScore, stats: stats)
+            }
         } catch {
             failed = true
         }
     }
 
-    private func process(_ games: [NHLAPIGame]) {
+    private func process(_ games: [NHLAPIGame]) -> (liveId: (Int, Bool)?, lastId: (Int, Bool)?) {
         let now = Date()
         var liveResult: HabsGame?
-        var completed: [HabsGame] = []
+        var liveId: (Int, Bool)?
+        var completed: [(game: HabsGame, id: Int, isMTLHome: Bool)] = []
         var upcoming: [(date: Date, game: HabsGame)] = []
 
         let isoFull = ISO8601DateFormatter()
@@ -107,8 +148,13 @@ final class NHLService: ObservableObject {
                     status: .live(period: periodLabel(g.periodDescriptor), timeRemaining: g.clock?.timeRemaining),
                     opponent: opponent, habsScore: habsScore, oppScore: oppScore
                 )
+                liveId = (g.id, isMTLHome)
             case "OFF", "FINAL":
-                completed.append(HabsGame(status: .final_, opponent: opponent, habsScore: habsScore, oppScore: oppScore))
+                completed.append((
+                    game: HabsGame(status: .final_, opponent: opponent, habsScore: habsScore, oppScore: oppScore),
+                    id: g.id,
+                    isMTLHome: isMTLHome
+                ))
             case "FUT", "PRE":
                 if let d = gameDate, d.timeIntervalSince(now) > -7200 {
                     upcoming.append((d, HabsGame(
@@ -121,9 +167,35 @@ final class NHLService: ObservableObject {
         }
 
         liveGame    = liveResult
-        lastGame    = completed.last
+        lastGame    = completed.last?.game
         nextGame    = upcoming.min(by: { $0.date < $1.date })?.game
         isOffSeason = liveResult == nil && completed.isEmpty && upcoming.isEmpty
+
+        return (liveId, completed.last.map { ($0.id, $0.isMTLHome) })
+    }
+
+    private func fetchBoxscore(gameId: Int, isMTLHome: Bool) async -> HabsGameStats? {
+        guard let url = URL(string: "https://api-web.nhle.com/v1/gamecenter/\(gameId)/boxscore") else { return nil }
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
+              let boxscore = try? JSONDecoder().decode(NHLBoxscore.self, from: data),
+              let gameStats = boxscore.teamGameStats else { return nil }
+
+        func val(_ category: String, habs: Bool) -> String {
+            guard let stat = gameStats.first(where: { $0.category == category }) else { return "–" }
+            return isMTLHome ? (habs ? stat.homeValue : stat.awayValue)
+                             : (habs ? stat.awayValue : stat.homeValue)
+        }
+
+        return HabsGameStats(
+            habsShots:    val("sog", habs: true),
+            oppShots:     val("sog", habs: false),
+            habsHits:     val("hits", habs: true),
+            oppHits:      val("hits", habs: false),
+            habsPP:       val("powerPlayConversion", habs: true),
+            oppPP:        val("powerPlayConversion", habs: false),
+            habsFaceoff:  val("faceoffWinningPctg", habs: true),
+            oppFaceoff:   val("faceoffWinningPctg", habs: false)
+        )
     }
 
     private func periodLabel(_ p: NHLAPIPeriod?) -> String {

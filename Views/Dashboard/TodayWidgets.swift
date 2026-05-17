@@ -206,41 +206,76 @@ struct HabsWidget: View {
     }
 
     private func liveRow(_ game: HabsGame) -> some View {
-        HStack(spacing: 14) {
-            CHMonogram(size: 30)
-            VStack(alignment: .leading, spacing: 4) {
-                scoreLabel(game)
-                if case .live(let period, let time) = game.status {
-                    HStack(spacing: 4) {
-                        Circle().fill(Color.red).frame(width: 5, height: 5)
-                        Text([period, time].compactMap { $0 }.joined(separator: " · "))
-                            .font(.system(size: 10))
-                            .foregroundColor(.red.opacity(0.9))
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 14) {
+                CHMonogram(size: 30)
+                VStack(alignment: .leading, spacing: 4) {
+                    scoreLabel(game)
+                    if case .live(let period, let time) = game.status {
+                        HStack(spacing: 4) {
+                            Circle().fill(Color.red).frame(width: 5, height: 5)
+                            Text([period, time].compactMap { $0 }.joined(separator: " · "))
+                                .font(.system(size: 10))
+                                .foregroundColor(.red.opacity(0.9))
+                        }
                     }
                 }
+                Spacer()
+                Text(game.opponent)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white.opacity(0.45))
             }
-            Spacer()
-            Text(game.opponent)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.white.opacity(0.45))
+            if let stats = game.stats {
+                statsRow(stats)
+            }
         }
     }
 
     private func lastGameRow(_ game: HabsGame) -> some View {
-        HStack(spacing: 10) {
-            CHMonogram(size: 26)
-            VStack(alignment: .leading, spacing: 3) {
-                scoreLabel(game)
-                if let won = game.habsWon {
-                    HStack(spacing: 3) {
-                        Image(systemName: won ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .font(.system(size: 9))
-                        Text(won ? "Victoire · \(game.opponent)" : "Défaite · \(game.opponent)")
-                            .font(.system(size: 10, weight: .medium))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                CHMonogram(size: 26)
+                VStack(alignment: .leading, spacing: 3) {
+                    scoreLabel(game)
+                    if let won = game.habsWon {
+                        HStack(spacing: 3) {
+                            Image(systemName: won ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .font(.system(size: 9))
+                            Text(won ? "Victoire · \(game.opponent)" : "Défaite · \(game.opponent)")
+                                .font(.system(size: 10, weight: .medium))
+                        }
+                        .foregroundColor(won ? .green : Color(red: 0.85, green: 0.3, blue: 0.3))
                     }
-                    .foregroundColor(won ? .green : Color(red: 0.85, green: 0.3, blue: 0.3))
                 }
             }
+            if let stats = game.stats {
+                statsRow(stats)
+            }
+        }
+    }
+
+    private func statsRow(_ stats: HabsGameStats) -> some View {
+        HStack(spacing: 0) {
+            statCol(label: "Tirs", value: "\(stats.habsShots) – \(stats.oppShots)")
+            Spacer()
+            statCol(label: "Coups", value: "\(stats.habsHits) – \(stats.oppHits)")
+            Spacer()
+            statCol(label: "JP", value: "\(stats.habsPP) – \(stats.oppPP)")
+            Spacer()
+            statCol(label: "MÀJ", value: "\(stats.habsFaceoff) – \(stats.oppFaceoff)")
+        }
+        .padding(.top, 2)
+        .padding(.horizontal, 2)
+    }
+
+    private func statCol(label: String, value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.system(size: 9))
+                .foregroundColor(.white.opacity(0.35))
+            Text(value)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.7))
         }
     }
 
