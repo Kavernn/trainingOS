@@ -24,6 +24,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var activeSeason: Season?
     @Published var dailyPattern: PatternEntry?
     @Published var ritualToday: RitualToday?
+    @Published var warRoomEnabled = false
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
 
@@ -183,6 +184,14 @@ final class DashboardViewModel: ObservableObject {
                             seasonStartISO: s.startedAt,
                             seasonNumber: s.number
                         )
+                    }
+                }
+                group.addTask { @MainActor in
+                    if let config = try? await APIService.shared.getWarRoomConfig() {
+                        let enabled = config.warStartDate != nil
+                        self.warRoomEnabled = enabled
+                        UserDefaults.standard.set(enabled, forKey: "warRoomEnabled")
+                        NotificationService.scheduleWarRoomDailyCheckin(isEnabled: enabled)
                     }
                 }
                 group.addTask { @MainActor in
