@@ -70,6 +70,7 @@ private struct iOSContentView: View {
             MoreView()
                 .tag(4)
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
+                .badge(appState.ritualTodayNotDone ? 1 : 0)
         }
         .overlay(alignment: .top) { offlineBanner }
         .overlay(alignment: .bottom) { offlineToast }

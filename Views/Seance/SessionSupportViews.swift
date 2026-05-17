@@ -412,6 +412,26 @@ struct FinishSessionSheet: View {
                                 .font(.system(size: 16, weight: .bold)).frame(maxWidth: .infinity).padding(.vertical, 14)
                                 .background(Color.orange).foregroundColor(.white).cornerRadius(14)
                         }
+                        .padding(.horizontal, 20).padding(.bottom, 8)
+
+                        NavigationLink(destination: GraveyardView()) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "cross.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Color(hex: "8B6AFF"))
+                                Text("Voir le Graveyard")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(Color(hex: "8B6AFF"))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color(hex: "8B6AFF").opacity(0.5))
+                            }
+                            .padding(.horizontal, 16).padding(.vertical, 10)
+                            .background(Color(hex: "8B6AFF").opacity(0.08))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color(hex: "8B6AFF").opacity(0.2), lineWidth: 1))
+                            .cornerRadius(10)
+                        }
                         .padding(.horizontal, 20).padding(.bottom, 24)
                     }
                 }

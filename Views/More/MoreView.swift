@@ -20,12 +20,14 @@ struct MoreView: View {
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
                     Section("Combat") {
-                        MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")        { StatsView() }
-                        MoreRow(icon: "target",                color: .orange, title: "Objectifs")    { ObjectifsView() }
-                        MoreRow(icon: "timer",                 color: .orange, title: "Timer")        { TimerView() }
-                        MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")         { HIITHistoriqueView() }
-                        MoreRow(icon: "calendar",              color: .teal,   title: "Historique")   { HistoriqueView() }
-                        MoreRow(icon: "star.fill",             color: .yellow, title: "XP & Niveau")  { XPView() }
+                        MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")           { StatsView() }
+                        MoreRow(icon: "target",                color: .orange, title: "Objectifs")        { ObjectifsView() }
+                        MoreRow(icon: "dna",                   color: .indigo, title: "Workout DNA")      { WorkoutDNASection() }
+                        MoreRow(icon: "timer",                 color: .orange, title: "Timer")            { TimerView() }
+                        MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")             { HIITHistoriqueView() }
+                        MoreRow(icon: "calendar",              color: .teal,   title: "Historique")       { HistoriqueView() }
+                        MoreRow(icon: "star.fill",             color: .yellow, title: "XP & Niveau")      { XPView() }
+                        MoreRow(icon: "cross.fill",            color: Color(hex: "8B6AFF"), title: "Graveyard") { GraveyardView() }
                     }
                     .listRowBackground(glassRowBG(.blue))
                     .listRowSeparatorTint(Color.white.opacity(0.06))

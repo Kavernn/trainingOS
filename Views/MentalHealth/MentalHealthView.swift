@@ -44,7 +44,7 @@ struct MentalHealthView: View {
                             NavigationLink { MoodTrackerView() } label: {
                                 MHMenuCard(icon: "face.smiling.fill", color: .yellow, title: "Humeur", subtitle: moodSubtitle)
                             }
-                            NavigationLink { JournalView() } label: {
+                            NavigationLink { SpiritJournalGateView() } label: {
                                 MHMenuCard(icon: "book.fill", color: .blue, title: "Journal", subtitle: journalSubtitle)
                             }
                             NavigationLink { BreathworkView() } label: {

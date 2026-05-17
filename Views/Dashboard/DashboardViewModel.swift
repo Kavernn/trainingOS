@@ -173,6 +173,7 @@ final class DashboardViewModel: ObservableObject {
             group.addTask { @MainActor in
                 do {
                     self.ritualToday = try await APIService.shared.fetchRitualToday()
+                    AppState.shared.ritualTodayNotDone = !(self.ritualToday?.morningDone ?? true)
                     return 0
                 } catch {
                     self.logger.error("fetchRitualToday: \(error, privacy: .public)")
