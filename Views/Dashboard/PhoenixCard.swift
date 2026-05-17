@@ -4,12 +4,8 @@ import SwiftUI
 
 struct PhoenixCard: View {
     let score: PhoenixScore
-    var dayDelta: Double? = nil
 
     @State private var seeds = PhoenixSeed.generate(count: 40)
-    @State private var isVisible = false
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let state = score.phoenixState
@@ -27,37 +23,12 @@ struct PhoenixCard: View {
                 .stroke(state.glowColor.opacity(0.25), lineWidth: 1)
         )
         .shadow(color: state.glowColor.opacity(state.glowOpacity), radius: state.glowRadius)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(phoenixAccessibilityLabel)
-    }
-
-    private var phoenixAccessibilityLabel: String {
-        let state = score.phoenixState
-        if score.isFoundation {
-            return "Phoenix Score en construction. Accumule 7 jours de données."
-        }
-        let sign = score.score >= 0 ? "positif" : "négatif"
-        let scoreStr = String(format: "%.1f", abs(score.score))
-        var parts = ["Phoenix Score \(sign) : \(scoreStr). État : \(state.label)."]
-        if let delta = dayDelta, abs(delta) >= 0.1 {
-            let dir = delta >= 0 ? "en hausse" : "en baisse"
-            parts.append("\(dir) de \(String(format: "%.1f", abs(delta))) par rapport à hier.")
-        }
-        let corps  = "Corps : \(score.axes.workout.delta >= 0 ? "+" : "")\(Int(score.axes.workout.delta))%"
-        let mental = "Mental : \(score.axes.stress.delta >= 0 ? "+" : "")\(Int(score.axes.stress.delta))%"
-        let fuel   = "Fuel : \(score.axes.nutrition.delta >= 0 ? "+" : "")\(Int(score.axes.nutrition.delta))%"
-        parts.append("\(corps). \(mental). \(fuel).")
-        if let spirit = score.axes.spirit {
-            parts.append("Esprit : \(spirit.delta >= 0 ? "+" : "")\(Int(spirit.delta))%.")
-        }
-        return parts.joined(separator: " ")
     }
 
     @ViewBuilder
     private func phoenixCanvas(state: PhoenixState) -> some View {
         let capturedSeeds = seeds
-        // Throttle to 1/min when off-screen (TabView keeps views alive between tabs)
-        TimelineView(.animation(minimumInterval: (!reduceMotion && isVisible) ? 1.0 / 30.0 : 60.0)) { tl in
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             Canvas { ctx, size in
                 drawPhoenixFrame(&ctx, size: size, seeds: capturedSeeds, state: state, t: t)
@@ -65,8 +36,6 @@ struct PhoenixCard: View {
         }
         .frame(height: 130)
         .clipped()
-        .onAppear  { isVisible = true }
-        .onDisappear { isVisible = false }
     }
 
     @ViewBuilder
@@ -74,12 +43,12 @@ struct PhoenixCard: View {
         VStack(spacing: 5) {
             Text(score.isFoundation ? "PHOENIX SCORE" : state.label.uppercased())
                 .font(.system(size: 9, weight: .black)).tracking(3)
-                .foregroundColor(state.scoreColor.opacity(0.85))
+                .foregroundColor(state.scoreColor.opacity(0.65))
 
             if score.isFoundation {
                 Text("Accumule 7 jours de données")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.white.opacity(0.55))
                     .padding(.top, 4)
             } else {
                 let sign = score.score >= 0 ? "+" : ""
@@ -93,19 +62,6 @@ struct PhoenixCard: View {
                         .foregroundColor(state.scoreColor)
                 }
                 .padding(.top, 2)
-
-                if let delta = dayDelta, abs(delta) >= 0.1 {
-                    let dSign = delta >= 0 ? "+" : ""
-                    let dColor: Color = delta >= 0 ? .green : Color(hex: "FF5555")
-                    HStack(spacing: 3) {
-                        Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
-                            .font(.system(size: 9, weight: .bold))
-                        Text("\(dSign)\(String(format: "%.1f", delta)) vs hier")
-                            .font(.system(size: 10, weight: .medium))
-                    }
-                    .foregroundColor(dColor.opacity(0.85))
-                    .padding(.bottom, 4)
-                }
             }
         }
         .padding(.vertical, 14)
@@ -145,7 +101,7 @@ struct PhoenixAxisPill: View {
         VStack(spacing: 3) {
             Text(label)
                 .font(.system(size: 6, weight: .black)).tracking(0.6)
-                .foregroundColor(.white.opacity(0.6))
+                .foregroundColor(.white.opacity(0.35))
             HStack(spacing: 2) {
                 Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
                     .font(.system(size: 7, weight: .bold))
@@ -165,10 +121,10 @@ struct PhoenixAxisPillInactive: View {
         VStack(spacing: 3) {
             Text(label)
                 .font(.system(size: 6, weight: .black)).tracking(0.6)
-                .foregroundColor(.white.opacity(0.45))
+                .foregroundColor(.white.opacity(0.20))
             Text("—")
                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                .foregroundColor(.white.opacity(0.45))
+                .foregroundColor(.white.opacity(0.20))
         }
         .frame(maxWidth: .infinity)
     }
