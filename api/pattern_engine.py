@@ -880,7 +880,7 @@ def get_daily_pattern() -> dict:
 
     # Attach pinned flag and is_new (never shown before)
     all_shown_ids_ever = {e["id"] for e in shown_log}
-    tagged = [{**p, "war_room": p.get("war_room", False), "pinned": p["id"] in pinned_set, "is_new": p["id"] not in all_shown_ids_ever}
+    tagged = [{**p, "pinned": p["id"] in pinned_set, "is_new": p["id"] not in all_shown_ids_ever}
               for p in eligible]
 
     # Pick daily: one per calendar day, novelty-prioritised
