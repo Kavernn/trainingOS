@@ -139,6 +139,7 @@ struct SpiritBreathSessionView: View {
     @State private var isFinished      = false
     @State private var startedAt       = Date()
     @State private var sessionTask:    Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
@@ -150,7 +151,7 @@ struct SpiritBreathSessionView: View {
                 center: .center, startRadius: 0, endRadius: 200
             )
             .ignoresSafeArea()
-            .animation(.easeInOut(duration: Double(currentPhaseDuration)), value: circleOpacity)
+            .animation(reduceMotion ? nil : .easeInOut(duration: Double(currentPhaseDuration)), value: circleOpacity)
 
             VStack(spacing: 0) {
                 Spacer()
@@ -167,6 +168,7 @@ struct SpiritBreathSessionView: View {
                 ZStack {
                     Circle()
                         .strokeBorder(Color.moonlight.opacity(0.15), lineWidth: 0.8)
+                        .accessibilityHidden(true)
 
                     Circle()
                         .fill(
@@ -175,9 +177,13 @@ struct SpiritBreathSessionView: View {
                                 center: .center, startRadius: 0, endRadius: 100
                             )
                         )
+                        .accessibilityHidden(true)
                 }
                 .frame(width: 200, height: 200)
                 .scaleEffect(circleScale)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Phase : \(isFinished ? "Terminé" : (isActive ? phaseLabel : "Prêt")) — \(countdown > 0 ? "\(countdown) secondes" : "")")
+                .accessibilityAddTraits(.updatesFrequently)
 
                 // Countdown
                 Text(isActive && countdown > 0 ? "\(countdown)" : "")
@@ -185,6 +191,7 @@ struct SpiritBreathSessionView: View {
                     .foregroundStyle(Color.moonlight.opacity(0.3))
                     .frame(height: 40)
                     .padding(.top, 36)
+                    .accessibilityHidden(true)
 
                 // Cycles
                 if isActive {
@@ -236,6 +243,7 @@ struct SpiritBreathSessionView: View {
                 .font(.system(size: 40, weight: .ultraLight))
                 .foregroundStyle(Color.moonlight.opacity(0.4))
         }
+        .accessibilityLabel("Démarrer")
     }
 
     private var stopButton: some View {
@@ -258,6 +266,7 @@ struct SpiritBreathSessionView: View {
             Button("Fermer") { onDismiss() }
                 .font(.system(size: 13, weight: .light))
                 .foregroundStyle(Color.moonlight.opacity(0.35))
+                .accessibilityLabel("Fermer")
         }
     }
 
@@ -285,7 +294,7 @@ struct SpiritBreathSessionView: View {
             for step in steps {
                 phaseLabel = step.label
 
-                withAnimation(.easeInOut(duration: Double(step.duration))) {
+                withAnimation(reduceMotion ? .none : .easeInOut(duration: Double(step.duration))) {
                     circleScale   = step.endScale
                     circleOpacity = step.endScale > 0.7 ? 0.14 : 0.04
                 }
@@ -314,7 +323,7 @@ struct SpiritBreathSessionView: View {
         isActive   = false
         isFinished = true
         let duration = Int(Date().timeIntervalSince(startedAt))
-        withAnimation(.easeInOut(duration: 0.8)) {
+        withAnimation(reduceMotion ? .none : .easeInOut(duration: 0.8)) {
             circleScale   = 0.78
             circleOpacity = 0.08
         }

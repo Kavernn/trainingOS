@@ -19,7 +19,7 @@ struct ReadinessBadge: View {
                     .foregroundColor(.gray)
                 Text(r.why)
                     .font(.system(size: 11))
-                    .foregroundColor(.white.opacity(0.65))
+                    .foregroundColor(.white.opacity(0.70))
                     .lineLimit(1)
                     .truncationMode(.tail)
             }
@@ -31,6 +31,8 @@ struct ReadinessBadge: View {
                     .stroke(verdictColor(r.verdict).opacity(0.20), lineWidth: 1)
             )
             .cornerRadius(8)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Readiness : \(r.verdictLabel), score \(r.score). \(r.why)")
         }
     }
 
@@ -177,6 +179,7 @@ struct ReadinessSheet: View {
                             .foregroundColor(.gray)
                             .font(.system(size: 20))
                     }
+                    .accessibilityLabel("Fermer")
                 }
             }
         }
@@ -218,20 +221,24 @@ private struct VerdictOrb: View {
     let verdict: String
     let score: Int
     @State private var pulse: CGFloat = 1.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
             Circle()
                 .fill(orbColor.opacity(0.12))
                 .scaleEffect(pulse)
+                .accessibilityHidden(true)
             Circle()
                 .strokeBorder(orbColor.opacity(0.35), lineWidth: 2)
+                .accessibilityHidden(true)
             Text("\(score)")
                 .font(.system(size: 22, weight: .black, design: .rounded))
                 .foregroundColor(orbColor)
+                .accessibilityLabel("Score \(score)")
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
                 pulse = 1.08
             }
         }
