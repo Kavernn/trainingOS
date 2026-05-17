@@ -23,6 +23,7 @@ struct PhoenixAxes: Codable {
     let workout: PhoenixAxisData
     let stress: PhoenixAxisData
     let nutrition: PhoenixAxisData
+    let spirit: PhoenixAxisData?
 }
 
 struct PhoenixAxisData: Codable {

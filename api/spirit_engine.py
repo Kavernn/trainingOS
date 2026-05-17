@@ -49,6 +49,10 @@ def compute_spirit_axis(last7_dates: set[str], prior7_dates: set[str]) -> tuple[
     if not has_baseline:
         return 0.0, details
 
+    # Empty week → neutral rather than full -100% penalty
+    if bw_last == 0 and med_last == 0 and j_last == 0:
+        return 0.0, details
+
     def _delta(last: int, prior: int) -> float:
         if last == 0 and prior == 0:
             return 0.0
@@ -56,8 +60,8 @@ def compute_spirit_axis(last7_dates: set[str], prior7_dates: set[str]) -> tuple[
 
     delta = (
         _delta(bw_last,  bw_prior)  * 0.40
-        + _delta(med_last, med_prior) * 0.35
-        + _delta(j_last,   j_prior)   * 0.25
+        + _delta(med_last, med_prior) * 0.40
+        + _delta(j_last,   j_prior)   * 0.20
     )
     return round(delta, 1), details
 

@@ -69,21 +69,28 @@ struct PhoenixCard: View {
 
     @ViewBuilder
     private func axesSection(state: PhoenixState) -> some View {
+        let div = Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 34)
         Rectangle()
             .fill(Color.white.opacity(0.06))
             .frame(height: 1)
         HStack(spacing: 0) {
-            PhoenixAxisPill(label: "ENTRAÎNEMENT", delta: score.axes.workout.delta, color: state.scoreColor)
-            Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 36)
-            PhoenixAxisPill(label: "STRESS", delta: score.axes.stress.delta, color: state.scoreColor)
-            Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 36)
-            PhoenixAxisPill(label: "NUTRITION", delta: score.axes.nutrition.delta, color: state.scoreColor)
+            PhoenixAxisPill(label: "CORPS",  delta: score.axes.workout.delta,   color: state.scoreColor)
+            div
+            PhoenixAxisPill(label: "MENTAL", delta: score.axes.stress.delta,    color: state.scoreColor)
+            div
+            PhoenixAxisPill(label: "FUEL",   delta: score.axes.nutrition.delta, color: state.scoreColor)
+            div
+            if let spirit = score.axes.spirit {
+                PhoenixAxisPill(label: "ESPRIT", delta: spirit.delta, color: state.scoreColor)
+            } else {
+                PhoenixAxisPillInactive(label: "ESPRIT")
+            }
         }
         .padding(.vertical, 10)
     }
 }
 
-// MARK: - Axis Pill
+// MARK: - Axis Pills
 
 struct PhoenixAxisPill: View {
     let label: String
@@ -93,15 +100,31 @@ struct PhoenixAxisPill: View {
     var body: some View {
         VStack(spacing: 3) {
             Text(label)
-                .font(.system(size: 7, weight: .black)).tracking(0.8)
+                .font(.system(size: 6, weight: .black)).tracking(0.6)
                 .foregroundColor(.white.opacity(0.35))
             HStack(spacing: 2) {
                 Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.system(size: 7, weight: .bold))
                 Text(String(format: "%.0f%%", abs(delta)))
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
             }
             .foregroundColor(delta >= 0 ? color : Color(hex: "FF5555"))
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct PhoenixAxisPillInactive: View {
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 3) {
+            Text(label)
+                .font(.system(size: 6, weight: .black)).tracking(0.6)
+                .foregroundColor(.white.opacity(0.20))
+            Text("—")
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundColor(.white.opacity(0.20))
         }
         .frame(maxWidth: .infinity)
     }

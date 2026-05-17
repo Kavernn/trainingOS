@@ -124,6 +124,11 @@ final class DashboardViewModel: ObservableObject {
                 await AlertService.shared.fetch()
                 return 0
             }
+            // Phoenix Score in Phase 2 — critical metric, shown at top of dashboard
+            group.addTask { @MainActor in
+                do { self.phoenixScore = try await APIService.shared.fetchPhoenixScore(); return 0 }
+                catch { self.logger.error("fetchPhoenixScore: \(error, privacy: .public)"); return 1 }
+            }
             for await failures in group { secondaryFailures += failures }
         }
 
@@ -139,7 +144,6 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in self.weeklyReport = try? await APIService.shared.fetchWeeklyReport() }
                 group.addTask { @MainActor in self.bodyBudget    = try? await APIService.shared.fetchBodyBudget() }
                 group.addTask { @MainActor in self.readinessData = try? await APIService.shared.fetchReadiness() }
-                group.addTask { @MainActor in self.phoenixScore  = try? await APIService.shared.fetchPhoenixScore() }
                 group.addTask { @MainActor in self.activeSeason  = try? await APIService.shared.getActiveSeason() }
             }
             analyticsLoadedDate = today

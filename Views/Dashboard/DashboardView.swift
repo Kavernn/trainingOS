@@ -109,13 +109,18 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0)
                                 }
 
+                                if let phoenix = vm.phoenixScore {
+                                    PhoenixCard(score: phoenix)
+                                        .appearAnimationHot(delay: 0)
+                                }
+
                                 if let season = vm.activeSeason {
                                     SeasonBannerView(season: season) { showSeasonClose = true }
-                                        .appearAnimation(delay: 0)
+                                        .appearAnimation(delay: 0.02)
                                 }
 
                                 GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
-                                    .appearAnimation(delay: 0)
+                                    .appearAnimation(delay: 0.04)
 
                                 TodayCardView(
                                     dash: dash,
@@ -164,11 +169,6 @@ struct DashboardView: View {
 
                                 DailyStreakCard(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.25)
-
-                                if let phoenix = vm.phoenixScore {
-                                    PhoenixCard(score: phoenix)
-                                        .appearAnimationHot(delay: 0.27)
-                                }
 
                                 BodyBudgetCard(budget: vm.bodyBudget)
                                     .appearAnimation(delay: 0.28)
