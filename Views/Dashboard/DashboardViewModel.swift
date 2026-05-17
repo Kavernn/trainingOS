@@ -21,6 +21,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var bodyBudget: BodyBudgetResponse?
     @Published var readinessData: ReadinessResponse?
     @Published var phoenixScore: PhoenixScore?
+    @Published var phoenixDayDelta: Double? = nil
     @Published var activeSeason: Season?
     @Published var dailyPattern: PatternEntry?
     @Published var ritualToday: RitualToday?
@@ -132,6 +133,23 @@ final class DashboardViewModel: ObservableObject {
                 do {
                     let score = try await APIService.shared.fetchPhoenixScore()
                     self.phoenixScore = score
+                    // Day-over-day delta: rotate stored score once per calendar day
+                    let storedDate  = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
+                    if storedDate != today {
+                        let oldValue = UserDefaults.standard.double(forKey: "phoenix.score.value")
+                        let oldDate  = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
+                        if !oldDate.isEmpty {
+                            UserDefaults.standard.set(oldValue, forKey: "phoenix.score.prev_value")
+                            UserDefaults.standard.set(oldDate,  forKey: "phoenix.score.prev_date")
+                        }
+                        UserDefaults.standard.set(Double(score.score), forKey: "phoenix.score.value")
+                        UserDefaults.standard.set(today, forKey: "phoenix.score.date")
+                    }
+                    let prevDate = UserDefaults.standard.string(forKey: "phoenix.score.prev_date") ?? ""
+                    if !prevDate.isEmpty {
+                        let prevValue = UserDefaults.standard.double(forKey: "phoenix.score.prev_value")
+                        self.phoenixDayDelta = Double(score.score) - prevValue
+                    }
                     NotificationService.notifyPhoenixStateChange(
                         newState: score.state,
                         newLabel: score.phoenixState.label
@@ -161,6 +179,10 @@ final class DashboardViewModel: ObservableObject {
                     return 1
                 }
             }
+            group.addTask { @MainActor in
+                self.bodyBudget = try? await APIService.shared.fetchBodyBudget()
+                return 0
+            }
             for await failures in group { secondaryFailures += failures }
         }
 
@@ -173,8 +195,12 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in self.lssTrend     = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? [] }
                 group.addTask { @MainActor in self.coachTip     = try? await APIService.shared.fetchDailyCoachTip() }
                 group.addTask { @MainActor in self.smartDay     = try? await APIService.shared.fetchSmartDay() }
-                group.addTask { @MainActor in self.weeklyReport = try? await APIService.shared.fetchWeeklyReport() }
-                group.addTask { @MainActor in self.bodyBudget    = try? await APIService.shared.fetchBodyBudget() }
+                group.addTask { @MainActor in
+                    if let report = try? await APIService.shared.fetchWeeklyReport() {
+                        self.weeklyReport = report
+                        NotificationService.scheduleWeeklyRecapWithData(report: report, tracker: BehaviorTracker.shared)
+                    }
+                }
                 group.addTask { @MainActor in self.readinessData = try? await APIService.shared.fetchReadiness() }
                 group.addTask { @MainActor in
                     let season = try? await APIService.shared.getActiveSeason()

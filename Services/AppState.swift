@@ -12,7 +12,6 @@ final class AppState: ObservableObject {
 
     @Published var userProfile: UserProfile? = nil
     @Published var pendingDeepLink: String? = nil
-    @Published var ritualTodayNotDone: Bool = false
 
     var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 

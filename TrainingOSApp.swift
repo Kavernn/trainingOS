@@ -44,9 +44,10 @@ struct TrainingOSApp: App {
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
     private let modelContainer: ModelContainer = {
-        // SyncManager uses UserDefaults — no SwiftData needed for the offline queue.
-        // BodyCompEntry still uses SwiftData for local history (iOS < 26 only;
-        // iOS 26 beta SwiftData @Model ObjC registration corrupts the nano-malloc heap).
+        // iOS 26 beta: SwiftData @Model ObjC runtime registration corrupts the
+        // nano-malloc heap. Use an empty schema to skip model registration entirely;
+        // SyncManager offline queue and BodyComp history are unavailable until Apple
+        // fixes SwiftData on iOS 26.
         if #available(iOS 26, *) {
             let empty = Schema([])
             let cfg   = ModelConfiguration(schema: empty, isStoredInMemoryOnly: true)
@@ -54,12 +55,17 @@ struct TrainingOSApp: App {
                 ?? { fatalError("Cannot create empty ModelContainer") }()
         }
 
-        let schema     = Schema([BodyCompEntry.self])
+        let schema     = Schema([PendingMutation.self, BodyCompEntry.self])
         let memConfig  = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let diskConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        return (try? ModelContainer(for: schema, configurations: diskConfig))
-            ?? (try? ModelContainer(for: schema, configurations: memConfig))
-            ?? { fatalError("Impossible de créer un ModelContainer") }()
+        if let container = try? ModelContainer(for: schema, configurations: diskConfig) {
+            let ctx = ModelContext(container)
+            if (try? ctx.fetch(FetchDescriptor<PendingMutation>())) != nil {
+                return container
+            }
+        }
+        return (try? ModelContainer(for: schema, configurations: memConfig))
+            ?? { fatalError("Impossible de créer un ModelContainer en mémoire") }()
     }()
 
     var body: some Scene {
@@ -78,7 +84,9 @@ struct TrainingOSApp: App {
             .environmentObject(appState)
             .onAppear {
                 CacheService.invalidateIfVersionChanged()
-                SyncManager.shared.setup()
+                if #unavailable(iOS 26) {
+                    SyncManager.shared.setup(container: modelContainer)
+                }
                 UNUserNotificationCenter.current().delegate = AppNotificationDelegate.shared
                 UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
                     if granted { NotificationService.scheduleAll() }

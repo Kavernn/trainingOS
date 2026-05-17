@@ -30,6 +30,7 @@ struct DashboardView: View {
     @State private var showSleepDismissConfirm = false
     @State private var showNutritionAddSheet = false
     @State private var showQuickTrigger = false
+    @State private var showQuickBattle = false
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -111,13 +112,18 @@ struct DashboardView: View {
                                 }
 
                                 if let phoenix = vm.phoenixScore {
-                                    PhoenixCard(score: phoenix)
+                                    PhoenixCard(score: phoenix, dayDelta: vm.phoenixDayDelta)
                                         .appearAnimationHot(delay: 0)
                                 }
 
                                 if let season = vm.activeSeason {
                                     SeasonBannerView(season: season) { showSeasonClose = true }
                                         .appearAnimation(delay: 0.02)
+                                }
+
+                                if let season = vm.activeSeason, (44...46).contains(season.dayNumber) {
+                                    SeasonMidpointCard(seasonNumber: season.number)
+                                        .appearAnimation(delay: 0.03)
                                 }
 
                                 GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
@@ -192,12 +198,20 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.35)
                                 }
 
-                                // Evening ritual entrypoint — visible after 18h when morning done but evening not
+                                // Morning ritual entrypoint — visible before 14h when morning not done
                                 if let ritual = vm.ritualToday,
-                                   ritual.morningDone && !ritual.eveningDone,
+                                   !ritual.morningDone,
+                                   Calendar.current.component(.hour, from: Date()) < 14 {
+                                    MorningRitualEntryCard()
+                                        .appearAnimation(delay: 0.37)
+                                }
+
+                                // Evening ritual entrypoint — visible after 18h when evening not done
+                                if let ritual = vm.ritualToday,
+                                   !ritual.eveningDone,
                                    Calendar.current.component(.hour, from: Date()) >= 18 {
                                     EveningRitualEntryCard(ritual: ritual)
-                                        .appearAnimation(delay: 0.37)
+                                        .appearAnimation(delay: 0.38)
                                 }
 
                                 // Breathwork nudge — visible when latest LSS score is low (stress high)
@@ -296,12 +310,30 @@ struct DashboardView: View {
                     .padding()
                 }
 
-                // War Room quick trigger — floating pill, visible when War Room is active
+                // War Room floating pills — visible when War Room is active
                 if vm.warRoomEnabled {
                     VStack {
                         Spacer()
-                        HStack {
+                        HStack(spacing: 10) {
                             Spacer()
+                            Button { showQuickBattle = true } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "flag.fill")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text("Résultat")
+                                        .font(.system(size: 12, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 9)
+                                .background(
+                                    Capsule()
+                                        .fill(Color(hex: "0a1a0a"))
+                                        .overlay(Capsule().stroke(Color.green.opacity(0.5), lineWidth: 1))
+                                )
+                                .shadow(color: Color.green.opacity(0.25), radius: 6, y: 3)
+                            }
+                            .buttonStyle(.plain)
                             Button { showQuickTrigger = true } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: "bolt.fill")
@@ -321,8 +353,8 @@ struct DashboardView: View {
                             }
                             .buttonStyle(.plain)
                             .padding(.trailing, 20)
-                            .padding(.bottom, 20)
                         }
+                        .padding(.bottom, 20)
                     }
                     .allowsHitTesting(true)
                     .ignoresSafeArea(edges: .bottom)
@@ -356,6 +388,9 @@ struct DashboardView: View {
         }
         .sheet(isPresented: $showQuickTrigger) {
             QuickWarRoomTriggerSheet()
+        }
+        .sheet(isPresented: $showQuickBattle) {
+            QuickBattleSheet()
         }
         .sheet(isPresented: $showSleepSheet) {
             NavigationStack {
@@ -3464,10 +3499,12 @@ private struct EveningRitualEntryCard: View {
 // MARK: - Breathwork Nudge Card
 
 private struct BreathworkNudgeCard: View {
-    @State private var dismissed = false
+    @AppStorage("breathwork.nudge.dismissed.date") private var dismissedDate = ""
+
+    private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
     var body: some View {
-        if !dismissed {
+        if dismissedDate != todayStr {
             HStack(spacing: 10) {
                 Image(systemName: "wind")
                     .font(.system(size: 13, weight: .semibold))
@@ -3484,7 +3521,7 @@ private struct BreathworkNudgeCard: View {
 
                 Spacer()
 
-                Button { dismissed = true } label: {
+                Button { dismissedDate = todayStr } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 11))
                         .foregroundColor(.gray)
@@ -3636,6 +3673,204 @@ private struct QuickWarRoomTriggerSheet: View {
         }
         .presentationDetents([.medium])
         .presentationBackground(Color.appBg)
+    }
+}
+
+// MARK: - Morning Ritual Entry Card
+
+private struct MorningRitualEntryCard: View {
+    @State private var showMorningRitual = false
+
+    var body: some View {
+        Button { showMorningRitual = true } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.orange.opacity(0.12))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "sunrise.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.orange)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("RITUEL DU MATIN")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(.orange.opacity(0.8))
+                        .tracking(0.5)
+                    Text("Pose ton intention avant de commencer.")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                Spacer()
+                Text("COMMENCER")
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            .padding(13)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.orange.opacity(0.25), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .fullScreenCover(isPresented: $showMorningRitual) {
+            RitualMorningView()
+        }
+    }
+}
+
+// MARK: - Season Midpoint Card (D44-D46)
+
+private struct SeasonMidpointCard: View {
+    let seasonNumber: Int
+    @State private var showOath = false
+
+    var body: some View {
+        Button { showOath = true } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(Color.purple.opacity(0.12))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "flag.2.crossed.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.purple)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("MI-SAISON \(seasonNumber)")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(.purple.opacity(0.8))
+                        .tracking(0.5)
+                    Text("La saison se gagne ou se perd dans les 45 prochains jours.")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.7))
+                        .lineLimit(2)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.purple.opacity(0.6))
+            }
+            .padding(13)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.purple.opacity(0.25), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showOath) {
+            OathGateView()
+        }
+    }
+}
+
+// MARK: - Quick Battle Sheet (War Room victory / defeat)
+
+private struct QuickBattleSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var isSaving = false
+    @State private var saved = false
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBg.ignoresSafeArea()
+                VStack(spacing: 28) {
+                    Text("Comment s'est terminée la journée ?")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 8)
+
+                    HStack(spacing: 16) {
+                        battleButton(
+                            label: "VICTOIRE",
+                            icon: "checkmark.seal.fill",
+                            color: Color(hex: "22C55E"),
+                            status: .victory
+                        )
+                        battleButton(
+                            label: "DÉFAITE",
+                            icon: "xmark.seal.fill",
+                            color: Color(hex: "EF4444"),
+                            status: .lost
+                        )
+                    }
+
+                    if saved {
+                        Label("Enregistré", systemImage: "checkmark")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.green)
+                    }
+
+                    Spacer()
+                }
+                .padding(24)
+            }
+            .navigationTitle("Résultat du jour")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Annuler") { dismiss() }
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .presentationDetents([.height(280)])
+        .presentationBackground(Color.appBg)
+    }
+
+    @ViewBuilder
+    private func battleButton(label: String, icon: String, color: Color, status: BattleStatus) -> some View {
+        Button {
+            guard !isSaving, !saved else { return }
+            isSaving = true
+            Task {
+                _ = try? await APIService.shared.upsertBattle(
+                    date: DateFormatter.isoDate.string(from: Date()),
+                    status: status
+                )
+                await MainActor.run {
+                    isSaving = false
+                    saved = true
+                }
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                dismiss()
+            }
+        } label: {
+            VStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 32))
+                    .foregroundColor(color)
+                Text(label)
+                    .font(.system(size: 12, weight: .black))
+                    .foregroundColor(color)
+                    .tracking(0.5)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 22)
+            .background(color.opacity(0.08))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(color.opacity(0.3), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+        .disabled(isSaving || saved)
     }
 }
 
