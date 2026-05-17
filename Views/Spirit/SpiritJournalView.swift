@@ -47,7 +47,7 @@ struct SpiritJournalGateView: View {
                     .tracking(4)
                 Text("Ce journal n'appartient qu'à toi.")
                     .font(.system(size: 13, weight: .thin))
-                    .foregroundStyle(Color.moonlight.opacity(0.55))
+                    .foregroundStyle(Color.moonlight.opacity(0.2))
             }
 
             if failed {
@@ -64,11 +64,11 @@ struct SpiritJournalGateView: View {
     private func authenticate() {
         let ctx = LAContext()
         var error: NSError?
-        guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
             unlocked = true
             return
         }
-        ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Journal Spirit") { success, _ in
+        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Journal Spirit") { success, _ in
             DispatchQueue.main.async {
                 if success { unlocked = true } else { failed = true }
             }
@@ -105,7 +105,7 @@ struct SpiritJournalView: View {
         return VStack(spacing: 16) {
             Text(formattedToday())
                 .font(.system(size: 11, weight: .thin, design: .monospaced))
-                .foregroundStyle(Color.moonlight.opacity(0.55))
+                .foregroundStyle(Color.moonlight.opacity(0.25))
                 .tracking(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -129,11 +129,11 @@ struct SpiritJournalView: View {
                     HStack {
                         Text("Entrer dans le silence")
                             .font(.system(size: 14, weight: .thin))
-                            .foregroundStyle(Color.moonlight.opacity(0.55))
+                            .foregroundStyle(Color.moonlight.opacity(0.5))
                         Spacer()
                         Image(systemName: "arrow.right")
                             .font(.system(size: 11, weight: .thin))
-                            .foregroundStyle(Color.moonlight.opacity(0.55))
+                            .foregroundStyle(Color.moonlight.opacity(0.2))
                     }
                 }
             }
@@ -150,7 +150,7 @@ struct SpiritJournalView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("ARCHIVES")
                 .font(.system(size: 9, weight: .thin, design: .monospaced))
-                .foregroundStyle(Color.moonlight.opacity(0.55))
+                .foregroundStyle(Color.moonlight.opacity(0.2))
                 .tracking(3)
 
             ForEach(vm.journalStubs.filter { $0.date != todayISO }) { stub in
@@ -164,7 +164,7 @@ struct SpiritJournalView: View {
                         Spacer()
                         Image(systemName: "chevron.right")
                             .font(.system(size: 9, weight: .thin))
-                            .foregroundStyle(Color.moonlight.opacity(0.55))
+                            .foregroundStyle(Color.moonlight.opacity(0.15))
                     }
                     .padding(.vertical, 6)
                 }
@@ -265,7 +265,7 @@ struct SpiritJournalWriteView: View {
                 if step > 0 {
                     Button("←") { step -= 1 }
                         .font(.system(size: 16, weight: .thin))
-                        .foregroundStyle(Color.moonlight.opacity(0.55))
+                        .foregroundStyle(Color.moonlight.opacity(0.2))
                 }
                 Spacer()
                 Button(step < 2 ? "Suivant →" : "Fermer les yeux →") {
@@ -277,7 +277,7 @@ struct SpiritJournalWriteView: View {
                     }
                 }
                 .font(.system(size: 14, weight: .thin))
-                .foregroundStyle(Color.moonlight.opacity(0.6))
+                .foregroundStyle(Color.moonlight.opacity(0.45))
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 52)
@@ -305,7 +305,7 @@ struct SpiritJournalWriteView: View {
 
             Button("Fermer") { dismiss() }
                 .font(.system(size: 13, weight: .thin))
-                .foregroundStyle(Color.moonlight.opacity(0.55))
+                .foregroundStyle(Color.moonlight.opacity(0.25))
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.bottom, 52)
         }
