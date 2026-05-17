@@ -141,7 +141,8 @@ struct SeasonStats: Codable {
     }
 }
 
-struct SeasonReport: Codable {
+struct SeasonReport: Codable, Identifiable {
+    var id: String { season.id }
     let season: Season
     let startSnapshot: SeasonSnapshot?
     let endSnapshot: SeasonSnapshot?
