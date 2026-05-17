@@ -14,7 +14,6 @@ enum NotificationService {
         scheduleSelfCareReminder(tracker: tracker)
         schedulePSSWeeklyReminder(tracker: tracker)
         scheduleNutritionReminder(tracker: tracker)
-        scheduleWeeklyRecapNotification(tracker: tracker)
     }
 
     /// Call after data loads, passing the sorted session dates.
@@ -174,60 +173,6 @@ enum NotificationService {
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
-    // MARK: - Weekly Recap (Sunday — adaptive hour, defaults to 10:00)
-
-    private static func scheduleWeeklyRecapNotification(tracker: BehaviorTracker) {
-        let center = UNUserNotificationCenter.current()
-        let id = "weekly.recap.sunday"
-        center.removePendingNotificationRequests(withIdentifiers: [id])
-
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-
-            let rawHour = tracker.preferredHour(for: .appOpen) ?? 10
-            let hour = min(max(rawHour, 8), 12)
-
-            let content = UNMutableNotificationContent()
-            content.title = "Ton rapport de la semaine"
-            content.body  = "Résultats, patterns, tendances — 30 secondes pour voir où tu en es."
-            content.sound = .default
-
-            var dc = DateComponents()
-            dc.weekday = 1  // Sunday
-            dc.hour    = hour
-            dc.minute  = 0
-
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
-            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
-        }
-    }
-
-    // MARK: - War Room daily check-in (22:00 fixed — after self-care reminder)
-
-    /// Call with isEnabled = true when War Room is active; false removes the notification.
-    static func scheduleWarRoomDailyCheckin(isEnabled: Bool) {
-        let center = UNUserNotificationCenter.current()
-        let id = "war_room.daily.checkin"
-        center.removePendingNotificationRequests(withIdentifiers: [id])
-        guard isEnabled else { return }
-
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-
-            let content = UNMutableNotificationContent()
-            content.title = "War Room — journée terminée ?"
-            content.body  = "Log ta victoire ou ta défaite. La guerre ne se gagne pas en silence."
-            content.sound = .default
-
-            var dc = DateComponents()
-            dc.hour   = 22
-            dc.minute = 0
-
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
-            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
-        }
-    }
-
     // MARK: - Event: Phoenix state change
 
     /// Fires once when the user's Phoenix state changes (e.g. Braises → Flamme).
@@ -257,7 +202,8 @@ enum NotificationService {
             ]
             content.body  = bodies[newState] ?? "Ton score Phoenix a changé."
             content.sound = .default
-            center.add(UNNotificationRequest(identifier: id, content: content, trigger: reasonableHourTrigger()))
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
     }
 
@@ -284,7 +230,8 @@ enum NotificationService {
             content.title = "Nouvelle tombe dans ton cimetière"
             content.body  = latestTombstone.epitaph
             content.sound = .default
-            center.add(UNNotificationRequest(identifier: id, content: content, trigger: reasonableHourTrigger()))
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
     }
 
@@ -296,28 +243,20 @@ enum NotificationService {
         guard let start = f.date(from: String(seasonStartISO.prefix(10))) else { return }
         let center = UNUserNotificationCenter.current()
 
-        // (day, id, title, body)
-        let milestones: [(Int, String, String, String)] = [
-            (30, "event.season.d30.\(seasonNumber)", "Saison \(seasonNumber) — Jour 30",
-             "Le premier tiers est fait. Ton Oath t'attend — relis-le."),
-            (45, "event.season.d45.\(seasonNumber)", "Saison \(seasonNumber) — Mi-parcours",
-             "45 jours. La saison se gagne ou se perd dans les 45 prochains."),
-            (60, "event.season.d60.\(seasonNumber)", "Saison \(seasonNumber) — Jour 60",
-             "Deux tiers. Relis ton intention de départ — es-tu encore dans la même guerre ?"),
-            (75, "event.season.d75.\(seasonNumber)", "Saison \(seasonNumber) — Dernière ligne droite",
-             "15 jours. Ne relâche pas. Cette saison se joue maintenant."),
-            (89, "event.season.d89.\(seasonNumber)", "Saison \(seasonNumber) — Demain c'est fini",
-             "Dernière journée demain. Tu mérites un Oath relu avant la clôture."),
+        let milestones: [(Int, String, String)] = [
+            (30, "event.season.d30.\(seasonNumber)", "S\(seasonNumber) — Jour 30/90 : Le premier tiers est fait. Tu tiens."),
+            (60, "event.season.d60.\(seasonNumber)", "S\(seasonNumber) — Jour 60/90 : Deux tiers. La finale approche."),
+            (75, "event.season.d75.\(seasonNumber)", "S\(seasonNumber) — Jour 75/90 : 15 jours. Cette saison se joue maintenant."),
         ]
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
-            for (day, id, title, body) in milestones {
+            for (day, id, body) in milestones {
                 let fireDate = Calendar.current.date(byAdding: .day, value: day - 1, to: start)!
                 guard fireDate > Date() else { continue }
                 center.removePendingNotificationRequests(withIdentifiers: [id])
                 let content = UNMutableNotificationContent()
-                content.title = title
+                content.title = "Saison en cours"
                 content.body  = body
                 content.sound = .default
                 var dc = Calendar.current.dateComponents([.year, .month, .day], from: fireDate)
@@ -349,7 +288,8 @@ enum NotificationService {
             content.title = "Ton ADN a évolué"
             content.body  = "Tu es maintenant un \(newLabel). Ton profil d'entraînement a changé."
             content.sound = .default
-            center.add(UNNotificationRequest(identifier: id, content: content, trigger: reasonableHourTrigger()))
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
     }
 
@@ -385,54 +325,6 @@ enum NotificationService {
                 center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
             }
         }
-    }
-
-    // MARK: - Weekly recap with real data
-
-    /// Reschedule Sunday recap with actual session/PR counts from the latest report.
-    static func scheduleWeeklyRecapWithData(report: WeeklyReport, tracker: BehaviorTracker) {
-        let center = UNUserNotificationCenter.current()
-        let id = "weekly.recap.sunday"
-        center.removePendingNotificationRequests(withIdentifiers: [id])
-
-        UNUserNotificationCenter.current().getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized else { return }
-
-            let rawHour = tracker.preferredHour(for: .appOpen) ?? 10
-            let hour = min(max(rawHour, 8), 12)
-
-            let content = UNMutableNotificationContent()
-            content.title = "Ton rapport de la semaine"
-            var bodyParts: [String] = []
-            bodyParts.append("\(report.sessionCount) séance\(report.sessionCount == 1 ? "" : "s")")
-            if report.prCount > 0 { bodyParts.append("\(report.prCount) PR") }
-            if let avg = report.avgSleepHours { bodyParts.append(String(format: "%.1fh de sommeil en moyenne", avg)) }
-            content.body = bodyParts.isEmpty
-                ? "Résultats, patterns, tendances — 30 secondes."
-                : bodyParts.joined(separator: " · ")
-            content.sound = .default
-
-            var dc = DateComponents()
-            dc.weekday = 1
-            dc.hour    = hour
-            dc.minute  = 0
-
-            let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
-            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
-        }
-    }
-
-    // MARK: - Helper: reasonable-hour trigger (9h–21h, else next 9am)
-
-    /// Returns a trigger that fires now (1s) if current hour is 9–20, else fires at next 9:00.
-    private static func reasonableHourTrigger() -> UNNotificationTrigger {
-        let hour = Calendar.current.component(.hour, from: Date())
-        if hour >= 9 && hour < 21 {
-            return UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
-        }
-        // Outside window — schedule for next 9:00
-        var dc = DateComponents(); dc.hour = 9; dc.minute = 0
-        return UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
     }
 
     // MARK: - Helper

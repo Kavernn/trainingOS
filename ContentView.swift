@@ -40,8 +40,7 @@ struct ContentView: View {
 private struct iOSContentView: View {
     @ObservedObject var network: NetworkMonitor
     @ObservedObject var sync: SyncManager
-    @ObservedObject private var api      = APIService.shared
-    @ObservedObject private var appState = AppState.shared
+    @ObservedObject private var api = APIService.shared
     @Binding var selectedTab: Int
 
     private var seanceBadge: Int {
@@ -70,7 +69,6 @@ private struct iOSContentView: View {
             MoreView()
                 .tag(4)
                 .tabItem { Label("Plus", systemImage: "ellipsis.circle.fill") }
-                .badge(appState.ritualTodayNotDone ? 1 : 0)
         }
         .overlay(alignment: .top) { offlineBanner }
         .overlay(alignment: .bottom) { offlineToast }
@@ -78,14 +76,6 @@ private struct iOSContentView: View {
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
         .onReceive(NotificationCenter.default.publisher(for: .navigateToIntelligence)) { _ in
             selectedTab = 0
-        }
-        .onReceive(appState.$pendingDeepLink.compactMap { $0 }) { link in
-            switch link {
-            case "intelligence": selectedTab = 0
-            case "warroom":      selectedTab = 1
-            default: break
-            }
-            appState.pendingDeepLink = nil
         }
     }
 
