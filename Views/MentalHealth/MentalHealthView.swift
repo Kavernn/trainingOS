@@ -2,6 +2,7 @@ import SwiftUI
 import Charts
 
 struct MentalHealthView: View {
+    @StateObject private var spiritVM = SpiritViewModel()
     @State private var moodDue: MoodDueStatus?
     @State private var summary: MentalHealthSummary?
     @State private var recentMoods: [MoodEntry] = []
@@ -44,7 +45,7 @@ struct MentalHealthView: View {
                             NavigationLink { MoodTrackerView() } label: {
                                 MHMenuCard(icon: "face.smiling.fill", color: .yellow, title: "Humeur", subtitle: moodSubtitle)
                             }
-                            NavigationLink { SpiritJournalGateView() } label: {
+                            NavigationLink { SpiritJournalGateView(vm: spiritVM) } label: {
                                 MHMenuCard(icon: "book.fill", color: .blue, title: "Journal", subtitle: journalSubtitle)
                             }
                             NavigationLink { BreathworkView() } label: {
