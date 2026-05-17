@@ -7,11 +7,20 @@ struct PRCelebrationView: View {
     let onDismiss: () -> Void
 
     @ObservedObject private var units = UnitSettings.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showContent = false
     @State private var showButton = false
     @State private var launched = false
 
     private let particles: [PRParticle] = PRParticle.generate(count: 48)
+
+    private var prAccessibilityLabel: String {
+        if prs.count == 1, let pr = prs.first {
+            return "Nouvelle limite détruite : \(pr.name). Nouveau record estimé : \(pr.oneRM, specifier: "%.1f")."
+        }
+        let names = prs.map { $0.name }.joined(separator: ", ")
+        return "\(prs.count) nouvelles limites détruites : \(names)."
+    }
 
     var body: some View {
         ZStack {
@@ -22,7 +31,7 @@ struct PRCelebrationView: View {
                 center: .center, startRadius: 0, endRadius: 350
             )
             .ignoresSafeArea()
-            .animation(.easeInOut(duration: 0.9), value: showContent)
+            .animation(reduceMotion ? .none : .easeInOut(duration: 0.9), value: showContent)
 
             // Confetti burst
             GeometryReader { geo in
@@ -47,7 +56,7 @@ struct PRCelebrationView: View {
                     )
                     .opacity(launched ? 0 : 0.92)
                     .animation(
-                        .easeOut(duration: p.duration).delay(p.delay),
+                        reduceMotion ? .none : .easeOut(duration: p.duration).delay(p.delay),
                         value: launched
                     )
                 }
@@ -124,7 +133,7 @@ struct PRCelebrationView: View {
                             }
                         }
                     }
-                    .transition(.scale(scale: 0.4).combined(with: .opacity))
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.4).combined(with: .opacity))
                 }
 
                 Spacer()
@@ -140,20 +149,23 @@ struct PRCelebrationView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 16))
                     }
                     .buttonStyle(SpringButtonStyle())
+                    .accessibilityLabel("Continuer")
                     .padding(.horizontal, 32)
                     .padding(.bottom, 52)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
                 }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(prAccessibilityLabel)
         .preferredColorScheme(.dark)
         .onAppear {
             triggerNotificationFeedback(.success)
             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
 
-            withAnimation(.spring(response: 0.55, dampingFraction: 0.68)) {
+            withAnimation(reduceMotion ? .easeIn(duration: 0.2) : .spring(response: 0.55, dampingFraction: 0.68)) {
                 showContent = true
-                launched = true
+                if !reduceMotion { launched = true }
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 withAnimation(.easeOut(duration: 0.35)) {
@@ -205,6 +217,7 @@ struct ConfettiPiece: Identifiable {
 
 struct ConfettiView: View {
     private let colors: [Color] = [.orange, .green, .cyan, .yellow, .pink, .purple]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pieces: [ConfettiPiece] = []
     @State private var animate = false
 
@@ -219,8 +232,8 @@ struct ConfettiView: View {
                         .rotationEffect(.degrees(p.angle + (animate ? 360 : 0)))
                         .opacity(animate ? 0 : 1)
                         .animation(
-                            .easeIn(duration: Double.random(in: 1.4...2.4))
-                            .delay(Double.random(in: 0...0.5)),
+                            reduceMotion ? .none : .easeIn(duration: Double.random(in: 1.4...2.4))
+                                .delay(Double.random(in: 0...0.5)),
                             value: animate
                         )
                 }
@@ -236,7 +249,7 @@ struct ConfettiView: View {
                     )
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    animate = true
+                    if !reduceMotion { animate = true }
                 }
             }
         }

@@ -92,7 +92,7 @@ private struct TechniqueRow: View {
             Image(systemName: technique.icon)
                 .font(.title2)
                 .foregroundColor(accentColor)
-                .frame(width: 36)
+                .frame(width: 44, height: 44)
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(technique.name).font(.headline)
@@ -124,6 +124,7 @@ struct BreathworkTimerView: View {
     let technique: BreathworkTechnique
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var currentPhaseIndex = 0
     @State private var secondsLeft: Int = 0
     @State private var cyclesCompleted = 0
@@ -169,6 +170,7 @@ struct BreathworkTimerView: View {
                         .font(.title3)
                         .foregroundColor(.secondary)
                 }
+                .accessibilityLabel("Arrêter et fermer")
                 Spacer()
                 Text(technique.name)
                     .font(.headline)
@@ -191,7 +193,7 @@ struct BreathworkTimerView: View {
                     .stroke(accentColor, lineWidth: 8)
                     .frame(width: 200, height: 200)
                     .scaleEffect(circleScale)
-                    .animation(.easeInOut(duration: Double(currentPhase.seconds)), value: circleScale)
+                    .animation(reduceMotion ? .none : .easeInOut(duration: Double(currentPhase.seconds)), value: circleScale)
 
                 VStack(spacing: 6) {
                     Text(currentPhase.label)
@@ -201,6 +203,9 @@ struct BreathworkTimerView: View {
                         .font(.largeTitle.monospacedDigit())
                 }
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(currentPhase.label) — \(secondsLeft) secondes restantes")
+            .accessibilityAddTraits(.updatesFrequently)
 
             Text(phaseInstruction)
                 .font(.subheadline)
@@ -223,6 +228,7 @@ struct BreathworkTimerView: View {
                     .cornerRadius(16)
             }
             .padding(.bottom, 40)
+            .accessibilityLabel(isRunning ? "Pause" : (cyclesCompleted == 0 && secondsLeft == 0 ? "Commencer la séance" : "Reprendre"))
         }
         .onAppear { secondsLeft = currentPhase.seconds }
         .onDisappear { pauseTimer() }

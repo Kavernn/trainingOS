@@ -2,6 +2,7 @@ import SwiftUI
 
 struct BattleCounterView: View {
     @ObservedObject var vm: WarRoomViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var logging          = false
     @State private var pulsing          = false
     @State private var showOathRecall   = false
@@ -31,7 +32,7 @@ struct BattleCounterView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.4), value: showOathRecall)
+        .animation(reduceMotion ? .none : .easeInOut(duration: 0.4), value: showOathRecall)
         .onChange(of: vm.streakJustReset) { _, reset in
             if reset { showOathRecall = true }
         }
@@ -52,7 +53,7 @@ struct BattleCounterView: View {
                 .font(.system(size: 72, weight: .black, design: .rounded))
                 .foregroundStyle(streakColor(s.victoryStreak))
                 .scaleEffect(pulsing ? 1.04 : 1.0)
-                .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true).delay(0.4), value: pulsing)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true).delay(0.4), value: pulsing)
 
             Text(s.victoryStreak == 1 ? "JOUR TENU" : "JOURS TENUS")
                 .font(.system(size: 11, weight: .bold, design: .monospaced))
@@ -69,6 +70,8 @@ struct BattleCounterView: View {
         .padding(.vertical, 32)
         .background(cardBg(s.victoryStreak), in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(streakColor(s.victoryStreak).opacity(0.25), lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Série de victoires : \(s.victoryStreak) jour\(s.victoryStreak != 1 ? "s" : "") tenu\(s.victoryStreak != 1 ? "s" : ""). Record : \(s.bestStreak).")
         .onAppear { pulsing = true }
     }
 
@@ -107,6 +110,8 @@ struct BattleCounterView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .background(Color.appCard, in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label.capitalized) : \(value)")
     }
 
     // MARK: Today card
@@ -161,6 +166,7 @@ struct BattleCounterView: View {
                 .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
         }
         .disabled(logging)
+        .accessibilityHint(status == .victory ? "Marque aujourd'hui comme une victoire" : "Marque aujourd'hui comme une défaite")
     }
 
     private func statusColor(_ s: BattleStatus) -> Color {
