@@ -39,9 +39,7 @@ extension APIService {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: fields)
         req.timeoutInterval = 20
-        if let key = apiKey, !key.isEmpty {
-            req.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-        }
+        req.setValue("Bearer \(APIConfig.apiKey)", forHTTPHeaderField: "Authorization")
         let (data, _) = try await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "seasons_list")
         return try? JSONDecoder().decode(Season.self, from: data)
