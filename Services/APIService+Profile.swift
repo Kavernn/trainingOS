@@ -1,6 +1,13 @@
 import Foundation
 
 extension APIService {
+    // MARK: - Profile Stats (lightweight)
+    func fetchProfileStats() async throws -> ProfileStats {
+        let url  = URL(string: "\(baseURL)/api/profile_stats")!
+        let data = try await fetchWithCache(url: url, key: "profile_stats")
+        return try JSONDecoder().decode(ProfileStats.self, from: data)
+    }
+
     // MARK: - Body Weight / Profil
     func fetchProfilData() async throws -> (profile: UserProfile, bodyWeight: [BodyWeightEntry], tendance: String) {
         let url = URL(string: "\(baseURL)/api/profil_data")!

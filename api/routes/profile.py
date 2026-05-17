@@ -22,6 +22,42 @@ def api_profil_data():
     })
 
 
+@profile_bp.route("/api/profile_stats")
+def api_profile_stats():
+    """Lightweight profile stats — replaces the heavy stats_data call for ProfileView."""
+    import db as _db
+
+    total_sessions  = _db.get_total_session_count()
+    all_time_volume = _db.get_all_time_volume_lbs()
+    streaks         = _db.get_session_streaks()
+    weekly_tonnage  = _db.get_weekly_tonnage(8)
+
+    member_since = None
+    try:
+        if _db._client is not None:
+            resp = (
+                _db._client.table("workout_sessions")
+                .select("date")
+                .or_("completed.eq.true,rpe.not.is.null")
+                .order("date")
+                .limit(1)
+                .execute()
+            )
+            if resp.data:
+                member_since = resp.data[0].get("date")
+    except Exception:
+        pass
+
+    return jsonify({
+        "total_sessions":      total_sessions,
+        "all_time_volume_lbs": all_time_volume,
+        "current_streak":      streaks.get("current", 0),
+        "longest_streak":      streaks.get("longest", 0),
+        "member_since":        member_since,
+        "weekly_tonnage":      weekly_tonnage,
+    })
+
+
 @profile_bp.route("/api/update_profile", methods=["POST"])
 def api_update_profile():
     from user_profile import load_user_profile, save_user_profile

@@ -434,6 +434,83 @@ def get_workout_sessions(limit: int = 100, offset: int = 0) -> List[dict]:
         return []
 
 
+def get_total_session_count() -> int:
+    """Count all completed sessions (all-time) — lightweight, no payload."""
+    if _client is None or MODE == "OFFLINE":
+        return 0
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("id", count="exact")
+            .or_("completed.eq.true,rpe.not.is.null")
+            .execute()
+        )
+        return resp.count or 0
+    except Exception as e:
+        logger.error("get_total_session_count error: %s", e)
+        return 0
+
+
+def get_all_time_volume_lbs() -> float:
+    """Sum all session volume from v_session_volume view."""
+    if _client is None or MODE == "OFFLINE":
+        return 0.0
+    try:
+        resp = (
+            _client.table("v_session_volume")
+            .select("total_volume")
+            .execute()
+        )
+        return round(sum(float(r.get("total_volume") or 0) for r in (resp.data or [])), 0)
+    except Exception as e:
+        logger.error("get_all_time_volume_lbs error: %s", e)
+        return 0.0
+
+
+def get_session_streaks() -> dict:
+    """Return current and all-time longest workout streak."""
+    from datetime import date as _date, timedelta
+    if _client is None or MODE == "OFFLINE":
+        return {"current": 0, "longest": 0}
+    try:
+        resp = (
+            _client.table("workout_sessions")
+            .select("date")
+            .or_("completed.eq.true,rpe.not.is.null")
+            .order("date")
+            .execute()
+        )
+        dates = sorted(set(r["date"] for r in (resp.data or []) if r.get("date")))
+    except Exception as e:
+        logger.error("get_session_streaks error: %s", e)
+        return {"current": 0, "longest": 0}
+
+    if not dates:
+        return {"current": 0, "longest": 0}
+
+    all_set = set(dates)
+    current = 0
+    d = _date.today()
+    while current < 365:
+        if d.isoformat() in all_set:
+            current += 1
+            d -= timedelta(days=1)
+        elif (d - timedelta(days=1)).isoformat() in all_set:
+            d -= timedelta(days=2)
+        else:
+            break
+
+    longest = run = 0
+    prev = None
+    for d_str in dates:
+        d_obj = _date.fromisoformat(d_str)
+        run = run + 1 if (prev and (d_obj - prev).days <= 2) else 1
+        longest = max(longest, run)
+        prev = d_obj
+
+    return {"current": current, "longest": longest}
+
+
 def get_workout_session(date: str) -> Optional[dict]:
     """Return a single workout session by date (is_second=False), or None."""
     if _client is None or MODE == "OFFLINE":
