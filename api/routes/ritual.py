@@ -197,7 +197,7 @@ def _generate_truth_with_claude(
 
         user_content = "\n".join(lines)
 
-        client = anthropic.Anthropic(api_key=api_key)
+        client = anthropic.Anthropic(api_key=api_key, timeout=7.0)
         msg = client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=120,
@@ -281,6 +281,18 @@ def api_ritual_today():
         carried_intention = oldest.get("intention")
         carried_from      = oldest.get("date")
         carry_count       = oldest.get("carry_count", 0)
+
+    # Persist the generated truth so future calls today skip the Claude API
+    try:
+        _db.upsert_ritual({
+            "date":         today_str,
+            "truth":        truth,
+            "truth_type":   ttype,
+            "carry_count":  carry_count,
+            "carried_from": carried_from,
+        })
+    except Exception:
+        pass
 
     return jsonify({
         "date":                  today_str,
