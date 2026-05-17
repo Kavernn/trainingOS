@@ -39,6 +39,8 @@ struct ProfileView: View {
     @State private var weeklyTonnage: [WeeklyTonnageEntry] = []
     @State private var pssHistory: [PSSRecord] = []
     @State private var allTimeVolumeLbs: Double = 0
+    @State private var currentStreak: Int = 0
+    @State private var longestStreak: Int = 0
     @State private var phoenix: PhoenixScore?   = nil
     @State private var oath: OathModel?         = nil
     @State private var oathUnlocked             = false
@@ -58,9 +60,6 @@ struct ProfileView: View {
     private var displayTotalSessions: Int {
         totalSessions > 0 ? totalSessions : (api.dashboard?.sessions.count ?? 0)
     }
-
-    private var currentStreak: Int  { dna?.consistency.currentStreak  ?? 0 }
-    private var longestStreak: Int  { dna?.consistency.longestStreak  ?? 0 }
 
     private var weightDelta30d: Double? {
         let sorted = bodyComp.history.sorted { $0.date < $1.date }
@@ -962,43 +961,25 @@ struct ProfileView: View {
         isLoading = true
         await api.fetchDashboard()
         await BodyCompService.shared.refresh()
-        async let dnaFetch       = APIService.shared.fetchWorkoutDNA()
-        async let pssFetch       = APIService.shared.fetchPSSHistory()
-        async let phoenixFetch   = APIService.shared.fetchPhoenixScore()
-        async let oathFetch      = APIService.shared.getCurrentOath()
-        async let warConfigFetch = APIService.shared.getWarRoomConfig()
-        try? await APIService.shared.fetchStatsData()
-        dna        = try? await dnaFetch
-        pssHistory = (try? await pssFetch) ?? []
-        phoenix    = try? await phoenixFetch
-        oath       = try? await oathFetch
-        if let config = try? await warConfigFetch, config.warStartDate != nil {
+        dna        = try? await APIService.shared.fetchWorkoutDNA()
+        pssHistory = (try? await APIService.shared.fetchPSSHistory()) ?? []
+        phoenix    = try? await APIService.shared.fetchPhoenixScore()
+        oath       = try? await APIService.shared.getCurrentOath()
+        if let stats = try? await APIService.shared.fetchProfileStats() {
+            totalSessions    = stats.totalSessions
+            allTimeVolumeLbs = stats.allTimeVolumeLbs
+            currentStreak    = stats.currentStreak
+            longestStreak    = stats.longestStreak
+            weeklyTonnage    = stats.weeklyTonnage.sorted { $0.weekStart < $1.weekStart }
+            if let ms = stats.memberSince { memberSinceText = buildMemberSince(isoDate: ms) }
+        }
+        if let config = try? await APIService.shared.getWarRoomConfig(), config.warStartDate != nil {
             warRoomEnabled = true
             if let summary = try? await APIService.shared.getWarRoomSummary() {
                 warRoomVictoryStreak = summary.victoryStreak
             }
         }
-        loadStatsSnapshot()
         isLoading = false
-    }
-
-    private func loadStatsSnapshot() {
-        struct Snap: Decodable {
-            let sessions: [String: SessionEntry]
-            let weeklyTonnage: [WeeklyTonnageEntry]?
-            enum CodingKeys: String, CodingKey {
-                case sessions
-                case weeklyTonnage = "weekly_tonnage"
-            }
-        }
-        guard let data = CacheService.shared.load(for: "stats_data"),
-              let r = try? JSONDecoder().decode(Snap.self, from: data) else { return }
-        totalSessions    = r.sessions.count
-        allTimeVolumeLbs = r.sessions.values.compactMap(\.sessionVolume).reduce(0, +)
-        weeklyTonnage    = (r.weeklyTonnage ?? []).sorted { $0.weekStart < $1.weekStart }
-        if let first = r.sessions.keys.sorted().first {
-            memberSinceText = buildMemberSince(isoDate: first)
-        }
     }
 
     private func exportData() async {
