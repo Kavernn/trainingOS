@@ -63,3 +63,4 @@ docs/Seance_Bonus_Samedi_V1.pdf
 Utilities/APIConfig.swift
 xcschememanagement.plist
 .env*.local
+.claude/
