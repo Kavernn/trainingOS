@@ -203,6 +203,25 @@ def _extract_pairs(
     return xs, ys
 
 
+# ── Effect size (% delta) ─────────────────────────────────────────────────────
+
+def _effect_pct(xs: list[float], ys: list[float]) -> Optional[float]:
+    """% difference in y between high-x and low-x groups (median split).
+    Positive = more x → more y.  Returns None if undetermined."""
+    if len(xs) < MIN_N:
+        return None
+    median_x = sorted(xs)[len(xs) // 2]
+    low_y  = [y for x, y in zip(xs, ys) if x <= median_x]
+    high_y = [y for x, y in zip(xs, ys) if x >  median_x]
+    if not low_y or not high_y:
+        return None
+    avg_low  = sum(low_y)  / len(low_y)
+    avg_high = sum(high_y) / len(high_y)
+    if abs(avg_low) < 1e-9:
+        return None
+    return round((avg_high - avg_low) / abs(avg_low) * 100, 1)
+
+
 # ── Génération de la description en français ──────────────────────────────────
 
 def _strength_label(r: float) -> str:
@@ -419,16 +438,17 @@ def get_correlations(days: int = 60) -> dict:
         if r is None or abs(r) < MIN_R:
             continue
         insights.append({
-            "id":          pair_id,
-            "label":       label,
-            "description": _describe(pair_id, r, xs, ys),
-            "correlation": r,
-            "strength":    _strength_label(r),
-            "x_var":       x_key,
-            "y_var":       y_key,
-            "n_points":    len(xs),
-            "icon":        icon,
-            "color":       color,
+            "id":               pair_id,
+            "label":            label,
+            "description":      _describe(pair_id, r, xs, ys),
+            "correlation":      r,
+            "strength":         _strength_label(r),
+            "effect_pct":       _effect_pct(xs, ys),
+            "x_var":            x_key,
+            "y_var":            y_key,
+            "n_points":         len(xs),
+            "icon":             icon,
+            "color":            color,
         })
 
     # Tri par |r| décroissant — les corrélations les plus fortes en premier

@@ -60,8 +60,8 @@ _DEFAULT_TRUTHS = [
 
 # ── Truth generation ─────────────────────────────────────────────────────────
 
-def _build_truth() -> tuple[str, str, list[str]]:
-    """Return (truth_text, truth_type, suggestions[3]) based on user data."""
+def _build_truth() -> tuple[str, str, list[str], dict]:
+    """Return (truth_text, truth_type, suggestions[3], context_data) based on user data."""
     import db as _db
 
     today     = date.today()
@@ -76,7 +76,8 @@ def _build_truth() -> tuple[str, str, list[str]]:
             days_since = (today - last_date).days
             if days_since >= 4:
                 t = f"Tu n'as pas touché une barre depuis {days_since} jours."
-                return t, "workout_gap", _SUGGESTIONS["workout_gap"]
+                ctx = {"jours_sans_séance": days_since, "dernière_séance": last_str}
+                return t, "workout_gap", _SUGGESTIONS["workout_gap"], ctx
         except ValueError:
             pass
 
@@ -86,7 +87,8 @@ def _build_truth() -> tuple[str, str, list[str]]:
         if not this_week and today.weekday() >= 2:
             day_names = {2: "mercredi", 3: "jeudi", 4: "vendredi", 5: "samedi", 6: "dimanche"}
             t = f"Zéro séance cette semaine — on est {day_names.get(today.weekday(), '')}."
-            return t, "workout_skip", _SUGGESTIONS["workout_skip"]
+            ctx = {"jour_semaine": day_names.get(today.weekday(), ""), "séances_cette_semaine": 0}
+            return t, "workout_skip", _SUGGESTIONS["workout_skip"], ctx
 
         # RPE rising trend ───────────────────────────────────────────────────
         recent_rpes = [s["rpe"] for s in sessions[:7]  if s.get("rpe")]
@@ -97,7 +99,8 @@ def _build_truth() -> tuple[str, str, list[str]]:
             if avg_r > avg_o * 1.12:
                 t = (f"Ton RPE monte depuis 2 semaines "
                      f"({avg_r:.1f} vs {avg_o:.1f}). La fatigue s'accumule sans que tu le voies.")
-                return t, "stress_rising", _SUGGESTIONS["stress_rising"]
+                ctx = {"RPE_récent_moyen": round(avg_r, 1), "RPE_précédent_moyen": round(avg_o, 1)}
+                return t, "stress_rising", _SUGGESTIONS["stress_rising"], ctx
 
     # 2. Sleep debt ──────────────────────────────────────────────────────────
     recovery   = _db.get_recovery_logs(limit=7)
@@ -107,7 +110,8 @@ def _build_truth() -> tuple[str, str, list[str]]:
         if avg_sleep < 6.5:
             t = (f"Tu dors {avg_sleep:.1f}h en moyenne cette semaine. "
                  f"Le manque de sommeil efface tes progrès.")
-            return t, "sleep_debt", _SUGGESTIONS["sleep_debt"]
+            ctx = {"sommeil_moyen_h": round(avg_sleep, 1), "jours_mesurés": len(sleep_vals)}
+            return t, "sleep_debt", _SUGGESTIONS["sleep_debt"], ctx
 
     # 3. Protein gap ─────────────────────────────────────────────────────────
     nutrition_settings = _db.get_nutrition_settings()
@@ -122,11 +126,71 @@ def _build_truth() -> tuple[str, str, list[str]]:
             if below >= 4:
                 t = (f"Tu n'as pas atteint tes protéines ({int(protein_goal)}g) "
                      f"depuis {below} des 7 derniers jours.")
-                return t, "protein_gap", _SUGGESTIONS["protein_gap"]
+                ctx = {
+                    "objectif_protéines_g": int(protein_goal),
+                    "jours_sous_objectif": below,
+                    "jours_total_mesurés": len(nutrition_days),
+                }
+                return t, "protein_gap", _SUGGESTIONS["protein_gap"], ctx
 
     # 4. Default rotation ────────────────────────────────────────────────────
     text, ttype = random.choice(_DEFAULT_TRUTHS)
-    return text, ttype, _SUGGESTIONS["default"]
+    return text, ttype, _SUGGESTIONS["default"], {}
+
+
+# ── Claude-powered truth generation (wraps _build_truth) ─────────────────────
+
+_TRUTH_SYSTEM = (
+    "Tu génères LA vérité inconfortable du jour pour un athlète.\n\n"
+    "RÈGLES STRICTES :\n"
+    "- 1 à 2 phrases maximum. Pas plus.\n"
+    "- Ton : factuel, direct. Pas cruel. Pas motivationnel.\n"
+    "- Cite UN chiffre réel issu du contexte fourni. Pas de généralité.\n"
+    "- Pas de point d'interrogation. Pas de 'peut-être'. Pas de 'tu devrais'.\n"
+    "- Pas d'emoji. Pas d'exclamation.\n"
+    "- La vérité constate — elle n'encourage pas.\n\n"
+    "EXEMPLES DE TON :\n"
+    "✓ 'Tu n'as pas touché une barre depuis 6 jours. Le corps oublie vite.'\n"
+    "✓ 'Ton PSS a monté de 11 à 24 en 10 jours. La charge mentale précède toujours la régression physique.'\n"
+    "✓ '4 jours sur 7 sous l'objectif protéines. Le muscle que tu construis en séance se reconstruit la nuit — avec de la protéine.'\n"
+    "✗ 'Tu peux faire ça !' — interdit\n"
+    "✗ 'C'est normal d'avoir des creux' — interdit\n"
+    "✗ 'Rappelle-toi pourquoi tu as commencé' — interdit\n\n"
+    "Réponds UNIQUEMENT avec les 1-2 phrases de vérité. Rien d'autre."
+)
+
+
+def _generate_truth_with_claude(
+    truth_type: str,
+    fallback_truth: str,
+    context_data: dict,
+) -> str:
+    """Call Claude to personalize the uncomfortable truth. Falls back to rule-based text on any error."""
+    import os
+    try:
+        import anthropic
+        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return fallback_truth
+
+        lines = [f"Type de vérité : {truth_type}"]
+        for k, v in context_data.items():
+            lines.append(f"{k} : {v}")
+        user_content = "\n".join(lines)
+
+        client = anthropic.Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=120,
+            system=_TRUTH_SYSTEM,
+            messages=[{"role": "user", "content": user_content}],
+        )
+        generated = (msg.content[0].text or "").strip()
+        if generated and len(generated) > 10:
+            return generated
+    except Exception:
+        pass
+    return fallback_truth
 
 
 # ── Phoenix streak computation ───────────────────────────────────────────────
@@ -186,7 +250,8 @@ def api_ritual_today():
         })
 
     # No ritual today — generate truth + surface oldest demon
-    truth, ttype, suggestions = _build_truth()
+    truth, ttype, suggestions, ctx = _build_truth()
+    truth = _generate_truth_with_claude(ttype, truth, ctx)
 
     carried_intention = None
     carried_from      = None
@@ -233,7 +298,8 @@ def api_ritual_morning():
     if existing.get("truth"):
         truth, ttype = existing["truth"], existing["truth_type"]
     else:
-        truth, ttype, _ = _build_truth()
+        truth, ttype, _, ctx = _build_truth()
+        truth = _generate_truth_with_claude(ttype, truth, ctx)
 
     payload = {
         "date":         today_str,
