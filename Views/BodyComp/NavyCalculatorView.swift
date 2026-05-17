@@ -5,6 +5,7 @@ import SwiftUI
 struct NavyCalculatorView: View {
     @ObservedObject private var bodyComp = BodyCompService.shared
     @State private var heightCm: Double = 178
+    @State private var showEditSheet = false
 
     var body: some View {
         ZStack {
@@ -32,6 +33,11 @@ struct NavyCalculatorView: View {
             }
         }
         .task { await bodyComp.refresh() }
+        .sheet(isPresented: $showEditSheet) {
+            BodyWeightSheet(editEntry: bodyComp.latest, onSaved: {
+                await bodyComp.refresh()
+            })
+        }
     }
 
     // MARK: - Content routing
@@ -90,6 +96,19 @@ struct NavyCalculatorView: View {
                     Text(field.capitalized)
                         .font(.system(size: 13)).foregroundColor(.white)
                 }
+            }
+
+            Button {
+                showEditSheet = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Compléter mes mesures")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundColor(.orange)
+                .padding(.top, 4)
             }
         }
         .padding(16)
