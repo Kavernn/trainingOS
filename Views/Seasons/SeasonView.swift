@@ -8,6 +8,7 @@ struct SeasonView: View {
     @State private var showStart = false
     @State private var showClose = false
     @State private var selectedReport: SeasonReport?
+    @State private var showReport = false
 
     var body: some View {
         NavigationStack {
@@ -59,8 +60,10 @@ struct SeasonView: View {
                 }
             }
         }
-        .sheet(item: $selectedReport) { r in
-            seasonReportSheet(r)
+        .sheet(isPresented: $showReport) {
+            if let r = selectedReport {
+                seasonReportSheet(r)
+            }
         }
     }
 
@@ -163,6 +166,7 @@ struct SeasonView: View {
             Task {
                 if let r = try? await APIService.shared.closeSeason(id: season.id) {
                     selectedReport = r
+                    showReport = true
                 }
             }
         } label: {
@@ -203,7 +207,7 @@ struct SeasonView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
-                        Button("Fermer") { selectedReport = nil }
+                        Button("Fermer") { showReport = false; selectedReport = nil }
                             .foregroundStyle(Color.secondary)
                     }
                 }
