@@ -101,16 +101,19 @@ private struct DNACompactCard: View {
                     // Helix — compact 80×80
                     DNAHelixCanvas(dna: dna)
                         .frame(width: 72, height: 80)
+                        .accessibilityHidden(true)
 
                     // Archetype text
                     VStack(alignment: .leading, spacing: 4) {
                         Text(dna.archetype.label)
                             .font(.system(size: 18, weight: .black, design: .rounded))
                             .foregroundColor(.white)
+                            .minimumScaleFactor(0.8)
                         Text(dna.archetype.tagline)
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(accent)
                             .italic()
+                            .minimumScaleFactor(0.8)
                     }
                     Spacer()
                 }
@@ -131,6 +134,8 @@ private struct DNACompactCard: View {
             .padding(.bottom, 12)
         }
         .buttonStyle(SpringButtonStyle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Archétype : \(dna.archetype.label). \(dna.archetype.tagline)")
     }
 
     private var scorePills: [(String, Int)] {
@@ -254,6 +259,7 @@ struct WorkoutDNADetailSheet: View {
                             .frame(maxWidth: .infinity)
                             .opacity(appear ? 1 : 0)
                             .animation(.easeIn(duration: 0.8), value: appear)
+                            .accessibilityHidden(true)
 
                         // Gradient fade over helix bottom
                         LinearGradient(colors: [.clear, Color.appBg], startPoint: .top, endPoint: .bottom)
@@ -263,10 +269,12 @@ struct WorkoutDNADetailSheet: View {
                             Text(dna.archetype.label)
                                 .font(.system(size: 28, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
+                                .minimumScaleFactor(0.8)
                             Text(dna.archetype.tagline)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(accent)
                                 .italic()
+                                .minimumScaleFactor(0.8)
                         }
                         .padding(.bottom, 8)
                         .opacity(appear ? 1 : 0)

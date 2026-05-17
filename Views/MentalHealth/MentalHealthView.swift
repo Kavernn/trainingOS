@@ -246,7 +246,7 @@ private struct MoodQuickLogCard: View {
                         } else {
                             Text("Appuie pour modifier")
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.4))
+                                .foregroundColor(.white.opacity(0.6))
                         }
                     } else {
                         Text(moodDue?.isDue == true ? "Note ton humeur" : "Comment tu te sens ?")
@@ -254,7 +254,7 @@ private struct MoodQuickLogCard: View {
                             .foregroundColor(.white)
                         Text("30 secondes · émotions + score")
                             .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
+                            .foregroundColor(.white.opacity(0.6))
                     }
                 }
 
@@ -268,6 +268,10 @@ private struct MoodQuickLogCard: View {
             .glassCard(color: todayEntry != nil ? scoreColor : .yellow, intensity: 0.08)
         }
         .buttonStyle(SpringButtonStyle())
+        .accessibilityLabel(todayEntry == nil
+            ? (moodDue?.isDue == true ? "Logger mon humeur — dû aujourd'hui" : "Logger mon humeur")
+            : "Humeur du jour : \(todayEntry?.score ?? 0)/10. Appuyer pour modifier."
+        )
         .padding(.horizontal)
     }
 }
@@ -291,7 +295,7 @@ private struct MoodSparklineCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Humeur — 7 derniers jours")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(.white.opacity(0.65))
                 .padding(.horizontal, 16)
 
             Chart(last7) { entry in
@@ -316,7 +320,7 @@ private struct MoodSparklineCard: View {
                     AxisValueLabel {
                         Text("\(v.as(Int.self) ?? 0)")
                             .font(.system(size: 9))
-                            .foregroundColor(.white.opacity(0.35))
+                            .foregroundColor(.white.opacity(0.65))
                     }
                 }
             }

@@ -36,24 +36,24 @@ struct SpiritJournalGateView: View {
                     .animation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true), value: pulse)
 
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 28, weight: .ultraLight))
-                    .foregroundStyle(Color.moonlight.opacity(0.35))
+                    .font(.system(size: 28, weight: .thin))
+                    .foregroundStyle(Color.moonlight.opacity(0.6))
             }
 
             VStack(spacing: 8) {
                 Text("ESPACE SACRÉ")
-                    .font(.system(size: 10, weight: .ultraLight, design: .monospaced))
-                    .foregroundStyle(Color.moonlight.opacity(0.3))
+                    .font(.system(size: 10, weight: .thin, design: .monospaced))
+                    .foregroundStyle(Color.moonlight.opacity(0.55))
                     .tracking(4)
                 Text("Ce journal n'appartient qu'à toi.")
-                    .font(.system(size: 13, weight: .ultraLight))
-                    .foregroundStyle(Color.moonlight.opacity(0.2))
+                    .font(.system(size: 13, weight: .thin))
+                    .foregroundStyle(Color.moonlight.opacity(0.55))
             }
 
             if failed {
                 Button("Réessayer") { authenticate() }
-                    .font(.system(size: 13, weight: .ultraLight))
-                    .foregroundStyle(Color.moonlight.opacity(0.35))
+                    .font(.system(size: 13, weight: .thin))
+                    .foregroundStyle(Color.moonlight.opacity(0.6))
             }
 
             Spacer()
@@ -104,23 +104,23 @@ struct SpiritJournalView: View {
         let hasEntry = vm.todayHasJournal()
         return VStack(spacing: 16) {
             Text(formattedToday())
-                .font(.system(size: 11, weight: .ultraLight, design: .monospaced))
-                .foregroundStyle(Color.moonlight.opacity(0.25))
+                .font(.system(size: 11, weight: .thin, design: .monospaced))
+                .foregroundStyle(Color.moonlight.opacity(0.55))
                 .tracking(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if hasEntry {
                 HStack {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 11, weight: .ultraLight))
-                        .foregroundStyle(Color.moonlight.opacity(0.4))
+                        .font(.system(size: 11, weight: .thin))
+                        .foregroundStyle(Color.moonlight.opacity(0.6))
                     Text("Écrit ce soir.")
-                        .font(.system(size: 13, weight: .ultraLight))
-                        .foregroundStyle(Color.moonlight.opacity(0.4))
+                        .font(.system(size: 13, weight: .thin))
+                        .foregroundStyle(Color.moonlight.opacity(0.6))
                     Spacer()
                     Button("Relire") { showWrite = true }
-                        .font(.system(size: 12, weight: .ultraLight))
-                        .foregroundStyle(Color.moonlight.opacity(0.3))
+                        .font(.system(size: 12, weight: .thin))
+                        .foregroundStyle(Color.moonlight.opacity(0.55))
                 }
             } else {
                 Button {
@@ -128,12 +128,12 @@ struct SpiritJournalView: View {
                 } label: {
                     HStack {
                         Text("Entrer dans le silence")
-                            .font(.system(size: 14, weight: .ultraLight))
-                            .foregroundStyle(Color.moonlight.opacity(0.5))
+                            .font(.system(size: 14, weight: .thin))
+                            .foregroundStyle(Color.moonlight.opacity(0.55))
                         Spacer()
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 11, weight: .ultraLight))
-                            .foregroundStyle(Color.moonlight.opacity(0.2))
+                            .font(.system(size: 11, weight: .thin))
+                            .foregroundStyle(Color.moonlight.opacity(0.55))
                     }
                 }
             }
@@ -149,8 +149,8 @@ struct SpiritJournalView: View {
     private var pastEntries: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("ARCHIVES")
-                .font(.system(size: 9, weight: .ultraLight, design: .monospaced))
-                .foregroundStyle(Color.moonlight.opacity(0.2))
+                .font(.system(size: 9, weight: .thin, design: .monospaced))
+                .foregroundStyle(Color.moonlight.opacity(0.55))
                 .tracking(3)
 
             ForEach(vm.journalStubs.filter { $0.date != todayISO }) { stub in
@@ -159,12 +159,12 @@ struct SpiritJournalView: View {
                 } label: {
                     HStack {
                         Text(formattedDate(stub.date))
-                            .font(.system(size: 13, weight: .ultraLight))
-                            .foregroundStyle(Color.moonlight.opacity(0.35))
+                            .font(.system(size: 13, weight: .thin))
+                            .foregroundStyle(Color.moonlight.opacity(0.6))
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 9, weight: .ultraLight))
-                            .foregroundStyle(Color.moonlight.opacity(0.15))
+                            .font(.system(size: 9, weight: .thin))
+                            .foregroundStyle(Color.moonlight.opacity(0.55))
                     }
                     .padding(.vertical, 6)
                 }
@@ -240,14 +240,15 @@ struct SpiritJournalWriteView: View {
 
             VStack(alignment: .leading, spacing: 24) {
                 Text(questions[step].0)
-                    .font(.system(size: 18, weight: .ultraLight))
+                    .font(.system(size: 18, weight: .thin))
                     .foregroundStyle(Color.moonlight.opacity(0.7))
+                    .minimumScaleFactor(0.75)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(.opacity.combined(with: .move(edge: .trailing)))
                     .id(step)
 
                 TextField(questions[step].1, text: currentBinding, axis: .vertical)
-                    .font(.system(size: 15, weight: .ultraLight))
+                    .font(.system(size: 15, weight: .thin))
                     .foregroundStyle(Color.moonlight.opacity(0.8))
                     .tint(Color.moonlight.opacity(0.5))
                     .lineLimit(2)
@@ -263,8 +264,8 @@ struct SpiritJournalWriteView: View {
             HStack {
                 if step > 0 {
                     Button("←") { step -= 1 }
-                        .font(.system(size: 16, weight: .ultraLight))
-                        .foregroundStyle(Color.moonlight.opacity(0.2))
+                        .font(.system(size: 16, weight: .thin))
+                        .foregroundStyle(Color.moonlight.opacity(0.55))
                 }
                 Spacer()
                 Button(step < 2 ? "Suivant →" : "Fermer les yeux →") {
@@ -275,8 +276,8 @@ struct SpiritJournalWriteView: View {
                         save()
                     }
                 }
-                .font(.system(size: 14, weight: .ultraLight))
-                .foregroundStyle(Color.moonlight.opacity(0.45))
+                .font(.system(size: 14, weight: .thin))
+                .foregroundStyle(Color.moonlight.opacity(0.6))
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 52)
@@ -303,8 +304,8 @@ struct SpiritJournalWriteView: View {
             Spacer()
 
             Button("Fermer") { dismiss() }
-                .font(.system(size: 13, weight: .ultraLight))
-                .foregroundStyle(Color.moonlight.opacity(0.25))
+                .font(.system(size: 13, weight: .thin))
+                .foregroundStyle(Color.moonlight.opacity(0.55))
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.bottom, 52)
         }
@@ -314,11 +315,11 @@ struct SpiritJournalWriteView: View {
     private func journalLine(_ category: String, text: String, delay: Double) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(category.uppercased())
-                .font(.system(size: 9, weight: .ultraLight, design: .monospaced))
+                .font(.system(size: 9, weight: .thin, design: .monospaced))
                 .foregroundStyle(Color.moonlight.opacity(0.2))
                 .tracking(3)
             Text("· \(text)")
-                .font(.system(size: 15, weight: .ultraLight))
+                .font(.system(size: 15, weight: .thin))
                 .foregroundStyle(Color.moonlight.opacity(0.6))
         }
         .opacity(showFinal ? 1 : 0)
@@ -376,12 +377,12 @@ struct SpiritJournalReadView: View {
             Color.voidBg.ignoresSafeArea()
 
             if loading {
-                ProgressView().tint(Color.moonlight.opacity(0.3))
+                ProgressView().tint(Color.moonlight.opacity(0.55))
             } else if let e = entry {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 32) {
                         Text(formattedDate(date))
-                            .font(.system(size: 11, weight: .ultraLight, design: .monospaced))
+                            .font(.system(size: 11, weight: .thin, design: .monospaced))
                             .foregroundStyle(Color.moonlight.opacity(0.2))
                             .tracking(3)
                             .padding(.top, 8)
@@ -400,8 +401,8 @@ struct SpiritJournalReadView: View {
                 }
             } else {
                 Text("Aucune entrée.")
-                    .font(.system(size: 14, weight: .ultraLight))
-                    .foregroundStyle(Color.moonlight.opacity(0.3))
+                    .font(.system(size: 14, weight: .thin))
+                    .foregroundStyle(Color.moonlight.opacity(0.55))
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -414,11 +415,11 @@ struct SpiritJournalReadView: View {
     private func readLine(_ category: String, text: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(category.uppercased())
-                .font(.system(size: 9, weight: .ultraLight, design: .monospaced))
+                .font(.system(size: 9, weight: .thin, design: .monospaced))
                 .foregroundStyle(Color.moonlight.opacity(0.2))
                 .tracking(3)
             Text("· \(text)")
-                .font(.system(size: 16, weight: .ultraLight))
+                .font(.system(size: 16, weight: .thin))
                 .foregroundStyle(Color.moonlight.opacity(0.55))
         }
     }

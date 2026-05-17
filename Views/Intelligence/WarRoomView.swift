@@ -30,6 +30,7 @@ struct WarRoomView: View {
                             .background(Color.forge, in: Circle())
                             .shadow(color: Color.forge.opacity(0.40), radius: 10, y: 4)
                     }
+                    .accessibilityLabel("Arsenal — ouvrir mes armes contre le craving")
                     .padding(.trailing, 20)
                     .padding(.bottom, 24)
                 }

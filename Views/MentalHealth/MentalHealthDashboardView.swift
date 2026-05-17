@@ -210,10 +210,10 @@ private struct MHKPICell: View {
                 .foregroundColor(color)
             Text(unit)
                 .font(.caption2)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(.white.opacity(0.65))
             Text(label)
                 .font(.caption2)
-                .foregroundColor(.white.opacity(0.5))
+                .foregroundColor(.white.opacity(0.65))
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
