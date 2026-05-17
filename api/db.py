@@ -5830,3 +5830,312 @@ def get_oath_recalls(limit: int = 20) -> List[dict]:
                 return []
         logger.error("get_oath_recalls error: %s", e)
         return []
+
+
+# ─────────────────────────────────────────────
+# Spirit breathwork (renamed to avoid conflict with wellness breathwork)
+# ─────────────────────────────────────────────
+
+def get_breathwork_sessions_spirit(limit: int = 500) -> List[dict]:
+    """Spirit breathwork sessions (breathwork_sessions table)."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("breathwork_sessions")
+            .select("id, protocol, duration_sec, cycles, started_at")
+            .order("started_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_breathwork_sessions_spirit retry: %s", e2)
+                return []
+        logger.error("get_breathwork_sessions_spirit error: %s", e)
+        return []
+
+
+# ─────────────────────────────────────────────
+# Seasons
+# ─────────────────────────────────────────────
+
+def get_next_season_number() -> int:
+    if _client is None or MODE == "OFFLINE":
+        return 1
+    try:
+        resp = _client.table("seasons").select("number").order("number", desc=True).limit(1).execute()
+        if resp.data:
+            return (resp.data[0].get("number") or 0) + 1
+        return 1
+    except Exception as e:
+        logger.error("get_next_season_number error: %s", e)
+        return 1
+
+
+def get_active_season() -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = (
+            _client.table("seasons")
+            .select("*")
+            .eq("status", "active")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_active_season retry: %s", e2)
+                return None
+        logger.error("get_active_season error: %s", e)
+        return None
+
+
+def get_all_seasons() -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("seasons")
+            .select("*")
+            .order("number", desc=True)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_all_seasons retry: %s", e2)
+                return []
+        logger.error("get_all_seasons error: %s", e)
+        return []
+
+
+def get_season_by_id(season_id: str) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = (
+            _client.table("seasons")
+            .select("*")
+            .eq("id", season_id)
+            .maybe_single()
+            .execute()
+        )
+        return resp.data
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_season_by_id retry: %s", e2)
+                return None
+        logger.error("get_season_by_id error: %s", e)
+        return None
+
+
+def create_season(number: int, started_at: str) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = (
+            _client.table("seasons")
+            .insert({"number": number, "started_at": started_at, "status": "active"})
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("create_season retry: %s", e2)
+                return None
+        logger.error("create_season error: %s", e)
+        return None
+
+
+def save_season_snapshot(season_id: str, snap_type: str, data: dict) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    import json as _json
+    payload = {
+        "season_id":   season_id,
+        "type":        snap_type,
+        "weight_lbs":            data.get("weight_lbs"),
+        "body_fat_pct":          data.get("body_fat_pct"),
+        "phoenix_avg":           data.get("phoenix_avg"),
+        "phoenix_workout_avg":   data.get("phoenix_workout_avg"),
+        "phoenix_stress_avg":    data.get("phoenix_stress_avg"),
+        "phoenix_nutrition_avg": data.get("phoenix_nutrition_avg"),
+        "phoenix_resilience_avg":data.get("phoenix_resilience_avg"),
+        "phoenix_spirit_avg":    data.get("phoenix_spirit_avg"),
+        "pss_score":             data.get("pss_score"),
+        "war_room_streak":       data.get("war_room_streak"),
+        "top_prs":               data.get("top_prs"),
+        "ritual_completion_rate":data.get("ritual_completion_rate"),
+        "avg_sleep_hrs":         data.get("avg_sleep_hrs"),
+        "avg_calories":          data.get("avg_calories"),
+        "avg_protein_g":         data.get("avg_protein_g"),
+        "breathwork_sessions_total": data.get("breathwork_sessions_total"),
+        "meditation_minutes_total":  data.get("meditation_minutes_total"),
+        "journal_entries_total":     data.get("journal_entries_total"),
+    }
+    payload = {k: v for k, v in payload.items() if v is not None}
+    def _do():
+        resp = _client.table("season_snapshots").insert(payload).execute()
+        return resp.data[0] if resp.data else None
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("save_season_snapshot retry: %s", e2)
+                return None
+        logger.error("save_season_snapshot error: %s", e)
+        return None
+
+
+def close_season(season_id: str, ended_at: str, generated_title: str, dominant_arc: str) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = (
+            _client.table("seasons")
+            .update({
+                "status":          "completed",
+                "ended_at":        ended_at,
+                "generated_title": generated_title,
+                "dominant_arc":    dominant_arc,
+            })
+            .eq("id", season_id)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("close_season retry: %s", e2)
+                return None
+        logger.error("close_season error: %s", e)
+        return None
+
+
+def update_season(season_id: str, fields: dict) -> Optional[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return None
+    def _do():
+        resp = (
+            _client.table("seasons")
+            .update(fields)
+            .eq("id", season_id)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("update_season retry: %s", e2)
+                return None
+        logger.error("update_season error: %s", e)
+        return None
+
+
+def get_season_snapshots(season_id: str) -> List[dict]:
+    if _client is None or MODE == "OFFLINE":
+        return []
+    def _do():
+        resp = (
+            _client.table("season_snapshots")
+            .select("*")
+            .eq("season_id", season_id)
+            .order("captured_at", desc=False)
+            .execute()
+        )
+        return resp.data or []
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_season_snapshots retry: %s", e2)
+                return []
+        logger.error("get_season_snapshots error: %s", e)
+        return []
+
+
+def get_prev_season_had_reset(current_season_id: str) -> bool:
+    """Return True if the previous completed season had at least one War Room reset."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+    try:
+        current = get_season_by_id(current_season_id)
+        if not current:
+            return False
+        current_num = current.get("number", 1)
+        if current_num <= 1:
+            return False
+        resp = (
+            _client.table("seasons")
+            .select("id, started_at, ended_at")
+            .eq("number", current_num - 1)
+            .eq("status", "completed")
+            .maybe_single()
+            .execute()
+        )
+        prev = resp.data
+        if not prev:
+            return False
+        battles = get_war_room_battles(limit=500)
+        start = prev.get("started_at", "")
+        end   = prev.get("ended_at", "")
+        period = sorted(
+            [b for b in battles if start <= b.get("date", "") <= end],
+            key=lambda x: x.get("date", "")
+        )
+        streak = 0
+        for b in period:
+            if b.get("status") == "victory":
+                streak += 1
+            else:
+                if streak > 0:
+                    return True
+                streak = 0
+        return False
+    except Exception as e:
+        logger.error("get_prev_season_had_reset error: %s", e)
+        return False

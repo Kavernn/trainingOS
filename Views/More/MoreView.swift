@@ -14,6 +14,7 @@ struct MoreView: View {
                     Section("Rituel & Esprit") {
                         MoreRow(icon: "flame.fill",  color: Color(hex: "FF2D20"), title: "Rituel quotidien") { RitualView() }
                         MoreRow(icon: "wind",        color: Color.moonlight.opacity(0.7), title: "The Void") { SpiritView() }
+                        MoreRow(icon: "calendar.badge.clock", color: .teal, title: "Mes chapitres") { SeasonView() }
                     }
                     .listRowBackground(glassRowBG(Color(hex: "FF2D20")))
                     .listRowSeparatorTint(Color.white.opacity(0.06))

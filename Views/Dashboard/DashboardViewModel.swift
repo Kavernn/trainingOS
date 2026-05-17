@@ -21,6 +21,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var bodyBudget: BodyBudgetResponse?
     @Published var readinessData: ReadinessResponse?
     @Published var phoenixScore: PhoenixScore?
+    @Published var activeSeason: Season?
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
 
@@ -139,6 +140,7 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in self.bodyBudget    = try? await APIService.shared.fetchBodyBudget() }
                 group.addTask { @MainActor in self.readinessData = try? await APIService.shared.fetchReadiness() }
                 group.addTask { @MainActor in self.phoenixScore  = try? await APIService.shared.fetchPhoenixScore() }
+                group.addTask { @MainActor in self.activeSeason  = try? await APIService.shared.getActiveSeason() }
             }
             analyticsLoadedDate = today
         }

@@ -13,6 +13,7 @@ struct DashboardView: View {
     @State private var showMoodSheet = false
     @State private var showChecklist = false
     @State private var showSleepSheet = false
+    @State private var showSeasonClose = false
     @State private var sleepPromptDismissedThisSession = false
     @State private var lastRefresh: Date = .distantPast
     // D-D5: single source of truth — date ISO "2026-05-15" stored in AppStorage
@@ -106,6 +107,11 @@ struct DashboardView: View {
                                         }
                                     }
                                     .appearAnimation(delay: 0)
+                                }
+
+                                if let season = vm.activeSeason {
+                                    SeasonBannerView(season: season) { showSeasonClose = true }
+                                        .appearAnimation(delay: 0)
                                 }
 
                                 GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
@@ -275,6 +281,16 @@ struct DashboardView: View {
                 BehaviorTracker.shared.record(.appOpen)
                 if !api.isLoading, Date().timeIntervalSince(lastRefresh) > 300 {
                     Task { await vm.loadAll(); await nhlService.fetchIfNeeded(); lastRefresh = Date(); checkAndShowMorningReveal() }
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showSeasonClose, onDismiss: {
+            Task { await vm.loadAll() }
+        }) {
+            if let season = vm.activeSeason {
+                SeasonCloseView(season: season) {
+                    showSeasonClose = false
+                    Task { await vm.loadAll() }
                 }
             }
         }

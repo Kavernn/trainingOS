@@ -94,6 +94,7 @@ from routes.graveyard    import graveyard_bp
 from routes.war_room     import war_room_bp
 from routes.spirit       import spirit_bp
 from routes.oath         import oath_bp
+from routes.seasons      import seasons_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -116,6 +117,7 @@ app.register_blueprint(graveyard_bp)
 app.register_blueprint(war_room_bp)
 app.register_blueprint(spirit_bp)
 app.register_blueprint(oath_bp)
+app.register_blueprint(seasons_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────

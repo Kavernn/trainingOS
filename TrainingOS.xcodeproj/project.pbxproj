@@ -30,6 +30,12 @@
 		SP004001AA00300B2F5DBBBB /* SpiritBreathworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */; };
 		SP005001AA00300B2F5DBBBB /* SpiritMeditationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */; };
 		SP006001AA00300B2F5DBBBB /* SpiritJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */; };
+		SE001001AA00300B2F5DDDDD /* SeasonModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE001000AA00300B2F5DDDDD /* SeasonModels.swift */; };
+		SE002001AA00300B2F5DDDDD /* APIService+Seasons.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */; };
+		SE003001AA00300B2F5DDDDD /* SeasonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE003000AA00300B2F5DDDDD /* SeasonView.swift */; };
+		SE004001AA00300B2F5DDDDD /* SeasonStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */; };
+		SE005001AA00300B2F5DDDDD /* SeasonCloseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */; };
+		SE006001AA00300B2F5DDDDD /* SeasonReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */; };
 		OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA001000AA00300B2F5DCCCC /* OathModels.swift */; };
 		OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */; };
 		OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA003000AA00300B2F5DCCCC /* OathView.swift */; };
@@ -218,6 +224,12 @@
 		SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritBreathworkView.swift; sourceTree = "<group>"; };
 		SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritMeditationView.swift; sourceTree = "<group>"; };
 		SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritJournalView.swift; sourceTree = "<group>"; };
+		SE001000AA00300B2F5DDDDD /* SeasonModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonModels.swift; sourceTree = "<group>"; };
+		SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Seasons.swift"; sourceTree = "<group>"; };
+		SE003000AA00300B2F5DDDDD /* SeasonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonView.swift; sourceTree = "<group>"; };
+		SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonStartView.swift; sourceTree = "<group>"; };
+		SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonCloseView.swift; sourceTree = "<group>"; };
+		SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonReportView.swift; sourceTree = "<group>"; };
 		OA001000AA00300B2F5DCCCC /* OathModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathModels.swift; sourceTree = "<group>"; };
 		OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Oath.swift"; sourceTree = "<group>"; };
 		OA003000AA00300B2F5DCCCC /* OathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathView.swift; sourceTree = "<group>"; };
@@ -623,6 +635,7 @@
 				WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */,
 				SP001000AA00300B2F5DBBBB /* SpiritModels.swift */,
 				OA001000AA00300B2F5DCCCC /* OathModels.swift */,
+				SE001000AA00300B2F5DDDDD /* SeasonModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -669,6 +682,7 @@
 				WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */,
 				SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */,
 				OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */,
+				SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -775,6 +789,7 @@
 				7422762B7F37251A1E7B0E06 /* Components */,
 				SP000000AA00300B2F5DBBBB /* Spirit */,
 				OA000000AA00300B2F5DCCCC /* Oath */,
+				SE000000AA00300B2F5DDDDD /* Seasons */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -797,6 +812,17 @@
 				OA004000AA00300B2F5DCCCC /* OathWriteView.swift */,
 			);
 			path = Oath;
+			sourceTree = "<group>";
+		};
+		SE000000AA00300B2F5DDDDD /* Seasons */ = {
+			isa = PBXGroup;
+			children = (
+				SE003000AA00300B2F5DDDDD /* SeasonView.swift */,
+				SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */,
+				SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */,
+				SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */,
+			);
+			path = Seasons;
 			sourceTree = "<group>";
 		};
 		DD44000F2F5D98BA002AE473 /* MentalHealth */ = {
@@ -1123,6 +1149,12 @@
 				OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */,
 				OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */,
 				OA004001AA00300B2F5DCCCC /* OathWriteView.swift in Sources */,
+				SE001001AA00300B2F5DDDDD /* SeasonModels.swift in Sources */,
+				SE002001AA00300B2F5DDDDD /* APIService+Seasons.swift in Sources */,
+				SE003001AA00300B2F5DDDDD /* SeasonView.swift in Sources */,
+				SE004001AA00300B2F5DDDDD /* SeasonStartView.swift in Sources */,
+				SE005001AA00300B2F5DDDDD /* SeasonCloseView.swift in Sources */,
+				SE006001AA00300B2F5DDDDD /* SeasonReportView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
