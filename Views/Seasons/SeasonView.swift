@@ -81,6 +81,8 @@ struct SeasonView: View {
                         .font(.system(size: 28, weight: .black, design: .monospaced))
                         .foregroundStyle(Color.primary)
                         .tracking(2)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
@@ -91,6 +93,8 @@ struct SeasonView: View {
                     Text("\(season.dayNumber)")
                         .font(.system(size: 36, weight: .black, design: .rounded))
                         .foregroundStyle(Color.forge)
+                        .minimumScaleFactor(0.8)
+                        .lineLimit(1)
                     Text("/ 90")
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(Color.secondary)
