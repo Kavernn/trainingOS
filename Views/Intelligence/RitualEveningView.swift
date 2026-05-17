@@ -192,6 +192,8 @@ struct RitualEveningView: View {
                 }
             }
         }
+    }
+
     private func showEveningResult(_ r: RitualEveningResult, outcome: String) async {
         if outcome == "burned" {
             await MainActor.run {
