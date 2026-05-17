@@ -85,6 +85,8 @@ struct GraveyardView: View {
                         .padding(.horizontal, 16)
                         .padding(.bottom, 10)
                         .onTapGesture { selectedTombstone = tombstone }
+                        // Tombstones fraîches arrivent après les vieilles — encore chaudes
+                        .appearAnimationHot(delay: tombstone.daysSinceDeath < 7 ? 0.8 : 0)
                 }
             }
         }
@@ -109,7 +111,8 @@ struct GraveyardView: View {
                 result.append((key, d, [t]))
             }
         }
-        return result.map { ($0.0, $0.2) }
+        // Ancien → récent : le user scroll vers le bas pour trouver ses victoires fraîches
+        return result.reversed().map { ($0.0, $0.2) }
     }
 
     // MARK: - Empty state

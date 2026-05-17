@@ -106,7 +106,7 @@ enum PhoenixState: String, Codable {
         case .braisesChaud: return Color(hex: "160D05")
         case .flamme:       return Color(hex: "1A0E00")
         case .envol:        return Color(hex: "1A1200")
-        case .supernova:    return Color(hex: "1C1400")
+        case .supernova:    return Color(hex: "221A08")   // warm ivory-dark — seul fond chaud de l'app
         }
     }
 

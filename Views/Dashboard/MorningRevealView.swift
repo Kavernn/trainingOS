@@ -11,6 +11,7 @@ struct MorningRevealView: View {
     @State private var showDetails = false
     @State private var showButton = false
     @State private var pulse = false
+    @State private var breathe = false
 
     private var accentColor: Color {
         switch morningBrief.recommendation {
@@ -42,6 +43,16 @@ struct MorningRevealView: View {
     var body: some View {
         ZStack {
             Color.appBg.ignoresSafeArea()
+
+            // Respiration forge — pulse une fois avant que le verdict arrive
+            RadialGradient(
+                colors: [Color.forge.opacity(breathe && !showReveal ? 0.12 : 0), Color.clear],
+                center: .center,
+                startRadius: 0,
+                endRadius: 300
+            )
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 2.4), value: breathe)
 
             RadialGradient(
                 colors: [accentColor.opacity(showReveal ? 0.18 : 0), Color.clear],
@@ -184,7 +195,10 @@ struct MorningRevealView: View {
     // preventing overlap on slow devices with hardcoded DispatchQueue delays.
     private func runRevealSequence() {
         Task { @MainActor in
+            // Respiration : une inspiration avant le verdict
+            withAnimation(.easeInOut(duration: 2.4)) { breathe = true }
             try? await Task.sleep(nanoseconds: 1_400_000_000)
+            withAnimation(.easeInOut(duration: 0.6)) { breathe = false }
             withAnimation(.spring(response: 0.65, dampingFraction: 0.72)) { showReveal = true }
             pulse = true
             try? await Task.sleep(nanoseconds: 1_100_000_000)

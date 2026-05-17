@@ -46,7 +46,7 @@ struct DailyStreakCard: View {
                         .scaleEffect(milestoneScale)
                     Text("\(cur)")
                         .font(.system(size: 34, weight: .black, design: .rounded))
-                        .foregroundColor(cur > 0 ? .orange : .white)
+                        .foregroundColor(cur > 0 ? .forge : .white)
                         .contentTransition(.numericText())
                     Text("jour\(cur != 1 ? "s" : "")")
                         .font(.system(size: 15, weight: .semibold))
@@ -54,22 +54,22 @@ struct DailyStreakCard: View {
                         .padding(.bottom, 3)
                 }
                 if cur == 0 {
-                    Text("Lance-toi aujourd'hui")
+                    Text("Jour 0. La machine est à l'arrêt.")
                         .font(.system(size: 11))
                         .foregroundColor(.gray)
                 } else if cur >= best && best > 0 {
-                    Text("Record en cours. Nouvelle frontière.")
+                    Text("Record actif — \(cur) jour\(cur != 1 ? "s" : ""). Tu réécris l'histoire.")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(.forge)
                         .transition(.scale.combined(with: .opacity))
                 } else {
                     let gap = best - cur
                     if gap <= 5 {
-                        Text("\(gap) jour\(gap != 1 ? "s" : "") de ton record. À portée.")
+                        Text("\(gap) jour\(gap != 1 ? "s" : "") du record. Écrase-le.")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.orange.opacity(0.75))
+                            .foregroundColor(.forge.opacity(0.75))
                     } else {
-                        Text("consécutif\(cur != 1 ? "s" : "")")
+                        Text("jours sans faiblir")
                             .font(.system(size: 11))
                             .foregroundColor(.gray)
                     }
@@ -79,9 +79,9 @@ struct DailyStreakCard: View {
             VStack(alignment: .trailing, spacing: 3) {
                 Text("\(best)")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .foregroundColor(cur >= best && best > 0 ? .orange.opacity(0.6) : .white.opacity(0.35))
+                    .foregroundColor(cur >= best && best > 0 ? .forge.opacity(0.6) : .white.opacity(0.35))
                     .contentTransition(.numericText())
-                Text(cur >= best && best > 0 ? "détruit" : "à battre")
+                Text(cur >= best && best > 0 ? "pulvérisé" : "à détruire")
                     .font(.system(size: 10))
                     .foregroundColor(.gray.opacity(0.5))
             }
@@ -90,10 +90,10 @@ struct DailyStreakCard: View {
         .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(cur > 0 ? Color.orange.opacity(0.07) : Color.appCard)
+                .fill(cur > 0 ? Color.forge.opacity(0.07) : Color.appCard)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(cur > 0 ? Color.orange.opacity(0.22) : Color.white.opacity(0.06), lineWidth: 1)
+                        .stroke(cur > 0 ? Color.forge.opacity(0.22) : Color.white.opacity(0.06), lineWidth: 1)
                 )
         )
         .onAppear { prevStreak = cur }
@@ -307,7 +307,7 @@ struct QuoteOfDayView: View {
                     .font(.system(size: 20))
                     .foregroundColor(.orange.opacity(0.55))
                 Spacer()
-                Text("CITATION DU JOUR")
+                Text("SIGNAL DU JOUR")
                     .font(.system(size: 9, weight: .bold))
                     .tracking(1.5)
                     .foregroundColor(.gray.opacity(0.45))
@@ -358,7 +358,7 @@ struct GoalReminderView: View {
                         .foregroundColor(.orange)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Objectif")
+                    Text("Cible")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.gray)
                     Text(goal)
@@ -418,7 +418,7 @@ struct DailyMetricsRow: View {
                     value: readinessScore.map { "\($0)" } ?? "–",
                     unit: readinessScore != nil ? "/100" : "",
                     // D-D14: asterisk when score is locally computed
-                    label: readinessIsLocal ? "Préparation*" : "Préparation",
+                    label: readinessIsLocal ? "Préparation ↗" : "Préparation",
                     color: readinessColor
                 )
             }
@@ -429,7 +429,7 @@ struct DailyMetricsRow: View {
                     icon: "flame.fill",
                     value: nutritionTotals.calories.map { "\(Int($0))" } ?? "–",
                     unit: "kcal",
-                    label: caloriePct.map { "\($0)% objectif" } ?? "Nutrition",
+                    label: caloriePct.map { "\($0)% de la cible" } ?? "Nutrition",
                     color: .orange
                 )
             }
@@ -440,7 +440,7 @@ struct DailyMetricsRow: View {
                     icon: "brain.head.profile",
                     value: moodDue.map { $0.isDue ? "!" : "✓" } ?? "–",
                     unit: "",
-                    label: moodDue.map { $0.isDue ? "À logger" : "Loggé" } ?? "Mental",
+                    label: moodDue.map { $0.isDue ? "Non évalué" : "Évalué" } ?? "Mental",
                     color: moodDue.map { $0.isDue ? Color.yellow : Color.green } ?? .gray
                 )
                 if let onMoodTap {
@@ -503,11 +503,11 @@ struct XPChipView: View {
 
     private var levelTitle: String {
         switch level {
-        case 1: return "Débutant"
-        case 2: return "Athlète"
+        case 1: return "Recrue"
+        case 2: return "Combattant"
         case 3: return "Warrior"
         case 4: return "Élite"
-        case 5: return "Champion"
+        case 5: return "Prédateur"
         default: return "Légende"
         }
     }

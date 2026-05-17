@@ -35,8 +35,10 @@ extension View {
 }
 
 extension Color {
-    static let appBg   = Color(red: 0.031, green: 0.031, blue: 0.063)   // #080810
-    static let appCard = Color(red: 0.067, green: 0.067, blue: 0.110)   // #11111c
+    static let appBg     = Color(red: 0.039, green: 0.031, blue: 0.024)   // #0A0806 warm charcoal
+    static let appCard   = Color(red: 0.075, green: 0.063, blue: 0.051)   // #13100D warm forge card
+    static let forge     = Color(hex: "FF6B1F")   // signature — braise haute
+    static let forgeDeep = Color(hex: "CC4D0A")   // braise basse — shadows, active borders
 
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)

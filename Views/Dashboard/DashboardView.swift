@@ -161,7 +161,7 @@ struct DashboardView: View {
 
                                 if let phoenix = vm.phoenixScore {
                                     PhoenixCard(score: phoenix)
-                                        .appearAnimation(delay: 0.27)
+                                        .appearAnimationHot(delay: 0.27)
                                 }
 
                                 BodyBudgetCard(budget: vm.bodyBudget)

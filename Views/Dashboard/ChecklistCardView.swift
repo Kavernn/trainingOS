@@ -133,7 +133,7 @@ struct ChecklistCardView: View {
                 Text("AVANT LE COMBAT")
                     .font(.system(size: 10, weight: .black))
                     .tracking(2)
-                    .foregroundColor(.orange)
+                    .foregroundColor(.forge)
                 if minimized {
                     Text(progressSummary)
                         .font(.system(size: 11))
@@ -157,7 +157,7 @@ struct ChecklistCardView: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
-                        .background(Color.orange)
+                        .background(Color.forge)
                         .cornerRadius(20)
                 }
                 .buttonStyle(.plain)
@@ -221,7 +221,7 @@ struct ChecklistCardView: View {
                     withAnimation { showComplete = false; showUndoComplete = false }
                 }
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.orange)
+                .foregroundColor(.forge)
                 .buttonStyle(.plain)
             }
         }
@@ -310,10 +310,10 @@ struct ChecklistCardView: View {
         let size: CGFloat = small ? 18 : 22
         return ZStack {
             RoundedRectangle(cornerRadius: small ? 5 : 6)
-                .fill(checked ? Color.orange : Color.clear)
+                .fill(checked ? Color.forge : Color.clear)
                 .overlay(
                     RoundedRectangle(cornerRadius: small ? 5 : 6)
-                        .stroke(checked ? Color.orange : Color.white.opacity(0.2), lineWidth: 1.5)
+                        .stroke(checked ? Color.forge : Color.white.opacity(0.2), lineWidth: 1.5)
                 )
                 .frame(width: size, height: size)
             if checked {

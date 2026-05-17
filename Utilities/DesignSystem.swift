@@ -82,6 +82,29 @@ extension View {
     }
 }
 
+// MARK: - Hot Appear Animation (intensity level 4-5)
+struct HotAppearModifier: ViewModifier {
+    let delay: Double
+    @State private var appeared = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(appeared ? 1 : 0)
+            .scaleEffect(appeared ? 1 : 0.88)
+            .onAppear {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.60).delay(delay)) {
+                    appeared = true
+                }
+            }
+    }
+}
+
+extension View {
+    func appearAnimationHot(delay: Double = 0) -> some View {
+        modifier(HotAppearModifier(delay: delay))
+    }
+}
+
 // MARK: - Floating Action Button
 struct FAB: View {
     let icon: String
@@ -94,13 +117,13 @@ struct FAB: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [Color.orange, Color(red: 0.878, green: 0.333, blue: 0)],
+                            colors: [Color.forge, Color.forgeDeep],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 58, height: 58)
-                    .shadow(color: .orange.opacity(0.30), radius: 12, x: 0, y: 6)
+                    .shadow(color: Color.forge.opacity(0.30), radius: 12, x: 0, y: 6)
                 Image(systemName: icon)
                     .font(.system(size: 22, weight: .semibold))
                     .foregroundColor(.white)
@@ -132,7 +155,7 @@ struct SectionLabel: View {
             if let action = action {
                 Button(actionLabel, action: action)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(.forge)
             }
         }
     }
@@ -184,12 +207,12 @@ struct StreakBadge: View {
                 .font(.system(size: 14))
             Text("\(count) jours")
                 .font(.system(size: 12, weight: .bold))
-                .foregroundColor(.orange)
+                .foregroundColor(.forge)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(Color.orange.opacity(0.12))
-        .overlay(Capsule().stroke(Color.orange.opacity(0.3), lineWidth: 1))
+        .background(Color.forge.opacity(0.12))
+        .overlay(Capsule().stroke(Color.forge.opacity(0.3), lineWidth: 1))
         .clipShape(Capsule())
     }
 }
@@ -202,10 +225,17 @@ struct AmbientBackground: View {
         ZStack {
             Color.appBg
             RadialGradient(
-                colors: [color.opacity(0.08), .clear],
+                colors: [color.opacity(0.10), .clear],
                 center: .topTrailing,
                 startRadius: 0,
-                endRadius: 280
+                endRadius: 300
+            )
+            // Forge warmth — chaleur de fond constante, indépendante de la couleur d'accent
+            RadialGradient(
+                colors: [Color.forge.opacity(0.04), .clear],
+                center: .bottom,
+                startRadius: 0,
+                endRadius: 220
             )
         }
         .ignoresSafeArea()
