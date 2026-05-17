@@ -29,6 +29,7 @@ struct DashboardView: View {
     // D-D6: sleep dismiss confirmation
     @State private var showSleepDismissConfirm = false
     @State private var showNutritionAddSheet = false
+    @State private var showQuickTrigger = false
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -167,10 +168,10 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.20)
                                 }
 
-                                DailyStreakCard(sessions: dash.sessions)
+                                BodyBudgetCard(budget: vm.bodyBudget)
                                     .appearAnimation(delay: 0.25)
 
-                                BodyBudgetCard(budget: vm.bodyBudget)
+                                DailyStreakCard(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.28)
 
                                 if let goal = dash.profile.goal, !goal.isEmpty {
@@ -294,6 +295,38 @@ struct DashboardView: View {
                     }
                     .padding()
                 }
+
+                // War Room quick trigger — floating pill, visible when War Room is active
+                if vm.warRoomEnabled {
+                    VStack {
+                        Spacer()
+                        HStack {
+                            Spacer()
+                            Button { showQuickTrigger = true } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "bolt.fill")
+                                        .font(.system(size: 12, weight: .bold))
+                                    Text("Tentation")
+                                        .font(.system(size: 13, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(
+                                    Capsule()
+                                        .fill(Color(hex: "1a0505"))
+                                        .overlay(Capsule().stroke(Color(hex: "C0201A").opacity(0.6), lineWidth: 1))
+                                )
+                                .shadow(color: Color(hex: "C0201A").opacity(0.3), radius: 8, y: 4)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.trailing, 20)
+                            .padding(.bottom, 20)
+                        }
+                    }
+                    .allowsHitTesting(true)
+                    .ignoresSafeArea(edges: .bottom)
+                }
             }
             .navigationBarHidden(true)
         }
@@ -320,6 +353,9 @@ struct DashboardView: View {
             Task { await vm.refreshMoodDue() }
         }) {
             MoodLogSheet()
+        }
+        .sheet(isPresented: $showQuickTrigger) {
+            QuickWarRoomTriggerSheet()
         }
         .sheet(isPresented: $showSleepSheet) {
             NavigationStack {
@@ -3466,6 +3502,140 @@ private struct BreathworkNudgeCard: View {
                     )
             )
         }
+    }
+}
+
+// MARK: - Quick War Room Trigger Sheet
+
+private struct QuickWarRoomTriggerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedContext: TriggerContext = .stress
+    @State private var intensity: Double = 5
+    @State private var yielded = false
+    @State private var isSaving = false
+    @State private var saved = false
+
+    private let contexts: [TriggerContext] = [.stress, .social, .boredom, .pain, .celebration, .exhaustion]
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBg.ignoresSafeArea()
+
+                VStack(spacing: 24) {
+                    // Context picker
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("CONTEXTE")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.gray)
+                            .tracking(0.8)
+
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                            ForEach(contexts, id: \.rawValue) { ctx in
+                                Button {
+                                    withAnimation(.spring(response: 0.25)) { selectedContext = ctx }
+                                } label: {
+                                    Text(ctx.label)
+                                        .font(.system(size: 12, weight: selectedContext == ctx ? .bold : .regular))
+                                        .foregroundColor(selectedContext == ctx ? .black : .white.opacity(0.7))
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 9)
+                                        .background(selectedContext == ctx ? Color(hex: "E8441A") : Color.white.opacity(0.06))
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    // Intensity
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("INTENSITÉ")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.gray)
+                                .tracking(0.8)
+                            Spacer()
+                            Text("\(Int(intensity))/10")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundColor(intensity >= 7 ? Color(hex: "E8441A") : .white)
+                        }
+                        Slider(value: $intensity, in: 1...10, step: 1)
+                            .tint(Color(hex: "E8441A"))
+                    }
+
+                    // Yielded toggle
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("J'ai cédé")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.white)
+                            Text("Cochez si vous avez succombé à la tentation.")
+                                .font(.system(size: 11))
+                                .foregroundColor(.gray)
+                        }
+                        Spacer()
+                        Toggle("", isOn: $yielded)
+                            .tint(Color(hex: "E8441A"))
+                            .labelsHidden()
+                    }
+                    .padding(14)
+                    .background(Color.white.opacity(0.04))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    Spacer()
+
+                    // Save
+                    Button {
+                        Task {
+                            isSaving = true
+                            _ = try? await APIService.shared.logTrigger(
+                                context: selectedContext,
+                                intensity: Int(intensity),
+                                yielded: yielded,
+                                contextNote: nil,
+                                heldWith: []
+                            )
+                            isSaving = false
+                            saved = true
+                            try? await Task.sleep(nanoseconds: 600_000_000)
+                            dismiss()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if isSaving {
+                                ProgressView().tint(.white)
+                            } else if saved {
+                                Image(systemName: "checkmark")
+                            } else {
+                                Image(systemName: "bolt.fill")
+                                Text("Logger la tentation")
+                                    .font(.system(size: 15, weight: .bold))
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 15)
+                        .background(Color(hex: "C0201A"))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSaving || saved)
+                }
+                .padding(20)
+            }
+            .navigationTitle("Tentation")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Annuler") { dismiss() }
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+        .presentationBackground(Color.appBg)
     }
 }
 
