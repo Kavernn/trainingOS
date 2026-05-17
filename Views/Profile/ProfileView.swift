@@ -811,10 +811,10 @@ struct ProfileView: View {
     private func authenticateOath() {
         let ctx = LAContext()
         var err: NSError?
-        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &err) else {
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &err) else {
             oathUnlocked = true; return
         }
-        ctx.evaluatePolicy(.deviceOwnerAuthentication,
+        ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
                            localizedReason: "Accéder à ton serment") { ok, _ in
             DispatchQueue.main.async { if ok { oathUnlocked = true } }
         }

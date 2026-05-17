@@ -64,11 +64,11 @@ struct SpiritJournalGateView: View {
     private func authenticate() {
         let ctx = LAContext()
         var error: NSError?
-        guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+        guard ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
             unlocked = true
             return
         }
-        ctx.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Journal Spirit") { success, _ in
+        ctx.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Journal Spirit") { success, _ in
             DispatchQueue.main.async {
                 if success { unlocked = true } else { failed = true }
             }
