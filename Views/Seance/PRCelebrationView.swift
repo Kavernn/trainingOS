@@ -16,7 +16,7 @@ struct PRCelebrationView: View {
 
     private var prAccessibilityLabel: String {
         if prs.count == 1, let pr = prs.first {
-            return "Nouvelle limite détruite : \(pr.name). Nouveau record estimé : \(pr.oneRM, specifier: "%.1f")."
+            return "Nouvelle limite détruite : \(pr.name). Nouveau record estimé : \(String(format: "%.1f", pr.oneRM))."
         }
         let names = prs.map { $0.name }.joined(separator: ", ")
         return "\(prs.count) nouvelles limites détruites : \(names)."
