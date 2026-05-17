@@ -160,6 +160,19 @@ _TRUTH_SYSTEM = (
 )
 
 
+def _get_top_pattern_headline() -> str | None:
+    """Pull today's daily pattern headline for injection into truth context. Best-effort."""
+    try:
+        import pattern_engine as _pe
+        result = _pe.get_daily_pattern()
+        daily  = result.get("daily")
+        if daily and daily.get("headline"):
+            return daily["headline"]
+    except Exception:
+        pass
+    return None
+
+
 def _generate_truth_with_claude(
     truth_type: str,
     fallback_truth: str,
@@ -176,6 +189,12 @@ def _generate_truth_with_claude(
         lines = [f"Type de vérité : {truth_type}"]
         for k, v in context_data.items():
             lines.append(f"{k} : {v}")
+
+        # Inject pattern if available — gives Claude a real data point to reference
+        pattern_headline = _get_top_pattern_headline()
+        if pattern_headline:
+            lines.append(f"pattern_du_jour : {pattern_headline}")
+
         user_content = "\n".join(lines)
 
         client = anthropic.Anthropic(api_key=api_key)

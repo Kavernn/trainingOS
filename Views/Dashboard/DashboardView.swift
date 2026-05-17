@@ -183,6 +183,14 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.33)
                                 }
 
+                                if let pattern = vm.dailyPattern {
+                                    PatternDailyChip(pattern: pattern) {
+                                        // Navigate to Intelligence tab
+                                        NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
+                                    }
+                                    .appearAnimation(delay: 0.35)
+                                }
+
                                 XPChipView(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.36)
 

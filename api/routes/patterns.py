@@ -25,3 +25,9 @@ def api_pin_pattern():
 def api_unpin_pattern(pattern_id: str):
     _pe.unpin_pattern(pattern_id)
     return jsonify({"ok": True})
+
+
+@patterns_bp.route("/api/patterns/war_room", methods=["GET"])
+def api_war_room_patterns():
+    """War Room-sandboxed patterns (families E and G). Only served in War Room context."""
+    return jsonify(_pe.get_war_room_patterns())

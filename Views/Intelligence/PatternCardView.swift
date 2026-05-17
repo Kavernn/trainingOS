@@ -17,6 +17,15 @@ struct PatternDailyCard: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.purple)
                     .tracking(0.4)
+                if pattern.isNew {
+                    Text("NEW")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Color.yellow)
+                        .clipShape(Capsule())
+                }
                 Spacer()
                 PatternFamilyBadge(family: pattern.family, subLabel: pattern.subLabel)
             }
@@ -97,7 +106,12 @@ struct PatternPinnedChip: View {
                     Spacer()
 
                     VStack(alignment: .trailing, spacing: 2) {
-                        EffectBadge(pct: pattern.effectPct)
+                        HStack(spacing: 4) {
+                            if let trend = pattern.trend, trend.isSignificant {
+                                PatternTrendChip(trend: trend)
+                            }
+                            EffectBadge(pct: pattern.effectPct)
+                        }
                         Image(systemName: expanded ? "chevron.up" : "chevron.down")
                             .font(.system(size: 9))
                             .foregroundColor(.gray)
@@ -218,6 +232,9 @@ private struct PatternFamilyBadge: View {
         case "B": return .teal
         case "C": return .orange
         case "D": return .red
+        case "E": return Color(red: 0.85, green: 0.2, blue: 0.2)   // war-room red
+        case "F": return Color(red: 0.3, green: 0.75, blue: 0.65)  // spirit teal-green
+        case "G": return Color(red: 0.75, green: 0.3, blue: 0.85)  // reset violet
         default:  return .gray
         }
     }
@@ -250,6 +267,94 @@ private struct EffectBadge: View {
             .padding(.vertical, 2)
             .background(Color.white.opacity(0.07))
             .clipShape(Capsule())
+    }
+}
+
+private struct PatternTrendChip: View {
+    let trend: PatternTrend
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Text(trend.arrow)
+                .font(.system(size: 10, weight: .bold))
+            Text("\(Int(abs(trend.deltaPct)))%")
+                .font(.system(size: 9, weight: .semibold, design: .rounded))
+        }
+        .foregroundColor(trendColor)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(trendColor.opacity(0.12))
+        .clipShape(Capsule())
+    }
+
+    private var trendColor: Color {
+        switch trend.direction {
+        case "rising":  return .green
+        case "falling": return .red
+        default:        return .gray
+        }
+    }
+}
+
+// MARK: - Dashboard chip (compact, one-liner)
+
+struct PatternDailyChip: View {
+    let pattern: PatternEntry
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 10) {
+                Image(systemName: pattern.icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colorFromName(pattern.color))
+                    .frame(width: 22)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 6) {
+                        Text(pattern.subLabel.uppercased())
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundColor(colorFromName(pattern.color).opacity(0.7))
+                            .tracking(0.3)
+                        if pattern.isNew {
+                            Text("NEW")
+                                .font(.system(size: 8, weight: .black))
+                                .foregroundColor(.black)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(Color.yellow)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    Text(pattern.headline)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.white.opacity(0.85))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("+\(Int(pattern.effectPct))%")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .foregroundColor(colorFromName(pattern.color))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(colorFromName(pattern.color).opacity(0.2), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 

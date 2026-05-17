@@ -25,4 +25,10 @@ extension APIService {
         _ = try await URLSession.authed.data(for: req)
         CacheService.shared.clear(for: "patterns_daily")
     }
+
+    func fetchWarRoomPatternsEngine() async throws -> [PatternEntry] {
+        let url  = URL(string: "\(baseURL)/api/patterns/war_room")!
+        let data = try await fetchWithCache(url: url, key: "patterns_war_room")
+        return try JSONDecoder().decode([PatternEntry].self, from: data)
+    }
 }

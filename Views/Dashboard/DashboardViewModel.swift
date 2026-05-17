@@ -22,6 +22,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var readinessData: ReadinessResponse?
     @Published var phoenixScore: PhoenixScore?
     @Published var activeSeason: Season?
+    @Published var dailyPattern: PatternEntry?
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
 
@@ -128,6 +129,16 @@ final class DashboardViewModel: ObservableObject {
             group.addTask { @MainActor in
                 do { self.phoenixScore = try await APIService.shared.fetchPhoenixScore(); return 0 }
                 catch { self.logger.error("fetchPhoenixScore: \(error, privacy: .public)"); return 1 }
+            }
+            group.addTask { @MainActor in
+                do {
+                    let resp = try await APIService.shared.fetchPatterns()
+                    self.dailyPattern = resp.daily
+                    return 0
+                } catch {
+                    self.logger.error("fetchPatterns: \(error, privacy: .public)")
+                    return 1
+                }
             }
             for await failures in group { secondaryFailures += failures }
         }

@@ -4,7 +4,8 @@ import UIKit
 import UserNotifications
 
 extension Notification.Name {
-    static let sessionCompleted = Notification.Name("trainingos.sessionCompleted")
+    static let sessionCompleted       = Notification.Name("trainingos.sessionCompleted")
+    static let navigateToIntelligence = Notification.Name("trainingos.navigateToIntelligence")
 }
 
 // MARK: - Shared models (ex-private types in ExerciseCard)

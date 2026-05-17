@@ -1,11 +1,14 @@
 """
 pattern_engine.py — Cross-module pattern detection.
 
-4 families:
+7 families:
   A  Exercise × Condition    (PSS, sommeil, soreness, HRV → volume exercice)
   B  Temporal segmentation   (jour de semaine → RPE/volume)
   C  Nutrition J-1 → exercice (protéines/glucides veille → volume exercice)
   D  Skip → Stress           (séances manquées/semaine → PSS moyen)
+  E  War Room × Activité     (trigger count/intensity vs. workout presence) [war_room:True]
+  F  Spirit × Mind           (breathwork/meditation → PSS/soreness)
+  G  War Room reset × J+1    (reset day → volume/RPE le lendemain)   [war_room:True]
 
 Seuil de significativité adaptatif (p < 0.05 two-tailed, approximation t_crit=2.0).
 """
@@ -105,6 +108,12 @@ def _load_context(days: int = 90) -> dict[str, dict]:
     window = {(today - timedelta(days=i)).isoformat() for i in range(days)}
     ctx: dict[str, dict] = {d: {} for d in window}
 
+    # Initialise binary fields so "no session" is explicitly 0 not missing
+    for d in ctx:
+        ctx[d]["breathwork_done"] = 0.0
+        ctx[d]["meditation_done"] = 0.0
+        ctx[d]["is_reset_day"]    = 0.0
+
     for e in (db.get_recovery_logs(limit=days + 10) or []):
         d = str(e.get("date") or "")[:10]
         if d not in ctx:
@@ -122,8 +131,19 @@ def _load_context(days: int = 90) -> dict[str, dict]:
         if s is not None:
             ctx[d]["pss_score"] = float(s)
 
+    for e in (db.get_mood_logs(days=days) or []):
+        d = str(e.get("date") or "")[:10]
+        if d not in ctx:
+            continue
+        score = e.get("score")
+        if score is not None:
+            ctx[d]["mood_score"] = float(score)
+
     if db._client:
-        cutoff = (today - timedelta(days=days)).isoformat()
+        cutoff     = (today - timedelta(days=days)).isoformat()
+        cutoff_ts  = cutoff + "T00:00:00"
+
+        # Nutrition
         try:
             rows = db._client.table("nutrition_entries").select("date, proteines, glucides, calories").gte("date", cutoff).execute().data or []
             for r in rows:
@@ -133,6 +153,52 @@ def _load_context(days: int = 90) -> dict[str, dict]:
                 ctx[d]["protein"]  = round(ctx[d].get("protein",  0) + float(r.get("proteines") or 0), 1)
                 ctx[d]["carbs"]    = round(ctx[d].get("carbs",    0) + float(r.get("glucides")  or 0), 1)
                 ctx[d]["calories"] = round(ctx[d].get("calories", 0) + float(r.get("calories")  or 0), 1)
+        except Exception:
+            pass
+
+        # Spirit — breathwork
+        try:
+            rows = db._client.table("breathwork_sessions").select("started_at").gte("started_at", cutoff_ts).execute().data or []
+            for r in rows:
+                d = str(r.get("started_at") or "")[:10]
+                if d in ctx:
+                    ctx[d]["breathwork_done"] = 1.0
+        except Exception:
+            pass
+
+        # Spirit — meditation (completed only)
+        try:
+            rows = db._client.table("meditation_sessions").select("started_at").gte("started_at", cutoff_ts).eq("completed", True).execute().data or []
+            for r in rows:
+                d = str(r.get("started_at") or "")[:10]
+                if d in ctx:
+                    ctx[d]["meditation_done"] = 1.0
+        except Exception:
+            pass
+
+        # War Room — reset days
+        try:
+            rows = db._client.table("war_room_battles").select("date, status").gte("date", cutoff).execute().data or []
+            for r in rows:
+                d = str(r.get("date") or "")[:10]
+                if d in ctx and r.get("status") == "lost":
+                    ctx[d]["is_reset_day"] = 1.0
+        except Exception:
+            pass
+
+        # War Room — trigger count + mean intensity per day
+        try:
+            rows = db._client.table("war_room_triggers").select("date, intensity").gte("date", cutoff).execute().data or []
+            for r in rows:
+                d = str(r.get("date") or "")[:10]
+                if d not in ctx:
+                    continue
+                ctx[d]["trigger_count"] = ctx[d].get("trigger_count", 0) + 1
+                intens = r.get("intensity")
+                if intens is not None:
+                    n = ctx[d]["trigger_count"]
+                    prev = ctx[d].get("trigger_intensity", 0.0)
+                    ctx[d]["trigger_intensity"] = round((prev * (n - 1) + float(intens)) / n, 2)
         except Exception:
             pass
 
@@ -477,9 +543,231 @@ def _scan_family_D(sessions: list[dict], context: dict) -> list[dict]:
     }]
 
 
+# ── Family E: War Room × Activité physique ────────────────────────────────────
+
+def _scan_family_E(context: dict, sess_corr: dict) -> list[dict]:
+    """Cohen's d: trigger_count/intensity on days with vs. without a workout session."""
+    workout_days = set(sess_corr.keys())
+    with_wk_triggers:   list[float] = []
+    with_wk_intensity:  list[float] = []
+    no_wk_triggers:     list[float] = []
+    no_wk_intensity:    list[float] = []
+
+    for d, ctx in context.items():
+        tc = ctx.get("trigger_count")
+        ti = ctx.get("trigger_intensity")
+        if tc is None:
+            continue
+        if d in workout_days:
+            with_wk_triggers.append(float(tc))
+            if ti is not None:
+                with_wk_intensity.append(float(ti))
+        else:
+            no_wk_triggers.append(float(tc))
+            if ti is not None:
+                no_wk_intensity.append(float(ti))
+
+    patterns: list[dict] = []
+
+    # E1 — trigger count
+    if len(with_wk_triggers) >= 5 and len(no_wk_triggers) >= 5:
+        d_val = _cohen_d(no_wk_triggers, with_wk_triggers)  # no-workout group first (expect higher)
+        if _ok_d(d_val, min(len(with_wk_triggers), len(no_wk_triggers))):
+            avg_wk  = _mean(with_wk_triggers)
+            avg_nwk = _mean(no_wk_triggers)
+            ref = min(avg_wk, avg_nwk)
+            if ref > 1e-6:
+                pct = (avg_nwk - avg_wk) / ref * 100
+                if abs(pct) >= 5:
+                    direction = "moins" if pct > 0 else "plus"
+                    hi, lo = max(avg_wk, avg_nwk), min(avg_wk, avg_nwk)
+                    patterns.append({
+                        "id":         "E__trigger_count_workout",
+                        "family":     "E",
+                        "war_room":   True,
+                        "sub_label":  "War Room × Sport",
+                        "headline":   f"Tu déclenches {abs(int(pct))}% {direction} de triggers War Room les jours où tu t'entraînes",
+                        "confidence": _confidence(d_val, min(len(with_wk_triggers), len(no_wk_triggers))),
+                        "effect_pct": round(abs(pct), 1),
+                        "n":          len(with_wk_triggers) + len(no_wk_triggers),
+                        "metric_d":   round(d_val, 3),
+                        "bar_a":      {"label": "Jour d'entraînement",  "value": round(avg_wk, 1), "frac": round(avg_wk / hi, 3)},
+                        "bar_b":      {"label": "Jour sans entraînement", "value": round(avg_nwk, 1), "frac": round(avg_nwk / hi, 3)},
+                        "icon":       "bolt.heart.fill",
+                        "color":      "red",
+                    })
+
+    # E2 — trigger intensity
+    if len(with_wk_intensity) >= 5 and len(no_wk_intensity) >= 5:
+        d_val = _cohen_d(no_wk_intensity, with_wk_intensity)
+        if _ok_d(d_val, min(len(with_wk_intensity), len(no_wk_intensity))):
+            avg_wk  = _mean(with_wk_intensity)
+            avg_nwk = _mean(no_wk_intensity)
+            ref = min(avg_wk, avg_nwk)
+            if ref > 1e-6:
+                pct = (avg_nwk - avg_wk) / ref * 100
+                if abs(pct) >= 5:
+                    direction = "moins" if pct > 0 else "plus"
+                    hi = max(avg_wk, avg_nwk)
+                    patterns.append({
+                        "id":         "E__trigger_intensity_workout",
+                        "family":     "E",
+                        "war_room":   True,
+                        "sub_label":  "War Room × Sport",
+                        "headline":   f"L'intensité de tes triggers War Room est {abs(int(pct))}% {direction} élevée les jours d'entraînement",
+                        "confidence": _confidence(d_val, min(len(with_wk_intensity), len(no_wk_intensity))),
+                        "effect_pct": round(abs(pct), 1),
+                        "n":          len(with_wk_intensity) + len(no_wk_intensity),
+                        "metric_d":   round(d_val, 3),
+                        "bar_a":      {"label": "Jour d'entraînement",    "value": round(avg_wk, 1),  "frac": round(avg_wk / hi, 3)},
+                        "bar_b":      {"label": "Jour sans entraînement", "value": round(avg_nwk, 1), "frac": round(avg_nwk / hi, 3)},
+                        "icon":       "exclamationmark.triangle.fill",
+                        "color":      "orange",
+                    })
+
+    return patterns
+
+
+# ── Family F: Spirit × Mind ────────────────────────────────────────────────────
+
+def _scan_family_F(context: dict) -> list[dict]:
+    """Cohen's d: PSS and soreness on breathwork/meditation days vs. rest."""
+    bw_pss:  list[float] = []
+    nbw_pss: list[float] = []
+    bw_sor:  list[float] = []
+    nbw_sor: list[float] = []
+    md_pss:  list[float] = []
+    nmd_pss: list[float] = []
+    md_sor:  list[float] = []
+    nmd_sor: list[float] = []
+
+    for d, ctx in context.items():
+        bw = ctx.get("breathwork_done", 0.0)
+        md = ctx.get("meditation_done", 0.0)
+        pss = ctx.get("pss_score")
+        sor = ctx.get("soreness")
+        if pss is not None:
+            (bw_pss if bw > 0 else nbw_pss).append(float(pss))
+            (md_pss if md > 0 else nmd_pss).append(float(pss))
+        if sor is not None:
+            (bw_sor if bw > 0 else nbw_sor).append(float(sor))
+            (md_sor if md > 0 else nmd_sor).append(float(sor))
+
+    patterns: list[dict] = []
+
+    def _spirit_pattern(pid: str, with_g: list[float], no_g: list[float],
+                         label_with: str, label_no: str,
+                         metric_name: str, icon: str, color: str,
+                         lower_is_better: bool = True):
+        if len(with_g) < 5 or len(no_g) < 5:
+            return
+        # Positive d → with_g mean > no_g mean
+        d_val = _cohen_d(with_g, no_g)
+        if not _ok_d(d_val, min(len(with_g), len(no_g))):
+            return
+        avg_w, avg_n = _mean(with_g), _mean(no_g)
+        ref = min(avg_w, avg_n)
+        if ref < 1e-6:
+            return
+        pct = (avg_n - avg_w) / ref * 100  # positive → practice reduces metric
+        if abs(pct) < 5:
+            return
+        benefit = (pct > 0) == lower_is_better  # True → practice helps
+        direction = "réduit" if benefit else "augmente"
+        hi = max(avg_w, avg_n)
+        patterns.append({
+            "id":         pid,
+            "family":     "F",
+            "sub_label":  "Spirit × Mind",
+            "headline":   f"Ta pratique {direction} ton {metric_name} de {abs(int(pct))}% en moyenne",
+            "confidence": _confidence(d_val, min(len(with_g), len(no_g))),
+            "effect_pct": round(abs(pct), 1),
+            "n":          len(with_g) + len(no_g),
+            "metric_d":   round(d_val, 3),
+            "bar_a":      {"label": label_with, "value": round(avg_w, 1), "frac": round(avg_w / hi, 3)},
+            "bar_b":      {"label": label_no,   "value": round(avg_n, 1), "frac": round(avg_n / hi, 3)},
+            "icon":       icon,
+            "color":      color,
+        })
+
+    _spirit_pattern("F__breathwork_pss",       bw_pss,  nbw_pss, "Jours breathwork", "Jours sans",
+                    "PSS", "wind", "teal", lower_is_better=True)
+    _spirit_pattern("F__breathwork_soreness",   bw_sor,  nbw_sor, "Jours breathwork", "Jours sans",
+                    "courbatures", "bolt.heart.fill", "blue", lower_is_better=True)
+    _spirit_pattern("F__meditation_pss",        md_pss,  nmd_pss, "Jours méditation", "Jours sans",
+                    "PSS", "brain.head.profile", "purple", lower_is_better=True)
+    _spirit_pattern("F__meditation_soreness",   md_sor,  nmd_sor, "Jours méditation", "Jours sans",
+                    "courbatures", "figure.mind.and.body", "indigo", lower_is_better=True)
+
+    return patterns
+
+
+# ── Family G: War Room reset × Training J+1 ───────────────────────────────────
+
+def _scan_family_G(context: dict, sess_corr: dict) -> list[dict]:
+    """Compare session volume and RPE the day after a War Room reset (lost battle)."""
+    vol_after_reset:  list[float] = []
+    rpe_after_reset:  list[float] = []
+    vol_after_normal: list[float] = []
+    rpe_after_normal: list[float] = []
+
+    sorted_dates = sorted(context.keys())
+    for i, d in enumerate(sorted_dates[:-1]):
+        next_d = sorted_dates[i + 1]
+        is_reset = context[d].get("is_reset_day", 0.0) > 0
+        s = sess_corr.get(next_d, {})
+        vol = s.get("session_volume")
+        rpe = s.get("rpe")
+        if vol is not None:
+            (vol_after_reset if is_reset else vol_after_normal).append(float(vol))
+        if rpe is not None:
+            (rpe_after_reset if is_reset else rpe_after_normal).append(float(rpe))
+
+    patterns: list[dict] = []
+
+    def _reset_pattern(pid: str, after_r: list[float], after_n: list[float],
+                        metric_label: str, icon: str, color: str, lower_good: bool = False):
+        if len(after_r) < 3 or len(after_n) < 5:
+            return
+        d_val = _cohen_d(after_r, after_n)
+        if abs(d_val) < 0.4 or min(len(after_r), len(after_n)) < 3:
+            return
+        avg_r, avg_n = _mean(after_r), _mean(after_n)
+        ref = min(avg_r, avg_n)
+        if ref < 1e-6:
+            return
+        pct = (avg_r - avg_n) / ref * 100
+        if abs(pct) < 5:
+            return
+        hi = max(avg_r, avg_n)
+        direction = "inférieur" if pct < 0 else "supérieur"
+        patterns.append({
+            "id":         pid,
+            "family":     "G",
+            "war_room":   True,
+            "sub_label":  "War Room reset → J+1",
+            "headline":   f"Ton {metric_label} du lendemain est {abs(int(pct))}% {direction} après un jour de reset War Room",
+            "confidence": _confidence(d_val, min(len(after_r), len(after_n))),
+            "effect_pct": round(abs(pct), 1),
+            "n":          len(after_r) + len(after_n),
+            "metric_d":   round(d_val, 3),
+            "bar_a":      {"label": "Après reset",  "value": round(avg_r, 1), "frac": round(avg_r / hi, 3)},
+            "bar_b":      {"label": "Après journée normale", "value": round(avg_n, 1), "frac": round(avg_n / hi, 3)},
+            "icon":       icon,
+            "color":      color,
+        })
+
+    _reset_pattern("G__reset_volume_j1", vol_after_reset, vol_after_normal,
+                   "volume", "dumbbell.fill", "red")
+    _reset_pattern("G__reset_rpe_j1", rpe_after_reset, rpe_after_normal,
+                   "RPE", "gauge.high", "orange")
+
+    return patterns
+
+
 # ── Priority scoring ───────────────────────────────────────────────────────────
 
-_ACTIONABILITY = {"A": 1.0, "C": 0.95, "B": 0.7, "D": 0.6}
+_ACTIONABILITY = {"A": 1.0, "C": 0.95, "F": 0.9, "B": 0.7, "D": 0.6, "E": 0.5, "G": 0.5}
 
 
 def _score(p: dict, shown: set[str]) -> float:
@@ -539,6 +827,9 @@ def _compute_all() -> list[dict]:
             [{"date": d, **v} for d, v in sess_corr.items()],
             context,
         ))
+        patterns.extend(_scan_family_E(context, sess_corr))
+        patterns.extend(_scan_family_F(context))
+        patterns.extend(_scan_family_G(context, sess_corr))
 
         dummy: set[str] = set()
         patterns.sort(key=lambda p: _score(p, dummy), reverse=True)
@@ -548,22 +839,53 @@ def _compute_all() -> list[dict]:
         return []
 
 
+# ── Trend computation ─────────────────────────────────────────────────────────
+
+def _compute_trend(pattern: dict, shown_log: list[dict]) -> dict | None:
+    """Compare current effect_pct to the value stored when pattern was first shown."""
+    pid = pattern["id"]
+    first = next((e for e in shown_log if e.get("id") == pid and e.get("effect_pct") is not None), None)
+    if first is None:
+        return None
+    initial = float(first["effect_pct"])
+    current = float(pattern.get("effect_pct", 0))
+    delta   = round(current - initial, 1)
+    if abs(delta) < 1:
+        direction = "stable"
+    elif delta > 0:
+        direction = "rising"
+    else:
+        direction = "falling"
+    return {
+        "direction":   direction,
+        "delta_pct":   delta,
+        "initial_pct": round(initial, 1),
+        "current_pct": round(current, 1),
+    }
+
+
 # ── Public API ─────────────────────────────────────────────────────────────────
 
 def get_daily_pattern() -> dict:
     all_patterns = _get_all_patterns()
     state        = _load_state()
-    shown_ids    = {e["id"] for e in state.get("shown_log", [])}
+    shown_log    = state.get("shown_log", [])
+    shown_ids    = {e["id"] for e in shown_log}
     pinned_set   = set(state.get("pinned", []))
     today        = date_cls.today().isoformat()
     cutoff_45    = (date_cls.today() - timedelta(days=45)).isoformat()
 
-    # Attach pinned flag (non-destructive copy)
-    tagged = [{**p, "pinned": p["id"] in pinned_set} for p in all_patterns]
+    # War Room patterns are sandboxed — exclude from daily rotation
+    eligible = [p for p in all_patterns if not p.get("war_room")]
+
+    # Attach pinned flag and is_new (never shown before)
+    all_shown_ids_ever = {e["id"] for e in shown_log}
+    tagged = [{**p, "pinned": p["id"] in pinned_set, "is_new": p["id"] not in all_shown_ids_ever}
+              for p in eligible]
 
     # Pick daily: one per calendar day, novelty-prioritised
     shown_today_entry = next(
-        (e for e in state["shown_log"] if e.get("date") == today), None
+        (e for e in shown_log if e.get("date") == today), None
     )
     daily = None
     if shown_today_entry:
@@ -576,19 +898,50 @@ def get_daily_pattern() -> dict:
         if candidates:
             daily = candidates[0]
             state["shown_log"] = [
-                e for e in state["shown_log"] if e.get("date", "") > cutoff_45
+                e for e in shown_log if e.get("date", "") > cutoff_45
             ]
-            state["shown_log"].append({"id": daily["id"], "date": today})
+            state["shown_log"].append({
+                "id":         daily["id"],
+                "date":       today,
+                "effect_pct": daily.get("effect_pct"),
+            })
             _save_state(state)
 
-    pinned_patterns = [p for p in tagged if p["id"] in pinned_set]
+    # Pinned patterns with trend
+    pinned_patterns = []
+    for p in tagged:
+        if p["id"] not in pinned_set:
+            continue
+        trend = _compute_trend(p, state["shown_log"])
+        pinned_patterns.append({**p, "trend": trend})
 
     return {
         "daily":        daily,
         "pinned":       pinned_patterns,
-        "total":        len(all_patterns),
+        "total":        len(eligible),
         "computed_at":  datetime.now(timezone.utc).isoformat(),
     }
+
+
+def get_war_room_patterns() -> list[dict]:
+    """Return War Room-specific patterns (families E and G). Sandboxed."""
+    all_patterns = _get_all_patterns()
+    state        = _load_state()
+    shown_log    = state.get("shown_log", [])
+    pinned_set   = set(state.get("pinned", []))
+    all_shown_ids_ever = {e["id"] for e in shown_log}
+
+    wr_patterns = [p for p in all_patterns if p.get("war_room")]
+    result = []
+    for p in wr_patterns:
+        trend = _compute_trend(p, shown_log)
+        result.append({
+            **p,
+            "pinned": p["id"] in pinned_set,
+            "is_new":  p["id"] not in all_shown_ids_ever,
+            "trend":   trend,
+        })
+    return result
 
 
 def pin_pattern(pattern_id: str) -> None:
