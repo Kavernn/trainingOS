@@ -202,7 +202,7 @@ struct DashboardView: View {
                                 if let ritual = vm.ritualToday,
                                    !ritual.morningDone,
                                    Calendar.current.component(.hour, from: Date()) < 14 {
-                                    MorningRitualEntryCard()
+                                    MorningRitualEntryCard(ritual: ritual)
                                         .appearAnimation(delay: 0.37)
                                 }
 
@@ -3679,6 +3679,7 @@ private struct QuickWarRoomTriggerSheet: View {
 // MARK: - Morning Ritual Entry Card
 
 private struct MorningRitualEntryCard: View {
+    let ritual: RitualToday
     @State private var showMorningRitual = false
 
     var body: some View {
@@ -3722,7 +3723,7 @@ private struct MorningRitualEntryCard: View {
         }
         .buttonStyle(.plain)
         .fullScreenCover(isPresented: $showMorningRitual) {
-            RitualMorningView()
+            RitualMorningView(ritual: ritual, onSaved: { _ in })
         }
     }
 }
