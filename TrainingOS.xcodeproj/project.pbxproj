@@ -36,6 +36,11 @@
 		SE004001AA00300B2F5DDDDD /* SeasonStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */; };
 		SE005001AA00300B2F5DDDDD /* SeasonCloseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */; };
 		SE006001AA00300B2F5DDDDD /* SeasonReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */; };
+		GF001001AA00300B2F5DEEEE /* GymContributeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF001000AA00300B2F5DEEEE /* GymContributeView.swift */; };
+		GF002001AA00300B2F5DEEEE /* GymDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF002000AA00300B2F5DEEEE /* GymDetailView.swift */; };
+		GF003001AA00300B2F5DEEEE /* GymFiltersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF003000AA00300B2F5DEEEE /* GymFiltersView.swift */; };
+		GF004001AA00300B2F5DEEEE /* GymFinderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF004000AA00300B2F5DEEEE /* GymFinderView.swift */; };
+		GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */; };
 		OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA001000AA00300B2F5DCCCC /* OathModels.swift */; };
 		OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */; };
 		OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA003000AA00300B2F5DCCCC /* OathView.swift */; };
@@ -231,6 +236,11 @@
 		SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonStartView.swift; sourceTree = "<group>"; };
 		SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonCloseView.swift; sourceTree = "<group>"; };
 		SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonReportView.swift; sourceTree = "<group>"; };
+		GF001000AA00300B2F5DEEEE /* GymContributeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymContributeView.swift; sourceTree = "<group>"; };
+		GF002000AA00300B2F5DEEEE /* GymDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymDetailView.swift; sourceTree = "<group>"; };
+		GF003000AA00300B2F5DEEEE /* GymFiltersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFiltersView.swift; sourceTree = "<group>"; };
+		GF004000AA00300B2F5DEEEE /* GymFinderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderView.swift; sourceTree = "<group>"; };
+		GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderViewModel.swift; sourceTree = "<group>"; };
 		OA001000AA00300B2F5DCCCC /* OathModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathModels.swift; sourceTree = "<group>"; };
 		OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Oath.swift"; sourceTree = "<group>"; };
 		OA003000AA00300B2F5DCCCC /* OathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathView.swift; sourceTree = "<group>"; };
@@ -793,6 +803,7 @@
 				SP000000AA00300B2F5DBBBB /* Spirit */,
 				OA000000AA00300B2F5DCCCC /* Oath */,
 				SE000000AA00300B2F5DDDDD /* Seasons */,
+				GF000000AA00300B2F5DEEEE /* GymFinder */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -826,6 +837,18 @@
 				SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */,
 			);
 			path = Seasons;
+			sourceTree = "<group>";
+		};
+		GF000000AA00300B2F5DEEEE /* GymFinder */ = {
+			isa = PBXGroup;
+			children = (
+				GF001000AA00300B2F5DEEEE /* GymContributeView.swift */,
+				GF002000AA00300B2F5DEEEE /* GymDetailView.swift */,
+				GF003000AA00300B2F5DEEEE /* GymFiltersView.swift */,
+				GF004000AA00300B2F5DEEEE /* GymFinderView.swift */,
+				GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */,
+			);
+			path = GymFinder;
 			sourceTree = "<group>";
 		};
 		DD44000F2F5D98BA002AE473 /* MentalHealth */ = {
@@ -1159,6 +1182,11 @@
 				SE004001AA00300B2F5DDDDD /* SeasonStartView.swift in Sources */,
 				SE005001AA00300B2F5DDDDD /* SeasonCloseView.swift in Sources */,
 				SE006001AA00300B2F5DDDDD /* SeasonReportView.swift in Sources */,
+				GF001001AA00300B2F5DEEEE /* GymContributeView.swift in Sources */,
+				GF002001AA00300B2F5DEEEE /* GymDetailView.swift in Sources */,
+				GF003001AA00300B2F5DEEEE /* GymFiltersView.swift in Sources */,
+				GF004001AA00300B2F5DEEEE /* GymFinderView.swift in Sources */,
+				GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
