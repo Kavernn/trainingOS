@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 
 extension APIService {
     // MARK: - Nutrition
@@ -34,6 +35,8 @@ extension APIService {
         if let d  = date     { payload["date"] = d }
         _ = try await offlinePost(endpoint: "/api/nutrition/add", payload: payload)
         BehaviorTracker.shared.record(.nutritionLog)
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["nutrition.daily.reminder"])
     }
 
     func scanNutritionLabel(imageBase64: String, quantity: Double, unit: String) async throws -> ScanResult {

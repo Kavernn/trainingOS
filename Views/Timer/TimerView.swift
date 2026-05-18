@@ -263,10 +263,12 @@ struct TimerView: View {
         }
     }
 
+    private static let bgNotifIDs = (0..<60).map { "timer_bg_\($0)" }
+
     // Schedule a notification for every upcoming phase transition (max 64 — iOS limit).
     private func scheduleBackgroundNotifications() {
         guard running, phase != .done, phase != .idle else { return }
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: Self.bgNotifIDs)
 
         var delay    = TimeInterval(remaining)
         var curPhase = phase
@@ -314,7 +316,7 @@ struct TimerView: View {
     }
 
     private func cancelBackgroundNotifications() {
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: Self.bgNotifIDs)
     }
 
     private func syncFromBackground() {
