@@ -55,10 +55,10 @@ flat = [{"weight": 100, "reps": "8"}, {"weight": 100, "reps": "8"}, {"weight": 1
 check("working_sets flat = all sets",
       sp._working_sets(flat) == flat)
 
-# _working_sets — wave loading
-wave = [{"weight": 80, "reps": "8"}, {"weight": 90, "reps": "8"}, {"weight": 100, "reps": "5"}]
-ws = sp._working_sets(wave)
-check("working_sets wave = max-weight only",
+# _working_sets — ramping sets
+ramping = [{"weight": 80, "reps": "8"}, {"weight": 90, "reps": "8"}, {"weight": 100, "reps": "5"}]
+ws = sp._working_sets(ramping)
+check("working_sets ramping = max-weight only",
       len(ws) == 1 and ws[0]["weight"] == 100,
       f"got {ws}")
 
@@ -79,11 +79,11 @@ check("hit_rate 66% at 12",   abs(sp._hit_rate(sets_mixed, 12) - 2/3) < 0.01,
 check("hit_rate 0%  at 12 (8s)", sp._hit_rate(sets_none, 12) == 0.0)
 check("hit_rate empty sets",  sp._hit_rate([], 10) == 0.0)
 
-# _increment_for_category
+# _increment_for_category (shim → matrice unifiée)
 check("increment push = 5 lbs",  sp._increment_for_category("push") == 5.0)
 check("increment pull = 5 lbs",  sp._increment_for_category("pull") == 5.0)
-check("increment legs = 10 lbs", sp._increment_for_category("legs") == 10.0)
-check("increment core = 5 lbs",  sp._increment_for_category("core") == 5.0)
+check("increment legs = 5 lbs",  sp._increment_for_category("legs") == 5.0)  # 10→5 : matrice unifiée
+check("increment core = 2.5 lbs", sp._increment_for_category("core") == 2.5)  # NULL load_profile → default
 
 # =============================================================================
 # 2. UNIT TESTS — generate_suggestions with mock data
@@ -152,9 +152,9 @@ if s:
     # Keep this resilient to copy tweaks while ensuring semantic signal remains.
     check("reason mentions réussite au plafond (7 reps)", "7" in reason and ("accompli" in reason or "Objectif" in reason))
 
-# ── Test B: compound_heavy — wave loading, eval last set ──────────────────────
+# ── Test B: compound_heavy — ramping sets, eval max-weight sets only ──────────
 print(f"\n{SEP}")
-print("  B — compound_heavy wave loading: 185→205→225×7 → eval 225 uniquement → +10 lbs legs")
+print("  B — compound_heavy ramping sets: 185→205→225×7 → eval 225 uniquement → +5 lbs (matrice unifiée)")
 print(SEP)
 _patch(
     cur_logs  = [_mock_log("Back Squat",
@@ -171,7 +171,7 @@ check("wave: suggestion_type = increase_weight",
       s and s[0]["suggestion_type"] == "increase_weight", str(s[0] if s else ""))
 if s:
     check("wave: current_weight = 225 (max, not avg)", s[0]["current_weight"] == 225.0)
-    check("wave: suggested_weight = 225+10 = 235 lbs", s[0]["suggested_weight"] == 235.0)
+    check("ramping: suggested_weight = 225+5 = 230 lbs", s[0]["suggested_weight"] == 230.0)
 
 # ── Test C: compound_heavy — 90% threshold: 3/4 sets at top → +weight ─────────
 print(f"\n{SEP}")
@@ -426,7 +426,7 @@ print('='*72)
 
 # ── PUSH simulation ───────────────────────────────────────────────────────────
 print(f"\n{SEP}")
-print("  PUSH — session complète avec wave loading + mix compound/isolation")
+print("  PUSH — session complète avec ramping sets + mix compound/isolation")
 print(SEP)
 
 push_info = {
@@ -520,7 +520,7 @@ for ex, rule, exp_type, exp_w in expected_pull:
 
 # ── LEGS simulation ───────────────────────────────────────────────────────────
 print(f"\n{SEP}")
-print("  LEGS — wave loading, core ignoré, leg curl isolation 100%")
+print("  LEGS — ramping sets, core ignoré, leg curl isolation 100%")
 print(SEP)
 
 legs_info = {
@@ -531,10 +531,10 @@ legs_info = {
 }
 legs_cur = [
     _mock_log("Back Squat",  [{"weight":205,"reps":"5"},{"weight":225,"reps":"5"},
-                               {"weight":245,"reps":"7"}]),   # wave, eval 245×7 → 90% → +10
+                               {"weight":245,"reps":"7"}]),   # ramping, eval 245×7 → 90% → +5
     _mock_log("Leg Press",   [{"weight":300,"reps":"8"},{"weight":340,"reps":"8"},
-                               {"weight":370,"reps":"8"}]),   # wave, eval 370×8 → 0% at 12 → maintien
-    _mock_log("Leg Curl",    [{"weight":154,"reps":"12"},]*3),  # 100% → +10
+                               {"weight":370,"reps":"8"}]),   # ramping, eval 370×8 → 0% at 12 → maintien
+    _mock_log("Leg Curl",    [{"weight":154,"reps":"12"},]*3),  # isolation 100% → +2.5
     _mock_log("Weighted Crunch",[{"weight":88,"reps":"10"},]*3),  # core → ignored
 ]
 legs_prev = [
@@ -551,9 +551,9 @@ _restore()
 
 legs_map = {s["exercise_name"]: s for s in legs_s}
 expected_legs = [
-    ("Back Squat", "compound_heavy wave 245×7 ≥7 → +10", "increase_weight", 255.0),
-    ("Leg Press",  "compound_hyper wave 370×8 @ 12 → 0%", "maintain",        370.0),
-    ("Leg Curl",   "isolation 100% @ 12 → +10",           "increase_weight", 164.0),
+    ("Back Squat", "compound_heavy ramping 245×7 ≥7 → +5", "increase_weight", 250.0),
+    ("Leg Press",  "compound_hyper ramping 370×8 @ 12 → 0%", "maintain",      370.0),
+    ("Leg Curl",   "isolation 100% @ 12 → +2.5",            "increase_weight", 156.5),
 ]
 for ex, rule, exp_type, exp_w in expected_legs:
     s_ex = legs_map.get(ex, {})

@@ -187,19 +187,25 @@ def annotate_history_entry(entry: dict) -> dict:
     """Return a copy of an exercise log entry enriched with computed fields.
 
     Adds:
-      "1rm"    : float  — Epley 1RM estimate
-      "volume" : float  — weight × total_reps_count
+      "1rm"     : float       — Epley 1RM estimate
+      "pct_1rm" : float|None  — % du 1RM utilisé (weight / e1RM × 100)
+      "volume"  : float       — weight × total_reps_count
 
     The original dict is NOT mutated. Computed fields are for API responses only
     and must never be persisted back to the database.
     """
-    weight = entry.get("weight")
-    reps = entry.get("reps")
+    weight    = entry.get("weight")
+    reps      = entry.get("reps")
     sets_json = entry.get("sets_json") or entry.get("sets")
+
+    e1rm    = calc_1rm(weight, reps)
+    pct_1rm = round(float(weight) / e1rm * 100, 1) if (e1rm > 0 and weight) else None
+
     return {
         **entry,
-        "1rm":    calc_1rm(weight, reps),
-        "volume": calc_exercise_volume(weight, reps, sets_json=sets_json),
+        "1rm":     e1rm,
+        "pct_1rm": pct_1rm,
+        "volume":  calc_exercise_volume(weight, reps, sets_json=sets_json),
     }
 
 

@@ -7,15 +7,16 @@ Rules by load_profile:
   compound_heavy       → +weight if ≥90% working sets hit top of scheme
   compound_hypertrophy → +weight if ≥90% working sets hit top of scheme
   isolation            → +weight if 100% working sets hit top of scheme
+  endurance_strength   → +weight if 100% working sets hit top of scheme (15-20 reps)
   NULL (core/mobility) → no suggestion
 
-Wave loading: when sets have different weights, only the sets at the maximum
-weight (working sets) are evaluated for hit rate. The suggested_weight is
-based on the max weight of the current session.
+Ramping sets: when sets have different weights (progressive warm-up → working sets),
+only the sets at the maximum weight are evaluated for hit rate. The suggested_weight
+is based on the max weight of the current session.
 
-Weight increments (in lbs):
-  push / pull (upper) → +5 lbs
-  legs                → +10 lbs
+Weight increments (in lbs) — via unified get_increment matrix (progression.py):
+  compound_heavy / compound_hypertrophy → +5 lbs
+  isolation / endurance_strength        → +2.5 lbs
 
 Plateau detection: ≥3 consecutive sessions at same max_weight
   → suggest add 1 set (even plateau count) OR deload -10% (odd)
@@ -31,6 +32,7 @@ import logging
 from typing import Optional
 
 import db
+from progression import get_increment
 
 logger = logging.getLogger("trainingos.progression")
 
@@ -88,7 +90,7 @@ def _sets_from_log(log: dict) -> list[dict]:
 
 def _working_sets(sets: list[dict]) -> list[dict]:
     """
-    For wave-loading sessions (sets have varying weights), return only
+    For ramping-set sessions (progressive warm-up to working weight), return only
     the sets performed at the maximum weight (the true working sets).
     For flat-load sessions (all same weight), return all sets.
     """
@@ -123,16 +125,21 @@ def _hit_rate(sets: list[dict], top_reps: int) -> float:
     return sum(1 for s in sets if _to_int(s.get("reps")) >= top_reps) / len(sets)
 
 
-def _increment_for_profile(load_profile: str, category: str) -> float:
-    """Weight increment in lbs, refined by load profile.
+def _increment_for_profile(load_profile: str, category: str, equipment_type: str | None = None) -> float:
+    """Weight increment in lbs via the unified get_increment matrix.
 
-    isolation → 2.5 lbs (small muscles, light loads)
-    legs      → 10 lbs (large compound, plates in pairs)
-    upper compound → 5 lbs
+    Délègue à progression.get_increment — source unique de vérité.
+    category conservé en signature pour compatibilité des callers existants.
     """
-    if load_profile == "isolation":
-        return 2.5
-    return 10.0 if category == "legs" else 5.0
+    return get_increment("", load_profile=load_profile, equipment_type=equipment_type)
+
+
+def _increment_for_category(category: str) -> float:
+    """Shim de compatibilité tests — mappe category → load_profile → get_increment."""
+    lp_map = {"push": "compound_hypertrophy", "pull": "compound_hypertrophy",
+               "legs": "compound_heavy", "core": None}
+    lp = lp_map.get(category.lower())
+    return get_increment("", load_profile=lp)
 
 
 def _plateau_count(history: list[dict], max_weight: float) -> int:
@@ -218,7 +225,7 @@ def _suggest_for_exercise(
     if top_reps == 0:
         return None
 
-    threshold = 1.0 if load_profile == "isolation" else 0.9
+    threshold = 1.0 if load_profile in ("isolation", "endurance_strength") else 0.9
     hit       = _hit_rate(working, top_reps)
     plateau   = _plateau_count(history, cur_max_w) if cur_max_w else 0
 
@@ -264,7 +271,7 @@ def _suggest_for_exercise(
                     "fatigue_warning": False,
                 }
         else:
-            increment = _increment_for_profile(load_profile, category)
+            increment = _increment_for_profile(load_profile, category, info.get("type"))
             new_w     = cur_max_w + increment
             reason    = (
                 f"Dernière fois : {target_sets}×{top_reps} à {_w_str(cur_max_w)} lbs"

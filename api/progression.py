@@ -35,17 +35,76 @@ REPS_RULES: dict[str, dict] = {
 
 DEFAULT_REP_RANGE: dict = {"min": 8, "max": 12}
 
-INCREMENT_RULES: dict[str, float] = {
-    "Incline DB Press":     5.0,
-    "Dumbbell Bench Press": 5.0,
-    "Lateral Raises":       2.5,
-    "Face Pull":            2.5,
-    "Hammer Curl":          5.0,
-    "type:barbell":         5.0,
-    "type:dumbbell":        5.0,
-    "type:machine":         10.0,
-    "type:default":         2.5,
+# Unified increment matrix: (load_profile, equipment_type) → lbs
+# Source unique de vérité — utilisée par get_increment() ci-dessous.
+# Remplace l'ancienne INCREMENT_RULES et _increment_for_profile dans smart_progression.
+_INCREMENT_MATRIX: dict[tuple[str, str], float] = {
+    ("compound_heavy",       "barbell"):  5.0,
+    ("compound_heavy",       "dumbbell"): 5.0,
+    ("compound_heavy",       "machine"):  5.0,
+    ("compound_heavy",       "cable"):    5.0,
+    ("compound_hypertrophy", "barbell"):  5.0,
+    ("compound_hypertrophy", "dumbbell"): 5.0,
+    ("compound_hypertrophy", "machine"):  5.0,
+    ("compound_hypertrophy", "cable"):    2.5,
+    ("isolation",            "barbell"):  2.5,
+    ("isolation",            "dumbbell"): 2.5,
+    ("isolation",            "machine"):  2.5,
+    ("isolation",            "cable"):    2.5,
+    ("endurance_strength",   "barbell"):  2.5,
+    ("endurance_strength",   "dumbbell"): 2.5,
+    ("endurance_strength",   "machine"):  2.5,
+    ("endurance_strength",   "cable"):    2.5,
 }
+_DEFAULT_INCREMENT = 2.5
+
+
+def get_increment(
+    exercise: str,
+    load_profile: str | None = None,
+    equipment_type: str | None = None,
+    inventory: dict | None = None,
+) -> float:
+    """Source unique de vérité pour les incréments de poids.
+
+    Priorité :
+      1. Override per-exercice dans inventory (champ 'increment')
+      2. Matrice (load_profile × equipment_type)
+      3. load_profile seul (equipment inconnu) → compound: 5 lbs, reste: 2.5 lbs
+      4. Default conservateur : 2.5 lbs
+    """
+    if inventory:
+        inc = (inventory.get(exercise) or {}).get("increment")
+        if inc is not None:
+            return float(inc)
+
+    if load_profile and equipment_type:
+        key = (load_profile.lower(), equipment_type.lower())
+        if key in _INCREMENT_MATRIX:
+            return _INCREMENT_MATRIX[key]
+
+    if load_profile:
+        lp = load_profile.lower()
+        if lp in ("compound_heavy", "compound_hypertrophy"):
+            return 5.0
+        return _DEFAULT_INCREMENT
+
+    return _DEFAULT_INCREMENT
+
+
+def _get_increment(exercise: str, inventory: dict | None = None) -> float:
+    """Shim interne — appelle get_increment avec les métadonnées de l'inventaire si disponibles."""
+    if inventory:
+        entry = inventory.get(exercise) or {}
+        inc = entry.get("increment")
+        if inc is not None:
+            return float(inc)
+        lp = entry.get("load_profile")
+        eq = entry.get("type")
+        if lp or eq:
+            return get_increment(exercise, load_profile=lp, equipment_type=eq)
+    return _DEFAULT_INCREMENT
+
 
 # Graduated RPE thresholds
 _RPE_INCREASE_FULL = 5.5
@@ -62,15 +121,6 @@ _RPE_INCREASE = _RPE_INCREASE_FULL
 _RPE_DECREASE = _RPE_DECREASE_FULL
 
 
-def _get_increment(exercise: str, inventory: dict | None = None) -> float:
-    if inventory:
-        entry = inventory.get(exercise, {})
-        inc = entry.get("increment")
-        if inc is not None:
-            return float(inc)
-    if exercise in INCREMENT_RULES:
-        return INCREMENT_RULES[exercise]
-    return INCREMENT_RULES["type:default"]
 
 
 def parse_reps(reps_str: str) -> list[int]:

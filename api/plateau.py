@@ -292,16 +292,16 @@ def _deload_plan(deload_type: str, exercise_name: str,
         }
 
     if deload_type == "light_week":
-        to_lbs = _round_lbs(weight_lbs * 0.60, step)
+        to_lbs = _round_lbs(weight_lbs * 0.80, step)
         return {
-            "instruction": "Mêmes exercices, 60% des poids. Max 2-3 sets. Aucun échec. Focus technique.",
+            "instruction": "Mêmes exercices, 80% du poids habituel. 2 sets max. Aucun échec. Focus technique.",
             "exercises": [{
                 "name":     exercise_name,
                 "from_lbs": weight_lbs,
                 "to_lbs":   to_lbs,
                 "sets":     2,
                 "reps":     reps,
-                "note":     f"{exercise_name}: {weight_lbs:.0f} → {to_lbs:.0f} lbs",
+                "note":     f"{exercise_name}: {weight_lbs:.0f} → {to_lbs:.0f} lbs (-20%)",
             }],
         }
 
@@ -320,9 +320,9 @@ def _deload_plan(deload_type: str, exercise_name: str,
         }
 
     if deload_type == "nutrition_first":
-        to_lbs = _round_lbs(weight_lbs * 0.60, step)
+        to_lbs = _round_lbs(weight_lbs * 0.80, step)
         return {
-            "instruction": "Remonte les calories +350 kcal/jour pendant 10 jours. Volume réduit à 60% pendant ce temps.",
+            "instruction": "Remonte les calories +350 kcal/jour pendant 10 jours. Volume réduit à 80% du poids, 2 sets.",
             "exercises": [{
                 "name":     exercise_name,
                 "from_lbs": weight_lbs,

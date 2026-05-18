@@ -1349,6 +1349,51 @@ def get_exercise_logs_for_session_with_names(session_id: str) -> List[dict]:
         return []
 
 
+def get_exercise_logs_since(cutoff_date: str) -> List[dict]:
+    """Return exercise logs since cutoff_date (inclusive) with muscles info.
+
+    Returns [{exercise_name, muscles, sets_json, rpe, date}] sorted date desc.
+    Used by muscle_volume.compute_weekly_hard_sets().
+    """
+    if _client is None or MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            _client.table("exercise_logs")
+            .select("sets_json, exercises(name, muscles), workout_sessions(date, rpe)")
+            .gte("workout_sessions.date", cutoff_date)
+            .execute()
+        )
+        rows = resp.data or []
+        result = []
+        for r in rows:
+            ex  = r.get("exercises") or {}
+            ses = r.get("workout_sessions") or {}
+            if not ex.get("name") or not ses.get("date"):
+                continue
+            result.append({
+                "exercise_name": ex["name"],
+                "muscles":       ex.get("muscles") or [],
+                "sets_json":     r.get("sets_json") or [],
+                "rpe":           ses.get("rpe"),
+                "date":          ses["date"],
+            })
+        return result
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_exercise_logs_since(%s) retry error: %s", cutoff_date, e2)
+                return []
+        logger.error("get_exercise_logs_since(%s) error: %s", cutoff_date, e)
+        return []
+
+
 def get_previous_session_by_exercises(ref_date: str, session_type: str, exercise_names: list) -> Optional[dict]:
     """
     Find the most recent session before ref_date whose exercise_logs contain

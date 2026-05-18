@@ -9,10 +9,27 @@ BASE_DIR      = Path(__file__).parent
 DATA_FILE     = BASE_DIR / "data" / "weights.json"
 DELOAD_FILE   = BASE_DIR / "data" / "deload.json"
 
-STAGNATION_THRESHOLD  = 3    # nb de séances au même poids = stagnation
+STAGNATION_THRESHOLD  = 5    # 5 sessions = signal fiable; 3 = bruit possible (plateau.py est la référence principale)
 RPE_FATIGUE_THRESHOLD = 8.5  # RPE moyen au dessus de ça = fatigue
-DELOAD_FACTOR         = 0.85 # -15% pendant le deload
-PLANNED_DELOAD_WEEKS  = 8    # deload planifié toutes les N semaines
+DELOAD_WEIGHT_FACTOR  = 0.90 # -10% max sur le poids (maintien des adaptations neurales)
+DELOAD_SETS_FACTOR    = 0.50 # -50% des sets (réduction du volume = mécanisme réel du deload)
+
+_DELOAD_WEEKS_BY_LEVEL = {
+    "beginner":     10,  # peu de fatigue systémique accumulée
+    "intermediate":  6,  # recommandation principale (Israetel, Baker)
+    "advanced":      4,  # charge élevée → deload plus fréquent
+}
+_DELOAD_WEEKS_DEFAULT = 6   # profil intermédiaire = cas le plus courant
+
+
+def _planned_deload_weeks() -> int:
+    """Retourne l'intervalle de deload planifié selon training_experience du profil user."""
+    try:
+        from user_profile import load_user_profile
+        level = (load_user_profile().get("training_experience") or "").lower()
+        return _DELOAD_WEEKS_BY_LEVEL.get(level, _DELOAD_WEEKS_DEFAULT)
+    except Exception:
+        return _DELOAD_WEEKS_DEFAULT
 
 
 # ─────────────────────────────────────────────────────────────
@@ -104,10 +121,21 @@ def detect_performance_drop(weights: dict, threshold: float = 0.10) -> list[dict
 # CALCUL DES POIDS DE DELOAD
 # ─────────────────────────────────────────────────────────────
 
+def _parse_sets_from_scheme(scheme: str) -> int:
+    """Parse '3x8-12' → 3. Returns 0 on failure."""
+    try:
+        return int(str(scheme).strip().split("x")[0])
+    except Exception:
+        return 0
+
+
 def calculer_poids_deload(weights: dict, exercices: list[str] = None) -> dict:
     """
-    Calcule les poids de deload pour tous les exercices
-    ou seulement ceux passés en paramètre.
+    Calcule la prescription de deload pour tous les exercices ou seulement ceux passés.
+
+    Logique scientifique (Israetel, Helms) :
+      - Même exercices, même poids (-10% max) → maintien des adaptations neurales
+      - 50% des sets → réduction du volume = mécanisme réel du deload
     """
     result = {}
     cibles = exercices or [k for k in weights if k != "sessions"]
@@ -116,9 +144,14 @@ def calculer_poids_deload(weights: dict, exercices: list[str] = None) -> dict:
         data = weights.get(ex, {})
         poids_actuel = data.get("current_weight", data.get("weight", 0))
         if poids_actuel:
+            sets_normaux = _parse_sets_from_scheme(data.get("default_scheme", "")) or 3
+            sets_deload  = max(1, round(sets_normaux * DELOAD_SETS_FACTOR))
             result[ex] = {
-                "poids_actuel": round(poids_actuel, 1),
-                "poids_deload": round(poids_actuel * DELOAD_FACTOR, 1)
+                "poids_actuel":  round(poids_actuel, 1),
+                "poids_deload":  round(poids_actuel * DELOAD_WEIGHT_FACTOR, 1),
+                "sets_normaux":  sets_normaux,
+                "sets_deload":   sets_deload,
+                "note":          f"Même poids (-10% max), {sets_deload}/{sets_normaux} sets",
             }
 
     return result
@@ -156,22 +189,24 @@ def get_cached_fatigue_score() -> int:
 def check_planned_deload() -> dict:
     """
     Check if a planned deload is due based on time elapsed since last deload.
-    Returns {due: bool, weeks_since: float | None}.
+    Returns {due: bool, weeks_since: float | None, weeks_target: int}.
     """
     from datetime import date
     state = load_deload_state()
     last_str = state.get("last_completed")
+    weeks_target = _planned_deload_weeks()
     if not last_str:
-        return {"due": False, "weeks_since": None}
+        return {"due": False, "weeks_since": None, "weeks_target": weeks_target}
     try:
-        last = date.fromisoformat(last_str)
+        last        = date.fromisoformat(last_str)
         weeks_since = (date.today() - last).days / 7
         return {
-            "due":         weeks_since >= PLANNED_DELOAD_WEEKS,
-            "weeks_since": round(weeks_since, 1),
+            "due":          weeks_since >= weeks_target,
+            "weeks_since":  round(weeks_since, 1),
+            "weeks_target": weeks_target,
         }
     except Exception:
-        return {"due": False, "weeks_since": None}
+        return {"due": False, "weeks_since": None, "weeks_target": weeks_target}
 
 
 def activer_deload(reason: str):
@@ -323,11 +358,7 @@ def analyser_deload(weights: dict) -> dict:
         "recommande":          recommande,
         "planned_deload_due":  planned["due"],
         "weeks_since_deload":  planned.get("weeks_since"),
-        "poids_deload":        {ex: round((weights.get(ex, {}).get("current_weight") or
-                                           weights.get(ex, {}).get("weight") or 0) * DELOAD_FACTOR, 1)
-                                for ex in deload_targets
-                                if (weights.get(ex, {}).get("current_weight") or
-                                    weights.get(ex, {}).get("weight"))} if recommande else {},
+        "deload_prescription": calculer_poids_deload(weights, deload_targets) if recommande else {},
         "fatigue_score":       fatigue_data["score"],
         "fatigue_components":  fatigue_data["components"],
         "streak_days":         fatigue_data["streak_days"],
@@ -389,9 +420,9 @@ def afficher_rapport_deload(weights: dict):
     # Recommandation
     if rapport["recommande"]:
         print(f"  💡 RECOMMANDATION : Semaine de deload suggérée\n")
-        print(f"  Poids suggérés à -15% :\n")
-        for ex, w in rapport["poids_deload"].items():
-            print(f"    • {ex:<25} → {w} lbs")
+        print(f"  Prescription (même poids -10%, 50% des sets) :\n")
+        for ex, presc in rapport["deload_prescription"].items():
+            print(f"    • {ex:<25} → {presc['poids_deload']} lbs × {presc['sets_deload']} sets ({presc['note']})")
         print()
 
         choix = selectionner(
