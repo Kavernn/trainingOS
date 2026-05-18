@@ -95,6 +95,7 @@ from routes.war_room     import war_room_bp
 from routes.spirit       import spirit_bp
 from routes.oath         import oath_bp
 from routes.seasons      import seasons_bp
+from routes.gym_finder   import gym_finder_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -118,6 +119,7 @@ app.register_blueprint(war_room_bp)
 app.register_blueprint(spirit_bp)
 app.register_blueprint(oath_bp)
 app.register_blueprint(seasons_bp)
+app.register_blueprint(gym_finder_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────

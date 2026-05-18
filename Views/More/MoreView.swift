@@ -19,6 +19,12 @@ struct MoreView: View {
                     .listRowBackground(glassRowBG(Color(hex: "FF2D20")))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
+                    Section("Terrain") {
+                        MoreRow(icon: "mappin.and.ellipse", color: Color(hex: "F59E0B"), title: "Gym Finder") { GymFinderView() }
+                    }
+                    .listRowBackground(glassRowBG(Color(hex: "F59E0B")))
+                    .listRowSeparatorTint(Color.white.opacity(0.06))
+
                     Section("Combat") {
                         MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")           { StatsView() }
                         MoreRow(icon: "target",                color: .orange, title: "Objectifs")        { ObjectifsView() }
