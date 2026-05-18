@@ -31,7 +31,7 @@ struct PhoenixCard: View {
     private func phoenixCanvas(state: PhoenixState) -> some View {
         let capturedSeeds = seeds
         // Throttle to 1/min when off-screen (TabView keeps views alive between tabs)
-        TimelineView(isVisible ? .animation(minimumInterval: 1.0 / 30.0) : .everyMinute) { tl in
+        TimelineView(.animation(minimumInterval: isVisible ? 1.0 / 30.0 : 60.0)) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             Canvas { ctx, size in
                 drawPhoenixFrame(&ctx, size: size, seeds: capturedSeeds, state: state, t: t)
