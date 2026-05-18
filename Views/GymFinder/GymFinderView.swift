@@ -73,7 +73,7 @@ struct GymFinderView: View {
                     }
                 }
             }
-            .mapStyle(.standard(appearance: .dark))
+            .mapStyle(.standard)
 
             if vm.isLoading {
                 ProgressView()
