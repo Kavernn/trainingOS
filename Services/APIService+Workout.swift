@@ -33,6 +33,7 @@ extension APIService {
         if !isBonus { CacheService.shared.clear(for: isSecond ? "seance_soir_data" : "seance_data") }
         CacheService.shared.clear(for: "dashboard")
         CacheService.shared.clear(for: "stats_data")
+        CacheService.shared.clear(for: "phoenix_score")
         return (try? JSONDecoder().decode(LogExerciseResponse.self, from: data))
             ?? LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
     }
@@ -61,6 +62,7 @@ extension APIService {
                 CacheService.shared.clear(for: secondSession ? "seance_soir_data" : "seance_data")
             }
             CacheService.shared.clear(for: "stats_data")
+            CacheService.shared.clear(for: "phoenix_score")
         }
     }
 

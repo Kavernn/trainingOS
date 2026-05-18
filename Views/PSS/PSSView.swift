@@ -1102,8 +1102,13 @@ struct PSSTrendChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("TENDANCE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack {
+                Text("TENDANCE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text("PSS-10 seulement")
+                    .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+            }
 
             Chart {
                 ForEach(sorted) { record in

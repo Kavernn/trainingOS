@@ -22,6 +22,9 @@ def api_dashboard():
     weights      = load_weights()
     sessions     = load_sessions()
     profile      = load_user_profile()
+    latest_bw = _db.get_body_weight_logs(limit=1)
+    if latest_bw:
+        profile["weight"] = latest_bw[0].get("weight")
     goals        = load_goals()
     full_program = load_program()
     hiit_log     = load_hiit_log_local()

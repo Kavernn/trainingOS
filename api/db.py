@@ -491,12 +491,12 @@ def get_session_streaks() -> dict:
     all_set = set(dates)
     current = 0
     d = _date.today()
+    if d.isoformat() not in all_set:
+        d -= timedelta(days=1)
     while current < 365:
         if d.isoformat() in all_set:
             current += 1
             d -= timedelta(days=1)
-        elif (d - timedelta(days=1)).isoformat() in all_set:
-            d -= timedelta(days=2)
         else:
             break
 
@@ -504,7 +504,7 @@ def get_session_streaks() -> dict:
     prev = None
     for d_str in dates:
         d_obj = _date.fromisoformat(d_str)
-        run = run + 1 if (prev and (d_obj - prev).days <= 2) else 1
+        run = run + 1 if (prev and (d_obj - prev).days == 1) else 1
         longest = max(longest, run)
         prev = d_obj
 

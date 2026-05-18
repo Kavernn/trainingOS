@@ -144,6 +144,8 @@ def add_entry(nom: str, calories: float, proteines: float = 0,
         now_mtl = datetime.now(ZoneInfo("America/Montreal"))
     except Exception:
         pass
+    if calories == 0 and (proteines > 0 or glucides > 0 or lipides > 0):
+        calories = proteines * 4 + glucides * 4 + lipides * 9
     entry = {
         "id":        str(uuid.uuid4()),
         "date":      _today_mtl(),
