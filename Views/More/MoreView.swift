@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct MoreView: View {
-    @ObservedObject private var api = APIService.shared
+    @ObservedObject private var api      = APIService.shared
+    @ObservedObject private var appState = AppState.shared
     @AppStorage("auto_start_rest_timer") private var autoStartTimer = false
     @AppStorage("show_rir_column") private var showRIRColumn = false
 
@@ -12,7 +13,7 @@ struct MoreView: View {
 
                 List {
                     Section("Rituel & Esprit") {
-                        MoreRow(icon: "flame.fill",  color: Color(hex: "FF2D20"), title: "Rituel quotidien") { RitualView() }
+                        MoreRow(icon: "flame.fill",  color: Color(hex: "FF2D20"), title: "Rituel quotidien", badge: appState.ritualTodayNotDone) { RitualView() }
                         MoreRow(icon: "wind",        color: Color.moonlight.opacity(0.7), title: "The Void") { SpiritView() }
                         MoreRow(icon: "calendar.badge.clock", color: .teal, title: "Mes chapitres") { SeasonView() }
                     }
@@ -92,13 +93,13 @@ struct MoreRow<Destination: View>: View {
     let icon: String
     let color: Color
     let title: String
+    var badge: Bool = false
     @ViewBuilder let destination: () -> Destination
-    @State private var pressed = false
 
     var body: some View {
         NavigationLink(destination: destination()) {
             HStack(spacing: 14) {
-                ZStack {
+                ZStack(alignment: .topTrailing) {
                     RoundedRectangle(cornerRadius: 9)
                         .fill(
                             LinearGradient(
@@ -111,10 +112,26 @@ struct MoreRow<Destination: View>: View {
                     Image(systemName: icon)
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(color)
+                    if badge {
+                        Circle()
+                            .fill(Color.orange)
+                            .frame(width: 9, height: 9)
+                            .offset(x: 3, y: -3)
+                    }
                 }
                 Text(title)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
+                if badge {
+                    Spacer()
+                    Text("À faire")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.orange.opacity(0.12))
+                        .clipShape(Capsule())
+                }
             }
             .padding(.vertical, 5)
         }
