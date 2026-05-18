@@ -3,8 +3,14 @@ import Foundation
 extension APIService {
 
     func fetchCapsuleSnapshot() async throws -> CapsuleSnapshot {
-        let url  = URL(string: "\(baseURL)/api/time_capsule/snapshot")!
-        let data = try await fetchWithCache(url: url, key: "capsule_snapshot")
+        let url = URL(string: "\(baseURL)/api/time_capsule/snapshot")!
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 20
+        req.cachePolicy = .reloadIgnoringLocalCacheData
+        let (data, response) = try await URLSession.authed.data(for: req)
+        guard (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0) else {
+            throw URLError(.badServerResponse)
+        }
         return try JSONDecoder().decode(CapsuleSnapshot.self, from: data)
     }
 

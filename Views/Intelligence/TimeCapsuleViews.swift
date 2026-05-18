@@ -303,11 +303,21 @@ struct TimeCapsuleCreateView: View {
                     }
                     .padding(.horizontal, 4)
                 } else if snapFailed {
-                    Text("Impossible de charger le snapshot. Vérifie ta connexion.")
-                        .font(.system(size: 13))
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-                        .padding(.vertical, 20)
+                    VStack(spacing: 12) {
+                        Text("Impossible de charger le snapshot.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                        Button {
+                            Task { await loadSnapshot() }
+                        } label: {
+                            Text("Réessayer")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(capsuleGoldDim)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.vertical, 20)
                 } else if let snap = snapshot {
                     SnapshotPreviewCard(snapshot: snap)
                 }
@@ -324,62 +334,64 @@ struct TimeCapsuleCreateView: View {
     // ── Step 2: Message ───────────────────────────────────────────────────
 
     private var step2View: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Écris à ton futur toi")
-                    .font(.system(size: 22, weight: .black, design: .rounded))
-                    .foregroundColor(.white)
-                Text("Optionnel. 280 caractères max.")
-                    .font(.system(size: 13))
-                    .foregroundColor(.gray)
-            }
-
-            ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(red: 0.10, green: 0.10, blue: 0.14))
-                    .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(capsuleGoldDim.opacity(0.22), lineWidth: 1))
-                    .frame(minHeight: 150)
-                if message.isEmpty {
-                    Text("Dans 3 mois je veux bench 225...")
-                        .foregroundColor(.gray.opacity(0.45))
-                        .font(.system(size: 15))
-                        .padding(.top, 22)
-                        .padding(.leading, 18)
-                        .allowsHitTesting(false)
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Écris à ton futur toi")
+                        .font(.system(size: 22, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                    Text("Optionnel. 280 caractères max.")
+                        .font(.system(size: 13))
+                        .foregroundColor(.gray)
                 }
+
                 TextEditor(text: $message)
                     .scrollContentBackground(.hidden)
-                    .background(.clear)
                     .foregroundColor(.white)
                     .font(.system(size: 15))
                     .padding(14)
                     .frame(minHeight: 150)
-                    .onChange(of: message) { v in
-                        if v.count > 280 { message = String(v.prefix(280)) }
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color(red: 0.10, green: 0.10, blue: 0.14))
+                            .overlay(RoundedRectangle(cornerRadius: 14)
+                                .stroke(capsuleGoldDim.opacity(0.22), lineWidth: 1))
+                    )
+                    .overlay(alignment: .topLeading) {
+                        if message.isEmpty {
+                            Text("Dans 3 mois je veux bench 225...")
+                                .foregroundColor(.gray.opacity(0.45))
+                                .font(.system(size: 15))
+                                .padding(.top, 22)
+                                .padding(.leading, 18)
+                                .allowsHitTesting(false)
+                        }
                     }
-            }
+                    .onChange(of: message) { _, newValue in
+                        if newValue.count > 280 { message = String(newValue.prefix(280)) }
+                    }
 
-            HStack {
-                Spacer()
-                Text("\(message.count)/280")
-                    .font(.system(size: 11))
-                    .foregroundColor(.gray)
-            }
-
-            Spacer()
-
-            VStack(spacing: 10) {
-                GoldCTAButton(title: "Ajouter") { step = 3 }
-                Button { message = ""; step = 3 } label: {
-                    Text("Passer")
-                        .font(.system(size: 13))
+                HStack {
+                    Spacer()
+                    Text("\(message.count)/280")
+                        .font(.system(size: 11))
                         .foregroundColor(.gray)
                 }
-                .buttonStyle(.plain)
+
+                VStack(spacing: 10) {
+                    GoldCTAButton(title: "Ajouter") { step = 3 }
+                    Button { message = ""; step = 3 } label: {
+                        Text("Passer")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.bottom, 16)
             }
+            .padding(20)
         }
-        .padding(20)
+        .scrollDismissesKeyboard(.interactively)
     }
 
     // ── Step 3: Duration ──────────────────────────────────────────────────

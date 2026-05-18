@@ -8,7 +8,12 @@ time_capsule_bp = Blueprint("time_capsule", __name__)
 @time_capsule_bp.route("/api/time_capsule/snapshot", methods=["GET"])
 def api_capsule_snapshot():
     """Preview of current stats before sealing — no DB write."""
-    return jsonify(_tc.capture_snapshot())
+    try:
+        return jsonify(_tc.capture_snapshot())
+    except Exception as e:
+        import logging
+        logging.getLogger("trainingos.time_capsule").error("snapshot error: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 
 @time_capsule_bp.route("/api/time_capsule", methods=["GET"])
