@@ -1,3 +1,10 @@
+⚠️ RÈGLE ABSOLUE — GIT
+ON TRAVAILLE UNIQUEMENT SUR MASTER. JAMAIS SUR UNE AUTRE BRANCHE.
+- Toujours `git checkout master` avant de commencer
+- Toujours pusher sur `origin master`
+- Ne jamais créer de feature branch, ne jamais commiter sur une autre branche
+- Si une branche existe déjà, merger immédiatement sur master et continuer sur master
+
 Workflow Orchestration
 1. Plan Node Default
 
