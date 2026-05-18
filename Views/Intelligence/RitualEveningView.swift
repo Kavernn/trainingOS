@@ -192,26 +192,6 @@ struct RitualEveningView: View {
                 }
             }
         }
-    private func showEveningResult(_ r: RitualEveningResult, outcome: String) async {
-        if outcome == "burned" {
-            await MainActor.run {
-                withAnimation(.easeIn(duration: 0.15)) { flashOpacity = 0.6 }
-            }
-            try? await Task.sleep(nanoseconds: 180_000_000)
-            await MainActor.run {
-                withAnimation(.easeOut(duration: 0.35)) { flashOpacity = 0 }
-            }
-            try? await Task.sleep(nanoseconds: 200_000_000)
-        }
-        await MainActor.run {
-            result     = r
-            showResult = true
-            isSaving   = false
-        }
-        try? await Task.sleep(nanoseconds: 2_500_000_000)
-        if let updated = try? await APIService.shared.fetchRitualToday() {
-            await MainActor.run { onSaved(updated) }
-        }
     }
 
     private func showEveningResult(_ r: RitualEveningResult, outcome: String) async {
