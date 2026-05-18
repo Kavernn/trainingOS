@@ -28,7 +28,7 @@ struct MoreView: View {
                     Section("Combat") {
                         MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")           { StatsView() }
                         MoreRow(icon: "target",                color: .orange, title: "Objectifs")        { ObjectifsView() }
-                        MoreRow(icon: "dna",                   color: .indigo, title: "Workout DNA")      { WorkoutDNASection() }
+                        MoreRow(icon: "staroflife.fill",       color: .indigo, title: "Workout DNA")      { WorkoutDNASection() }
                         MoreRow(icon: "timer",                 color: .orange, title: "Timer")            { TimerView() }
                         MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")             { HIITHistoriqueView() }
                         MoreRow(icon: "calendar",              color: .teal,   title: "Historique")       { HistoriqueView() }
