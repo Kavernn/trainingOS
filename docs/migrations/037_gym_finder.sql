@@ -30,13 +30,16 @@ CREATE TABLE IF NOT EXISTS user_gym_history (
 
 CREATE INDEX IF NOT EXISTS idx_user_gym_history_visited ON user_gym_history (visited_at DESC);
 
--- RLS: contributions are write-only from client, readable by service role
+-- RLS
 ALTER TABLE gym_contributions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "gym_contributions_insert" ON gym_contributions
+DROP POLICY IF EXISTS "gym_contributions_insert" ON gym_contributions;
+CREATE POLICY "gym_contributions_insert" ON gym_contributions
     FOR INSERT WITH CHECK (true);
 
 ALTER TABLE user_gym_history ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "user_gym_history_insert" ON user_gym_history
+DROP POLICY IF EXISTS "user_gym_history_insert" ON user_gym_history;
+CREATE POLICY "user_gym_history_insert" ON user_gym_history
     FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "user_gym_history_select" ON user_gym_history
+DROP POLICY IF EXISTS "user_gym_history_select" ON user_gym_history;
+CREATE POLICY "user_gym_history_select" ON user_gym_history
     FOR SELECT USING (true);
