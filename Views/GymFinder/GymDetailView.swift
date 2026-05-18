@@ -6,6 +6,7 @@ struct GymDetailView: View {
     @ObservedObject var vm: GymFinderViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showContribute = false
+    @State private var showAdapt = false
     @State private var visitLogged = false
 
     var body: some View {
@@ -38,6 +39,9 @@ struct GymDetailView: View {
             }
             .sheet(isPresented: $showContribute) {
                 GymContributeView(gym: gym, vm: vm)
+            }
+            .sheet(isPresented: $showAdapt) {
+                AdaptWorkoutSheet(gym: gym, vm: vm)
             }
         }
     }
@@ -261,6 +265,20 @@ struct GymDetailView: View {
                     visitLogged = true
                 }
             }
+
+            if !vm.workoutEquipmentSuggestion.isEmpty {
+                Button { showAdapt = true } label: {
+                    Label("Adapter mon workout pour ce gym", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.orange)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 13)
+                        .background(Color.orange.opacity(0.10))
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -282,5 +300,179 @@ struct GymDetailView: View {
         let item = MKMapItem(placemark: placemark)
         item.name = gym.name
         item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
+    }
+}
+
+// MARK: - Adapt Workout Sheet
+
+struct AdaptWorkoutSheet: View {
+    let gym: Gym
+    @ObservedObject var vm: GymFinderViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack { Color.appBg.ignoresSafeArea()
+                ScrollView {
+                    VStack(spacing: 16) {
+                        profilePicker
+                        equipmentGap
+                        substitutionList
+                        coachNote
+                        Spacer(minLength: 20)
+                    }
+                    .padding(16)
+                }
+            }
+            .navigationTitle("Adapter le workout")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Fermer") { dismiss() }.foregroundColor(.white.opacity(0.5))
+                }
+            }
+        }
+    }
+
+    // MARK: - Profile Picker
+
+    private var profilePicker: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("PROFIL D'ÉQUIPEMENT")
+                .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(EquipmentProfile.presets) { preset in
+                        let selected = vm.selectedEquipmentProfile?.id == preset.id
+                        Button { vm.selectedEquipmentProfile = selected ? nil : preset } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: preset.icon)
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text(preset.name)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .lineLimit(1)
+                            }
+                            .foregroundColor(selected ? .black : .white.opacity(0.65))
+                            .padding(.horizontal, 12).padding(.vertical, 9)
+                            .background(selected ? Color.orange : Color.appCard)
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    if gym.crowdsource != nil {
+                        let autoSelected = vm.selectedEquipmentProfile == nil
+                        Button { vm.selectedEquipmentProfile = nil } label: {
+                            VStack(spacing: 4) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Auto (communauté)")
+                                    .font(.system(size: 11, weight: .medium)).lineLimit(1)
+                            }
+                            .foregroundColor(autoSelected ? .black : .white.opacity(0.65))
+                            .padding(.horizontal, 12).padding(.vertical, 9)
+                            .background(autoSelected ? Color.orange : Color.appCard)
+                            .cornerRadius(10)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
+        .padding(14).background(Color.appCard).cornerRadius(14)
+    }
+
+    // MARK: - Equipment Gap
+
+    private var equipmentGap: some View {
+        let available = vm.effectiveAvailable(for: gym)
+        let needed = vm.workoutEquipmentSuggestion
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("ÉQUIPEMENT REQUIS")
+                .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(needed, id: \.rawValue) { eq in
+                    let ok = available.contains(eq)
+                    HStack(spacing: 6) {
+                        Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .font(.system(size: 14)).foregroundColor(ok ? .green : .red)
+                        Text(eq.label)
+                            .font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.8))
+                        Spacer()
+                    }
+                    .padding(8)
+                    .background((ok ? Color.green : Color.red).opacity(0.08))
+                    .cornerRadius(8)
+                }
+            }
+
+            if available.isEmpty && gym.crowdsource == nil {
+                Text("Aucune donnée communauté pour ce gym — sélectionne un profil ci-dessus.")
+                    .font(.system(size: 11)).foregroundColor(.white.opacity(0.35)).italic()
+            }
+        }
+        .padding(14).background(Color.appCard).cornerRadius(14)
+    }
+
+    // MARK: - Substitutions
+
+    @ViewBuilder
+    private var substitutionList: some View {
+        let available = vm.effectiveAvailable(for: gym)
+        let subs = WorkoutSubstitutionEngine.suggestions(needed: vm.workoutEquipmentSuggestion, available: available)
+        if !subs.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("SUBSTITUTIONS SUGGÉRÉES")
+                    .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+
+                ForEach(subs) { sub in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(sub.originalEquipment)
+                                .font(.system(size: 11)).foregroundColor(.red.opacity(0.8))
+                                .strikethrough()
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 10)).foregroundColor(.white.opacity(0.3))
+                            Text(sub.substitute)
+                                .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                            Spacer()
+                            Text(sub.setsReps)
+                                .font(.system(size: 11, weight: .bold)).foregroundColor(.orange)
+                        }
+                        HStack(spacing: 4) {
+                            Image(systemName: "dumbbell.fill")
+                                .font(.system(size: 9)).foregroundColor(.white.opacity(0.3))
+                            Text(sub.equipment)
+                                .font(.system(size: 11)).foregroundColor(.white.opacity(0.4))
+                        }
+                        if let note = sub.note {
+                            Text(note)
+                                .font(.system(size: 11)).foregroundColor(.white.opacity(0.35)).italic()
+                        }
+                    }
+                    .padding(10).background(Color.white.opacity(0.04)).cornerRadius(10)
+                }
+            }
+            .padding(14).background(Color.appCard).cornerRadius(14)
+        }
+    }
+
+    // MARK: - Coach Note
+
+    private var coachNote: some View {
+        let available = vm.effectiveAvailable(for: gym)
+        let missing = vm.workoutEquipmentSuggestion.filter { !available.contains($0) }
+        return HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "flame.fill")
+                .font(.system(size: 14)).foregroundColor(.orange).padding(.top, 1)
+            Text(WorkoutSubstitutionEngine.coachMessage(missing: missing))
+                .font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.18), lineWidth: 1))
+        .cornerRadius(10)
     }
 }

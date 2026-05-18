@@ -1,6 +1,7 @@
 import SwiftUI
 import CoreLocation
 import MapKit
+import Combine
 
 @MainActor
 final class GymFinderViewModel: NSObject, ObservableObject {
@@ -16,12 +17,15 @@ final class GymFinderViewModel: NSObject, ObservableObject {
     @Published var history: [GymVisit] = []
     @Published var cameraPosition: MapCameraPosition = .automatic
     @Published var workoutEquipmentSuggestion: [EquipmentKey] = []
+    @Published var selectedEquipmentProfile: EquipmentProfile?
 
     private let locationManager = CLLocationManager()
     private let service = GymFinderService.shared
 
-    private let favoritesKey = "gym_favorites_v1"
-    private let historyKey   = "gym_history_v1"
+    private let favoritesKey  = "gym_favorites_v1"
+    private let historyKey    = "gym_history_v1"
+    private let cacheKey      = "gym_search_cache_v1"
+    private let cacheTimeKey  = "gym_search_cache_time_v1"
 
     override init() {
         super.init()
@@ -29,7 +33,17 @@ final class GymFinderViewModel: NSObject, ObservableObject {
         locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         loadFavorites()
         loadHistory()
-        inferWorkoutEquipment()
+        restoreCache()
+    }
+
+    // MARK: - Effective equipment (profile > crowdsource)
+
+    func effectiveAvailable(for gym: Gym) -> Set<EquipmentKey> {
+        if let profile = selectedEquipmentProfile {
+            return profile.availableSet
+        }
+        guard let eqStrings = gym.crowdsource?.equipment else { return [] }
+        return Set(eqStrings.compactMap { EquipmentKey(rawValue: $0) })
     }
 
     // MARK: - Location
@@ -54,10 +68,13 @@ final class GymFinderViewModel: NSObject, ObservableObject {
         isLoading = true
         error = nil
 
+        inferWorkoutEquipment()
+
         do {
             var results = try await service.searchGyms(near: location, radiusMeters: filters.radiusKm * 1000)
             await fetchCrowdsource(for: &results)
             gyms = results
+            saveCache(results)
             applyFilters()
             withAnimation {
                 cameraPosition = .region(MKCoordinateRegion(
@@ -67,7 +84,9 @@ final class GymFinderViewModel: NSObject, ObservableObject {
                 ))
             }
         } catch {
-            self.error = "Recherche échouée. Vérifie ta connexion et réessaie."
+            if gyms.isEmpty {
+                self.error = "Recherche échouée. Vérifie ta connexion et réessaie."
+            }
         }
 
         isLoading = false
@@ -217,6 +236,25 @@ final class GymFinderViewModel: NSObject, ObservableObject {
     private func saveHistory() {
         guard let data = try? JSONEncoder().encode(history) else { return }
         UserDefaults.standard.set(data, forKey: historyKey)
+    }
+
+    // MARK: - Offline Cache (TTL 2h)
+
+    private func saveCache(_ gyms: [Gym]) {
+        guard let data = try? JSONEncoder().encode(gyms) else { return }
+        UserDefaults.standard.set(data, forKey: cacheKey)
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: cacheTimeKey)
+    }
+
+    private func restoreCache() {
+        let ts = UserDefaults.standard.double(forKey: cacheTimeKey)
+        guard ts > 0,
+              Date().timeIntervalSince1970 - ts < 7200,
+              let data = UserDefaults.standard.data(forKey: cacheKey),
+              let cached = try? JSONDecoder().decode([Gym].self, from: data),
+              !cached.isEmpty else { return }
+        gyms = cached
+        filteredGyms = cached
     }
 }
 

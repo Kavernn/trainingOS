@@ -128,3 +128,82 @@ final class GymFinderService {
         return .independent
     }
 }
+
+// MARK: - Workout Substitution Engine
+
+enum WorkoutSubstitutionEngine {
+
+    private typealias Option = (name: String, eq: String, setsReps: String, note: String?)
+
+    private static let table: [EquipmentKey: [Option]] = [
+        .squatRack: [
+            ("Bulgarian Split Squat", "DBs", "4×8/jambe", "Descente lente, genou aligné"),
+            ("Goblet Squat", "1 DB ou kettlebell", "4×12", "Talons au sol, profondeur complète"),
+            ("DB Hack Squat", "DBs", "4×10", nil),
+        ],
+        .barbell: [
+            ("DB Romanian Deadlift", "DBs", "4×10", "Dos plat, amplitude complète"),
+            ("DB Row unilatéral", "DB + bench", "4×10/côté", nil),
+            ("DB Floor Press", "DBs", "4×12", nil),
+        ],
+        .cables: [
+            ("DB Fly couché", "DBs + bench", "3×15", "Mouvement lent, pic de contraction"),
+            ("DB Curl marteau", "DBs", "3×12", nil),
+            ("Band Pull-Apart", "Bandes", "3×20", "Tension constante tout le mouvement"),
+        ],
+        .bench: [
+            ("DB Press au sol", "DBs", "4×12", "Amplitude légèrement réduite — augmente les reps"),
+            ("Pompes lestées", "Sac lesté", "4×AMRAP", nil),
+        ],
+        .pullUpBar: [
+            ("DB Pullover", "DB + bench", "4×12", nil),
+            ("Inverted Row (table)", "Aucun", "4×AMRAP", "Pieds surélevés pour progresser"),
+            ("DB Row bilatéral", "DBs", "4×12", nil),
+        ],
+        .kettlebells: [
+            ("DB Swing", "DB lourd", "4×15", "Hip hinge explosif, même pattern"),
+        ],
+        .dumbbells: [
+            ("Pompes (variantes)", "Aucun", "4×AMRAP", "Inclinées, déclinées, diamant"),
+            ("Fentes et squats BW", "Aucun", "4×15", nil),
+            ("Dips sur chaise", "Chaise", "3×AMRAP", nil),
+        ],
+        .cardio: [
+            ("HIIT bodyweight", "Aucun", "20 min", "Burpees, mountain climbers, sauts"),
+            ("Marche rapide / escaliers", "Aucun", "30 min", nil),
+        ],
+    ]
+
+    static func suggestions(
+        needed: [EquipmentKey],
+        available: Set<EquipmentKey>
+    ) -> [ExerciseSubstitution] {
+        let missing = needed.filter { !available.contains($0) }
+        guard !missing.isEmpty else { return [] }
+
+        var results: [ExerciseSubstitution] = []
+        for key in missing {
+            guard let options = table[key] else { continue }
+            for opt in options.prefix(2) {
+                results.append(ExerciseSubstitution(
+                    originalEquipment: key.label,
+                    substitute: opt.name,
+                    equipment: opt.eq,
+                    setsReps: opt.setsReps,
+                    note: opt.note
+                ))
+            }
+        }
+        return results
+    }
+
+    static func coachMessage(missing: [EquipmentKey]) -> String {
+        if missing.isEmpty {
+            return "Ce gym a tout ce qu'il faut. Pas d'excuse. Go hard."
+        }
+        if missing.count >= 3 {
+            return "Équipement limité. L'objectif d'aujourd'hui : ne pas casser le momentum. Chaque rep compte."
+        }
+        return "Quelques substitutions. Même muscles, équipement différent. Le combat continue."
+    }
+}

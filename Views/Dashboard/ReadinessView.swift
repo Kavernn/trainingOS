@@ -51,6 +51,7 @@ struct ReadinessSheet: View {
     let readiness: ReadinessResponse
     let onProceed: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var showGymFinder = false
 
     var body: some View {
         NavigationStack {
@@ -164,6 +165,24 @@ struct ReadinessSheet: View {
                             }
                             .buttonStyle(.plain)
                         }
+
+                        Button { showGymFinder = true } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "mappin.and.ellipse")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("Trouver un gym à proximité")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundColor(.white.opacity(0.55))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.appCard)
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .sheet(isPresented: $showGymFinder) {
+                        GymFinderView()
                     }
                 }
                 .padding(16)

@@ -3,7 +3,7 @@ import CoreLocation
 
 // MARK: - Core Model
 
-struct Gym: Identifiable {
+struct Gym: Identifiable, Codable {
     let id: String
     let name: String
     let latitude: Double
@@ -224,4 +224,46 @@ enum OpeningHoursParser {
         }
         return false
     }
+}
+
+// MARK: - Equipment Profile
+
+struct EquipmentProfile: Identifiable, Codable, Equatable {
+    let id: String
+    let name: String
+    let icon: String
+    let available: [EquipmentKey]
+    var maxDumbbellLbs: Int?
+
+    var availableSet: Set<EquipmentKey> { Set(available) }
+
+    static let hotel = EquipmentProfile(
+        id: "hotel", name: "Hôtel", icon: "bed.double.fill",
+        available: [.dumbbells, .cardio], maxDumbbellLbs: 50
+    )
+    static let bodyweight = EquipmentProfile(
+        id: "bodyweight", name: "Bodyweight", icon: "figure.walk",
+        available: []
+    )
+    static let crossfit = EquipmentProfile(
+        id: "crossfit", name: "CrossFit Box", icon: "figure.strengthtraining.functional",
+        available: [.barbell, .dumbbells, .kettlebells, .pullUpBar, .cardio]
+    )
+    static let fullCommercial = EquipmentProfile(
+        id: "full", name: "Commercial", icon: "building.2.fill",
+        available: EquipmentKey.allCases
+    )
+
+    static let presets: [EquipmentProfile] = [.hotel, .bodyweight, .crossfit, .fullCommercial]
+}
+
+// MARK: - Exercise Substitution
+
+struct ExerciseSubstitution: Identifiable {
+    let id = UUID()
+    let originalEquipment: String
+    let substitute: String
+    let equipment: String
+    let setsReps: String
+    let note: String?
 }
