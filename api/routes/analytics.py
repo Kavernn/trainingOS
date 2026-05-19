@@ -1360,11 +1360,29 @@ def api_nutrition_timing():
                 gluc  = float(row.get("glucides", 0)  or 0)
                 entry = {"date": d, "hour": hour, "aliment": row.get("aliment"), "calories": cal, "protein": prot, "carbs": gluc}
 
-                if 6 <= hour < 10:  # early morning = pre-workout
+                # Fenêtre basée sur l'heure réelle de séance (si disponible)
+                session_hour = None
+                sess = sessions.get(d)
+                if sess and sess.get("started_at"):
+                    try:
+                        session_hour = int(str(sess["started_at"])[11:13])
+                    except Exception:
+                        pass
+
+                is_pre = is_post = False
+                if session_hour is not None:
+                    is_pre  = (session_hour - 3) <= hour < session_hour
+                    is_post = session_hour <= hour < (session_hour + 3)
+                else:
+                    # Heuristiques larges quand heure de séance inconnue
+                    is_pre  = 5 <= hour < 11
+                    is_post = 11 <= hour < 20
+
+                if is_pre:
                     pre_meals.append(entry)
                     for k, v in [("calories", cal), ("proteines", prot), ("glucides", gluc)]:
                         all_macros_pre[k].append(v)
-                elif 13 <= hour < 17:  # afternoon = post-workout
+                elif is_post:
                     post_meals.append(entry)
                     for k, v in [("calories", cal), ("proteines", prot), ("glucides", gluc)]:
                         all_macros_post[k].append(v)
@@ -1390,7 +1408,8 @@ def api_nutrition_timing():
             "top_foods":        list({m["aliment"] for m in post_meals if m.get("aliment")})[:5],
         },
         "insight": (
-            "Fenêtre anabolique : tu manges " + str(round(avg(all_macros_post["proteines"]) or 0)) + "g prot post-workout."
+            f"Tu consommes {round(avg(all_macros_post['proteines']) or 0)}g prot post-workout. "
+            "La distribution protéique sur 24h prime sur le timing précis (Schoenfeld & Aragon 2013)."
             if all_macros_post["proteines"] else
             "Pas encore assez de données de timing pour analyser ta nutrition pré/post-workout."
         ),

@@ -111,14 +111,37 @@ def api_nutrition_scan_label():
         else:
             scale = quantity / serving_size if serving_size > 0 else quantity
 
+        scaled_cal   = round(float(per.get("calories",  0)) * scale)
+        scaled_prot  = round(float(per.get("protein_g", 0)) * scale, 1)
+        scaled_carbs = round(float(per.get("carbs_g",   0)) * scale, 1)
+        scaled_fat   = round(float(per.get("fat_g",     0)) * scale, 1)
+
+        def _scan_warnings(calories, protein_g, carbs_g, fat_g):
+            warnings = []
+            computed = protein_g * 4 + carbs_g * 4 + fat_g * 9
+            if calories > 0 and computed > 0:
+                ratio = computed / calories
+                if ratio < 0.70 or ratio > 1.30:
+                    warnings.append(
+                        f"Incohérence macros/calories : macros totalisent {round(computed)} kcal "
+                        f"pour {round(calories)} kcal déclarées."
+                    )
+            if calories > 1500:
+                warnings.append("Calories élevées — vérifie que la quantité est correcte.")
+            return warnings
+
+        validation_warnings = _scan_warnings(scaled_cal, scaled_prot, scaled_carbs, scaled_fat)
+
         return jsonify({
-            "nom":       result.get("product_name") or "Aliment scanné",
-            "calories":  round(float(per.get("calories",  0)) * scale),
-            "proteines": round(float(per.get("protein_g", 0)) * scale, 1),
-            "glucides":  round(float(per.get("carbs_g",   0)) * scale, 1),
-            "lipides":   round(float(per.get("fat_g",     0)) * scale, 1),
-            "fibres":    round(float(per.get("fiber_g",   0)) * scale, 1),
-            "sodium_mg": round(float(per.get("sodium_mg", 0)) * scale, 1),
+            "nom":                  result.get("product_name") or "Aliment scanné",
+            "calories":             scaled_cal,
+            "proteines":            scaled_prot,
+            "glucides":             scaled_carbs,
+            "lipides":              scaled_fat,
+            "fibres":               round(float(per.get("fiber_g",   0)) * scale, 1),
+            "sodium_mg":            round(float(per.get("sodium_mg", 0)) * scale, 1),
+            "requires_confirmation": len(validation_warnings) > 0,
+            "validation_warnings":  validation_warnings,
         })
 
     except _anthropic.AuthenticationError:
@@ -178,6 +201,70 @@ def api_nutrition_settings():
         day_type_targets=day_type_targets,
     )
     return jsonify({"success": True})
+
+
+@nutrition_bp.route("/api/nutrition/tdee", methods=["POST"])
+def api_nutrition_tdee():
+    """
+    Recalcule BMR/TDEE depuis le profil utilisateur et met à jour nutrition_settings.
+    POST sans body — lit user_profile automatiquement.
+    """
+    import db as _db
+    from tdee import compute_tdee, compute_dynamic_day_targets
+    from nutrition import save_settings as save_nutrition_settings
+
+    profile = _db.get_profile() or {}
+    tdee_data = compute_tdee(profile)
+    if not tdee_data:
+        return jsonify({"error": "Profil incomplet — renseigne poids, taille et âge."}), 422
+
+    weight_lbs = float(profile.get("weight") or 0)
+    weight_kg  = weight_lbs * 0.453592 if weight_lbs else None
+    dtt = compute_dynamic_day_targets(weight_kg, tdee_data["calorie_target"]) if weight_kg else None
+
+    save_nutrition_settings(
+        tdee_data["calorie_target"],
+        tdee_data["objectif_proteines"],
+        float(tdee_data["glucides"]),
+        float(tdee_data["lipides"]),
+        day_type_targets=dtt,
+    )
+
+    # Persister les méta TDEE dans nutrition_settings
+    import db as _db2
+    _db2.update_nutrition_settings({
+        "bmr_kcal":          tdee_data["bmr_kcal"],
+        "tdee_kcal":         tdee_data["tdee_kcal"],
+        "calorie_target":    tdee_data["calorie_target"],
+        "activity_factor":   tdee_data["activity_factor"],
+        "sessions_per_week": tdee_data["sessions_per_week"],
+        "formula_used":      tdee_data["formula_used"],
+        "goal_phase":        tdee_data["goal_phase"],
+    })
+
+    return jsonify({"success": True, **tdee_data})
+
+
+@nutrition_bp.route("/api/nutrition/adaptive-check", methods=["GET"])
+def api_nutrition_adaptive_check():
+    """
+    Évalue la progression du poids sur 14 jours et propose ±150 kcal si nécessaire.
+    Lecture seule — l'utilisateur applique l'ajustement manuellement.
+    """
+    from tdee import check_weight_progress
+    from nutrition import load_settings
+
+    settings = load_settings()
+    goal     = settings.get("goal_phase") or "maintain"
+    cal      = int(settings.get("limite_calories") or 2400)
+
+    result = check_weight_progress(goal, cal)
+    if result is None:
+        return jsonify({
+            "available": False,
+            "reason": "Moins de 14 pesées — continue à enregistrer ton poids quotidiennement.",
+        })
+    return jsonify({"available": True, "current_target_kcal": cal, **result})
 
 
 @nutrition_bp.route("/api/food_catalog", methods=["GET", "POST"])
@@ -381,8 +468,10 @@ def api_nutrition_correlations():
         prot = nutr_by_date[d_str].get("proteines", 0) or 0
         (high_prot_rpe if prot >= prot_target * 0.9 else low_prot_rpe).append(float(rpe))
 
+    _CORR_MIN_N = 12  # minimum statistique valide (Curran-Everett 2018)
+
     prot_rpe = None
-    if len(high_prot_rpe) >= 3 and len(low_prot_rpe) >= 3:
+    if len(high_prot_rpe) >= _CORR_MIN_N and len(low_prot_rpe) >= _CORR_MIN_N:
         avg_h = round(sum(high_prot_rpe) / len(high_prot_rpe), 1)
         avg_l = round(sum(low_prot_rpe)  / len(low_prot_rpe),  1)
         prot_rpe = {
@@ -410,7 +499,7 @@ def api_nutrition_correlations():
         (on_target_rec if cal_target * 0.85 <= cal <= cal_target * 1.15 else off_target_rec).append(rec_score)
 
     cal_rec = None
-    if len(on_target_rec) >= 3 and len(off_target_rec) >= 3:
+    if len(on_target_rec) >= _CORR_MIN_N and len(off_target_rec) >= _CORR_MIN_N:
         avg_on  = round(sum(on_target_rec)  / len(on_target_rec),  1)
         avg_off = round(sum(off_target_rec) / len(off_target_rec), 1)
         cal_rec = {
@@ -439,7 +528,7 @@ def api_nutrition_correlations():
             if cal == 0:
                 continue
             (high_vol_cal if sv >= vol_median else low_vol_cal).append(float(cal))
-        if len(high_vol_cal) >= 3 and len(low_vol_cal) >= 3:
+        if len(high_vol_cal) >= _CORR_MIN_N and len(low_vol_cal) >= _CORR_MIN_N:
             avg_h = round(sum(high_vol_cal) / len(high_vol_cal))
             avg_l = round(sum(low_vol_cal)  / len(low_vol_cal))
             vol_cal = {
@@ -449,8 +538,54 @@ def api_nutrition_correlations():
             }
 
     return jsonify({
-        "prot_rpe":   prot_rpe,
-        "cal_rec":    cal_rec,
-        "vol_cal":    vol_cal,
-        "sample_days": len(nutr_by_date),
+        "prot_rpe":          prot_rpe,
+        "cal_rec":           cal_rec,
+        "vol_cal":           vol_cal,
+        "sample_days":       len(nutr_by_date),
+        "insufficient_data": prot_rpe is None and cal_rec is None and vol_cal is None,
+        "min_n_required":    _CORR_MIN_N,
     })
+
+
+@nutrition_bp.route("/api/nutrition/hydration", methods=["GET", "POST"])
+def api_hydration():
+    """
+    GET  — objectif hydrique du jour (35 ml/kg + 600 ml si séance) + total loggué.
+    POST — quick-add (défaut 250 ml, paramètre ml accepté).
+
+    Référence objectif : Cheuvront & Kenefick 2014 (2 % déshydratation = -10-20 % performance).
+    """
+    import db as _db
+    from datetime import date
+
+    if request.method == "GET":
+        profile    = _db.get_profile() or {}
+        weight_lbs = float(profile.get("weight") or 0)
+        weight_kg  = weight_lbs * 0.453592 if weight_lbs else 75.0
+        base_ml    = round(weight_kg * 35)
+
+        today    = date.today().isoformat()
+        sessions = _db.get_workout_sessions(limit=7) or []
+        had_session = any(
+            s.get("date") == today and s.get("completed")
+            for s in sessions
+        )
+        target_ml = base_ml + (600 if had_session else 0)
+        logged_ml = _db.get_hydration_today()
+
+        return jsonify({
+            "target_ml":    target_ml,
+            "logged_ml":    logged_ml,
+            "remaining_ml": max(0, target_ml - logged_ml),
+            "pct":          round(logged_ml / target_ml * 100) if target_ml else 0,
+            "weight_kg":    round(weight_kg, 1),
+            "session_bonus": 600 if had_session else 0,
+        })
+
+    # POST — quick-add
+    data   = request.get_json(silent=True) or {}
+    amount = int(data.get("ml", 250))
+    if amount <= 0 or amount > 2000:
+        return jsonify({"error": "Quantité invalide (1–2000 ml)"}), 422
+    _db.log_hydration(amount)
+    return jsonify({"success": True, "added_ml": amount})

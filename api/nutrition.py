@@ -48,11 +48,25 @@ def load_settings() -> dict:
             "glucides": int(t.get("glucides") or default_gluc),
         }
 
+    # Préférer calorie_target calculé par le moteur TDEE s'il est présent
+    cal  = (raw.get("calorie_target")
+            or raw.get("limite_calories")
+            or raw.get("calorie_limit")
+            or 2400)
+    prot = (raw.get("objectif_proteines")
+            or raw.get("protein_target")
+            or 180)
+
     return {
-        "limite_calories":    raw.get("limite_calories")    or raw.get("calorie_limit")    or 2400,
-        "objectif_proteines": raw.get("objectif_proteines") or raw.get("protein_target")   or 180,
+        "limite_calories":    int(cal),
+        "objectif_proteines": int(prot),
         "glucides":           raw.get("glucides") or 235,
         "lipides":            raw.get("lipides")  or 75,
+        "bmr_kcal":           raw.get("bmr_kcal"),
+        "tdee_kcal":          raw.get("tdee_kcal"),
+        "activity_factor":    raw.get("activity_factor"),
+        "formula_used":       raw.get("formula_used"),
+        "goal_phase":         raw.get("goal_phase"),
         "day_type_targets": {
             "light":    _target("light",    2200, 185),
             "moderate": _target("moderate", 2400, 235),

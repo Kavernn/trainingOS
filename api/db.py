@@ -2596,6 +2596,63 @@ def update_nutrition_entry(entry_id: str, patch: dict) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Hydration
+# ---------------------------------------------------------------------------
+
+def get_hydration_today() -> int:
+    """Return total ml logged today (0 if none or offline)."""
+    if _client is None or MODE == "OFFLINE":
+        return 0
+    from datetime import date
+    today = date.today().isoformat()
+
+    def _do() -> int:
+        resp = (
+            _client.table("hydration_logs")
+            .select("amount_ml")
+            .eq("date", today)
+            .execute()
+        )
+        return sum(int(r.get("amount_ml", 0)) for r in (resp.data or []))
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_hydration_today retry error: %s", e2)
+                return 0
+        logger.error("get_hydration_today error: %s", e)
+        return 0
+
+
+def log_hydration(amount_ml: int) -> None:
+    """Insert a hydration entry for today."""
+    if _client is None or MODE == "OFFLINE":
+        return
+
+    def _do() -> None:
+        from datetime import date
+        _client.table("hydration_logs").insert({
+            "date":      date.today().isoformat(),
+            "amount_ml": amount_ml,
+        }).execute()
+
+    try:
+        _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                _do()
+            except Exception as e2:
+                logger.error("log_hydration retry error: %s", e2)
+        else:
+            logger.error("log_hydration error: %s", e)
+
+
+# ---------------------------------------------------------------------------
 # Food catalog
 # ---------------------------------------------------------------------------
 
