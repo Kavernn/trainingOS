@@ -31,13 +31,23 @@ struct NavyBodyFatResult {
     let leanMassLbs: Double
     let basedOnDate: String
 
-    func category() -> (label: String, color: Color) {
-        switch pct {
-        case ..<6:  return ("Athlète",    .cyan)
-        case ..<13: return ("Très fit",   .green)
-        case ..<17: return ("Fitness",    .blue)
-        case ..<24: return ("Acceptable", .orange)
-        default:    return ("Obèse",      .red)
+    func category(isMale: Bool) -> (label: String, color: Color) {
+        if isMale {
+            switch pct {
+            case ..<6:  return ("Essential", .yellow)
+            case ..<14: return ("Athlète",   .cyan)
+            case ..<18: return ("Fitness",   .green)
+            case ..<25: return ("Moyen",     .blue)
+            default:    return ("Obèse",     .red)
+            }
+        } else {
+            switch pct {
+            case ..<14: return ("Essential", .yellow)
+            case ..<21: return ("Athlète",   .cyan)
+            case ..<25: return ("Fitness",   .green)
+            case ..<32: return ("Moyen",     .blue)
+            default:    return ("Obèse",     .red)
+            }
         }
     }
 }
@@ -61,21 +71,38 @@ final class BodyCompService: ObservableObject {
 
     func getLatestMeasurements() -> BodyWeightEntry? { latest }
 
-    func getNavyBodyFat(heightCm: Double) -> NavyBodyFatResult? {
-        guard let e = latest,
-              let waist = e.waistCm,
-              let neck  = e.neckCm,
-              waist > neck, heightCm > 0 else { return nil }
-        let diff = waist - neck
-        guard diff > 0 else { return nil }
-        let raw  = 495.0 / (1.0324 - 0.19077 * log10(diff) + 0.15456 * log10(heightCm)) - 450.0
-        let pct  = min(max(raw, 2.0), 60.0)
-        return NavyBodyFatResult(
-            pct:         pct,
-            fatMassLbs:  e.weight * pct / 100.0,
-            leanMassLbs: e.weight * (1.0 - pct / 100.0),
-            basedOnDate: e.date
-        )
+    func getNavyBodyFat(heightCm: Double, isMale: Bool) -> NavyBodyFatResult? {
+        guard let e = latest, heightCm > 0 else { return nil }
+
+        if isMale {
+            guard let waist = e.waistCm, let neck = e.neckCm,
+                  waist > neck else { return nil }
+            let diff = waist - neck
+            guard diff > 0 else { return nil }
+            // Hodgdon & Beckett (1984) — constante 1.0471 pour inputs en cm
+            let raw = 495.0 / (1.0471 - 0.19077 * log10(diff) + 0.15456 * log10(heightCm)) - 450.0
+            let pct = min(max(raw, 3.0), 60.0)
+            return NavyBodyFatResult(
+                pct:         pct,
+                fatMassLbs:  e.weight * pct / 100.0,
+                leanMassLbs: e.weight * (1.0 - pct / 100.0),
+                basedOnDate: e.date
+            )
+        } else {
+            guard let waist = e.waistCm, let hips = e.hipsCm, let neck = e.neckCm,
+                  (waist + hips) > neck else { return nil }
+            let sum = waist + hips - neck
+            guard sum > 0 else { return nil }
+            // Hodgdon & Beckett (1984) — formule femme, inputs en cm
+            let raw = 495.0 / (1.29579 - 0.35004 * log10(sum) + 0.22100 * log10(heightCm)) - 450.0
+            let pct = min(max(raw, 10.0), 60.0)
+            return NavyBodyFatResult(
+                pct:         pct,
+                fatMassLbs:  e.weight * pct / 100.0,
+                leanMassLbs: e.weight * (1.0 - pct / 100.0),
+                basedOnDate: e.date
+            )
+        }
     }
 
     func staleness() -> EntryFreshness {
@@ -89,12 +116,15 @@ final class BodyCompService: ObservableObject {
         return .veryStale(days: days)
     }
 
-    // Missing fields for Navy formula
-    var navyMissingFields: [String] {
-        guard let e = latest else { return ["poids", "tour de taille", "tour de cou"] }
+    func navyMissingFields(isMale: Bool) -> [String] {
+        guard let e = latest else {
+            return isMale ? ["tour de taille", "tour de cou"]
+                          : ["tour de taille", "tour de cou", "tour de hanches"]
+        }
         var missing: [String] = []
         if e.waistCm == nil { missing.append("tour de taille") }
         if e.neckCm  == nil { missing.append("tour de cou") }
+        if !isMale && e.hipsCm == nil { missing.append("tour de hanches") }
         return missing
     }
 

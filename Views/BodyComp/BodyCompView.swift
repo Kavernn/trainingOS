@@ -132,13 +132,18 @@ struct BodyCompView: View {
                         .font(.system(size: 15, weight: .bold)).foregroundColor(tendanceColor)
                     if bodyWeight.count > 1 {
                         let diff = (latest?.weight ?? 0) - bodyWeight[1].weight
-                        HStack(spacing: 4) {
-                            Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down")
-                                .font(.system(size: 11, weight: .bold))
-                            Text("\(diff >= 0 ? "+" : "")\(String(format: "%.1f lbs", diff))")
-                                .font(.system(size: 12, weight: .semibold))
+                        VStack(alignment: .trailing, spacing: 2) {
+                            HStack(spacing: 4) {
+                                Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("\(diff >= 0 ? "+" : "")\(String(format: "%.1f lbs", diff))")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundColor(diff >= 0 ? .orange.opacity(0.8) : .green.opacity(0.8))
+                            Text("vs hier")
+                                .font(.system(size: 9))
+                                .foregroundColor(.gray.opacity(0.5))
                         }
-                        .foregroundColor(diff >= 0 ? .orange.opacity(0.8) : .green.opacity(0.8))
                     }
                 }
             }

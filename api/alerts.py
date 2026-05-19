@@ -8,6 +8,8 @@ from datetime import date, datetime, timedelta, timezone
 
 import db
 from nutrition import load_settings as load_nutrition_settings
+from body_weight import load_body_weight
+from user_profile import load_user_profile
 
 logger = logging.getLogger("trainingos.alerts")
 
@@ -228,6 +230,147 @@ def detect_high_rpe_streak(sessions: list[dict]) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
+# Detector 6 — Rapid weight loss (> 1% BW/week, rolling window)
+# ---------------------------------------------------------------------------
+
+def detect_rapid_weight_loss(body_weight: list) -> dict | None:
+    entries = sorted(
+        [e for e in body_weight if e.get("poids") is not None],
+        key=lambda x: str(x.get("date", "")),
+        reverse=True
+    )
+    # Need at least 14 entries spanning ~4 weeks for a reliable signal
+    if len(entries) < 14:
+        return None
+
+    recent7 = entries[:7]
+    older7  = entries[7:14]
+
+    avg_recent = sum(e["poids"] for e in recent7) / len(recent7)
+    avg_older  = sum(e["poids"] for e in older7)  / len(older7)
+
+    # Compute actual elapsed weeks between window midpoints
+    try:
+        d_recent = date.fromisoformat(str(recent7[0].get("date", ""))[:10])
+        d_older  = date.fromisoformat(str(older7[-1].get("date", ""))[:10])
+        weeks = max((d_older - d_recent).days / 7, 1)
+    except Exception:
+        weeks = 2.0
+
+    weekly_loss = (avg_older - avg_recent) / weeks
+    if weekly_loss <= 0:
+        return None
+
+    pct_per_week = weekly_loss / avg_older * 100
+    if pct_per_week <= 1.0:
+        return None
+
+    return {
+        "id": "rapid_weight_loss",
+        "type": "body_comp",
+        "severity": "warning",
+        "title": "Perte de poids trop rapide",
+        "message": (
+            f"Tu perds ~{weekly_loss:.1f} lbs/semaine ({pct_per_week:.1f}% de ton poids). "
+            "Au-delà de 1%/semaine, tu risques de perdre du muscle en plus du gras. "
+            "Réduis ton déficit de 150–200 kcal ou ajoute une séance de musculation."
+        ),
+        "action": "open_nutrition",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Detector 7 — Rapid weight gain (> 1 lb/week, rolling window)
+# ---------------------------------------------------------------------------
+
+def detect_rapid_weight_gain(body_weight: list) -> dict | None:
+    entries = sorted(
+        [e for e in body_weight if e.get("poids") is not None],
+        key=lambda x: str(x.get("date", "")),
+        reverse=True
+    )
+    if len(entries) < 14:
+        return None
+
+    recent7 = entries[:7]
+    older7  = entries[7:14]
+
+    avg_recent = sum(e["poids"] for e in recent7) / len(recent7)
+    avg_older  = sum(e["poids"] for e in older7)  / len(older7)
+
+    try:
+        d_recent = date.fromisoformat(str(recent7[0].get("date", ""))[:10])
+        d_older  = date.fromisoformat(str(older7[-1].get("date", ""))[:10])
+        weeks = max((d_older - d_recent).days / 7, 1)
+    except Exception:
+        weeks = 2.0
+
+    weekly_gain = (avg_recent - avg_older) / weeks
+    if weekly_gain <= 1.0:
+        return None
+
+    return {
+        "id": "rapid_weight_gain",
+        "type": "body_comp",
+        "severity": "warning",
+        "title": "Prise de poids trop rapide",
+        "message": (
+            f"Tu prends ~{weekly_gain:.1f} lbs/semaine. "
+            "Au-delà de 1 lb/semaine, une partie est probablement du gras. "
+            "Réduis ton surplus de 100–150 kcal."
+        ),
+        "action": "open_nutrition",
+    }
+
+
+# ---------------------------------------------------------------------------
+# Detector 8 — Aberrant body fat (< physiological minimum or > 45%)
+# ---------------------------------------------------------------------------
+
+def detect_aberrant_body_fat(body_weight: list, is_male: bool) -> dict | None:
+    entries_with_bf = [
+        e for e in body_weight
+        if e.get("body_fat") is not None
+    ]
+    if not entries_with_bf:
+        return None
+
+    latest = sorted(entries_with_bf, key=lambda x: str(x.get("date", "")), reverse=True)[0]
+    bf = float(latest["body_fat"])
+
+    min_threshold = 5.0 if is_male else 12.0
+
+    if bf < min_threshold:
+        return {
+            "id": "body_fat_too_low",
+            "type": "body_comp",
+            "severity": "warning",
+            "title": "Body fat sous le seuil physiologique",
+            "message": (
+                f"Ton body fat enregistré est {bf:.1f}% — sous le minimum physiologique "
+                f"({'5%' if is_male else '12%'}). Vérifie tes mesures. "
+                "Si c'est correct, consulte un professionnel de santé."
+            ),
+            "action": "open_dashboard",
+        }
+
+    if bf > 45.0:
+        return {
+            "id": "body_fat_too_high",
+            "type": "body_comp",
+            "severity": "warning",
+            "title": "Valeur body fat inhabituelle",
+            "message": (
+                f"Ton body fat enregistré est {bf:.1f}%. "
+                "Vérifie tes mensurations (taille, cou, hanches)."
+            ),
+            "action": "open_dashboard",
+        }
+
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
 
@@ -238,10 +381,14 @@ _SEVERITY_ORDER = {"warning": 0, "info": 1}
 def get_all_alerts() -> list[dict]:
     """Run all detectors and return alerts sorted by priority."""
     try:
-        settings = load_nutrition_settings()
+        settings    = load_nutrition_settings()
         recent_days = db.get_nutrition_entries_recent(7)
-        sessions = db.get_workout_sessions(limit=20)
-        inventory = db.get_exercises() or {}
+        sessions    = db.get_workout_sessions(limit=20)
+        inventory   = db.get_exercises() or {}
+        body_weight = load_body_weight()
+        profile     = load_user_profile() or {}
+        sex         = (profile.get("sex") or "").upper()
+        is_male     = not sex.startswith("F")
 
         candidates: list[dict | None] = [
             detect_high_rpe_streak(sessions),
@@ -249,6 +396,9 @@ def get_all_alerts() -> list[dict]:
             detect_low_protein(settings, recent_days),
             detect_under_calories(settings, recent_days),
             detect_no_log_today(recent_days),
+            detect_rapid_weight_loss(body_weight),
+            detect_rapid_weight_gain(body_weight),
+            detect_aberrant_body_fat(body_weight, is_male),
         ]
 
         alerts = [a for a in candidates if a is not None]

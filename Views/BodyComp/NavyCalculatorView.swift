@@ -6,6 +6,9 @@ struct NavyCalculatorView: View {
     @ObservedObject private var bodyComp = BodyCompService.shared
     @State private var heightCm: Double = 178
     @State private var showEditSheet = false
+    @State private var isMale: Bool = true
+    @State private var sexUnknown: Bool = false
+    @AppStorage("navy_formula_corrected_seen") private var bannerSeen = false
 
     var body: some View {
         ZStack {
@@ -32,7 +35,10 @@ struct NavyCalculatorView: View {
                 }
             }
         }
-        .task { await bodyComp.refresh() }
+        .task {
+            await bodyComp.refresh()
+            await loadProfile()
+        }
         .sheet(isPresented: $showEditSheet) {
             BodyWeightSheet(editEntry: bodyComp.latest, onSaved: {
                 await bodyComp.refresh()
@@ -40,23 +46,67 @@ struct NavyCalculatorView: View {
         }
     }
 
+    // MARK: - Profile loading
+
+    private func loadProfile() async {
+        guard let (profile, _, _) = try? await APIService.shared.fetchProfilData() else { return }
+        if let sex = profile.sex, !sex.isEmpty {
+            isMale = sex.uppercased().hasPrefix("M")
+            sexUnknown = false
+        } else {
+            sexUnknown = true
+        }
+    }
+
     // MARK: - Content routing
 
     @ViewBuilder
     private var content: some View {
+        if !bannerSeen {
+            correctionBanner
+        }
         if bodyComp.latest == nil {
             neverLoggedView
-        } else if !bodyComp.navyMissingFields.isEmpty {
+        } else if sexUnknown {
+            sexRequiredView
+        } else if !bodyComp.navyMissingFields(isMale: isMale).isEmpty {
             incompleteView
         } else {
             heightPickerCard
-            if let res = bodyComp.getNavyBodyFat(heightCm: heightCm) {
+            if let res = bodyComp.getNavyBodyFat(heightCm: heightCm, isMale: isMale) {
                 resultCards(res)
                 compositionBar(res)
                 categoryBadge(res)
                 stalenessRow
             }
         }
+    }
+
+    // MARK: - Correction banner (one-time)
+
+    private var correctionBanner: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 16))
+                .foregroundColor(.yellow)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Formule corrigée")
+                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                Text("Le calcul du % de gras est plus précis. L'ancienne formule surestimait de quelques points — ton nouveau chiffre est plus fiable.")
+                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Button { bannerSeen = true } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.gray)
+            }
+        }
+        .padding(14)
+        .glassCardAccent(.yellow)
+        .cornerRadius(14)
+        .padding(.horizontal, 16)
     }
 
     // MARK: - Never logged
@@ -79,6 +129,25 @@ struct NavyCalculatorView: View {
         .padding(.horizontal, 16)
     }
 
+    // MARK: - Sex unknown
+
+    private var sexRequiredView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                .font(.system(size: 36)).foregroundColor(.orange.opacity(0.7))
+            Text("Sexe non renseigné")
+                .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+            Text("La formule Navy est différente pour l'homme et la femme. Indique ton sexe dans ton profil pour un calcul précis.")
+                .font(.system(size: 13)).foregroundColor(.gray)
+                .multilineTextAlignment(.center)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        .glassCardAccent(.orange)
+        .cornerRadius(16)
+        .padding(.horizontal, 16)
+    }
+
     // MARK: - Incomplete data
 
     private var incompleteView: some View {
@@ -90,7 +159,7 @@ struct NavyCalculatorView: View {
             }
             Text("Pour calculer le % de gras, enregistre aussi :")
                 .font(.system(size: 13)).foregroundColor(.gray)
-            ForEach(bodyComp.navyMissingFields, id: \.self) { field in
+            ForEach(bodyComp.navyMissingFields(isMale: isMale), id: \.self) { field in
                 HStack(spacing: 8) {
                     Circle().fill(Color.orange).frame(width: 6, height: 6)
                     Text(field.capitalized)
@@ -180,6 +249,9 @@ struct NavyCalculatorView: View {
             if let n = e.neckCm {
                 measureChip(label: "COU", value: String(format: "%.0f cm", n))
             }
+            if !isMale, let h = e.hipsCm {
+                measureChip(label: "HANCHES", value: String(format: "%.0f cm", h))
+            }
             Spacer()
         }
     }
@@ -199,7 +271,8 @@ struct NavyCalculatorView: View {
         HStack(spacing: 10) {
             resultCard(label: "% MG",
                        value: String(format: "%.1f%%", res.pct),
-                       color: .blue)
+                       color: .blue,
+                       subtitle: "±4% vs DEXA")
             resultCard(label: "MASSE GRASSE",
                        value: String(format: "%.1f lbs", res.fatMassLbs),
                        color: .orange)
@@ -210,7 +283,7 @@ struct NavyCalculatorView: View {
         .padding(.horizontal, 16)
     }
 
-    private func resultCard(label: String, value: String, color: Color) -> some View {
+    private func resultCard(label: String, value: String, color: Color, subtitle: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
                 .font(.system(size: 9, weight: .black)).tracking(1)
@@ -220,6 +293,11 @@ struct NavyCalculatorView: View {
                 .foregroundColor(.white)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
+            if let sub = subtitle {
+                Text(sub)
+                    .font(.system(size: 9))
+                    .foregroundColor(.gray.opacity(0.55))
+            }
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -270,7 +348,7 @@ struct NavyCalculatorView: View {
     // MARK: - Category badge
 
     private func categoryBadge(_ res: NavyBodyFatResult) -> some View {
-        let (label, color) = res.category()
+        let (label, color) = res.category(isMale: isMale)
         return HStack(spacing: 10) {
             Image(systemName: "person.fill")
                 .font(.system(size: 13, weight: .semibold))

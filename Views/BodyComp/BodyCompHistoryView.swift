@@ -39,33 +39,49 @@ struct BodyCompHistoryView: View {
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
 
             let sorted = entries.sorted { $0.date < $1.date }
+            let correctionDate = Calendar.current.date(
+                from: DateComponents(year: 2026, month: 5, day: 18)
+            ) ?? Date()
+            let hasPre = sorted.contains { $0.date < correctionDate }
 
-            Chart(sorted) { entry in
-                LineMark(
-                    x: .value("Date", entry.date),
-                    y: .value("% MG", entry.bodyFatPct)
-                )
-                .foregroundStyle(Color.green.gradient)
-                .interpolationMethod(.catmullRom)
-
-                AreaMark(
-                    x: .value("Date", entry.date),
-                    y: .value("% MG", entry.bodyFatPct)
-                )
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [Color.green.opacity(0.25), .clear],
-                        startPoint: .top, endPoint: .bottom
+            Chart {
+                ForEach(sorted) { entry in
+                    LineMark(
+                        x: .value("Date", entry.date),
+                        y: .value("% MG", entry.bodyFatPct)
                     )
-                )
-                .interpolationMethod(.catmullRom)
+                    .foregroundStyle(Color.green.gradient)
+                    .interpolationMethod(.catmullRom)
 
-                PointMark(
-                    x: .value("Date", entry.date),
-                    y: .value("% MG", entry.bodyFatPct)
-                )
-                .foregroundStyle(Color.green)
-                .symbolSize(28)
+                    AreaMark(
+                        x: .value("Date", entry.date),
+                        y: .value("% MG", entry.bodyFatPct)
+                    )
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.green.opacity(0.25), .clear],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .interpolationMethod(.catmullRom)
+
+                    PointMark(
+                        x: .value("Date", entry.date),
+                        y: .value("% MG", entry.bodyFatPct)
+                    )
+                    .foregroundStyle(Color.green)
+                    .symbolSize(28)
+                }
+                if hasPre {
+                    RuleMark(x: .value("Correction", correctionDate))
+                        .foregroundStyle(Color.yellow.opacity(0.45))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .annotation(position: .top, alignment: .leading) {
+                            Text("Correction formule")
+                                .font(.system(size: 9))
+                                .foregroundColor(.yellow.opacity(0.75))
+                        }
+                }
             }
             .chartYAxis {
                 AxisMarks(position: .trailing) { value in

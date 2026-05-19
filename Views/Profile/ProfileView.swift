@@ -426,7 +426,8 @@ struct ProfileView: View {
 
     private var bodyCompCard: some View {
         let heightCm   = profile?.height ?? 178.0
-        let navyResult = bodyComp.getNavyBodyFat(heightCm: heightCm)
+        let isMale     = (profile?.sex ?? "M").uppercased().hasPrefix("M")
+        let navyResult = bodyComp.getNavyBodyFat(heightCm: heightCm, isMale: isMale)
         let latest     = bodyComp.latest
         let delta      = weightDelta30d
         let histSorted = bodyComp.history.sorted { $0.date < $1.date }
@@ -484,7 +485,7 @@ struct ProfileView: View {
     }
 
     private func bodyCompFatCol(navyResult: NavyBodyFatResult?) -> some View {
-        let cat      = navyResult?.category()
+        let cat = navyResult?.category(isMale: true)
         let catColor = cat?.color ?? Color.clear
         let catLabel = cat?.label ?? ""
         let pctStr   = navyResult.map { String(format: "%.1f%%", $0.pct) } ?? "—"
