@@ -8,45 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		0027D22BC1EDEE5DE11B54C0 /* APIService+BodyBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9E6AAF315054167C4627AE /* APIService+BodyBudget.swift */; };
-		E2EEABEF20DD4D01BA4AE9F8 /* PhoenixModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E0A90D35DB4D65AC6116B6 /* PhoenixModels.swift */; };
-		C73F0844F29A4B3E985FC084 /* APIService+Phoenix.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB850675B23D4C2E9BB57A0B /* APIService+Phoenix.swift */; };
-		5125E2D689384BED810C9598 /* PhoenixCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FB0319AE30B4059B3096D9B /* PhoenixCard.swift */; };
-		3F784A7AB03C48179FBF0EFF /* GraveyardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106008F1BB4042C0803D076D /* GraveyardModels.swift */; };
-		EE8C19D26FF84056B62B4BD3 /* APIService+Graveyard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FC68105F9D4BDE956144F3 /* APIService+Graveyard.swift */; };
-		BA758653D86B40DBAD0CDE88 /* GraveyardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5102C218CC34F1FAF908DE4 /* GraveyardView.swift */; };
-		WR001001AA00300B2F5DAAAA /* WarRoomModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */; };
-		WR002001AA00300B2F5DAAAA /* APIService+WarRoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */; };
-		WR003001AA00300B2F5DAAAA /* WarRoomGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR003000AA00300B2F5DAAAA /* WarRoomGateView.swift */; };
-		WR004001AA00300B2F5DAAAA /* WarRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR004000AA00300B2F5DAAAA /* WarRoomView.swift */; };
-		WR005001AA00300B2F5DAAAA /* BattleCounterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR005000AA00300B2F5DAAAA /* BattleCounterView.swift */; };
-		WR006001AA00300B2F5DAAAA /* TriggerLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR006000AA00300B2F5DAAAA /* TriggerLogView.swift */; };
-		WR007001AA00300B2F5DAAAA /* ArsenalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR007000AA00300B2F5DAAAA /* ArsenalView.swift */; };
-		WR008001AA00300B2F5DAAAA /* PatternReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR008000AA00300B2F5DAAAA /* PatternReportView.swift */; };
-		WR009001AA00300B2F5DAAAA /* WarMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR009000AA00300B2F5DAAAA /* WarMapView.swift */; };
-		WR010001AA00300B2F5DAAAA /* WarRoomSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */; };
-		SP001001AA00300B2F5DBBBB /* SpiritModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP001000AA00300B2F5DBBBB /* SpiritModels.swift */; };
-		SP002001AA00300B2F5DBBBB /* APIService+Spirit.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */; };
-		SP003001AA00300B2F5DBBBB /* SpiritView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP003000AA00300B2F5DBBBB /* SpiritView.swift */; };
-		SP004001AA00300B2F5DBBBB /* SpiritBreathworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */; };
-		SP005001AA00300B2F5DBBBB /* SpiritMeditationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */; };
-		SP006001AA00300B2F5DBBBB /* SpiritJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */; };
-		SE001001AA00300B2F5DDDDD /* SeasonModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE001000AA00300B2F5DDDDD /* SeasonModels.swift */; };
-		SE002001AA00300B2F5DDDDD /* APIService+Seasons.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */; };
-		SE003001AA00300B2F5DDDDD /* SeasonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE003000AA00300B2F5DDDDD /* SeasonView.swift */; };
-		SE004001AA00300B2F5DDDDD /* SeasonStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */; };
-		SE005001AA00300B2F5DDDDD /* SeasonCloseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */; };
-		SE006001AA00300B2F5DDDDD /* SeasonReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */; };
-		GF006001AA00300B2F5DEEEE /* GymFinderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */; };
-		GF007001AA00300B2F5DEEEE /* GymFinderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF007000AA00300B2F5DEEEE /* GymFinderService.swift */; };
-		GF001001AA00300B2F5DEEEE /* GymContributeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF001000AA00300B2F5DEEEE /* GymContributeView.swift */; };
-		GF002001AA00300B2F5DEEEE /* GymDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF002000AA00300B2F5DEEEE /* GymDetailView.swift */; };
-		GF003001AA00300B2F5DEEEE /* GymFiltersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF003000AA00300B2F5DEEEE /* GymFiltersView.swift */; };
-		GF004001AA00300B2F5DEEEE /* GymFinderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF004000AA00300B2F5DEEEE /* GymFinderView.swift */; };
-		GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */; };
-		OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA001000AA00300B2F5DCCCC /* OathModels.swift */; };
-		OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */; };
-		OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA003000AA00300B2F5DCCCC /* OathView.swift */; };
-		OA004001AA00300B2F5DCCCC /* OathWriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA004000AA00300B2F5DCCCC /* OathWriteView.swift */; };
 		06A75775DE3F7E6F442B218A /* BodyCompService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F1EC5F94087F4D7DE3F244 /* BodyCompService.swift */; };
 		07171A309411F9E238113A1B /* RitualView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12186D7E0477FF4F0975C7DA /* RitualView.swift */; };
 		07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68B8535D55F4B109509F146 /* MorningRevealView.swift */; };
@@ -66,10 +27,12 @@
 		329ACD1942044D42B9EE63F3 /* AlertService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0FE1CA8525F46319027AD6D /* AlertService.swift */; };
 		35332F66CA06D4B710598247 /* RitualMorningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAC82E18346773B8F8591B8F /* RitualMorningView.swift */; };
 		39E47AF550F83D00EBE09ED6 /* ReadinessView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */; };
+		3F784A7AB03C48179FBF0EFF /* GraveyardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106008F1BB4042C0803D076D /* GraveyardModels.swift */; };
 		44C9676C9DEC490EA46497D2 /* FoodCatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D99C0DF3AB4F7ABC77DFE0 /* FoodCatalogStore.swift */; };
 		474875470ECCEB1C8D964FBF /* WorkoutDNAView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */; };
 		4E4D1EF9E3D356C3043C4E99 /* BodyBudgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F922AFAAF1C2226DC78C22E /* BodyBudgetModels.swift */; };
 		4EFCF4438370ABAB574089F4 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 358C75220B7439B325975456 /* AppState.swift */; };
+		5125E2D689384BED810C9598 /* PhoenixCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FB0319AE30B4059B3096D9B /* PhoenixCard.swift */; };
 		536A301CA097593473B475D5 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8115703CA371513172F372F /* DashboardViewModel.swift */; };
 		5450ED0F7A5A0D2B1CEB3523 /* PatternCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DF8F30F1E302A54E9E32B5D /* PatternCardView.swift */; };
 		5A44338B0F2FFA0E8ED715D2 /* APIService+Readiness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8130286D3B05F35EC783FDF9 /* APIService+Readiness.swift */; };
@@ -116,6 +79,7 @@
 		APIWO002APIWO002APIWO002 /* APIService+Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIWO001APIWO001APIWO001 /* APIService+Workout.swift */; };
 		B3B48DFB53C2B424CC9A1E51 /* ErrorBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */; };
 		B40E23156FF67C93658260BD /* BodyBudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85B27AF055DB8AC84A8CEA39 /* BodyBudgetView.swift */; };
+		BA758653D86B40DBAD0CDE88 /* GraveyardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5102C218CC34F1FAF908DE4 /* GraveyardView.swift */; };
 		BB001001BB001001BB001001 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001002BB001002BB001002 /* DesignSystem.swift */; };
 		BB2200032F5D98BA002AE470 /* WearableService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200012F5D98BA002AE470 /* WearableService.swift */; };
 		BB2200042F5D98BA002AE470 /* HealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */; };
@@ -123,6 +87,7 @@
 		BC0000012F5D98BA002AE470 /* BodyCompEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000022F5D98BA002AE470 /* BodyCompEntry.swift */; };
 		BC0000032F5D98BA002AE470 /* NavyCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000042F5D98BA002AE470 /* NavyCalculatorView.swift */; };
 		BC0000052F5D98BA002AE470 /* BodyCompHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC0000062F5D98BA002AE470 /* BodyCompHistoryView.swift */; };
+		C73F0844F29A4B3E985FC084 /* APIService+Phoenix.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB850675B23D4C2E9BB57A0B /* APIService+Phoenix.swift */; };
 		CB06CF7205FA40FC222D9EC5 /* TimeCapsuleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A645EDCDCB52F3D681701B2 /* TimeCapsuleViews.swift */; };
 		CC3300022F5D98BA002AE472 /* PSSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3300012F5D98BA002AE472 /* PSSView.swift */; };
 		CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */; };
@@ -151,6 +116,7 @@
 		DD4400092F5D98BA002AE473 /* SelfCareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000A2F5D98BA002AE473 /* SelfCareView.swift */; };
 		DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */; };
 		DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */; };
+		E2EEABEF20DD4D01BA4AE9F8 /* PhoenixModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E0A90D35DB4D65AC6116B6 /* PhoenixModels.swift */; };
 		E3BB78033EEA4FB1AE6D7812 /* ProactiveBannerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */; };
 		E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */; };
 		EBD686A12DC32EF0A13FD632 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A937EBC71FB17046EDA80FA1 /* NutritionModels.swift */; };
@@ -158,6 +124,7 @@
 		EE5500022F5D98BA002AE470 /* PendingMutation.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500012F5D98BA002AE470 /* PendingMutation.swift */; };
 		EE5500042F5D98BA002AE470 /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500032F5D98BA002AE470 /* SyncManager.swift */; };
 		EE5500062F5D98BA002AE470 /* UserDefaultsSyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500052F5D98BA002AE470 /* UserDefaultsSyncQueue.swift */; };
+		EE8C19D26FF84056B62B4BD3 /* APIService+Graveyard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FC68105F9D4BDE956144F3 /* APIService+Graveyard.swift */; };
 		F2EA55F129F3462CBACE25FF /* CoachMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */; };
 		F3A1C0AC417B1DAB71004002 /* CoachTipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */; };
 		F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552F808C866A877BFC051570 /* WellnessModels.swift */; };
@@ -166,18 +133,51 @@
 		FF11000B2F5D98BA002AE470 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF11000A2F5D98BA002AE470 /* SplashView.swift */; };
 		FF51E36866234A41AFD33040 /* FoodCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */; };
 		FFACBD7CC9B72CE8B1E457DE /* RitualModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BF5B0FFF277946C524E44D3 /* RitualModels.swift */; };
+		GF001001AA00300B2F5DEEEE /* GymContributeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF001000AA00300B2F5DEEEE /* GymContributeView.swift */; };
+		GF002001AA00300B2F5DEEEE /* GymDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF002000AA00300B2F5DEEEE /* GymDetailView.swift */; };
+		GF003001AA00300B2F5DEEEE /* GymFiltersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF003000AA00300B2F5DEEEE /* GymFiltersView.swift */; };
+		GF004001AA00300B2F5DEEEE /* GymFinderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF004000AA00300B2F5DEEEE /* GymFinderView.swift */; };
+		GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */; };
+		GF006001AA00300B2F5DEEEE /* GymFinderModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */; };
+		GF007001AA00300B2F5DEEEE /* GymFinderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = GF007000AA00300B2F5DEEEE /* GymFinderService.swift */; };
 		NHLS002NHLS002NHLS002002 /* NHLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = NHLS001NHLS001NHLS001001 /* NHLService.swift */; };
 		NOTSC002NOTSC002NOTSC002 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */; };
+		OA001001AA00300B2F5DCCCC /* OathModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA001000AA00300B2F5DCCCC /* OathModels.swift */; };
+		OA002001AA00300B2F5DCCCC /* APIService+Oath.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */; };
+		OA003001AA00300B2F5DCCCC /* OathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA003000AA00300B2F5DCCCC /* OathView.swift */; };
+		OA004001AA00300B2F5DCCCC /* OathWriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OA004000AA00300B2F5DCCCC /* OathWriteView.swift */; };
 		OB000002OB000002OB000002 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = OB000001OB000001OB000001 /* OnboardingView.swift */; };
 		PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = PH000001PH000001PH000001 /* PlatformHelpers.swift */; };
 		PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000001PS000001PS000001 /* ProgressionSuggestion.swift */; };
 		PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */; };
 		RH000002RH000002RH000002 /* RPEHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = RH000001RH000001RH000001 /* RPEHelper.swift */; };
+		SE001001AA00300B2F5DDDDD /* SeasonModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE001000AA00300B2F5DDDDD /* SeasonModels.swift */; };
+		SE002001AA00300B2F5DDDDD /* APIService+Seasons.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */; };
+		SE003001AA00300B2F5DDDDD /* SeasonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE003000AA00300B2F5DDDDD /* SeasonView.swift */; };
+		SE004001AA00300B2F5DDDDD /* SeasonStartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */; };
+		SE005001AA00300B2F5DDDDD /* SeasonCloseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */; };
+		SE006001AA00300B2F5DDDDD /* SeasonReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */; };
+		SP001001AA00300B2F5DBBBB /* SpiritModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP001000AA00300B2F5DBBBB /* SpiritModels.swift */; };
+		SP002001AA00300B2F5DBBBB /* APIService+Spirit.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */; };
+		SP003001AA00300B2F5DBBBB /* SpiritView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP003000AA00300B2F5DBBBB /* SpiritView.swift */; };
+		SP004001AA00300B2F5DBBBB /* SpiritBreathworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */; };
+		SP005001AA00300B2F5DBBBB /* SpiritMeditationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */; };
+		SP006001AA00300B2F5DBBBB /* SpiritJournalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */; };
 		SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */; };
 		SWAP0002SWAP0002SWAP0002 /* ExerciseSwapSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */; };
 		TDYW002TDYW002TDYW002002 /* TodayWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = TDYW001TDYW001TDYW001001 /* TodayWidgets.swift */; };
 		VAR00002VAR00002VAR00002 /* CreateVariantSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */; };
 		WAV00002WAV00002WAV00002 /* WorkoutActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WAV00001WAV00001WAV00001 /* WorkoutActiveView.swift */; };
+		WR001001AA00300B2F5DAAAA /* WarRoomModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */; };
+		WR002001AA00300B2F5DAAAA /* APIService+WarRoom.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */; };
+		WR003001AA00300B2F5DAAAA /* WarRoomGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR003000AA00300B2F5DAAAA /* WarRoomGateView.swift */; };
+		WR004001AA00300B2F5DAAAA /* WarRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR004000AA00300B2F5DAAAA /* WarRoomView.swift */; };
+		WR005001AA00300B2F5DAAAA /* BattleCounterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR005000AA00300B2F5DAAAA /* BattleCounterView.swift */; };
+		WR006001AA00300B2F5DAAAA /* TriggerLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR006000AA00300B2F5DAAAA /* TriggerLogView.swift */; };
+		WR007001AA00300B2F5DAAAA /* ArsenalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR007000AA00300B2F5DAAAA /* ArsenalView.swift */; };
+		WR008001AA00300B2F5DAAAA /* PatternReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR008000AA00300B2F5DAAAA /* PatternReportView.swift */; };
+		WR009001AA00300B2F5DAAAA /* WarMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR009000AA00300B2F5DAAAA /* WarMapView.swift */; };
+		WR010001AA00300B2F5DAAAA /* WarRoomSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */; };
 		WTHR002WTHR002WTHR002002 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTHR001WTHR001WTHR001001 /* WeatherService.swift */; };
 /* End PBXBuildFile section */
 
@@ -203,52 +203,15 @@
 		0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryView.swift; sourceTree = "<group>"; };
 		07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ErrorBannerView.swift; sourceTree = "<group>"; };
 		07F5AB1A421041E59142D99A /* NutritionViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
+		106008F1BB4042C0803D076D /* GraveyardModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GraveyardModels.swift; sourceTree = "<group>"; };
 		12186D7E0477FF4F0975C7DA /* RitualView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualView.swift; sourceTree = "<group>"; };
 		1412A3C124DEC128C01A2D96 /* RitualEveningView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualEveningView.swift; sourceTree = "<group>"; };
 		15EBCC3B6A4B2F3CDA11F3EF /* ExerciseCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseCard.swift; sourceTree = "<group>"; };
 		17DD0C9095A69B34AA03E74F /* WorkoutModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutModels.swift; sourceTree = "<group>"; };
 		1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodCatalogView.swift; sourceTree = "<group>"; };
 		27D3508F57CBFDAD2C6FDA2D /* HealthKitService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
-		2B6493A275C48565558F7C13 /* WorkoutDNAModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutDNAModels.swift; sourceTree = "<group>"; };
-		A8E0A90D35DB4D65AC6116B6 /* PhoenixModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoenixModels.swift; sourceTree = "<group>"; };
-		BB850675B23D4C2E9BB57A0B /* APIService+Phoenix.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Phoenix.swift"; sourceTree = "<group>"; };
-		3FB0319AE30B4059B3096D9B /* PhoenixCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoenixCard.swift; sourceTree = "<group>"; };
-		106008F1BB4042C0803D076D /* GraveyardModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GraveyardModels.swift; sourceTree = "<group>"; };
 		28FC68105F9D4BDE956144F3 /* APIService+Graveyard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Graveyard.swift"; sourceTree = "<group>"; };
-		B5102C218CC34F1FAF908DE4 /* GraveyardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GraveyardView.swift; sourceTree = "<group>"; };
-		WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomModels.swift; sourceTree = "<group>"; };
-		WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+WarRoom.swift"; sourceTree = "<group>"; };
-		WR003000AA00300B2F5DAAAA /* WarRoomGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomGateView.swift; sourceTree = "<group>"; };
-		WR004000AA00300B2F5DAAAA /* WarRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomView.swift; sourceTree = "<group>"; };
-		WR005000AA00300B2F5DAAAA /* BattleCounterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleCounterView.swift; sourceTree = "<group>"; };
-		WR006000AA00300B2F5DAAAA /* TriggerLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerLogView.swift; sourceTree = "<group>"; };
-		WR007000AA00300B2F5DAAAA /* ArsenalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArsenalView.swift; sourceTree = "<group>"; };
-		WR008000AA00300B2F5DAAAA /* PatternReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternReportView.swift; sourceTree = "<group>"; };
-		WR009000AA00300B2F5DAAAA /* WarMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarMapView.swift; sourceTree = "<group>"; };
-		WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomSettingsView.swift; sourceTree = "<group>"; };
-		SP001000AA00300B2F5DBBBB /* SpiritModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritModels.swift; sourceTree = "<group>"; };
-		SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Spirit.swift"; sourceTree = "<group>"; };
-		SP003000AA00300B2F5DBBBB /* SpiritView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritView.swift; sourceTree = "<group>"; };
-		SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritBreathworkView.swift; sourceTree = "<group>"; };
-		SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritMeditationView.swift; sourceTree = "<group>"; };
-		SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritJournalView.swift; sourceTree = "<group>"; };
-		SE001000AA00300B2F5DDDDD /* SeasonModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonModels.swift; sourceTree = "<group>"; };
-		SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Seasons.swift"; sourceTree = "<group>"; };
-		SE003000AA00300B2F5DDDDD /* SeasonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonView.swift; sourceTree = "<group>"; };
-		SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonStartView.swift; sourceTree = "<group>"; };
-		SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonCloseView.swift; sourceTree = "<group>"; };
-		SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonReportView.swift; sourceTree = "<group>"; };
-		GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderModels.swift; sourceTree = "<group>"; };
-		GF007000AA00300B2F5DEEEE /* GymFinderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderService.swift; sourceTree = "<group>"; };
-		GF001000AA00300B2F5DEEEE /* GymContributeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymContributeView.swift; sourceTree = "<group>"; };
-		GF002000AA00300B2F5DEEEE /* GymDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymDetailView.swift; sourceTree = "<group>"; };
-		GF003000AA00300B2F5DEEEE /* GymFiltersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFiltersView.swift; sourceTree = "<group>"; };
-		GF004000AA00300B2F5DEEEE /* GymFinderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderView.swift; sourceTree = "<group>"; };
-		GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderViewModel.swift; sourceTree = "<group>"; };
-		OA001000AA00300B2F5DCCCC /* OathModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathModels.swift; sourceTree = "<group>"; };
-		OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Oath.swift"; sourceTree = "<group>"; };
-		OA003000AA00300B2F5DCCCC /* OathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathView.swift; sourceTree = "<group>"; };
-		OA004000AA00300B2F5DCCCC /* OathWriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathWriteView.swift; sourceTree = "<group>"; };
+		2B6493A275C48565558F7C13 /* WorkoutDNAModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutDNAModels.swift; sourceTree = "<group>"; };
 		2CCC113F806D404EB7F7D565 /* BehaviorTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehaviorTracker.swift; sourceTree = "<group>"; };
 		325289C855B34EF58D37849F /* CoachMemoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMemoryStore.swift; sourceTree = "<group>"; };
 		32F1EC5F94087F4D7DE3F244 /* BodyCompService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompService.swift; sourceTree = "<group>"; };
@@ -258,6 +221,7 @@
 		3804A04195775D974B912B1B /* TrainingOS.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; name = TrainingOS.entitlements; path = TrainingOS/TrainingOS.entitlements; sourceTree = "<group>"; };
 		387B78078AEB4A1E9AA577C1 /* SleepView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SleepView.swift; sourceTree = "<group>"; };
 		3BF5B0FFF277946C524E44D3 /* RitualModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualModels.swift; sourceTree = "<group>"; };
+		3FB0319AE30B4059B3096D9B /* PhoenixCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoenixCard.swift; sourceTree = "<group>"; };
 		4BD5FB27DA5D308C889BDBF9 /* ReadinessModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReadinessModels.swift; sourceTree = "<group>"; };
 		4F922AFAAF1C2226DC78C22E /* BodyBudgetModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyBudgetModels.swift; sourceTree = "<group>"; };
 		51D25C3758A0A6DEB7E93A6C /* APIService+TimeCapsule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+TimeCapsule.swift"; sourceTree = "<group>"; };
@@ -279,6 +243,7 @@
 		A76154790AE80AF270345B19 /* TimeCapsuleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimeCapsuleModels.swift; sourceTree = "<group>"; };
 		A7692E44A985A89B88122708 /* APIService+WorkoutDNA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+WorkoutDNA.swift"; sourceTree = "<group>"; };
 		A8115703CA371513172F372F /* DashboardViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		A8E0A90D35DB4D65AC6116B6 /* PhoenixModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoenixModels.swift; sourceTree = "<group>"; };
 		A937EBC71FB17046EDA80FA1 /* NutritionModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NutritionModels.swift; sourceTree = "<group>"; };
 		A9F578FC8AECBFD3FF6B65C2 /* TrainingOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0010012F5D98B8002AE470 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
@@ -307,11 +272,13 @@
 		APISL001APISL001APISL001 /* APIService+Sleep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Sleep.swift"; sourceTree = "<group>"; };
 		APIWE001APIWE001APIWE001 /* APIService+Wellness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Wellness.swift"; sourceTree = "<group>"; };
 		APIWO001APIWO001APIWO001 /* APIService+Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Workout.swift"; sourceTree = "<group>"; };
+		B5102C218CC34F1FAF908DE4 /* GraveyardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GraveyardView.swift; sourceTree = "<group>"; };
 		BAC82E18346773B8F8591B8F /* RitualMorningView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualMorningView.swift; sourceTree = "<group>"; };
 		BB001002BB001002BB001002 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		BB2200012F5D98BA002AE470 /* WearableService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WearableService.swift; sourceTree = "<group>"; };
 		BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDashboardView.swift; sourceTree = "<group>"; };
 		BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonusSeanceView.swift; sourceTree = "<group>"; };
+		BB850675B23D4C2E9BB57A0B /* APIService+Phoenix.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Phoenix.swift"; sourceTree = "<group>"; };
 		BC0000022F5D98BA002AE470 /* BodyCompEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompEntry.swift; sourceTree = "<group>"; };
 		BC0000042F5D98BA002AE470 /* NavyCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavyCalculatorView.swift; sourceTree = "<group>"; };
 		BC0000062F5D98BA002AE470 /* BodyCompHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompHistoryView.swift; sourceTree = "<group>"; };
@@ -363,33 +330,62 @@
 		F4D4DE4EE839463B0D4AB746 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		FF1100002F5D98BA002AE470 /* WatchSyncService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchSyncService.swift; sourceTree = "<group>"; };
 		FF11000A2F5D98BA002AE470 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
+		GF001000AA00300B2F5DEEEE /* GymContributeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymContributeView.swift; sourceTree = "<group>"; };
+		GF002000AA00300B2F5DEEEE /* GymDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymDetailView.swift; sourceTree = "<group>"; };
+		GF003000AA00300B2F5DEEEE /* GymFiltersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFiltersView.swift; sourceTree = "<group>"; };
+		GF004000AA00300B2F5DEEEE /* GymFinderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderView.swift; sourceTree = "<group>"; };
+		GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderViewModel.swift; sourceTree = "<group>"; };
+		GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderModels.swift; sourceTree = "<group>"; };
+		GF007000AA00300B2F5DEEEE /* GymFinderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GymFinderService.swift; sourceTree = "<group>"; };
 		NHLS001NHLS001NHLS001001 /* NHLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NHLService.swift; sourceTree = "<group>"; };
 		NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
+		OA001000AA00300B2F5DCCCC /* OathModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathModels.swift; sourceTree = "<group>"; };
+		OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Oath.swift"; sourceTree = "<group>"; };
+		OA003000AA00300B2F5DCCCC /* OathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathView.swift; sourceTree = "<group>"; };
+		OA004000AA00300B2F5DCCCC /* OathWriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OathWriteView.swift; sourceTree = "<group>"; };
 		OB000001OB000001OB000001 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		PH000001PH000001PH000001 /* PlatformHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformHelpers.swift; sourceTree = "<group>"; };
 		PS000001PS000001PS000001 /* ProgressionSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestion.swift; sourceTree = "<group>"; };
 		PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestionsSheet.swift; sourceTree = "<group>"; };
 		RH000001RH000001RH000001 /* RPEHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPEHelper.swift; sourceTree = "<group>"; };
+		SE001000AA00300B2F5DDDDD /* SeasonModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonModels.swift; sourceTree = "<group>"; };
+		SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Seasons.swift"; sourceTree = "<group>"; };
+		SE003000AA00300B2F5DDDDD /* SeasonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonView.swift; sourceTree = "<group>"; };
+		SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonStartView.swift; sourceTree = "<group>"; };
+		SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonCloseView.swift; sourceTree = "<group>"; };
+		SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeasonReportView.swift; sourceTree = "<group>"; };
+		SP001000AA00300B2F5DBBBB /* SpiritModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritModels.swift; sourceTree = "<group>"; };
+		SP002000AA00300B2F5DBBBB /* APIService+Spirit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Spirit.swift"; sourceTree = "<group>"; };
+		SP003000AA00300B2F5DBBBB /* SpiritView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritView.swift; sourceTree = "<group>"; };
+		SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritBreathworkView.swift; sourceTree = "<group>"; };
+		SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritMeditationView.swift; sourceTree = "<group>"; };
+		SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpiritJournalView.swift; sourceTree = "<group>"; };
 		SSV00001SSV00001SSV00001 /* SessionSupportViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionSupportViews.swift; sourceTree = "<group>"; };
 		SWAP0001SWAP0001SWAP0001 /* ExerciseSwapSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseSwapSheet.swift; sourceTree = "<group>"; };
 		TDYW001TDYW001TDYW001001 /* TodayWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayWidgets.swift; sourceTree = "<group>"; };
 		VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateVariantSheet.swift; sourceTree = "<group>"; };
 		WAV00001WAV00001WAV00001 /* WorkoutActiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutActiveView.swift; sourceTree = "<group>"; };
+		WR001000AA00300B2F5DAAAA /* WarRoomModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomModels.swift; sourceTree = "<group>"; };
+		WR002000AA00300B2F5DAAAA /* APIService+WarRoom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+WarRoom.swift"; sourceTree = "<group>"; };
+		WR003000AA00300B2F5DAAAA /* WarRoomGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomGateView.swift; sourceTree = "<group>"; };
+		WR004000AA00300B2F5DAAAA /* WarRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomView.swift; sourceTree = "<group>"; };
+		WR005000AA00300B2F5DAAAA /* BattleCounterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BattleCounterView.swift; sourceTree = "<group>"; };
+		WR006000AA00300B2F5DAAAA /* TriggerLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerLogView.swift; sourceTree = "<group>"; };
+		WR007000AA00300B2F5DAAAA /* ArsenalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArsenalView.swift; sourceTree = "<group>"; };
+		WR008000AA00300B2F5DAAAA /* PatternReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternReportView.swift; sourceTree = "<group>"; };
+		WR009000AA00300B2F5DAAAA /* WarMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarMapView.swift; sourceTree = "<group>"; };
+		WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomSettingsView.swift; sourceTree = "<group>"; };
 		WTHR001WTHR001WTHR001001 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D665E4272F5D9858002AE470 /* TrainingOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = TrainingOS;
 			sourceTree = "<group>";
 		};
 		D69FB9062F666F3F0091BDD2 /* TrainingOSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = TrainingOSTests;
 			sourceTree = "<group>";
 		};
@@ -814,49 +810,6 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		SP000000AA00300B2F5DBBBB /* Spirit */ = {
-			isa = PBXGroup;
-			children = (
-				SP003000AA00300B2F5DBBBB /* SpiritView.swift */,
-				SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */,
-				SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */,
-				SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */,
-			);
-			path = Spirit;
-			sourceTree = "<group>";
-		};
-		OA000000AA00300B2F5DCCCC /* Oath */ = {
-			isa = PBXGroup;
-			children = (
-				OA003000AA00300B2F5DCCCC /* OathView.swift */,
-				OA004000AA00300B2F5DCCCC /* OathWriteView.swift */,
-			);
-			path = Oath;
-			sourceTree = "<group>";
-		};
-		SE000000AA00300B2F5DDDDD /* Seasons */ = {
-			isa = PBXGroup;
-			children = (
-				SE003000AA00300B2F5DDDDD /* SeasonView.swift */,
-				SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */,
-				SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */,
-				SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */,
-			);
-			path = Seasons;
-			sourceTree = "<group>";
-		};
-		GF000000AA00300B2F5DEEEE /* GymFinder */ = {
-			isa = PBXGroup;
-			children = (
-				GF001000AA00300B2F5DEEEE /* GymContributeView.swift */,
-				GF002000AA00300B2F5DEEEE /* GymDetailView.swift */,
-				GF003000AA00300B2F5DEEEE /* GymFiltersView.swift */,
-				GF004000AA00300B2F5DEEEE /* GymFinderView.swift */,
-				GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */,
-			);
-			path = GymFinder;
-			sourceTree = "<group>";
-		};
 		DD44000F2F5D98BA002AE473 /* MentalHealth */ = {
 			isa = PBXGroup;
 			children = (
@@ -887,12 +840,55 @@
 			path = Recovery;
 			sourceTree = "<group>";
 		};
+		GF000000AA00300B2F5DEEEE /* GymFinder */ = {
+			isa = PBXGroup;
+			children = (
+				GF001000AA00300B2F5DEEEE /* GymContributeView.swift */,
+				GF002000AA00300B2F5DEEEE /* GymDetailView.swift */,
+				GF003000AA00300B2F5DEEEE /* GymFiltersView.swift */,
+				GF004000AA00300B2F5DEEEE /* GymFinderView.swift */,
+				GF005000AA00300B2F5DEEEE /* GymFinderViewModel.swift */,
+			);
+			path = GymFinder;
+			sourceTree = "<group>";
+		};
+		OA000000AA00300B2F5DCCCC /* Oath */ = {
+			isa = PBXGroup;
+			children = (
+				OA003000AA00300B2F5DCCCC /* OathView.swift */,
+				OA004000AA00300B2F5DCCCC /* OathWriteView.swift */,
+			);
+			path = Oath;
+			sourceTree = "<group>";
+		};
 		OB000003OB000003OB000003 /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
 				OB000001OB000001OB000001 /* OnboardingView.swift */,
 			);
 			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		SE000000AA00300B2F5DDDDD /* Seasons */ = {
+			isa = PBXGroup;
+			children = (
+				SE003000AA00300B2F5DDDDD /* SeasonView.swift */,
+				SE004000AA00300B2F5DDDDD /* SeasonStartView.swift */,
+				SE005000AA00300B2F5DDDDD /* SeasonCloseView.swift */,
+				SE006000AA00300B2F5DDDDD /* SeasonReportView.swift */,
+			);
+			path = Seasons;
+			sourceTree = "<group>";
+		};
+		SP000000AA00300B2F5DBBBB /* Spirit */ = {
+			isa = PBXGroup;
+			children = (
+				SP003000AA00300B2F5DBBBB /* SpiritView.swift */,
+				SP004000AA00300B2F5DBBBB /* SpiritBreathworkView.swift */,
+				SP005000AA00300B2F5DBBBB /* SpiritMeditationView.swift */,
+				SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */,
+			);
+			path = Spirit;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1380,7 +1376,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3ZFPQW4FCD;
+				DEVELOPMENT_TEAM = UZ9DNDCX9Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = VinceSeven;
@@ -1422,7 +1418,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 3ZFPQW4FCD;
+				DEVELOPMENT_TEAM = UZ9DNDCX9Z;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = VinceSeven;
