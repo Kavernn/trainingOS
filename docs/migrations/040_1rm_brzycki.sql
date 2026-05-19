@@ -13,7 +13,8 @@
 -- Structure : sous-requête enveloppante pour calculer max_reps une seule fois
 -- et l'utiliser dans les deux expressions CASE sans répéter la correlated subquery.
 
-CREATE OR REPLACE VIEW v_exercise_current AS
+DROP VIEW IF EXISTS v_exercise_current;
+CREATE VIEW v_exercise_current AS
 SELECT
     sub.exercise_id,
     sub.exercise_name,

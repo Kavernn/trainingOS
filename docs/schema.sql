@@ -468,7 +468,8 @@ INSERT INTO deload_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 -- Use this to answer "what is the current working weight for Bench Press?"
 -- 1RM computation: Epley ≤10 reps, Brzycki 11-20 reps, NULL >20 reps.
 -- See migration 040_1rm_brzycki.sql for details.
-CREATE OR REPLACE VIEW v_exercise_current AS
+DROP VIEW IF EXISTS v_exercise_current;
+CREATE VIEW v_exercise_current AS
 SELECT
     sub.exercise_id,
     sub.exercise_name,
