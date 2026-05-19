@@ -122,6 +122,8 @@ struct ACWRData: Codable {
     let ratio: Double
     let acuteLoad: Double
     let chronicLoad: Double
+    // zone est non-optionnel : si le backend retourne zone:null, JSONDecoder throw
+    // → acwr reste nil → la condition "if let a = acwr" ne s'exécute pas → safe.
     let zone: ACWRZone
     let trend: [ACWRWeek]
     let confidence: String  // "low" | "moderate" | "high"

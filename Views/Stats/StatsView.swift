@@ -855,11 +855,8 @@ struct StatsView: View {
         let weekday = ((epochDays + 4) % 7) + 1
         let daysSinceMonday = (weekday + 5) % 7
         let mondayStr = fmt.string(from: Date(timeIntervalSince1970: base - Double(daysSinceMonday) * 86400.0))
-        let fromSessions = sessions.compactMap { date, s -> Double? in
-            guard date >= mondayStr, let vol = s.sessionVolume, vol > 0 else { return nil }
-            return UnitSettings.shared.display(vol)
-        }.reduce(0, +)
-        cachedWeeklyVolume = fromSessions > 0 ? fromSessions : weights.values.flatMap { $0.history ?? [] }.compactMap { e -> Double? in
+        // Unique source de vérité : exercise history, identique à weeklyVolumeChart.
+        cachedWeeklyVolume = weights.values.flatMap { $0.history ?? [] }.compactMap { e -> Double? in
             guard let date = e.date, date >= mondayStr else { return nil }
             if let vol = e.exerciseVolume, vol > 0 { return UnitSettings.shared.display(vol) }
             guard let w = e.weight, let r = e.reps else { return nil }

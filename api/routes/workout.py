@@ -1148,8 +1148,8 @@ def api_progression_suggestions():
 
 @workout_bp.route("/api/hiit_data")
 def api_hiit_data():
-    from utils import load_hiit_log_local
-    hiit_log = load_hiit_log_local()
+    from utils import load_hiit_log
+    hiit_log = load_hiit_log()
     total    = len(hiit_log)
     avg_rpe  = round(sum(e.get("rpe", 0) for e in hiit_log) / total, 1) if total else 0
     return jsonify({

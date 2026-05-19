@@ -16,7 +16,7 @@ def api_dashboard():
                          get_suggested_weights_for_today)
     from nutrition import (load_settings as load_nutrition_settings, get_today_totals)
     from blocks import get_strength_exercises
-    from utils import get_current_week, load_hiit_log_local
+    from utils import get_current_week, load_hiit_log
     import db as _db
 
     weights      = load_weights()
@@ -27,7 +27,7 @@ def api_dashboard():
         profile["weight"] = latest_bw[0].get("weight")
     goals        = load_goals()
     full_program = load_program()
-    hiit_log     = load_hiit_log_local()
+    hiit_log     = load_hiit_log()
     nutrition_totals = get_today_totals()
     today_str    = get_today()
     today_date   = get_today_date()

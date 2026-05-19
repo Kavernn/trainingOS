@@ -235,9 +235,13 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def load_hiit_log_local() -> list:
+def load_hiit_log() -> list:
     import db as _db
     return _db.get_hiit_logs(limit=200) or []
+
+
+# Alias rétrocompatibilité — à supprimer quand tous les call sites sont migrés
+load_hiit_log_local = load_hiit_log
 
 
 # ── Scheme / Muscle helpers ───────────────────────────────────

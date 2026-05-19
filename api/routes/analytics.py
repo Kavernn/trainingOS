@@ -287,11 +287,11 @@ def api_insights_correlations():
 def api_stats_data():
     from weights import load_weights
     from body_weight import load_body_weight
-    from nutrition import (load_settings as load_nutrition_settings, get_recent_days)
+    from nutrition import (load_settings as load_nutrition_settings)
     from inventory import load_inventory
     from utils import _calc_muscle_stats, _calc_weekly_sets_per_muscle, MUSCLE_LANDMARKS
     import db as _db
-    from utils import load_hiit_log_local
+    from utils import load_hiit_log
 
     weights      = load_weights()
     all_sessions = _db.get_workout_sessions(limit=500)
@@ -300,11 +300,12 @@ def api_stats_data():
         for s in all_sessions
         if isinstance(s, dict) and (s.get("completed") or s.get("rpe") is not None)
     }
-    hiit_log     = load_hiit_log_local()
+    hiit_log     = load_hiit_log()
     body_weight  = load_body_weight()
     recovery_log = _db.get_recovery_logs() or []
     nutr_settings = load_nutrition_settings()
-    nutr_entries  = get_recent_days(180)  # 6M max — filtrage par période côté Swift
+    # get_nutrition_daily_full inclut glucides + lipides (nécessaires pour MacrosBreakdownView)
+    nutr_entries  = _db.get_nutrition_daily_full(180)  # 6M max — filtrage par période côté Swift
     inventory       = load_inventory() or {}
     muscle_stats    = _calc_muscle_stats(sessions, weights, inventory)
     weekly_sets     = _calc_weekly_sets_per_muscle(weights, inventory)
