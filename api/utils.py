@@ -237,7 +237,7 @@ def allowed_file(filename):
 
 def load_hiit_log_local() -> list:
     import db as _db
-    return _db.get_hiit_logs() or []
+    return _db.get_hiit_logs(limit=200) or []
 
 
 # ── Scheme / Muscle helpers ───────────────────────────────────

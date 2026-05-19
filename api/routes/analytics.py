@@ -304,7 +304,7 @@ def api_stats_data():
     body_weight  = load_body_weight()
     recovery_log = _db.get_recovery_logs() or []
     nutr_settings = load_nutrition_settings()
-    nutr_entries  = get_recent_days(30)
+    nutr_entries  = get_recent_days(180)  # 6M max — filtrage par période côté Swift
     inventory       = load_inventory() or {}
     muscle_stats    = _calc_muscle_stats(sessions, weights, inventory)
     weekly_sets     = _calc_weekly_sets_per_muscle(weights, inventory)

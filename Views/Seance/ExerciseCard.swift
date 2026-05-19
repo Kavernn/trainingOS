@@ -218,6 +218,7 @@ struct ExerciseCard: View {
     @AppStorage("auto_start_rest_timer") private var autoStartTimer = false
     @AppStorage("show_rir_column") private var showRIRColumn = false
     @State private var confirmSkip = false
+    @State private var confirmSwapAfterLog = false
     @State private var showAdvanced = false
     @State private var showPlateCalculator = false
     @State private var showMediaSheet = false
@@ -800,6 +801,17 @@ struct ExerciseCard: View {
                 withAnimation(.easeOut(duration: 0.2)) { showUndo = false }
             }
         }
+        .confirmationDialog("Changer l'exercice ?", isPresented: $confirmSwapAfterLog, titleVisibility: .visible) {
+            Button("Changer et effacer le log", role: .destructive) {
+                logResult = nil
+                evm.resetAfterClear()
+                triggerImpact(style: .medium)
+                onSwap?()
+            }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Le log de cet exercice sera effacé.")
+        }
         .confirmationDialog(Text("Sauter \(name) ?"), isPresented: $confirmSkip, titleVisibility: .visible) {
             Button("Sauter cet exercice", role: .destructive) {
                 evm.isSkipped = true
@@ -972,8 +984,15 @@ struct ExerciseCard: View {
                 .background(Color.purple.opacity(0.1)).clipShape(Capsule())
             }
             .buttonStyle(.plain)
-            if !alreadyLogged, let onSwap {
-                Button { triggerImpact(style: .light); onSwap() } label: {
+            if let onSwap {
+                Button {
+                    if alreadyLogged {
+                        confirmSwapAfterLog = true
+                    } else {
+                        triggerImpact(style: .light)
+                        onSwap()
+                    }
+                } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "arrow.left.arrow.right").font(.system(size: 11))
                         Text("Changer").font(.system(size: 12, weight: .semibold))

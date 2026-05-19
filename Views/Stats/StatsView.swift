@@ -174,10 +174,10 @@ struct StatsView: View {
                 guard let date = e.date else { continue }
                 let vol: Double
                 if let ev = e.exerciseVolume, ev > 0 {
-                    vol = ev
+                    vol = UnitSettings.shared.display(ev)
                 } else {
                     guard let w = e.weight, let r = e.reps else { continue }
-                    vol = w * totalReps(r)
+                    vol = UnitSettings.shared.display(w * totalReps(r))
                 }
                 vols[isoWeekKey(date), default: 0] += vol
             }
@@ -311,7 +311,7 @@ struct StatsView: View {
                 insights.append(("arrow.down.circle.fill", "Fréquence \(pct)% vs les 4 semaines précédentes. Le rythme faiblit.", .orange))
             }
         }
-        if let a = acwr, a.zone.code == "caution" || a.zone.code == "danger" {
+        if let a = acwr, ["caution", "danger"].contains(a.zone.code) {
             insights.append(("exclamationmark.triangle.fill", "ACWR \(String(format: "%.2f", a.ratio)) — tu surcharges ta base. La fatigue s'accumule.", .red))
         }
         if currentStreak > 0 && currentStreak < bestStreak && currentStreak >= bestStreak - 2 {
@@ -875,13 +875,17 @@ struct StatsView: View {
                     return sets.compactMap { s -> Double? in
                         let r = avgReps(s.reps)
                         guard r >= 1, r <= 15, s.weight > 0 else { return nil }
-                        return s.weight * (1 + r / 30.0)
+                        return r <= 10
+                            ? s.weight * (1 + r / 30.0)
+                            : s.weight * (36.0 / (37.0 - r))
                     }.max()
                 }
                 guard let w = e.weight, w > 0, let r = e.reps else { return nil }
                 let avg = avgReps(r)
                 guard avg >= 1, avg <= 15 else { return nil }
-                return w * (1 + avg / 30.0)
+                return avg <= 10
+                    ? w * (1 + avg / 30.0)
+                    : w * (36.0 / (37.0 - avg))
             }.max()
             return best.map { (name, $0) }
         }

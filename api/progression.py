@@ -323,7 +323,7 @@ def estimate_1rm(weight: float, reps_str: str) -> float | None:
         if not reps:
             return 0.0
         avg_reps = sum(reps) / len(reps)
-        if avg_reps > 20:
+        if avg_reps > 15:
             return None
         if avg_reps > 10:
             return round(weight * (36 / (37 - avg_reps)), 1)
