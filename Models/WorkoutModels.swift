@@ -452,17 +452,43 @@ enum EquipmentConversion: Equatable {
         }
     }
 
-    /// Returns the converted weight, or nil when types are not directly comparable.
+    /// Returns an estimated converted weight, or nil when types are not comparable.
+    /// All cross-equipment conversions are estimates — never use for progression decisions.
+    /// Progression is always tracked per (exercise, equipment) pair.
     func convert(_ weight: Double) -> Double? {
         switch self {
-        case .dumbbellToBarbell: return weight * 2
-        case .barbellToDumbbell: return weight / 2
-        default: return nil
+        case .dumbbellToBarbell:
+            // Dumbbells demand ~15% more stabilisation effort than a barbell.
+            // Applying a 0.85 correction yields a more realistic barbell equivalent.
+            return (weight * 2) * 0.85
+        case .barbellToDumbbell:
+            return (weight / 2) * (1.0 / 0.85)
+        default:
+            return nil
         }
+    }
+
+    /// True for any conversion that is an estimate (not an exact equivalence).
+    var isEstimate: Bool {
+        self != .sameType
     }
 
     var requiresWarning: Bool {
         self == .machineToFree || self == .freeToMachine
+    }
+
+    /// User-facing note explaining conversion limitations.
+    var conversionNote: String? {
+        switch self {
+        case .dumbbellToBarbell:
+            return "Estimation — les haltères exigent plus de stabilisation que la barre"
+        case .barbellToDumbbell:
+            return "Estimation — barre et haltères ne sont pas directement comparables"
+        case .machineToFree, .freeToMachine:
+            return "Conversion impossible — patterns neuromusculaires différents"
+        default:
+            return nil
+        }
     }
 }
 

@@ -52,10 +52,15 @@ def _uid(*parts) -> str:
 
 
 def _epley_1rm(weight: float, reps: int) -> float:
+    """Estimation 1RM : Epley ≤10 reps, Brzycki 11-20 reps, 0.0 si >20 reps."""
     if weight <= 0 or reps <= 0:
         return 0.0
     if reps == 1:
         return weight
+    if reps > 20:
+        return 0.0
+    if reps > 10:
+        return round(weight * (36 / (37 - reps)), 1)
     return round(weight * (1 + reps / 30.0), 1)
 
 

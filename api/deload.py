@@ -388,11 +388,32 @@ def _estimate_fatigue_duration(sessions: dict, log_by_date: dict, today) -> int:
         s   = sessions.get(d, {})
         rec = log_by_date.get(d, {})
         rpe   = float(s.get("rpe") or 0)
-        sleep = float(rec.get("sleep_quality") or 10)
+        sleep = _adjusted_sleep_quality(rec) if rec else 10.0
         mood  = float(rec.get("mood") or 10)
         if rpe >= 8.5 or sleep <= 4.0 or mood <= 3.0:
             return i
     return 0
+
+
+def _adjusted_sleep_quality(rec: dict) -> float:
+    """Retourne la qualité de sommeil ajustée avec priorité aux données HealthKit.
+
+    Si HealthKit fournit une durée objective très courte, le score subjectif est
+    plafonné pour refléter la réalité physiologique — indépendamment du slider.
+
+    Seuils de durée (Watson et al. 2015, AASM) :
+      <5h → qualité forcée à ≤4.0 (mauvais)
+      <6h → qualité plafonnée à ≤6.0 (dégradé)
+    """
+    quality = float(rec.get("sleep_quality") or 10)
+    sleep_hours = float(rec.get("sleep_hours") or 0)
+    source = rec.get("sleep_source", "manual")
+    if source == "healthkit" and sleep_hours > 0:
+        if sleep_hours < 5:
+            quality = min(quality, 4.0)
+        elif sleep_hours < 6:
+            quality = min(quality, 6.0)
+    return quality
 
 
 def diagnose_fatigue_type(weights: dict | None = None) -> dict:
@@ -449,6 +470,11 @@ def diagnose_fatigue_type(weights: dict | None = None) -> dict:
                 markers["rpe_high_stable_load"] = True
 
     # ── Marqueur 2 : Humeur basse persistante (≥5 jours sur 7) ──────────────
+    # Échelle : 0–10 (wellness slider, auto-rapporté).
+    # ⚠️  Ce marqueur seul ne suffit PAS à diagnostiquer la fatigue centrale.
+    #     Il faut ≥3 marqueurs cumulés (Meeusen et al. 2013 — ECSS/ACSM consensus).
+    #     Les sliders sont des indicateurs de tendance, non des instruments validés
+    #     (POMS / RESTQ-Sport / DALDA). Ils sont utilisés en combinaison uniquement.
     moods_7j = [
         float(log_by_date[d].get("mood") or 0)
         for d in dates_14j[:7]
@@ -458,8 +484,12 @@ def diagnose_fatigue_type(weights: dict | None = None) -> dict:
         markers["mood_low"] = True
 
     # ── Marqueur 3 : Sommeil perturbé persistant (≥5 jours sur 7) ───────────
+    # Échelle : 1–10. Seuil : moyenne ≤4.0 = "mauvaise qualité persistante".
+    # Priorité aux données objectives HealthKit : si la durée est <5h, la qualité
+    # est plafonnée à 4 même si le slider subjektif est plus élevé.
+    # Référence durée : Watson et al. 2015, AASM — <6h = dégradé, <5h = mauvais.
     sleeps_7j = [
-        float(log_by_date[d].get("sleep_quality") or 0)
+        _adjusted_sleep_quality(log_by_date[d])
         for d in dates_14j[:7]
         if d in log_by_date and log_by_date[d].get("sleep_quality") is not None
     ]
@@ -543,6 +573,7 @@ def analyser_deload(weights: dict) -> dict:
     - stagnations détectées
     - fatigue RPE
     - diagnostic fatigue centrale vs périphérique (Meeusen et al. 2013)
+    - ACWR EWMA (Gabbett 2016) — trigger additionnel si ratio > 1.5
     - recommandation deload oui/non
     - poids suggérés adaptés au type de fatigue
     """
@@ -554,11 +585,31 @@ def analyser_deload(weights: dict) -> dict:
     planned      = check_planned_deload()
     state        = load_deload_state()
 
+    # ── ACWR EWMA (Gabbett 2016, Williams et al. 2017) ──────────────────────
+    acwr_ratio = 0.0
+    acwr_zone  = "unknown"
+    acwr_confidence = "low"
+    try:
+        from acwr import calc_acwr
+        acwr_data       = calc_acwr()
+        acwr_ratio      = float(acwr_data.get("ratio") or 0)
+        acwr_zone       = (acwr_data.get("zone") or {}).get("code", "unknown")
+        acwr_confidence = acwr_data.get("confidence", "low")
+    except Exception:
+        pass
+
+    # ACWR danger (>1.5) avec données fiables → trigger de déload additionnel
+    acwr_trigger = (
+        acwr_zone == "danger"
+        and acwr_confidence in ("moderate", "high")
+    )
+
     recommande = (
         len(stagnants) >= 2
         or fatigue["fatigue"]
         or len(drops) > 0
         or planned["due"]
+        or acwr_trigger
     )
 
     stagnant_names = [s["exercise"] for s in stagnants]
@@ -587,6 +638,9 @@ def analyser_deload(weights: dict) -> dict:
         "markers_detail":        fatigue_diag["markers_detail"],
         "fatigue_duration_days": fatigue_diag["duration_days"],
         "coach_message":         _deload_coach_message(fatigue_type),
+        "acwr":                  round(acwr_ratio, 2),
+        "acwr_zone":             acwr_zone,
+        "acwr_trigger":          acwr_trigger,
     }
 
     return rapport

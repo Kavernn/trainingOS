@@ -165,6 +165,7 @@ def _suggest_for_exercise(
     prev_log: dict,
     info: dict,
     history: list[dict],
+    phase: Optional[str] = None,
 ) -> Optional[dict]:
     """
     Run the full progression logic for a single exercise.
@@ -225,7 +226,17 @@ def _suggest_for_exercise(
     if top_reps == 0:
         return None
 
-    threshold = 1.0 if load_profile in ("isolation", "endurance_strength") else 0.9
+    # Seuils de hit rate — ajustés par phase si périodisation activée (opt-in)
+    if phase:
+        from utils import get_phase_params
+        params = get_phase_params(phase)
+        threshold = (
+            params["hit_rate_isolation"]
+            if load_profile in ("isolation", "endurance_strength")
+            else params["hit_rate_compound"]
+        )
+    else:
+        threshold = 1.0 if load_profile in ("isolation", "endurance_strength") else 0.9
     hit       = _hit_rate(working, top_reps)
     plateau   = _plateau_count(history, cur_max_w) if cur_max_w else 0
 
@@ -387,6 +398,7 @@ def generate_suggestions(
     session_type: str,
     session_name: str = "",
     session_exercises: Optional[list] = None,
+    phase: Optional[str] = None,
 ) -> list[dict]:
     """
     Return suggestion dicts for each exercise in the current session.
@@ -473,7 +485,7 @@ def generate_suggestions(
         if not prev_log:
             continue
         history  = history_bulk.get(name, [])
-        s = _suggest_for_exercise(name, log, prev_log, info, history)
+        s = _suggest_for_exercise(name, log, prev_log, info, history, phase=phase)
         if s is None:
             continue
         if s["suggestion_type"] == "regression":

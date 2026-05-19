@@ -266,6 +266,27 @@ def api_ai_coach():
         except Exception:
             pass
 
+        # ACWR block — charge aiguë/chronique (Gabbett 2016, EWMA)
+        acwr_block = ""
+        try:
+            from acwr import calc_acwr
+            acwr_data = calc_acwr()
+            acwr_ratio = float(acwr_data.get("ratio") or 0)
+            acwr_zone  = (acwr_data.get("zone") or {})
+            acwr_conf  = acwr_data.get("confidence", "low")
+            acwr_days  = acwr_data.get("days_of_data", 0)
+            if acwr_days >= 7 and acwr_conf in ("moderate", "high"):
+                zone_label = acwr_zone.get("label", "")
+                zone_reco  = acwr_zone.get("recommendation", "")
+                acwr_block = (
+                    f"=== CHARGE AIGUË/CHRONIQUE (ACWR EWMA) ===\n"
+                    f"Ratio : {acwr_ratio:.2f} — {zone_label}\n"
+                    f"Recommandation : {zone_reco}\n"
+                    f"Données : {acwr_days} jours (confiance : {acwr_conf})"
+                )
+        except Exception:
+            pass
+
         # Progression suggestions block — from smart_progression engine
         prog_block = ""
         try:
@@ -381,6 +402,8 @@ def api_ai_coach():
         system_parts = [system_base]
         if context:
             system_parts.append(f"DONNÉES ATHLÈTE EN TEMPS RÉEL:\n{context}")
+        if acwr_block:
+            system_parts.append(acwr_block)
         if spirit_block:
             system_parts.append(spirit_block)
         if war_room_block:

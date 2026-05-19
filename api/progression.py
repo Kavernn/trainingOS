@@ -308,15 +308,42 @@ def next_weight(exercise: str, current_weight: float) -> float:
     return round(current_weight + _get_increment(exercise), 1)
 
 
-def estimate_1rm(weight: float, reps_str: str) -> float:
+def estimate_1rm(weight: float, reps_str: str) -> float | None:
+    """Estime le 1RM avec sélection de formule selon le range de reps.
+
+    ≤10 reps → Epley  (weight × (1 + reps/30))       — précis dans ce range
+    >10 reps → Brzycki (weight × (36 / (37 - reps)))  — conservateur, sous-estime
+                                                          plutôt que surestime (plus sûr)
+    >20 reps → None   — trop imprécis pour programmer des charges; ne pas afficher
+
+    Référence : Epley (1985), Brzycki (1993).
+    """
     try:
         reps = parse_reps(reps_str)
         if not reps:
             return 0.0
         avg_reps = sum(reps) / len(reps)
+        if avg_reps > 20:
+            return None
+        if avg_reps > 10:
+            return round(weight * (36 / (37 - avg_reps)), 1)
         return round(weight * (1 + avg_reps / 30), 1)
     except Exception:
         return 0.0
+
+
+def estimate_1rm_confidence(avg_reps: float) -> str:
+    """Niveau de confiance de l'estimation 1RM.
+
+    "high"   : ≤10 reps  — Epley précis, utiliser pour programmer les charges
+    "medium" : 11-15 reps — Brzycki, afficher avec avertissement
+    "low"    : >15 reps  — ne pas utiliser pour programmer les charges
+    """
+    if avg_reps <= 10:
+        return "high"
+    if avg_reps <= 15:
+        return "medium"
+    return "low"
 
 
 def progression_status(reps_str: str, exercise: str) -> str:

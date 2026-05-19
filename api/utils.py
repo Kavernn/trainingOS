@@ -141,6 +141,95 @@ def get_mesocycle_info() -> dict:
     }
 
 
+# ── Périodisation par phase (opt-in) ────────────────────────────────────────
+# Seuils de hit rate et volume max ajustés selon la phase du mésocycle.
+# Utilisés par smart_progression.py quand phase != None.
+# Défaut (phase=None) → comportement actuel inchangé (compound 90%, isolation 100%).
+#
+# Source : Israetel et al. (RP Hypertrophy), NSCA Essentials of Strength Training.
+
+_PHASE_PARAMS: dict[str, dict] = {
+    "Mise en place": {
+        "hit_rate_compound":  0.85,   # Tolérant — apprentissage des patterns moteurs
+        "hit_rate_isolation": 0.90,
+        "max_sets":           3,
+        "rpe_deload_trigger": 9.0,    # Moins sensible en début de cycle
+    },
+    "Accumulation": {
+        "hit_rate_compound":  0.90,   # Standard
+        "hit_rate_isolation": 1.00,
+        "max_sets":           5,      # Volume maximal du mésocycle
+        "rpe_deload_trigger": 8.5,
+    },
+    "Surcharge": {
+        "hit_rate_compound":  0.95,   # Strict — charges lourdes, chaque rep compte
+        "hit_rate_isolation": 1.00,
+        "max_sets":           3,      # Volume réduit, intensité haute
+        "rpe_deload_trigger": 8.0,    # Sensible — on approche du max
+    },
+    "Deload": {
+        "hit_rate_compound":  0.80,
+        "hit_rate_isolation": 0.80,
+        "max_sets":           2,
+        "rpe_deload_trigger": 10.0,   # Jamais de trigger pendant un deload actif
+    },
+    "Nouveau cycle": {
+        "hit_rate_compound":  0.90,
+        "hit_rate_isolation": 1.00,
+        "max_sets":           4,
+        "rpe_deload_trigger": 8.5,
+    },
+}
+
+_PHASE_PARAMS_DEFAULT: dict = {
+    "hit_rate_compound":  0.90,
+    "hit_rate_isolation": 1.00,
+    "max_sets":           4,
+    "rpe_deload_trigger": 8.5,
+}
+
+
+def get_phase_params(phase: str | None = None) -> dict:
+    """Retourne les paramètres de progression pour la phase courante.
+
+    Appelé par smart_progression quand la périodisation est activée.
+    phase=None → paramètres par défaut (comportement actuel).
+    """
+    if not phase:
+        return _PHASE_PARAMS_DEFAULT
+    return _PHASE_PARAMS.get(phase, _PHASE_PARAMS_DEFAULT)
+
+
+# ── Warm-up guidance (recommandations textuelles) ────────────────────────────
+# Guidance préventive basée sur les patterns d'exercice de la séance.
+# C'est une recommandation textuelle — pas de tracking, pas de blocage.
+
+_WARMUP_GUIDANCE: dict[str, str] = {
+    "squat":            "Barre vide × 10 → 50% × 5 → 70% × 3, puis working sets",
+    "hinge":            "Barre vide × 10 → 50% × 5 → 70% × 3, puis working sets",
+    "horizontal_push":  "Band pull-aparts × 15, barre vide × 10 → 50% × 5, puis working sets",
+    "vertical_push":    "Rotations d'épaules × 15, 50% × 8 → 70% × 5, puis working sets",
+    "horizontal_pull":  "Band pull-aparts × 15, 50% × 8 → 70% × 5, puis working sets",
+    "vertical_pull":    "Mobilité épaules × 10, 50% × 8 → 70% × 5, puis working sets",
+    "carry":            "Mobilité hanches × 10, 50% × 5, puis working sets",
+    "core":             "Activation : dead bug × 10, planche 20s, puis working sets",
+}
+
+_WARMUP_DEFAULT = "2 sets progressifs : 50% × 8 puis 70% × 5 avant les working sets"
+
+
+def get_warmup_guidance(patterns: list[str]) -> str:
+    """Retourne une recommandation d'échauffement selon les patterns dominants de la séance.
+
+    patterns : liste des patterns d'exercice (ex. ['horizontal_push', 'vertical_pull'])
+    Retourne le guidage du premier pattern reconnu, sinon le défaut.
+    """
+    for p in patterns:
+        if p in _WARMUP_GUIDANCE:
+            return _WARMUP_GUIDANCE[p]
+    return _WARMUP_DEFAULT
+
+
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS

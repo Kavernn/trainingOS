@@ -121,11 +121,13 @@ CREATE INDEX IF NOT EXISTS idx_workout_sessions_date ON workout_sessions (date D
 -- 7. exercise_logs  (replaces "weights[exercise].history" KV)
 -- =============================================================================
 -- Computed fields removed (all derivable from weight + reps):
---   • 1rm          → weight * (1 + max(parse_reps(reps)) / 30)
+--   • 1rm          → Epley ≤10 reps, Brzycki 11-20 reps, NULL >20 reps (voir migration 040)
 --   • set_volume   → weight * reps_for_that_set
 --   • exercise_volume → weight * SUM(parse_reps(reps))
--- To query 1RM for a given log:
---   SELECT weight * (1 + CAST(split_part(reps, ',', 1) AS NUMERIC) / 30) AS epley_1rm
+-- To query 1RM for a given log (use v_exercise_current.estimated_1rm for current weight):
+--   SELECT CASE WHEN reps::int > 20 THEN NULL
+--               WHEN reps::int > 10 THEN ROUND(weight * (36.0 / (37 - reps::int)), 1)
+--               ELSE ROUND(weight * (1 + reps::int / 30.0), 1) END AS estimated_1rm
 --   FROM exercise_logs WHERE id = ?
 CREATE TABLE IF NOT EXISTS exercise_logs (
     id          UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -464,7 +466,8 @@ INSERT INTO deload_state (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 -- v_exercise_current
 -- Returns the most recent logged weight, reps, and session count per exercise.
 -- Use this to answer "what is the current working weight for Bench Press?"
--- 1RM computation: weight * (1 + max_set_reps / 30)  where max_set_reps = max of parse(reps)
+-- 1RM computation: Epley ≤10 reps, Brzycki 11-20 reps, NULL >20 reps.
+-- See migration 040_1rm_brzycki.sql for details.
 CREATE OR REPLACE VIEW v_exercise_current AS
 SELECT
     e.id                                            AS exercise_id,
@@ -473,22 +476,20 @@ SELECT
     latest.weight                                   AS latest_weight,
     latest.reps                                     AS latest_reps,
     session_counts.session_count,
-    -- Epley 1RM estimate (best-set, using first value in reps string as proxy for top set)
+    -- 1RM estimé : Epley ≤10 reps, Brzycki 11-20 reps, NULL >20 reps (trop imprécis)
     CASE
-        WHEN latest.weight IS NOT NULL AND latest.weight > 0
-        THEN ROUND(
-            latest.weight * (
-                1 + GREATEST(
-                    COALESCE(
-                        (SELECT MAX(r::INT)
-                         FROM unnest(string_to_array(latest.reps, ',')) AS r
-                         WHERE r ~ '^\d+$'),
-                        1
-                    )::NUMERIC / 30
-                )
-            ), 1)
-        ELSE NULL
-    END                                             AS epley_1rm
+        WHEN latest.weight IS NULL OR latest.weight <= 0 THEN NULL
+        WHEN max_reps.val > 20 THEN NULL
+        WHEN max_reps.val > 10 THEN ROUND(latest.weight * (36.0 / (37 - max_reps.val)), 1)
+        ELSE ROUND(latest.weight * (1 + max_reps.val::NUMERIC / 30), 1)
+    END                                             AS estimated_1rm,
+    CASE
+        WHEN max_reps.val IS NULL OR latest.weight IS NULL OR latest.weight <= 0 THEN NULL
+        WHEN max_reps.val > 20 THEN 'none'
+        WHEN max_reps.val > 15 THEN 'low'
+        WHEN max_reps.val > 10 THEN 'medium'
+        ELSE 'high'
+    END                                             AS estimated_1rm_confidence
 FROM exercises e
 LEFT JOIN LATERAL (
     SELECT el.weight, el.reps
@@ -498,6 +499,16 @@ LEFT JOIN LATERAL (
     ORDER BY ws.date DESC
     LIMIT 1
 ) latest ON TRUE
+LEFT JOIN LATERAL (
+    SELECT GREATEST(
+        COALESCE(
+            (SELECT MAX(r::INT)
+             FROM unnest(string_to_array(latest.reps, ',')) AS r
+             WHERE r ~ '^\d+$'),
+            1
+        )
+    ) AS val
+) max_reps ON TRUE
 LEFT JOIN (
     SELECT exercise_id, COUNT(*) AS session_count
     FROM exercise_logs

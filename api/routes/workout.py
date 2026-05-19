@@ -87,7 +87,7 @@ def api_log():
             fatigue_score=fatigue_score,
         )
         increase  = action == "increase"
-        onerm     = estimate_1rm(weight, reps)
+        onerm     = estimate_1rm(weight, reps) or 0.0
 
         # PR detection: compare new 1RM against historical 1RMs (snapshot before insert)
         prev_1rms = [e.get("1rm", 0) for e in existing_history]
