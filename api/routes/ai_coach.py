@@ -294,10 +294,14 @@ def api_ai_coach():
             recent = _db.get_workout_sessions(limit=1)
             if recent:
                 s = recent[0]
+                from utils import get_mesocycle_info
+                meso  = get_mesocycle_info()
+                phase = meso.get("phase")
                 suggs = generate_suggestions(
                     session_date=s.get("date", ""),
                     session_type=s.get("session_type", "morning"),
                     session_name=s.get("session_name", ""),
+                    phase=phase,
                 )
                 actionable = [sg for sg in suggs if sg.get("suggestion_type") != "maintain"][:5]
                 if actionable:

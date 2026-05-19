@@ -27,13 +27,18 @@ def _today_local() -> str:
 
 
 def _calc_1rm(weight, reps_str):
-    """Simple 1RM estimate (Epley) from a reps string like '6,6,5,5'."""
+    """1RM estimate: Epley ≤10 reps, Brzycki >10 reps, 0 if >20 reps (too imprecise).
+
+    Delegates to progression.estimate_1rm — single source of truth.
+    Returns 0 when the estimate is unreliable (>20 reps) so callers treat 0
+    as "no estimate available" rather than storing a dangerously wrong value.
+    """
     try:
-        reps_list = [int(x) for x in str(reps_str).split(",") if x.strip().isdigit()]
-        if not reps_list or not weight:
+        if not weight or not reps_str:
             return 0
-        avg = sum(reps_list) / len(reps_list)
-        return round(weight * (1 + avg / 30), 1)
+        from progression import estimate_1rm
+        result = estimate_1rm(float(weight), str(reps_str))
+        return result if result is not None else 0
     except Exception:
         return 0
 

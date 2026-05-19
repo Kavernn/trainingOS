@@ -117,6 +117,9 @@ struct WorkoutSeanceView: View {
     // W-D11 — abandon session
     @State private var showAbandonAlert = false
 
+    // Warmup guidance banner — shown pre-session, dismissable
+    @State private var showWarmupBanner = true
+
     /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
     private var computedSessionRPE: Double {
         let vals = vm.logResults.values.compactMap(\.rpe)
@@ -170,6 +173,25 @@ struct WorkoutSeanceView: View {
                 }
             }
         }
+    }
+
+    private var warmupGuidance: String? {
+        let warmupMap: [String: String] = [
+            "squat":           "Barre vide × 10 → 50% × 5 → 70% × 3, puis working sets",
+            "hinge":           "Barre vide × 10 → 50% × 5 → 70% × 3, puis working sets",
+            "horizontal_push": "Band pull-aparts × 15, barre vide × 10 → 50% × 5, puis working sets",
+            "vertical_push":   "Rotations d'épaules × 15, 50% × 8 → 70% × 5, puis working sets",
+            "horizontal_pull": "Band pull-aparts × 15, 50% × 8 → 70% × 5, puis working sets",
+            "vertical_pull":   "Mobilité épaules × 10, 50% × 8 → 70% × 5, puis working sets",
+            "carry":           "Mobilité hanches × 10, 50% × 5, puis working sets",
+            "core":            "Activation : dead bug × 10, planche 20s, puis working sets"
+        ]
+        for name in exerciseOrder {
+            if let pattern = inventoryPatterns[name], let guidance = warmupMap[pattern] {
+                return guidance
+            }
+        }
+        return nil
     }
 
     private var exercises: [(String, String)] {
@@ -938,6 +960,17 @@ struct WorkoutSeanceView: View {
                         if !ghostBeaten && currentVolume >= ghost.volume {
                             ghostBeaten = true
                         }
+                    }
+                }
+
+                // Warmup guidance — shown pre-session, dismissable
+                if showWarmupBanner && vm.logResults.isEmpty {
+                    let guidance = warmupGuidance
+                    if guidance != nil {
+                        WarmupGuidanceBanner(guidance: guidance!) {
+                            withAnimation(.easeOut(duration: 0.2)) { showWarmupBanner = false }
+                        }
+                        .padding(.horizontal, 16)
                     }
                 }
 
@@ -2199,5 +2232,41 @@ struct MidWorkoutAdvisorCard: View {
         .background(advice.color.opacity(0.07))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(advice.color.opacity(0.3), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+// MARK: - Warmup Guidance Banner
+struct WarmupGuidanceBanner: View {
+    let guidance: String
+    var onDismiss: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "flame.fill")
+                .font(.system(size: 13))
+                .foregroundColor(.yellow.opacity(0.8))
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Échauffement recommandé")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.yellow.opacity(0.9))
+                Text(guidance)
+                    .font(.system(size: 11))
+                    .foregroundColor(.gray.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            Button(action: onDismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.gray.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.yellow.opacity(0.05))
+        .cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow.opacity(0.15), lineWidth: 1))
     }
 }

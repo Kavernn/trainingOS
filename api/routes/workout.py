@@ -1132,11 +1132,16 @@ def api_progression_suggestions():
     except Exception:
         exercises = []
 
+    from utils import get_mesocycle_info
+    meso  = get_mesocycle_info()
+    phase = meso.get("phase")          # "Accumulation", "Surcharge", "Deload", etc.
+
     suggestions = _sp.generate_suggestions(
         session_date=date,
         session_type=session_type,
         session_name=session_name,
         session_exercises=exercises,
+        phase=phase,
     )
     return jsonify({"suggestions": suggestions})
 
