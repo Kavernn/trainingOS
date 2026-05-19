@@ -254,6 +254,16 @@ def compute_summary() -> dict:
     total_victories = sum(1 for s in battles_by_date.values() if s == "victory")
     total_logged    = len(battles_by_date)
 
+    # 30-day and 90-day win rates — resilience metric, unaffected by a single lapse
+    def _win_rate(days: int) -> int | None:
+        window = {(today - timedelta(days=i)).isoformat() for i in range(days)}
+        logged    = sum(1 for d in window if battles_by_date.get(d) in ("victory", "lost"))
+        victories = sum(1 for d in window if battles_by_date.get(d) == "victory")
+        return round(victories / logged * 100) if logged > 0 else None
+
+    win_rate_30d = _win_rate(30)
+    win_rate_90d = _win_rate(90)
+
     war_start = config.get("war_start_date")
     war_days  = 0
     if war_start:
@@ -271,4 +281,6 @@ def compute_summary() -> dict:
         "today_status":    today_status,
         "war_start_date":  war_start,
         "war_days":        war_days,
+        "win_rate_30d":    win_rate_30d,
+        "win_rate_90d":    win_rate_90d,
     }

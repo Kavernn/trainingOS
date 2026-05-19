@@ -125,6 +125,8 @@ struct WarRoomSummary: Codable {
     let todayStatus: BattleStatus?
     let warStartDate: String?
     let warDays: Int
+    let winRate30d: Int?
+    let winRate90d: Int?
 
     enum CodingKeys: String, CodingKey {
         case victoryStreak  = "victory_streak"
@@ -134,6 +136,8 @@ struct WarRoomSummary: Codable {
         case todayStatus    = "today_status"
         case warStartDate   = "war_start_date"
         case warDays        = "war_days"
+        case winRate30d     = "win_rate_30d"
+        case winRate90d     = "win_rate_90d"
     }
 }
 

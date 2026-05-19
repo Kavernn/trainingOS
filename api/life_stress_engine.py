@@ -195,13 +195,24 @@ def _score_subjective_stress(entry: dict) -> Optional[float]:
     """
     from datetime import date as date_cls
 
-    # 1. Wellness sliders — modulation quotidienne (Hooper Index)
-    mood    = entry.get("mood")     # 0-10 (10 = humeur parfaite)
-    tension = entry.get("tension")  # 0-10 (10 = très tendu → invertir)
-    if mood is not None and tension is not None:
+    # 1. Wellness sliders — modulation quotidienne (Hooper Index, Hooper & Mackinnon 1995)
+    mood              = entry.get("mood")              # 0-10 (10 = humeur parfaite)
+    tension           = entry.get("tension")           # 0-10 (10 = très tendu → invertir)
+    fatigue_perceived = entry.get("fatigue_perceived") # 0-10 (10 = très fatigué → invertir)
+
+    if mood is not None and tension is not None and fatigue_perceived is not None:
+        # Hooper complet : 3 dimensions subjectives pondérées
+        mood_score    = float(mood) * 10.0
+        tension_score = (10.0 - float(tension)) * 10.0
+        fatigue_score = (10.0 - float(fatigue_perceived)) * 10.0
+        return _clamp(mood_score * 0.4 + tension_score * 0.3 + fatigue_score * 0.3)
+    elif mood is not None and tension is not None:
         mood_score    = float(mood) * 10.0
         tension_score = (10.0 - float(tension)) * 10.0
         return _clamp(mood_score * 0.6 + tension_score * 0.4)
+    elif fatigue_perceived is not None:
+        # Fatigue seule disponible — signal Hooper partiel
+        return _clamp((10.0 - float(fatigue_perceived)) * 10.0)
 
     # 2. PSS récent — indicateur de tendance mensuelle (Cohen et al. 1983)
     pss = get_latest_pss_score("full") or get_latest_pss_score("short")

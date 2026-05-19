@@ -49,21 +49,39 @@ struct BattleCounterView: View {
 
     private func streakCard(_ s: WarRoomSummary) -> some View {
         VStack(spacing: 6) {
-            Text("\(s.victoryStreak)")
-                .font(.system(size: 72, weight: .black, design: .rounded))
-                .foregroundStyle(streakColor(s.victoryStreak))
-                .scaleEffect(pulsing ? 1.04 : 1.0)
-                .animation(reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true).delay(0.4), value: pulsing)
+            if let rate30 = s.winRate30d {
+                Text("\(rate30)%")
+                    .font(.system(size: 72, weight: .black, design: .rounded))
+                    .foregroundStyle(progressionColor(rate30))
+                    .scaleEffect(pulsing ? 1.04 : 1.0)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true).delay(0.4), value: pulsing)
+                Text("VICTOIRES SUR 30 JOURS")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color.secondary)
+                    .tracking(3)
+            } else {
+                Text("\(s.victoryStreak)")
+                    .font(.system(size: 72, weight: .black, design: .rounded))
+                    .foregroundStyle(streakColor(s.victoryStreak))
+                    .scaleEffect(pulsing ? 1.04 : 1.0)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 1.6).repeatForever(autoreverses: true).delay(0.4), value: pulsing)
+                Text(s.victoryStreak == 1 ? "JOUR TENU" : "JOURS TENUS")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Color.secondary)
+                    .tracking(3)
+            }
 
-            Text(s.victoryStreak == 1 ? "JOUR TENU" : "JOURS TENUS")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundStyle(Color.secondary)
-                .tracking(3)
-
-            if s.bestStreak > 0 {
-                Text("Record : \(s.bestStreak)")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color.secondary.opacity(0.7))
+            HStack(spacing: 12) {
+                if s.victoryStreak > 0 {
+                    Text("Série : \(s.victoryStreak)j")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.secondary.opacity(0.7))
+                }
+                if s.bestStreak > 0 {
+                    Text("Record : \(s.bestStreak)j")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.secondary.opacity(0.7))
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -71,8 +89,12 @@ struct BattleCounterView: View {
         .background(cardBg(s.victoryStreak), in: RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(streakColor(s.victoryStreak).opacity(0.25), lineWidth: 1))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Série de victoires : \(s.victoryStreak) jour\(s.victoryStreak != 1 ? "s" : "") tenu\(s.victoryStreak != 1 ? "s" : ""). Record : \(s.bestStreak).")
+        .accessibilityLabel("Taux de victoire 30 jours : \(s.winRate30d.map { "\($0)%" } ?? "–"). Série actuelle : \(s.victoryStreak) jour\(s.victoryStreak != 1 ? "s" : ""). Record : \(s.bestStreak).")
         .onAppear { pulsing = true }
+    }
+
+    private func progressionColor(_ rate: Int) -> Color {
+        rate >= 80 ? .forge : rate >= 60 ? Color.orange : Color(white: 0.5)
     }
 
     private func cardBg(_ streak: Int) -> some ShapeStyle {
@@ -92,8 +114,12 @@ struct BattleCounterView: View {
         HStack(spacing: 12) {
             statCell(value: s.totalVictories, label: "VICTOIRES")
             statCell(value: s.totalBattles,   label: "BATAILLES")
-            let rate = s.totalBattles > 0 ? Int(Double(s.totalVictories) / Double(s.totalBattles) * 100) : 0
-            statCell(value: rate, label: "RATIO %")
+            if let rate90 = s.winRate90d {
+                statCell(value: rate90, label: "TAUX 90J %")
+            } else {
+                let rate = s.totalBattles > 0 ? Int(Double(s.totalVictories) / Double(s.totalBattles) * 100) : 0
+                statCell(value: rate, label: "RATIO %")
+            }
         }
     }
 

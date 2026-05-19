@@ -839,6 +839,7 @@ struct LogRecoverySheet: View {
     @State private var hrPostWorkoutStr = ""
     @State private var hrEveningStr = ""
     @State private var soreness: Double = 0
+    @State private var fatigue: Double = 5
     @State private var notes = ""
     @State private var isSaving = false
     @State private var isLoadingHK = false
@@ -905,20 +906,38 @@ struct LogRecoverySheet: View {
                         }
                         .padding(14).background(Color.appCard).cornerRadius(12)
 
-                        // Douleurs musculaires
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                Spacer()
-                                Text(String(format: "%.0f / 10", soreness))
-                                    .font(.system(size: 13, weight: .bold)).foregroundColor(sorenessColor(soreness))
+                        // Douleurs musculaires + Fatigue perçue (Hooper Index)
+                        VStack(alignment: .leading, spacing: 14) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    Spacer()
+                                    Text(String(format: "%.0f / 10", soreness))
+                                        .font(.system(size: 13, weight: .bold)).foregroundColor(sorenessColor(soreness))
+                                }
+                                Slider(value: $soreness, in: 0...10, step: 1)
+                                    .tint(sorenessColor(soreness))
+                                HStack {
+                                    Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
+                                    Spacer()
+                                    Text("10 = Sévère").font(.system(size: 9)).foregroundColor(.gray)
+                                }
                             }
-                            Slider(value: $soreness, in: 0...10, step: 1)
-                                .tint(sorenessColor(soreness))
-                            HStack {
-                                Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
-                                Spacer()
-                                Text("10 = Sévère").font(.system(size: 9)).foregroundColor(.gray)
+                            Divider().background(Color.white.opacity(0.06))
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("FATIGUE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    Spacer()
+                                    Text(String(format: "%.0f / 10", fatigue))
+                                        .font(.system(size: 13, weight: .bold)).foregroundColor(fatigueColor(fatigue))
+                                }
+                                Slider(value: $fatigue, in: 0...10, step: 1)
+                                    .tint(fatigueColor(fatigue))
+                                HStack {
+                                    Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
+                                    Spacer()
+                                    Text("10 = Épuisé(e)").font(.system(size: 9)).foregroundColor(.gray)
+                                }
                             }
                         }
                         .padding(14).background(Color.appCard).cornerRadius(12)
@@ -1004,7 +1023,8 @@ struct LogRecoverySheet: View {
             if let hrm = e.hrMorning     { hrMorningStr     = String(format: "%.0f", hrm) }
             if let hrp = e.hrPostWorkout { hrPostWorkoutStr = String(format: "%.0f", hrp) }
             if let hre = e.hrEvening     { hrEveningStr     = String(format: "%.0f", hre) }
-            if let so  = e.soreness      { soreness         = so }
+            if let so  = e.soreness      { soreness = so }
+            if let fa  = e.fatigue       { fatigue  = fa }
             notes = e.notes ?? ""
             let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
             if let d = e.date, let parsed = f.date(from: d) { selectedDate = parsed }
@@ -1014,6 +1034,10 @@ struct LogRecoverySheet: View {
     }
 
     private func sorenessColor(_ v: Double) -> Color {
+        if v >= 7 { return .red }; if v >= 4 { return .orange }; return .green
+    }
+
+    private func fatigueColor(_ v: Double) -> Color {
         if v >= 7 { return .red }; if v >= 4 { return .orange }; return .green
     }
 
@@ -1058,6 +1082,7 @@ struct LogRecoverySheet: View {
                     hrv:           Double(hrvStr),
                     steps:         stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
                     soreness:      soreness,
+                    fatigue:       fatigue,
                     activeEnergy:  activeEnergyStr.isEmpty ? nil : Double(activeEnergyStr),
                     hrMorning:     hrMorningStr.isEmpty ? nil : Double(hrMorningStr),
                     hrPostWorkout: hrPostWorkoutStr.isEmpty ? nil : Double(hrPostWorkoutStr),

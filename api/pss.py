@@ -36,8 +36,9 @@ PSS10_QUESTIONS = [
 # Indices 0-based des items positifs dans PSS-10 (inversés au scoring)
 _POSITIVE_INDICES_PSS10 = [i for i, q in enumerate(PSS10_QUESTIONS) if q["positive"]]  # [3,5,6,8]
 
-# Indices 0-based des items PSS-4 dans le tableau PSS-10 (items 2,5,6,9 → idx 1,4,5,8)
-_PSS4_GLOBAL_INDICES = [1, 4, 5, 8]
+# Indices 0-based des items PSS-4 dans le tableau PSS-10 (items 2,4,5,10 → idx 1,3,4,9)
+# Sélection validée : Cohen & Williamson (1988) — PSS-4 canonique
+_PSS4_GLOBAL_INDICES = [1, 3, 4, 9]
 
 # Indices positifs DANS le sous-tableau PSS-4 (items 6,9 → local idx 2,3)
 _POSITIVE_INDICES_PSS4 = [
