@@ -187,24 +187,35 @@ def _score_subjective_stress(entry: dict) -> Optional[float]:
     Stress subjectif → 0-100 (100 = pas de stress).
 
     Priorité :
-      1. Score PSS récent (≤ 30 jours) : normalisé depuis 0-40 (PSS-10) ou 0-16 (PSS-4).
-         PSS élevé = stress élevé → LSS component bas.
-      2. Fallback : soreness inversé depuis recovery_log.
+      1. Wellness sliders du jour (mood + tension) — Hooper Index quotidien
+         (Hooper & Mackinnon 1995). Prédicteurs quotidiens les plus réactifs.
+      2. Score PSS récent (≤ 30 jours) — tendance mensuelle uniquement.
+         PSS n'est pas un instrument de modulation quotidienne.
+      3. Fallback : soreness inversé depuis recovery_log.
     """
-    from datetime import date as date_cls, timedelta
+    from datetime import date as date_cls
+
+    # 1. Wellness sliders — modulation quotidienne (Hooper Index)
+    mood    = entry.get("mood")     # 0-10 (10 = humeur parfaite)
+    tension = entry.get("tension")  # 0-10 (10 = très tendu → invertir)
+    if mood is not None and tension is not None:
+        mood_score    = float(mood) * 10.0
+        tension_score = (10.0 - float(tension)) * 10.0
+        return _clamp(mood_score * 0.6 + tension_score * 0.4)
+
+    # 2. PSS récent — indicateur de tendance mensuelle (Cohen et al. 1983)
     pss = get_latest_pss_score("full") or get_latest_pss_score("short")
     if pss:
         try:
             pss_date = date_cls.fromisoformat(pss["date"])
             if (date_cls.today() - pss_date).days <= 30:
-                score  = float(pss["score"])
-                max_s  = float(pss.get("max_score", 40))
-                # PSS 0 = pas de stress → LSS 100 ; PSS max = stress max → LSS 0
+                score = float(pss["score"])
+                max_s = float(pss.get("max_score", 40))
                 return _clamp((1.0 - score / max_s) * 100.0)
         except (KeyError, ValueError):
             pass
 
-    # Fallback soreness
+    # 3. Fallback soreness
     soreness = entry.get("soreness")
     if soreness is None:
         return None
@@ -218,6 +229,20 @@ def _score_training_fatigue() -> Optional[float]:
     if rpe_moyen is None:
         return None
     return _clamp((10.0 - rpe_moyen) * 10.0)
+
+
+def _precision_profile(available: dict, weights: dict) -> str:
+    """Indique le niveau de précision selon les données disponibles."""
+    has_hrv   = "hrv_trend" in available
+    has_rhr   = "rhr_trend" in available
+    has_sleep = "sleep_quality" in available
+    if has_hrv and has_rhr and has_sleep:
+        return "full"        # Apple Watch + sliders
+    if has_sleep and (has_hrv or has_rhr):
+        return "partial"     # Certaines données HealthKit
+    if has_sleep:
+        return "manual_only" # Sliders seulement — fonctionnel
+    return "minimal"         # Peu de données
 
 
 def compute_life_stress_score(target_date: str) -> dict:
@@ -300,12 +325,13 @@ def compute_life_stress_score(target_date: str) -> dict:
     data_coverage = round(len(available) / len(weights), 2)
 
     return {
-        "date":          target_date,
-        "score":         score,
-        "components":    raw,
-        "flags":         flags,
-        "recommendations": recommendations,
-        "data_coverage": data_coverage,
+        "date":              target_date,
+        "score":             score,
+        "components":        raw,
+        "flags":             flags,
+        "recommendations":   recommendations,
+        "data_coverage":     data_coverage,
+        "precision_profile": _precision_profile(available, weights),
     }
 
 

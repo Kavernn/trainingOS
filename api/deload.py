@@ -14,8 +14,30 @@ RPE_FATIGUE_THRESHOLD = 8.5  # RPE moyen au dessus de ça = fatigue
 DELOAD_WEIGHT_FACTOR  = 0.90 # -10% max sur le poids (maintien des adaptations neurales)
 DELOAD_SETS_FACTOR    = 0.50 # -50% des sets (réduction du volume = mécanisme réel du deload)
 
+# Prescriptions différenciées selon le type de fatigue (Meeusen et al. 2013, ECSS/ACSM consensus)
+_DELOAD_PRESCRIPTION = {
+    "peripheral": {
+        "weight_factor":          0.90,   # -10% — maintien neural
+        "sets_factor":            0.50,   # -50% volume
+        "duration_days":          7,
+        "exclude_compound_heavy": False,
+    },
+    "central": {
+        "weight_factor":          0.65,   # -35% — le SNC a besoin de repos
+        "sets_factor":            0.40,   # -60% volume
+        "duration_days":          10,
+        "exclude_compound_heavy": True,   # éviter la stimulation neurale lourde
+    },
+    "overreaching": {
+        "weight_factor":          0.0,    # repos complet
+        "sets_factor":            0.0,
+        "duration_days":          14,
+        "exclude_compound_heavy": True,
+    },
+}
+
 _DELOAD_WEEKS_BY_LEVEL = {
-    "beginner":     10,  # peu de fatigue systémique accumulée
+    "beginner":      8,  # Israetel : 6-8 semaines (learning curve + dommages sans RBE)
     "intermediate":  6,  # recommandation principale (Israetel, Baker)
     "advanced":      4,  # charge élevée → deload plus fréquent
 }
@@ -129,30 +151,52 @@ def _parse_sets_from_scheme(scheme: str) -> int:
         return 0
 
 
-def calculer_poids_deload(weights: dict, exercices: list[str] = None) -> dict:
+def calculer_poids_deload(weights: dict, exercices: list[str] = None,
+                           fatigue_type: str = "peripheral") -> dict:
     """
-    Calcule la prescription de deload pour tous les exercices ou seulement ceux passés.
+    Prescription de deload selon le type de fatigue détecté.
 
-    Logique scientifique (Israetel, Helms) :
-      - Même exercices, même poids (-10% max) → maintien des adaptations neurales
-      - 50% des sets → réduction du volume = mécanisme réel du deload
+    peripheral  : -10% poids, -50% sets, 7j (Israetel, Helms)
+    central     : -35% poids, -60% sets, 10j — pas de compound heavy
+                  (Meeusen et al. 2013 — SNC a besoin de repos, pas de stimulation)
+    overreaching: repos complet — aucun exercice prescrit
     """
+    if fatigue_type not in _DELOAD_PRESCRIPTION:
+        fatigue_type = "peripheral"
+
+    presc = _DELOAD_PRESCRIPTION[fatigue_type]
+
+    if fatigue_type == "overreaching":
+        return {}  # repos complet — coach_message dans le rapport explique
+
     result = {}
     cibles = exercices or [k for k in weights if k != "sessions"]
 
     for ex in cibles:
         data = weights.get(ex, {})
         poids_actuel = data.get("current_weight", data.get("weight", 0))
-        if poids_actuel:
-            sets_normaux = _parse_sets_from_scheme(data.get("default_scheme", "")) or 3
-            sets_deload  = max(1, round(sets_normaux * DELOAD_SETS_FACTOR))
-            result[ex] = {
-                "poids_actuel":  round(poids_actuel, 1),
-                "poids_deload":  round(poids_actuel * DELOAD_WEIGHT_FACTOR, 1),
-                "sets_normaux":  sets_normaux,
-                "sets_deload":   sets_deload,
-                "note":          f"Même poids (-10% max), {sets_deload}/{sets_normaux} sets",
-            }
+        if not poids_actuel:
+            continue
+
+        if presc["exclude_compound_heavy"]:
+            if data.get("load_profile") == "compound_heavy":
+                continue
+
+        sets_normaux = _parse_sets_from_scheme(data.get("default_scheme", "")) or 3
+        sets_deload  = max(1, round(sets_normaux * presc["sets_factor"]))
+        result[ex] = {
+            "poids_actuel":  round(poids_actuel, 1),
+            "poids_deload":  round(poids_actuel * presc["weight_factor"], 1),
+            "sets_normaux":  sets_normaux,
+            "sets_deload":   sets_deload,
+            "fatigue_type":  fatigue_type,
+            "duration_days": presc["duration_days"],
+            "note": (
+                f"Fatigue centrale — -35% poids, -60% sets, {presc['duration_days']}j"
+                if fatigue_type == "central"
+                else f"Fatigue musculaire — -10% poids, -50% sets"
+            ),
+        }
 
     return result
 
@@ -319,6 +363,177 @@ def compute_fatigue_score() -> dict:
 
 
 # ─────────────────────────────────────────────────────────────
+# DIAGNOSTIC FATIGUE CENTRALE VS PÉRIPHÉRIQUE
+# ─────────────────────────────────────────────────────────────
+
+_CENTRAL_FATIGUE_THRESHOLD  = 3   # ≥3 marqueurs → fatigue centrale
+_OVERREACHING_THRESHOLD     = 4   # ≥4 marqueurs + durée >14j → overreaching
+
+
+def _load_weights_safe() -> dict:
+    """Charge weights.json sans crasher si absent."""
+    try:
+        import json
+        with open(DATA_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _estimate_fatigue_duration(sessions: dict, log_by_date: dict, today) -> int:
+    """Estime depuis combien de jours les signaux de fatigue sont présents (max 28j)."""
+    from datetime import timedelta
+    for i in range(28, 0, -1):
+        d   = (today - timedelta(days=i)).isoformat()
+        s   = sessions.get(d, {})
+        rec = log_by_date.get(d, {})
+        rpe   = float(s.get("rpe") or 0)
+        sleep = float(rec.get("sleep_quality") or 10)
+        mood  = float(rec.get("mood") or 10)
+        if rpe >= 8.5 or sleep <= 4.0 or mood <= 3.0:
+            return i
+    return 0
+
+
+def diagnose_fatigue_type(weights: dict | None = None) -> dict:
+    """
+    Distingue fatigue périphérique (musculaire) vs centrale (SNC).
+
+    Marqueurs centraux (Meeusen et al. 2013 — ECSS/ACSM consensus) :
+      RPE élevé malgré charge stable, humeur basse persistante,
+      sommeil perturbé persistant, HRV sous baseline, RHR au-dessus
+      baseline, performance en baisse malgré repos suffisant.
+
+    Retourne :
+        fatigue_type    : "peripheral" | "central" | "overreaching" | "none"
+        central_markers : int
+        markers_detail  : dict
+        duration_days   : int
+    """
+    from datetime import date, timedelta
+    from health_data import _load_recovery_log
+    # Import lazily pour éviter la circularité (life_stress_engine importe deload)
+    from life_stress_engine import detect_hrv_drop
+
+    if weights is None:
+        weights = _load_weights_safe()
+
+    today    = date.today()
+    sessions = load_sessions()
+    log_by_date = {e["date"]: e for e in _load_recovery_log() if "date" in e}
+
+    markers: dict[str, bool] = {
+        "rpe_high_stable_load": False,
+        "mood_low":             False,
+        "sleep_poor":           False,
+        "hrv_below_baseline":   False,
+        "rhr_above_baseline":   False,
+        "performance_decline":  False,
+    }
+
+    dates_14j = [(today - timedelta(days=i)).isoformat() for i in range(14)]
+
+    # ── Marqueur 1 : RPE ≥8.5 malgré charge stable ───────────────────────────
+    rpes_recent = [float(sessions[d]["rpe"]) for d in dates_14j[:7]
+                   if d in sessions and sessions[d].get("rpe")]
+    vols_recent = [float(sessions[d].get("session_volume") or 0)
+                   for d in dates_14j[:7] if d in sessions]
+    vols_prior  = [float(sessions[d].get("session_volume") or 0)
+                   for d in dates_14j[7:] if d in sessions]
+    if rpes_recent and sum(rpes_recent) / len(rpes_recent) >= 8.5:
+        if not vols_prior:
+            markers["rpe_high_stable_load"] = True
+        else:
+            vol_ratio = (sum(vols_recent) / max(len(vols_recent), 1)) / (sum(vols_prior) / max(len(vols_prior), 1) or 1)
+            if vol_ratio <= 1.1:
+                markers["rpe_high_stable_load"] = True
+
+    # ── Marqueur 2 : Humeur basse persistante (≥5 jours sur 7) ──────────────
+    moods_7j = [
+        float(log_by_date[d].get("mood") or 0)
+        for d in dates_14j[:7]
+        if d in log_by_date and log_by_date[d].get("mood") is not None
+    ]
+    if len(moods_7j) >= 5 and sum(moods_7j) / len(moods_7j) <= 3.0:
+        markers["mood_low"] = True
+
+    # ── Marqueur 3 : Sommeil perturbé persistant (≥5 jours sur 7) ───────────
+    sleeps_7j = [
+        float(log_by_date[d].get("sleep_quality") or 0)
+        for d in dates_14j[:7]
+        if d in log_by_date and log_by_date[d].get("sleep_quality") is not None
+    ]
+    if len(sleeps_7j) >= 5 and sum(sleeps_7j) / len(sleeps_7j) <= 4.0:
+        markers["sleep_poor"] = True
+
+    # ── Marqueur 4 : HRV sous la baseline personnelle ────────────────────────
+    try:
+        markers["hrv_below_baseline"] = detect_hrv_drop(today.isoformat())
+    except Exception:
+        pass
+
+    # ── Marqueur 5 : RHR au-dessus de la baseline (+5%) ─────────────────────
+    rhr_window = [(today - timedelta(days=i)).isoformat() for i in range(8)]
+    rhr_vals = [
+        float(log_by_date[d]["resting_hr"])
+        for d in rhr_window
+        if d in log_by_date and log_by_date[d].get("resting_hr") is not None
+    ]
+    if len(rhr_vals) >= 4:
+        baseline_rhr = sum(rhr_vals[1:]) / len(rhr_vals[1:])
+        if rhr_vals[0] > baseline_rhr * 1.05:
+            markers["rhr_above_baseline"] = True
+
+    # ── Marqueur 6 : Performance en baisse malgré RPE non explosif ───────────
+    if weights:
+        drops = detect_performance_drop(weights, threshold=0.05)
+        if drops and not markers["rpe_high_stable_load"]:
+            markers["performance_decline"] = True
+
+    n_central     = sum(markers.values())
+    duration_days = _estimate_fatigue_duration(sessions, log_by_date, today)
+
+    if n_central == 0:
+        fatigue_type = "none"
+    elif n_central >= _OVERREACHING_THRESHOLD and duration_days >= 14:
+        fatigue_type = "overreaching"
+    elif n_central >= _CENTRAL_FATIGUE_THRESHOLD:
+        fatigue_type = "central"
+    else:
+        fatigue_type = "peripheral"
+
+    return {
+        "fatigue_type":    fatigue_type,
+        "central_markers": n_central,
+        "markers_detail":  markers,
+        "duration_days":   duration_days,
+    }
+
+
+_COACH_MESSAGES = {
+    "peripheral": (
+        "Fatigue musculaire accumulée. On réduit le volume, on garde l'intensité. "
+        "Tu reviens plus fort dans 7 jours."
+    ),
+    "central": (
+        "Ton corps montre des signes de fatigue profonde — pas musculaire, nerveuse. "
+        "On baisse tout pendant 10 jours. C'est pas de la faiblesse, c'est de la stratégie. "
+        "Les athlètes pro font ça."
+    ),
+    "overreaching": (
+        "Tes données montrent un pattern de surmenage depuis plus de 2 semaines. "
+        "Repos complet recommandé — pas de deload, du repos. "
+        "Si les symptômes persistent, consulte un professionnel de santé."
+    ),
+    "none": None,
+}
+
+
+def _deload_coach_message(fatigue_type: str) -> str | None:
+    return _COACH_MESSAGES.get(fatigue_type)
+
+
+# ─────────────────────────────────────────────────────────────
 # ANALYSE COMPLÈTE + RAPPORT
 # ─────────────────────────────────────────────────────────────
 
@@ -327,15 +542,17 @@ def analyser_deload(weights: dict) -> dict:
     Analyse complète — retourne un rapport avec :
     - stagnations détectées
     - fatigue RPE
+    - diagnostic fatigue centrale vs périphérique (Meeusen et al. 2013)
     - recommandation deload oui/non
-    - poids suggérés si deload
+    - poids suggérés adaptés au type de fatigue
     """
-    stagnants     = detect_stagnation(weights)
-    fatigue       = detect_fatigue_rpe()
-    fatigue_data  = compute_fatigue_score()
-    drops         = detect_performance_drop(weights)
-    planned       = check_planned_deload()
-    state         = load_deload_state()
+    stagnants    = detect_stagnation(weights)
+    fatigue      = detect_fatigue_rpe()
+    fatigue_data = compute_fatigue_score()
+    fatigue_diag = diagnose_fatigue_type(weights)
+    drops        = detect_performance_drop(weights)
+    planned      = check_planned_deload()
+    state        = load_deload_state()
 
     recommande = (
         len(stagnants) >= 2
@@ -348,21 +565,28 @@ def analyser_deload(weights: dict) -> dict:
     drop_names     = [d["exercise"] for d in drops]
     deload_targets = list(dict.fromkeys(stagnant_names + drop_names))
 
+    fatigue_type = fatigue_diag["fatigue_type"]
+
     rapport = {
-        "deload_actif":        state["active"],
-        "deload_since":        state.get("since"),
-        "deload_reason":       state.get("reason"),
-        "stagnants":           stagnant_names,
-        "performance_drops":   drop_names,
-        "fatigue_rpe":         fatigue["fatigue"],
-        "recommande":          recommande,
-        "planned_deload_due":  planned["due"],
-        "weeks_since_deload":  planned.get("weeks_since"),
-        "deload_prescription": calculer_poids_deload(weights, deload_targets) if recommande else {},
-        "fatigue_score":       fatigue_data["score"],
-        "fatigue_components":  fatigue_data["components"],
-        "streak_days":         fatigue_data["streak_days"],
-        "rpe_avg_7j":          fatigue_data.get("rpe_avg_7j"),
+        "deload_actif":          state["active"],
+        "deload_since":          state.get("since"),
+        "deload_reason":         state.get("reason"),
+        "stagnants":             stagnant_names,
+        "performance_drops":     drop_names,
+        "fatigue_rpe":           fatigue["fatigue"],
+        "recommande":            recommande,
+        "planned_deload_due":    planned["due"],
+        "weeks_since_deload":    planned.get("weeks_since"),
+        "deload_prescription":   calculer_poids_deload(weights, deload_targets, fatigue_type=fatigue_type) if recommande else {},
+        "fatigue_score":         fatigue_data["score"],
+        "fatigue_components":    fatigue_data["components"],
+        "streak_days":           fatigue_data["streak_days"],
+        "rpe_avg_7j":            fatigue_data.get("rpe_avg_7j"),
+        "fatigue_type":          fatigue_type,
+        "central_markers":       fatigue_diag["central_markers"],
+        "markers_detail":        fatigue_diag["markers_detail"],
+        "fatigue_duration_days": fatigue_diag["duration_days"],
+        "coach_message":         _deload_coach_message(fatigue_type),
     }
 
     return rapport

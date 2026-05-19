@@ -43,74 +43,53 @@ def _days_back(n: int) -> list[str]:
 # ── Training pillar ────────────────────────────────────────────────────────────
 
 def _score_training() -> tuple[float, dict]:
-    """Score 0-100 for training readiness/quality."""
+    """Score 0-100 pour la qualité d'entraînement récente.
+
+    Retiré : sleep_quality et HRV — déjà dans le LSS (source de vérité).
+    Gardé : fréquence, RPE, soreness (feedback musculaire direct).
+    """
     details: dict = {}
 
     sessions_raw = db.get_workout_sessions(limit=14) or []
-    recovery_raw = db.get_recovery_logs(limit=7) or []
+    recovery_raw = db.get_recovery_logs(limit=2) or []
 
     today_dates = set(_days_back(7))
 
-    # Sessions in last 7 days
     recent = [s for s in sessions_raw if s.get("date") in today_dates]
     details["sessions_7d"] = len(recent)
 
-    # Completion quality: prefer completed + has rpe
     completed = [s for s in recent if s.get("completed")]
     details["completed_7d"] = len(completed)
 
-    # Average RPE (if available) — ideal is 7-8
-    rpes = [float(s["rpe"]) for s in completed if s.get("rpe") is not None]
+    rpes    = [float(s["rpe"]) for s in completed if s.get("rpe") is not None]
     avg_rpe = sum(rpes) / len(rpes) if rpes else None
     details["avg_rpe"] = round(avg_rpe, 1) if avg_rpe is not None else None
 
-    # Today's recovery markers
-    today = _today_iso()
-    today_rec = next((r for r in recovery_raw if r.get("date") == today), None)
+    # Soreness kept: direct muscular feedback, not duplicated in LSS
+    today     = _today_iso()
     yesterday = (datetime.fromisoformat(today) - timedelta(days=1)).strftime("%Y-%m-%d")
-    prev_rec  = next((r for r in recovery_raw if r.get("date") == yesterday), None)
-    rec = today_rec or prev_rec
+    rec = next((r for r in recovery_raw if r.get("date") in {today, yesterday}), None)
+    soreness = float(rec["soreness"]) if rec and rec.get("soreness") else None
+    details["soreness"] = soreness
 
-    sleep_q   = float(rec["sleep_quality"]) if rec and rec.get("sleep_quality") else None
-    soreness  = float(rec["soreness"])      if rec and rec.get("soreness")      else None
-    hrv       = float(rec["hrv"])           if rec and rec.get("hrv")           else None
-    details["sleep_quality"] = sleep_q
-    details["soreness"]      = soreness
+    score = 50.0
 
-    # --- Score calculation ---
-    score = 50.0  # neutral baseline
-
-    # Workout frequency: 3-5 sessions/7 days = optimal (+15), fewer or more neutral/lower
     freq = len(recent)
     if   freq >= 4: score += 15
     elif freq == 3: score += 10
     elif freq == 2: score += 5
     elif freq == 0: score -= 10
 
-    # RPE quality: 6-8.5 ideal
     if avg_rpe is not None:
         if   6.0 <= avg_rpe <= 8.5: score += 15
         elif 5.0 <= avg_rpe < 6.0:  score += 5
         elif avg_rpe > 9.0:          score -= 10
         elif avg_rpe < 5.0:          score -= 5
 
-    # Sleep quality (1-5 scale)
-    if sleep_q is not None:
-        if   sleep_q >= 4.0: score += 10
-        elif sleep_q >= 3.0: score += 3
-        elif sleep_q < 2.5:  score -= 15
-
-    # Soreness (1-5 scale, 5 = very sore)
     if soreness is not None:
         if   soreness <= 2.0: score += 5
         elif soreness >= 4.5: score -= 15
         elif soreness >= 3.5: score -= 8
-
-    # HRV bonus (relative — if available, treat >55ms as positive)
-    if hrv is not None:
-        if   hrv >= 60: score += 8
-        elif hrv >= 45: score += 3
-        elif hrv < 30:  score -= 8
 
     return max(0.0, min(100.0, score)), details
 
@@ -118,42 +97,26 @@ def _score_training() -> tuple[float, dict]:
 # ── Stress pillar ──────────────────────────────────────────────────────────────
 
 def _score_stress() -> tuple[float, dict]:
-    """Score 0-100 for stress (higher = less stressed = better budget)."""
+    """Score 0-100 de stress — lit le LSS depuis le moteur central.
+
+    Body Budget est un consommateur du wellness engine, pas un calculateur.
+    Élimine la duplication PSS + HRV qui vivaient déjà dans life_stress_engine.
+    """
+    from life_stress_engine import get_life_stress_score
     details: dict = {}
 
-    pss_records = db.get_pss_records(limit=3) or []
-    recovery_raw = db.get_recovery_logs(limit=3) or []
-
-    # PSS: 0-40 scale, 0=no stress. Invert for budget (0 stress → 100 score).
-    pss_score = None
-    if pss_records:
-        raw = pss_records[0].get("pss_score") or pss_records[0].get("score")
-        if raw is not None:
-            pss_score = float(raw)
-    details["pss_score"] = pss_score
-
-    # HRV from recent recovery
-    hrv_vals = [float(r["hrv"]) for r in recovery_raw if r.get("hrv") is not None]
-    avg_hrv  = sum(hrv_vals) / len(hrv_vals) if hrv_vals else None
-    details["hrv_avg"] = round(avg_hrv, 1) if avg_hrv is not None else None
-
-    # --- Score ---
-    score = 65.0  # default: moderate stress assumed
-
-    if pss_score is not None:
-        # PSS 0-13 → low stress, 14-26 → moderate, 27+ → high
-        if   pss_score <= 13: score = 85.0
-        elif pss_score <= 20: score = 70.0
-        elif pss_score <= 26: score = 55.0
-        else:                  score = 30.0
-
-    # HRV modifier
-    if avg_hrv is not None:
-        if   avg_hrv >= 65: score = min(100.0, score + 10)
-        elif avg_hrv >= 50: score = min(100.0, score + 4)
-        elif avg_hrv < 35:  score = max(0.0,   score - 12)
-
-    return max(0.0, min(100.0, score)), details
+    try:
+        lss   = get_life_stress_score(_today_iso())
+        score = float(lss.get("score") or 65.0)
+        flags = lss.get("flags") or {}
+        comps = lss.get("components") or {}
+        details["lss"]               = round(score, 1)
+        details["hrv_drop"]          = flags.get("hrv_drop", False)
+        details["sleep_deprivation"] = flags.get("sleep_deprivation", False)
+        details["pss_score"]         = comps.get("subjective_stress")
+        return max(0.0, min(100.0, score)), details
+    except Exception:
+        return 65.0, {"lss": None}
 
 
 # ── Nutrition pillar ───────────────────────────────────────────────────────────
@@ -270,23 +233,23 @@ def _compute_trend(current: float, prev_scores: list[float]) -> str:
 def _build_insight(score: float, t: float, s: float, n: float,
                    t_details: dict, s_details: dict, n_details: dict) -> str:
     """Return a single contextual insight sentence in French."""
-    pss    = s_details.get("pss_score")
-    soreness = t_details.get("soreness")
-    sleep_q  = t_details.get("sleep_quality")
-    prot_r   = n_details.get("prot_ratio")
+    lss        = s_details.get("lss")
+    sleep_dep  = s_details.get("sleep_deprivation", False)
+    soreness   = t_details.get("soreness")
+    prot_r     = n_details.get("prot_ratio")
     days_logged = n_details.get("days_logged", 0)
 
     if score >= 80:
         return "Ton organisme est en pleine forme — conditions optimales pour performer."
 
-    if s < 40 and pss is not None and pss > 26:
-        return "Stress élevé détecté — favorise la récupération active aujourd'hui."
+    if s < 40 and lss is not None:
+        return "Score bien-être bas — favorise la récupération active aujourd'hui."
 
     if soreness is not None and soreness >= 4.5:
         return "Courbatures importantes — envisage une séance légère ou une journée off."
 
-    if sleep_q is not None and sleep_q < 2.5:
-        return "Mauvaise nuit détectée — réduis l'intensité et priorise la récupération."
+    if sleep_dep:
+        return "Manque de sommeil détecté — réduis l'intensité et priorise la récupération nocturne."
 
     if prot_r is not None and prot_r < 0.70:
         return "Apport en protéines insuffisant ces derniers jours — vise tes objectifs pour optimiser la récupération."

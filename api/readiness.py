@@ -2,18 +2,19 @@
 readiness.py — Pre-session Readiness Score (0-100).
 
 5 modules with adaptive weights:
-  Fatigue accumulée   25%  (ACWR + sessions dures 48h)
-  Stress PSS          20%  (dernier score + tendance 7j)
+  Fatigue accumulée   30%  (ACWR + sessions dures 48h)
+  Bien-être (LSS)     25%  (sommeil + HRV + RHR + stress + fatigue entraînement)
   Nutrition           20%  (adhérence cals/protéines 24-48h)
-  Pattern historique  15%  (jour de semaine + repos depuis dernière séance)
-  Récupération musc.  20%  (temps écoulé vs seuil par load_profile et categorie)
+  Récupération musc.  15%  (courbe exponentielle + multiplicateur volume)
+  Pattern historique  10%  (jours de repos uniquement — weekday pattern retiré)
 
-Verdict : go (75+) | moderate (50-74) | rest (0-49)
+Verdict : go | moderate | rest
+  — Relatif à baseline 28j si ≥14 jours de données (Plews et al. 2013)
+  — Absolu (75/50) en cold start
 """
 from __future__ import annotations
 
 import math, time as _time, logging
-from collections import defaultdict
 from datetime import date as date_cls, datetime, timedelta, timezone
 
 import db
@@ -37,11 +38,25 @@ _CAT_LABEL = {
 }
 
 _WEIGHTS = {
-    "fatigue":    0.25,
-    "stress":     0.20,
+    "fatigue":    0.30,
+    "wellness":   0.25,
     "nutrition":  0.20,
-    "pattern":    0.15,
-    "muscle_rec": 0.20,
+    "muscle_rec": 0.15,
+    "pattern":    0.10,
+}
+
+# Muscle recovery — courbe exponentielle (MacDougall 1995, Zatsiorsky & Kraemer 2006)
+_RECOVERY_K              = 3.0   # k≈3 → 95% récupération à t=threshold
+_VOL_THRESHOLD_HIGH      = 6     # >6 sets → +25% temps de récupération
+_VOL_THRESHOLD_VERY_HIGH = 9     # >9 sets → +50% temps de récupération
+_VOL_MULT_HIGH           = 1.25
+_VOL_MULT_VERY_HIGH      = 1.50
+
+# Repeated Bout Effect : avancé récupère plus vite (Zatsiorsky & Kraemer 2006)
+_EXPERIENCE_MULT = {
+    "beginner":     1.15,
+    "intermediate": 1.00,
+    "advanced":     0.85,
 }
 
 
@@ -60,7 +75,6 @@ def _score_fatigue() -> tuple[float, dict]:
         acwr = None
         details["acwr"] = None
 
-    # Count hard sessions (RPE ≥ 7) in last 48h
     today     = date_cls.today()
     recent    = db.get_workout_sessions(limit=10) or []
     hard_48h  = 0
@@ -97,34 +111,36 @@ def _score_fatigue() -> tuple[float, dict]:
     return round(max(0.0, min(100.0, score)), 1), details
 
 
-# ── Module 2: Stress ──────────────────────────────────────────────────────────
+# ── Module 2: Wellness (Life Stress Score — moteur central) ───────────────────
 
-def _score_stress() -> tuple[float, dict]:
-    details: dict = {}
-    records = db.get_pss_records(limit=7) or []
-    if not records:
-        return 65.0, {"pss": None, "trend": "unknown"}
+def _score_wellness() -> tuple[float, dict]:
+    """Lit le Life Stress Score depuis le moteur central.
 
-    pss = float(records[0].get("pss_score") or records[0].get("score") or 20)
-    details["pss"] = int(pss)
+    Remplace _score_stress() qui lisait PSS directement.
+    Le LSS est la source de vérité : sommeil 30%, HRV 25%, RHR 20%,
+    stress subjectif 15%, fatigue 10% — pondération normalisée sur les
+    données disponibles (fonctionne sans Apple Watch).
+    """
+    from life_stress_engine import get_life_stress_score
 
-    older = [float(r.get("pss_score") or r.get("score") or 20) for r in records[1:]]
-    trend_mod = 0.0
-    if older:
-        avg_old = sum(older) / len(older)
-        delta   = pss - avg_old
-        if delta >= 3:
-            trend_mod = -10.0; details["trend"] = "hausse"
-        elif delta <= -3:
-            trend_mod = +8.0;  details["trend"] = "baisse"
-        else:
-            details["trend"] = "stable"
-    else:
-        details["trend"] = "unknown"
-
-    base  = 100.0 - (pss / 40.0 * 80.0)
-    score = max(0.0, min(100.0, base + trend_mod))
-    return round(score, 1), details
+    try:
+        lss        = get_life_stress_score(date_cls.today().isoformat())
+        score      = float(lss.get("score") or 50.0)
+        coverage   = float(lss.get("data_coverage") or 0.0)
+        components = lss.get("components") or {}
+        flags      = lss.get("flags") or {}
+        return round(score, 1), {
+            "lss":              round(score, 1),
+            "data_coverage":    coverage,
+            "sleep":            components.get("sleep_quality"),
+            "hrv":              components.get("hrv_trend"),
+            "rhr":              components.get("rhr_trend"),
+            "subjective":       components.get("subjective_stress"),
+            "training_fatigue": components.get("training_fatigue"),
+            "flags":            flags,
+        }
+    except Exception:
+        return 65.0, {"lss": None, "data_coverage": 0.0, "flags": {}}
 
 
 # ── Module 3: Nutrition ───────────────────────────────────────────────────────
@@ -140,7 +156,7 @@ def _ratio_score(r: float) -> float:
 def _score_nutrition() -> tuple[float, dict]:
     details: dict = {}
     try:
-        settings   = db.get_nutrition_settings() or {}
+        settings    = db.get_nutrition_settings() or {}
         target_cal  = float(settings.get("calorie_limit")  or settings.get("limite_calories")  or 2400)
         target_prot = float(settings.get("protein_target") or settings.get("objectif_proteines") or 180)
     except Exception:
@@ -183,18 +199,22 @@ def _score_nutrition() -> tuple[float, dict]:
     return round(max(0.0, min(100.0, score)), 1), details
 
 
-# ── Module 4: Historical Pattern ──────────────────────────────────────────────
+# ── Module 4: Pattern (repos uniquement) ──────────────────────────────────────
 
 def _score_pattern() -> tuple[float, dict]:
-    details: dict = {}
-    today_wd = date_cls.today().weekday()
-    details["weekday"] = today_wd
+    """Score basé uniquement sur les jours de repos depuis la dernière séance.
 
-    raw = db.get_workout_sessions(limit=60) or []
-    by_wd: dict[int, list[float]] = defaultdict(list)
-    days_since: dict[str, int] = {}
+    Retiré : pattern par jour de semaine — non validé scientifiquement
+    (chronotype et contexte de vie sont de meilleurs prédicteurs).
+
+    Gardé : jours depuis dernière séance — resynthèse glycogénique et
+    supercompensation (Zatsiorsky & Kraemer 2006).
+    """
+    details: dict = {}
+    raw   = db.get_workout_sessions(limit=20) or []
     today = date_cls.today()
 
+    days_since: dict[str, int] = {}
     for s in raw:
         d = str(s.get("date") or "")[:10]
         if not d:
@@ -203,44 +223,56 @@ def _score_pattern() -> tuple[float, dict]:
             dd = date_cls.fromisoformat(d)
         except ValueError:
             continue
-        wd  = dd.weekday()
-        rpe = s.get("rpe")
-        if rpe is not None:
-            by_wd[wd].append(float(rpe))
-        name  = s.get("session_name") or s.get("session_type") or ""
+        name  = s.get("session_name") or s.get("session_type") or "any"
         delta = (today - dd).days
-        if name and (name not in days_since or delta < days_since[name]):
+        if name not in days_since or delta < days_since[name]:
             days_since[name] = delta
 
     score = 70.0
 
-    if today_wd in by_wd and len(by_wd[today_wd]) >= 3:
-        avg_rpe = sum(by_wd[today_wd]) / len(by_wd[today_wd])
-        details["avg_rpe_weekday"] = round(avg_rpe, 1)
-        if avg_rpe < 7.0:  score += 5.0
-        elif avg_rpe > 8.0: score -= 5.0
-
     if days_since:
         min_rest = min(days_since.values())
         details["days_since_last"] = min_rest
-        if min_rest == 0:   score -= 15.0
-        elif min_rest <= 2: score += 10.0
-        elif min_rest >= 6: score -= 5.0
+        if   min_rest == 0:          score -= 15.0
+        elif min_rest == 1:          score += 5.0
+        elif min_rest == 2:          score += 10.0
+        elif 3 <= min_rest <= 5:     pass
+        elif min_rest >= 6:          score -= 5.0
+    else:
+        details["days_since_last"] = None
 
     return round(max(0.0, min(100.0, score)), 1), details
 
 
 # ── Module 5: Muscle Group Recovery ───────────────────────────────────────────
 
+def _get_experience_mult() -> float:
+    """Retourne le multiplicateur de récupération selon training_experience."""
+    try:
+        from user_profile import load_user_profile
+        level = (load_user_profile().get("training_experience") or "").lower()
+        return _EXPERIENCE_MULT.get(level, 1.0)
+    except Exception:
+        return 1.0
+
+
 def _score_muscle_recovery() -> tuple[float, dict, dict]:
-    """Returns (score, module_details, muscle_breakdown {cat: {...}})."""
+    """Returns (score, module_details, muscle_breakdown {cat: {...}}).
+
+    Courbe exponentielle : frac = 1 - e^(-k × t/T)
+    Plus réaliste que linéaire — récupération rapide dans les premières heures
+    (clearance métabolique), ralentit ensuite (réparation structurelle).
+
+    Volume multiplicateur : >6 sets → +25% threshold, >9 sets → +50%
+    (MacDougall et al. 1995 — marqueurs de dommages musculaires).
+    """
     all_hist  = db.get_all_exercise_history() or {}
     ex_info   = db.get_exercises_info_bulk(list(all_hist.keys())) if all_hist else {}
     today_dt  = datetime.now(timezone.utc)
 
-    # Per-category: find the most recent training (hours ago)
     cat_last_h: dict[str, float] = {}
     cat_profile: dict[str, str]  = {}
+    cat_date: dict[str, str]     = {}
 
     for ex_name, entries in all_hist.items():
         if not entries:
@@ -254,7 +286,7 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
         except ValueError:
             continue
 
-        if hours_ago > 168:  # fully recovered — skip
+        if hours_ago > 168:
             continue
 
         info = ex_info.get(ex_name) or {}
@@ -262,12 +294,32 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
         lp   = info.get("load_profile") or "compound_hypertrophy"
 
         if cat not in cat_last_h or hours_ago < cat_last_h[cat]:
-            cat_last_h[cat]   = hours_ago
-            cat_profile[cat]  = lp
+            cat_last_h[cat]  = hours_ago
+            cat_profile[cat] = lp
+            cat_date[cat]    = d_str[:10]
 
     relevant = [c for c in cat_last_h if c in _CAT_LABEL]
     if not relevant:
         return 85.0, {"no_recent_training": True}, {}
+
+    def _count_sets_for_cat(cat: str) -> int:
+        """Compte les sets pour un groupe musculaire dans sa dernière session."""
+        session_date = cat_date.get(cat, "")
+        if not session_date:
+            return 0
+        total = 0
+        for ex_name, entries in all_hist.items():
+            if not entries:
+                continue
+            if str(entries[0].get("date") or "")[:10] != session_date:
+                continue
+            info = ex_info.get(ex_name) or {}
+            if (info.get("category") or "other").lower() != cat:
+                continue
+            total += int(entries[0].get("sets") or entries[0].get("nb_sets") or 0)
+        return total
+
+    exp_mult = _get_experience_mult()
 
     breakdown: dict[str, dict] = {}
     fractions: list[float] = []
@@ -275,9 +327,19 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
     for cat in relevant:
         h_ago     = cat_last_h[cat]
         lp        = cat_profile.get(cat, "compound_hypertrophy")
-        threshold = _RECOVERY_H.get(lp, _DEFAULT_RECOVERY_H)
-        frac      = min(1.0, h_ago / threshold)
-        h_remain  = max(0.0, threshold - h_ago)
+        threshold = float(_RECOVERY_H.get(lp, _DEFAULT_RECOVERY_H))
+
+        vol_sets = _count_sets_for_cat(cat)
+        if vol_sets > _VOL_THRESHOLD_VERY_HIGH:
+            threshold *= _VOL_MULT_VERY_HIGH
+        elif vol_sets > _VOL_THRESHOLD_HIGH:
+            threshold *= _VOL_MULT_HIGH
+
+        threshold *= exp_mult
+
+        frac     = 1.0 - math.exp(-_RECOVERY_K * h_ago / threshold)
+        frac     = min(1.0, frac)
+        h_remain = max(0.0, threshold - h_ago)
 
         status = "ready" if frac >= 1.0 else ("almost" if frac >= 0.75 else "partial")
         breakdown[cat] = {
@@ -300,17 +362,63 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
     return round(max(0.0, min(100.0, score)), 1), details, breakdown
 
 
-# ── Verdict + Why + Adjustment ────────────────────────────────────────────────
+# ── Baseline personnelle + Verdict ────────────────────────────────────────────
 
-def _verdict(score: float) -> str:
-    if score >= 75: return "go"
-    if score >= 50: return "moderate"
-    return "rest"
+def _get_personal_baseline() -> dict:
+    """Calcule la baseline personnelle sur 28 jours glissants.
 
+    Cold start (<14 jours de données) : retourne mean=None → seuils absolus.
+    """
+    today  = date_cls.today()
+    window = {(today - timedelta(days=i)).isoformat() for i in range(1, 29)}
+
+    try:
+        history = db.get_readiness_history(days=28) or []
+        scores  = [
+            float(r["score"]) for r in history
+            if r.get("score") is not None and str(r.get("date", ""))[:10] in window
+        ]
+    except Exception:
+        return {"mean": None, "sd": None, "n": 0}
+
+    if len(scores) < 14:
+        return {"mean": None, "sd": None, "n": len(scores)}
+
+    mean = sum(scores) / len(scores)
+    sd   = (sum((x - mean) ** 2 for x in scores) / len(scores)) ** 0.5
+    return {"mean": round(mean, 1), "sd": round(sd, 1), "n": len(scores)}
+
+
+def _verdict(score: float, baseline: dict | None = None) -> tuple[str, bool]:
+    """Retourne (verdict, is_relative).
+
+    Relatif (Plews et al. 2013 — zone method) si baseline ≥14 jours :
+      go       : score ≥ mean - 0.5×SD
+      moderate : mean - 1.5×SD ≤ score < mean - 0.5×SD
+      rest     : score < mean - 1.5×SD
+
+    Absolu en cold start (<14 jours de données) :
+      go ≥75 · moderate 50-74 · rest <50
+    """
+    if baseline and baseline.get("mean") is not None:
+        mean = baseline["mean"]
+        sd   = baseline["sd"] or 5.0
+        if score >= mean - 0.5 * sd:
+            return "go", True
+        if score >= mean - 1.5 * sd:
+            return "moderate", True
+        return "rest", True
+
+    if score >= 75: return "go", False
+    if score >= 50: return "moderate", False
+    return "rest", False
+
+
+# ── Messaging ─────────────────────────────────────────────────────────────────
 
 def _build_messaging(
     verdict: str, modules: dict,
-    fatigue_d: dict, stress_d: dict, nutrition_d: dict,
+    fatigue_d: dict, wellness_d: dict, nutrition_d: dict,
     pattern_d: dict, muscle_d: dict, breakdown: dict,
 ) -> tuple[str, str | None, float]:
     """Returns (why, adjustment, progression_modifier)."""
@@ -323,7 +431,6 @@ def _build_messaging(
 
     prog_mod = 0.65 if verdict == "rest" else 0.90
 
-    # Muscle recovery
     if worst_k == "muscle_rec":
         lbl  = muscle_d.get("worst_label", "tes muscles")
         hrs  = muscle_d.get("worst_remaining", 0)
@@ -339,7 +446,6 @@ def _build_messaging(
                 adj = "Drop tes working sets de 10% et évite les exercices ciblant tes muscles fatigués."
         return why, adj, prog_mod
 
-    # Fatigue
     if worst_k == "fatigue":
         acwr = fatigue_d.get("acwr") or "?"
         why  = f"Charge accumulée élevée (ACWR {acwr}) — tu as poussé fort ces derniers jours."
@@ -349,18 +455,24 @@ def _build_messaging(
             adj = "Drop tes working sets de 10% — garde le même RPE cible, réduis le volume total."
         return why, adj, prog_mod
 
-    # Stress
-    if worst_k == "stress":
-        pss   = stress_d.get("pss") or "?"
-        trend = stress_d.get("trend") or "stable"
-        why   = f"PSS à {pss} et en {trend} — le cortisol élevé freine la récupération musculaire."
+    if worst_k == "wellness":
+        lss   = wellness_d.get("lss") or 50
+        flags = wellness_d.get("flags") or {}
+        parts = []
+        if flags.get("sleep_deprivation"):
+            parts.append("manque de sommeil")
+        if flags.get("hrv_drop"):
+            parts.append("chute de HRV")
+        if flags.get("training_overload"):
+            parts.append("surcharge d'entraînement")
+        cause = " + ".join(parts) if parts else "stress global élevé"
+        why   = f"Ton score bien-être est à {int(lss)}/100 ({cause}) — la récupération est limitée."
         if verdict == "rest":
             adj = "Rest day prioritaire. Mobilité légère OK mais pas d'intensité aujourd'hui."
         else:
             adj = "Entraîne-toi, mais ne cherche pas à battre des PRs — qualité d'exécution plutôt qu'intensité."
         return why, adj, prog_mod
 
-    # Nutrition
     if worst_k == "nutrition":
         prot_pct = nutrition_d.get("prot_pct")
         deficit  = nutrition_d.get("cal_deficit")
@@ -376,7 +488,6 @@ def _build_messaging(
             adj = "Mange avant la séance et drop les sets de 5-10% — tu n'as pas le carburant pour aller au max."
         return why, adj, prog_mod
 
-    # Pattern
     why = "Tes métriques de récupération sont limitantes aujourd'hui — écoute ton corps."
     adj = "Drop tes working sets de 10% et priorise la technique sur l'intensité."
     return why, adj, prog_mod
@@ -399,24 +510,25 @@ def compute() -> dict:
 
     try:
         f_score, f_det = _score_fatigue()
-        s_score, s_det = _score_stress()
+        w_score, w_det = _score_wellness()
         n_score, n_det = _score_nutrition()
         p_score, p_det = _score_pattern()
         m_score, m_det, breakdown = _score_muscle_recovery()
 
         composite = (
             f_score * _WEIGHTS["fatigue"]
-            + s_score * _WEIGHTS["stress"]
+            + w_score * _WEIGHTS["wellness"]
             + n_score * _WEIGHTS["nutrition"]
-            + p_score * _WEIGHTS["pattern"]
             + m_score * _WEIGHTS["muscle_rec"]
+            + p_score * _WEIGHTS["pattern"]
         )
-        score   = round(max(0.0, min(100.0, composite)))
-        verdict = _verdict(float(score))
+        score    = round(max(0.0, min(100.0, composite)))
+        baseline = _get_personal_baseline()
+        verdict, is_relative = _verdict(float(score), baseline)
 
         modules = {
             "fatigue":    {"score": round(f_score), "label": "Fatigue",    "detail": _fatigue_detail(f_det)},
-            "stress":     {"score": round(s_score), "label": "Stress",     "detail": _stress_detail(s_det)},
+            "wellness":   {"score": round(w_score), "label": "Bien-être",  "detail": _wellness_detail(w_det)},
             "nutrition":  {"score": round(n_score), "label": "Nutrition",  "detail": _nutrition_detail(n_det)},
             "pattern":    {"score": round(p_score), "label": "Pattern",    "detail": _pattern_detail(p_det)},
             "muscle_rec": {"score": round(m_score), "label": "Récup musc", "detail": _muscle_detail(m_det)},
@@ -424,10 +536,9 @@ def compute() -> dict:
 
         why, adjustment, prog_mod = _build_messaging(
             verdict, modules,
-            f_det, s_det, n_det, p_det, m_det, breakdown,
+            f_det, w_det, n_det, p_det, m_det, breakdown,
         )
 
-        # Get today's planned session
         today_session = None
         try:
             from planner import get_today
@@ -438,6 +549,8 @@ def compute() -> dict:
         data = {
             "score":                score,
             "verdict":              verdict,
+            "verdict_method":       "relative" if is_relative else "absolute_cold_start",
+            "baseline":             baseline if is_relative else None,
             "why":                  why,
             "adjustment":           adjustment,
             "progression_modifier": prog_mod,
@@ -453,6 +566,7 @@ def compute() -> dict:
         logger.exception("readiness.compute failed: %s", e)
         return {
             "score": 65, "verdict": "moderate",
+            "verdict_method": "absolute_cold_start", "baseline": None,
             "why": "Données insuffisantes — écoute ton ressenti aujourd'hui.",
             "adjustment": None, "progression_modifier": 1.0,
             "modules": {}, "muscle_recovery": {}, "today_session": None,
@@ -478,13 +592,20 @@ def _fatigue_detail(d: dict) -> str:
     return s
 
 
-def _stress_detail(d: dict) -> str:
-    pss   = d.get("pss")
-    trend = d.get("trend", "")
-    if pss is None:
-        return "Pas de score PSS récent"
-    level = "faible" if pss <= 13 else ("modéré" if pss <= 26 else "élevé")
-    return f"PSS {pss} — {level}, tendance {trend}"
+def _wellness_detail(d: dict) -> str:
+    lss      = d.get("lss")
+    coverage = d.get("data_coverage") or 0.0
+    flags    = d.get("flags") or {}
+    if lss is None:
+        return "Données bien-être insuffisantes"
+    parts = [f"LSS {int(lss)}/100"]
+    if flags.get("sleep_deprivation"):
+        parts.append("manque de sommeil")
+    if flags.get("hrv_drop"):
+        parts.append("HRV en baisse")
+    if coverage < 0.6:
+        parts.append(f"couverture {int(coverage * 100)}%")
+    return " · ".join(parts)
 
 
 def _nutrition_detail(d: dict) -> str:
@@ -498,18 +619,16 @@ def _nutrition_detail(d: dict) -> str:
 
 
 def _pattern_detail(d: dict) -> str:
-    wd_names = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
-    wd       = d.get("weekday")
-    rpe      = d.get("avg_rpe_weekday")
-    rest     = d.get("days_since_last")
-    parts    = []
-    if wd is not None:
-        parts.append(wd_names[wd])
-    if rpe is not None:
-        parts.append(f"RPE moyen {rpe}/10 ce jour")
-    if rest is not None:
-        parts.append(f"{rest}j depuis dernière séance")
-    return " · ".join(parts) if parts else "Peu d'historique"
+    rest = d.get("days_since_last")
+    if rest is None:
+        return "Peu d'historique"
+    if rest == 0:
+        return "Séance aujourd'hui — accumulation aiguë"
+    if rest <= 2:
+        return f"{rest}j de repos — récupération en cours"
+    if rest >= 6:
+        return f"{rest}j sans séance — légère décharge"
+    return f"{rest}j depuis dernière séance"
 
 
 def _muscle_detail(d: dict) -> str:
