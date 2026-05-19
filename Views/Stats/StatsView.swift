@@ -435,7 +435,7 @@ struct StatsView: View {
         let fs = filteredSessions
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             KPICard(value: "\(fs.count)",   label: "Séances",    color: .orange)
-            KPICard(value: "\(sessionsThisMonth)", label: "Ce mois",  color: .blue)
+            KPICard(value: "\(sessionsThisMonth)", label: "Mois actuel",  color: .blue)
             KPICard(value: currentStreak > 0 ? "\(currentStreak)🔥" : "0", label: "Streak", color: .red)
             KPICard(value: avgRPEPeriod > 0 ? String(format: "%.1f", avgRPEPeriod) : "—", label: "RPE moy.", color: .purple)
             KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .green)
@@ -3593,6 +3593,11 @@ struct MoodStressTrendView: View {
     let data: [MoodTrendPoint]
     let pssHistory: [PSSRecord]
 
+    // mood_logs.score : slider 1–10 (MoodTrackerView)
+    // life_stress_scores.score : LSS 0–100 (100 = récupération optimale, life_stress_engine.py)
+    private let moodScaleMax: Double = 10.0
+    private let stressScaleMax: Double = 100.0
+
     private var recentData: [MoodTrendPoint] { Array(data.suffix(30)) }
     private var maxStress: Double { recentData.compactMap(\.lifeStressScore).max() ?? 100 }
     private var avgMood: Double {
@@ -3624,7 +3629,7 @@ struct MoodStressTrendView: View {
                         let moodPts: [CGPoint] = recentData.enumerated().compactMap { i, pt in
                             guard let m = pt.moodScore else { return nil }
                             return CGPoint(x: geo.size.width * CGFloat(i) / CGFloat(n - 1),
-                                          y: geo.size.height * (1 - CGFloat(Double(m) / 10.0)))
+                                          y: geo.size.height * (1 - CGFloat(Double(m) / moodScaleMax)))
                         }
                         if moodPts.count >= 2 {
                             Path { p in moodPts.enumerated().forEach { i, pt in i == 0 ? p.move(to: pt) : p.addLine(to: pt) } }
@@ -3632,8 +3637,9 @@ struct MoodStressTrendView: View {
                         }
                         let stressPts: [CGPoint] = recentData.enumerated().compactMap { i, pt in
                             guard let s = pt.lifeStressScore else { return nil }
+                            // LSS 100 = optimal → haut du chart (y=0), comme humeur 10/10
                             return CGPoint(x: geo.size.width * CGFloat(i) / CGFloat(n - 1),
-                                          y: geo.size.height * CGFloat(s / 100.0))
+                                          y: geo.size.height * (1 - CGFloat(s / stressScaleMax)))
                         }
                         if stressPts.count >= 2 {
                             Path { p in stressPts.enumerated().forEach { i, pt in i == 0 ? p.move(to: pt) : p.addLine(to: pt) } }

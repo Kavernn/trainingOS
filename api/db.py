@@ -4923,7 +4923,12 @@ def get_macros_by_day_type(days: int = 60) -> dict:
 
 
 def get_protein_weight_ratio(days: int = 60) -> list[dict]:
-    """Return protein/bodyweight ratio per day for days with both logged."""
+    """Return protein/bodyweight ratio per day for days with both logged.
+
+    weight is always stored in lbs — the iOS app hardcodes the input label as
+    "POIDS (LBS)" and converts HealthKit kg values via / 0.453592 before sending.
+    ratio unit is therefore g_protein / lbs_bodyweight.
+    """
     try:
         from datetime import date as _date, timedelta
         cutoff = (_date.today() - timedelta(days=days)).isoformat()
