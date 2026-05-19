@@ -433,23 +433,41 @@ struct StatsView: View {
     // ── Tab content ───────────────────────────────────────────────────
     @ViewBuilder private var vueGlobaleTab: some View {
         let fs = filteredSessions
+
+        WeekComparisonCard(
+            thisWeekSessions: thisWeekSessions, lastWeekSessions: lastWeekSessions,
+            thisWeekVolume: thisWeekVolume,     lastWeekVolume: lastWeekVolume,
+            thisWeekAvgRPE: thisWeekAvgRPE,     lastWeekAvgRPE: lastWeekAvgRPE
+        )
+        .padding(.horizontal, 16)
+
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            KPICard(value: "\(fs.count)",   label: "Séances",    color: .orange)
-            KPICard(value: "\(sessionsThisMonth)", label: "Mois actuel",  color: .blue)
-            KPICard(value: currentStreak > 0 ? "\(currentStreak)🔥" : "0", label: "Streak", color: .red)
-            KPICard(value: avgRPEPeriod > 0 ? String(format: "%.1f", avgRPEPeriod) : "—", label: "RPE moy.", color: .purple)
-            KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .green)
-            KPICard(value: "\(exercisesCount)", label: "Exercices", color: .cyan)
+            KPICard(value: "\(fs.count)", label: "Séances (\(period.rawValue))", color: .orange)
+            KPICard(value: "\(sessionsThisMonth)", label: "Mois actuel", color: .blue)
             KPICard(
-                value: avgSessionDuration > 0 ? "\(Int(avgSessionDuration))min" : "—",
-                label: "Durée moy.", color: .teal
+                value: currentStreak > 0 ? "\(currentStreak)🔥" : "0",
+                label: "Streak",
+                color: .red,
+                subtitle: "jours cons. d'entraînement"
             )
+            KPICard(
+                value: avgRPEPeriod > 0 ? String(format: "%.1f", avgRPEPeriod) : "—",
+                label: "RPE moy.",
+                color: .purple,
+                subtitle: {
+                    guard thisWeekAvgRPE > 0, lastWeekAvgRPE > 0 else { return nil }
+                    let d = thisWeekAvgRPE - lastWeekAvgRPE
+                    let sign = d >= 0 ? "↑" : "↓"
+                    return "\(sign)\(String(format: "%.1f", abs(d))) vs sem. préc."
+                }()
+            )
+            KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .green)
             KPICard(
                 value: {
                     guard let v = volumeVelocityPct else { return "—" }
                     return v >= 0 ? "+\(v)%" : "\(v)%"
                 }(),
-                label: "Vol. +/−", color: (volumeVelocityPct ?? 0) >= 0 ? .green : .orange
+                label: "vol. sem. préc.", color: (volumeVelocityPct ?? 0) >= 0 ? .green : .orange
             )
         }
         .padding(.horizontal, 16)
@@ -467,15 +485,30 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
-        WeekComparisonCard(
-            thisWeekSessions: thisWeekSessions, lastWeekSessions: lastWeekSessions,
-            thisWeekVolume: thisWeekVolume,     lastWeekVolume: lastWeekVolume,
-            thisWeekAvgRPE: thisWeekAvgRPE,     lastWeekAvgRPE: lastWeekAvgRPE
-        )
-        .padding(.horizontal, 16)
+        if let pv = patternVolume {
+            PatternVolumeView(data: pv)
+                .padding(.horizontal, 16)
+        }
 
-        BadgesView(badges: earnedBadges)
-            .padding(.horizontal, 16)
+        if !top5Volume.isEmpty {
+            Top5VolumeView(data: top5Volume)
+                .padding(.horizontal, 16)
+        }
+
+        if !muscleStats.isEmpty {
+            MuscleBreakdownView(stats: muscleStats)
+                .padding(.horizontal, 16)
+        }
+
+        if !muscleLandmarks.isEmpty {
+            VolumeLandmarksCard(landmarks: muscleLandmarks)
+                .padding(.horizontal, 16)
+        }
+
+        if complianceWeeks.count >= 2 {
+            ComplianceProgrammeView(weeks: complianceWeeks)
+                .padding(.horizontal, 16)
+        }
 
         HStack(spacing: 12) {
             SimpleBarChart(
@@ -493,45 +526,8 @@ struct StatsView: View {
         }
         .padding(.horizontal, 16)
 
-        if !top5Volume.isEmpty {
-            Top5VolumeView(data: top5Volume)
-                .padding(.horizontal, 16)
-        }
-
-        if !muscleStats.isEmpty {
-            MuscleBreakdownView(stats: muscleStats)
-                .padding(.horizontal, 16)
-        }
-
-        if !muscleLandmarks.isEmpty {
-            VolumeLandmarksCard(landmarks: muscleLandmarks)
-                .padding(.horizontal, 16)
-        }
-
-        if weeklyTonnage.count >= 2 {
-            TonnageBarChartView(entries: weeklyTonnage)
-                .padding(.horizontal, 16)
-        }
-
-        if let pv = patternVolume {
-            PatternVolumeView(data: pv)
-                .padding(.horizontal, 16)
-        }
-
-        if complianceWeeks.count >= 2 {
-            ComplianceProgrammeView(weeks: complianceWeeks)
-                .padding(.horizontal, 16)
-        }
-
-        if let ppr = pushPullRatio {
-            PushPullRatioCard(data: ppr)
-                .padding(.horizontal, 16)
-        }
-
-        if let st = sorenessThreshold, st.thresholdVol != nil {
-            SorenessThresholdCard(data: st)
-                .padding(.horizontal, 16)
-        }
+        BadgesView(badges: earnedBadges)
+            .padding(.horizontal, 16)
 
         Spacer(minLength: 32)
     }
@@ -556,40 +552,8 @@ struct StatsView: View {
             .padding(.horizontal, 16)
         }
 
-        if rpeHistory.count >= 3 {
-            RPEChartView(data: rpeHistory)
-                .padding(.horizontal, 16)
-        } else {
-            EmptyChartPlaceholder(message: "Logge au moins 3 séances avec RPE pour voir la tendance")
-                .padding(.horizontal, 16)
-        }
-
-        let sessionsWithDuration = filteredSessions.filter { $0.value.durationMin != nil }
-        if sessionsWithDuration.count >= 2 {
-            TrainingLoadChart(sessions: filteredSessions, last8Weeks: last8Weeks)
-                .padding(.horizontal, 16)
-        }
-
-        let sessionsWithEnergy = filteredSessions.compactMap { d, e -> (String, Int)? in
-            e.energyPre.map { (d, $0) }
-        }.sorted { $0.0 < $1.0 }.suffix(20).map { $0 }
-        if sessionsWithEnergy.count >= 3 {
-            EnergyTrendView(data: sessionsWithEnergy)
-                .padding(.horizontal, 16)
-        }
-
         if filteredSessions.count >= 5 {
             RPEDistributionView(sessions: filteredSessions)
-                .padding(.horizontal, 16)
-        }
-
-        if !muscleStats.isEmpty {
-            MuscleVolumeView(stats: muscleStats)
-                .padding(.horizontal, 16)
-        }
-
-        if !oneRmTrend.isEmpty {
-            OneRMTrendView(trend: oneRmTrend)
                 .padding(.horizontal, 16)
         }
 
@@ -603,48 +567,47 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
+        let sessionsWithEnergy = filteredSessions.compactMap { d, e -> (String, Int)? in
+            e.energyPre.map { (d, $0) }
+        }.sorted { $0.0 < $1.0 }.suffix(20).map { $0 }
+        if sessionsWithEnergy.count >= 3 {
+            EnergyTrendView(data: sessionsWithEnergy)
+                .padding(.horizontal, 16)
+        }
+
+        if !oneRmTrend.isEmpty {
+            OneRMTrendView(trend: oneRmTrend)
+                .padding(.horizontal, 16)
+        }
+
+        if rpeHistory.count >= 3 {
+            RPEChartView(data: rpeHistory)
+                .padding(.horizontal, 16)
+        } else {
+            EmptyChartPlaceholder(message: "Logge au moins 3 séances avec RPE pour voir la tendance")
+                .padding(.horizontal, 16)
+        }
+
         Spacer(minLength: 32)
     }
 
     @ViewBuilder private var corpsTab: some View {
         let filteredBW = filteredBodyWeight
-        if filteredBW.count >= 2 {
-            WeightChartView(entries: Array(filteredBW.prefix(20).reversed()))
-                .padding(.horizontal, 16)
-        } else {
-            EmptyChartPlaceholder(message: "Logge au moins 2 pesées pour voir la courbe de poids")
-                .padding(.horizontal, 16)
-        }
-
-        // Body fat chart
-        if filteredBW.filter({ $0.bodyFat != nil }).count >= 2 {
-            BodyFatChartView(entries: Array(filteredBW.reversed()))
-                .padding(.horizontal, 16)
-        }
-
-        if filteredBW.filter({ $0.waistCm != nil || $0.armsCm != nil }).count >= 2 {
-            MeasurementsTrendView(entries: Array(filteredBW.prefix(20).reversed()))
-                .padding(.horizontal, 16)
-        }
-
-        if filteredRecovery.count >= 3 {
-            RecoveryScoreChart(log: Array(filteredRecovery.prefix(14).reversed()))
-                .padding(.horizontal, 16)
-        }
-
-        if !hiitLog.isEmpty {
-            HIITStatsSection(log: hiitLog)
-                .padding(.horizontal, 16)
-        }
-
-        if hiitCompletion.count >= 2 {
-            HIITCompletionView(entries: hiitCompletion)
-                .padding(.horizontal, 16)
-        }
 
         if filteredRecovery.count >= 5 {
             RecoveryCompositeScoreView(log: Array(filteredRecovery.prefix(30).reversed()))
                 .padding(.horizontal, 16)
+        }
+
+        if sorenessScatter.count >= 5 {
+            ScatterPlotView(
+                data: sorenessScatter,
+                xLabel: "Volume J-1 (lbs)",
+                yLabel: "Soreness J (1–10)",
+                title: "VOLUME → DOULEURS MUSCULAIRES",
+                color: .orange
+            )
+            .padding(.horizontal, 16)
         }
 
         if sleepScatter.count >= 5 {
@@ -656,6 +619,34 @@ struct StatsView: View {
                 color: .blue
             )
             .padding(.horizontal, 16)
+        }
+
+        if let st = sorenessThreshold, st.thresholdVol != nil {
+            SorenessThresholdCard(data: st)
+                .padding(.horizontal, 16)
+        }
+
+        if filteredBW.count >= 2 {
+            WeightChartView(entries: Array(filteredBW.prefix(20).reversed()))
+                .padding(.horizontal, 16)
+        } else {
+            EmptyChartPlaceholder(message: "Logge au moins 2 pesées pour voir la courbe de poids")
+                .padding(.horizontal, 16)
+        }
+
+        if filteredBW.filter({ $0.bodyFat != nil }).count >= 2 {
+            BodyFatChartView(entries: Array(filteredBW.reversed()))
+                .padding(.horizontal, 16)
+        }
+
+        if filteredBW.filter({ $0.waistCm != nil || $0.armsCm != nil }).count >= 2 {
+            MeasurementsTrendView(entries: Array(filteredBW.prefix(20).reversed()))
+                .padding(.horizontal, 16)
+        }
+
+        if !hiitLog.isEmpty {
+            HIITStatsSection(log: hiitLog)
+                .padding(.horizontal, 16)
         }
 
         Spacer(minLength: 32)
@@ -697,6 +688,11 @@ struct StatsView: View {
     }
 
     @ViewBuilder private var bienetreTab: some View {
+        if let hrv = hrvBaseline, hrv.baseline != nil {
+            HRVBaselineCard(data: hrv)
+                .padding(.horizontal, 16)
+        }
+
         if !moodTrend.isEmpty {
             MoodStressTrendView(data: moodTrend, pssHistory: pssHistory)
                 .padding(.horizontal, 16)
@@ -710,24 +706,8 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
-        if sorenessScatter.count >= 5 {
-            ScatterPlotView(
-                data: sorenessScatter,
-                xLabel: "Volume J-1 (lbs)",
-                yLabel: "Soreness J (1–10)",
-                title: "VOLUME → DOULEURS MUSCULAIRES",
-                color: .orange
-            )
-            .padding(.horizontal, 16)
-        }
-
         if !pssHistory.isEmpty {
             PSSHistoryView(records: pssHistory)
-                .padding(.horizontal, 16)
-        }
-
-        if let hrv = hrvBaseline, hrv.baseline != nil {
-            HRVBaselineCard(data: hrv)
                 .padding(.horizontal, 16)
         }
 
@@ -1009,6 +989,13 @@ struct ACWRCardView: View {
     private var isLowConfidence: Bool { data.confidence == "low" }
     private var isEstimate: Bool { data.confidence == "moderate" }
 
+    private var relativeLoadText: String {
+        guard data.chronicLoad > 0 else { return "" }
+        let pct = Int(round((data.ratio - 1.0) * 100))
+        let sign = pct >= 0 ? "+" : ""
+        return "\(sign)\(pct)% vs ta moyenne 28j"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -1052,18 +1039,10 @@ struct ACWRCardView: View {
 
                     Spacer()
 
-                    // Loads
-                    VStack(alignment: .trailing, spacing: 6) {
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text("Aiguë (7j)").font(.system(size: 10)).foregroundColor(.gray)
-                            Text("\(data.acuteLoad, specifier: "%.0f") AU")
-                                .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
-                        }
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text("Chronique (28j)").font(.system(size: 10)).foregroundColor(.gray)
-                            Text("\(data.chronicLoad, specifier: "%.0f") AU")
-                                .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
-                        }
+                    if !relativeLoadText.isEmpty {
+                        Text(relativeLoadText)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(zoneColor)
                     }
                 }
             }
@@ -1655,6 +1634,7 @@ struct KPICard: View {
     let value: String
     let label: String
     let color: Color
+    var subtitle: String? = nil
 
     var body: some View {
         VStack(spacing: 4) {
@@ -1664,6 +1644,11 @@ struct KPICard: View {
             Text(label)
                 .font(.system(size: 9, weight: .medium)).tracking(1).foregroundColor(.gray)
                 .lineLimit(1)
+            if let sub = subtitle {
+                Text(sub)
+                    .font(.system(size: 8)).foregroundColor(.gray.opacity(0.55))
+                    .lineLimit(1).minimumScaleFactor(0.7)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 14)
@@ -2759,10 +2744,10 @@ struct VolumeLandmarksCard: View {
 
     private func zoneLabel(_ zone: MuscleLandmark.Zone) -> String {
         switch zone {
-        case .underMEV:       return "< MEV"
-        case .optimal:        return "optimal"
-        case .approachingMRV: return "→ MRV"
-        case .overMRV:        return "> MRV"
+        case .underMEV:       return "↑ sets"
+        case .optimal:        return "optimal ✓"
+        case .approachingMRV: return "proche max"
+        case .overMRV:        return "surcharge"
         }
     }
 
@@ -2781,10 +2766,10 @@ struct VolumeLandmarksCard: View {
 
             // Legend
             HStack(spacing: 14) {
-                legendDot(.blue,   "< MEV")
+                legendDot(.blue,   "Sous le min")
                 legendDot(.green,  "Optimal")
-                legendDot(.orange, "→ MRV")
-                legendDot(.red,    "> MRV")
+                legendDot(.orange, "Proche du max")
+                legendDot(.red,    "Surcharge")
             }
 
             GeometryReader { outer in
@@ -3203,7 +3188,7 @@ struct RPEProgressionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("RPE → PROGRESSION MOYENNE")
+            Text("QUELLE INTENSITÉ TE FAIT PROGRESSER ?")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             Text("Gain de charge moyen sur la séance suivante par zone d'intensité")
                 .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
@@ -3326,6 +3311,8 @@ struct HIITCompletionView: View {
 struct RecoveryCompositeScoreView: View {
     let log: [RecoveryEntry]
 
+    private enum ComponentStatus { case green, yellow, red }
+
     private func score(_ r: RecoveryEntry) -> Double? {
         var components: [(Double, Double)] = []
         if let sh = r.sleepHours  { components.append((min(sh / 8.0, 1.0), 0.30)) }
@@ -3346,10 +3333,32 @@ struct RecoveryCompositeScoreView: View {
         }
     }
 
+    private func sleepStatus(_ r: RecoveryEntry) -> ComponentStatus {
+        guard let h = r.sleepHours else { return .yellow }
+        return h >= 7 ? .green : h >= 5.5 ? .yellow : .red
+    }
+    private func hrvStatus(_ r: RecoveryEntry) -> ComponentStatus {
+        guard let h = r.hrv, h > 0 else { return .yellow }
+        return h >= 50 ? .green : h >= 35 ? .yellow : .red
+    }
+    private func sorenessStatus(_ r: RecoveryEntry) -> ComponentStatus {
+        guard let s = r.soreness else { return .yellow }
+        return s <= 3 ? .green : s <= 6 ? .yellow : .red
+    }
+    private func statusColor(_ s: ComponentStatus) -> Color {
+        switch s { case .green: return .green; case .yellow: return .yellow; case .red: return .red }
+    }
+    private func componentDot(_ label: String, _ status: ComponentStatus) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(statusColor(status)).frame(width: 7, height: 7)
+            Text(label).font(.system(size: 10)).foregroundColor(.gray)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("SCORE RÉCUPÉRATION COMPOSITE")
+                Text("SCORE RÉCUPÉRATION")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 if let last = points.last {
@@ -3389,6 +3398,19 @@ struct RecoveryCompositeScoreView: View {
                 }
             }
             .frame(height: 80)
+            if let last = log.last {
+                HStack(spacing: 14) {
+                    componentDot("Sommeil",  sleepStatus(last))
+                    componentDot("HRV",      hrvStatus(last))
+                    componentDot("Soreness", sorenessStatus(last))
+                }
+                let allStatuses = [sleepStatus(last), hrvStatus(last), sorenessStatus(last)]
+                if let s = score(last), s >= 45, allStatuses.contains(.red) {
+                    Text("Score OK, mais un indicateur est en alerte")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(.orange)
+                }
+            }
         }
         .padding(14)
         .background(Color.appCard)
@@ -3425,14 +3447,7 @@ struct ScatterPlotView: View {
     var body: some View {
         let r = pearsonR()
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(title).font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                Spacer()
-                let rStr = String(format: "r = %.2f", r)
-                Text(rStr)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(abs(r) >= 0.5 ? .green : abs(r) >= 0.3 ? .orange : .gray)
-            }
+            Text(title).font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             GeometryReader { geo in
                 let xRange = maxX - minX, yRange = maxY - minY
                 let xPad = xRange * 0.05, yPad = yRange * 0.05
@@ -3475,10 +3490,13 @@ struct ScatterPlotView: View {
                 Text(yLabel).font(.system(size: 9)).foregroundColor(.gray)
             }
             if abs(r) >= 0.3 {
-                let direction = r > 0 ? "positif" : "négatif"
-                let strength = abs(r) >= 0.6 ? "fort" : "modéré"
-                Text("Corrélation \(strength) \(direction) (\(data.count) points)")
+                let direction = r > 0 ? "positive" : "négative"
+                let strength = abs(r) >= 0.6 ? "forte" : "modérée"
+                Text("Corrélation \(strength) \(direction) (r = \(String(format: "%.2f", r)), \(data.count) pts)")
                     .font(.system(size: 10)).foregroundColor(.gray.opacity(0.8))
+            } else if data.count >= 5 {
+                Text("Pas de corrélation significative (r = \(String(format: "%.2f", r)))")
+                    .font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
             }
         }
         .padding(14)
@@ -3599,7 +3617,7 @@ struct MoodStressTrendView: View {
     private let stressScaleMax: Double = 100.0
 
     private var recentData: [MoodTrendPoint] { Array(data.suffix(30)) }
-    private var maxStress: Double { recentData.compactMap(\.lifeStressScore).max() ?? 100 }
+    private var n: Int { recentData.count }
     private var avgMood: Double {
         let m = recentData.compactMap(\.moodScore).map(Double.init)
         return m.isEmpty ? 0 : m.reduce(0,+)/Double(m.count)
@@ -3610,58 +3628,84 @@ struct MoodStressTrendView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("HUMEUR & STRESS — 30 JOURS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(String(format: "Humeur %.1f/10", avgMood))
-                        .font(.system(size: 9, weight: .semibold)).foregroundColor(.purple)
-                    Text(String(format: "Stress %.0f/100", avgStress))
-                        .font(.system(size: 9, weight: .semibold)).foregroundColor(.orange)
-                }
-            }
-            let n = recentData.count
+        VStack(alignment: .leading, spacing: 14) {
+            Text("HUMEUR & BIEN-ÊTRE — 30 JOURS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            // Graphique humeur (1-10, ↑ = bien)
             if n >= 2 {
-                GeometryReader { geo in
-                    ZStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Humeur").font(.system(size: 9, weight: .semibold)).foregroundColor(.purple)
+                        Spacer()
+                        Text(String(format: "Moy. %.1f / 10", avgMood))
+                            .font(.system(size: 9)).foregroundColor(.purple.opacity(0.7))
+                    }
+                    GeometryReader { geo in
                         let moodPts: [CGPoint] = recentData.enumerated().compactMap { i, pt in
                             guard let m = pt.moodScore else { return nil }
-                            return CGPoint(x: geo.size.width * CGFloat(i) / CGFloat(n - 1),
-                                          y: geo.size.height * (1 - CGFloat(Double(m) / moodScaleMax)))
+                            return CGPoint(
+                                x: geo.size.width * CGFloat(i) / CGFloat(n - 1),
+                                y: geo.size.height * (1 - CGFloat(Double(m) / moodScaleMax))
+                            )
                         }
-                        if moodPts.count >= 2 {
-                            Path { p in moodPts.enumerated().forEach { i, pt in i == 0 ? p.move(to: pt) : p.addLine(to: pt) } }
+                        ZStack {
+                            if moodPts.count >= 2 {
+                                Path { p in
+                                    moodPts.enumerated().forEach { i, pt in
+                                        i == 0 ? p.move(to: pt) : p.addLine(to: pt)
+                                    }
+                                }
                                 .stroke(Color.purple, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
-                        }
-                        let stressPts: [CGPoint] = recentData.enumerated().compactMap { i, pt in
-                            guard let s = pt.lifeStressScore else { return nil }
-                            // LSS 100 = optimal → haut du chart (y=0), comme humeur 10/10
-                            return CGPoint(x: geo.size.width * CGFloat(i) / CGFloat(n - 1),
-                                          y: geo.size.height * (1 - CGFloat(s / stressScaleMax)))
-                        }
-                        if stressPts.count >= 2 {
-                            Path { p in stressPts.enumerated().forEach { i, pt in i == 0 ? p.move(to: pt) : p.addLine(to: pt) } }
-                                .stroke(Color.orange, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
-                        }
-                        ForEach(Array(pssHistory.prefix(5)), id: \.id) { rec in
-                            if let idx = recentData.firstIndex(where: { $0.date == rec.date }) {
-                                let x = geo.size.width * CGFloat(idx) / CGFloat(n - 1)
-                                let c: Color = rec.category == "low" ? .green : rec.category == "moderate" ? .orange : .red
-                                Circle().fill(c).frame(width: 8, height: 8).position(x: x, y: geo.size.height * 0.5)
+                            }
+                            ForEach(Array(pssHistory.prefix(5)), id: \.id) { rec in
+                                if let idx = recentData.firstIndex(where: { $0.date == rec.date }) {
+                                    let x = geo.size.width * CGFloat(idx) / CGFloat(n - 1)
+                                    let c: Color = rec.category == "low" ? .green : rec.category == "moderate" ? .orange : .red
+                                    Circle().fill(c).frame(width: 8, height: 8).position(x: x, y: geo.size.height * 0.5)
+                                }
                             }
                         }
                     }
+                    .frame(height: 55)
                 }
-                .frame(height: 90)
-            } else {
-                Color.clear.frame(height: 90)
             }
-            HStack(spacing: 16) {
-                Label("Humeur",  systemImage: "circle.fill").font(.system(size: 9)).foregroundColor(.purple)
-                Label("Stress",  systemImage: "circle.fill").font(.system(size: 9)).foregroundColor(.orange)
-                Label("PSS",     systemImage: "circle.fill").font(.system(size: 9)).foregroundColor(.green)
+
+            // Graphique bien-être (LSS 0-100, 100 = optimal, ↑ = bien)
+            if n >= 2 {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Score bien-être").font(.system(size: 9, weight: .semibold)).foregroundColor(.orange)
+                        Text("(100 = optimal)").font(.system(size: 8)).foregroundColor(.gray.opacity(0.6))
+                        Spacer()
+                        Text(String(format: "Moy. %.0f / 100", avgStress))
+                            .font(.system(size: 9)).foregroundColor(.orange.opacity(0.7))
+                    }
+                    GeometryReader { geo in
+                        let stressPts: [CGPoint] = recentData.enumerated().compactMap { i, pt in
+                            guard let s = pt.lifeStressScore else { return nil }
+                            return CGPoint(
+                                x: geo.size.width * CGFloat(i) / CGFloat(n - 1),
+                                y: geo.size.height * (1 - CGFloat(s / stressScaleMax))
+                            )
+                        }
+                        if stressPts.count >= 2 {
+                            Path { p in
+                                stressPts.enumerated().forEach { i, pt in
+                                    i == 0 ? p.move(to: pt) : p.addLine(to: pt)
+                                }
+                            }
+                            .stroke(Color.orange, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+                        }
+                    }
+                    .frame(height: 55)
+                }
+            }
+
+            HStack(spacing: 12) {
+                Label("Humeur (1–10)", systemImage: "circle.fill").font(.system(size: 9)).foregroundColor(.purple)
+                Label("Bien-être (0–100)", systemImage: "circle.fill").font(.system(size: 9)).foregroundColor(.orange)
+                Label("PSS", systemImage: "circle.fill").font(.system(size: 9)).foregroundColor(.green)
             }
         }
         .padding(14)
@@ -3738,7 +3782,7 @@ struct PSSHistoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("HISTORIQUE PSS (STRESS PERÇU)")
+            Text("HISTORIQUE — STRESS PERÇU")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
             ForEach(Array(records.prefix(5)), id: \.id) { rec in
                 HStack(spacing: 10) {
