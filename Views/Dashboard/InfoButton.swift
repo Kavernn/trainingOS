@@ -163,6 +163,18 @@ extension InfoEntry {
         ),
     ]
 
+    // RPE / RIR — shown in exercise card header and post-session recap
+    static let rpeRirEntries: [InfoEntry] = [
+        InfoEntry(
+            term: "RPE — Difficulté perçue (1–10)",
+            definition: "Rate of Perceived Exertion. Une échelle simple pour mesurer l'intensité de ton effort :\n\n• RPE 10 → Échec : impossible de faire 1 rep de plus\n• RPE 9 → Très dur : peut-être 1 rep de plus\n• RPE 8 → Dur : 2 reps de plus max\n• RPE 7 → Challenge : 3 reps de réserve\n• RPE 6 et moins → Modéré à facile\n\nTon coach utilise cette valeur pour ajuster ton programme semaine après semaine."
+        ),
+        InfoEntry(
+            term: "RIR — Reps en réserve",
+            definition: "L'autre face du RPE. Plutôt que de noter la difficulté, tu indiques combien de reps tu aurais pu faire de plus avant l'échec :\n\n• RIR 0 → Échec total (= RPE 10)\n• RIR 1 → Très dur (= RPE 9)\n• RIR 2 → Dur mais propre (= RPE 8)\n• RIR 3 → Challenge contrôlé (= RPE 7)\n• RIR 4+ → Trop facile (= RPE 6 ou moins)\n\nPour progresser : vise RIR 1–3 sur la plupart de tes sets. RIR 0 (échec) doit rester rare — il épuise le système nerveux."
+        ),
+    ]
+
     // Volume landmarks (MEV / MAV / MRV)
     static let volumeLandmarkEntries: [InfoEntry] = [
         InfoEntry(

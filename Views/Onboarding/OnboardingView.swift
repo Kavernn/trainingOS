@@ -8,6 +8,7 @@ struct OnboardingView: View {
     @State private var goal = "Prise de masse"
     @State private var isSaving    = false
     @State private var hkRequesting = false
+    @State private var isKgSelected: Bool = Locale.current.usesMetricSystem
 
     // Defaults — user updates later in Profile
     private let sex      = "M"
@@ -35,11 +36,13 @@ struct OnboardingView: View {
                 if step == 0 { splashStep.transition(.asymmetric(insertion: .opacity, removal: .opacity)) }
                 if step == 1 { goalStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
                 if step == 2 { nameStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
-                if step == 3 { healthKitStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
+                if step == 3 { unitsStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
+                if step == 4 { healthKitStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
             }
             .animation(.easeInOut(duration: 0.3), value: step)
         }
         .overlay(alignment: .topTrailing) {
+            // Units step (3) is mandatory — no skip. HealthKit (4) has its own skip button.
             if step < 3 {
                 Button("Passer") { onComplete() }
                     .font(.system(size: 14, weight: .medium))
@@ -165,7 +168,7 @@ struct OnboardingView: View {
                     if isSaving {
                         ProgressView().tint(.black).scaleEffect(0.85)
                     }
-                    Text(isSaving ? "Préparation…" : "Rencontrer mon coach →")
+                    Text(isSaving ? "Préparation…" : "Continuer →")
                         .font(.system(size: 17, weight: .bold))
                 }
                 .foregroundColor(.black)
@@ -180,7 +183,59 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: Step 3 — HealthKit
+    // MARK: Step 3 — Units
+
+    private var unitsStep: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 10) {
+                Text("Tu t'entraînes\nen kg ou en lbs ?")
+                    .font(.system(size: 34, weight: .black))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 80)
+                Text("Toutes tes charges seront affichées\ndans cette unité.")
+                    .font(.system(size: 15))
+                    .foregroundColor(Color(white: 0.45))
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.bottom, 52)
+
+            HStack(spacing: 16) {
+                unitButton(label: "KG", selected: isKgSelected) {
+                    isKgSelected = true
+                    UnitSettings.shared.isKg = true
+                    withAnimation { step = 4 }
+                }
+                unitButton(label: "LBS", selected: !isKgSelected) {
+                    isKgSelected = false
+                    UnitSettings.shared.isKg = false
+                    withAnimation { step = 4 }
+                }
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
+        }
+    }
+
+    private func unitButton(label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.system(size: 28, weight: .black))
+                .foregroundColor(selected ? .black : .white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 36)
+                .background(selected ? Color.orange : Color(white: 0.1))
+                .cornerRadius(16)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(selected ? Color.orange : Color(white: 0.15), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Step 4 — HealthKit
 
     private var healthKitStep: some View {
         VStack(spacing: 0) {

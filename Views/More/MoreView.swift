@@ -14,7 +14,7 @@ struct MoreView: View {
                 List {
                     Section("Rituel & Esprit") {
                         MoreRow(icon: "flame.fill",  color: Color(hex: "FF2D20"), title: "Rituel quotidien", badge: appState.ritualTodayNotDone) { RitualView() }
-                        MoreRow(icon: "wind",        color: Color.moonlight.opacity(0.7), title: "The Void") { SpiritView() }
+                        MoreRow(icon: "wind",        color: Color.moonlight.opacity(0.7), title: "The Void", subtitle: "Respiration, méditation & journal") { SpiritView() }
                         MoreRow(icon: "calendar.badge.clock", color: .teal, title: "Mes chapitres") { SeasonView() }
                     }
                     .listRowBackground(glassRowBG(Color(hex: "FF2D20")))
@@ -34,7 +34,8 @@ struct MoreView: View {
                         MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")             { HIITHistoriqueView() }
                         MoreRow(icon: "calendar",              color: .teal,   title: "Historique")       { HistoriqueView() }
                         MoreRow(icon: "star.fill",             color: .yellow, title: "XP & Niveau")      { XPView() }
-                        MoreRow(icon: "cross.fill",            color: Color(hex: "8B6AFF"), title: "Graveyard") { GraveyardView() }
+                        MoreRow(icon: "cross.fill",            color: Color(hex: "8B6AFF"), title: "Graveyard", subtitle: "Exercices archivés") { GraveyardView() }
+                        MoreRow(icon: "lock.shield.fill",      color: Color.forge, title: "War Room", subtitle: "Résistance aux habitudes difficiles") { WarRoomGateView() }
                     }
                     .listRowBackground(glassRowBG(.blue))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
@@ -70,7 +71,6 @@ struct MoreView: View {
                         MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Inventaire") { InventaireView() }
                         MoreRow(icon: "note.text",        color: .blue,   title: "Notes")      { NotesView() }
                         MoreRow(icon: "person.fill",      color: .purple, title: "Profil")     { ProfileView() }
-                        MoreRow(icon: "lock.shield.fill", color: Color.forge, title: "War Room")  { WarRoomGateView() }
                         MoreRow(icon: "seal.fill",        color: .black,  title: "Mon serment") { OathGateView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
@@ -93,6 +93,7 @@ struct MoreRow<Destination: View>: View {
     let icon: String
     let color: Color
     let title: String
+    var subtitle: String? = nil
     var badge: Bool = false
     @ViewBuilder let destination: () -> Destination
 
@@ -119,9 +120,16 @@ struct MoreRow<Destination: View>: View {
                             .offset(x: 3, y: -3)
                     }
                 }
-                Text(title)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                    if let sub = subtitle {
+                        Text(sub)
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray.opacity(0.6))
+                    }
+                }
                 if badge {
                     Spacer()
                     Text("À faire")

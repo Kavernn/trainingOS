@@ -41,19 +41,26 @@ struct SpiritJournalGateView: View {
             }
 
             VStack(spacing: 8) {
-                Text("ESPACE SACRÉ")
+                Text("JOURNAL INTIME")
                     .font(.system(size: 10, weight: .thin, design: .monospaced))
                     .foregroundStyle(Color.moonlight.opacity(0.55))
                     .tracking(4)
-                Text("Ce journal n'appartient qu'à toi.")
+                Text("Tes pensées restent sur cet appareil.")
                     .font(.system(size: 13, weight: .thin))
+                    .foregroundStyle(Color.moonlight.opacity(0.35))
+                Text("Jamais transmis au coach IA.")
+                    .font(.system(size: 11, weight: .thin))
                     .foregroundStyle(Color.moonlight.opacity(0.2))
             }
 
             if failed {
-                Button("Réessayer") { authenticate() }
+                Button("Réessayer avec Face ID") { authenticate() }
                     .font(.system(size: 13, weight: .thin))
                     .foregroundStyle(Color.moonlight.opacity(0.6))
+            } else {
+                Button("Déverrouiller avec Face ID") { authenticate() }
+                    .font(.system(size: 13, weight: .thin))
+                    .foregroundStyle(Color.moonlight.opacity(0.4))
             }
 
             Spacer()

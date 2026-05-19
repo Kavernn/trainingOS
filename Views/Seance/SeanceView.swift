@@ -39,33 +39,7 @@ struct SeanceView: View {
         } else if data.today == "Yoga / Tai Chi" || data.today == "Recovery" {
             SpecialSeanceView(sessionType: data.today, vm: vm)
         } else if (data.fullProgram[data.today] ?? [:]).isEmpty {
-            // W-B1 — no exercises in active programme: show empty state instead of broken session layout
-            VStack(spacing: 16) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 48))
-                    .foregroundColor(.gray.opacity(0.4))
-                Text("Aucun programme actif pour aujourd'hui")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                Text("Assigne un programme ou configure les exercices pour \(data.today).")
-                    .font(.system(size: 13))
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                NavigationLink(destination: ProgrammeView()) {
-                    Text("Voir les programmes")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.orange)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(Color.orange.opacity(0.12))
-                        .cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.3), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            NoProgramEmptyState()
         } else {
             WorkoutSeanceView(data: data, vm: vm)
         }
@@ -198,10 +172,13 @@ struct AlreadyLoggedSeanceView: View {
                                     Text(String(format: "%.1f", rpe))
                                         .font(.system(size: 24, weight: .black))
                                         .foregroundColor(rpeColor(rpe))
-                                    Text("RPE")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .tracking(1)
-                                        .foregroundColor(.gray)
+                                    HStack(spacing: 3) {
+                                        Text("RPE")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .tracking(1)
+                                            .foregroundColor(.gray)
+                                        CardInfoButton(title: "RPE & RIR", entries: InfoEntry.rpeRirEntries)
+                                    }
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
@@ -1146,3 +1123,309 @@ struct FinishRemainingSheet: View {
     }
 }
 
+// MARK: - Empty state shown when no program is configured for today
+
+struct NoProgramEmptyState: View {
+    @State private var showFreePicker = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            VStack(spacing: 8) {
+                Image(systemName: "dumbbell.fill")
+                    .font(.system(size: 44))
+                    .foregroundColor(.gray.opacity(0.35))
+                    .padding(.bottom, 4)
+
+                Text("Aucun programme pour aujourd'hui")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+
+                Text("Tu peux partir en séance libre ou créer un programme.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+
+            Spacer()
+
+            VStack(spacing: 12) {
+                Button { showFreePicker = true } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                        Text("Séance libre")
+                            .font(.system(size: 17, weight: .bold))
+                    }
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(Color.orange)
+                    .cornerRadius(16)
+                }
+                .buttonStyle(.plain)
+
+                NavigationLink(destination: ProgrammeView()) {
+                    Text("Créer mon programme")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.orange)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.orange.opacity(0.1))
+                        .cornerRadius(14)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .sheet(isPresented: $showFreePicker) {
+            FreeSessionPickerView()
+        }
+    }
+}
+
+// MARK: - Free session exercise picker
+
+struct FreeSessionPickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var items: [InventoryItem] = []
+    @State private var isLoading = true
+    @State private var searchText = ""
+    @State private var selectedNames: Set<String> = []
+    @State private var showWorkout = false
+
+    private let categories = ["push", "pull", "legs", "core", "mobility"]
+    private let categoryLabels = [
+        "push": "Poussée",
+        "pull": "Tirage",
+        "legs": "Jambes",
+        "core": "Gainage",
+        "mobility": "Mobilité",
+    ]
+
+    private var filtered: [InventoryItem] {
+        let q = searchText.trimmingCharacters(in: .whitespaces).lowercased()
+        if q.isEmpty { return items }
+        return items.filter { $0.name.lowercased().contains(q) }
+    }
+
+    private func exercises(for category: String) -> [InventoryItem] {
+        filtered.filter { $0.category == category }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBg.ignoresSafeArea()
+
+                if isLoading {
+                    ProgressView().tint(.orange)
+                } else {
+                    exerciseList
+                }
+            }
+            .navigationTitle("Séance libre")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Annuler") { dismiss() }
+                        .foregroundColor(.gray)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    if !selectedNames.isEmpty {
+                        Button("Commencer (\(selectedNames.count))") { showWorkout = true }
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.orange)
+                    }
+                }
+            }
+            .searchable(text: $searchText, prompt: "Chercher un exercice")
+            .navigationDestination(isPresented: $showWorkout) {
+                FreeWorkoutView(exerciseNames: Array(selectedNames).sorted())
+            }
+        }
+        .task { await loadInventory() }
+    }
+
+    private var exerciseList: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 20) {
+                if !selectedNames.isEmpty {
+                    selectedBar
+                }
+                ForEach(categories, id: \.self) { cat in
+                    let exos = exercises(for: cat)
+                    if !exos.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text((categoryLabels[cat] ?? cat).uppercased())
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(1.5)
+                                .foregroundColor(.gray)
+                                .padding(.horizontal, 16)
+                            VStack(spacing: 0) {
+                                ForEach(exos) { item in
+                                    exerciseRow(item)
+                                    if item.id != exos.last?.id {
+                                        Divider()
+                                            .background(Color.white.opacity(0.05))
+                                            .padding(.leading, 56)
+                                    }
+                                }
+                            }
+                            .background(Color.appCard)
+                            .cornerRadius(12)
+                            .padding(.horizontal, 16)
+                        }
+                    }
+                }
+            }
+            .padding(.top, 12)
+            .padding(.bottom, 32)
+        }
+    }
+
+    private var selectedBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Array(selectedNames).sorted(), id: \.self) { name in
+                    HStack(spacing: 4) {
+                        Text(name)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.orange)
+                            .lineLimit(1)
+                        Button {
+                            selectedNames.remove(name)
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.orange.opacity(0.7))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.12))
+                    .cornerRadius(20)
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private func exerciseRow(_ item: InventoryItem) -> some View {
+        let selected = selectedNames.contains(item.name)
+        return Button {
+            triggerImpact(style: .light)
+            if selected { selectedNames.remove(item.name) } else { selectedNames.insert(item.name) }
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(selected ? Color.orange.opacity(0.15) : Color.white.opacity(0.05))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: selected ? "checkmark" : "plus")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(selected ? .orange : .gray)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.name)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white)
+                    Text(item.defaultScheme)
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.orange)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func loadInventory() async {
+        guard let url = URL(string: "https://training-os-rho.vercel.app/api/inventory") else {
+            isLoading = false; return
+        }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let inv = json["inventory"] as? [String: [String: Any]] {
+                let parsed = inv.map { InventoryItem(name: $0.key, $0.value) }.sorted { $0.name < $1.name }
+                await MainActor.run { items = parsed; isLoading = false }
+            } else {
+                await MainActor.run { isLoading = false }
+            }
+        } catch {
+            await MainActor.run { isLoading = false }
+        }
+    }
+}
+
+// MARK: - Lightweight free workout view
+
+struct FreeWorkoutView: View {
+    let exerciseNames: [String]
+    @Environment(\.dismiss) private var dismiss
+    @State private var logResults: [String: ExerciseLogResult?] = [:]
+    @State private var expandedIndex: Int? = 0
+
+    var body: some View {
+        ZStack {
+            Color.appBg.ignoresSafeArea()
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 12) {
+                    ForEach(exerciseNames.indices, id: \.self) { i in
+                        let name = exerciseNames[i]
+                        ExerciseCard(
+                            name: name,
+                            scheme: "3x8-12",
+                            weightData: nil,
+                            logResult: Binding(
+                                get: { logResults[name] ?? nil },
+                                set: { logResults[name] = $0 }
+                            ),
+                            isExpanded: expandedIndex == i,
+                            onToggle: {
+                                withAnimation(.easeInOut(duration: 0.22)) {
+                                    expandedIndex = expandedIndex == i ? nil : i
+                                }
+                            }
+                        )
+                    }
+                    Button {
+                        triggerImpact(style: .medium)
+                        dismiss()
+                    } label: {
+                        Text("Terminer la séance")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(Color.orange)
+                            .cornerRadius(16)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 8)
+                }
+                .padding(16)
+                .padding(.bottom, 32)
+            }
+        }
+        .navigationTitle("Séance libre")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}

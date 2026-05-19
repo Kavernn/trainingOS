@@ -46,15 +46,28 @@ struct PhoenixCard: View {
     @ViewBuilder
     private func scoreSection(state: PhoenixState) -> some View {
         VStack(spacing: 5) {
-            Text(score.isFoundation ? "PHOENIX SCORE" : state.label.uppercased())
-                .font(.system(size: 9, weight: .black)).tracking(3)
-                .foregroundColor(state.scoreColor.opacity(0.65))
+            VStack(spacing: 2) {
+                Text(score.isFoundation ? "PHOENIX SCORE" : state.label.uppercased())
+                    .font(.system(size: 9, weight: .black)).tracking(3)
+                    .foregroundColor(state.scoreColor.opacity(0.65))
+                Text("Ta transformation · semaine en cours")
+                    .font(.system(size: 9, weight: .regular))
+                    .foregroundColor(.white.opacity(0.28))
+            }
 
             if score.isFoundation {
-                Text("Accumule 7 jours de données")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.55))
-                    .padding(.top, 4)
+                VStack(spacing: 6) {
+                    Text("Commence une séance pour activer ton score")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.55))
+                        .multilineTextAlignment(.center)
+                    Text("Il apparaît après ta première semaine d'activité")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.28))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 4)
+                .padding(.horizontal, 12)
             } else {
                 let sign = score.score >= 0 ? "+" : ""
                 let scoreStr = String(format: "%.1f", score.score)

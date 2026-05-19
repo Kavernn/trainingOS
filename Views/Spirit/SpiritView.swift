@@ -20,10 +20,15 @@ struct SpiritView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text("THE VOID")
-                        .font(.system(size: 11, weight: .light, design: .monospaced))
-                        .foregroundStyle(Color.moonlight.opacity(0.5))
-                        .tracking(5)
+                    VStack(spacing: 1) {
+                        Text("THE VOID")
+                            .font(.system(size: 11, weight: .light, design: .monospaced))
+                            .foregroundStyle(Color.moonlight.opacity(0.5))
+                            .tracking(5)
+                        Text("Respiration · Méditation · Journal")
+                            .font(.system(size: 9, weight: .light))
+                            .foregroundStyle(Color.moonlight.opacity(0.25))
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
@@ -45,12 +50,14 @@ struct SpiritView: View {
         HStack(spacing: 0) {
             ForEach(SpiritTab.allCases, id: \.self) { t in
                 Button { tab = t } label: {
-                    VStack(spacing: 3) {
+                    VStack(spacing: 2) {
                         Image(systemName: t.icon)
                             .font(.system(size: 14, weight: tab == t ? .medium : .light))
                         Text(t.label)
-                            .font(.system(size: 9, weight: .light, design: .monospaced))
-                            .tracking(1)
+                            .font(.system(size: 10, weight: tab == t ? .medium : .light))
+                        Text(t.subtitle)
+                            .font(.system(size: 8, weight: .light))
+                            .opacity(0.6)
                     }
                     .foregroundStyle(tab == t ? Color.moonlight : Color.moonlight.opacity(0.25))
                     .frame(maxWidth: .infinity)
@@ -87,9 +94,17 @@ enum SpiritTab: CaseIterable {
 
     var label: String {
         switch self {
-        case .breath:   return "SOUFFLE"
-        case .meditate: return "SILENCE"
-        case .journal:  return "SACRÉ"
+        case .breath:   return "Respiration"
+        case .meditate: return "Méditation"
+        case .journal:  return "Journal"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .breath:   return "Exercices guidés"
+        case .meditate: return "Timer silencieux"
+        case .journal:  return "Privé · Face ID"
         }
     }
 

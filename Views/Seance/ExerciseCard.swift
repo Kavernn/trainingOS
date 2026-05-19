@@ -10,6 +10,7 @@ struct StepperInput: View {
     let placeholder: Double
     var isInteger: Bool = false
     var isDisabled: Bool = false
+    var autoFocus: Bool = false
 
     @FocusState private var isManualFocused: Bool
     @State private var holdTask: Task<Void, Never>? = nil
@@ -80,6 +81,12 @@ struct StepperInput: View {
         .cornerRadius(10)
         .onChange(of: isManualFocused) { _, focused in
             if !focused { validateInput() }
+        }
+        .onAppear {
+            guard autoFocus else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                isManualFocused = true
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
@@ -470,11 +477,14 @@ struct ExerciseCard: View {
                     .frame(width: 140, alignment: .center)
                 // W-C2 — hide RIR column for time-based exercises
                 if showRIRColumn && !isTimeBased {
-                    VStack(spacing: 1) {
-                        Text("RIR")
-                            .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
-                        Text("avant échec")
-                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.45))
+                    HStack(spacing: 3) {
+                        VStack(spacing: 1) {
+                            Text("RIR")
+                                .font(.system(size: 11, weight: .bold)).tracking(1).foregroundColor(.cyan.opacity(0.7))
+                            Text("avant échec")
+                                .font(.system(size: 9)).foregroundColor(.gray.opacity(0.45))
+                        }
+                        CardInfoButton(title: "RPE & RIR", entries: InfoEntry.rpeRirEntries)
                     }
                     .frame(width: 70, alignment: .center)
                 }
@@ -506,7 +516,8 @@ struct ExerciseCard: View {
                             minimum: 0,
                             placeholder: Double(evm.perSetHint(for: i)
                                 .replacingOccurrences(of: ",", with: ".")) ?? 0,
-                            isDisabled: evm.setBySetMode && !isActive && !isDone
+                            isDisabled: evm.setBySetMode && !isActive && !isDone,
+                            autoFocus: i == 0 && !alreadyLogged && !evm.setBySetMode
                         )
                         if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" {
                             let rawVal = Double(evm.sets[i].weight.replacingOccurrences(of: ",", with: ".")) ?? 0
@@ -788,6 +799,19 @@ struct ExerciseCard: View {
         .onAppear {
             evm.initializeSets()
             if !evm.painZone.isEmpty || !exoNote.isEmpty { showAdvanced = true }
+        }
+        .onChange(of: isExpanded) { _, expanded in
+            guard expanded, !alreadyLogged else { return }
+            for i in evm.sets.indices where evm.sets[i].weight.isEmpty {
+                let hint = evm.perSetHint(for: i)
+                guard hint != "0.0", !hint.isEmpty else { continue }
+                evm.sets[i].weight = hint
+            }
+            for i in evm.sets.indices where evm.sets[i].reps.isEmpty {
+                let hint = evm.lastRepsParts.indices.contains(i) ? evm.lastRepsParts[i] : ""
+                guard let reps = Int(hint), reps > 0 else { continue }
+                evm.sets[i].reps = hint
+            }
         }
         .onChange(of: evm.setsCount) {
             evm.syncSetsCount()
