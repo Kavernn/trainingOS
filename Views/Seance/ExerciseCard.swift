@@ -1401,23 +1401,49 @@ struct ExerciseCard: View {
                 }
                 VStack(spacing: 3) {
                     ForEach(Array(visibleEntries.enumerated()), id: \.offset) { i, entry in
-                        HStack(spacing: 6) {
-                            Image(systemName: i == 0 ? "clock.arrow.circlepath" : "circle.fill")
-                                .font(.system(size: i == 0 ? 10 : 5))
-                                .foregroundColor(.gray.opacity(i == 0 ? 0.5 : 0.25))
-                            Text(entry.date ?? "—").font(.system(size: 10)).foregroundColor(i == 0 ? .gray : .gray.opacity(0.7))
-                            Text("·").foregroundColor(.gray.opacity(0.3)).font(.system(size: 10))
-                            Text(units.format(historyPerSide(entry.weight ?? 0)))
-                                .font(.system(size: 10, weight: i == 0 ? .semibold : .regular))
-                                .foregroundColor(i == 0 ? .white.opacity(0.65) : .white.opacity(0.5))
-                            Text(entry.reps ?? "—").font(.system(size: 10)).foregroundColor(i == 0 ? .gray : .gray.opacity(0.6))
-                            if let note = entry.note, !note.isEmpty {
-                                Text(note).font(.system(size: 9, weight: .medium))
-                                    .foregroundColor(note.hasPrefix("+")
-                                                     ? (i == 0 ? .green : .green.opacity(0.7))
-                                                     : (i == 0 ? .yellow : .yellow.opacity(0.7)))
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Image(systemName: i == 0 ? "clock.arrow.circlepath" : "circle.fill")
+                                    .font(.system(size: i == 0 ? 10 : 5))
+                                    .foregroundColor(.gray.opacity(i == 0 ? 0.5 : 0.25))
+                                Text(entry.date ?? "—").font(.system(size: 10)).foregroundColor(i == 0 ? .gray : .gray.opacity(0.7))
+                                if let note = entry.note, !note.isEmpty {
+                                    Text(note).font(.system(size: 9, weight: .medium))
+                                        .foregroundColor(note.hasPrefix("+")
+                                                         ? (i == 0 ? .green : .green.opacity(0.7))
+                                                         : (i == 0 ? .yellow : .yellow.opacity(0.7)))
+                                }
+                                Spacer()
                             }
-                            Spacer()
+                            if let sets = entry.sets, !sets.isEmpty {
+                                let repParts = (entry.reps ?? "").split(separator: ",").map(String.init)
+                                ForEach(Array(sets.enumerated()), id: \.offset) { j, s in
+                                    let reps = repParts.indices.contains(j) ? repParts[j] : "—"
+                                    HStack(spacing: 4) {
+                                        Text("S\(j + 1)")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .foregroundColor(.gray.opacity(0.4))
+                                            .frame(width: 16)
+                                        Text(units.format(historyPerSide(s.weight)))
+                                            .font(.system(size: 10, weight: j == 0 && i == 0 ? .semibold : .regular))
+                                            .foregroundColor(i == 0 ? .white.opacity(0.65) : .white.opacity(0.5))
+                                        Text("×")
+                                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.35))
+                                        Text(reps)
+                                            .font(.system(size: 10)).foregroundColor(i == 0 ? .gray : .gray.opacity(0.6))
+                                    }
+                                    .padding(.leading, 16)
+                                }
+                            } else {
+                                HStack(spacing: 6) {
+                                    Text("·").foregroundColor(.gray.opacity(0.3)).font(.system(size: 10))
+                                    Text(units.format(historyPerSide(entry.weight ?? 0)))
+                                        .font(.system(size: 10, weight: i == 0 ? .semibold : .regular))
+                                        .foregroundColor(i == 0 ? .white.opacity(0.65) : .white.opacity(0.5))
+                                    Text(entry.reps ?? "—").font(.system(size: 10)).foregroundColor(i == 0 ? .gray : .gray.opacity(0.6))
+                                }
+                                .padding(.leading, 16)
+                            }
                         }
                     }
                 }
