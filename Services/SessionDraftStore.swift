@@ -49,6 +49,10 @@ enum SessionDraftStore {
         !load(date: date, sessionType: sessionType).isEmpty
     }
 
+    static func hasAnyDraft(date: String) -> Bool {
+        ["morning", "evening", "bonus"].contains(where: { !load(date: date, sessionType: $0).isEmpty })
+    }
+
     static func saveStartedAt(date: String, sessionType: String = "morning", startedAt: Date) {
         UserDefaults.standard.set(startedAt.timeIntervalSince1970, forKey: startedAtKey(date: date, sessionType: sessionType))
     }

@@ -326,6 +326,7 @@ final class ExerciseViewModel: ObservableObject {
         isLogged = false
         isEditing = false
         logStatus = nil
+        clearDraft()
     }
 }
 

@@ -83,7 +83,7 @@ struct WorkoutSeanceView: View {
     @State private var showPRCelebration = false
 
     // Energy pre-session
-    @State private var energyPre: Int = 3
+    @AppStorage("energy_pre_value") private var energyPre: Int = 3
     @State private var showEnergyPreSheet = false
     @AppStorage("energy_pre_date") private var energyPreDate = ""
     @State private var energyConfirmed = false
@@ -116,6 +116,7 @@ struct WorkoutSeanceView: View {
 
     // W-D11 — abandon session
     @State private var showAbandonAlert = false
+    @State private var allLoggedPulse = false
 
     // Warmup guidance banner — shown pre-session, dismissable
     @State private var showWarmupBanner = true
@@ -357,8 +358,12 @@ struct WorkoutSeanceView: View {
             .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
             .padding(.horizontal, 16)
         } else {
+            let sepIdx = firstUnloggedItemIndex
             VStack(spacing: 8) {
-                ForEach(exerciseRenderItems) { item in
+                ForEach(Array(exerciseRenderItems.enumerated()), id: \.element.id) { idx, item in
+                    if let s = sepIdx, idx == s {
+                        remainingSectionHeader
+                    }
                     renderExerciseItem(item)
                 }
             }
@@ -428,6 +433,37 @@ struct WorkoutSeanceView: View {
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(Color.appCard)
         Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 16)
+    }
+
+    // MARK: - Section separator helpers (PROB-11)
+
+    private func isItemLogged(_ item: ExerciseRenderItem) -> Bool {
+        switch item {
+        case .superset(_, _, let entry, _, _, _):
+            return vm.logResults[entry.a] != nil || vm.logResults[entry.b] != nil
+        case .solo(let name, _, _):
+            return vm.logResults[name] != nil
+        }
+    }
+
+    private var firstUnloggedItemIndex: Int? {
+        let logged = vm.logResults.count
+        guard logged > 0, logged < exercises.count else { return nil }
+        return exerciseRenderItems.firstIndex(where: { !isItemLogged($0) })
+    }
+
+    @ViewBuilder private var remainingSectionHeader: some View {
+        HStack(spacing: 8) {
+            Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
+            Text("À FAIRE")
+                .font(.system(size: 9, weight: .bold))
+                .tracking(2)
+                .foregroundColor(.gray.opacity(0.4))
+                .fixedSize()
+            Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
+        }
+        .padding(.horizontal, 16)
+        .transition(.opacity)
     }
 
     // MARK: - Superset render model
@@ -824,6 +860,8 @@ struct WorkoutSeanceView: View {
                         Text(done == total && total > 0 ? "Tous les exercices loggés ✓" : "\(done) / \(total) exercices")
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundColor(done == total && total > 0 ? .green : .gray)
+                            .scaleEffect(allLoggedPulse ? 1.1 : 1.0)
+                            .animation(.spring(response: 0.3, dampingFraction: 0.55), value: allLoggedPulse)
                         Spacer()
                     }
                     RoundedRectangle(cornerRadius: 2)
@@ -943,8 +981,8 @@ struct WorkoutSeanceView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
-                // Ghost mode banner
-                if showGhost, let ghost = ghostData {
+                // Ghost mode banner — suppressed while resume banner is active to avoid header clutter
+                if showGhost, let ghost = ghostData, !vm.isResuming {
                     GhostBanner(
                         ghost: ghost,
                         currentVolume: currentVolume,
@@ -1181,6 +1219,8 @@ struct WorkoutSeanceView: View {
         .onChange(of: vm.logResults.count) { count in
             guard count == exercises.count else { return }
             preloadAIAnalysis()
+            allLoggedPulse = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { allLoggedPulse = false }
         }
         .onChange(of: vm.showSuccess) { success in
             guard success else { return }
@@ -1188,6 +1228,8 @@ struct WorkoutSeanceView: View {
             vm.showSuccess = false
             // W-D1 — clear resume banner on session completion
             vm.isResuming = false
+            // Wait for commitWarning alert to be dismissed before opening recap
+            guard vm.commitWarning == nil else { return }
             if !vm.prCelebrations.isEmpty {
                 showPRCelebration = true
             } else {
@@ -1240,7 +1282,10 @@ struct WorkoutSeanceView: View {
             get: { vm.commitWarning != nil },
             set: { if !$0 { vm.commitWarning = nil } }
         )) {
-            Button("OK") { vm.commitWarning = nil }
+            Button("OK") {
+                vm.commitWarning = nil
+                if !vm.prCelebrations.isEmpty { showPRCelebration = true } else { showRecap = true }
+            }
         } message: {
             Text(vm.commitWarning ?? "")
         }
@@ -1391,6 +1436,13 @@ struct WorkoutSeanceView: View {
             if !updated.isEmpty { sessionSupersets = updated }
         }
         .toast($toast)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if timer.isVisible {
+                FloatingRestTimerCard()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .animation(.spring(response: 0.42, dampingFraction: 0.82), value: timer.isVisible)
+            }
+        }
         } // end ScrollViewReader
     }
 

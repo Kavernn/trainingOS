@@ -1116,7 +1116,7 @@ struct TodayCardView: View {
     }
 
     private var hasPartialLogs: Bool {
-        dash.hasPartialLogs || SessionDraftStore.hasDraft(date: dash.todayDate, sessionType: "morning")
+        dash.hasPartialLogs || SessionDraftStore.hasAnyDraft(date: dash.todayDate)
     }
 
     var todayColor: Color {

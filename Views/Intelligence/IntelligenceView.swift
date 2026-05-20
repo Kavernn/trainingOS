@@ -1685,7 +1685,7 @@ private struct CoachMissionCard: View {
     }
 
     private var hasDraft: Bool {
-        SessionDraftStore.hasDraft(date: dash.todayDate, sessionType: "morning")
+        SessionDraftStore.hasAnyDraft(date: dash.todayDate)
     }
 
     private var ctaLabel: String {

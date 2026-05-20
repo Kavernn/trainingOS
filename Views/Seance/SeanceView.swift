@@ -4,7 +4,6 @@ import SwiftUI
 
 struct SeanceView: View {
     @StateObject private var vm = SeanceViewModel()
-    @ObservedObject private var timer = RestTimerManager.shared
 
     var body: some View {
         NavigationStack {
@@ -21,13 +20,6 @@ struct SeanceView: View {
             }
             .navigationTitle("Séance")
             .navigationBarTitleDisplayMode(.inline)
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if timer.isVisible {
-                FloatingRestTimerCard()
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(response: 0.42, dampingFraction: 0.82), value: timer.isVisible)
-            }
         }
         .task { await vm.load() }
     }
@@ -526,7 +518,7 @@ struct AlreadyLoggedSeanceView: View {
             }
         }
         .sheet(isPresented: $showFinishRemaining) {
-            FinishRemainingSheet(data: data, remaining: unloggedExercises) {
+            FinishRemainingSheet(data: data, remaining: unloggedExercises, sessionType: vm.draftSessionType) {
                 await vm.load()
             }
         }
@@ -1002,12 +994,21 @@ struct FinishRemainingSheet: View {
     let remaining: [(String, String)]
     var onDone: () async -> Void
 
-    @StateObject private var finishVM = SeanceViewModel()
+    @StateObject private var finishVM: SeanceViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var showExitAlert = false
     @State private var exitRpe: Double = 7
     @State private var exitComment: String = ""
     @State private var showFinishFromExit = false
+    @AppStorage("energy_pre_date") private var energyPreDate = ""
+    @AppStorage("energy_pre_value") private var energyPreValue: Int = 3
+
+    init(data: SeanceData, remaining: [(String, String)], sessionType: String = "morning", onDone: @escaping () async -> Void) {
+        self.data = data
+        self.remaining = remaining
+        self.onDone = onDone
+        _finishVM = StateObject(wrappedValue: SeanceViewModel(draftSessionType: sessionType))
+    }
 
     private var loggedExercises: [(name: String, scheme: String, weight: Double?, reps: String?)] {
         guard let program = data.fullProgram[data.today] else { return [] }
@@ -1016,6 +1017,7 @@ struct FinishRemainingSheet: View {
         return order.compactMap { name -> (String, String, Double?, String?)? in
             guard !remainingNames.contains(name), let scheme = program[name] else { return nil }
             let h = data.weights[name]?.history?.first
+            guard h?.date == data.todayDate else { return nil }
             return (name, scheme.value, h?.weight, h?.reps)
         }
     }
@@ -1025,13 +1027,18 @@ struct FinishRemainingSheet: View {
         filteredProgram[data.today] = Dictionary(uniqueKeysWithValues: remaining.map { ($0.0, SafeString($0.1)) })
         var filteredOrder = data.exerciseOrder
         filteredOrder[data.today] = remaining.map(\.0)
+        let remainingNames = Set(remaining.map(\.0))
+        let todaySupersets = data.exerciseSupersets[data.today] ?? [:]
+        let filteredSupersets = todaySupersets.filter { remainingNames.contains($0.value.a) && remainingNames.contains($0.value.b) }
+        var patchedSupersets = data.exerciseSupersets
+        patchedSupersets[data.today] = filteredSupersets
         return SeanceData(
             today: data.today, todayDate: data.todayDate, alreadyLogged: false,
             schedule: data.schedule, fullProgram: filteredProgram,
             weights: data.weights, week: data.week, mesocycle: data.mesocycle,
             inventoryTypes: data.inventoryTypes, inventoryTracking: data.inventoryTracking,
             inventoryRest: data.inventoryRest, inventoryHints: data.inventoryHints,
-            exerciseOrder: filteredOrder, exerciseSupersets: [:],
+            exerciseOrder: filteredOrder, exerciseSupersets: patchedSupersets,
             prescriptions: data.prescriptions, exerciseSuggestions: data.exerciseSuggestions
         )
     }
@@ -1079,6 +1086,7 @@ struct FinishRemainingSheet: View {
                         }
                     }
             }
+            .onAppear { finishVM.seanceData = patchedData }
             .navigationTitle("Finir la séance")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1106,6 +1114,7 @@ struct FinishRemainingSheet: View {
                     logResults: finishVM.logResults,
                     elapsedMin: Date().timeIntervalSince(finishVM.sessionStart) / 60,
                     rpe: $exitRpe, comment: $exitComment,
+                    preEnergy: energyPreDate == data.todayDate ? energyPreValue : nil,
                     onSubmit: { energy in
                         let dur = Date().timeIntervalSince(finishVM.sessionStart) / 60
                         Task { await finishVM.finish(rpe: exitRpe, comment: exitComment, durationMin: dur, energyPre: energy, sessionName: data.today) }
