@@ -25,20 +25,30 @@ struct TimeCapsule: Codable, Identifiable {
     }
 
     var isUnlocked: Bool {
-        guard let d = ISO8601DateFormatter().date(from: unlockAt) else { return false }
+        guard let d = _parseISO(unlockAt) else { return false }
         return d <= Date()
     }
 
     var daysUntilUnlock: Int {
-        guard let d = ISO8601DateFormatter().date(from: unlockAt) else { return 0 }
-        return max(0, Calendar.current.dateComponents([.day], from: Date(), to: d).day ?? 0)
+        guard let d = _parseISO(unlockAt) else { return 0 }
+        let diff = d.timeIntervalSince(Date())
+        return max(0, Int(diff / 86400))
     }
 
     var formattedUnlockDate: String  { _fmt(unlockAt) }
     var formattedCreatedDate: String { _fmt(createdAt) }
 
+    private func _parseISO(_ iso: String) -> Date? {
+        let full = ISO8601DateFormatter()
+        full.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = full.date(from: iso) { return d }
+        let basic = ISO8601DateFormatter()
+        basic.formatOptions = [.withInternetDateTime]
+        return basic.date(from: iso)
+    }
+
     private func _fmt(_ iso: String) -> String {
-        guard let d = ISO8601DateFormatter().date(from: iso) else { return iso }
+        guard let d = _parseISO(iso) else { return iso }
         let f = DateFormatter()
         f.locale    = Locale(identifier: "fr_FR")
         f.dateStyle = .medium

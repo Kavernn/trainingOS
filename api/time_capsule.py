@@ -153,7 +153,7 @@ def _get_active_programme() -> Optional[str]:
     try:
         from planner import get_today
         result = get_today()
-        return result.get("programme") if isinstance(result, dict) else None
+        return result if isinstance(result, str) else None
     except Exception:
         return None
 

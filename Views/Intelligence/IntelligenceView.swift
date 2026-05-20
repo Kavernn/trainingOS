@@ -34,8 +34,9 @@ struct IntelligenceView: View {
     @State private var weeklyReportData: WeeklyReport?          = nil
     @State private var showWeeklyReport                         = false
     @State private var isLoadingWeeklyReport                    = false
-    @AppStorage("coach_brief_date") private var briefDate: String = ""
-    @AppStorage("coach_brief_text") private var briefText: String = ""
+    @AppStorage("coach_brief_date")    private var briefDate:    String = ""
+    @AppStorage("coach_brief_text")    private var briefText:    String = ""
+    @AppStorage("coach_brief_session") private var briefSession: String = ""
     @State private var isBriefLoading = false
     @State private var cardioData: [CardioEntry] = []
     @State private var mesocycleInfo: MesocycleInfo? = nil
@@ -171,6 +172,10 @@ struct IntelligenceView: View {
                 await loadContextData()
                 await MainActor.run { purgeStaleMemoryEntries() }
                 await loadMorningBrief()
+            }
+            .onChange(of: api.dashboard?.today) { _, newSession in
+                guard newSession != nil else { return }
+                Task { await loadMorningBrief() }
             }
             .onChange(of: messages) {
                 let toSave = messages.filter { !$0.content.hasPrefix("Erreur:") }
@@ -1012,8 +1017,9 @@ struct IntelligenceView: View {
     }
 
     private func loadMorningBrief() async {
-        let today = DateFormatter.isoDate.string(from: Date())
-        guard !(briefDate == today && !briefText.isEmpty) else { return }
+        let today        = DateFormatter.isoDate.string(from: Date())
+        let currentSession = api.dashboard?.today ?? ""
+        guard !(briefDate == today && briefSession == currentSession && !briefText.isEmpty) else { return }
 
         let context = buildContext()
         guard context != "no data" else { return }
@@ -1036,8 +1042,9 @@ struct IntelligenceView: View {
             if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
                let reply = json["response"] as? String {
                 await MainActor.run {
-                    briefText = reply
-                    briefDate = today
+                    briefText    = reply
+                    briefDate    = today
+                    briefSession = currentSession
                     isBriefLoading = false
                 }
             } else {
@@ -1049,8 +1056,9 @@ struct IntelligenceView: View {
     }
 
     private func regenerateBrief() async {
-        briefDate = ""
-        briefText = ""
+        briefDate    = ""
+        briefText    = ""
+        briefSession = ""
         await loadMorningBrief()
     }
 

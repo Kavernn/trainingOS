@@ -40,12 +40,12 @@ struct TimeCapsuleSection: View {
 
             if isLoading && capsules.isEmpty {
                 CapsuleSkeletonRow()
-            } else if capsules.isEmpty {
+            } else if capsules.filter({ !$0.isOpened }).isEmpty {
                 CapsuleEmptyState { showCreate = true }
             } else {
                 VStack(spacing: 10) {
-                    ForEach(capsules) { capsule in
-                        if capsule.isUnlocked && !capsule.isOpened {
+                    ForEach(capsules.filter { !$0.isOpened }) { capsule in
+                        if capsule.isUnlocked {
                             CapsuleUnlockedCard(capsule: capsule) {
                                 revealCapsule = capsule
                             }
