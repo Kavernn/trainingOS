@@ -2948,22 +2948,21 @@ def get_active_program_id() -> str | None:
     except Exception:
         pass
 
-    # 2. Schedule-based detection
+    # 2. Schedule-based detection — only conclusive when all morning slots agree
     def _do() -> str | None:
         resp = (
             _client.table("weekly_schedule")
             .select("program_sessions(program_id)")
             .eq("slot", "morning")
             .not_.is_("session_id", "null")
-            .limit(1)
             .execute()
         )
-        for row in (resp.data or []):
-            sess = row.get("program_sessions") or {}
-            pid = sess.get("program_id")
-            if pid:
-                return str(pid)
-        return None
+        pids = {
+            str(row["program_sessions"]["program_id"])
+            for row in (resp.data or [])
+            if row.get("program_sessions") and row["program_sessions"].get("program_id")
+        }
+        return pids.pop() if len(pids) == 1 else None
 
     try:
         result = _do()

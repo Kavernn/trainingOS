@@ -180,10 +180,8 @@ def api_programme_data():
     from inventory import load_inventory, add_exercise
     from blocks import get_strength_exercises
 
-    program_id   = request.args.get("program_id") or None
+    program_id = request.args.get("program_id") or _db.get_active_program_id()
     full_program = _db.get_full_program(program_id) or load_program()
-    if program_id is None:
-        program_id = _db.get_default_program_id()
     schedule     = get_week_schedule()
     inventory    = load_inventory()
     programs     = _db.get_all_programs()

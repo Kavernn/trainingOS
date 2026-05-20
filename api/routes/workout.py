@@ -912,6 +912,7 @@ def api_programme():
 
     # Save only the modified session — never touch other sessions
     _db.save_full_program({jour: session_def}, program_id)
+    _db.set_active_program_id(program_id)
     return jsonify({"success": True})
 
 
@@ -927,7 +928,8 @@ def api_seance_data():
     from utils import _parse_scheme, get_current_week, get_mesocycle_info
     import db as _db
 
-    full_program = load_program()
+    program_id_param = request.args.get("program_id") or None
+    full_program = _db.get_full_program(program_id_param) if program_id_param else load_program()
     inventory    = load_inventory()
     today_date = get_today_date()
     schedule   = get_week_schedule()
@@ -965,7 +967,7 @@ def api_seance_data():
     inventory_rest     = {name: 120 for name in inv}
     inventory_hints    = {name: info["tips"] for name, info in inv.items() if info.get("tips")}
     exercise_order  = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
-    exercise_supersets = _db.get_session_supersets(_db.get_active_program_id())
+    exercise_supersets = _db.get_session_supersets(program_id_param or _db.get_active_program_id())
 
     # Build per-exercise prescriptions (sets × reps adjusted for fatigue + trend)
     fatigue_score = get_cached_fatigue_score()
