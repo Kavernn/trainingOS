@@ -49,7 +49,7 @@ struct StepperInput: View {
 
             ZStack {
                 Text(valueStr.isEmpty ? placeholderText : displayText)
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(valueStr.isEmpty ? .gray.opacity(0.35) : .white)
                     .frame(minWidth: 52, alignment: .center)
                     .allowsHitTesting(false)
@@ -500,7 +500,7 @@ struct ExerciseCard: View {
                             .transition(.opacity)
                     }
                     Text("S\(i + 1)")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: isActive ? 16 : 11, weight: .bold))
                         .foregroundColor(isDone ? .green : isActive ? .orange : .gray)
                         .frame(width: 28)
                         .onLongPressGesture(minimumDuration: 0.35) {
@@ -589,7 +589,7 @@ struct ExerciseCard: View {
                     }
                 }
                 .padding(isActive ? 6 : 0)
-                .background(isActive ? Color.orange.opacity(0.06) : Color.clear)
+                .background(isActive ? Color.orange.opacity(0.12) : Color.clear)
                 .cornerRadius(8)
                 .animation(.easeInOut(duration: 0.2), value: evm.currentSetIndex)
                 .simultaneousGesture(
@@ -860,7 +860,7 @@ struct ExerciseCard: View {
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
-                        Text(name).font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                        Text(name).font(.system(size: 17, weight: .bold)).foregroundColor(.white)
                         if isReplaced {
                             Text("remplacé")
                                 .font(.system(size: 9, weight: .semibold)).foregroundColor(.orange)

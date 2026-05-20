@@ -1134,6 +1134,7 @@ struct WorkoutSeanceView: View {
                 .padding(.bottom, timer.isVisible ? 72 : 10)
             }
             .background(.ultraThinMaterial)
+            .ignoresSafeArea(.keyboard)
         }
         .onAppear { scrollProxy = proxy }
         .sheet(isPresented: $showUnloggedWarning) {
