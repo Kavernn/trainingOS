@@ -3288,6 +3288,33 @@ def get_session_supersets(program_id: str | None = None) -> dict:
         return {}
 
 
+def reorder_program_sessions(session_names: list, program_id: str) -> bool:
+    """Update order_index for each session by its position in session_names."""
+    if _client is None or MODE == "OFFLINE":
+        return False
+
+    def _do() -> bool:
+        for idx, name in enumerate(session_names):
+            (_client.table("program_sessions")
+             .update({"order_index": idx})
+             .eq("program_id", program_id)
+             .eq("name", name)
+             .execute())
+        return True
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("reorder_program_sessions retry error: %s", e2)
+                return False
+        logger.error("reorder_program_sessions error: %s", e)
+        return False
+
+
 def save_full_program(program: dict, program_id: str | None = None) -> bool:
     """Persist {session_name: {"blocks": [...]}} to relational tables.
 

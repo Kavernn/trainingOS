@@ -216,6 +216,7 @@ def api_programme_data():
     exercise_order     = {seance: list(exs.keys()) for seance, exs in flat_program.items()}
     return jsonify({
         "full_program":        flat_program,
+        "session_order":       list(flat_program.keys()),
         "schedule":            schedule,
         "inventory":           list(inv.keys()),
         "inventory_types":     inventory_types,

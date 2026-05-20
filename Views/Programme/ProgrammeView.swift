@@ -114,6 +114,7 @@ struct ProgrammeView: View {
 
     // Session reorder
     @State private var sessionOrder: [String] = []
+    @State private var apiSessionOrder: [String] = []
     @State private var draggingSession: String? = nil
     @State private var sessionDragY: CGFloat = 0
     @State private var sessionCardHeights: [String: CGFloat] = [:]
@@ -139,20 +140,17 @@ struct ProgrammeView: View {
 
     private func refreshSessionOrder() {
         let existing = Set(fullProgram.keys)
-        let key = "session_order_\(selectedProgramId.isEmpty ? "default" : selectedProgramId)"
-        if let saved = UserDefaults.standard.array(forKey: key) as? [String] {
-            var ordered = saved.filter { existing.contains($0) }
-            let missing = orderedSeances.filter { !ordered.contains($0) }
-            ordered += missing
-            sessionOrder = ordered
-        } else {
-            sessionOrder = orderedSeances
-        }
+        let base = apiSessionOrder.isEmpty ? orderedSeances : apiSessionOrder
+        var ordered = base.filter { existing.contains($0) }
+        let missing = orderedSeances.filter { !ordered.contains($0) }
+        ordered += missing
+        sessionOrder = ordered
     }
 
     private func saveSessionOrder() {
-        let key = "session_order_\(selectedProgramId.isEmpty ? "default" : selectedProgramId)"
-        UserDefaults.standard.set(sessionOrder, forKey: key)
+        apiSessionOrder = sessionOrder
+        let order = sessionOrder
+        Task { await postProgramme(["action": "reorder_sessions", "order": order]) }
     }
 
     struct UndoDeleteItem {
@@ -639,6 +637,9 @@ struct ProgrammeView: View {
         inventorySchemes = (json["inventory_schemes"] as? [String: String]) ?? [:]
         if let order = json["exercise_order"] as? [String: [String]] {
             exerciseOrder = order
+        }
+        if let order = json["session_order"] as? [String] {
+            apiSessionOrder = order
         }
         if let ss = json["exercise_supersets"] as? [String: [String: [String: Any]]] {
             var parsed: [String: [String: SupersetEntry]] = [:]

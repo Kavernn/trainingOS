@@ -4212,6 +4212,22 @@ struct BodyRecompView: View {
         .padding(16).glassCard().cornerRadius(14)
     }
 
+    private func chartY(_ v: Double, h: CGFloat, minV: Double, range: Double) -> CGFloat {
+        h * (1 - CGFloat((v - minV) / range))
+    }
+
+    private func recompLine(_ kp: KeyPath<RecompPoint, Double>, color: Color, step: CGFloat, h: CGFloat, minV: Double, range: Double) -> some View {
+        Path { path in
+            for (i, p) in points.enumerated() {
+                let x = CGFloat(i) * step
+                let yv = chartY(p[keyPath: kp], h: h, minV: minV, range: range)
+                if i == 0 { path.move(to: CGPoint(x: x, y: yv)) }
+                else       { path.addLine(to: CGPoint(x: x, y: yv)) }
+            }
+        }
+        .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+    }
+
     @ViewBuilder private var recompChart: some View {
         GeometryReader { g in
             let w = g.size.width
@@ -4220,29 +4236,12 @@ struct BodyRecompView: View {
             let minV = (allVals.min() ?? 0) * 0.95
             let maxV = (allVals.max() ?? 1) * 1.05
             let range = maxV - minV
-
-            let step = w / CGFloat(max(points.count - 1, 1))
-
-            func y(_ v: Double) -> CGFloat {
-                h * (1 - CGFloat((v - minV) / range))
-            }
-
-            func line(_ kp: KeyPath<RecompPoint, Double>, color: Color) -> some View {
-                Path { path in
-                    for (i, p) in points.enumerated() {
-                        let x = CGFloat(i) * step
-                        let yv = y(p[keyPath: kp])
-                        if i == 0 { path.move(to: CGPoint(x: x, y: yv)) }
-                        else { path.addLine(to: CGPoint(x: x, y: yv)) }
-                    }
-                }
-                .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-            }
+            let step  = w / CGFloat(max(points.count - 1, 1))
 
             ZStack {
-                line(\.weight,   color: .gray.opacity(0.6))
-                line(\.fatMass,  color: Color(hex: "E74C3C").opacity(0.8))
-                line(\.leanMass, color: Color(hex: "F5A623"))
+                recompLine(\.weight,   color: .gray.opacity(0.6),            step: step, h: h, minV: minV, range: range)
+                recompLine(\.fatMass,  color: Color(hex: "E74C3C").opacity(0.8), step: step, h: h, minV: minV, range: range)
+                recompLine(\.leanMass, color: Color(hex: "F5A623"),           step: step, h: h, minV: minV, range: range)
             }
         }
         .frame(height: 100)
@@ -4968,9 +4967,9 @@ struct WellnessTrendView: View {
                 EmptyChartPlaceholder(message: "Logge ta récupération quotidiennement pour voir les tendances")
             } else {
                 VStack(spacing: 8) {
-                    let sleepVals = recovery.compactMap { $0.sleepQuality.map(Double.init) }
-                    let sorenessVals = recovery.compactMap { $0.soreness.map(Double.init) }
-                    let fatigueVals = recovery.compactMap { $0.fatigue.map(Double.init) }
+                    let sleepVals = recovery.compactMap { $0.sleepQuality.map { Double($0) } }
+                    let sorenessVals = recovery.compactMap { $0.soreness.map { Double($0) } }
+                    let fatigueVals = recovery.compactMap { $0.fatigue.map { Double($0) } }
 
                     if !sleepVals.isEmpty {
                         WellnessSparkline(label: "Sommeil", values: movingAvg(sleepVals), color: .blue, range: 1...10)

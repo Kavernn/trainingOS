@@ -809,6 +809,13 @@ def api_programme():
             rename_inventory_exercise(old_ex, new_ex, info)
         return jsonify({"success": True})
 
+    if action == "reorder_sessions":
+        order = data.get("order", [])
+        if not order or not program_id:
+            return jsonify({"error": "order et program_id requis"}), 400
+        ok = _db.reorder_program_sessions(order, program_id)
+        return jsonify({"success": ok})
+
     # ── All other actions: read + modify + save ONLY the target session ──────
     if jour is None:
         return jsonify({"error": "jour manquant"}), 400
