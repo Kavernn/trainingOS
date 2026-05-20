@@ -109,6 +109,14 @@ struct StatsView: View {
     @State private var sorenessThreshold:  SorenessThreshold?          = nil
     @State private var hrvBaseline:        HRVBaseline?                = nil
 
+    // ── New stats data ────────────────────────────────────────────────────
+    @State private var adherenceData:    AdherenceData?         = nil
+    @State private var seasonComparison: SeasonComparisonData?  = nil
+    @State private var warRoomStats:     WarRoomSummaryStats?   = nil
+    @State private var graveyardCount:   Int                    = 0
+    @State private var deloadStatus:     DeloadStatusData?      = nil
+    @State private var intensityData:    IntensityData?         = nil
+
     // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
     @State private var cachedCurrentStreak: Int = 0
     @State private var cachedBestStreak: Int = 0
@@ -289,6 +297,24 @@ struct StatsView: View {
         let rpes = sessions.filter { $0.key >= mon && $0.key <= sun }.compactMap { $0.value.rpe }
         return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
     }
+    var thisWeekAvgDuration: Double {
+        let (mon, sun) = weekBounds(weeksAgo: 0)
+        let d = sessions.compactMap { date, e -> Double? in
+            guard date >= mon, date <= sun else { return nil }
+            guard let dm = e.durationMin, dm > 0 else { return nil }
+            return dm
+        }
+        return d.isEmpty ? 0 : d.reduce(0, +) / Double(d.count)
+    }
+    var lastWeekAvgDuration: Double {
+        let (mon, sun) = weekBounds(weeksAgo: 1)
+        let d = sessions.compactMap { date, e -> Double? in
+            guard date >= mon, date <= sun else { return nil }
+            guard let dm = e.durationMin, dm > 0 else { return nil }
+            return dm
+        }
+        return d.isEmpty ? 0 : d.reduce(0, +) / Double(d.count)
+    }
 
     // ── Smart Insights ────────────────────────────────────────────────
     var smartInsights: [(icon: String, text: String, color: Color)] {
@@ -400,10 +426,6 @@ struct StatsView: View {
 
                         ScrollView(showsIndicators: false) {
                             LazyVStack(spacing: 16) {
-                                if selectedTab == 0, !smartInsights.isEmpty {
-                                    SmartInsightsBanner(insights: smartInsights)
-                                        .padding(.horizontal, 16)
-                                }
                                 if selectedTab == 0 { vueGlobaleTab }
                                 else if selectedTab == 1 { performanceTab }
                                 else if selectedTab == 2 { corpsTab }
@@ -432,8 +454,21 @@ struct StatsView: View {
 
     // ── Tab content ───────────────────────────────────────────────────
     @ViewBuilder private var vueGlobaleTab: some View {
-        let fs = filteredSessions
 
+        // 1. Smart Insights (moved inside tab)
+        if !smartInsights.isEmpty {
+            SmartInsightsBanner(insights: smartInsights)
+                .padding(.horizontal, 16)
+        }
+
+        // 2. Activity Rings — Score de constance
+        if let adh = adherenceData {
+            AdherenceRingsCard(data: adh)
+                .padding(.horizontal, 16)
+                .appearAnimation(delay: 0.02)
+        }
+
+        // 3. Cette semaine vs semaine précédente
         WeekComparisonCard(
             thisWeekSessions: thisWeekSessions, lastWeekSessions: lastWeekSessions,
             thisWeekVolume: thisWeekVolume,     lastWeekVolume: lastWeekVolume,
@@ -441,38 +476,38 @@ struct StatsView: View {
         )
         .padding(.horizontal, 16)
 
+        // 4. KPI Grid
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            KPICard(value: "\(fs.count)", label: "Séances (\(period.rawValue))", color: .orange)
+            KPICard(value: "\(filteredSessions.count)", label: "Séances (\(period.rawValue))", color: .orange)
             KPICard(value: "\(sessionsThisMonth)", label: "Mois actuel", color: .blue)
             KPICard(
                 value: currentStreak > 0 ? "\(currentStreak)🔥" : "0",
                 label: "Streak",
                 color: .red,
-                subtitle: "jours cons. d'entraînement"
+                subtitle: "jours cons."
             )
             KPICard(
                 value: avgRPEPeriod > 0 ? String(format: "%.1f", avgRPEPeriod) : "—",
                 label: "RPE moy.",
-                color: .purple,
-                subtitle: {
-                    guard thisWeekAvgRPE > 0, lastWeekAvgRPE > 0 else { return nil }
-                    let d = thisWeekAvgRPE - lastWeekAvgRPE
-                    let sign = d >= 0 ? "↑" : "↓"
-                    return "\(sign)\(String(format: "%.1f", abs(d))) vs sem. préc."
-                }()
+                color: .purple
             )
             KPICard(value: weeklyVolume > 0 ? formatK(weeklyVolume) : "—", label: "Vol. sem.", color: .green)
             KPICard(
-                value: {
-                    guard let v = volumeVelocityPct else { return "—" }
-                    return v >= 0 ? "+\(v)%" : "\(v)%"
-                }(),
-                label: "vol. sem. préc.", color: (volumeVelocityPct ?? 0) >= 0 ? .green : .orange
+                value: thisWeekAvgDuration > 0 ? "\(Int(thisWeekAvgDuration))min" : "—",
+                label: "Durée moy.",
+                color: .cyan,
+                subtitle: {
+                    guard thisWeekAvgDuration > 0, lastWeekAvgDuration > 0 else { return nil }
+                    let d = Int(thisWeekAvgDuration - lastWeekAvgDuration)
+                    if d == 0 { return nil }
+                    return d > 0 ? "+\(d) vs sem. préc." : "\(d) vs sem. préc."
+                }()
             )
         }
         .padding(.horizontal, 16)
         .appearAnimation(delay: 0.05)
 
+        // 5. Heatmap 90 jours
         SessionHeatmapView(
             sessions: sessions,
             hiitDates: Set(hiitLog.compactMap(\.date).map { String($0.prefix(10)) }),
@@ -480,59 +515,30 @@ struct StatsView: View {
         )
         .padding(.horizontal, 16)
 
-        if !personalRecords.isEmpty {
-            PersonalRecordsView(records: personalRecords)
+        // 6. Season Comparison
+        if let comp = seasonComparison {
+            SeasonComparisonCard(data: comp)
                 .padding(.horizontal, 16)
+                .appearAnimation(delay: 0.08)
         }
 
-        if let pv = patternVolume {
-            PatternVolumeView(data: pv)
-                .padding(.horizontal, 16)
-        }
-
-        if !top5Volume.isEmpty {
-            Top5VolumeView(data: top5Volume)
-                .padding(.horizontal, 16)
-        }
-
-        if !muscleStats.isEmpty {
-            MuscleBreakdownView(stats: muscleStats)
-                .padding(.horizontal, 16)
-        }
-
-        if !muscleLandmarks.isEmpty {
-            VolumeLandmarksCard(landmarks: muscleLandmarks)
-                .padding(.horizontal, 16)
-        }
-
-        if complianceWeeks.count >= 2 {
-            ComplianceProgrammeView(weeks: complianceWeeks)
-                .padding(.horizontal, 16)
-        }
-
-        HStack(spacing: 12) {
-            SimpleBarChart(
-                title: "FRÉQUENCE / SEM",
-                data: weeklyFrequency.map { (weekLabel($0.0), $0.1) },
-                color: .orange,
-                unit: "séances"
-            )
-            SimpleBarChart(
-                title: "VOLUME / SEM",
-                data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
-                color: .blue,
-                unit: UnitSettings.shared.label
-            )
-        }
-        .padding(.horizontal, 16)
-
-        BadgesView(badges: earnedBadges)
+        // 7. Marqueurs de transformation
+        TransformationMarkersCard(tombstoneCount: graveyardCount, warRoomStats: warRoomStats)
             .padding(.horizontal, 16)
+            .appearAnimation(delay: 0.10)
+
+        // 8. Badges
+        if !earnedBadges.isEmpty {
+            BadgesView(badges: earnedBadges)
+                .padding(.horizontal, 16)
+        }
 
         Spacer(minLength: 32)
     }
 
     @ViewBuilder private var performanceTab: some View {
+
+        // 1. Charge — ACWR
         if let acwrData = acwr {
             ACWRCardView(data: acwrData)
                 .padding(.horizontal, 16)
@@ -552,6 +558,54 @@ struct StatsView: View {
             .padding(.horizontal, 16)
         }
 
+        // 2. Tonnage hebdo + fréquence
+        HStack(spacing: 12) {
+            SimpleBarChart(
+                title: "FRÉQUENCE / SEM",
+                data: weeklyFrequency.map { (weekLabel($0.0), $0.1) },
+                color: .orange,
+                unit: "séances"
+            )
+            SimpleBarChart(
+                title: "VOLUME / SEM",
+                data: weeklyVolumeChart.map { (weekLabel($0.0), UnitSettings.shared.display($0.1)) },
+                color: .blue,
+                unit: UnitSettings.shared.label
+            )
+        }
+        .padding(.horizontal, 16)
+
+        // 3. Volume / muscle / semaine (hard sets vs landmarks)
+        if !muscleLandmarks.isEmpty {
+            VolumeLandmarksCard(landmarks: muscleLandmarks)
+                .padding(.horizontal, 16)
+        }
+
+        // 4. Intensité relative (%1RM)
+        if let intensity = intensityData, intensity.avgPct1rm != nil {
+            IntensityCard(data: intensity)
+                .padding(.horizontal, 16)
+        }
+
+        // 5. Équilibre Push/Pull/Legs
+        if let pv = patternVolume {
+            PatternVolumeView(data: pv)
+                .padding(.horizontal, 16)
+        }
+
+        // 6. Programme compliance
+        if complianceWeeks.count >= 2 {
+            ComplianceProgrammeView(weeks: complianceWeeks)
+                .padding(.horizontal, 16)
+        }
+
+        // 7. Jours depuis deload
+        if let dl = deloadStatus {
+            DeloadStatusCard(data: dl)
+                .padding(.horizontal, 16)
+        }
+
+        // 8. RPE + intensité
         if filteredSessions.count >= 5 {
             RPEDistributionView(sessions: filteredSessions)
                 .padding(.horizontal, 16)
@@ -593,57 +647,41 @@ struct StatsView: View {
 
     @ViewBuilder private var corpsTab: some View {
         let filteredBW = filteredBodyWeight
+        let bwWithFat  = filteredBW.filter { $0.bodyFat != nil && ($0.bodyFat ?? 0) > 0 }
 
-        if filteredRecovery.count >= 5 {
-            RecoveryCompositeScoreView(log: Array(filteredRecovery.prefix(30).reversed()))
+        // 1. Body Recomposition Tracker (flagship — remplace les 2 courbes séparées)
+        if bwWithFat.count >= 3 {
+            BodyRecompView(entries: Array(filteredBW.reversed()))
                 .padding(.horizontal, 16)
-        }
-
-        if sorenessScatter.count >= 5 {
-            ScatterPlotView(
-                data: sorenessScatter,
-                xLabel: "Volume J-1 (lbs)",
-                yLabel: "Soreness J (1–10)",
-                title: "VOLUME → DOULEURS MUSCULAIRES",
-                color: .orange
-            )
-            .padding(.horizontal, 16)
-        }
-
-        if sleepScatter.count >= 5 {
-            ScatterPlotView(
-                data: sleepScatter,
-                xLabel: "Qualité sommeil (J-1)",
-                yLabel: "Volume séance (J)",
-                title: "SOMMEIL → PERFORMANCE",
-                color: .blue
-            )
-            .padding(.horizontal, 16)
-        }
-
-        if let st = sorenessThreshold, st.thresholdVol != nil {
-            SorenessThresholdCard(data: st)
-                .padding(.horizontal, 16)
-        }
-
-        if filteredBW.count >= 2 {
+        } else if filteredBW.count >= 2 {
             WeightChartView(entries: Array(filteredBW.prefix(20).reversed()))
+                .padding(.horizontal, 16)
+            EmptyChartPlaceholder(message: "Logge ton % de masse grasse pour activer le Body Recomp Tracker")
                 .padding(.horizontal, 16)
         } else {
             EmptyChartPlaceholder(message: "Logge au moins 2 pesées pour voir la courbe de poids")
                 .padding(.horizontal, 16)
         }
 
-        if filteredBW.filter({ $0.bodyFat != nil }).count >= 2 {
-            BodyFatChartView(entries: Array(filteredBW.reversed()))
+        // 2. Recovery composite
+        if filteredRecovery.count >= 5 {
+            RecoveryCompositeScoreView(log: Array(filteredRecovery.prefix(30).reversed()))
                 .padding(.horizontal, 16)
         }
 
+        // 3. Mensurations
         if filteredBW.filter({ $0.waistCm != nil || $0.armsCm != nil }).count >= 2 {
             MeasurementsTrendView(entries: Array(filteredBW.prefix(20).reversed()))
                 .padding(.horizontal, 16)
         }
 
+        // 4. Soreness threshold
+        if let st = sorenessThreshold, st.thresholdVol != nil {
+            SorenessThresholdCard(data: st)
+                .padding(.horizontal, 16)
+        }
+
+        // 5. HIIT
         if !hiitLog.isEmpty {
             HIITStatsSection(log: hiitLog)
                 .padding(.horizontal, 16)
@@ -684,15 +722,46 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
+        // Nutrition vs Performance correlation
+        let fn2 = filteredNutrition
+        if fn2.count >= 30, !weeklyTonnage.isEmpty {
+            NutritionVsPerfView(nutritionDays: fn2, weeklyTonnage: weeklyTonnage, target: nutritionTarget)
+                .padding(.horizontal, 16)
+        }
+
         Spacer(minLength: 32)
     }
 
     @ViewBuilder private var bienetreTab: some View {
+
+        // 1. HRV en tête (actionnable immédiatement)
         if let hrv = hrvBaseline, hrv.baseline != nil {
             HRVBaselineCard(data: hrv)
                 .padding(.horizontal, 16)
         }
 
+        // 2. Corrélation sommeil → performance (enrichie)
+        if sleepScatter.count >= 12 {
+            SleepPerformanceInsightView(scatter: sleepScatter)
+                .padding(.horizontal, 16)
+        } else if sleepScatter.count >= 5 {
+            ScatterPlotView(
+                data: sleepScatter,
+                xLabel: "Qualité sommeil (J-1)",
+                yLabel: "Volume séance (J)",
+                title: "SOMMEIL → PERFORMANCE",
+                color: .blue
+            )
+            .padding(.horizontal, 16)
+        }
+
+        // 3. Wellness trend (3 sparklines)
+        if filteredRecovery.count >= 7 {
+            WellnessTrendView(recovery: Array(filteredRecovery.prefix(30).reversed()), pssHistory: pssHistory)
+                .padding(.horizontal, 16)
+        }
+
+        // 4. Mood & PSS
         if !moodTrend.isEmpty {
             MoodStressTrendView(data: moodTrend, pssHistory: pssHistory)
                 .padding(.horizontal, 16)
@@ -701,13 +770,37 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
-        if !selfCareStreaks.isEmpty {
-            SelfCareStreaksView(streaks: selfCareStreaks, compliance: selfCareCompliance)
+        if !pssHistory.isEmpty {
+            PSSHistoryView(records: pssHistory)
                 .padding(.horizontal, 16)
         }
 
-        if !pssHistory.isEmpty {
-            PSSHistoryView(records: pssHistory)
+        // 5. Meilleur jour de la semaine
+        if !sessions.isEmpty {
+            BestDayOfWeekView(sessions: sessions, weights: weights)
+                .padding(.horizontal, 16)
+        }
+
+        // 6. Corrélation stress → cravings (War Room, conditionnel)
+        if warRoomStats?.warStartDate != nil {
+            StressCravingsInsightView(pssHistory: pssHistory, warRoomStats: warRoomStats)
+                .padding(.horizontal, 16)
+        }
+
+        // 7. Volume → douleurs musculaires
+        if sorenessScatter.count >= 5 {
+            ScatterPlotView(
+                data: sorenessScatter,
+                xLabel: "Volume J-1 (lbs)",
+                yLabel: "Soreness J (1–10)",
+                title: "VOLUME → DOULEURS MUSCULAIRES",
+                color: .orange
+            )
+            .padding(.horizontal, 16)
+        }
+
+        if !selfCareStreaks.isEmpty {
+            SelfCareStreaksView(streaks: selfCareStreaks, compliance: selfCareCompliance)
                 .padding(.horizontal, 16)
         }
 
@@ -715,11 +808,32 @@ struct StatsView: View {
     }
 
     @ViewBuilder private var exercicesTab: some View {
-        if !weights.isEmpty {
-            PRTrackerView(weights: weights)
+
+        // 1. Progression force 6 mois (flagship)
+        if !oneRmTrend.isEmpty {
+            StrengthProgressionCard(trend: oneRmTrend, weights: weights)
                 .padding(.horizontal, 16)
         }
 
+        // 2. PRs actuels
+        if !personalRecords.isEmpty {
+            PersonalRecordsView(records: personalRecords)
+                .padding(.horizontal, 16)
+        }
+
+        // 3. Top 5 fréquence
+        if !weights.isEmpty {
+            Top5FrequencyView(weights: weights)
+                .padding(.horizontal, 16)
+        }
+
+        // 4. 1RM trend par exercice
+        if !oneRmTrend.isEmpty {
+            OneRMTrendView(trend: oneRmTrend)
+                .padding(.horizontal, 16)
+        }
+
+        // 5. Exercices — recherche et poids actuels
         VStack(alignment: .leading, spacing: 8) {
             Text("POIDS ACTUELS")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
@@ -967,6 +1081,48 @@ struct StatsView: View {
                let (d, _) = try? await URLSession.authed.data(from: url),
                let r = try? JSONDecoder().decode(HRVBaseline.self, from: d) {
                 await MainActor.run { hrvBaseline = r }
+            }
+        }
+        Task {
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/adherence"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let r = try? JSONDecoder().decode(AdherenceData.self, from: d) {
+                await MainActor.run { adherenceData = r }
+            }
+        }
+        Task {
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/seasons/comparison"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let r = try? JSONDecoder().decode(SeasonComparisonData.self, from: d) {
+                await MainActor.run { seasonComparison = r }
+            }
+        }
+        Task {
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/war_room/summary"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let r = try? JSONDecoder().decode(WarRoomSummaryStats.self, from: d) {
+                await MainActor.run { warRoomStats = r }
+            }
+        }
+        Task {
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/graveyard"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let r = try? JSONDecoder().decode(GraveyardResponse.self, from: d) {
+                await MainActor.run { graveyardCount = r.tombstones.count }
+            }
+        }
+        Task {
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/deload_status"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let r = try? JSONDecoder().decode(DeloadStatusData.self, from: d) {
+                await MainActor.run { deloadStatus = r }
+            }
+        }
+        Task {
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/stats/intensity"),
+               let (d, _) = try? await URLSession.authed.data(from: url),
+               let r = try? JSONDecoder().decode(IntensityData.self, from: d) {
+                await MainActor.run { intensityData = r }
             }
         }
     }
@@ -2843,11 +2999,11 @@ struct StatsTabBar: View {
     @Binding var selectedTab: Int
 
     private let tabs: [(icon: String, label: String)] = [
-        ("chart.bar.fill",           "Global"),
+        ("chart.bar.fill",           "Synthèse"),
         ("bolt.fill",                "Perf"),
         ("figure.stand",             "Corps"),
         ("fork.knife",               "Nutrition"),
-        ("dumbbell.fill",            "Exercices"),
+        ("dumbbell.fill",            "Force"),
         ("heart.text.square.fill",   "Bien-être"),
     ]
 
@@ -4008,3 +4164,983 @@ struct HRVBaselineCard: View {
         .cornerRadius(14)
     }
 }
+
+// MARK: - Body Recomposition Tracker
+struct BodyRecompView: View {
+    let entries: [BodyWeightEntry]
+    @ObservedObject private var units = UnitSettings.shared
+
+    private struct RecompPoint: Identifiable {
+        let id = UUID()
+        let date: String
+        let weight: Double
+        let fatMass: Double
+        let leanMass: Double
+    }
+
+    private var points: [RecompPoint] {
+        entries.compactMap { e -> RecompPoint? in
+            guard e.weight > 0, let bf = e.bodyFat, bf > 0 else { return nil }
+            let fat  = e.weight * (bf / 100.0)
+            let lean = e.weight - fat
+            return RecompPoint(date: e.date, weight: e.weight, fatMass: fat, leanMass: lean)
+        }
+    }
+
+    private var delta30: (lean: Double, fat: Double)? {
+        guard points.count >= 2 else { return nil }
+        let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
+        let recent = points.filter { $0.date >= cutoff }
+        guard let first = recent.first, let last = recent.last else { return nil }
+        return (lean: last.leanMass - first.leanMass, fat: last.fatMass - first.fatMass)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("BODY RECOMPOSITION — 3 COURBES")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            if points.count < 3 {
+                EmptyChartPlaceholder(message: "Logge ton % de masse grasse pour activer le recomp tracker")
+            } else {
+                recompChart
+                if let d = delta30 {
+                    deltaRow(d)
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+
+    @ViewBuilder private var recompChart: some View {
+        GeometryReader { g in
+            let w = g.size.width
+            let h = g.size.height
+            let allVals = points.flatMap { [$0.weight, $0.fatMass, $0.leanMass] }
+            let minV = (allVals.min() ?? 0) * 0.95
+            let maxV = (allVals.max() ?? 1) * 1.05
+            let range = maxV - minV
+
+            let step = w / CGFloat(max(points.count - 1, 1))
+
+            func y(_ v: Double) -> CGFloat {
+                h * (1 - CGFloat((v - minV) / range))
+            }
+
+            func line(_ kp: KeyPath<RecompPoint, Double>, color: Color) -> some View {
+                Path { path in
+                    for (i, p) in points.enumerated() {
+                        let x = CGFloat(i) * step
+                        let yv = y(p[keyPath: kp])
+                        if i == 0 { path.move(to: CGPoint(x: x, y: yv)) }
+                        else { path.addLine(to: CGPoint(x: x, y: yv)) }
+                    }
+                }
+                .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+            }
+
+            ZStack {
+                line(\.weight,   color: .gray.opacity(0.6))
+                line(\.fatMass,  color: Color(hex: "E74C3C").opacity(0.8))
+                line(\.leanMass, color: Color(hex: "F5A623"))
+            }
+        }
+        .frame(height: 100)
+
+        // Legend
+        HStack(spacing: 16) {
+            legendDot(.gray,                   "Poids total")
+            legendDot(Color(hex: "E74C3C"),    "Masse grasse")
+            legendDot(Color(hex: "F5A623"),    "Masse maigre")
+        }
+        .font(.system(size: 10)).foregroundColor(.gray)
+    }
+
+    @ViewBuilder private func deltaRow(_ d: (lean: Double, fat: Double)) -> some View {
+        Rectangle().fill(Color.white.opacity(0.06)).frame(height: 0.5)
+        HStack(spacing: 20) {
+            deltaKPI(
+                label: "Masse maigre (30j)",
+                value: units.format(d.lean, decimals: 1),
+                good: d.lean >= 0
+            )
+            deltaKPI(
+                label: "Masse grasse (30j)",
+                value: units.format(d.fat, decimals: 1),
+                good: d.fat <= 0
+            )
+            Spacer()
+        }
+    }
+
+    @ViewBuilder private func deltaKPI(label: String, value: String, good: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(good ? .green : .orange)
+            Text(label)
+                .font(.system(size: 10)).foregroundColor(.gray)
+        }
+    }
+
+    private func legendDot(_ c: Color, _ t: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(c).frame(width: 7, height: 7)
+            Text(t)
+        }
+    }
+}
+
+// MARK: - Intensity Card (%1RM)
+struct IntensityCard: View {
+    let data: IntensityData
+
+    private var zoneLabel: String {
+        switch data.zone {
+        case "force":        return "Zone force (>80%)"
+        case "hypertrophie": return "Zone hypertrophie (65–80%)"
+        default:             return "Zone volume / décharge (<65%)"
+        }
+    }
+    private var zoneColor: Color {
+        switch data.zone {
+        case "force":        return .red
+        case "hypertrophie": return .orange
+        default:             return .blue
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("INTENSITÉ RELATIVE — %1RM")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            HStack(alignment: .bottom, spacing: 12) {
+                if let pct = data.avgPct1rm {
+                    Text(String(format: "%.0f%%", pct))
+                        .font(.system(size: 36, weight: .black))
+                        .foregroundColor(zoneColor)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(zoneLabel)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(zoneColor)
+                    Text("\(data.setsCount) sets cette semaine")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                }
+                Spacer()
+            }
+
+            // Zone gauge
+            GeometryReader { g in
+                let w = g.size.width
+                ZStack(alignment: .leading) {
+                    // Background zones
+                    HStack(spacing: 0) {
+                        Rectangle().fill(Color.blue.opacity(0.25)).frame(width: w * 0.65)
+                        Rectangle().fill(Color.orange.opacity(0.25)).frame(width: w * 0.15)
+                        Rectangle().fill(Color.red.opacity(0.25))
+                    }
+                    .cornerRadius(4)
+
+                    // Cursor
+                    if let pct = data.avgPct1rm {
+                        let clamped = min(max(pct / 100.0, 0), 1.0)
+                        Rectangle()
+                            .fill(zoneColor)
+                            .frame(width: 3, height: 20)
+                            .offset(x: w * clamped - 1.5)
+                    }
+                }
+                .frame(height: 12)
+                .cornerRadius(4)
+
+                // Zone labels
+                HStack {
+                    Text("<65%").font(.system(size: 8)).foregroundColor(.blue)
+                    Spacer()
+                    Text("65–80%").font(.system(size: 8)).foregroundColor(.orange)
+                    Spacer()
+                    Text(">80%").font(.system(size: 8)).foregroundColor(.red)
+                }
+                .offset(y: 16)
+            }
+            .frame(height: 32)
+        }
+        .padding(16).glassCard(color: zoneColor, intensity: 0.04).cornerRadius(14)
+    }
+}
+
+// MARK: - Deload Status Card
+struct DeloadStatusCard: View {
+    let data: DeloadStatusData
+
+    private var weeksSince: Int { data.weeksSinceDeload ?? 0 }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("DELOAD")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                if data.deloadActif {
+                    Text("Deload actif")
+                        .font(.system(size: 15, weight: .bold)).foregroundColor(.blue)
+                } else if let w = data.weeksSinceDeload {
+                    Text("\(w) sem.")
+                        .font(.system(size: 28, weight: .black))
+                        .foregroundColor(deloadColor)
+                    Text("depuis le dernier deload")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                } else {
+                    Text("—")
+                        .font(.system(size: 28, weight: .black)).foregroundColor(.gray)
+                    Text("pas encore de deload enregistré")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                }
+            }
+            Spacer()
+            if data.recommande {
+                VStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 20)).foregroundColor(.orange)
+                    Text("Recommandé")
+                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.orange)
+                }
+            }
+        }
+        .padding(16).glassCard(color: deloadColor, intensity: 0.04).cornerRadius(14)
+    }
+
+    private var deloadColor: Color {
+        if data.recommande { return .orange }
+        guard let w = data.weeksSinceDeload else { return .gray }
+        if w <= 4 { return .green }
+        if w <= 6 { return .orange }
+        return .red
+    }
+}
+
+// MARK: - Adherence Rings Card
+struct AdherenceRingsCard: View {
+    let data: AdherenceData
+
+    private struct Pillar {
+        let label: String
+        let pct: Int
+        let color: Color
+    }
+
+    private var pillars: [Pillar] {
+        [
+            Pillar(label: "Body",   pct: data.bodyPct,   color: Color(hex: "F5A623")),
+            Pillar(label: "Mind",   pct: data.mindPct,   color: .blue),
+            Pillar(label: "Fuel",   pct: data.fuelPct,   color: .green),
+            Pillar(label: "Spirit", pct: data.spiritPct, color: Color(hex: "9B59B6")),
+        ]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("CONSTANCE CE MOIS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text("\(data.daysElapsed) jours écoulés")
+                    .font(.system(size: 11)).foregroundColor(.gray)
+            }
+
+            HStack(spacing: 24) {
+                ZStack {
+                    ForEach(pillars.indices.reversed(), id: \.self) { i in
+                        AdherenceArc(
+                            pct: Double(pillars[i].pct) / 100.0,
+                            color: pillars[i].color,
+                            radius: CGFloat(40 - i * 8),
+                            lineWidth: 6
+                        )
+                    }
+                }
+                .frame(width: 90, height: 90)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    ForEach(pillars.indices, id: \.self) { i in
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(pillars[i].color)
+                                .frame(width: 8, height: 8)
+                            Text(pillars[i].label)
+                                .font(.system(size: 12)).foregroundColor(.white.opacity(0.85))
+                            Spacer()
+                            Text("\(pillars[i].pct)%")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(adherenceColor(pillars[i].pct))
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+
+    private func adherenceColor(_ pct: Int) -> Color {
+        if pct >= 70 { return .green }
+        if pct >= 40 { return .orange }
+        return .red
+    }
+}
+
+private struct AdherenceArc: View {
+    let pct: Double
+    let color: Color
+    let radius: CGFloat
+    let lineWidth: CGFloat
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(color.opacity(0.12), lineWidth: lineWidth)
+                .frame(width: radius * 2, height: radius * 2)
+            Circle()
+                .trim(from: 0, to: CGFloat(min(pct, 1.0)))
+                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .frame(width: radius * 2, height: radius * 2)
+                .animation(.easeOut(duration: 0.6), value: pct)
+        }
+    }
+}
+
+// MARK: - Season Comparison Card
+struct SeasonComparisonCard: View {
+    let data: SeasonComparisonData
+    @ObservedObject private var units = UnitSettings.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar.badge.clock")
+                    .foregroundColor(.orange).font(.system(size: 12))
+                Text("COMPARAISON SAISONS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            }
+
+            if let current = data.current {
+                seasonTable(current: current, previous: data.previous)
+            } else {
+                Text("Aucune saison active")
+                    .font(.system(size: 13)).foregroundColor(.gray)
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+
+    @ViewBuilder private func seasonTable(current: SeasonCompStats, previous: SeasonCompStats?) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("").frame(height: 16)
+                Text("Vol. moy/sem").font(.system(size: 11)).foregroundColor(.gray)
+                Text("Séances").font(.system(size: 11)).foregroundColor(.gray)
+                Text("PSS moy.").font(.system(size: 11)).foregroundColor(.gray)
+                Text("Δ poids").font(.system(size: 11)).foregroundColor(.gray)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .center, spacing: 10) {
+                Text(current.title ?? "En cours")
+                    .font(.system(size: 10, weight: .bold)).foregroundColor(.orange)
+                    .lineLimit(1).frame(height: 16)
+                valCell(current.volumeAvgWeek.map { units.format($0, decimals: 0) })
+                valCell(current.sessionsCount.map { "\($0)" })
+                valCell(current.pssAvg.map { "\($0)" })
+                weightCell(current.weightDelta)
+            }
+            .frame(maxWidth: .infinity)
+
+            if let prev = previous {
+                VStack(alignment: .center, spacing: 10) {
+                    Text("").frame(height: 16)
+                    deltaArrow(current.volumeAvgWeek, prev.volumeAvgWeek, higherBetter: true)
+                    deltaArrow(current.sessionsCount.map(Double.init), prev.sessionsCount.map(Double.init), higherBetter: true)
+                    deltaArrow(current.pssAvg.map(Double.init), prev.pssAvg.map(Double.init), higherBetter: false)
+                    Text("").frame(height: 18)
+                }
+                .frame(width: 40)
+
+                VStack(alignment: .center, spacing: 10) {
+                    Text(prev.title ?? "Précédente")
+                        .font(.system(size: 10, weight: .bold)).foregroundColor(.gray)
+                        .lineLimit(1).frame(height: 16)
+                    valCell(prev.volumeAvgWeek.map { units.format($0, decimals: 0) }, dim: true)
+                    valCell(prev.sessionsCount.map { "\($0)" }, dim: true)
+                    valCell(prev.pssAvg.map { "\($0)" }, dim: true)
+                    weightCell(prev.weightDelta, dim: true)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    @ViewBuilder private func valCell(_ v: String?, dim: Bool = false) -> some View {
+        Text(v ?? "—")
+            .font(.system(size: 13, weight: .bold))
+            .foregroundColor(dim ? .gray : .white)
+            .frame(height: 18)
+    }
+
+    @ViewBuilder private func weightCell(_ delta: Double?, dim: Bool = false) -> some View {
+        if let d = delta {
+            let sign = d > 0 ? "+" : ""
+            let color: Color = dim ? .gray : (d < 0 ? .green : .orange)
+            Text("\(sign)\(units.format(d, decimals: 1))")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(color)
+                .frame(height: 18)
+        } else {
+            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray).frame(height: 18)
+        }
+    }
+
+    @ViewBuilder private func deltaArrow(_ a: Double?, _ b: Double?, higherBetter: Bool) -> some View {
+        if let c = a, let p = b, p != 0 {
+            let diff = c - p
+            let isGood = higherBetter ? diff > 0 : diff < 0
+            let pct = Int(round(abs(diff) / abs(p) * 100))
+            let sym = diff > 0 ? "↑" : "↓"
+            Text("\(sym)\(pct)%")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(isGood ? .green : .orange)
+                .frame(height: 18)
+        } else {
+            Text("").frame(height: 18)
+        }
+    }
+}
+
+// MARK: - Transformation Markers Card
+struct TransformationMarkersCard: View {
+    let tombstoneCount: Int
+    let warRoomStats: WarRoomSummaryStats?
+
+    var body: some View {
+        let showWarRoom = warRoomStats?.warStartDate != nil
+        VStack(alignment: .leading, spacing: 12) {
+            Text("MARQUEURS DE TRANSFORMATION")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(tombstoneCount > 0 ? "\(tombstoneCount)" : "—")
+                        .font(.system(size: 30, weight: .black))
+                        .foregroundColor(.orange)
+                        .contentTransition(.numericText())
+                    Text(tombstoneCount == 1 ? "limite enterrée" : "limites enterrées")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                    if tombstoneCount == 0 {
+                        Text("Continue à logger")
+                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(Color.orange.opacity(0.07))
+                .cornerRadius(12)
+
+                if showWarRoom, let wr = warRoomStats {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(wr.totalVictories)")
+                            .font(.system(size: 30, weight: .black))
+                            .foregroundColor(Color(hex: "2ECC71"))
+                            .contentTransition(.numericText())
+                        Text("jours de victoire")
+                            .font(.system(size: 11)).foregroundColor(.gray)
+                        Text("Ne descend jamais")
+                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(Color(hex: "2ECC71").opacity(0.07))
+                    .cornerRadius(12)
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+}
+
+// MARK: - Strength Progression 6 months
+struct StrengthProgressionCard: View {
+    let trend: [String: [OneRMPoint]]
+    let weights: [String: WeightData]
+    @ObservedObject private var units = UnitSettings.shared
+
+    private struct LiftDelta: Identifiable {
+        let id = UUID()
+        let name: String
+        let current: Double
+        let baseline: Double
+        var delta: Double { current - baseline }
+        var deltaPct: Int { baseline > 0 ? Int(round(delta / baseline * 100)) : 0 }
+    }
+
+    private var top5: [LiftDelta] {
+        // Top 5 by session count (frequency proxy)
+        let sorted = weights.sorted { ($0.value.history?.count ?? 0) > ($1.value.history?.count ?? 0) }
+            .prefix(10).map(\.key)
+        let cutoff180 = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 180 * 86400))
+
+        return sorted.compactMap { name -> LiftDelta? in
+            guard let pts = trend[name], !pts.isEmpty else { return nil }
+            let sorted_pts = pts.sorted { $0.date < $1.date }
+            guard let current = sorted_pts.last?.oneRM, current > 0 else { return nil }
+            let baseline_pt = sorted_pts.first(where: { $0.date >= cutoff180 }) ?? sorted_pts.first
+            guard let baseline = baseline_pt?.oneRM, baseline > 0 else { return nil }
+            return LiftDelta(name: name, current: current, baseline: baseline)
+        }
+        .sorted { abs($0.deltaPct) > abs($1.deltaPct) }
+        .prefix(5).map { $0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("PROGRESSION FORCE — 6 MOIS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            if top5.isEmpty {
+                EmptyChartPlaceholder(message: "Continue à logger — activé après 6 mois de données")
+            } else {
+                let maxCurrent = top5.map(\.current).max() ?? 1
+                VStack(spacing: 10) {
+                    ForEach(top5) { lift in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(lift.name)
+                                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                                    .lineLimit(1)
+                                Spacer()
+                                let sign = lift.delta >= 0 ? "+" : ""
+                                Text("\(sign)\(lift.deltaPct)%")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(lift.delta >= 0 ? .green : .orange)
+                            }
+                            GeometryReader { g in
+                                let w = g.size.width
+                                ZStack(alignment: .leading) {
+                                    // Baseline bar (gray)
+                                    Capsule()
+                                        .fill(Color.gray.opacity(0.25))
+                                        .frame(width: w * CGFloat(lift.baseline / maxCurrent), height: 8)
+                                    // Current bar (amber)
+                                    Capsule()
+                                        .fill(lift.delta >= 0 ? Color(hex: "F5A623") : .orange)
+                                        .frame(width: w * CGFloat(lift.current / maxCurrent), height: 8)
+                                        .opacity(0.85)
+                                }
+                            }
+                            .frame(height: 8)
+                            HStack {
+                                Text("Baseline: \(units.format(lift.baseline, decimals: 0))")
+                                    .font(.system(size: 9)).foregroundColor(.gray)
+                                Spacer()
+                                Text("Actuel: \(units.format(lift.current, decimals: 0))")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(Color(hex: "F5A623"))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+}
+
+// MARK: - Top 5 Frequency View
+struct Top5FrequencyView: View {
+    let weights: [String: WeightData]
+
+    private var top5: [(String, Int)] {
+        let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
+        var counts: [String: Int] = [:]
+        for (name, data) in weights {
+            let n = (data.history ?? []).filter { ($0.date ?? "") >= cutoff }.count
+            if n > 0 { counts[name] = n }
+        }
+        return counts.sorted { $0.value > $1.value }.prefix(5).map { ($0.key, $0.value) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("TOP 5 EXERCICES (30J)")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            if top5.isEmpty {
+                Text("Pas encore de données").font(.system(size: 12)).foregroundColor(.gray)
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(Array(top5.enumerated()), id: \.0) { i, item in
+                        HStack(spacing: 10) {
+                            Text("\(i + 1)")
+                                .font(.system(size: 11, weight: .bold)).foregroundColor(.gray)
+                                .frame(width: 16)
+                            Text(item.0)
+                                .font(.system(size: 13)).foregroundColor(.white).lineLimit(1)
+                            Spacer()
+                            Text("\(item.1)×")
+                                .font(.system(size: 13, weight: .bold)).foregroundColor(.orange)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+}
+
+// MARK: - Nutrition vs Performance View
+struct NutritionVsPerfView: View {
+    let nutritionDays: [NutritionDay]
+    let weeklyTonnage: [WeeklyTonnageEntry]
+    let target: NutritionSettings?
+
+    private struct WeekPair: Identifiable {
+        let id = UUID()
+        let weekStart: String
+        let adherence: Double  // 0–1
+        let volume: Double
+    }
+
+    private var pairs: [WeekPair] {
+        guard let tgt = target, let tgtCal = tgt.calories, tgtCal > 0 else { return [] }
+        // Group nutrition by ISO week
+        var nutByWeek: [String: [NutritionDay]] = [:]
+        for day in nutritionDays {
+            let wk = isoWeekKey(day.date ?? "")
+            nutByWeek[wk, default: []].append(day)
+        }
+        return weeklyTonnage.compactMap { t -> WeekPair? in
+            let wk = isoWeekKey(t.weekStart)
+            guard let days = nutByWeek[wk], !days.isEmpty else { return nil }
+            let adhDays = days.filter {
+                guard let cal = $0.calories, cal > 0 else { return false }
+                return abs(cal - tgtCal) / tgtCal <= 0.15
+            }
+            let adh = Double(adhDays.count) / Double(days.count)
+            return WeekPair(weekStart: t.weekStart, adherence: adh, volume: t.totalVolume)
+        }.sorted { $0.weekStart < $1.weekStart }
+    }
+
+    private var insight: String? {
+        guard pairs.count >= 4 else { return nil }
+        let highAdh = pairs.filter { $0.adherence >= 0.8 }
+        let lowAdh  = pairs.filter { $0.adherence < 0.5 }
+        guard !highAdh.isEmpty, !lowAdh.isEmpty else { return nil }
+        let avgHigh = highAdh.map(\.volume).reduce(0, +) / Double(highAdh.count)
+        let avgLow  = lowAdh.map(\.volume).reduce(0, +) / Double(lowAdh.count)
+        guard avgLow > 0 else { return nil }
+        let diff = Int(round((avgHigh - avgLow) / avgLow * 100))
+        if abs(diff) < 5 { return "Pas de corrélation claire entre ta nutrition et ta performance." }
+        let dir = diff > 0 ? "mieux" : "moins bien"
+        return "Tu t'entraînes \(abs(diff))% \(dir) les semaines avec une bonne adherence macro (>80%)."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("NUTRITION → PERFORMANCE")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            if pairs.count < 4 {
+                EmptyChartPlaceholder(message: "Activé après 4 semaines de logs nutrition + workout")
+            } else {
+                miniDualChart
+                if let msg = insight {
+                    Text(msg)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.8))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+
+    @ViewBuilder private var miniDualChart: some View {
+        GeometryReader { g in
+            let w = g.size.width
+            let h = g.size.height
+            let n = pairs.count
+            let step = w / CGFloat(max(n - 1, 1))
+            let maxVol = pairs.map(\.volume).max() ?? 1
+
+            // Volume line (amber)
+            Path { path in
+                for (i, p) in pairs.enumerated() {
+                    let x = CGFloat(i) * step
+                    let y = h * (1 - CGFloat(p.volume / maxVol))
+                    if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                    else { path.addLine(to: CGPoint(x: x, y: y)) }
+                }
+            }
+            .stroke(Color(hex: "F5A623"), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+
+            // Adherence line (green)
+            Path { path in
+                for (i, p) in pairs.enumerated() {
+                    let x = CGFloat(i) * step
+                    let y = h * (1 - CGFloat(p.adherence))
+                    if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                    else { path.addLine(to: CGPoint(x: x, y: y)) }
+                }
+            }
+            .stroke(Color.green, style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [4, 3]))
+        }
+        .frame(height: 60)
+
+        HStack(spacing: 16) {
+            HStack(spacing: 4) {
+                Rectangle().fill(Color(hex: "F5A623")).frame(width: 16, height: 2)
+                Text("Volume").font(.system(size: 9)).foregroundColor(.gray)
+            }
+            HStack(spacing: 4) {
+                Rectangle().fill(Color.green).frame(width: 16, height: 2)
+                Text("Adherence macros").font(.system(size: 9)).foregroundColor(.gray)
+            }
+        }
+    }
+}
+
+// MARK: - Sleep Performance Insight (enriched scatter)
+struct SleepPerformanceInsightView: View {
+    let scatter: [ScatterPoint]
+
+    private var insight: String? {
+        guard scatter.count >= 12 else { return nil }
+        let goodSleep = scatter.filter { $0.x >= 7 }
+        let poorSleep = scatter.filter { $0.x < 7 }
+        guard !goodSleep.isEmpty, !poorSleep.isEmpty else { return nil }
+        let avgGood = goodSleep.map(\.y).reduce(0, +) / Double(goodSleep.count)
+        let avgPoor = poorSleep.map(\.y).reduce(0, +) / Double(poorSleep.count)
+        guard avgPoor > 0 else { return nil }
+        let diff = Int(round((avgGood - avgPoor) / avgPoor * 100))
+        if abs(diff) < 5 { return "Pas de corrélation significative entre ton sommeil et tes performances." }
+        let dir = diff > 0 ? "mieux" : "moins bien"
+        return "Tu performes \(abs(diff))% \(dir) les jours après une nuit de qualité ≥ 7/10."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ScatterPlotView(
+                data: scatter,
+                xLabel: "Qualité sommeil J-1 (1–10)",
+                yLabel: "Volume séance J",
+                title: "SOMMEIL → PERFORMANCE",
+                color: .blue
+            )
+            if let msg = insight {
+                Text(msg)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.85))
+                    .padding(.horizontal, 16)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+// MARK: - Wellness Trend (3 sparklines)
+struct WellnessTrendView: View {
+    let recovery: [RecoveryEntry]
+    let pssHistory: [PSSRecord]
+
+    private func movingAvg(_ values: [Double], window: Int = 7) -> [Double] {
+        values.indices.map { i in
+            let start = max(0, i - window + 1)
+            let slice = values[start...i]
+            return slice.reduce(0, +) / Double(slice.count)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("WELLNESS — TENDANCES 30J")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            if recovery.isEmpty {
+                EmptyChartPlaceholder(message: "Logge ta récupération quotidiennement pour voir les tendances")
+            } else {
+                VStack(spacing: 8) {
+                    let sleepVals = recovery.compactMap { $0.sleepQuality.map(Double.init) }
+                    let sorenessVals = recovery.compactMap { $0.soreness.map(Double.init) }
+                    let fatigueVals = recovery.compactMap { $0.fatigue.map(Double.init) }
+
+                    if !sleepVals.isEmpty {
+                        WellnessSparkline(label: "Sommeil", values: movingAvg(sleepVals), color: .blue, range: 1...10)
+                    }
+                    if !sorenessVals.isEmpty {
+                        WellnessSparkline(label: "Douleurs", values: movingAvg(sorenessVals), color: .orange, range: 1...10, invertTrend: true)
+                    }
+                    if !fatigueVals.isEmpty {
+                        WellnessSparkline(label: "Fatigue", values: movingAvg(fatigueVals), color: .purple, range: 1...10, invertTrend: true)
+                    }
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+}
+
+private struct WellnessSparkline: View {
+    let label: String
+    let values: [Double]
+    let color: Color
+    let range: ClosedRange<Double>
+    var invertTrend: Bool = false
+
+    private var trend: Color {
+        guard values.count >= 7 else { return .gray }
+        let recent = Array(values.suffix(7)).reduce(0, +) / 7
+        let earlier = Array(values.prefix(7)).reduce(0, +) / 7
+        let diff = recent - earlier
+        if abs(diff) < 0.3 { return .gray }
+        let isGood = invertTrend ? diff < 0 : diff > 0
+        return isGood ? .green : .red
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text(label)
+                .font(.system(size: 11)).foregroundColor(.gray)
+                .frame(width: 56, alignment: .leading)
+
+            GeometryReader { g in
+                let w = g.size.width
+                let h = g.size.height
+                let step = w / CGFloat(max(values.count - 1, 1))
+                let span = range.upperBound - range.lowerBound
+
+                Path { path in
+                    for (i, v) in values.enumerated() {
+                        let x = CGFloat(i) * step
+                        let y = h * (1 - CGFloat((v - range.lowerBound) / span))
+                        if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                        else { path.addLine(to: CGPoint(x: x, y: y)) }
+                    }
+                }
+                .stroke(color.opacity(0.7), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+            }
+            .frame(height: 28)
+
+            if let last = values.last {
+                Text(String(format: "%.1f", last))
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(trend)
+                    .frame(width: 30, alignment: .trailing)
+            }
+        }
+    }
+}
+
+// MARK: - Best Day of Week
+struct BestDayOfWeekView: View {
+    let sessions: [String: SessionEntry]
+    let weights: [String: WeightData]
+
+    private let dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
+
+    private var volumeByDow: [Int: Double] {
+        let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 90 * 86400))
+        var totals: [Int: Double] = [:]
+        var counts: [Int: Int] = [:]
+        for (dateStr, _) in sessions {
+            guard dateStr >= cutoff,
+                  let date = DateFormatter.isoDate.date(from: dateStr) else { continue }
+            let dow = (Calendar.current.component(.weekday, from: date) + 5) % 7 // 0=Mon
+            let vol = weights.values.flatMap { $0.history ?? [] }.filter { $0.date == dateStr }
+                .compactMap { e -> Double? in
+                    if let v = e.exerciseVolume, v > 0 { return v }
+                    guard let w = e.weight, let r = e.reps else { return nil }
+                    return w * totalReps(r)
+                }.reduce(0, +)
+            totals[dow, default: 0] += vol
+            counts[dow, default: 0] += 1
+        }
+        var avgs: [Int: Double] = [:]
+        for d in 0..<7 {
+            let c = counts[d, default: 0]
+            avgs[d] = c > 0 ? (totals[d] ?? 0) / Double(c) : 0
+        }
+        return avgs
+    }
+
+    private var bestDow: Int? {
+        volumeByDow.max(by: { $0.value < $1.value })?.key
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("MEILLEUR JOUR DE LA SEMAINE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let best = bestDow {
+                    Text("→ \(dayNames[best])")
+                        .font(.system(size: 11, weight: .bold)).foregroundColor(.orange)
+                }
+            }
+            let vols = volumeByDow
+            let maxV = vols.values.max() ?? 1
+            HStack(alignment: .bottom, spacing: 6) {
+                ForEach(0..<7, id: \.self) { d in
+                    let v = vols[d] ?? 0
+                    let isBest = d == bestDow
+                    VStack(spacing: 3) {
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(isBest ? Color.orange : Color.orange.opacity(0.3))
+                            .frame(height: max(CGFloat(maxV > 0 ? v / maxV : 0) * 60, 3))
+                        Text(dayNames[d])
+                            .font(.system(size: 9)).foregroundColor(isBest ? .orange : .gray)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: 70)
+                }
+            }
+            .frame(height: 70)
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+}
+
+// MARK: - Stress → Cravings Insight (War Room)
+struct StressCravingsInsightView: View {
+    let pssHistory: [PSSRecord]
+    let warRoomStats: WarRoomSummaryStats?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.shield.fill")
+                    .foregroundColor(.orange).font(.system(size: 11))
+                Text("STRESS → DÉCLENCHEURS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            }
+            Text(insightText)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.white.opacity(0.85))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16).glassCard(color: .orange, intensity: 0.04).cornerRadius(14)
+    }
+
+    private var insightText: String {
+        guard pssHistory.count >= 3 else {
+            return "Continue à logger ton stress — cette stat s'active après quelques enregistrements."
+        }
+        let scores = pssHistory.compactMap { $0.score }
+        let median = scores.sorted()[scores.count / 2]
+        let highStress = pssHistory.filter { ($0.score ?? 0) > median }
+        if highStress.isEmpty {
+            return "Pas encore assez de données pour détecter un pattern stress → déclencheurs."
+        }
+        return "Tes niveaux de stress élevés (PSS > \(median)) coïncident souvent avec tes journées les plus difficiles. Reste vigilant."
+    }
+}
+

@@ -1415,3 +1415,81 @@ def api_nutrition_timing():
             "Pas encore assez de données de timing pour analyser ta nutrition pré/post-workout."
         ),
     })
+
+
+# ── Adherence (4-pillar constance score) ─────────────────────────────────────
+
+@analytics_bp.route("/api/adherence")
+def api_adherence():
+    """Adherence % per pillar (Body/Mind/Fuel/Spirit) for the current calendar month."""
+    import db as _db
+    from datetime import date
+
+    today        = date.today()
+    month_prefix = today.strftime("%Y-%m")
+    first_day    = today.replace(day=1)
+    days_elapsed = (today - first_day).days + 1
+
+    def _pct(active: int) -> int:
+        return round(active / days_elapsed * 100) if days_elapsed > 0 else 0
+
+    body_days   = _db.get_adherence_active_days("body",   month_prefix)
+    mind_days   = _db.get_adherence_active_days("mind",   month_prefix)
+    fuel_days   = _db.get_adherence_active_days("fuel",   month_prefix)
+    spirit_days = _db.get_adherence_active_days("spirit", month_prefix)
+
+    return jsonify({
+        "body_pct":     _pct(body_days),
+        "mind_pct":     _pct(mind_days),
+        "fuel_pct":     _pct(fuel_days),
+        "spirit_pct":   _pct(spirit_days),
+        "days_elapsed": days_elapsed,
+        "period":       month_prefix,
+    })
+
+
+# ── Relative intensity (%1RM) ─────────────────────────────────────────────────
+
+@analytics_bp.route("/api/stats/intensity")
+def api_stats_intensity():
+    """Average %1RM across all working sets logged in the last 7 days."""
+    import db as _db
+    from datetime import date, timedelta
+
+    cutoff = (date.today() - timedelta(days=7)).isoformat()
+
+    one_rms: dict[str, float] = {}
+    for r in _db.get_current_1rm_estimates():
+        one_rms[r["name"]] = r["estimated_1rm"]
+
+    if not one_rms:
+        return jsonify({"avg_pct_1rm": None, "zone": None, "sets_count": 0})
+
+    from weights import load_weights
+    weights = load_weights()
+
+    pct_values: list[float] = []
+    for ex_name, ex_data in weights.items():
+        e1rm = one_rms.get(ex_name)
+        if not e1rm or e1rm <= 0:
+            continue
+        for entry in (ex_data.get("history") or []):
+            if (entry.get("date") or "") < cutoff:
+                break
+            for s in (entry.get("sets") or []):
+                w = float(s.get("weight") or 0)
+                if w > 0:
+                    pct_values.append(min(w / e1rm * 100.0, 120.0))
+
+    if not pct_values:
+        return jsonify({"avg_pct_1rm": None, "zone": None, "sets_count": 0})
+
+    avg = round(sum(pct_values) / len(pct_values), 1)
+    if avg >= 80:
+        zone = "force"
+    elif avg >= 65:
+        zone = "hypertrophie"
+    else:
+        zone = "volume"
+
+    return jsonify({"avg_pct_1rm": avg, "zone": zone, "sets_count": len(pct_values)})

@@ -6416,6 +6416,113 @@ def get_war_room_coach_context() -> Optional[dict]:
         return None
 
 
+def _next_month_str(month_prefix: str) -> str:
+    """Return first day of the next month as 'YYYY-MM-DD'."""
+    year, month = int(month_prefix[:4]), int(month_prefix[5:7])
+    if month == 12:
+        return f"{year + 1}-01-01"
+    return f"{year}-{month + 1:02d}-01"
+
+
+def get_adherence_active_days(pillar: str, month_prefix: str) -> int:
+    """Count distinct days this month with ≥1 entry for the given pillar.
+
+    Pillars: 'body' | 'mind' | 'fuel' | 'spirit'
+    month_prefix: 'YYYY-MM'
+    """
+    if _client is None or MODE == "OFFLINE":
+        return 0
+
+    dates: set[str] = set()
+    next_m = _next_month_str(month_prefix)
+
+    def _collect_date_col(table: str, col: str, is_timestamptz: bool = False) -> None:
+        try:
+            if is_timestamptz:
+                resp = (_client.table(table).select(col)
+                        .gte(col, f"{month_prefix}-01")
+                        .lt(col, next_m)
+                        .execute())
+            else:
+                resp = (_client.table(table).select(col)
+                        .like(col, f"{month_prefix}%")
+                        .execute())
+            for r in (resp.data or []):
+                val = r.get(col)
+                if val:
+                    dates.add(str(val)[:10])
+        except Exception as e:
+            logger.warning("get_adherence_active_days(%s/%s) query error: %s", pillar, table, e)
+
+    if pillar == "body":
+        # workout_sessions completed=True
+        try:
+            resp = (_client.table("workout_sessions").select("date")
+                    .like("date", f"{month_prefix}%")
+                    .eq("completed", True)
+                    .execute())
+            for r in (resp.data or []):
+                if r.get("date"):
+                    dates.add(str(r["date"])[:10])
+        except Exception as e:
+            logger.warning("get_adherence_active_days(body/workout) error: %s", e)
+        _collect_date_col("body_weight_logs", "date")
+
+    elif pillar == "mind":
+        _collect_date_col("recovery_logs", "date")
+        # pss_records uses recorded_at (TIMESTAMPTZ)
+        try:
+            resp = (_client.table("pss_records").select("recorded_at")
+                    .gte("recorded_at", f"{month_prefix}-01")
+                    .lt("recorded_at", next_m)
+                    .execute())
+            for r in (resp.data or []):
+                if r.get("recorded_at"):
+                    dates.add(str(r["recorded_at"])[:10])
+        except Exception as e:
+            logger.warning("get_adherence_active_days(mind/pss) error: %s", e)
+
+    elif pillar == "fuel":
+        _collect_date_col("nutrition_entries", "date")
+
+    elif pillar == "spirit":
+        _collect_date_col("breathwork_sessions", "started_at", is_timestamptz=True)
+        _collect_date_col("meditation_sessions", "started_at", is_timestamptz=True)
+
+    return len(dates)
+
+
+def get_current_1rm_estimates() -> list[dict]:
+    """Return [{name, estimated_1rm}] from v_exercise_current for all exercises with a valid 1RM."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+
+    def _do() -> list[dict]:
+        resp = (
+            _client.table("v_exercise_current")
+            .select("exercise_name, estimated_1rm")
+            .not_.is_("estimated_1rm", "null")
+            .execute()
+        )
+        return [
+            {"name": r["exercise_name"], "estimated_1rm": float(r["estimated_1rm"])}
+            for r in (resp.data or [])
+            if r.get("exercise_name") and r.get("estimated_1rm")
+        ]
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_current_1rm_estimates retry: %s", e2)
+                return []
+        logger.error("get_current_1rm_estimates error: %s", e)
+        return []
+
+
 def get_coach_war_room_shared() -> bool:
     """Return whether user has opted in to sharing War Room data with the coach."""
     return bool(get_profile().get("coach_war_room_shared", False))
