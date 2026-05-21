@@ -199,7 +199,7 @@ struct HistoriqueView: View {
         }
 
         isLoading = true
-        var urlStr = "https://training-os-rho.vercel.app/api/historique_data?limit=\(pageSize)&offset=0"
+        var urlStr = "\(APIConfig.base)/api/historique_data?limit=\(pageSize)&offset=0"
         if let m = monthFilter { urlStr += "&month=\(m)" }
         var req = URLRequest(url: URL(string: urlStr)!)
         req.timeoutInterval = 15
@@ -218,7 +218,7 @@ struct HistoriqueView: View {
         guard hasMore, !isLoadingMore else { return }
         isLoadingMore = true
         let newOffset = currentOffset + pageSize
-        var urlStr = "https://training-os-rho.vercel.app/api/historique_data?limit=\(pageSize)&offset=\(newOffset)"
+        var urlStr = "\(APIConfig.base)/api/historique_data?limit=\(pageSize)&offset=\(newOffset)"
         if let m = monthFilter { urlStr += "&month=\(m)" }
         var req = URLRequest(url: URL(string: urlStr)!)
         req.timeoutInterval = 15

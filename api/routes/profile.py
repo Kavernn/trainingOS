@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
 from werkzeug.utils import secure_filename
+import logging
 
+logger = logging.getLogger("trainingos")
 profile_bp = Blueprint("profile", __name__)
 
 
@@ -45,8 +47,8 @@ def api_profile_stats():
             )
             if resp.data:
                 member_since = resp.data[0].get("date")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("profile_stats member_since query failed: %s", e)
 
     return jsonify({
         "total_sessions":      total_sessions,

@@ -434,6 +434,9 @@ def api_breathwork_techniques():
     return jsonify(TECHNIQUES)
 
 
+# WARNING: This route writes to breathwork_sessions.technique (legacy column, integer FK to techniques table).
+# The Spirit pillar equivalent /api/spirit/breathwork writes to breathwork_sessions.protocol (text, Spirit columns).
+# Do NOT merge these two routes without a full schema analysis — they target different columns.
 @wellness_bp.route("/api/breathwork/log", methods=["POST"])
 def api_breathwork_log():
     from breathwork import log_session as bw_log

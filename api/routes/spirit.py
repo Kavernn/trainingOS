@@ -41,6 +41,9 @@ def api_spirit_breathwork_get():
     return jsonify(db.get_breathwork_sessions(limit=limit) or [])
 
 
+# WARNING: This route writes to breathwork_sessions.protocol (text) + Spirit columns (duration_sec, cycles, etc.).
+# The wellness equivalent /api/breathwork/log writes to breathwork_sessions.technique (integer FK, legacy).
+# Do NOT merge these two routes without a full schema analysis — they target different columns.
 @spirit_bp.route("/api/spirit/breathwork", methods=["POST"])
 def api_spirit_breathwork_log():
     import db

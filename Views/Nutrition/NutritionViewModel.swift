@@ -17,7 +17,7 @@ final class NutritionViewModel: ObservableObject {
 
     func loadData(days: Int = 7, silent: Bool = false) async {
         if !silent { isLoading = true }
-        let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition_data?days=\(days)")!
+        let url = URL(string: "\(APIConfig.base)/api/nutrition_data?days=\(days)")!
         var req = URLRequest(url: url)
         req.cachePolicy = .reloadIgnoringLocalCacheData
         req.timeoutInterval = 15
@@ -42,7 +42,7 @@ final class NutritionViewModel: ObservableObject {
 
     func deleteEntry(_ entry: NutritionEntry) async {
         guard let eid = entry.entryId else { return }
-        let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition/delete")!
+        let url = URL(string: "\(APIConfig.base)/api/nutrition/delete")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")

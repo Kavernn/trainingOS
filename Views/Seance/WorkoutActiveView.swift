@@ -163,7 +163,7 @@ struct WorkoutSeanceView: View {
             }
         }
         Task {
-            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            try? await Task.sleep(nanoseconds: 60_000_000_000)
             if !apiTask.isCancelled {
                 apiTask.cancel()
                 await MainActor.run {

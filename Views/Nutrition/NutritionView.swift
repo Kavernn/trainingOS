@@ -1528,7 +1528,7 @@ struct EditNutritionSheet: View {
         if let v = Double(proteines.replacingOccurrences(of: ",", with: ".")) { body["proteines"] = v }
         if let v = Double(glucides.replacingOccurrences(of: ",", with: "."))  { body["glucides"]  = v }
         if let v = Double(lipides.replacingOccurrences(of: ",", with: "."))   { body["lipides"]   = v }
-        let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition/edit")!
+        let url = URL(string: "\(APIConfig.base)/api/nutrition/edit")!
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -2099,7 +2099,7 @@ struct NutritionCorrelationsCard: View {
         .background(Color.appCard)
         .cornerRadius(14)
         .task {
-            guard let url = URL(string: "https://training-os-rho.vercel.app/api/nutrition/correlations"),
+            guard let url = URL(string: "\(APIConfig.base)/api/nutrition/correlations"),
                   let (raw, _) = try? await URLSession.authed.data(from: url),
                   let decoded  = try? JSONDecoder().decode(NutritionCorrelations.self, from: raw)
             else { isLoading = false; return }

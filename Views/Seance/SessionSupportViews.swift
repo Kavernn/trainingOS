@@ -497,7 +497,7 @@ struct FinishSessionSheet: View {
             } catch { await MainActor.run { isLoadingAI = false; aiError = true } }
         }
         Task {
-            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            try? await Task.sleep(nanoseconds: 60_000_000_000)
             if !apiTask.isCancelled {
                 apiTask.cancel()
                 await MainActor.run {

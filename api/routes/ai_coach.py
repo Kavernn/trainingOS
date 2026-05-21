@@ -738,8 +738,8 @@ def api_ai_generate_program():
     except _anthropic.AuthenticationError:
         return jsonify({"error": "Clé ANTHROPIC_API_KEY invalide"}), 500
     except Exception as e:
-        logger.error("generate_program error: %s", e)
-        raise
+        logger.error("generate_program error: %s", e, exc_info=True)
+        return jsonify({"error": "Erreur interne lors de la génération"}), 500
 
 
 @ai_coach_bp.route("/api/ai/generated_program/latest", methods=["GET"])

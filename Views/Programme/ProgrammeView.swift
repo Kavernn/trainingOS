@@ -1,6 +1,6 @@
 import SwiftUI
 
-private let kBaseURL = "https://training-os-rho.vercel.app"
+private let kBaseURL = APIConfig.base
 
 struct ProgrammeView: View {
     @State private var fullProgram: [String: [String: String]] = [:]

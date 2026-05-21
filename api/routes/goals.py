@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
+import logging
 
+logger = logging.getLogger("trainingos")
 goals_bp = Blueprint("goals", __name__)
 
 
@@ -184,12 +186,11 @@ def api_objectifs_data():
     current_weights: dict = {}
     if ex_names:
         try:
-            rows = (_db._client.table("exercises")
-                    .select("name, current_weight")
-                    .in_("name", ex_names)
-                    .is_("deleted_at", "null")
+            rows = (_db._client.table("v_exercise_current")
+                    .select("exercise_name, latest_weight")
+                    .in_("exercise_name", ex_names)
                     .execute().data or [])
-            current_weights = {r["name"]: (r.get("current_weight") or 0) for r in rows}
+            current_weights = {r["exercise_name"]: (r.get("latest_weight") or 0) for r in rows}
         except Exception:
             pass
 

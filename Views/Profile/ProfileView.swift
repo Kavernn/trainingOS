@@ -986,7 +986,7 @@ struct ProfileView: View {
     private func exportData() async {
         isExporting = true
         defer { isExporting = false }
-        guard let url = URL(string: "https://training-os-rho.vercel.app/api/export_data"),
+        guard let url = URL(string: "\(APIConfig.base)/api/export_data"),
               let (data, _) = try? await URLSession.authed.data(from: url) else { return }
         let tmp = FileManager.default.temporaryDirectory
             .appendingPathComponent("trainingos_export_\(DateFormatter.isoDate.string(from: Date())).json")
@@ -1014,7 +1014,7 @@ struct ProfileView: View {
             return
         }
         do {
-            let url = URL(string: "https://training-os-rho.vercel.app/api/update_profile_photo")!
+            let url = URL(string: "\(APIConfig.base)/api/update_profile_photo")!
             var req = URLRequest(url: url)
             req.httpMethod = "POST"
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")

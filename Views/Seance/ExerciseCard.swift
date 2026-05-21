@@ -386,7 +386,7 @@ struct ExerciseCard: View {
     private func fetchMedia() {
         guard !mediaFetched else { showMediaSheet = true; return }
         let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
-        guard let url = URL(string: "https://training-os-rho.vercel.app/api/exercise/media?name=\(encoded)") else { return }
+        guard let url = URL(string: "\(APIConfig.base)/api/exercise/media?name=\(encoded)") else { return }
         Task {
             if let (data, _) = try? await URLSession.authed.data(from: url),
                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {

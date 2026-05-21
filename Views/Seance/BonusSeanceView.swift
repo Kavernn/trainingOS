@@ -330,7 +330,7 @@ struct BonusSeanceView: View {
     private func loadInventory() async {
         await vm.load()
 
-        guard let url = URL(string: "https://training-os-rho.vercel.app/api/programme_data"),
+        guard let url = URL(string: "\(APIConfig.base)/api/programme_data"),
               let (data, _) = try? await URLSession.authed.data(from: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { isLoading = false; return }

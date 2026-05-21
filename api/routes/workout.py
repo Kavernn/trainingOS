@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime
+import logging
 import re
 
+logger = logging.getLogger("trainingos")
 workout_bp = Blueprint("workout", __name__)
 
 
@@ -182,8 +184,9 @@ def api_log():
             "is_pr":      is_pr,
             "achieved":   achieved
         })
-    except Exception:
-        raise
+    except Exception as e:
+        logger.error("api/log error: %s", e, exc_info=True)
+        return jsonify({"error": "Erreur interne lors de l'enregistrement"}), 500
 
 
 @workout_bp.route("/api/session/edit", methods=["POST"])

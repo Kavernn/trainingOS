@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
+import logging
 
+logger = logging.getLogger("trainingos")
 nutrition_bp = Blueprint("nutrition", __name__)
 
 
@@ -12,6 +14,10 @@ def api_nutrition_add():
     calories_val = float(data.get("calories", 0))
     if calories_val < 0:
         return jsonify({"error": "calories ne peut pas être négatif"}), 422
+    for field in ("proteines", "glucides", "lipides"):
+        val = float(data.get(field, 0))
+        if val < 0 or val > 10000:
+            return jsonify({"error": f"{field} invalide (0–10000)"}), 422
     entry = nutrition_add_entry(
         nom       = data.get("nom", ""),
         calories  = calories_val,
@@ -393,19 +399,26 @@ def api_log_meal_template(template_id):
         return jsonify({"error": "Template introuvable"}), 404
 
     entries = []
+    errors  = []
     for item in (template.get("items") or []):
-        entry = _add_entry(
-            nom       = str(item.get("name") or item.get("nom") or ""),
-            calories  = float(item.get("calories") or 0),
-            proteines = float(item.get("proteines") or 0),
-            glucides  = float(item.get("glucides") or 0),
-            lipides   = float(item.get("lipides") or 0),
-            meal_type = meal_type,
-            source    = "template",
-        )
-        entries.append(entry)
+        try:
+            entry = _add_entry(
+                nom       = str(item.get("name") or item.get("nom") or ""),
+                calories  = float(item.get("calories") or 0),
+                proteines = float(item.get("proteines") or 0),
+                glucides  = float(item.get("glucides") or 0),
+                lipides   = float(item.get("lipides") or 0),
+                meal_type = meal_type,
+                source    = "template",
+            )
+            entries.append(entry)
+        except Exception as e:
+            logger.error("meal_template log item '%s' error: %s", item.get("name", "?"), e)
+            errors.append(str(item.get("name") or item.get("nom") or "?"))
 
-    return jsonify({"success": True, "count": len(entries), "totals": get_today_totals()})
+    if errors and not entries:
+        return jsonify({"error": f"Aucun item loggé. Échecs : {errors}"}), 500
+    return jsonify({"success": True, "count": len(entries), "errors": errors, "totals": get_today_totals()})
 
 
 @nutrition_bp.route("/api/nutrition_data")

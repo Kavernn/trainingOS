@@ -1,7 +1,7 @@
 import SwiftUI
 import Combine
 
-private let kBaseURL = "https://training-os-rho.vercel.app"
+private let kBaseURL = APIConfig.base
 
 // MARK: - Model
 

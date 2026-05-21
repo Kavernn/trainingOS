@@ -11,7 +11,7 @@ final class AlertService: ObservableObject {
 
     @Published var alerts: [ProactiveAlert] = []
 
-    private let baseURL = "https://training-os-rho.vercel.app"
+    private let baseURL = APIConfig.base
     private let dismissedKey = "proactive_dismissed_alerts"
 
     // Dismissed keys: "<alert_id>_<yyyy-MM-dd>" — reset automatically each day

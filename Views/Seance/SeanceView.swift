@@ -1366,11 +1366,11 @@ struct FreeSessionPickerView: View {
     }
 
     private func loadInventory() async {
-        guard let url = URL(string: "https://training-os-rho.vercel.app/api/inventory") else {
+        guard let url = URL(string: "\(APIConfig.base)/api/inventory") else {
             isLoading = false; return
         }
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await URLSession.authed.data(from: url)
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let inv = json["inventory"] as? [String: [String: Any]] {
                 let parsed = inv.map { InventoryItem(name: $0.key, $0.value) }.sorted { $0.name < $1.name }
