@@ -256,6 +256,14 @@ final class DashboardViewModel: ObservableObject {
         moodDue = try? await APIService.shared.checkMoodDue()
     }
 
+    func refreshRitual() async {
+        CacheService.shared.clear(for: "ritual_today")
+        if let updated = try? await APIService.shared.fetchRitualToday() {
+            ritualToday = updated
+            AppState.shared.ritualTodayNotDone = !updated.morningDone
+        }
+    }
+
     // D-B1: Whether readiness score comes from local computation (fallback)
     // Used by D-D14 to show "Calculé localement" indicator
     var readinessIsLocal: Bool {

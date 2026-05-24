@@ -6,6 +6,7 @@ struct MoreView: View {
     @AppStorage("auto_start_rest_timer") private var autoStartTimer = false
     @AppStorage("show_rir_column") private var showRIRColumn = false
     @State private var phoenixStreak: Int = 0
+    @State private var showRitual = false
 
     private var ritualSubtitle: String? {
         if phoenixStreak >= 2 { return "🔥 \(phoenixStreak) jours consécutifs" }
@@ -19,8 +20,22 @@ struct MoreView: View {
 
                 List {
                     Section("Rituel & Esprit") {
-                        MoreRow(icon: "flame.fill", color: Color(hex: "FF2D20"), title: "Rituel quotidien",
-                                subtitle: ritualSubtitle, badge: appState.ritualTodayNotDone) { RitualView() }
+                        // RitualView a son propre NavigationStack — fullScreenCover évite la collision
+                        Button {
+                            showRitual = true
+                        } label: {
+                            moreRowLabel(icon: "flame.fill", color: Color(hex: "FF2D20"),
+                                         title: "Rituel quotidien", subtitle: ritualSubtitle,
+                                         badge: appState.ritualTodayNotDone)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                        .fullScreenCover(isPresented: $showRitual, onDismiss: {
+                            phoenixStreak = 0 // force reload on re-appear
+                            Task { phoenixStreak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak ?? 0 }
+                        }) {
+                            RitualView()
+                        }
                         MoreRow(icon: "book.pages.fill", color: Color(hex: "FF2D20").opacity(0.7), title: "Biographie", subtitle: "Timeline de tes intentions") { RitualBiographyView() }
                         MoreRow(icon: "wind",        color: Color.moonlight.opacity(0.7), title: "The Void", subtitle: "Respiration, méditation & journal") { SpiritView() }
                         MoreRow(icon: "calendar.badge.clock", color: .teal, title: "Mes chapitres") { SeasonView() }
@@ -97,6 +112,39 @@ struct MoreView: View {
 
     private func glassRowBG(_ color: Color) -> some View {
         Color.appCard
+    }
+
+    // Label identique à MoreRow mais sans NavigationLink (pour les vues avec NavigationStack propre)
+    @ViewBuilder
+    private func moreRowLabel(icon: String, color: Color, title: String, subtitle: String?, badge: Bool) -> some View {
+        HStack(spacing: 14) {
+            ZStack(alignment: .topTrailing) {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(LinearGradient(colors: [color.opacity(0.25), color.opacity(0.12)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .frame(width: 36, height: 36)
+                    .shadow(color: color.opacity(0.2), radius: 4, y: 2)
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(color)
+                if badge {
+                    Circle().fill(Color.orange).frame(width: 9, height: 9).offset(x: 3, y: -3)
+                }
+            }
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).font(.system(size: 16, weight: .medium)).foregroundColor(.white)
+                if let sub = subtitle {
+                    Text(sub).font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                }
+            }
+            if badge {
+                Spacer()
+                Text("À faire")
+                    .font(.system(size: 11, weight: .semibold)).foregroundColor(.orange)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Color.orange.opacity(0.12)).clipShape(Capsule())
+            }
+        }
+        .padding(.vertical, 5)
     }
 }
 

@@ -202,23 +202,29 @@ struct DashboardView: View {
                                 if let ritual = vm.ritualToday,
                                    !ritual.morningDone,
                                    Calendar.current.component(.hour, from: Date()) < 14 {
-                                    MorningRitualEntryCard(ritual: ritual)
-                                        .appearAnimation(delay: 0.37)
+                                    MorningRitualEntryCard(ritual: ritual) {
+                                        Task { await vm.refreshRitual() }
+                                    }
+                                    .appearAnimation(delay: 0.37)
                                 }
 
                                 // Evening ritual entrypoint — visible after 18h when evening not done
                                 if let ritual = vm.ritualToday,
                                    !ritual.eveningDone,
                                    Calendar.current.component(.hour, from: Date()) >= 18 {
-                                    EveningRitualEntryCard(ritual: ritual)
-                                        .appearAnimation(delay: 0.38)
+                                    EveningRitualEntryCard(ritual: ritual) {
+                                        Task { await vm.refreshRitual() }
+                                    }
+                                    .appearAnimation(delay: 0.38)
                                 }
 
                                 // E5: Demon haunting banner — visible when a demon >= 3 days old
                                 if let ritual = vm.ritualToday,
                                    let topDemon = ritual.demons.filter({ $0.carryCount >= 3 }).max(by: { $0.carryCount < $1.carryCount }) {
-                                    DemonDashboardBanner(demon: topDemon)
-                                        .appearAnimation(delay: 0.39)
+                                    DemonDashboardBanner(demon: topDemon) {
+                                        Task { await vm.refreshRitual() }
+                                    }
+                                    .appearAnimation(delay: 0.39)
                                 }
 
                                 // Breathwork nudge — visible when latest LSS score is low (stress high)
@@ -3464,6 +3470,7 @@ private struct ReadinessMetricRow: View {
 
 private struct EveningRitualEntryCard: View {
     let ritual: RitualToday
+    let onComplete: () -> Void
     @State private var showRitualEvening = false
 
     var body: some View {
@@ -3516,8 +3523,8 @@ private struct EveningRitualEntryCard: View {
             )
         }
         .buttonStyle(.plain)
-        .fullScreenCover(isPresented: $showRitualEvening) {
-            RitualEveningView(ritual: ritual, onSaved: { _ in })
+        .fullScreenCover(isPresented: $showRitualEvening, onDismiss: onComplete) {
+            RitualView()
         }
     }
 }
@@ -3706,7 +3713,8 @@ private struct QuickWarRoomTriggerSheet: View {
 
 private struct MorningRitualEntryCard: View {
     let ritual: RitualToday
-    @State private var showMorningRitual = false
+    let onComplete: () -> Void
+    @State private var showRitual = false
     @State private var dragOffset: CGFloat = 0
 
     var body: some View {
@@ -3752,13 +3760,13 @@ private struct MorningRitualEntryCard: View {
             DragGesture()
                 .onChanged { v in dragOffset = v.translation.width }
                 .onEnded { v in
-                    if v.translation.width > 60 { showMorningRitual = true }
+                    if v.translation.width > 60 { showRitual = true }
                     withAnimation(.spring(response: 0.3)) { dragOffset = 0 }
                 }
         )
-        .onTapGesture { showMorningRitual = true }
-        .fullScreenCover(isPresented: $showMorningRitual) {
-            RitualMorningView(ritual: ritual, onSaved: { _ in })
+        .onTapGesture { showRitual = true }
+        .fullScreenCover(isPresented: $showRitual, onDismiss: onComplete) {
+            RitualView()
         }
     }
 }
@@ -3767,6 +3775,7 @@ private struct MorningRitualEntryCard: View {
 
 private struct DemonDashboardBanner: View {
     let demon: RitualDemon
+    let onComplete: () -> Void
     @State private var showRitual = false
 
     var body: some View {
@@ -3806,7 +3815,7 @@ private struct DemonDashboardBanner: View {
             )
         }
         .buttonStyle(.plain)
-        .fullScreenCover(isPresented: $showRitual) { RitualView() }
+        .fullScreenCover(isPresented: $showRitual, onDismiss: onComplete) { RitualView() }
     }
 }
 

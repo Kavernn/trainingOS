@@ -9,35 +9,43 @@ struct RitualView: View {
 
     private var phase: RitualPhase {
         guard let r = ritual else { return .loading }
-        if !r.morningDone        { return .morning }
-        if !r.eveningDone        { return .evening }
+        if !r.morningDone { return .morning }
+        if !r.eveningDone { return .evening }
         return .done
     }
 
     var body: some View {
-        ZStack {
-            Color(hex: "0A0A0A").ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                Color(hex: "0A0A0A").ignoresSafeArea()
 
-            if isLoading {
-                ProgressView().tint(Color(hex: "FF2D20"))
-            } else if let r = ritual {
-                switch phase {
-                case .morning:
-                    RitualMorningView(ritual: r) { updated in
-                        ritual = updated
+                if isLoading {
+                    ProgressView().tint(Color(hex: "FF2D20"))
+                } else if let r = ritual {
+                    switch phase {
+                    case .morning:
+                        RitualMorningView(ritual: r) { updated in ritual = updated }
+                    case .evening:
+                        RitualEveningView(ritual: r) { updated in ritual = updated }
+                    case .done:
+                        RitualDoneView(ritual: r, onDemons: { showDemons = true })
+                    case .loading:
+                        EmptyView()
                     }
-                case .evening:
-                    RitualEveningView(ritual: r) { updated in
-                        ritual = updated
-                    }
-                case .done:
-                    RitualDoneView(ritual: r, onDemons: { showDemons = true })
-                case .loading:
-                    EmptyView()
+                } else {
+                    ritualUnavailableView
                 }
-            } else {
-                ritualUnavailableView
             }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color(white: 0.4))
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
         }
         .sheet(isPresented: $showDemons) {
             DemonsView(demons: ritual?.demons ?? [])
@@ -59,9 +67,9 @@ struct RitualView: View {
 
     private func load() async {
         isLoading = true
-        ritual    = try? await APIService.shared.fetchRitualToday()
-        // Always bypass cache for ritual — stale data breaks state machine
+        // Clear cache before fetching — stale data breaks the phase state machine
         CacheService.shared.clear(for: "ritual_today")
+        ritual    = try? await APIService.shared.fetchRitualToday()
         isLoading = false
     }
 }
