@@ -148,6 +148,12 @@ struct StatsView: View {
 
     var exercisesCount: Int { weights.filter { $0.value.history?.isEmpty == false }.count }
 
+    var daysElapsedThisWeek: Int {
+        let (mon, _) = weekBounds(weeksAgo: 0)
+        guard let monDate = DateFormatter.isoDate.date(from: mon) else { return 7 }
+        return max(1, Int(Date().timeIntervalSince(monDate) / 86400) + 1)
+    }
+
     var avgSessionDuration: Double {
         let durations = filteredSessions.values.compactMap(\.durationMin).filter { $0 > 0 }
         guard !durations.isEmpty else { return 0 }
@@ -473,7 +479,8 @@ struct StatsView: View {
         WeekComparisonCard(
             thisWeekSessions: thisWeekSessions, lastWeekSessions: lastWeekSessions,
             thisWeekVolume: thisWeekVolume,     lastWeekVolume: lastWeekVolume,
-            thisWeekAvgRPE: thisWeekAvgRPE,     lastWeekAvgRPE: lastWeekAvgRPE
+            thisWeekAvgRPE: thisWeekAvgRPE,     lastWeekAvgRPE: lastWeekAvgRPE,
+            daysElapsed: daysElapsedThisWeek
         )
         .padding(.horizontal, 16)
 
@@ -725,7 +732,7 @@ struct StatsView: View {
 
         // Nutrition vs Performance correlation
         let fn2 = filteredNutrition
-        if fn2.count >= 30, !weeklyTonnage.isEmpty {
+        if fn2.count >= 21, !weeklyTonnage.isEmpty {
             NutritionVsPerfView(nutritionDays: fn2, weeklyTonnage: weeklyTonnage, target: nutritionTarget)
                 .padding(.horizontal, 16)
         }
@@ -1440,6 +1447,7 @@ struct WeekComparisonCard: View {
     let thisWeekSessions: Int;  let lastWeekSessions: Int
     let thisWeekVolume: Double; let lastWeekVolume: Double
     let thisWeekAvgRPE: Double; let lastWeekAvgRPE: Double
+    var daysElapsed: Int = 7
     @ObservedObject private var units = UnitSettings.shared
 
     private func delta(_ a: Double, _ b: Double) -> (String, Color) {
@@ -1455,11 +1463,16 @@ struct WeekComparisonCard: View {
     }
 
     private var weekVerdict: (text: String, color: Color) {
+        let hasData = lastWeekVolume > 0 || lastWeekSessions > 0
+        guard hasData else { return ("Pas encore assez de données.", .gray) }
+
+        // Semaine en cours avec peu de jours — comparaison biaisée
+        if daysElapsed <= 3 {
+            return ("Semaine en cours (J+\(daysElapsed)) — chiffres partiels, reviens jeudi.", .gray)
+        }
+
         let volumeUp = thisWeekVolume >= lastWeekVolume * 0.98
         let sessionsUp = thisWeekSessions >= lastWeekSessions
-        let hasData = lastWeekVolume > 0 || lastWeekSessions > 0
-
-        guard hasData else { return ("Pas encore assez de données.", .gray) }
 
         if volumeUp && sessionsUp {
             return ("Volume en hausse, sessions stables ou en hausse. Tu montes.", .green)
@@ -5169,21 +5182,29 @@ struct BestDayOfWeekView: View {
 
     private let dayNames = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 
-    private var volumeByDow: [Int: Double] {
+    // volume/RPE ratio per day of week — avoids session-type bias toward heavy days
+    private var efficiencyByDow: [Int: Double] {
         let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 90 * 86400))
         var totals: [Int: Double] = [:]
         var counts: [Int: Int] = [:]
-        for (dateStr, _) in sessions {
+        for (dateStr, session) in sessions {
             guard dateStr >= cutoff,
-                  let date = DateFormatter.isoDate.date(from: dateStr) else { continue }
+                  let date = DateFormatter.isoDate.date(from: dateStr),
+                  let rpe = session.rpe, rpe > 0 else { continue }
             let dow = (Calendar.current.component(.weekday, from: date) + 5) % 7 // 0=Mon
-            let vol = weights.values.flatMap { $0.history ?? [] }.filter { $0.date == dateStr }
-                .compactMap { e -> Double? in
-                    if let v = e.exerciseVolume, v > 0 { return v }
-                    guard let w = e.weight, let r = e.reps else { return nil }
-                    return w * totalReps(r)
-                }.reduce(0, +)
-            totals[dow, default: 0] += vol
+            let vol: Double
+            if let sv = session.sessionVolume, sv > 0 {
+                vol = sv
+            } else {
+                vol = weights.values.flatMap { $0.history ?? [] }.filter { $0.date == dateStr }
+                    .compactMap { e -> Double? in
+                        if let v = e.exerciseVolume, v > 0 { return v }
+                        guard let w = e.weight, let r = e.reps else { return nil }
+                        return w * totalReps(r)
+                    }.reduce(0, +)
+            }
+            guard vol > 0 else { continue }
+            totals[dow, default: 0] += vol / rpe
             counts[dow, default: 0] += 1
         }
         var avgs: [Int: Double] = [:]
@@ -5195,21 +5216,25 @@ struct BestDayOfWeekView: View {
     }
 
     private var bestDow: Int? {
-        volumeByDow.max(by: { $0.value < $1.value })?.key
+        efficiencyByDow.max(by: { $0.value < $1.value })?.key
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("MEILLEUR JOUR DE LA SEMAINE")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("JOUR LE PLUS EFFICACE")
+                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Text("(volume / RPE)")
+                        .font(.system(size: 9)).foregroundColor(.gray.opacity(0.7))
+                }
                 Spacer()
                 if let best = bestDow {
                     Text("→ \(dayNames[best])")
                         .font(.system(size: 11, weight: .bold)).foregroundColor(.orange)
                 }
             }
-            let vols = volumeByDow
+            let vols = efficiencyByDow
             let maxV = vols.values.max() ?? 1
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(0..<7, id: \.self) { d in

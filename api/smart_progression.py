@@ -193,18 +193,23 @@ def _suggest_for_exercise(
 
     # Anti-regression — poids
     if cur_max_w is not None and prev_max_w is not None and cur_max_w < prev_max_w:
-        lbs = int(prev_max_w) if prev_max_w == int(prev_max_w) else prev_max_w
-        return {
-            "exercise_name":   name,
-            "load_profile":    load_profile,
-            "suggestion_type": "regression",
-            "current_weight":  cur_max_w,
-            "suggested_weight": prev_max_w,
-            "current_scheme":  default_scheme,
-            "suggested_scheme": None,
-            "reason":          f"↓ vs dernière session ({lbs} lbs). Récupère avant d'augmenter.",
-            "fatigue_warning": False,
-        }
+        # RIR élevé = réduction intentionnelle (technique, ROM, déload auto-géré)
+        rir = log.get("rir")
+        if rir is not None and float(rir) >= 3:
+            pass  # intentionnel — ne pas flaguer comme régression
+        else:
+            lbs = int(prev_max_w) if prev_max_w == int(prev_max_w) else prev_max_w
+            return {
+                "exercise_name":   name,
+                "load_profile":    load_profile,
+                "suggestion_type": "regression",
+                "current_weight":  cur_max_w,
+                "suggested_weight": prev_max_w,
+                "current_scheme":  default_scheme,
+                "suggested_scheme": None,
+                "reason":          f"↓ vs dernière session ({lbs} lbs). Récupère avant d'augmenter.",
+                "fatigue_warning": False,
+            }
 
     # Anti-regression — reps au même poids (chute > 1 rep)
     if (cur_max_w is not None and prev_max_w is not None

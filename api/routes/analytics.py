@@ -141,7 +141,16 @@ def api_peak_prediction():
 
     # Régression linéaire simple (méthode des moindres carrés)
     n = len(scores)
-    if n >= 3:
+    last_score = scores[0] if scores else 65.0
+
+    if n < 14:
+        return jsonify({
+            "days": [], "slope": 0, "baseline": round(last_score, 1),
+            "insufficient_data": True,
+            "message": f"Minimum 14 jours de données requis ({n} disponibles).",
+        })
+
+    if n >= 14:
         xs = list(range(n))
         mx = sum(xs) / n
         my = sum(scores) / n
@@ -150,8 +159,6 @@ def api_peak_prediction():
         slope = num / den if den != 0 else 0
     else:
         slope = 0
-
-    last_score = scores[0] if scores else 65.0
     today = date_cls.today()
 
     def level(s):
@@ -1085,6 +1092,15 @@ def api_mesocycle_status():
     else:
         weeks_since = current_week % 8  # cycle by default
 
+    # Préférer cycle_start_date du programme actif si disponible
+    try:
+        active_prog = _db.get_active_program()
+        if active_prog and active_prog.get("cycle_start_date"):
+            cycle_start = date_cls.fromisoformat(str(active_prog["cycle_start_date"])[:10])
+            weeks_since = max(0, (date_cls.today() - cycle_start).days // 7)
+    except Exception:
+        pass
+
     # Determine phase (8-week mesocycle)
     week_in_cycle = weeks_since % 8
     if week_in_cycle <= 2:
@@ -1493,3 +1509,80 @@ def api_stats_intensity():
         zone = "volume"
 
     return jsonify({"avg_pct_1rm": avg, "zone": zone, "sets_count": len(pct_values)})
+
+
+# MARK: - Energy × Performance Correlation
+
+@analytics_bp.route("/api/energy_performance_correlation")
+def api_energy_performance_correlation():
+    """Pearson correlation entre énergie pré-séance et RPE.
+
+    Insight: quand l'énergie perçue est basse, le RPE monte-t-il en conséquence?
+    Minimum 10 paires pour un résultat fiable.
+    """
+    import db as _db
+
+    sessions_raw = _db.get_workout_sessions(limit=90)
+    pairs = []
+    for s in sessions_raw:
+        energy = s.get("energy_pre")
+        rpe    = s.get("rpe")
+        d      = str(s.get("date") or "")[:10]
+        if energy is not None and rpe is not None and d:
+            try:
+                pairs.append({"energy": float(energy), "rpe": float(rpe), "date": d})
+            except (TypeError, ValueError):
+                pass
+
+    n = len(pairs)
+    if n < 10:
+        return jsonify({
+            "correlation":      None,
+            "n":                n,
+            "insufficient_data": True,
+            "message":          f"Minimum 10 séances avec énergie + RPE requis ({n} disponibles).",
+        })
+
+    xs = [p["energy"] for p in pairs]
+    ys = [p["rpe"]    for p in pairs]
+    mx = sum(xs) / n
+    my = sum(ys) / n
+    num   = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+    den_x = sum((x - mx) ** 2 for x in xs) ** 0.5
+    den_y = sum((y - my) ** 2 for y in ys) ** 0.5
+    r = round(num / (den_x * den_y), 3) if den_x > 0 and den_y > 0 else None
+
+    # Moyenne RPE par niveau d'énergie (1-4 vs 7-10)
+    low_energy_rpes  = [p["rpe"] for p in pairs if p["energy"] <= 4]
+    high_energy_rpes = [p["rpe"] for p in pairs if p["energy"] >= 7]
+    avg_rpe_low  = round(sum(low_energy_rpes)  / len(low_energy_rpes),  1) if low_energy_rpes  else None
+    avg_rpe_high = round(sum(high_energy_rpes) / len(high_energy_rpes), 1) if high_energy_rpes else None
+
+    if r is not None and r < -0.35:
+        insight = (
+            f"L'énergie pré-séance prédit ton RPE (r={r:+.2f}). "
+            f"Quand tu te sens à plat, ton effort perçu grimpe."
+            + (f" RPE moyen : {avg_rpe_low}/10 (énergie basse) vs {avg_rpe_high}/10 (énergie haute)."
+               if avg_rpe_low and avg_rpe_high else "")
+        )
+    elif r is not None and abs(r) < 0.20:
+        insight = (
+            f"Pas de corrélation significative entre énergie et RPE (r={r:+.2f}, n={n}). "
+            "Tu performes de façon constante quelle que soit ton énergie de départ."
+        )
+    elif r is not None:
+        insight = (
+            f"Corrélation modérée entre énergie et effort perçu (r={r:+.2f}). "
+            "Continue à tracker pour affiner le pattern."
+        )
+    else:
+        insight = "Données insuffisantes pour calculer la corrélation."
+
+    return jsonify({
+        "correlation":       r,
+        "n":                 n,
+        "pairs":             pairs[-30:],
+        "avg_rpe_low_energy":  avg_rpe_low,
+        "avg_rpe_high_energy": avg_rpe_high,
+        "insight":           insight,
+    })

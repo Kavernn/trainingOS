@@ -261,7 +261,16 @@ def _build_insight(score: float, t: float, s: float, n: float,
         return "Peu d'activité récente — une séance aujourd'hui boostera ton budget."
 
     if score >= 65:
-        return "Bon équilibre — maintiens le rythme."
+        # Mettre en avant la meilleure métrique disponible plutôt qu'un fallback générique
+        highlights: list[str] = []
+        if t_details.get("sessions_7d", 0) >= 4:
+            highlights.append(f"{t_details['sessions_7d']} séances cette semaine")
+        if (avg_rpe := t_details.get("avg_rpe")) and 6.5 <= avg_rpe <= 8.0:
+            highlights.append(f"RPE moyen {avg_rpe}/10")
+        if (prot_r := n_details.get("prot_ratio")) and prot_r >= 0.90:
+            highlights.append("protéines sur cible")
+        highlight = highlights[0] if highlights else "bonne trajectoire"
+        return f"En forme. {highlight.capitalize()} — continue sur cette lancée."
 
     return "Quelques ajustements aujourd'hui pourraient optimiser ton énergie."
 
@@ -281,12 +290,12 @@ def compute() -> dict:
         # Future: store daily scores in KV for multi-day smoothing
         score = round(max(0.0, min(100.0, raw)))
 
-        trend   = "stable"  # Single-session — no history to diff
         insight = _build_insight(score, t_score, s_score, n_score, t_det, s_det, n_det)
 
         return {
-            "score":   score,
-            "trend":   trend,
+            "score":           score,
+            "trend":           None,     # EMA 3j non implémenté — supprimer flèche UI
+            "trend_available": False,
             "insight": insight,
             "pillars": {
                 "training":   round(t_score),

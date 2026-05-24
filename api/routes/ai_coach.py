@@ -528,13 +528,13 @@ def api_ai_post_workout():
         client = _anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=200,
+            max_tokens=350,
             system=(
                 "Tu es un coach sportif concis. À partir des données de séance fournies, "
-                "rédige exactement 3 phrases en français : "
-                "1) Évalue la performance de la séance d'aujourd'hui. "
-                "2) Compare avec la séance précédente du même type (si disponible). "
-                "3) Donne une recommandation concrète pour la prochaine séance. "
+                "rédige exactement 3 phrases complètes en français : "
+                "1) Évalue la performance de la séance d'aujourd'hui avec un chiffre concret (RPE, volume ou exercice). "
+                "2) Compare avec la séance précédente du même type — cite la différence précise (si données disponibles). "
+                "3) Donne une recommandation actionnable pour la prochaine séance (poids, schème, ou récupération). "
                 "Style direct, motivant. Pas de bullet points. Uniquement les 3 phrases."
             ),
             messages=[{"role": "user", "content": context}]
