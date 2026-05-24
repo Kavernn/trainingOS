@@ -367,7 +367,7 @@ struct DashboardView: View {
                             .buttonStyle(.plain)
                             .padding(.trailing, 20)
                         }
-                        .padding(.bottom, 12)
+                        .padding(.bottom, fabBottomPadding)
                     }
                     .allowsHitTesting(true)
                 }

@@ -111,7 +111,7 @@ struct MentalHealthView: View {
                         }
                         .appearAnimation(delay: 0.12)
 
-                        Spacer(minLength: 40)
+                        Spacer(minLength: contentBottomPadding)
                     }
                     .padding(.top)
                 }

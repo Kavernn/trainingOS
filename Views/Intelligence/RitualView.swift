@@ -131,7 +131,7 @@ struct RitualBiographyView: View {
                                     .frame(maxWidth: .infinity)
                             }
                         }
-                        Spacer(minLength: 40)
+                        Spacer(minLength: contentBottomPadding)
                     }
                     .padding(.top, 8)
                 }

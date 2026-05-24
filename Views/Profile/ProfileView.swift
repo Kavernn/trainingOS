@@ -214,7 +214,6 @@ struct ProfileView: View {
                         }
                     }
                 }
-                .offset(x: 4, y: 4)
             }
             .padding(.bottom, 2)
 

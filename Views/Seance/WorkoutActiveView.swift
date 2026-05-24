@@ -1169,7 +1169,7 @@ struct WorkoutSeanceView: View {
                 .animation(.easeInOut(duration: 0.2), value: canFinish)
                 .padding(.horizontal, 16)
                 .padding(.top, canFinish ? 10 : 6)
-                .padding(.bottom, timer.isVisible ? 72 : 10)
+                .padding(.bottom, 10)
             }
             .background(.ultraThinMaterial)
             .ignoresSafeArea(.keyboard)

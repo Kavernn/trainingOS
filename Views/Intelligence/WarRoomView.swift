@@ -32,7 +32,7 @@ struct WarRoomView: View {
                     }
                     .accessibilityLabel("Arsenal — ouvrir mes armes contre le craving")
                     .padding(.trailing, 20)
-                    .padding(.bottom, 24)
+                    .padding(.bottom, fabBottomPadding)
                 }
             }
             .navigationTitle("War Room")

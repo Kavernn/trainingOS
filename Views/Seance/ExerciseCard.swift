@@ -1625,14 +1625,14 @@ struct FloatingRestTimerCard: View {
             // Circular clock
             ZStack {
                 Circle()
-                    .stroke(Color.white.opacity(0.07), lineWidth: 18)
-                    .frame(width: 200, height: 200)
+                    .stroke(Color.white.opacity(0.07), lineWidth: 16)
+                    .frame(width: 160, height: 160)
 
                 // Glow arc
                 Circle()
                     .trim(from: 0, to: timer.progress)
-                    .stroke(ringColor.opacity(0.28), style: StrokeStyle(lineWidth: 28, lineCap: .round))
-                    .frame(width: 200, height: 200)
+                    .stroke(ringColor.opacity(0.28), style: StrokeStyle(lineWidth: 24, lineCap: .round))
+                    .frame(width: 160, height: 160)
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 1), value: timer.progress)
                     .blur(radius: 8)
@@ -1640,8 +1640,8 @@ struct FloatingRestTimerCard: View {
                 // Main arc
                 Circle()
                     .trim(from: 0, to: timer.progress)
-                    .stroke(ringColor, style: StrokeStyle(lineWidth: 18, lineCap: .round))
-                    .frame(width: 200, height: 200)
+                    .stroke(ringColor, style: StrokeStyle(lineWidth: 16, lineCap: .round))
+                    .frame(width: 160, height: 160)
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 1), value: timer.progress)
 
@@ -1717,9 +1717,9 @@ struct FloatingRestTimerCard: View {
                 }
             }
         }
-        .padding(.top, 28)
-        .padding(.bottom, 36)
-        .padding(.horizontal, 32)
+        .padding(.top, 20)
+        .padding(.bottom, 24)
+        .padding(.horizontal, 24)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 32, style: .continuous)

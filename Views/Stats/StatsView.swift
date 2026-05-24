@@ -440,7 +440,8 @@ struct StatsView: View {
                                 else if selectedTab == 4 { exercicesTab }
                                 else { bienetreTab }
                             }
-                            .padding(.vertical, 8)
+                            .padding(.top, 8)
+                            .padding(.bottom, contentBottomPadding)
                         }
                         .refreshable { await loadData() }
                         .scrollDismissesKeyboard(.interactively)
