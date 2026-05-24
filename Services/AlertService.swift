@@ -70,6 +70,8 @@ final class AlertService: ObservableObject {
     // MARK: - Local notification (19:30 today, one-shot)
 
     private func scheduleNotificationIfNeeded() {
+        guard !UserDefaults.standard.bool(forKey: "notif_all_disabled") else { return }
+        guard NotificationService.isEnabled("notif_on_proactive") else { return }
         guard let top = visibleAlert else { return }
 
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in

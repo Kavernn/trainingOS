@@ -46,11 +46,6 @@ struct ProfileView: View {
     @State private var oathUnlocked             = false
     @State private var warRoomVictoryStreak: Int = 0
     @State private var warRoomEnabled           = false
-    // B5: configurable ritual reminder times
-    @AppStorage("ritual_morning_hour")   private var ritualMorningHour   = 7
-    @AppStorage("ritual_evening_hour")   private var ritualEveningHour   = 20
-    @AppStorage("ritual_evening_minute") private var ritualEveningMinute = 30
-    @State private var showRitualReminders = false
 
     var profile: UserProfile? { api.dashboard?.profile }
 
@@ -837,26 +832,21 @@ struct ProfileView: View {
             settingsDivider
             settingsRow(icon: "bell.fill",           color: .blue,    label: "Notifications",  detail: nil,    action: nil)
             settingsDivider
-            // B5: ritual reminder times
-            Button(action: { showRitualReminders = true }) {
+            // Notifications — central control
+            NavigationLink(destination: NotificationCenterView()) {
                 HStack(spacing: 12) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 7).fill(Color(hex: "FF2D20").opacity(0.18)).frame(width: 30, height: 30)
-                        Image(systemName: "flame.fill").font(.system(size: 13, weight: .semibold)).foregroundColor(Color(hex: "FF2D20"))
+                        RoundedRectangle(cornerRadius: 7).fill(Color.purple.opacity(0.18)).frame(width: 30, height: 30)
+                        Image(systemName: "bell.badge.fill").font(.system(size: 13, weight: .semibold)).foregroundColor(.purple)
                     }
-                    Text("Rappels Rituel")
+                    Text("Notifications")
                         .font(.system(size: 15)).foregroundColor(.white)
                     Spacer()
-                    Text("\(ritualMorningHour)h · \(ritualEveningHour)h\(ritualEveningMinute > 0 ? String(format: "%02d", ritualEveningMinute) : "")")
-                        .font(.system(size: 12)).foregroundColor(.gray)
                     Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray.opacity(0.4))
                 }
                 .padding(.horizontal, 14).padding(.vertical, 14)
             }
             .buttonStyle(.plain)
-            .sheet(isPresented: $showRitualReminders, onDismiss: { NotificationService.scheduleAll() }) {
-                RitualReminderSettingsSheet(morningHour: $ritualMorningHour, eveningHour: $ritualEveningHour, eveningMinute: $ritualEveningMinute)
-            }
             settingsDivider
             settingsRow(icon: "square.and.arrow.up", color: .green,   label: "Export données", detail: nil,    action: {
                 Task { await exportData() }
@@ -1342,57 +1332,6 @@ struct EditProfileSheet: View {
     }
 }
 
-// MARK: - B5: Ritual Reminder Settings Sheet
-
-private struct RitualReminderSettingsSheet: View {
-    @Binding var morningHour:   Int
-    @Binding var eveningHour:   Int
-    @Binding var eveningMinute: Int
-    @Environment(\.dismiss) private var dismiss
-
-    private var morningDate: Binding<Date> {
-        Binding(
-            get: { Calendar.current.date(bySettingHour: morningHour, minute: 0, second: 0, of: Date()) ?? Date() },
-            set: { morningHour = Calendar.current.component(.hour, from: $0) }
-        )
-    }
-
-    private var eveningDate: Binding<Date> {
-        Binding(
-            get: { Calendar.current.date(bySettingHour: eveningHour, minute: eveningMinute, second: 0, of: Date()) ?? Date() },
-            set: {
-                eveningHour   = Calendar.current.component(.hour,   from: $0)
-                eveningMinute = Calendar.current.component(.minute, from: $0)
-            }
-        )
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Matin — Déclare ta guerre") {
-                    DatePicker("Heure", selection: morningDate, displayedComponents: .hourAndMinute)
-                        .environment(\.locale, Locale(identifier: "fr_CA"))
-                }
-                Section("Soir — Est-ce que tu l'as tué ?") {
-                    DatePicker("Heure", selection: eveningDate, displayedComponents: .hourAndMinute)
-                        .environment(\.locale, Locale(identifier: "fr_CA"))
-                }
-                Section {
-                    Text("Les rappels sont programmés chaque jour aux heures sélectionnées.")
-                        .font(.caption).foregroundColor(.secondary)
-                }
-            }
-            .navigationTitle("Rappels Rituel")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("OK") { dismiss() }
-                }
-            }
-        }
-    }
-}
 
 #Preview {
     ProfileView()

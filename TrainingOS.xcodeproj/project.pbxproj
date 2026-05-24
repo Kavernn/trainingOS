@@ -103,6 +103,7 @@
 		D665E44C2F5D98BA002AE470 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4372F5D98B8002AE470 /* APIService.swift */; };
 		D665E44D2F5D98BA002AE470 /* TrainingOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4392F5D98B8002AE470 /* TrainingOSApp.swift */; };
 		D665E44E2F5D98BA002AE470 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E4402F5D98B8002AE470 /* ProfileView.swift */; };
+		88AE06959F6C41BB819C117B /* NotificationCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178857F4F15844198720466F /* NotificationCenterView.swift */; };
 		D665E44F2F5D98BA002AE470 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43A2F5D98B8002AE470 /* Extensions.swift */; };
 		D665E4502F5D98BA002AE470 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43C2F5D98B8002AE470 /* DashboardView.swift */; };
 		D665E4512F5D98BA002AE470 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = D665E4362F5D98B8002AE470 /* README.md */; };
@@ -303,6 +304,7 @@
 		D665E43C2F5D98B8002AE470 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		D665E43E2F5D98B8002AE470 /* HistoriqueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoriqueView.swift; sourceTree = "<group>"; };
 		D665E4402F5D98B8002AE470 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		178857F4F15844198720466F /* NotificationCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCenterView.swift; sourceTree = "<group>"; };
 		D665E4422F5D98B8002AE470 /* SeanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeanceView.swift; sourceTree = "<group>"; };
 		D665E4442F5D98B8002AE470 /* TimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerView.swift; sourceTree = "<group>"; };
 		D68B8535D55F4B109509F146 /* MorningRevealView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningRevealView.swift; sourceTree = "<group>"; };
@@ -743,6 +745,7 @@
 			isa = PBXGroup;
 			children = (
 				D665E4402F5D98B8002AE470 /* ProfileView.swift */,
+				178857F4F15844198720466F /* NotificationCenterView.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -1047,6 +1050,7 @@
 				TDYW002TDYW002TDYW002002 /* TodayWidgets.swift in Sources */,
 				D665E44D2F5D98BA002AE470 /* TrainingOSApp.swift in Sources */,
 				D665E44E2F5D98BA002AE470 /* ProfileView.swift in Sources */,
+				88AE06959F6C41BB819C117B /* NotificationCenterView.swift in Sources */,
 				D665E44F2F5D98BA002AE470 /* Extensions.swift in Sources */,
 				BB001001BB001001BB001001 /* DesignSystem.swift in Sources */,
 				PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */,

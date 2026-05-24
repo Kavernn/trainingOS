@@ -91,6 +91,7 @@ struct MoreView: View {
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
                     Section("Réglages") {
+                        MoreRow(icon: "bell.badge.fill",  color: .purple, title: "Notifications", subtitle: "Gérer tous les rappels") { NotificationCenterView() }
                         MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Inventaire") { InventaireView() }
                         MoreRow(icon: "note.text",        color: .blue,   title: "Notes")      { NotesView() }
                         MoreRow(icon: "person.fill",      color: .purple, title: "Profil")     { ProfileView() }

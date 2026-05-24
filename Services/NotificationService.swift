@@ -5,30 +5,48 @@ import UserNotifications
 
 enum NotificationService {
 
+    // MARK: - Preference helpers
+
+    /// Returns true if a notification is enabled (defaults to true when never explicitly set).
+    static func isEnabled(_ key: String) -> Bool {
+        guard UserDefaults.standard.object(forKey: key) != nil else { return true }
+        return UserDefaults.standard.bool(forKey: key)
+    }
+
+    private static var globalDisabled: Bool {
+        UserDefaults.standard.bool(forKey: "notif_all_disabled")
+    }
+
     /// Schedules (or reschedules) all recurring app notifications.
     /// Safe to call multiple times — removes previous copies first.
     /// Uses BehaviorTracker to adapt times to the user's learned patterns.
     static func scheduleAll() {
+        guard !globalDisabled else { return }
         let tracker = BehaviorTracker.shared
-        scheduleFridayReminder(tracker: tracker)
-        scheduleSelfCareReminder(tracker: tracker)
-        schedulePSSWeeklyReminder(tracker: tracker)
-        scheduleNutritionReminder(tracker: tracker)
-        scheduleWeeklyRecapNotification(tracker: tracker)
+        if isEnabled("notif_on_seance_friday")  { scheduleFridayReminder(tracker: tracker) }
+        if isEnabled("notif_on_selfcare")       { scheduleSelfCareReminder(tracker: tracker) }
+        if isEnabled("notif_on_pss")            { schedulePSSWeeklyReminder(tracker: tracker) }
+        if isEnabled("notif_on_nutrition")      { scheduleNutritionReminder(tracker: tracker) }
+        if isEnabled("notif_on_recap")          { scheduleWeeklyRecapNotification(tracker: tracker) }
         let morningHour  = UserDefaults.standard.integer(forKey: "ritual_morning_hour")
         let eveningHour  = UserDefaults.standard.integer(forKey: "ritual_evening_hour")
         let eveningMin   = UserDefaults.standard.integer(forKey: "ritual_evening_minute")
-        scheduleRitualMorningReminder(hour: morningHour > 0 ? morningHour : 7)
-        scheduleRitualEveningReminder(hour: eveningHour > 0 ? eveningHour : 20,
-                                      minute: eveningMin > 0 ? eveningMin : 30)
+        if isEnabled("notif_on_ritual_morning") {
+            scheduleRitualMorningReminder(hour: morningHour > 0 ? morningHour : 7)
+        }
+        if isEnabled("notif_on_ritual_evening") {
+            scheduleRitualEveningReminder(hour: eveningHour > 0 ? eveningHour : 20,
+                                          minute: eveningMin > 0 ? eveningMin : 30)
+        }
     }
 
     /// Call after data loads, passing the sorted session dates.
     static func scheduleContextual(sessionDates: [String], currentStreak: Int) {
+        guard !globalDisabled else { return }
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
-            scheduleInactivityReminder(sessionDates: sessionDates)
-            scheduleStreakMilestone(streak: currentStreak)
+            if isEnabled("notif_on_inactivity")       { scheduleInactivityReminder(sessionDates: sessionDates) }
+            if isEnabled("notif_on_streak_milestone") { scheduleStreakMilestone(streak: currentStreak) }
         }
     }
 
@@ -146,6 +164,12 @@ enum NotificationService {
         let daysSince = Int(round((Date().timeIntervalSince1970 - lastDate.timeIntervalSince1970) / 86400.0))
         guard daysSince >= 3 else { return }
 
+        // Guard: schedule at most once per calendar day (prevents re-fire on repeated StatsView loads)
+        let today = DateFormatter.isoDate.string(from: Date())
+        let guardKey = "notif_inactivity_date"
+        guard UserDefaults.standard.string(forKey: guardKey) != today else { return }
+        UserDefaults.standard.set(today, forKey: guardKey)
+
         let content = UNMutableNotificationContent()
         content.title = "Retour en salle ? 💪"
         content.body  = "\(daysSince + 1) jours sans séance — ton corps est prêt."
@@ -170,6 +194,11 @@ enum NotificationService {
                           30: "🏆 30 jours — champion !", 60: "⚡ 60 jours de feu !",
                           100: "💎 100 jours — légende !"]
         guard let message = milestones[streak] else { return }
+
+        // Guard: don't re-fire for the same milestone (prevents re-fire on repeated StatsView loads)
+        let guardKey = "notif_milestone_last"
+        guard UserDefaults.standard.integer(forKey: guardKey) != streak else { return }
+        UserDefaults.standard.set(streak, forKey: guardKey)
 
         let content = UNMutableNotificationContent()
         content.title = message
@@ -286,10 +315,17 @@ enum NotificationService {
 
     /// Call this after loading ritualToday — if morning not done and hour >= 12, schedule an at-risk reminder.
     static func scheduleRitualStreakAtRisk(morningDone: Bool, phoenixStreak: Int) {
+        guard !globalDisabled, isEnabled("notif_on_ritual_streak") else { return }
         let center = UNUserNotificationCenter.current()
         let id = "ritual.streak.risk"
         center.removePendingNotificationRequests(withIdentifiers: [id])
         guard !morningDone, phoenixStreak > 0 else { return }
+
+        // Guard: schedule at most once per calendar day
+        let today = DateFormatter.isoDate.string(from: Date())
+        let guardKey = "notif_streak_risk_date"
+        guard UserDefaults.standard.string(forKey: guardKey) != today else { return }
+        UserDefaults.standard.set(today, forKey: guardKey)
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
@@ -315,6 +351,7 @@ enum NotificationService {
 
     /// Call after loading demons — schedules a one-time "it's still there" push if a demon >= 3 days.
     static func scheduleRitualDemonHaunting(demons: [RitualDemon]) {
+        guard !globalDisabled, isEnabled("notif_on_ritual_demon") else { return }
         let center = UNUserNotificationCenter.current()
         let id = "ritual.demon.haunting"
         center.removePendingNotificationRequests(withIdentifiers: [id])
@@ -347,6 +384,7 @@ enum NotificationService {
         let last = UserDefaults.standard.string(forKey: key) ?? ""
         guard last != newState else { return }
         UserDefaults.standard.set(newState, forKey: key)
+        guard !globalDisabled, isEnabled("notif_on_phoenix") else { return }
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
@@ -378,11 +416,11 @@ enum NotificationService {
         let key = "notif.graveyard.count"
         let last = UserDefaults.standard.integer(forKey: key)
         guard totalCount > last, last > 0 else {
-            // Update stored count without notifying on first load
             UserDefaults.standard.set(totalCount, forKey: key)
             return
         }
         UserDefaults.standard.set(totalCount, forKey: key)
+        guard !globalDisabled, isEnabled("notif_on_graveyard") else { return }
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
@@ -449,6 +487,7 @@ enum NotificationService {
             return
         }
         UserDefaults.standard.set(newKey, forKey: storageKey)
+        guard !globalDisabled, isEnabled("notif_on_dna") else { return }
 
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
@@ -467,6 +506,7 @@ enum NotificationService {
 
     /// Schedules a one-shot notification for each capsule unlocking within 7 days.
     static func scheduleTimeCapsuleSoon(capsules: [TimeCapsule]) {
+        guard !globalDisabled, isEnabled("notif_on_capsule") else { return }
         let center = UNUserNotificationCenter.current()
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
         let now = Date()
@@ -501,6 +541,7 @@ enum NotificationService {
 
     /// Reschedule Sunday recap with actual session/PR counts from the latest report.
     static func scheduleWeeklyRecapWithData(report: WeeklyReport, tracker: BehaviorTracker) {
+        guard !globalDisabled, isEnabled("notif_on_recap") else { return }
         let center = UNUserNotificationCenter.current()
         let id = "weekly.recap.sunday"
         center.removePendingNotificationRequests(withIdentifiers: [id])
