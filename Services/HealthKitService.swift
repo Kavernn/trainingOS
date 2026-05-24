@@ -304,9 +304,7 @@ class HealthKitService: ObservableObject {
 
     // MARK: - Today Health Snapshot
     func fetchTodayHealthSnapshot() async -> WearableSnapshot {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        let today = fmt.string(from: Date())
+        let today = DateFormatter.isoDate.string(from: Date())
 
         // sequential — async let LIFO crash on iOS 26 beta
         let s    = await fetchTodaySteps()
