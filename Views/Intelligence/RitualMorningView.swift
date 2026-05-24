@@ -9,9 +9,13 @@ struct RitualMorningView: View {
     @State private var useCarried    = false
     @FocusState private var focused: Bool
 
+    // D: micro-ritual checklist local state (mirrors ritual values on appear)
+    @State private var hydrationDone = false
+    @State private var mobilityDone  = false
+    @State private var proteinDone   = false
+
     private let red = Color(hex: "FF2D20")
 
-    // Pre-fill with haunting demon if present
     private var hasDemon: Bool { ritual.carriedIntention != nil }
 
     var body: some View {
@@ -28,26 +32,33 @@ struct RitualMorningView: View {
                         .padding(.top, 32)
                         .padding(.horizontal, 24)
 
-                    // Haunting demon — if an old intention survived
                     if let demon = ritual.carriedIntention, !useCarried {
                         demonBanner(demon)
                             .padding(.top, 20)
                             .padding(.horizontal, 24)
                     }
 
+                    // D: morning micro-ritual checklist
+                    checklistSection
+                        .padding(.top, 24)
+
                     intentionSection
-                        .padding(.top, 32)
+                        .padding(.top, 28)
                         .padding(.horizontal, 24)
 
                     suggestionsRow
                         .padding(.top, 20)
+
+                    // G4: Void shortcut — subtle link before declaring war
+                    voidShortcut
+                        .padding(.top, 20)
+                        .padding(.horizontal, 24)
 
                     Spacer(minLength: 120)
                 }
             }
             .scrollDismissesKeyboard(.interactively)
 
-            // Bottom button — sticks above keyboard
             VStack {
                 Spacer()
                 declareWarButton
@@ -56,12 +67,20 @@ struct RitualMorningView: View {
             }
         }
         .onAppear {
-            // If carried demon, pre-fill
             if let demon = ritual.carriedIntention {
                 intention  = demon
                 useCarried = true
             }
+            // Mirror saved checklist state
+            hydrationDone = ritual.hydrationDone
+            mobilityDone  = ritual.mobilityDone
+            proteinDone   = ritual.proteinDone
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { focused = true }
+            // B3: schedule streak at risk if applicable
+            NotificationService.scheduleRitualStreakAtRisk(
+                morningDone: ritual.morningDone,
+                phoenixStreak: ritual.phoenixStreak
+            )
         }
     }
 
@@ -77,7 +96,6 @@ struct RitualMorningView: View {
 
     private var truthBlock: some View {
         HStack(spacing: 0) {
-            // Red left border
             Rectangle()
                 .fill(red)
                 .frame(width: 2)
@@ -129,6 +147,49 @@ struct RitualMorningView: View {
         .buttonStyle(.plain)
     }
 
+    // D: Morning micro-ritual checklist
+    private var checklistSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("CE MATIN")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(3)
+                .foregroundColor(Color(white: 0.28))
+                .padding(.horizontal, 24)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ChecklistChip(
+                        label: "Hydratation",
+                        icon: "drop.fill",
+                        isOn: hydrationDone
+                    ) { toggle in
+                        hydrationDone = toggle
+                        Task { try? await APIService.shared.saveRitualChecklist(hydrationDone: toggle) }
+                    }
+
+                    ChecklistChip(
+                        label: "Mobilité",
+                        icon: "figure.flexibility",
+                        isOn: mobilityDone
+                    ) { toggle in
+                        mobilityDone = toggle
+                        Task { try? await APIService.shared.saveRitualChecklist(mobilityDone: toggle) }
+                    }
+
+                    ChecklistChip(
+                        label: "Protéines",
+                        icon: "fork.knife",
+                        isOn: proteinDone
+                    ) { toggle in
+                        proteinDone = toggle
+                        Task { try? await APIService.shared.saveRitualChecklist(proteinDone: toggle) }
+                    }
+                }
+                .padding(.horizontal, 24)
+            }
+        }
+    }
+
     private var intentionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("DÉCLARE TA GUERRE")
@@ -174,6 +235,25 @@ struct RitualMorningView: View {
         }
     }
 
+    // G4: optional Void session before declaring war
+    private var voidShortcut: some View {
+        NavigationLink(destination: SpiritView()) {
+            HStack(spacing: 8) {
+                Image(systemName: "wind")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(white: 0.25))
+                Text("Se préparer dans The Void d'abord")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(white: 0.25))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10))
+                    .foregroundColor(Color(white: 0.18))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
     private var declareWarButton: some View {
         Button(action: save) {
             ZStack {
@@ -213,9 +293,42 @@ struct RitualMorningView: View {
                     await MainActor.run { onSaved(updated) }
                 }
             } catch {
-                // retry silent — button re-enables
+                // silent retry — button re-enables
             }
             await MainActor.run { isSaving = false }
         }
+    }
+}
+
+// MARK: - Checklist Chip
+
+private struct ChecklistChip: View {
+    let label: String
+    let icon: String
+    let isOn: Bool
+    let onToggle: (Bool) -> Void
+
+    private let red = Color(hex: "FF2D20")
+
+    var body: some View {
+        Button(action: { onToggle(!isOn) }) {
+            HStack(spacing: 6) {
+                Image(systemName: isOn ? "checkmark.circle.fill" : icon)
+                    .font(.system(size: 12))
+                    .foregroundColor(isOn ? red : Color(white: 0.4))
+                Text(label)
+                    .font(.system(size: 12))
+                    .foregroundColor(isOn ? .white : Color(white: 0.4))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(isOn ? Color(white: 0.1) : Color(white: 0.07))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isOn ? red.opacity(0.4) : Color(white: 0.1), lineWidth: 1)
+            )
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
     }
 }

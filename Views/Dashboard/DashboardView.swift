@@ -214,10 +214,17 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.38)
                                 }
 
+                                // E5: Demon haunting banner — visible when a demon >= 3 days old
+                                if let ritual = vm.ritualToday,
+                                   let topDemon = ritual.demons.filter({ $0.carryCount >= 3 }).max(by: { $0.carryCount < $1.carryCount }) {
+                                    DemonDashboardBanner(demon: topDemon)
+                                        .appearAnimation(delay: 0.39)
+                                }
+
                                 // Breathwork nudge — visible when latest LSS score is low (stress high)
                                 if let lss = vm.lssTrend.last, lss.score < 50 {
                                     BreathworkNudgeCard()
-                                        .appearAnimation(delay: 0.38)
+                                        .appearAnimation(delay: 0.40)
                                 }
 
                                 XPChipView(sessions: dash.sessions)
@@ -2177,6 +2184,25 @@ struct MorningBriefCardView: View {
                 }
             }
 
+            // F4: Phoenix ritual context
+            if let streak = data.phoenixStreak, streak > 0 {
+                HStack(spacing: 6) {
+                    Image(systemName: "flame.fill").font(.system(size: 10)).foregroundColor(Color(hex: "FF2D20"))
+                    Text("Streak Phoenix \(streak)j")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color(hex: "FF2D20").opacity(0.85))
+                    if let rate = data.ritualRate7d {
+                        Text("· \(Int(rate * 100))% rituel 7j")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(Color(hex: "FF2D20").opacity(0.08))
+                .overlay(Capsule().stroke(Color(hex: "FF2D20").opacity(0.2), lineWidth: 0.5))
+                .clipShape(Capsule())
+            }
+
             // Ajustements
             if !data.adjustments.isEmpty {
                 VStack(alignment: .leading, spacing: 5) {
@@ -3681,35 +3707,93 @@ private struct QuickWarRoomTriggerSheet: View {
 private struct MorningRitualEntryCard: View {
     let ritual: RitualToday
     @State private var showMorningRitual = false
+    @State private var dragOffset: CGFloat = 0
 
     var body: some View {
-        Button { showMorningRitual = true } label: {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.orange.opacity(0.12))
+                    .frame(width: 36, height: 36)
+                Image(systemName: dragOffset > 20 ? "arrow.right.circle.fill" : "sunrise.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.orange)
+                    .animation(.easeInOut(duration: 0.15), value: dragOffset > 20)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("RITUEL DU MATIN")
+                    .font(.system(size: 9, weight: .black))
+                    .foregroundColor(.orange.opacity(0.8))
+                    .tracking(0.5)
+                Text("Pose ton intention avant de commencer.")
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            Spacer()
+            Text("COMMENCER")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(.orange)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.orange.opacity(0.12))
+                .clipShape(Capsule())
+        }
+        .padding(13)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.appCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(dragOffset > 20 ? Color.orange.opacity(0.6) : Color.orange.opacity(0.25), lineWidth: 1)
+                )
+        )
+        .offset(x: max(0, dragOffset * 0.3))
+        .gesture(
+            DragGesture()
+                .onChanged { v in dragOffset = v.translation.width }
+                .onEnded { v in
+                    if v.translation.width > 60 { showMorningRitual = true }
+                    withAnimation(.spring(response: 0.3)) { dragOffset = 0 }
+                }
+        )
+        .onTapGesture { showMorningRitual = true }
+        .fullScreenCover(isPresented: $showMorningRitual) {
+            RitualMorningView(ritual: ritual, onSaved: { _ in })
+        }
+    }
+}
+
+// MARK: - E5: Demon Dashboard Banner
+
+private struct DemonDashboardBanner: View {
+    let demon: RitualDemon
+    @State private var showRitual = false
+
+    var body: some View {
+        Button { showRitual = true } label: {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(Color.orange.opacity(0.12))
+                        .fill(Color(white: 0.08))
                         .frame(width: 36, height: 36)
-                    Image(systemName: "sunrise.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.orange)
+                    Image(systemName: "moon.stars.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Color(white: 0.4))
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("RITUEL DU MATIN")
+                    Text("DÉMON · \(demon.carryCount) NUITS")
                         .font(.system(size: 9, weight: .black))
-                        .foregroundColor(.orange.opacity(0.8))
+                        .foregroundColor(Color(white: 0.3))
                         .tracking(0.5)
-                    Text("Pose ton intention avant de commencer.")
+                    Text("«\(demon.intention)»")
                         .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(Color(white: 0.55))
+                        .lineLimit(1)
                 }
                 Spacer()
-                Text("COMMENCER")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(.orange)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.orange.opacity(0.12))
-                    .clipShape(Capsule())
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Color(hex: "FF2D20").opacity(0.5))
             }
             .padding(13)
             .background(
@@ -3717,14 +3801,12 @@ private struct MorningRitualEntryCard: View {
                     .fill(Color.appCard)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.orange.opacity(0.25), lineWidth: 1)
+                            .stroke(Color(white: 0.12), lineWidth: 1)
                     )
             )
         }
         .buttonStyle(.plain)
-        .fullScreenCover(isPresented: $showMorningRitual) {
-            RitualMorningView(ritual: ritual, onSaved: { _ in })
-        }
+        .fullScreenCover(isPresented: $showRitual) { RitualView() }
     }
 }
 

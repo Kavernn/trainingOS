@@ -37,6 +37,20 @@ def get_morning_brief():
     except Exception:
         pass
 
+    # G1: ritual rate for coaching context
+    ritual_rate_7d = 0.0
+    phoenix_streak = 0
+    try:
+        import db as _db_r
+        from routes.ritual import _compute_phoenix
+        ritual_history = _db_r.get_ritual_history(limit=7)
+        if ritual_history:
+            completed = sum(1 for r in ritual_history if r.get("outcome") in ("burned", "survived"))
+            ritual_rate_7d = round(completed / 7, 2)
+        phoenix_streak, _, _ = _compute_phoenix()
+    except Exception:
+        pass
+
     return {
         "date":                  get_today_date(),
         "session_today":         today,
@@ -50,6 +64,8 @@ def get_morning_brief():
         "components":            components,
         "breathwork_yesterday":  breathwork_yesterday,
         "meditation_yesterday":  meditation_yesterday,
+        "ritual_rate_7d":        ritual_rate_7d,
+        "phoenix_streak":        phoenix_streak,
     }
 
 

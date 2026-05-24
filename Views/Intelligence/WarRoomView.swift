@@ -161,6 +161,8 @@ class WarRoomViewModel: ObservableObject {
     @Published var streakJustReset = false
     @Published var isLoading       = false
     @Published var error: String?
+    // G5: Phoenix demons as active threats
+    @Published var phoenixDemons: [RitualDemon] = []
 
     private let api = APIService.shared
 
@@ -173,8 +175,17 @@ class WarRoomViewModel: ObservableObject {
             g.addTask { await self.loadTriggers() }
             g.addTask { await self.loadArsenal() }
             g.addTask { await self.loadOath() }
+            g.addTask { await self.loadPhoenixDemons() }
         }
         isLoading = false
+    }
+
+    func loadPhoenixDemons() async {
+        if let ritual = try? await api.fetchRitualToday() {
+            await MainActor.run {
+                phoenixDemons = ritual.demons.sorted { $0.carryCount > $1.carryCount }
+            }
+        }
     }
 
     func loadOath() async {

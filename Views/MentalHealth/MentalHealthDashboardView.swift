@@ -5,6 +5,7 @@ struct MentalHealthDashboardView: View {
     @State private var summary30: MentalHealthSummary?
     @State private var selectedDays = 7
     @State private var isLoading = true
+    @State private var ritualDemons: [RitualDemon] = []
 
     private var current: MentalHealthSummary? {
         selectedDays == 7 ? summary7 : summary30
@@ -145,20 +146,56 @@ struct MentalHealthDashboardView: View {
             }
         }
 
+        // G6: Haunting demons (carryCount >= 5 = obsession psychologique)
+        let persistentDemons = ritualDemons.filter { $0.carryCount >= 5 }
+        if !persistentDemons.isEmpty {
+            MHSectionCard(title: "Intentions bloquées", icon: "moon.stars.fill") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Ces intentions réapparaissent depuis plusieurs jours — signal psychologique à adresser.")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.5))
+                        .fixedSize(horizontal: false, vertical: true)
+                    ForEach(persistentDemons) { demon in
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("\(demon.carryCount)")
+                                .font(.system(size: 18, weight: .black))
+                                .foregroundColor(.red.opacity(0.8))
+                                .frame(width: 32)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\"\(demon.intention)\"")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.8))
+                                Text("jours sans résolution")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.4))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // PSS
         if let pssScore = s.pssScore, let cat = s.pssCategory {
             MHSectionCard(title: "Stress PSS récent", icon: "brain.head.profile") {
-                HStack {
-                    Text("Score \(pssScore)")
-                        .font(.title2.bold())
-                    Spacer()
-                    Text(cat.capitalized)
-                        .font(.caption.bold())
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(pssColor(cat))
-                        .cornerRadius(8)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Score \(pssScore)")
+                            .font(.title2.bold())
+                        Spacer()
+                        Text(cat.capitalized)
+                            .font(.caption.bold())
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(pssColor(cat))
+                            .cornerRadius(8)
+                    }
+                    if let dateStr = s.pssDate {
+                        Text("Test du \(formattedPSSDate(dateStr))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
         }
@@ -179,11 +216,20 @@ struct MentalHealthDashboardView: View {
         }
     }
 
+    private func formattedPSSDate(_ iso: String) -> String {
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"; fmt.locale = Locale(identifier: "fr_CA")
+        guard let d = fmt.date(from: String(iso.prefix(10))) else { return iso }
+        let out = DateFormatter(); out.dateStyle = .medium; out.locale = Locale(identifier: "fr_CA")
+        return out.string(from: d)
+    }
+
     private func loadData() async {
         let s7 = try? await APIService.shared.fetchMentalHealthSummary(days: 7)
+        let ritual = try? await APIService.shared.fetchRitualToday()
         await MainActor.run {
-            summary7  = s7
-            isLoading = false
+            summary7     = s7
+            ritualDemons = ritual?.demons ?? []
+            isLoading    = false
         }
     }
 

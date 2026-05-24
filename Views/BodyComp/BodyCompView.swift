@@ -21,7 +21,7 @@ struct BodyCompView: View {
 
     var hasMeasurements: Bool {
         guard let l = latest else { return false }
-        return l.armsCm != nil || l.chestCm != nil || l.thighsCm != nil || l.hipsCm != nil || l.waistCm != nil
+        return l.armsCm != nil || l.chestCm != nil || l.thighsCm != nil || l.hipsCm != nil || l.waistCm != nil || l.neckCm != nil
     }
 
     var body: some View {
@@ -421,6 +421,7 @@ struct MeasurementsCard: View {
         let ref = entries.count > 1 ? entries.last : nil
         let defs: [(String, String, Color, Double?, Double?)] = [
             ("Taille",    "arrow.left.and.right",                   .purple, l.waistCm,  ref?.waistCm),
+            ("Cou",       "bolt.ring.closed",                       .teal,   l.neckCm,   ref?.neckCm),
             ("Bras",      "figure.strengthtraining.traditional",     .orange, l.armsCm,   ref?.armsCm),
             ("Poitrine",  "heart.fill",                             .red,    l.chestCm,  ref?.chestCm),
             ("Cuisses",   "figure.walk",                            .blue,   l.thighsCm, ref?.thighsCm),
@@ -496,7 +497,7 @@ struct ComparisonTableCard: View {
     private var newest: BodyWeightEntry? { entries.first }
     private var oldest: BodyWeightEntry? {
         entries.dropFirst().last {
-            $0.armsCm != nil || $0.chestCm != nil || $0.waistCm != nil || $0.bodyFat != nil
+            $0.armsCm != nil || $0.chestCm != nil || $0.waistCm != nil || $0.neckCm != nil || $0.bodyFat != nil
         }
     }
 
@@ -536,6 +537,7 @@ struct ComparisonTableCard: View {
             Row(id: "bf",       label: "Masse grasse %",          old: fmt(o.bodyFat),                  new: fmt(n.bodyFat),                  delta: d(n.bodyFat, o.bodyFat),  higherIsBetter: false),
             Row(id: "lean",     label: "Masse maigre (lbs)",       old: fmt(oLean),                      new: fmt(nLean),                      delta: d(nLean, oLean),          higherIsBetter: true),
             Row(id: "taille",   label: "Taille (cm)",             old: fmt(o.waistCm,  decimals: 0),    new: fmt(n.waistCm,  decimals: 0),    delta: d(n.waistCm,  o.waistCm),  higherIsBetter: false),
+            Row(id: "cou",      label: "Cou (cm)",                old: fmt(o.neckCm,   decimals: 0),    new: fmt(n.neckCm,   decimals: 0),    delta: d(n.neckCm,   o.neckCm),   higherIsBetter: false),
             Row(id: "bras",     label: "Bras (cm)",               old: fmt(o.armsCm,   decimals: 0),    new: fmt(n.armsCm,   decimals: 0),    delta: d(n.armsCm,   o.armsCm),   higherIsBetter: true),
             Row(id: "poitrine", label: "Poitrine (cm)",           old: fmt(o.chestCm,  decimals: 0),    new: fmt(n.chestCm,  decimals: 0),    delta: d(n.chestCm,  o.chestCm),  higherIsBetter: false),
             Row(id: "cuisses",  label: "Cuisses (cm)",            old: fmt(o.thighsCm, decimals: 0),    new: fmt(n.thighsCm, decimals: 0),    delta: d(n.thighsCm, o.thighsCm), higherIsBetter: false),

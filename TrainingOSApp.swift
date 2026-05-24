@@ -1,6 +1,37 @@
 import SwiftUI
 import SwiftData
 import UserNotifications
+import AppIntents
+
+// MARK: - E10: App Shortcuts — Morning Ritual quick access
+
+@available(iOS 16, *)
+struct OpenMorningRitualIntent: AppIntent {
+    static var title: LocalizedStringResource = "Rituel du matin"
+    static var description = IntentDescription("Ouvre le rituel du matin pour déclarer ton intention.")
+    static var openAppWhenRun: Bool = true
+
+    func perform() async throws -> some IntentResult {
+        await MainActor.run { AppState.shared.pendingDeepLink = "intelligence" }
+        return .result()
+    }
+}
+
+@available(iOS 16, *)
+struct TrainingOSShortcuts: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: OpenMorningRitualIntent(),
+            phrases: [
+                "Rituel du matin sur \(.applicationName)",
+                "Déclare ma guerre sur \(.applicationName)",
+                "Mon intention du jour sur \(.applicationName)"
+            ],
+            shortTitle: "Rituel du matin",
+            systemImageName: "flame.fill"
+        )
+    }
+}
 
 // MARK: - Notification delegate (deep links from notification taps)
 

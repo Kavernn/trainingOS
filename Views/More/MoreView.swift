@@ -5,6 +5,12 @@ struct MoreView: View {
     @ObservedObject private var appState = AppState.shared
     @AppStorage("auto_start_rest_timer") private var autoStartTimer = false
     @AppStorage("show_rir_column") private var showRIRColumn = false
+    @State private var phoenixStreak: Int = 0
+
+    private var ritualSubtitle: String? {
+        if phoenixStreak >= 2 { return "🔥 \(phoenixStreak) jours consécutifs" }
+        return nil
+    }
 
     var body: some View {
         NavigationStack {
@@ -13,7 +19,9 @@ struct MoreView: View {
 
                 List {
                     Section("Rituel & Esprit") {
-                        MoreRow(icon: "flame.fill",  color: Color(hex: "FF2D20"), title: "Rituel quotidien", badge: appState.ritualTodayNotDone) { RitualView() }
+                        MoreRow(icon: "flame.fill", color: Color(hex: "FF2D20"), title: "Rituel quotidien",
+                                subtitle: ritualSubtitle, badge: appState.ritualTodayNotDone) { RitualView() }
+                        MoreRow(icon: "book.pages.fill", color: Color(hex: "FF2D20").opacity(0.7), title: "Biographie", subtitle: "Timeline de tes intentions") { RitualBiographyView() }
                         MoreRow(icon: "wind",        color: Color.moonlight.opacity(0.7), title: "The Void", subtitle: "Respiration, méditation & journal") { SpiritView() }
                         MoreRow(icon: "calendar.badge.clock", color: .teal, title: "Mes chapitres") { SeasonView() }
                     }
@@ -81,6 +89,9 @@ struct MoreView: View {
             }
             .navigationTitle("Plus")
             .navigationBarTitleDisplayMode(.large)
+            .task {
+                phoenixStreak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak ?? 0
+            }
         }
     }
 

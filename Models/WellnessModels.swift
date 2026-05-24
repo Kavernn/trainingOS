@@ -214,6 +214,7 @@ struct MentalHealthSummary: Codable {
     let correlations: [String]
     let pssScore: Int?
     let pssCategory: String?
+    let pssDate: String?
 
     enum CodingKeys: String, CodingKey {
         case insights, correlations
@@ -229,6 +230,7 @@ struct MentalHealthSummary: Codable {
         case topEmotions       = "top_emotions"
         case pssScore          = "pss_score"
         case pssCategory       = "pss_category"
+        case pssDate           = "pss_date"
     }
 }
 

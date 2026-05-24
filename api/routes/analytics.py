@@ -215,7 +215,7 @@ def api_insights():
     for ex, data in weights.items():
         hist = [e for e in (data.get("history") or []) if e.get("weight") and e.get("date")]
         if len(hist) < 4: continue
-        ws = [e["weight"] for e in hist[:4]]
+        ws = [e["weight"] for e in hist[-4:]]
         if max(ws) == min(ws) and ws[0] > 0:
             insights.append({
                 "type": "stagnation", "level": "info",
@@ -320,7 +320,7 @@ def api_stats_data():
     }
 
     from utils import get_current_week
-    weekly_tonnage       = _db.get_weekly_tonnage(8)
+    weekly_tonnage       = _db.get_weekly_tonnage(26)
     pattern_volume       = _db.get_pattern_volume(28)
     programme_compliance = _db.get_programme_compliance(8)
     one_rm_trend         = _db.get_one_rm_trend(84)
@@ -698,15 +698,15 @@ def api_body_projection():
     ]
     lean_series = []
     for e in bw_logs:
-        if e.get("poids") is not None and e.get("body_fat") is not None:
-            poids = float(e["poids"])
+        if e.get("weight") is not None and e.get("body_fat") is not None:
+            w = float(e["weight"])
             bf = float(e["body_fat"])
-            lean = poids * (1 - bf / 100)
+            lean = w * (1 - bf / 100)
             lean_series.append({"date": str(e.get("date", ""))[:10], "value": round(lean, 1)})
     weight_series = [
-        {"date": str(e.get("date", ""))[:10], "value": float(e["poids"])}
+        {"date": str(e.get("date", ""))[:10], "value": float(e["weight"])}
         for e in bw_logs
-        if e.get("poids") is not None
+        if e.get("weight") is not None
     ]
 
     def _linreg(series: list) -> dict | None:

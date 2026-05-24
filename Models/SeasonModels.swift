@@ -11,6 +11,8 @@ struct Season: Codable, Identifiable {
     let dominantArc: String?
     let personalNote: String?
 
+    let ritualCompletionRate: Double?
+
     var displayTitle: String { customTitle ?? generatedTitle ?? "SEASON \(number)" }
     var isActive: Bool { status == "active" }
 
@@ -40,6 +42,7 @@ struct Season: Codable, Identifiable {
         case customTitle  = "custom_title"
         case dominantArc  = "dominant_arc"
         case personalNote = "personal_note"
+        case ritualCompletionRate = "ritual_completion_rate"
     }
 }
 

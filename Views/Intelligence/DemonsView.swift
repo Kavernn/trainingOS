@@ -26,6 +26,31 @@ struct DemonsView: View {
         }
     }
 
+    // F5: keyword frequency across all demon intentions
+    private var recurringThemes: [(String, Int)] {
+        let stopWords: Set<String> = ["je", "tu", "il", "elle", "nous", "vous", "ils", "elles",
+            "le", "la", "les", "un", "une", "des", "du", "de", "et", "ou", "à", "au",
+            "en", "sur", "par", "pour", "dans", "avec", "sans", "que", "qui", "ne", "pas",
+            "plus", "me", "te", "se", "ma", "ta", "sa", "mon", "ton", "son", "mes", "tes",
+            "ses", "ce", "cet", "cette", "ces", "my", "i", "to", "the", "a", "an", "of",
+            "in", "is", "it", "and", "or", "for", "with", "not", "no", "be", "do", "at",
+            "aujourd", "hui", "vais", "fais", "ferai", "dois", "veux", "moi", "ça", "c"]
+        var freq: [String: Int] = [:]
+        for demon in demons {
+            let words = demon.intention
+                .lowercased()
+                .components(separatedBy: .whitespacesAndNewlines)
+                .flatMap { $0.components(separatedBy: CharacterSet.punctuationCharacters) }
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { $0.count >= 4 && !stopWords.contains($0) }
+            for w in words { freq[w, default: 0] += 1 }
+        }
+        return freq.filter { $0.value >= 2 }
+            .sorted { $0.value > $1.value }
+            .prefix(6)
+            .map { $0 }
+    }
+
     private var demonList: some View {
         ScrollView {
             VStack(spacing: 10) {
@@ -35,6 +60,38 @@ struct DemonsView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
                     .padding(.top, 8)
+
+                // F5: Pattern recognition section
+                if !recurringThemes.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("THÈMES RÉCURRENTS")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(2)
+                            .foregroundColor(Color(white: 0.25))
+                            .padding(.leading, 16)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(recurringThemes, id: \.0) { word, count in
+                                    HStack(spacing: 4) {
+                                        Text(word)
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(Color(white: 0.55))
+                                        Text("×\(count)")
+                                            .font(.system(size: 10))
+                                            .foregroundColor(Color(white: 0.3))
+                                    }
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Color(white: 0.08))
+                                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color(white: 0.12), lineWidth: 1))
+                                    .cornerRadius(6)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
 
                 ForEach(demons.sorted(by: { $0.carryCount > $1.carryCount })) { demon in
                     DemonCard(demon: demon)

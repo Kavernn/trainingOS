@@ -46,6 +46,11 @@ struct ProfileView: View {
     @State private var oathUnlocked             = false
     @State private var warRoomVictoryStreak: Int = 0
     @State private var warRoomEnabled           = false
+    // B5: configurable ritual reminder times
+    @AppStorage("ritual_morning_hour")   private var ritualMorningHour   = 7
+    @AppStorage("ritual_evening_hour")   private var ritualEveningHour   = 20
+    @AppStorage("ritual_evening_minute") private var ritualEveningMinute = 30
+    @State private var showRitualReminders = false
 
     var profile: UserProfile? { api.dashboard?.profile }
 
@@ -446,7 +451,7 @@ struct ProfileView: View {
                     HStack(spacing: 0) {
                         bodyCompWeightCol(latest: latest, delta: delta)
                         Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 52)
-                        bodyCompFatCol(navyResult: navyResult)
+                        bodyCompFatCol(navyResult: navyResult, isMale: isMale)
                         Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 52)
                         weightSparklineMini(histSorted)
                             .frame(width: 72, height: 44)
@@ -484,8 +489,8 @@ struct ProfileView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func bodyCompFatCol(navyResult: NavyBodyFatResult?) -> some View {
-        let cat = navyResult?.category(isMale: true)
+    private func bodyCompFatCol(navyResult: NavyBodyFatResult?, isMale: Bool) -> some View {
+        let cat = navyResult?.category(isMale: isMale)
         let catColor = cat?.color ?? Color.clear
         let catLabel = cat?.label ?? ""
         let pctStr   = navyResult.map { String(format: "%.1f%%", $0.pct) } ?? "—"
@@ -832,6 +837,27 @@ struct ProfileView: View {
             settingsRow(icon: "scalemass.fill",      color: .orange,  label: "Unités",         detail: "lbs",  action: nil)
             settingsDivider
             settingsRow(icon: "bell.fill",           color: .blue,    label: "Notifications",  detail: nil,    action: nil)
+            settingsDivider
+            // B5: ritual reminder times
+            Button(action: { showRitualReminders = true }) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 7).fill(Color(hex: "FF2D20").opacity(0.18)).frame(width: 30, height: 30)
+                        Image(systemName: "flame.fill").font(.system(size: 13, weight: .semibold)).foregroundColor(Color(hex: "FF2D20"))
+                    }
+                    Text("Rappels Rituel")
+                        .font(.system(size: 15)).foregroundColor(.white)
+                    Spacer()
+                    Text("\(ritualMorningHour)h · \(ritualEveningHour)h\(ritualEveningMinute > 0 ? String(format: "%02d", ritualEveningMinute) : "")")
+                        .font(.system(size: 12)).foregroundColor(.gray)
+                    Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray.opacity(0.4))
+                }
+                .padding(.horizontal, 14).padding(.vertical, 14)
+            }
+            .buttonStyle(.plain)
+            .sheet(isPresented: $showRitualReminders, onDismiss: { NotificationService.scheduleAll() }) {
+                RitualReminderSettingsSheet(morningHour: $ritualMorningHour, eveningHour: $ritualEveningHour, eveningMinute: $ritualEveningMinute)
+            }
             settingsDivider
             settingsRow(icon: "square.and.arrow.up", color: .green,   label: "Export données", detail: nil,    action: {
                 Task { await exportData() }
@@ -1311,6 +1337,58 @@ struct EditProfileSheet: View {
                         }
                     }
                     .disabled(isSaving)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - B5: Ritual Reminder Settings Sheet
+
+private struct RitualReminderSettingsSheet: View {
+    @Binding var morningHour:   Int
+    @Binding var eveningHour:   Int
+    @Binding var eveningMinute: Int
+    @Environment(\.dismiss) private var dismiss
+
+    private var morningDate: Binding<Date> {
+        Binding(
+            get: { Calendar.current.date(bySettingHour: morningHour, minute: 0, second: 0, of: Date()) ?? Date() },
+            set: { morningHour = Calendar.current.component(.hour, from: $0) }
+        )
+    }
+
+    private var eveningDate: Binding<Date> {
+        Binding(
+            get: { Calendar.current.date(bySettingHour: eveningHour, minute: eveningMinute, second: 0, of: Date()) ?? Date() },
+            set: {
+                eveningHour   = Calendar.current.component(.hour,   from: $0)
+                eveningMinute = Calendar.current.component(.minute, from: $0)
+            }
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Matin — Déclare ta guerre") {
+                    DatePicker("Heure", selection: morningDate, displayedComponents: .hourAndMinute)
+                        .environment(\.locale, Locale(identifier: "fr_CA"))
+                }
+                Section("Soir — Est-ce que tu l'as tué ?") {
+                    DatePicker("Heure", selection: eveningDate, displayedComponents: .hourAndMinute)
+                        .environment(\.locale, Locale(identifier: "fr_CA"))
+                }
+                Section {
+                    Text("Les rappels sont programmés chaque jour aux heures sélectionnées.")
+                        .font(.caption).foregroundColor(.secondary)
+                }
+            }
+            .navigationTitle("Rappels Rituel")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("OK") { dismiss() }
                 }
             }
         }

@@ -54,6 +54,9 @@ final class CacheService {
         "profil_data":        30 * 60,
         // Coach tip: valid all day — keyed by date so auto-rotates at midnight
         "coach_tip":          24 * 3600,
+        // Ritual — force-cleared on write but still registered for consistency
+        "ritual_today": 5 * 60,
+        "ritual_streak": 5 * 60,
     ]
 
     init(directory: URL? = nil) {

@@ -109,6 +109,22 @@ struct SeasonView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(Color.secondary)
 
+            // G7: ritual completion rate for this season
+            if let rate = season.ritualCompletionRate, rate > 0 {
+                HStack(spacing: 8) {
+                    Image(systemName: "flame.fill").font(.system(size: 11)).foregroundStyle(Color.forge)
+                    Text("Rituel \(Int(rate * 100))% cette saison").font(.system(size: 12)).foregroundStyle(Color.secondary)
+                    Spacer()
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Color.secondary.opacity(0.15)).frame(height: 4)
+                            Capsule().fill(Color.forge).frame(width: geo.size.width * CGFloat(rate), height: 4)
+                        }
+                    }
+                    .frame(width: 80, height: 4)
+                }
+            }
+
             if season.dayNumber >= 80 {
                 Button {
                     showClose = true

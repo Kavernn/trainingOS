@@ -1,0 +1,9 @@
+-- Migration 048: extend daily_ritual with micro-rituals checklist + reflection
+ALTER TABLE daily_ritual ADD COLUMN IF NOT EXISTS reflection TEXT;
+ALTER TABLE daily_ritual ADD COLUMN IF NOT EXISTS weight_logged BOOLEAN DEFAULT FALSE;
+ALTER TABLE daily_ritual ADD COLUMN IF NOT EXISTS hydration_done BOOLEAN DEFAULT FALSE;
+ALTER TABLE daily_ritual ADD COLUMN IF NOT EXISTS mobility_done BOOLEAN DEFAULT FALSE;
+ALTER TABLE daily_ritual ADD COLUMN IF NOT EXISTS protein_done BOOLEAN DEFAULT FALSE;
+ALTER TABLE daily_ritual ADD COLUMN IF NOT EXISTS gratitude TEXT;
+ALTER TABLE daily_ritual ADD COLUMN IF NOT EXISTS winddown_done BOOLEAN DEFAULT FALSE;
+ALTER TABLE daily_ritual ADD COLUMN IF NOT EXISTS cold_done BOOLEAN DEFAULT FALSE;

@@ -116,6 +116,7 @@ struct StatsView: View {
     @State private var graveyardCount:   Int                    = 0
     @State private var deloadStatus:     DeloadStatusData?      = nil
     @State private var intensityData:    IntensityData?         = nil
+    @State private var ritualStats:      RitualStats?           = nil
 
     // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
     @State private var cachedCurrentStreak: Int = 0
@@ -171,7 +172,7 @@ struct StatsView: View {
 
     var weeklyFrequency: [(String, Double)] {
         var counts: [String: Double] = [:]
-        sessions.keys.forEach { counts[isoWeekKey($0), default: 0] += 1 }
+        filteredSessions.keys.forEach { counts[isoWeekKey($0), default: 0] += 1 }
         return last8Weeks.map { ($0, counts[$0] ?? 0) }
     }
 
@@ -804,6 +805,12 @@ struct StatsView: View {
                 .padding(.horizontal, 16)
         }
 
+        // F3 + G2: Phoenix Ritual section
+        if let rs = ritualStats {
+            PhoenixRitualStatsCard(stats: rs)
+                .padding(.horizontal, 16)
+        }
+
         Spacer(minLength: 32)
     }
 
@@ -1123,6 +1130,11 @@ struct StatsView: View {
                let (d, _) = try? await URLSession.authed.data(from: url),
                let r = try? JSONDecoder().decode(IntensityData.self, from: d) {
                 await MainActor.run { intensityData = r }
+            }
+        }
+        Task {
+            if let rs = try? await APIService.shared.fetchRitualStats() {
+                await MainActor.run { ritualStats = rs }
             }
         }
     }
@@ -2993,6 +3005,118 @@ struct VolumeLandmarksCard: View {
     }
 }
 
+
+// MARK: - Phoenix Ritual Stats Card (F3 + G2)
+struct PhoenixRitualStatsCard: View {
+    let stats: RitualStats
+    private let red = Color(hex: "FF2D20")
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(red)
+                Text("RITUEL PHOENIX")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(Color(white: 0.45))
+                Spacer()
+            }
+
+            HStack(spacing: 0) {
+                phoenixKPI(value: "\(stats.phoenixStreak)", label: "Streak actuel", accent: stats.phoenixStreak >= 3)
+                Divider().background(Color(white: 0.12)).frame(height: 40)
+                phoenixKPI(value: "\(stats.phoenixBest)", label: "Meilleur streak", accent: false)
+                Divider().background(Color(white: 0.12)).frame(height: 40)
+                phoenixKPI(value: "\(stats.phoenixTotalBurned)", label: "Total tués", accent: false)
+            }
+
+            Divider().background(Color(white: 0.1))
+
+            HStack(spacing: 16) {
+                rateBar(label: "7 jours", rate: stats.completionRate7d, burnRate: stats.burnRate7d)
+                rateBar(label: "30 jours", rate: stats.completionRate30d, burnRate: stats.burnRate30d)
+            }
+
+            if !stats.weeklyCompletions.isEmpty {
+                weeklyBars
+            }
+        }
+        .padding(16)
+        .background(Color(white: 0.06))
+        .cornerRadius(12)
+    }
+
+    private func phoenixKPI(value: String, label: String, accent: Bool) -> some View {
+        VStack(spacing: 4) {
+            Text(value)
+                .font(.system(size: 28, weight: .black))
+                .foregroundColor(accent ? red : .white)
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(Color(white: 0.35))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func rateBar(label: String, rate: Double, burnRate: Double) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundColor(Color(white: 0.35))
+            HStack(spacing: 4) {
+                Text("\(Int(rate * 100))%")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                Text("complété")
+                    .font(.system(size: 10))
+                    .foregroundColor(Color(white: 0.35))
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(white: 0.1)).frame(height: 4)
+                    HStack(spacing: 0) {
+                        Capsule().fill(red).frame(width: geo.size.width * CGFloat(burnRate), height: 4)
+                        Capsule().fill(Color(white: 0.25)).frame(width: geo.size.width * CGFloat(max(0, rate - burnRate)), height: 4)
+                    }
+                }
+            }
+            .frame(height: 4)
+            Text("\(Int(burnRate * 100))% BURNED")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(red.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var weeklyBars: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("SEMAINES RÉCENTES")
+                .font(.system(size: 9, weight: .bold))
+                .tracking(2)
+                .foregroundColor(Color(white: 0.28))
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(stats.weeklyCompletions.suffix(8)) { entry in
+                    VStack(spacing: 2) {
+                        ZStack(alignment: .bottom) {
+                            RoundedRectangle(cornerRadius: 3).fill(Color(white: 0.1)).frame(width: 20, height: 32)
+                            if entry.completed > 0 {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(entry.burned == entry.completed ? red : Color(white: 0.3))
+                                    .frame(width: 20, height: min(32, CGFloat(entry.completed) * 4.5))
+                            }
+                        }
+                        Text(String(entry.week.suffix(2)))
+                            .font(.system(size: 8))
+                            .foregroundColor(Color(white: 0.25))
+                    }
+                }
+                Spacer()
+            }
+        }
+    }
+}
 
 // MARK: - Stats Tab Bar
 struct StatsTabBar: View {

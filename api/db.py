@@ -2481,7 +2481,7 @@ def get_nutrition_entries(date: str) -> List[dict]:
 def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
     """Return one summary row per day for the last n distinct days.
 
-    Returns [{"date": ..., "calories": ..., "proteines": ..., "nb": ...}, ...] newest first.
+    Returns [{"date": ..., "calories": ..., "proteines": ..., "glucides": ..., "lipides": ..., "nb": ...}, ...] newest first.
     """
     if _client is None or MODE == "OFFLINE":
         return []
@@ -2491,7 +2491,7 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
         cutoff = (_date.today() - timedelta(days=n * 2)).isoformat()
         resp = (
             _client.table("nutrition_entries")
-            .select("date, calories, proteines")
+            .select("date, calories, proteines, glucides, lipides")
             .gte("date", cutoff)
             .order("date", desc=True)
             .execute()
@@ -2502,14 +2502,18 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
         for row in rows:
             d = row["date"]
             if d not in seen:
-                seen[d] = {"date": d, "calories": 0, "proteines": 0.0, "nb": 0}
+                seen[d] = {"date": d, "calories": 0, "proteines": 0.0, "glucides": 0.0, "lipides": 0.0, "nb": 0}
             seen[d]["calories"]  += row.get("calories", 0)
             seen[d]["proteines"] += row.get("proteines", 0)
+            seen[d]["glucides"]  += row.get("glucides", 0)
+            seen[d]["lipides"]   += row.get("lipides", 0)
             seen[d]["nb"] += 1
         sorted_days = sorted(seen.values(), key=lambda x: x["date"], reverse=True)[:n]
         for day in sorted_days:
             day["calories"]  = round(day["calories"])
             day["proteines"] = round(day["proteines"], 1)
+            day["glucides"]  = round(day["glucides"], 1)
+            day["lipides"]   = round(day["lipides"], 1)
         return sorted_days
 
     try:
@@ -5477,10 +5481,13 @@ def get_ritual_demons() -> List[dict]:
         return []
 
     def _do() -> List[dict]:
+        from datetime import date as _date, timedelta as _td
+        cutoff = (_date.today() - _td(days=180)).isoformat()
         resp = (
             _client.table("daily_ritual")
             .select("date, intention, carry_count, carried_from, truth")
             .eq("outcome", "survived")
+            .gte("date", cutoff)
             .order("date", desc=False)
             .execute()
         )
@@ -5497,6 +5504,60 @@ def get_ritual_demons() -> List[dict]:
                 return []
         logger.error("get_ritual_demons error: %s", e)
         return []
+
+
+def get_ritual_history_full(limit: int = 90, offset: int = 0) -> List[dict]:
+    """Return full ritual history with all fields for biography view."""
+    if _client is None or MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            _client.table("daily_ritual")
+            .select("date, outcome, intention, truth, carry_count, carried_from, reflection, morning_at, evening_at")
+            .order("date", desc=True)
+            .range(offset, offset + limit - 1)
+            .execute()
+        )
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("get_ritual_history_full retry: %s", e2)
+                return []
+        logger.error("get_ritual_history_full error: %s", e)
+        return []
+
+
+def count_ritual_entries() -> int:
+    """Return total number of ritual entries for pagination."""
+    if _client is None or MODE == "OFFLINE":
+        return 0
+
+    def _do() -> int:
+        resp = (
+            _client.table("daily_ritual")
+            .select("date", count="exact")
+            .execute()
+        )
+        return resp.count or 0
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("count_ritual_entries retry: %s", e2)
+                return 0
+        logger.error("count_ritual_entries error: %s", e)
+        return 0
 
 
 # ── War Room ──────────────────────────────────────────────────────────────────

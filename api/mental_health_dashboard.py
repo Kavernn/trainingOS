@@ -38,6 +38,7 @@ def get_summary(days: int = 7) -> dict:
       "correlations":        [str],
       "pss_score":           int | null,
       "pss_category":        str | null,
+      "pss_date":            str | null,
     }
     """
     mood_records = mood_history(days)
@@ -77,6 +78,7 @@ def get_summary(days: int = 7) -> dict:
         "correlations":        correlations,
         "pss_score":           pss.get("score")    if pss else None,
         "pss_category":        pss.get("category") if pss else None,
+        "pss_date":            pss.get("date")     if pss else None,
     }
 
 
