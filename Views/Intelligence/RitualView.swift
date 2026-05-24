@@ -239,81 +239,129 @@ struct RitualBiographyView: View {
 struct RitualDoneView: View {
     let ritual: RitualToday
     let onDemons: () -> Void
+    @State private var showHeatMap = false
+
+    private var todayLabel: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "EEEE d MMMM"
+        fmt.locale = Locale(identifier: "fr_CA")
+        return fmt.string(from: Date()).capitalized
+    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            VStack(spacing: 20) {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                // Date header
+                Text(todayLabel)
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(white: 0.25))
+                    .tracking(1)
+                    .padding(.top, 40)
+
+                Spacer(minLength: 32)
+
                 // Outcome badge
-                if ritual.burnedToday {
-                    Image(systemName: "flame.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(Color(hex: "FF2D20"))
-                } else {
-                    Image(systemName: "moon.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(.gray)
-                }
-
-                Text(ritual.burnedToday ? "BURNED" : "SURVIVED")
-                    .font(.system(size: 13, weight: .black))
-                    .tracking(4)
-                    .foregroundColor(ritual.burnedToday ? Color(hex: "FF2D20") : .gray)
-
-                // Phoenix streak
-                if ritual.phoenixStreak > 0 {
-                    VStack(spacing: 6) {
-                        Text("\(ritual.phoenixStreak)")
-                            .font(.system(size: 64, weight: .black))
-                            .foregroundColor(.white)
-                        Text("JOURS CONSÉCUTIFS")
-                            .font(.system(size: 11, weight: .bold))
-                            .tracking(3)
+                VStack(spacing: 16) {
+                    if ritual.burnedToday {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 52))
+                            .foregroundColor(Color(hex: "FF2D20"))
+                    } else {
+                        Image(systemName: "moon.fill")
+                            .font(.system(size: 52))
                             .foregroundColor(.gray)
                     }
-                    .padding(.top, 8)
-                }
 
-                Text("\(ritual.phoenixTotalBurned) intentions tuées au total")
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(white: 0.4))
-            }
-            Spacer()
+                    Text(ritual.burnedToday ? "BURNED" : "SURVIVED")
+                        .font(.system(size: 13, weight: .black))
+                        .tracking(5)
+                        .foregroundColor(ritual.burnedToday ? Color(hex: "FF2D20") : .gray)
 
-            VStack(spacing: 12) {
-                // F6: heatmap shortcut
-                NavigationLink(destination: RitualHeatMapView()) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "calendar.badge.checkmark")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(white: 0.3))
-                        Text("Voir le calendrier")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(white: 0.3))
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 10))
-                            .foregroundColor(Color(white: 0.2))
-                    }
-                    .padding(.horizontal, 24)
-                }
-                .buttonStyle(.plain)
-
-                // Demons link
-                if !ritual.demons.isEmpty {
-                    Button(action: onDemons) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "moon.stars.fill").font(.system(size: 13))
-                            Text("\(ritual.demons.count) démon\(ritual.demons.count > 1 ? "s" : "") en attente")
-                                .font(.system(size: 13, weight: .medium))
+                    if ritual.phoenixStreak > 0 {
+                        VStack(spacing: 4) {
+                            Text("\(ritual.phoenixStreak)")
+                                .font(.system(size: 64, weight: .black))
+                                .foregroundColor(.white)
+                            Text("JOURS CONSÉCUTIFS")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(3)
+                                .foregroundColor(Color(white: 0.3))
                         }
-                        .foregroundColor(Color(white: 0.35))
+                        .padding(.top, 4)
+                    }
+
+                    Text("\(ritual.phoenixTotalBurned) intentions tuées au total")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color(white: 0.3))
+                }
+
+                Spacer(minLength: 48)
+
+                // "Come back tomorrow" message
+                Text(ritual.burnedToday ? "Reviens demain pour continuer la série." : "Reviens demain et tue-le.")
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(white: 0.2))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+
+                Spacer(minLength: 36)
+
+                // Action cards
+                VStack(spacing: 10) {
+                    // F6: heatmap card
+                    Button { showHeatMap = true } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "calendar.badge.checkmark")
+                                .font(.system(size: 14))
+                                .foregroundColor(Color(white: 0.4))
+                                .frame(width: 30)
+                            Text("Voir le calendrier")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(Color(white: 0.55))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color(white: 0.2))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(Color(white: 0.06))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+
+                    // Demons card
+                    if !ritual.demons.isEmpty {
+                        Button(action: onDemons) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "moon.stars.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Color(white: 0.3))
+                                    .frame(width: 30)
+                                Text("\(ritual.demons.count) démon\(ritual.demons.count > 1 ? "s" : "") persistant\(ritual.demons.count > 1 ? "s" : "")")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(Color(white: 0.45))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color(white: 0.2))
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(Color(white: 0.06))
+                            .cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 48)
             }
-            .padding(.bottom, 40)
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
+        .navigationDestination(isPresented: $showHeatMap) {
+            RitualHeatMapView()
+        }
     }
 }
 

@@ -367,10 +367,9 @@ struct DashboardView: View {
                             .buttonStyle(.plain)
                             .padding(.trailing, 20)
                         }
-                        .padding(.bottom, 20)
+                        .padding(.bottom, 12)
                     }
                     .allowsHitTesting(true)
-                    .ignoresSafeArea(edges: .bottom)
                 }
             }
             .navigationBarHidden(true)

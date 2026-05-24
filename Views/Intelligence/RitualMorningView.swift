@@ -13,6 +13,7 @@ struct RitualMorningView: View {
     @State private var hydrationDone = false
     @State private var mobilityDone  = false
     @State private var proteinDone   = false
+    @State private var showSpirit    = false
 
     private let red = Color(hex: "FF2D20")
 
@@ -66,6 +67,7 @@ struct RitualMorningView: View {
                     .padding(.bottom, 40)
             }
         }
+        .sheet(isPresented: $showSpirit) { SpiritView() }
         .onAppear {
             if let demon = ritual.carriedIntention {
                 intention  = demon
@@ -237,7 +239,7 @@ struct RitualMorningView: View {
 
     // G4: optional Void session before declaring war
     private var voidShortcut: some View {
-        NavigationLink(destination: SpiritView()) {
+        Button { showSpirit = true } label: {
             HStack(spacing: 8) {
                 Image(systemName: "wind")
                     .font(.system(size: 12))
