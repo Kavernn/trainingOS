@@ -4128,8 +4128,9 @@ def get_life_stress_score_db(date: str) -> Optional[dict]:
         return None
 
     def _do() -> Optional[dict]:
-        resp = _client.table("life_stress_scores").select("*").eq("date", date).single().execute()
-        return resp.data
+        resp = _client.table("life_stress_scores").select("*").eq("date", date).limit(1).execute()
+        rows = resp.data or []
+        return rows[0] if rows else None
 
     try:
         return _do()
