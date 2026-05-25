@@ -3184,29 +3184,32 @@ def get_full_program(program_id: str | None = None) -> dict | None:
         return None
 
     def _do() -> dict | None:
-        q = _client.table("program_sessions").select("id, name, order_index")
+        q = _client.table("program_sessions").select(
+            "id, name, order_index, "
+            "program_blocks(id, type, order_index, hiit_config, "
+            "program_block_exercises(scheme, order_index, exercises(name)))"
+        ).order("order_index")
         if program_id:
             q = q.eq("program_id", program_id)
-        sessions = (q.order("order_index").execute().data) or []
+        sessions = q.execute().data or []
         if not sessions:
             return {}
         program: dict = {}
-        for session in sessions:
-            sid, sname = session["id"], session["name"]
-            blocks_data = (_client.table("program_blocks")
-                           .select("id, type, order_index, hiit_config")
-                           .eq("session_id", sid).order("order_index")
-                           .execute().data) or []
+        for session in sorted(sessions, key=lambda s: s.get("order_index", 0)):
+            sname = session["name"]
             built_blocks = []
+            blocks_data = sorted(
+                session.get("program_blocks") or [],
+                key=lambda b: b.get("order_index", 0),
+            )
             for block in blocks_data:
-                bid   = block["id"]
-                btype = block.get("type", "strength")
+                btype  = block.get("type", "strength")
                 border = block.get("order_index", 0)
                 if btype == "strength":
-                    ex_rows = (_client.table("program_block_exercises")
-                               .select("scheme, order_index, exercises(name)")
-                               .eq("block_id", bid).order("order_index")
-                               .execute().data) or []
+                    ex_rows = sorted(
+                        block.get("program_block_exercises") or [],
+                        key=lambda e: e.get("order_index", 0),
+                    )
                     exercises = {
                         (r.get("exercises") or {}).get("name"): r.get("scheme", "3x8-12")
                         for r in ex_rows if (r.get("exercises") or {}).get("name")
