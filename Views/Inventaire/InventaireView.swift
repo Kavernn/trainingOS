@@ -53,7 +53,7 @@ struct InventaireView: View {
     @State private var errorMsg: String?
     @State private var pendingDelete: String?
 
-    let types      = ["Tous", "barbell", "ez-bar", "dumbbell", "cable", "machine", "bodyweight"]
+    let types      = ["Tous", "barbell", "ez-bar", "dumbbell", "cable", "cable_double", "machine", "bodyweight"]
     let categories = ["Tous", "push", "pull", "legs", "core", "mobility"]
 
     var filtered: [InventoryItem] {
@@ -294,6 +294,7 @@ struct InventaireView: View {
         switch t {
         case "barbell": return "Barre"; case "ez-bar": return "EZ-Bar"
         case "dumbbell": return "Haltère"; case "cable": return "Câble"
+        case "cable_double": return "Câble ×2"
         case "machine": return "Machine"; case "bodyweight": return "Corps"
         default: return "Tous"
         }
@@ -310,6 +311,7 @@ struct InventaireView: View {
         switch t {
         case "barbell": return .orange; case "ez-bar": return .yellow
         case "dumbbell": return .blue; case "cable": return .teal
+        case "cable_double": return .teal
         case "machine": return .purple; case "bodyweight": return .green
         default: return .gray
         }
@@ -342,19 +344,20 @@ struct InventaireRow: View {
 
     var typeIcon: String {
         switch item.type {
-        case "barbell":    return "chart.bar.fill"
-        case "ez-bar":     return "chart.bar.fill"
-        case "dumbbell":   return "dumbbell.fill"
-        case "cable":      return "link"
-        case "bodyweight": return "figure.walk"
-        default:           return "figure.strengthtraining.traditional"
+        case "barbell":      return "chart.bar.fill"
+        case "ez-bar":       return "chart.bar.fill"
+        case "dumbbell":     return "dumbbell.fill"
+        case "cable":        return "link"
+        case "cable_double": return "arrow.left.and.right.circle"
+        case "bodyweight":   return "figure.walk"
+        default:             return "figure.strengthtraining.traditional"
         }
     }
 
     var typeColor: Color {
         switch item.type {
         case "barbell": return .orange; case "ez-bar": return .yellow
-        case "dumbbell": return .blue; case "cable": return .teal
+        case "dumbbell": return .blue; case "cable", "cable_double": return .teal
         case "bodyweight": return .green; default: return .purple
         }
     }
@@ -472,7 +475,7 @@ struct InventoryFormSheet: View {
     @State private var restSecs: Int? = nil   // nil = pas de repos configuré
     @State private var loadProfile   = ""     // "" | "compound_heavy" | "compound_hypertrophy" | "isolation"
 
-    let types      = ["barbell", "ez-bar", "dumbbell", "cable", "machine", "bodyweight"]
+    let types      = ["barbell", "ez-bar", "dumbbell", "cable", "cable_double", "machine", "bodyweight"]
     let categories = ["", "push", "pull", "legs", "core", "mobility"]
     let levels     = ["", "beginner", "intermediate", "advanced"]
     let schemes    = ["3x5", "4x5-7", "3x8-10", "4x8-10", "3x10-12", "4x12-15", "3x15"]
@@ -776,11 +779,11 @@ struct InventoryFormSheet: View {
     private var typeGrid: some View {
         let icons: [String: String] = [
             "barbell": "Barre", "ez-bar": "EZ-Bar", "dumbbell": "Haltère",
-            "cable": "Câble", "machine": "Machine", "bodyweight": "Corps"
+            "cable": "Câble", "cable_double": "Câble ×2", "machine": "Machine", "bodyweight": "Corps"
         ]
         let colors: [String: Color] = [
             "barbell": .orange, "ez-bar": .yellow, "dumbbell": .blue,
-            "cable": .teal, "machine": .purple, "bodyweight": .green
+            "cable": .teal, "cable_double": .teal, "machine": .purple, "bodyweight": .green
         ]
         return LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), spacing: 8)], spacing: 8) {
             ForEach(types, id: \.self) { t in

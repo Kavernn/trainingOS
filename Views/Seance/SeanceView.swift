@@ -607,18 +607,19 @@ struct PostSessionEditSheet: View {
     private func weightLabel(_ eq: String) -> String {
         let u = UnitSettings.shared.label.uppercased()
         switch eq {
-        case "barbell":  return "PAR CÔTÉ (\(u))"
-        case "dumbbell": return "PAR HALTÈRE (\(u))"
-        default:         return "POIDS (\(u))"
+        case "barbell":      return "PAR CÔTÉ (\(u))"
+        case "dumbbell":     return "PAR HALTÈRE (\(u))"
+        case "cable_double": return "PAR CÂBLE (\(u))"
+        default:             return "POIDS (\(u))"
         }
     }
 
     private func displayWeight(_ stored: Double, eq: String) -> String {
         let perSide: Double
         switch eq {
-        case "barbell":  perSide = stored > 45 ? (stored - 45) / 2 : 0
-        case "dumbbell": perSide = stored / 2
-        default:         perSide = stored
+        case "barbell":                  perSide = stored > 45 ? (stored - 45) / 2 : 0
+        case "dumbbell", "cable_double": perSide = stored / 2
+        default:                         perSide = stored
         }
         let display = UnitSettings.shared.display(perSide)
         return display > 0 ? String(format: "%.1f", display) : ""
@@ -626,9 +627,9 @@ struct PostSessionEditSheet: View {
 
     private func storedWeight(_ input: Double, eq: String) -> Double {
         switch eq {
-        case "barbell":  return input * 2 + 45
-        case "dumbbell": return input * 2
-        default:         return input
+        case "barbell":                  return input * 2 + 45
+        case "dumbbell", "cable_double": return input * 2
+        default:                         return input
         }
     }
 

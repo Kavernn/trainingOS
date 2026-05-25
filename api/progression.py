@@ -42,19 +42,23 @@ _INCREMENT_MATRIX: dict[tuple[str, str], float] = {
     ("compound_heavy",       "barbell"):  5.0,
     ("compound_heavy",       "dumbbell"): 5.0,
     ("compound_heavy",       "machine"):  5.0,
-    ("compound_heavy",       "cable"):    5.0,
+    ("compound_heavy",       "cable"):         5.0,
+    ("compound_heavy",       "cable_double"):  5.0,
     ("compound_hypertrophy", "barbell"):  5.0,
     ("compound_hypertrophy", "dumbbell"): 5.0,
     ("compound_hypertrophy", "machine"):  5.0,
     ("compound_hypertrophy", "cable"):    2.5,
+    ("compound_hypertrophy", "cable_double"): 2.5,
     ("isolation",            "barbell"):  2.5,
     ("isolation",            "dumbbell"): 2.5,
     ("isolation",            "machine"):  2.5,
     ("isolation",            "cable"):    2.5,
+    ("isolation",            "cable_double"):  2.5,
     ("endurance_strength",   "barbell"):  2.5,
     ("endurance_strength",   "dumbbell"): 2.5,
     ("endurance_strength",   "machine"):  2.5,
     ("endurance_strength",   "cable"):    2.5,
+    ("endurance_strength",   "cable_double"):  2.5,
 }
 _DEFAULT_INCREMENT = 2.5
 
@@ -229,16 +233,22 @@ def suggest_next_weight(
     history: list[dict] | None = None,
     avg_rir: float | None = None,
     fatigue_score: int | None = None,
+    hrv_zone: str | None = None,
 ) -> tuple[float, str]:
     """
     Returns (suggested_weight, action) where action ∈ {increase, maintain, decrease}.
 
-    Applies fatigue cap after computing the base suggestion:
-      fatigue_score >= 70 → block any increase
-      fatigue_score >= 50 → cap increase to half increment
+    Priority order for caps (highest wins) :
+      1. hrv_zone == 'red'   → block any increase (HRV override)
+      2. fatigue_score >= 70 → block any increase
+      3. fatigue_score >= 50 → cap to half increment
     """
     inc = _get_increment(exercise, inventory)
     new_w, action = _suggest_uncapped(exercise, current_weight, last_reps, rpe, inc, history, avg_rir)
+
+    # HRV red zone — block weight increase regardless of RPE
+    if hrv_zone == "red" and action == "increase":
+        return (current_weight, "maintain")
 
     # Fatigue cap
     if fatigue_score is not None and action == "increase":
@@ -258,16 +268,25 @@ def prescribe_volume(
     rep_max: int = 12,
     fatigue_score: int | None = None,
     history: list[dict] | None = None,
+    hrv_zone: str | None = None,
 ) -> dict:
     """
-    Prescribe sets × rep range for next session, adjusting for fatigue and trend.
+    Prescribe sets × rep range for next session, adjusting for fatigue, HRV, and trend.
 
     Returns {sets, rep_min, rep_max, note}.
     base_sets comes from the programme scheme (e.g. "3x8-10" → 3).
+
+    HRV override (applied before fatigue cap) :
+      hrv_zone == 'red' → -1 set (≈ 20% volume reduction), message contextuel
     """
     MAX_SETS = 4
     sets  = min(base_sets, MAX_SETS)
     notes: list[str] = []
+
+    # HRV red zone — volume réduit ~20% (1 set)
+    if hrv_zone == "red":
+        sets = max(2, sets - 1)
+        notes.append("HRV rouge → volume -20%")
 
     # Fatigue adjustment: reduce volume when fatigued
     if fatigue_score is not None:
@@ -279,8 +298,9 @@ def prescribe_volume(
             notes.append(f"fatigue modérée → {sets} sets")
 
     # Trend: ride a wave of positive progression → add a set (max 4)
+    # Skip if HRV is red — ne pas augmenter le volume en récupération compromise
     rate = compute_progression_rate(history) if history else None
-    if rate is not None and rate >= 1.0:
+    if rate is not None and rate >= 1.0 and hrv_zone != "red":
         if fatigue_score is None or fatigue_score < 50:
             sets = min(MAX_SETS, sets + 1)
             notes.append("progression ↑ +1 set")

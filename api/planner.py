@@ -154,7 +154,7 @@ def get_suggested_weights_for_today(weights: dict, program: dict | None = None) 
         inv_type   = inv_entry.get("type", "")
         if inv_type == "barbell":
             input_type = "barbell"
-        elif inv_type == "dumbbell":
+        elif inv_type in ("dumbbell", "cable_double"):
             input_type = "dumbbell"
         else:
             input_type = data.get("input_type", "total")

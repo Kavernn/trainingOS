@@ -442,7 +442,7 @@ enum EquipmentConversion: Equatable {
         let dumbbell  = Set(["dumbbell"])
         let barbell   = Set(["barbell", "ez-bar"])
         let machine   = Set(["machine"])
-        let freeTypes = Set(["barbell", "ez-bar", "dumbbell", "cable", "bodyweight"])
+        let freeTypes = Set(["barbell", "ez-bar", "dumbbell", "cable", "cable_double", "bodyweight"])
         switch (originalType, replacementType) {
         case let (a, b) where dumbbell.contains(a)  && barbell.contains(b):   self = .dumbbellToBarbell
         case let (a, b) where barbell.contains(a)   && dumbbell.contains(b):  self = .barbellToDumbbell

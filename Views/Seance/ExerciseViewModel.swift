@@ -160,10 +160,10 @@ final class ExerciseViewModel: ObservableObject {
     var inputHint: Double {
         guard currentWeight > 0 else { return 0 }
         switch equipmentType {
-        case "barbell":    return max(0, (currentWeight - 45) / 2)
-        case "dumbbell":   return currentWeight / 2
-        case "bodyweight": return 0
-        default:           return currentWeight
+        case "barbell":                  return max(0, (currentWeight - 45) / 2)
+        case "dumbbell", "cable_double": return currentWeight / 2
+        case "bodyweight":               return 0
+        default:                         return currentWeight
         }
     }
 
@@ -193,10 +193,10 @@ final class ExerciseViewModel: ObservableObject {
 
     func totalWeight(for input: Double) -> Double {
         switch equipmentType {
-        case "bodyweight": return input
-        case "barbell":    return input * 2 + 45
-        case "dumbbell":   return input * 2
-        default:           return input
+        case "bodyweight":               return input
+        case "barbell":                  return input * 2 + 45
+        case "dumbbell", "cable_double": return input * 2
+        default:                         return input
         }
     }
 
@@ -206,10 +206,10 @@ final class ExerciseViewModel: ObservableObject {
             let w = lastSets[index].weight
             let perSide: Double
             switch equipmentType {
-            case "barbell":    perSide = w > 45 ? (w - 45) / 2 : 0
-            case "dumbbell":   perSide = w / 2
-            case "bodyweight": return "0.0"
-            default:           perSide = w
+            case "barbell":                  perSide = w > 45 ? (w - 45) / 2 : 0
+            case "dumbbell", "cable_double": perSide = w / 2
+            case "bodyweight":               return "0.0"
+            default:                         perSide = w
             }
             if perSide > 0 { return units.inputStr(perSide) }
         }

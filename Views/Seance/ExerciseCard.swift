@@ -352,32 +352,35 @@ struct ExerciseCard: View {
 
     private var equipmentLabel: String {
         switch evm.equipmentType {
-        case "barbell":    return "Barre"
-        case "ez-bar":     return "EZ-Bar"
-        case "dumbbell":   return "Haltères"
-        case "bodyweight": return "Poids corps"
-        case "cable":      return "Câble"
-        default:           return "Machine"
+        case "barbell":      return "Barre"
+        case "ez-bar":       return "EZ-Bar"
+        case "dumbbell":     return "Haltères"
+        case "bodyweight":   return "Poids corps"
+        case "cable":        return "Câble"
+        case "cable_double": return "Câble ×2"
+        default:             return "Machine"
         }
     }
 
     private var weightColumnLabel: String {
         switch evm.equipmentType {
-        case "barbell":    return "POIDS PAR CÔTÉ (\(units.label.uppercased()))"
-        case "dumbbell":   return "POIDS PAR HALTÈRE (\(units.label.uppercased()))"
-        case "bodyweight": return "LEST (\(units.label.uppercased()))"
-        case "ez-bar":     return "POIDS TOTAL (\(units.label.uppercased()))"
-        default:           return "POIDS (\(units.label.uppercased()))"
+        case "barbell":      return "POIDS PAR CÔTÉ (\(units.label.uppercased()))"
+        case "dumbbell":     return "POIDS PAR HALTÈRE (\(units.label.uppercased()))"
+        case "cable_double": return "POIDS PAR CÂBLE (\(units.label.uppercased()))"
+        case "bodyweight":   return "LEST (\(units.label.uppercased()))"
+        case "ez-bar":       return "POIDS TOTAL (\(units.label.uppercased()))"
+        default:             return "POIDS (\(units.label.uppercased()))"
         }
     }
 
     private func equipmentIcon(_ type: String) -> String {
         switch type {
-        case "barbell", "ez-bar": return "minus.circle.fill"
-        case "dumbbell":          return "dumbbell.fill"
-        case "bodyweight":        return "figure.walk"
-        case "cable":             return "arrow.up.and.down.circle"
-        default:                  return "gearshape.fill"
+        case "barbell", "ez-bar":        return "minus.circle.fill"
+        case "dumbbell":                 return "dumbbell.fill"
+        case "bodyweight":               return "figure.walk"
+        case "cable":                    return "arrow.up.and.down.circle"
+        case "cable_double":             return "arrow.left.and.right.circle"
+        default:                         return "gearshape.fill"
         }
     }
 
@@ -519,7 +522,7 @@ struct ExerciseCard: View {
                             isDisabled: evm.setBySetMode && !isActive && !isDone,
                             autoFocus: i == 0 && !alreadyLogged && !evm.setBySetMode
                         )
-                        if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" {
+                        if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
                             let rawVal = Double(evm.sets[i].weight.replacingOccurrences(of: ",", with: ".")) ?? 0
                             let totalLbs = evm.totalWeight(for: units.toStorage(rawVal))
                             if totalLbs > 0 {
@@ -753,7 +756,7 @@ struct ExerciseCard: View {
 
     @ViewBuilder private var avgTotalRow: some View {
         switch evm.equipmentType {
-        case "barbell", "dumbbell":
+        case "barbell", "dumbbell", "cable_double":
             if let avg = evm.avgWeight {
                 let avgLbs = units.toStorage(avg)
                 let total  = evm.totalWeight(for: avgLbs)
@@ -1075,8 +1078,9 @@ struct ExerciseCard: View {
                 Button { evm.equipmentType = "ez-bar" }     label: { Label("EZ-Bar",      systemImage: "waveform") }
                 Button { evm.equipmentType = "dumbbell" }   label: { Label("Haltères",    systemImage: "dumbbell.fill") }
                 Button { evm.equipmentType = "machine" }    label: { Label("Machine",     systemImage: "gearshape.fill") }
-                Button { evm.equipmentType = "cable" }      label: { Label("Câble",       systemImage: "arrow.up.and.down.circle") }
-                Button { evm.equipmentType = "bodyweight" } label: { Label("Poids corps", systemImage: "figure.walk") }
+                Button { evm.equipmentType = "cable" }        label: { Label("Câble",        systemImage: "arrow.up.and.down.circle") }
+                Button { evm.equipmentType = "cable_double" } label: { Label("Câble ×2",     systemImage: "arrow.left.and.right.circle") }
+                Button { evm.equipmentType = "bodyweight" }   label: { Label("Poids corps",  systemImage: "figure.walk") }
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: equipmentIcon(evm.equipmentType)).font(.system(size: 11))
@@ -1364,12 +1368,12 @@ struct ExerciseCard: View {
         if let history = weightData?.history, !history.isEmpty {
             let historyPerSide: (Double) -> Double = { stored in
                 switch evm.equipmentType {
-                case "barbell":  return max(0, (stored - 45) / 2)
-                case "dumbbell": return stored / 2
-                default:         return stored
+                case "barbell":                  return max(0, (stored - 45) / 2)
+                case "dumbbell", "cable_double": return stored / 2
+                default:                         return stored
                 }
             }
-            let showPerSide = evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell"
+            let showPerSide = evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double"
             let sparkData: [Double] = history.reversed().compactMap { entry -> Double? in
                 guard let w = entry.weight else { return nil }
                 return historyPerSide(w)

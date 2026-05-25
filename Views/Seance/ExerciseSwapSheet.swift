@@ -48,12 +48,13 @@ struct ExerciseSwapSheet: View {
 
     private func typeLabel(_ type: String) -> String {
         switch type {
-        case "barbell":    return "Barre"
-        case "ez-bar":     return "EZ-Bar"
-        case "dumbbell":   return "Haltères"
-        case "bodyweight": return "Poids corps"
-        case "cable":      return "Câble"
-        default:           return "Machine"
+        case "barbell":      return "Barre"
+        case "ez-bar":       return "EZ-Bar"
+        case "dumbbell":     return "Haltères"
+        case "bodyweight":   return "Poids corps"
+        case "cable":        return "Câble"
+        case "cable_double": return "Câble ×2"
+        default:             return "Machine"
         }
     }
 

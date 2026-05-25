@@ -15,15 +15,16 @@ struct CreateVariantSheet: View {
     @State private var errorMessage: String? = nil
     @Environment(\.dismiss) private var dismiss
 
-    private let availableTypes = ["barbell", "dumbbell", "machine", "cable", "bodyweight", "ez-bar"]
+    private let availableTypes = ["barbell", "dumbbell", "machine", "cable", "cable_double", "bodyweight", "ez-bar"]
     private func typeLabel(_ t: String) -> String {
         switch t {
-        case "barbell":    return "Barre"
-        case "ez-bar":     return "EZ-Bar"
-        case "dumbbell":   return "Haltères"
-        case "bodyweight": return "Poids corps"
-        case "cable":      return "Câble"
-        default:           return "Machine"
+        case "barbell":      return "Barre"
+        case "ez-bar":       return "EZ-Bar"
+        case "dumbbell":     return "Haltères"
+        case "bodyweight":   return "Poids corps"
+        case "cable":        return "Câble"
+        case "cable_double": return "Câble ×2"
+        default:             return "Machine"
         }
     }
 
