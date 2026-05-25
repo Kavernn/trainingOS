@@ -2,9 +2,14 @@ import SwiftUI
 
 struct DemonsView: View {
     let demons: [RitualDemon]
-    @State private var localDemons: [RitualDemon] = []
+    @State private var localDemons: [RitualDemon]
     @State private var killingDate: String? = nil
     @Environment(\.dismiss) private var dismiss
+
+    init(demons: [RitualDemon]) {
+        self.demons = demons
+        self._localDemons = State(initialValue: demons)
+    }
 
     var body: some View {
         NavigationStack {
@@ -26,7 +31,6 @@ struct DemonsView: View {
                 }
             }
         }
-        .onAppear { localDemons = demons }
     }
 
     private func killDemon(_ demon: RitualDemon) {
