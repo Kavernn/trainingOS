@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - Insights
 struct InsightEntry: Codable, Identifiable {
@@ -636,6 +637,72 @@ struct HRVBaseline: Codable {
         case todayHrv   = "today_hrv"
         case flagRest   = "flag_rest"
         case dataPoints = "data_points"
+    }
+}
+
+// MARK: - HRV Analysis (professional-grade)
+struct HRVDataPoint: Codable, Identifiable {
+    let date: String
+    let hrv:  Double
+    var id: String { date }
+}
+
+struct HRVAnalysis: Codable {
+    let todayRmssd:         Double?
+    let hrv7dAvg:           Double?
+    let hrv30dAvg:          Double?
+    let hrvCv:              Double?
+    let hrvScore:           Double?
+    let hrvZone:            String?
+    let hrvTrend:           String?
+    let consecutiveLowDays: Int
+    let streakAlert:        Bool
+    let contextualMessage:  String?
+    let history7d:          [HRVDataPoint]
+    let baselineAvailable:  Bool
+    let dataPoints7d:       Int
+    let dataPoints30d:      Int
+
+    enum CodingKeys: String, CodingKey {
+        case todayRmssd         = "today_rmssd"
+        case hrv7dAvg           = "hrv_7d_avg"
+        case hrv30dAvg          = "hrv_30d_avg"
+        case hrvCv              = "hrv_cv"
+        case hrvScore           = "hrv_score"
+        case hrvZone            = "hrv_zone"
+        case hrvTrend           = "hrv_trend"
+        case consecutiveLowDays = "consecutive_low_days"
+        case streakAlert        = "streak_alert"
+        case contextualMessage  = "contextual_message"
+        case history7d          = "history_7d"
+        case baselineAvailable  = "baseline_available"
+        case dataPoints7d       = "data_points_7d"
+        case dataPoints30d      = "data_points_30d"
+    }
+
+    var zoneColor: Color {
+        switch hrvZone {
+        case "green":  return .green
+        case "orange": return .orange
+        case "red":    return .red
+        default:       return .gray
+        }
+    }
+
+    var trendArrow: String {
+        switch hrvTrend {
+        case "up":   return "↑"
+        case "down": return "↓"
+        default:     return "→"
+        }
+    }
+
+    var trendColor: Color {
+        switch hrvTrend {
+        case "up":   return .green
+        case "down": return .red
+        default:     return .gray
+        }
     }
 }
 

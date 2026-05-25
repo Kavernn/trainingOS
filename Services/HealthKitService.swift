@@ -181,17 +181,35 @@ class HealthKitService: ObservableObject {
         return await fetchLatestQuantity(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))
     }
 
-    /// HRV for a specific date — daily average via statistics query, same 48h window as fetchRestingHR.
+    /// HRV for a specific date — morning window 04:00–10:00 (HRV4Training standard).
+    /// Falls back to 20:00 previous day – 10:00 target day if no morning samples.
+    /// Apple Watch heartRateVariabilitySDNN reports RMSSD despite the identifier name.
     func fetchHRV(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .heartRateVariabilitySDNN) else { return nil }
-        let cal   = ({ var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone.current; return c }())
-        let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: date)!)
-        let end   = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: date))!
-        let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone.current
+
+        // Primary: morning window 04:00–10:00 (pre-activity, most stable RMSSD)
+        guard let morningStart = cal.date(bySettingHour: 4,  minute: 0, second: 0, of: date),
+              let morningEnd   = cal.date(bySettingHour: 10, minute: 0, second: 0, of: date) else { return nil }
+
+        let morningPred = HKQuery.predicateForSamples(withStart: morningStart, end: morningEnd)
+        let morningVal: Double? = await withCheckedContinuation { cont in
+            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: morningPred, options: .discreteAverage) { _, stats, _ in
+                cont.resume(returning: stats?.averageQuantity()?.doubleValue(for: .secondUnit(with: .milli)))
+            }
+            store.execute(q)
+        }
+        if let v = morningVal { return v }
+
+        // Fallback: overnight window (20:00 previous day – 10:00 target day)
+        // Covers watches worn during sleep without pre-wake measurements
+        let prevDay     = cal.date(byAdding: .day, value: -1, to: date)!
+        guard let nightStart = cal.date(bySettingHour: 20, minute: 0, second: 0, of: prevDay) else { return nil }
+        let nightPred   = HKQuery.predicateForSamples(withStart: nightStart, end: morningEnd)
         return await withCheckedContinuation { cont in
-            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .discreteAverage) { _, stats, _ in
-                let val = stats?.averageQuantity()?.doubleValue(for: .secondUnit(with: .milli))
-                cont.resume(returning: val)
+            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: nightPred, options: .discreteAverage) { _, stats, _ in
+                cont.resume(returning: stats?.averageQuantity()?.doubleValue(for: .secondUnit(with: .milli)))
             }
             store.execute(q)
         }

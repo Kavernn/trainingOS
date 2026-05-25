@@ -33,31 +33,53 @@ def _load_cardio_log() -> list:
 
 # ── Score de récupération (0 – 10) ──────────────────────────────────────────
 
-def compute_recovery_score(entry: dict) -> Optional[float]:
+def compute_recovery_score(
+    entry: dict,
+    hrv_analysis: dict | None = None,
+) -> Optional[float]:
     """
     Score composite basé sur les métriques de récupération disponibles.
 
-    Composantes (pondérées) :
-      - Qualité du sommeil   : 0-10          (poids 1.0)
-      - Durée du sommeil     : objectif 8 h  (poids 1.0, normalisé 0-10)
-      - Douleurs musculaires : inversé       (poids 1.0, 10-soreness)
-      - HRV                  : réf. 60 ms   (poids 0.5, normalisé 0-10)
+    Pondération cible (HRV4Training-level) :
+      - HRV normalisé        : 40%  (score personnel vs baseline 7j)
+      - Qualité du sommeil   : 15%
+      - Durée du sommeil     : 15%  (objectif 8 h)
+      - Douleurs musculaires : 20%  (inversé)
+      - Énergie perçue       : 10%
+
+    hrv_analysis : dict retourné par hrv_engine.compute_hrv_analysis().
+      Si fourni, utilise hrv_score (0-100) normalisé sur baseline personnelle.
+      Si absent, fallback sur valeur brute / 60 ms (référence générale).
 
     Retourne None si aucune donnée.
     """
     score, weight = 0.0, 0.0
 
+    # HRV — 40% — baseline personnelle si disponible, sinon référence absolue
+    hrv_contributed = False
+    if hrv_analysis and hrv_analysis.get("baseline_available") and hrv_analysis.get("hrv_score") is not None:
+        hrv_norm = min(float(hrv_analysis["hrv_score"]) / 100.0 * 10, 10)
+        score   += hrv_norm * 4.0;  weight += 4.0
+        hrv_contributed = True
+    elif not hrv_contributed and entry.get("hrv") is not None:
+        hrv_norm = min(float(entry["hrv"]) / 60.0 * 10, 10)
+        score   += hrv_norm * 4.0;  weight += 4.0
+
+    # Sommeil qualité — 15%
     if (sq := entry.get("sleep_quality")) is not None:
-        score += float(sq) * 1.0;  weight += 1.0
+        score += float(sq) * 1.5;  weight += 1.5
 
+    # Sommeil durée — 15%
     if (sh := entry.get("sleep_hours")) is not None:
-        score += min(float(sh) / 8.0 * 10, 10) * 1.0;  weight += 1.0
+        score += min(float(sh) / 8.0 * 10, 10) * 1.5;  weight += 1.5
 
+    # Douleurs — 20%
     if (s := entry.get("soreness")) is not None:
-        score += (10.0 - float(s)) * 1.0;  weight += 1.0
+        score += (10.0 - float(s)) * 2.0;  weight += 2.0
 
-    if (hrv := entry.get("hrv")) is not None:
-        score += min(float(hrv) / 60.0 * 10, 10) * 0.5;  weight += 0.5
+    # Énergie perçue — 10%
+    if (ep := entry.get("energy_pre")) is not None:
+        score += min(float(ep) / 5.0 * 10, 10) * 1.0;  weight += 1.0
 
     return round(score / weight, 1) if weight > 0 else None
 

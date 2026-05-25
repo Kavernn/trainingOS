@@ -144,7 +144,8 @@ struct DashboardView: View {
                                     nutritionSettings: dash.nutritionSettings,
                                     moodDue: vm.moodDue,
                                     readinessIsLocal: vm.readinessIsLocal,
-                                    onMoodTap: { showMoodSheet = true }
+                                    onMoodTap: { showMoodSheet = true },
+                                    hrvAnalysis: vm.hrvAnalysis
                                 )
                                 .appearAnimation(delay: 0.10)
 
@@ -2053,7 +2054,8 @@ struct MorningBriefCompactView: View {
 // MARK: - Recovery Snapshot Strip
 
 struct RecoverySnapshotView: View {
-    let recovery: RecoveryEntry
+    let recovery:    RecoveryEntry
+    var hrvAnalysis: HRVAnalysis? = nil
 
     var body: some View {
         HStack(spacing: 0) {
@@ -2064,7 +2066,14 @@ struct RecoverySnapshotView: View {
                 SnapMetric(icon: "heart.fill", value: "\(Int(rhr))", label: "FC repos", color: .red)
             }
             if let hrv = recovery.hrv {
-                SnapMetric(icon: "waveform.path.ecg", value: "\(Int(hrv))ms", label: "HRV", color: .green)
+                let zoneColor = hrvAnalysis?.zoneColor ?? .green
+                let arrow     = hrvAnalysis != nil ? " \(hrvAnalysis!.trendArrow)" : ""
+                SnapMetric(
+                    icon:  "waveform.path.ecg",
+                    value: "\(Int(hrv))ms\(arrow)",
+                    label: "HRV",
+                    color: zoneColor
+                )
             }
             if let steps = recovery.steps {
                 let stepsStr = steps >= 1000 ? String(format: "%.1fk", Double(steps) / 1000.0) : "\(steps)"

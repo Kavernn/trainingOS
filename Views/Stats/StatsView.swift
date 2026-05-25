@@ -108,6 +108,7 @@ struct StatsView: View {
     @State private var pushPullRatio:      WeeklyReportPushPull?       = nil
     @State private var sorenessThreshold:  SorenessThreshold?          = nil
     @State private var hrvBaseline:        HRVBaseline?                = nil
+    @State private var hrvAnalysis:        HRVAnalysis?                = nil
 
     // ── New stats data ────────────────────────────────────────────────────
     @State private var adherenceData:    AdherenceData?         = nil
@@ -745,7 +746,7 @@ struct StatsView: View {
 
         // 1. HRV en tête (actionnable immédiatement)
         if let hrv = hrvBaseline, hrv.baseline != nil {
-            HRVBaselineCard(data: hrv)
+            HRVBaselineCard(data: hrv, analysis: hrvAnalysis)
                 .padding(.horizontal, 16)
         }
 
@@ -1096,6 +1097,11 @@ struct StatsView: View {
                let (d, _) = try? await URLSession.authed.data(from: url),
                let r = try? JSONDecoder().decode(HRVBaseline.self, from: d) {
                 await MainActor.run { hrvBaseline = r }
+            }
+        }
+        Task {
+            if let r = try? await APIService.shared.fetchHRVAnalysis() {
+                await MainActor.run { hrvAnalysis = r }
             }
         }
         Task {
@@ -4239,27 +4245,55 @@ struct SorenessThresholdCard: View {
 // MARK: - HRV Baseline Card
 
 struct HRVBaselineCard: View {
-    let data: HRVBaseline
+    let data:     HRVBaseline
+    var analysis: HRVAnalysis? = nil
+
+    private var accentColor: Color { analysis?.zoneColor ?? (data.flagRest ? .red : .cyan) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+
+            // ── En-tête ──────────────────────────────────────────────────────
             HStack {
                 Image(systemName: "waveform.path.ecg")
-                    .foregroundColor(data.flagRest ? .red : .cyan)
+                    .foregroundColor(accentColor)
                 Text("BASELINE HRV PERSONNALISÉE")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
-                if data.flagRest {
-                    Text("⚠️ REPOS")
-                        .font(.system(size: 10, weight: .black))
-                        .foregroundColor(.red)
+                if let a = analysis, a.streakAlert {
+                    Text("⚠️ FATIGUE \(a.consecutiveLowDays)J")
+                        .font(.system(size: 10, weight: .black)).foregroundColor(.red)
                         .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Color.red.opacity(0.12))
-                        .clipShape(Capsule())
+                        .background(Color.red.opacity(0.12)).clipShape(Capsule())
+                } else if data.flagRest {
+                    Text("⚠️ REPOS")
+                        .font(.system(size: 10, weight: .black)).foregroundColor(.red)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Color.red.opacity(0.12)).clipShape(Capsule())
                 }
             }
 
+            // ── Métriques ─────────────────────────────────────────────────────
             HStack(spacing: 16) {
+                if let today = data.todayHrv {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("AUJOURD'HUI").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        HStack(spacing: 3) {
+                            Text(String(format: "%.0f ms", today))
+                                .font(.system(size: 18, weight: .black)).foregroundColor(accentColor)
+                            if let a = analysis {
+                                Text(a.trendArrow).font(.system(size: 13, weight: .bold)).foregroundColor(a.trendColor)
+                            }
+                        }
+                    }
+                }
+                if let avg7 = analysis?.hrv7dAvg {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("MOY. 7J").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(String(format: "%.0f ms", avg7))
+                            .font(.system(size: 18, weight: .black)).foregroundColor(.white.opacity(0.8))
+                    }
+                }
                 if let baseline = data.baseline {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("BASELINE 28J").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
@@ -4267,34 +4301,50 @@ struct HRVBaselineCard: View {
                             .font(.system(size: 18, weight: .black)).foregroundColor(.cyan)
                     }
                 }
-                if let sd = data.sd {
+                if let cv = analysis?.hrvCv {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("CV 30J").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text(String(format: "%.0f%%", cv))
+                            .font(.system(size: 18, weight: .black))
+                            .foregroundColor(cv < 10 ? .green : cv < 20 ? .orange : .red)
+                    }
+                }
+                if let sd = data.sd, analysis?.hrvCv == nil {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("±SD").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.0f ms", sd))
                             .font(.system(size: 18, weight: .black)).foregroundColor(.gray)
                     }
                 }
-                if let today = data.todayHrv {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("AUJOURD'HUI").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                        Text(String(format: "%.0f ms", today))
-                            .font(.system(size: 18, weight: .black))
-                            .foregroundColor(data.flagRest ? .red : .green)
-                    }
-                }
                 Spacer()
             }
 
-            if let msg = data.message {
+            // ── Score normalisé ───────────────────────────────────────────────
+            if let a = analysis, let score = a.hrvScore, a.baselineAvailable {
+                HStack(spacing: 6) {
+                    Text(String(format: "%.0f%%", score))
+                        .font(.system(size: 22, weight: .black)).foregroundColor(accentColor)
+                    Text("vs baseline 7j")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                }
+            }
+
+            // ── Message contextuel ────────────────────────────────────────────
+            if let msg = analysis?.contextualMessage {
+                Text(msg)
+                    .font(.system(size: 12))
+                    .foregroundColor(analysis?.hrvZone == "red" ? .red.opacity(0.9) : .gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if let msg = data.message {
                 Text(msg)
                     .font(.system(size: 12)).foregroundColor(.red.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
             } else if let dev = data.deviation {
-                Text(dev >= 0 ? String(format: "+%.0f ms vs baseline", dev) : String(format: "%.0f ms vs baseline", dev))
+                Text(dev >= 0 ? String(format: "+%.0f ms vs baseline 28j", dev) : String(format: "%.0f ms vs baseline 28j", dev))
                     .font(.system(size: 11)).foregroundColor(dev >= 0 ? .green : .orange)
             }
 
-            Text("\(data.dataPoints) jours de données")
+            Text("\(data.dataPoints) jours (baseline 28j) · \(analysis?.dataPoints30d ?? 0) jours au total")
                 .font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
         }
         .padding(14)

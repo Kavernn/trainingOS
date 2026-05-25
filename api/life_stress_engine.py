@@ -26,7 +26,6 @@ Endpoints exposés dans index.py :
 """
 from __future__ import annotations
 
-import math
 from datetime import date as date_cls, timedelta
 from typing import Optional
 
@@ -35,6 +34,7 @@ from health_data  import _load_recovery_log
 from sessions     import load_sessions
 from deload       import detect_fatigue_rpe
 from pss          import get_latest_pss_score
+from hrv_engine   import compute_hrv_analysis
 
 
 # ── Constantes ────────────────────────────────────────────────────────────────
@@ -71,30 +71,12 @@ def _recent_rec_entries(days: int) -> list[dict]:
 
 def detect_hrv_drop(target_date: str) -> bool:
     """
-    Vrai si la HRV du jour est inférieure à (moyenne 7 j − 1 écart type).
-    Nécessite au moins 3 jours de données pour être significatif.
+    Vrai si hrv_zone == 'red' (today < 90% de la baseline 7j personnelle).
+    Nécessite au moins 3 jours de données. Délègue à hrv_engine.
     """
-    today     = date_cls.fromisoformat(target_date)
-    window    = [(today - timedelta(days=i)).isoformat() for i in range(1, 8)]
-    log       = _load_recovery_log()
-    log_by_date = {e["date"]: e for e in log if "date" in e}
-
-    past_hrvs = [
-        float(log_by_date[d]["hrv"])
-        for d in window
-        if d in log_by_date and log_by_date[d].get("hrv") is not None
-    ]
-    if len(past_hrvs) < 3:
-        return False
-
-    mean = sum(past_hrvs) / len(past_hrvs)
-    std  = math.sqrt(sum((x - mean) ** 2 for x in past_hrvs) / len(past_hrvs))
-
-    today_entry = log_by_date.get(target_date)
-    if not today_entry or today_entry.get("hrv") is None:
-        return False
-
-    return float(today_entry["hrv"]) < (mean - std)
+    rows     = _load_recovery_log()
+    analysis = compute_hrv_analysis(rows, target_date)
+    return bool(analysis.get("baseline_available") and analysis.get("hrv_zone") == "red")
 
 
 def detect_sleep_deprivation(target_date: str) -> bool:
@@ -128,29 +110,15 @@ def _score_sleep_quality(entry: dict) -> Optional[float]:
 
 def _score_hrv_trend(target_date: str) -> Optional[float]:
     """
-    Compare HRV du jour à la moyenne des 7 jours précédents.
-    Score 100 = au-dessus ou égal à la moyenne.
-    Score 0   = HRV du jour = 0.
+    Score HRV normalisé 0-100 (today / baseline 7j × 100), clampé.
+    Délègue à hrv_engine pour cohérence avec tous les autres calculs HRV.
     """
-    today     = date_cls.fromisoformat(target_date)
-    window    = [(today - timedelta(days=i)).isoformat() for i in range(1, 8)]
-    log_by_date = {e["date"]: e for e in _load_recovery_log() if "date" in e}
-
-    today_entry = log_by_date.get(target_date)
-    if not today_entry or today_entry.get("hrv") is None:
+    rows     = _load_recovery_log()
+    analysis = compute_hrv_analysis(rows, target_date)
+    if not analysis.get("baseline_available"):
         return None
-
-    today_hrv = float(today_entry["hrv"])
-    past_hrvs = [
-        float(log_by_date[d]["hrv"])
-        for d in window
-        if d in log_by_date and log_by_date[d].get("hrv") is not None
-    ]
-    baseline = sum(past_hrvs) / len(past_hrvs) if past_hrvs else _HRV_REFERENCE
-
-    if baseline <= 0:
-        return None
-    return _clamp((today_hrv / baseline) * 100.0)
+    score = analysis.get("hrv_score")
+    return _clamp(score) if score is not None else None
 
 
 def _score_rhr_trend(target_date: str) -> Optional[float]:

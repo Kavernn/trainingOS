@@ -856,6 +856,29 @@ def api_hrv_baseline():
     })
 
 
+# MARK: - HRV Analysis (professional-grade)
+
+@analytics_bp.route("/api/hrv/analysis")
+def api_hrv_analysis():
+    """
+    Analyse HRV complète niveau HRV4Training :
+      - RMSSD du jour (Apple Watch heartRateVariabilitySDNN = RMSSD)
+      - Baselines personnelles 7j et 30j (rolling)
+      - CV coefficient de variation 30j
+      - Score normalisé (today/7j_avg × 100) — green/orange/red
+      - Tendance linéaire 7j
+      - Streak d'alerte (≥3j consécutifs sous baseline)
+      - Message contextuel
+    """
+    import db as _db
+    from datetime import date as date_cls
+    from hrv_engine import compute_hrv_analysis
+
+    rows     = _db.get_recovery_logs(limit=95)
+    analysis = compute_hrv_analysis(rows, date_cls.today().isoformat())
+    return jsonify(analysis)
+
+
 # MARK: - Overtraining Risk
 
 @analytics_bp.route("/api/overtraining_risk")
@@ -1276,17 +1299,27 @@ def api_selfcare_pss_analysis():
 def api_readiness():
     """Return today's recovery/readiness score for pre-workout display."""
     from health_data import get_daily_health_summary, compute_recovery_score
+    from hrv_engine  import compute_hrv_analysis
     import db as _db
     from datetime import date as date_cls
 
     today   = date_cls.today().isoformat()
-    summary = get_daily_health_summary(today)
-    score   = summary.get("recovery_score")
 
-    # Also get individual components for display
+    # HRV analysis (personal baseline) — used by compute_recovery_score
+    rec_log_full = _db.get_recovery_logs(limit=95)
+    hrv_analysis = compute_hrv_analysis(rec_log_full, today)
+
+    summary = get_daily_health_summary(today)
+
+    # Recompute recovery score with personal HRV baseline
     rec_log  = _db.get_recovery_logs(limit=5)
     today_rec = next((e for e in rec_log if str(e.get("date",""))[:10] == today), None)
+    if today_rec:
+        score = compute_recovery_score(today_rec, hrv_analysis=hrv_analysis)
+    else:
+        score = summary.get("recovery_score")
 
+    # Individual components for display
     components = {}
     if today_rec:
         sq = today_rec.get("sleep_quality")
@@ -1298,13 +1331,8 @@ def api_readiness():
         if so is not None: components["soreness"]      = so
         if hv is not None: components["hrv"]           = hv
 
-    # HRV baseline comparison
-    from datetime import timedelta
-    hrv_history = [
-        float(e["hrv"]) for e in rec_log
-        if e.get("hrv") and str(e.get("date",""))[:10] != today
-    ]
-    hrv_baseline = round(sum(hrv_history) / len(hrv_history), 1) if hrv_history else None
+    # HRV baseline — use hrv_engine for consistency
+    hrv_baseline = hrv_analysis.get("hrv_7d_avg")
 
     # Readiness label
     if score is None:

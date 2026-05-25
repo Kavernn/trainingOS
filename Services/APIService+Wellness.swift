@@ -39,6 +39,13 @@ extension APIService {
         _ = try await offlinePost(endpoint: "/api/delete_recovery", payload: ["date": date])
     }
 
+    // MARK: - HRV Analysis
+    func fetchHRVAnalysis() async throws -> HRVAnalysis {
+        let url  = URL(string: "\(baseURL)/api/hrv/analysis")!
+        let data = try await fetchWithCache(url: url, key: "hrv_analysis")
+        return try JSONDecoder().decode(HRVAnalysis.self, from: data)
+    }
+
     // MARK: - PSS
     func fetchPSSQuestions(isShort: Bool = false) async throws -> [PSSQuestion] {
         let url = URL(string: "\(baseURL)/api/pss/questions?short=\(isShort)")!

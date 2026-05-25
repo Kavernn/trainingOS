@@ -26,6 +26,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var dailyPattern: PatternEntry?
     @Published var ritualToday: RitualToday?
     @Published var warRoomEnabled = false
+    @Published var hrvAnalysis: HRVAnalysis? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
 
@@ -113,6 +114,17 @@ final class DashboardViewModel: ObservableObject {
                     return 0
                 } catch {
                     self.logger.error("fetchRecovery: \(error, privacy: .public)")
+                    return 1
+                }
+            }
+            group.addTask { @MainActor in
+                do {
+                    // sequential — async let LIFO crash on iOS 26 beta
+                    let analysis = try await APIService.shared.fetchHRVAnalysis()
+                    self.hrvAnalysis = analysis
+                    return 0
+                } catch {
+                    self.logger.error("fetchHRVAnalysis: \(error, privacy: .public)")
                     return 1
                 }
             }

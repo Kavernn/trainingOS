@@ -37,6 +37,7 @@ struct RecoveryView: View {
     @State private var isBackfilling = false
     @State private var backfillDone  = false
     @State private var stats = RecoveryStats(log: [])
+    @State private var hrvAnalysis: HRVAnalysis? = nil
 
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
@@ -133,8 +134,11 @@ struct RecoveryView: View {
                                         label: "Pas moy./jour", color: .green)
                                 KPICard(value: avgActiveEnergy > 0 ? String(format: "%.0f kcal", avgActiveEnergy) : "—",
                                         label: "Énergie active", color: .orange)
-                                KPICard(value: avgHRV > 0 ? String(format: "%.0f ms", avgHRV) : "—",
-                                        label: "HRV moy.", color: .green)
+                                KPICard(
+                                    value: avgHRV > 0 ? String(format: "%.0f ms", avgHRV) : "—",
+                                    label: "HRV moy.",
+                                    color: hrvAnalysis?.zoneColor ?? .green
+                                )
                             }
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.05)
@@ -151,6 +155,13 @@ struct RecoveryView: View {
                                 }
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.06)
+                            }
+
+                            // HRV Analysis card — score normalisé personnel
+                            if let hrv = hrvAnalysis, hrv.baselineAvailable || hrv.todayRmssd != nil {
+                                HRVAnalysisCard(analysis: hrv)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.07)
                             }
 
                             // Readiness card
@@ -274,6 +285,9 @@ struct RecoveryView: View {
         isLoading = true
         log = (try? await APIService.shared.fetchRecoveryData()) ?? []
         stats = RecoveryStats(log: log)
+        // sequential — async let LIFO crash on iOS 26 beta
+        let analysis = try? await APIService.shared.fetchHRVAnalysis()
+        await MainActor.run { hrvAnalysis = analysis }
         isLoading = false
     }
 
@@ -1172,5 +1186,176 @@ struct WatchSyncBannerView: View {
         .padding(12)
         .background(Color.cyan.opacity(0.08))
         .cornerRadius(12)
+    }
+}
+
+// MARK: - HRV Analysis Card
+
+struct HRVAnalysisCard: View {
+    let analysis: HRVAnalysis
+
+    private var zoneLabel: String {
+        switch analysis.hrvZone {
+        case "green":  return "OPTIMAL"
+        case "orange": return "NORMAL"
+        case "red":    return "FAIBLE"
+        default:       return "—"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+
+            // ── En-tête ──────────────────────────────────────────────────────
+            HStack {
+                Image(systemName: "waveform.path.ecg")
+                    .foregroundColor(analysis.zoneColor)
+                Text("ANALYSE HRV PERSONNALISÉE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if analysis.streakAlert {
+                    Text("⚠️ FATIGUE")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.red)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Color.red.opacity(0.12))
+                        .clipShape(Capsule())
+                } else if let zone = analysis.hrvZone {
+                    Text(zoneLabel)
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(analysis.zoneColor)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(analysis.zoneColor.opacity(0.12))
+                        .clipShape(Capsule())
+                }
+            }
+
+            // ── Métriques principales ─────────────────────────────────────────
+            HStack(spacing: 16) {
+                if let today = analysis.todayRmssd {
+                    MetricPill(label: "AUJOURD'HUI", value: String(format: "%.0f ms", today), color: analysis.zoneColor)
+                }
+                if let avg7 = analysis.hrv7dAvg {
+                    MetricPill(label: "MOY. 7J", value: String(format: "%.0f ms", avg7), color: .gray)
+                }
+                if let avg30 = analysis.hrv30dAvg {
+                    MetricPill(label: "MOY. 30J", value: String(format: "%.0f ms", avg30), color: .gray)
+                }
+                if let cv = analysis.hrvCv {
+                    MetricPill(label: "CV 30J", value: String(format: "%.0f%%", cv), color: .gray)
+                }
+                Spacer()
+            }
+
+            // ── Score normalisé + tendance ────────────────────────────────────
+            if let score = analysis.hrvScore {
+                HStack(spacing: 8) {
+                    Text(String(format: "%.0f%%", score))
+                        .font(.system(size: 28, weight: .black))
+                        .foregroundColor(analysis.zoneColor)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("vs ta baseline 7j")
+                            .font(.system(size: 11)).foregroundColor(.gray)
+                        HStack(spacing: 4) {
+                            Text(analysis.trendArrow)
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(analysis.trendColor)
+                            if let trend = analysis.hrvTrend {
+                                Text(trend == "up" ? "en hausse" : trend == "down" ? "en baisse" : "stable")
+                                    .font(.system(size: 11)).foregroundColor(.gray)
+                            }
+                            if analysis.consecutiveLowDays >= 2 {
+                                Text("· \(analysis.consecutiveLowDays)j consécutifs")
+                                    .font(.system(size: 11)).foregroundColor(.orange)
+                            }
+                        }
+                    }
+                    Spacer()
+                }
+            }
+
+            // ── Sparkline 7j ─────────────────────────────────────────────────
+            if analysis.history7d.count >= 2 {
+                HRVSparkline(points: analysis.history7d, zoneColor: analysis.zoneColor)
+                    .frame(height: 36)
+            }
+
+            // ── Message contextuel ────────────────────────────────────────────
+            if let msg = analysis.contextualMessage {
+                Text(msg)
+                    .font(.system(size: 12))
+                    .foregroundColor(analysis.hrvZone == "red" ? .red.opacity(0.9) : .gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text("\(analysis.dataPoints7d) jours dans la baseline · \(analysis.dataPoints30d) jours au total")
+                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.5))
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+}
+
+private struct MetricPill: View {
+    let label: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+            Text(value).font(.system(size: 15, weight: .black)).foregroundColor(color)
+        }
+    }
+}
+
+private struct HRVSparkline: View {
+    let points:    [HRVDataPoint]
+    let zoneColor: Color
+
+    var body: some View {
+        let values = points.map(\.hrv)
+        let minV   = values.min() ?? 0
+        let maxV   = values.max() ?? 1
+        let range  = maxV - minV > 0 ? maxV - minV : 1
+
+        GeometryReader { geo in
+            let w   = geo.size.width
+            let h   = geo.size.height
+            let step = points.count > 1 ? w / CGFloat(points.count - 1) : w
+
+            ZStack(alignment: .leading) {
+                // Baseline line (avg of all points)
+                let avg = values.reduce(0, +) / Double(values.count)
+                let avgY = h - CGFloat((avg - minV) / range) * h
+                Path { p in
+                    p.move(to: CGPoint(x: 0, y: avgY))
+                    p.addLine(to: CGPoint(x: w, y: avgY))
+                }
+                .stroke(Color.gray.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+
+                // Sparkline
+                Path { p in
+                    for (i, pt) in points.enumerated() {
+                        let x = CGFloat(i) * step
+                        let y = h - CGFloat((pt.hrv - minV) / range) * h
+                        if i == 0 { p.move(to: CGPoint(x: x, y: y)) }
+                        else       { p.addLine(to: CGPoint(x: x, y: y)) }
+                    }
+                }
+                .stroke(zoneColor, lineWidth: 2)
+
+                // Last point dot
+                if let last = points.last {
+                    let x = CGFloat(points.count - 1) * step
+                    let y = h - CGFloat((last.hrv - minV) / range) * h
+                    Circle()
+                        .fill(zoneColor)
+                        .frame(width: 6, height: 6)
+                        .position(x: x, y: y)
+                }
+            }
+        }
     }
 }
