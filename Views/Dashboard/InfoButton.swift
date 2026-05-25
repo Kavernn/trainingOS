@@ -163,6 +163,58 @@ extension InfoEntry {
         ),
     ]
 
+    // Phoenix Score
+    static let phoenixEntries: [InfoEntry] = [
+        InfoEntry(
+            term: "Phoenix Score — c'est quoi ?",
+            definition: "Un score unique de –100 à +100 qui mesure ta transformation globale sur la semaine en cours. Il ne mesure pas ta forme du jour — il mesure si tu progresses ou tu régrèdes sur tous les axes de ta vie."
+        ),
+        InfoEntry(
+            term: "CORPS — axe entraînement",
+            definition: "Volume total de tes séances cette semaine vs la semaine précédente. Si tu t'entraînes plus (ou mieux), cet axe monte. Une semaine sans séance le fait chuter."
+        ),
+        InfoEntry(
+            term: "MENTAL — axe stress",
+            definition: "Basé sur ton PSS (Perceived Stress Scale) et ton Life Stress Score. Plus ton stress est bas et ta récupération mentale est bonne, plus cet axe est positif."
+        ),
+        InfoEntry(
+            term: "FUEL — axe nutrition",
+            definition: "Pourcentage de jours où tu as atteint tes objectifs de macros cette semaine. 100 % des jours = axe au max. Zéro log = axe négatif."
+        ),
+        InfoEntry(
+            term: "ESPRIT — axe rituels",
+            definition: "Taux de complétion de tes rituels quotidiens (matin + soir), séances de respiration, méditation et journaling. S'active après quelques jours de pratique."
+        ),
+        InfoEntry(
+            term: "Les 7 états",
+            definition: "Foundation → Cendres → Braises → Braises chaudes → Flamme → Envol → Supernova\n\nChaque état correspond à une plage de score. Supernova = tous les axes au maximum sur la semaine."
+        ),
+    ]
+
+    // Body Budget
+    static let bodyBudgetEntries: [InfoEntry] = [
+        InfoEntry(
+            term: "Body Budget — c'est quoi ?",
+            definition: "Un score de 0 à 100 qui estime la capacité de charge de ton corps aujourd'hui. Pense-y comme un compte en banque : chaque séance, chaque nuit courte, chaque stress le dépense. Le repos et la nutrition le rechargent."
+        ),
+        InfoEntry(
+            term: "Pilier Entraînement",
+            definition: "Volume et intensité cumulés sur les 7 derniers jours. Un volume trop élevé dos-à-dos sans récupération vide ce pilier. Il recharge dès que tu intègres un jour de repos ou que tu réduis l'intensité."
+        ),
+        InfoEntry(
+            term: "Pilier Stress",
+            definition: "Charge mentale basée sur ton PSS et ta HRV. Un stress chronique élevé ou une HRV basse draine ce pilier — même si tu t'entraînes bien et manges correctement."
+        ),
+        InfoEntry(
+            term: "Pilier Nutrition",
+            definition: "Adéquation de ton alimentation par rapport à tes objectifs de macros. Déficit calorique prolongé ou macros manquées plusieurs jours consécutifs réduisent ce score."
+        ),
+        InfoEntry(
+            term: "Interprétation",
+            definition: "75–100 → Budget plein : ton corps absorbe et récupère bien. Vas-y fort.\n50–74 → Budget modéré : entraîne-toi, mais surveille le volume.\n25–49 → Budget bas : réduis l'intensité, priorise le sommeil.\n0–24 → Budget épuisé : repos actif seulement."
+        ),
+    ]
+
     // RPE / RIR — shown in exercise card header and post-session recap
     static let rpeRirEntries: [InfoEntry] = [
         InfoEntry(

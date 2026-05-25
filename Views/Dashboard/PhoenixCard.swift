@@ -46,13 +46,18 @@ struct PhoenixCard: View {
     @ViewBuilder
     private func scoreSection(state: PhoenixState) -> some View {
         VStack(spacing: 5) {
-            VStack(spacing: 2) {
-                Text(score.isFoundation ? "PHOENIX SCORE" : state.label.uppercased())
-                    .font(.system(size: 9, weight: .black)).tracking(3)
-                    .foregroundColor(state.scoreColor.opacity(0.65))
-                Text("Ta transformation · semaine en cours")
-                    .font(.system(size: 9, weight: .regular))
-                    .foregroundColor(.white.opacity(0.28))
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 2) {
+                    Text(score.isFoundation ? "PHOENIX SCORE" : state.label.uppercased())
+                        .font(.system(size: 9, weight: .black)).tracking(3)
+                        .foregroundColor(state.scoreColor.opacity(0.65))
+                    Text("Ta transformation · semaine en cours")
+                        .font(.system(size: 9, weight: .regular))
+                        .foregroundColor(.white.opacity(0.28))
+                }
+                .frame(maxWidth: .infinity)
+                CardInfoButton(title: "Phoenix Score", entries: InfoEntry.phoenixEntries)
+                    .padding(.trailing, 14)
             }
 
             if score.isFoundation {

@@ -68,12 +68,71 @@ extension APIService {
         let (data, resp) = try await URLSession.authed.data(from: url)
         guard let http = resp as? HTTPURLResponse else { throw URLError(.badServerResponse) }
         if http.statusCode == 404 || http.statusCode == 503 {
+            // Fallback: query Open Food Facts directly
+            if let offResult = try? await scanBarcodeOpenFoodFacts(code) {
+                return offResult
+            }
             let msg = (try? JSONDecoder().decode([String: String].self, from: data))?["error"]
                       ?? "Produit introuvable"
             throw ScanLabelError(message: msg)
         }
         guard http.statusCode == 200 else { throw URLError(.badServerResponse) }
         return try JSONDecoder().decode(BarcodeResult.self, from: data)
+    }
+
+    private func scanBarcodeOpenFoodFacts(_ code: String) async throws -> BarcodeResult {
+        guard let url = URL(string: "https://world.openfoodfacts.org/api/v0/product/\(code).json") else {
+            throw URLError(.badURL)
+        }
+        var req = URLRequest(url: url)
+        req.setValue("TrainingOS/1.0 (iOS; contact@trainingos.app)", forHTTPHeaderField: "User-Agent")
+        req.timeoutInterval = 10
+        let (data, _) = try await URLSession.shared.data(for: req)
+
+        struct OFFResponse: Decodable {
+            let status: Int
+            let product: OFFProduct?
+            struct OFFProduct: Decodable {
+                let productName: String?
+                let servingSize: String?
+                let nutriments: OFFNutriments?
+                enum CodingKeys: String, CodingKey {
+                    case productName = "product_name"
+                    case servingSize = "serving_size"
+                    case nutriments
+                }
+            }
+            struct OFFNutriments: Decodable {
+                let energyKcal100g: Double?
+                let proteins100g: Double?
+                let carbohydrates100g: Double?
+                let fat100g: Double?
+                enum CodingKeys: String, CodingKey {
+                    case energyKcal100g    = "energy-kcal_100g"
+                    case proteins100g      = "proteins_100g"
+                    case carbohydrates100g = "carbohydrates_100g"
+                    case fat100g           = "fat_100g"
+                }
+            }
+        }
+
+        let response = try JSONDecoder().decode(OFFResponse.self, from: data)
+        guard response.status == 1, let product = response.product else {
+            throw ScanLabelError(message: "Produit introuvable")
+        }
+        let n = product.nutriments
+        let per100g = BarcodeResult.MacroSet(
+            calories:  Int(n?.energyKcal100g ?? 0),
+            proteines: n?.proteins100g ?? 0,
+            glucides:  n?.carbohydrates100g ?? 0,
+            lipides:   n?.fat100g ?? 0
+        )
+        return BarcodeResult(
+            nom: product.productName ?? "Produit scanné",
+            servingSize: product.servingSize,
+            per100g: per100g,
+            perServing: nil
+        )
     }
 
     func updateNutritionSettings(calories: Double, proteines: Double, glucides: Double,

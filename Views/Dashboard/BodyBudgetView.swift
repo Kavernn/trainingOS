@@ -49,11 +49,14 @@ private struct BodyBudgetContent: View {
                         Spacer()
                         TrendChip(trend: budget.trend)
                     }
-                    Text("Body Budget")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.gray)
-                        .tracking(0.5)
-                        .textCase(.uppercase)
+                    HStack(spacing: 4) {
+                        Text("Body Budget")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.gray)
+                            .tracking(0.5)
+                            .textCase(.uppercase)
+                        CardInfoButton(title: "Body Budget", entries: InfoEntry.bodyBudgetEntries)
+                    }
                 }
             }
 
