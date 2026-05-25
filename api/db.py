@@ -6435,10 +6435,10 @@ def get_spirit_metadata(days: int = 7) -> dict:
     if _client is None or MODE == "OFFLINE":
         return result
     try:
-        resp = _client.table("breathwork_sessions").select("date").gte("date", cutoff).execute()
+        resp = _client.table("breathwork_sessions").select("started_at").gte("started_at", cutoff + "T00:00:00").execute()
         bw_dates: set[str] = set()
         for row in (resp.data or []):
-            d = str(row.get("date") or "")[:10]
+            d = str(row.get("started_at") or "")[:10]
             if d >= cutoff:
                 bw_dates.add(d)
         result["breathwork_count"] = len(resp.data or [])
