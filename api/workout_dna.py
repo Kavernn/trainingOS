@@ -110,7 +110,7 @@ def _compute_intensity(history: dict, ex_info: dict) -> dict:
         for e in entries:
             if (e.get("date") or "") < cutoff:
                 continue
-            default_reps = int(e.get("reps") or 8)
+            default_reps = int(str(e.get("reps") or "8").split(",")[0].strip() or 8)
             sets_list    = e.get("sets")
 
             iter_reps: list[int] = []
@@ -292,7 +292,7 @@ def _compute_signature_lifts(history: dict) -> list:
                 first_weight = w
             if w > pr_weight:
                 pr_weight = w
-                pr_reps   = int(e.get("reps") or 1)
+                pr_reps   = int(str(e.get("reps") or "1").split(",")[0].strip() or 1)
                 pr_date   = d
             if d >= cutoff_30:
                 recency += 1

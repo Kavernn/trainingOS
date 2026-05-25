@@ -105,7 +105,7 @@ def _compute_top_prs() -> list[dict]:
     for name, data in history.items():
         max_w = 0.0
         max_r = 1
-        for entry in (data.get("history") or []):
+        for entry in (data if isinstance(data, list) else (data.get("history") or [])):
             for s in (entry.get("sets") or []):
                 w = s.get("weight") or 0
                 r = s.get("reps") or 1
@@ -182,7 +182,7 @@ def compute_season_stats(start_date: str, end_date: str, start_prs: list) -> dic
     prs_broken = []
     for name, data in history.items():
         best_in_period = 0.0
-        for entry in (data.get("history") or []):
+        for entry in (data if isinstance(data, list) else (data.get("history") or [])):
             if not (start_date <= entry.get("date", "") <= end_date):
                 continue
             for s in (entry.get("sets") or []):

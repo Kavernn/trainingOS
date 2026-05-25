@@ -86,7 +86,7 @@ def _pr_killed_tombstones() -> list[dict]:
     results = []
 
     for exercise_name, ex_data in history.items():
-        entries = sorted(ex_data.get("history") or [], key=lambda e: e.get("date", ""))
+        entries = sorted(ex_data if isinstance(ex_data, list) else (ex_data.get("history") or []), key=lambda e: e.get("date", ""))
         running_best = 0.0
         running_best_date = None
 
