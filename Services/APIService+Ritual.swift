@@ -30,6 +30,13 @@ extension APIService {
         return try JSONDecoder().decode(RitualEveningResult.self, from: data)
     }
 
+    func killDemon(date: String) async throws {
+        _ = try await offlinePost(endpoint: "/api/ritual/kill-demon", payload: ["date": date])
+        CacheService.shared.clear(for: "ritual_today")
+        CacheService.shared.clear(for: "ritual_streak")
+        CacheService.shared.clear(for: "ritual_stats")
+    }
+
     func fetchRitualStats() async throws -> RitualStats {
         let url  = URL(string: "\(baseURL)/api/ritual/stats")!
         let data = try await fetchWithCache(url: url, key: "ritual_stats")

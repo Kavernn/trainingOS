@@ -626,6 +626,41 @@ def api_ritual_correlations():
     })
 
 
+@ritual_bp.route("/api/ritual/kill-demon", methods=["POST"])
+def api_ritual_kill_demon():
+    """Kill a past survived intention directly without going through evening ritual."""
+    import db as _db
+
+    data = request.get_json(silent=True) or {}
+    demon_date = (data.get("date") or "").strip()
+    if not demon_date:
+        return jsonify({"error": "date is required"}), 400
+
+    existing = _db.get_ritual_today(demon_date)
+    if not existing:
+        return jsonify({"error": "Ritual not found for this date"}), 404
+    if existing.get("outcome") != "survived":
+        return jsonify({"error": "This intention is not in survived state"}), 400
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    patch = {**existing, "outcome": "burned"}
+    if not patch.get("evening_at"):
+        patch["evening_at"] = now_iso
+
+    ok = _db.upsert_ritual(patch)
+    if not ok:
+        return jsonify({"error": "Erreur base de données"}), 500
+
+    streak, best, total = _compute_phoenix()
+    return jsonify({
+        "ok": True,
+        "date": demon_date,
+        "phoenix_streak": streak,
+        "phoenix_best": best,
+        "phoenix_total_burned": total,
+    })
+
+
 @ritual_bp.route("/api/ritual/history-full")
 def api_ritual_history_full():
     """Full intention history for biography page (F1)."""

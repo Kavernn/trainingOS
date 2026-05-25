@@ -10,10 +10,11 @@ struct RitualMorningView: View {
     @FocusState private var focused: Bool
 
     // D: micro-ritual checklist local state (mirrors ritual values on appear)
-    @State private var hydrationDone = false
-    @State private var mobilityDone  = false
-    @State private var proteinDone   = false
-    @State private var showSpirit    = false
+    @State private var hydrationDone  = false
+    @State private var mobilityDone   = false
+    @State private var proteinDone    = false
+    @State private var showSpirit     = false
+    @State private var isKillingDemon = false
 
     private let red = Color(hex: "FF2D20")
 
@@ -120,10 +121,7 @@ struct RitualMorningView: View {
     }
 
     private func demonBanner(_ demon: String) -> some View {
-        Button(action: {
-            intention  = demon
-            useCarried = true
-        }) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 Image(systemName: "moon.stars.fill")
                     .font(.system(size: 14))
@@ -138,15 +136,72 @@ struct RitualMorningView: View {
                         .lineLimit(2)
                 }
                 Spacer()
-                Text("Tuer →")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(red.opacity(0.6))
             }
-            .padding(14)
-            .background(Color(white: 0.06))
-            .cornerRadius(10)
+            .padding(.horizontal, 14)
+            .padding(.top, 14)
+            .padding(.bottom, 10)
+
+            Rectangle()
+                .fill(Color(white: 0.1))
+                .frame(height: 1)
+                .padding(.horizontal, 14)
+
+            HStack(spacing: 0) {
+                Button(action: {
+                    intention  = demon
+                    useCarried = true
+                }) {
+                    Text("Reprendre →")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color(white: 0.45))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+
+                Rectangle()
+                    .fill(Color(white: 0.1))
+                    .frame(width: 1, height: 36)
+
+                Button(action: { killCarriedDemon() }) {
+                    Group {
+                        if isKillingDemon {
+                            ProgressView().tint(red).scaleEffect(0.7)
+                        } else {
+                            HStack(spacing: 4) {
+                                Image(systemName: "flame.fill")
+                                    .font(.system(size: 11))
+                                Text("Tuer")
+                                    .font(.system(size: 12, weight: .semibold))
+                            }
+                            .foregroundColor(red.opacity(0.75))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                }
+                .buttonStyle(.plain)
+                .disabled(isKillingDemon)
+            }
+            .padding(.horizontal, 14)
+            .padding(.bottom, 4)
         }
-        .buttonStyle(.plain)
+        .background(Color(white: 0.06))
+        .cornerRadius(10)
+    }
+
+    private func killCarriedDemon() {
+        guard let demonDate = ritual.carriedFrom, !isKillingDemon else { return }
+        isKillingDemon = true
+        Task {
+            do {
+                try await APIService.shared.killDemon(date: demonDate)
+                if let updated = try? await APIService.shared.fetchRitualToday() {
+                    await MainActor.run { onSaved(updated) }
+                }
+            } catch { }
+            await MainActor.run { isKillingDemon = false }
+        }
     }
 
     // D: Morning micro-ritual checklist

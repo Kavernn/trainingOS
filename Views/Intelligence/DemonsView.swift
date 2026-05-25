@@ -2,13 +2,15 @@ import SwiftUI
 
 struct DemonsView: View {
     let demons: [RitualDemon]
+    @State private var localDemons: [RitualDemon] = []
+    @State private var killingDate: String? = nil
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(hex: "0A0A0A").ignoresSafeArea()
-                if demons.isEmpty {
+                if localDemons.isEmpty {
                     emptyState
                 } else {
                     demonList
@@ -24,6 +26,26 @@ struct DemonsView: View {
                 }
             }
         }
+        .onAppear { localDemons = demons }
+    }
+
+    private func killDemon(_ demon: RitualDemon) {
+        guard killingDate == nil else { return }
+        killingDate = demon.date
+        localDemons.removeAll { $0.date == demon.date }
+        Task {
+            do {
+                try await APIService.shared.killDemon(date: demon.date)
+            } catch {
+                await MainActor.run {
+                    if !localDemons.contains(where: { $0.date == demon.date }) {
+                        localDemons.append(demon)
+                        localDemons.sort { $0.carryCount > $1.carryCount }
+                    }
+                }
+            }
+            await MainActor.run { killingDate = nil }
+        }
     }
 
     // F5: keyword frequency across all demon intentions
@@ -36,7 +58,7 @@ struct DemonsView: View {
             "in", "is", "it", "and", "or", "for", "with", "not", "no", "be", "do", "at",
             "aujourd", "hui", "vais", "fais", "ferai", "dois", "veux", "moi", "ça", "c"]
         var freq: [String: Int] = [:]
-        for demon in demons {
+        for demon in localDemons {
             let words = demon.intention
                 .lowercased()
                 .components(separatedBy: .whitespacesAndNewlines)
@@ -93,8 +115,10 @@ struct DemonsView: View {
                     .padding(.vertical, 4)
                 }
 
-                ForEach(demons.sorted(by: { $0.carryCount > $1.carryCount })) { demon in
-                    DemonCard(demon: demon)
+                ForEach(localDemons.sorted(by: { $0.carryCount > $1.carryCount })) { demon in
+                    DemonCard(demon: demon, isKilling: killingDate == demon.date) {
+                        killDemon(demon)
+                    }
                 }
                 .padding(.horizontal, 16)
 
@@ -121,6 +145,10 @@ struct DemonsView: View {
 
 private struct DemonCard: View {
     let demon: RitualDemon
+    let isKilling: Bool
+    let onKill: () -> Void
+
+    private let red = Color(hex: "FF2D20")
 
     // Fade older demons: opacity drops to 0.45 after 5+ days
     private var textOpacity: Double {
@@ -170,6 +198,22 @@ private struct DemonCard: View {
             .padding(.trailing, 12)
 
             Spacer()
+
+            Button(action: onKill) {
+                Group {
+                    if isKilling {
+                        ProgressView().tint(red).scaleEffect(0.7)
+                    } else {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(red.opacity(0.6))
+                    }
+                }
+                .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .disabled(isKilling)
+            .padding(.trailing, 8)
         }
         .background(Color(white: 0.05))
         .cornerRadius(10)
