@@ -1233,16 +1233,16 @@ struct HRVAnalysisCard: View {
             // ── Métriques principales ─────────────────────────────────────────
             HStack(spacing: 16) {
                 if let today = analysis.todayRmssd {
-                    MetricPill(label: "AUJOURD'HUI", value: String(format: "%.0f ms", today), color: analysis.zoneColor)
+                    HRVMetricPill(label: "AUJOURD'HUI", value: String(format: "%.0f ms", today), color: analysis.zoneColor)
                 }
                 if let avg7 = analysis.hrv7dAvg {
-                    MetricPill(label: "MOY. 7J", value: String(format: "%.0f ms", avg7), color: .gray)
+                    HRVMetricPill(label: "MOY. 7J", value: String(format: "%.0f ms", avg7), color: .gray)
                 }
                 if let avg30 = analysis.hrv30dAvg {
-                    MetricPill(label: "MOY. 30J", value: String(format: "%.0f ms", avg30), color: .gray)
+                    HRVMetricPill(label: "MOY. 30J", value: String(format: "%.0f ms", avg30), color: .gray)
                 }
                 if let cv = analysis.hrvCv {
-                    MetricPill(label: "CV 30J", value: String(format: "%.0f%%", cv), color: .gray)
+                    HRVMetricPill(label: "CV 30J", value: String(format: "%.0f%%", cv), color: .gray)
                 }
                 Spacer()
             }
@@ -1297,7 +1297,7 @@ struct HRVAnalysisCard: View {
     }
 }
 
-private struct MetricPill: View {
+private struct HRVMetricPill: View {
     let label: String
     let value: String
     let color: Color
