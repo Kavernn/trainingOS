@@ -5,6 +5,7 @@ struct RitualView: View {
     @State private var ritual: RitualToday? = nil
     @State private var isLoading = true
     @State private var showDemons = false
+    @State private var demonsSnapshot: [RitualDemon] = []
     @Environment(\.dismiss) private var dismiss
 
     private var phase: RitualPhase {
@@ -28,7 +29,10 @@ struct RitualView: View {
                     case .evening:
                         RitualEveningView(ritual: r) { updated in ritual = updated }
                     case .done:
-                        RitualDoneView(ritual: r, onDemons: { showDemons = true })
+                        RitualDoneView(ritual: r, onDemons: {
+                            demonsSnapshot = r.demons
+                            showDemons = true
+                        })
                     case .loading:
                         EmptyView()
                     }
@@ -48,7 +52,7 @@ struct RitualView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .sheet(isPresented: $showDemons) {
-            DemonsView(demons: ritual?.demons ?? [])
+            DemonsView(demons: demonsSnapshot)
         }
         .task { await load() }
     }
