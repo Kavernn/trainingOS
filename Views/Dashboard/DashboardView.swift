@@ -149,6 +149,9 @@ struct DashboardView: View {
                                 )
                                 .appearAnimation(delay: 0.10)
 
+                                HRVMorningNudgeView(analysis: vm.hrvAnalysis)
+                                    .appearAnimation(delay: 0.11)
+
                                 WeekProgressStripView(dash: dash)
                                     .appearAnimation(delay: 0.15)
 

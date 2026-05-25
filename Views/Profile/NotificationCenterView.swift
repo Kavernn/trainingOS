@@ -21,10 +21,13 @@ struct NotificationCenterView: View {
     @AppStorage("notif_on_streak_milestone") private var streakMilestone = true
 
     // MARK: - Récupération & Suivi
-    @AppStorage("notif_on_selfcare")  private var selfCare  = true
-    @AppStorage("notif_on_pss")       private var pss       = true
-    @AppStorage("notif_on_nutrition") private var nutrition = true
-    @AppStorage("notif_on_recap")     private var recap     = true
+    @AppStorage("notif_on_selfcare")    private var selfCare    = true
+    @AppStorage("notif_on_pss")         private var pss         = true
+    @AppStorage("notif_on_nutrition")   private var nutrition   = true
+    @AppStorage("notif_on_recap")       private var recap       = true
+    @AppStorage("notif_on_hrv_morning") private var hrvMorning  = true
+    @AppStorage("hrv_morning_hour")     private var hrvHour     = 7
+    @AppStorage("hrv_morning_minute")   private var hrvMinute   = 0
 
     // MARK: - Intelligence
     @AppStorage("notif_on_capsule")   private var capsule   = true
@@ -54,6 +57,17 @@ struct NotificationCenterView: View {
             set: {
                 eveningHour   = Calendar.current.component(.hour,   from: $0)
                 eveningMinute = Calendar.current.component(.minute, from: $0)
+                NotificationService.scheduleAll()
+            }
+        )
+    }
+
+    private var hrvDate: Binding<Date> {
+        Binding(
+            get: { Calendar.current.date(bySettingHour: hrvHour, minute: hrvMinute, second: 0, of: Date()) ?? Date() },
+            set: {
+                hrvHour   = Calendar.current.component(.hour,   from: $0)
+                hrvMinute = Calendar.current.component(.minute, from: $0)
                 NotificationService.scheduleAll()
             }
         )
@@ -178,6 +192,19 @@ struct NotificationCenterView: View {
 
     private var recoverySection: some View {
         Section("Récupération & Suivi") {
+            notifToggle(icon: "waveform.path.ecg", color: .cyan,
+                        title: "HRV du matin",
+                        subtitle: "Rappel quotidien — reste allongé pour mesurer",
+                        isOn: $hrvMorning,
+                        ids: ["hrv.morning.reminder"])
+            if hrvMorning {
+                HStack {
+                    Spacer().frame(width: 42)
+                    DatePicker("", selection: hrvDate, displayedComponents: .hourAndMinute)
+                        .environment(\.locale, Locale(identifier: "fr_CA"))
+                        .labelsHidden()
+                }
+            }
             notifToggle(icon: "moon.zzz.fill", color: .indigo,
                         title: "Self-care du soir",
                         subtitle: "Rappel quotidien — heure adaptée",

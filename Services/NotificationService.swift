@@ -38,6 +38,14 @@ enum NotificationService {
             scheduleRitualEveningReminder(hour: eveningHour > 0 ? eveningHour : 20,
                                           minute: eveningMin > 0 ? eveningMin : 30)
         }
+        let hrvHour   = UserDefaults.standard.integer(forKey: "hrv_morning_hour")
+        let hrvMinute = UserDefaults.standard.integer(forKey: "hrv_morning_minute")
+        if isEnabled("notif_on_hrv_morning") {
+            scheduleHRVMorningReminder(hour: hrvHour > 0 ? hrvHour : 7, minute: hrvMinute)
+        } else {
+            UNUserNotificationCenter.current()
+                .removePendingNotificationRequests(withIdentifiers: ["hrv.morning.reminder"])
+        }
     }
 
     /// Call after data loads, passing the sorted session dates.
@@ -304,6 +312,30 @@ enum NotificationService {
 
             var dc = DateComponents()
             dc.hour   = max(18, min(hour, 23))
+            dc.minute = minute
+
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+    }
+
+    // MARK: - HRV Morning Reminder (configurable hour — defaults to 07:00)
+
+    static func scheduleHRVMorningReminder(hour: Int = 7, minute: Int = 0) {
+        let center = UNUserNotificationCenter.current()
+        let id = "hrv.morning.reminder"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+
+            let content = UNMutableNotificationContent()
+            content.title = "Mesure HRV du matin"
+            content.body  = "Reste allongé et ouvre l'app — ta mesure du jour est prête."
+            content.sound = .default
+
+            var dc = DateComponents()
+            dc.hour   = max(4, min(hour, 10))
             dc.minute = minute
 
             let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)

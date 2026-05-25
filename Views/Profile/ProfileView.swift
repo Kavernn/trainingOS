@@ -46,6 +46,8 @@ struct ProfileView: View {
     @State private var oathUnlocked             = false
     @State private var warRoomVictoryStreak: Int = 0
     @State private var warRoomEnabled           = false
+    @AppStorage("hrv_onboarding_done") private var hrvOnboardingDone = false
+    @State private var showHRVOnboarding        = false
 
     var profile: UserProfile? { api.dashboard?.profile }
 
@@ -165,6 +167,9 @@ struct ProfileView: View {
             } message: { Text(photoError ?? "") }
             .sheet(isPresented: $showExportShare) {
                 if let url = exportURL { ShareSheet(items: [url]) }
+            }
+            .sheet(isPresented: $showHRVOnboarding) {
+                HRVOnboardingView(onDone: { showHRVOnboarding = false })
             }
         }
         .task { await loadData() }
@@ -847,6 +852,11 @@ struct ProfileView: View {
                 .padding(.horizontal, 14).padding(.vertical, 14)
             }
             .buttonStyle(.plain)
+            settingsDivider
+            settingsRow(icon: "waveform.path.ecg", color: .cyan, label: "Revoir l'intro HRV", detail: nil, action: {
+                hrvOnboardingDone = false
+                showHRVOnboarding = true
+            })
             settingsDivider
             settingsRow(icon: "square.and.arrow.up", color: .green,   label: "Export données", detail: nil,    action: {
                 Task { await exportData() }

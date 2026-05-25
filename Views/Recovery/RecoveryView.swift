@@ -38,6 +38,8 @@ struct RecoveryView: View {
     @State private var backfillDone  = false
     @State private var stats = RecoveryStats(log: [])
     @State private var hrvAnalysis: HRVAnalysis? = nil
+    @AppStorage("hrv_onboarding_done") private var hrvOnboardingDone = false
+    @State private var showHRVOnboarding = false
 
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
@@ -164,6 +166,33 @@ struct RecoveryView: View {
                                     .appearAnimation(delay: 0.07)
                             }
 
+                            // HRV baseline en construction (< 7 jours)
+                            if let hrv = hrvAnalysis, hrv.dataPoints7d < 7 {
+                                HRVBaselineProgressView(dataPoints: hrv.dataPoints7d)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.075)
+                            }
+
+                            // Contextual tips HRV (une seule fois par scénario)
+                            if let hrv = hrvAnalysis {
+                                if hrv.streakAlert {
+                                    HRVContextualTipView(
+                                        tipId: "streak_alert",
+                                        icon: "exclamationmark.triangle.fill",
+                                        message: "Ton HRV est sous ta baseline depuis \(hrv.consecutiveLowDays) jours consécutifs. Priorité à la récupération — réduis le volume cette semaine."
+                                    )
+                                    .padding(.horizontal, 16)
+                                }
+                                if hrv.hrvCv ?? 0 > 20 {
+                                    HRVContextualTipView(
+                                        tipId: "high_cv",
+                                        icon: "waveform.path.ecg",
+                                        message: "Ton HRV est très variable (\(Int(hrv.hrvCv ?? 0))% CV). C'est normal au début — continue à mesurer chaque matin pour stabiliser ta baseline."
+                                    )
+                                    .padding(.horizontal, 16)
+                                }
+                            }
+
                             // Readiness card
                             if let today = log.first(where: { $0.date == todayStr }) {
                                 ReadinessCard(entry: today)
@@ -256,6 +285,9 @@ struct RecoveryView: View {
             .sheet(item: $editTarget) { entry in
                 LogRecoverySheet(prefillEntry: entry, onSaved: { await loadData() })
             }
+            .sheet(isPresented: $showHRVOnboarding) {
+                HRVOnboardingView(onDone: { showHRVOnboarding = false })
+            }
             .overlay(alignment: .bottomTrailing) {
                 FAB(icon: alreadyLoggedToday ? "pencil" : "plus") {
                     if alreadyLoggedToday, let todayEntry = log.first(where: { $0.date == todayStr }) {
@@ -271,6 +303,9 @@ struct RecoveryView: View {
         .task {
             await watchSync.syncIfNeeded()
             await loadData()
+            if !hrvOnboardingDone {
+                showHRVOnboarding = true
+            }
         }
         .alert("Erreur", isPresented: Binding(get: { apiError != nil }, set: { if !$0 { apiError = nil } })) {
             Button("OK", role: .cancel) {}
@@ -1288,8 +1323,20 @@ struct HRVAnalysisCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Text("\(analysis.dataPoints7d) jours dans la baseline · \(analysis.dataPoints30d) jours au total")
-                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.5))
+            HStack {
+                Text("\(analysis.dataPoints7d) jours dans la baseline · \(analysis.dataPoints30d) jours au total")
+                    .font(.system(size: 10)).foregroundColor(.gray.opacity(0.5))
+                Spacer()
+                NavigationLink(destination: HRVFAQView()) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 11))
+                        Text("FAQ")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .foregroundColor(.cyan.opacity(0.8))
+                }
+            }
         }
         .padding(14)
         .background(Color.appCard)
