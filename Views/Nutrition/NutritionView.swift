@@ -14,8 +14,8 @@ struct NutritionView: View {
     @State private var macroGap: MacroGap? = nil
     // N-D1: banner when settings are missing
     @State private var showSettingsBanner = false
-    // N-D4: pending delete for undo (5s window)
     @State private var pendingDelete: NutritionEntry? = nil
+    @State private var pendingDeleteIndex: Int? = nil
     @State private var pendingDeleteTimer: Task<Void, Never>? = nil
     @State private var showUndoBanner = false
     private var effectiveSettings: NutritionSettings? {
@@ -95,14 +95,14 @@ struct NutritionView: View {
                                 entries: vm.entries,
                                 onEdit: { editTarget = $0 },
                                 onDelete: { entry in
-                                    // N-D4: undo delete — cancel any pending delete first, confirm previous one
+                                    // Confirm any previously pending delete before starting a new one
                                     if let prev = pendingDelete {
                                         pendingDeleteTimer?.cancel()
                                         Task { await vm.deleteEntry(prev) }
                                     }
                                     pendingDeleteTimer?.cancel()
+                                    pendingDeleteIndex = vm.entries.firstIndex { $0.entryId == entry.entryId }
                                     pendingDelete = entry
-                                    // Optimistically remove from view
                                     vm.entries.removeAll { $0.entryId == entry.entryId }
                                     withAnimation { showUndoBanner = true }
                                     pendingDeleteTimer = Task {
@@ -237,16 +237,15 @@ struct NutritionView: View {
                             .foregroundColor(.white)
                         Spacer()
                         Button("Restaurer") {
-                            // Cancel the pending delete and reload
                             pendingDeleteTimer?.cancel()
                             pendingDeleteTimer = nil
-                            let entry = pendingDelete
-                            pendingDelete = nil
-                            withAnimation { showUndoBanner = false }
-                            Task {
-                                // TODO: N-D4 — réinsertion via API non disponible; recharge les données
-                                await vm.loadData(silent: true)
+                            if let entry = pendingDelete {
+                                let idx = min(pendingDeleteIndex ?? vm.entries.count, vm.entries.count)
+                                vm.entries.insert(entry, at: idx)
                             }
+                            pendingDelete = nil
+                            pendingDeleteIndex = nil
+                            withAnimation { showUndoBanner = false }
                         }
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.orange)

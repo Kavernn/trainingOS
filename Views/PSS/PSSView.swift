@@ -144,6 +144,30 @@ struct PSSView: View {
         .task { await loadData() }
     }
 
+    private func pssDisplayDate(_ record: PSSRecord) -> String {
+        let isoFmt = DateFormatter()
+        isoFmt.dateFormat = "yyyy-MM-dd"
+        isoFmt.locale = Locale(identifier: "fr_CA")
+        let dateFmt = DateFormatter()
+        dateFmt.dateFormat = "d MMM yyyy"
+        dateFmt.locale = Locale(identifier: "fr_CA")
+        if let ts = record.submittedAt {
+            let tsFmt = DateFormatter()
+            tsFmt.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            tsFmt.locale = Locale(identifier: "fr_CA")
+            if let date = tsFmt.date(from: String(ts.prefix(19))) {
+                let timeFmt = DateFormatter()
+                timeFmt.dateFormat = "d MMM · HH'h'mm"
+                timeFmt.locale = Locale(identifier: "fr_CA")
+                return timeFmt.string(from: date)
+            }
+        }
+        if let date = isoFmt.date(from: record.date) {
+            return dateFmt.string(from: date)
+        }
+        return record.date
+    }
+
     private func loadData() async {
         isLoading = true
         // sequential — async let LIFO crash on iOS 26 beta
@@ -306,8 +330,7 @@ struct PSSHistoryRow: View {
                                 .background(Color.gray.opacity(0.12))
                                 .cornerRadius(4)
                         }
-                        // TODO: P-D7 — API ne retourne pas l'heure de soumission, seul `date` (YYYY-MM-DD) est disponible
-                        Text(record.date)
+                        Text(pssDisplayDate(record))
                             .font(.system(size: 11)).foregroundColor(.gray)
                     }
 

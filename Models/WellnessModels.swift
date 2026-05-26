@@ -348,6 +348,7 @@ struct PSSRecord: Codable, Identifiable {
     let triggerRatings: [String: Int]
     let streak: Int
     let insights: [String]
+    let submittedAt: String?
 
     enum CodingKeys: String, CodingKey {
         case id, date, type, responses, score, category, notes, triggers, streak, insights
@@ -355,6 +356,7 @@ struct PSSRecord: Codable, Identifiable {
         case categoryLabel     = "category_label"
         case invertedResponses = "inverted_responses"
         case triggerRatings    = "trigger_ratings"
+        case submittedAt       = "created_at"
     }
 
 }
