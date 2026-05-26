@@ -51,7 +51,7 @@ struct RitualView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
         }
-        .sheet(isPresented: $showDemons) {
+        .fullScreenCover(isPresented: $showDemons) {
             DemonsView(demons: demonsSnapshot)
         }
         .task { await load() }
