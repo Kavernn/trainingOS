@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime
-import os
 
 data_views_bp = Blueprint("data_views", __name__)
 

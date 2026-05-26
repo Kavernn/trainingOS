@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let logger = Logger(subsystem: "TrainingOS", category: "Recovery")
 
 private struct RecoveryStats {
     var avgSleep: Double = 0
@@ -362,7 +365,7 @@ struct RecoveryView: View {
                 )
                 updated += 1
             } catch {
-                print("[Recovery] backfill failed for \(dateStr): \(error)")
+                logger.error("backfill failed for \(dateStr): \(error)")
             }
         }
 

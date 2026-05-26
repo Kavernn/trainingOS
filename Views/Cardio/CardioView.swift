@@ -1,8 +1,11 @@
 import SwiftUI
 import Charts
+import OSLog
 #if os(iOS)
 import HealthKit
 #endif
+
+private let logger = Logger(subsystem: "TrainingOS", category: "Cardio")
 
 struct CardioView: View {
     @EnvironmentObject private var appState: AppState
@@ -211,7 +214,7 @@ struct CardioView: View {
                         notes: "Importé depuis Apple Santé"
                     )
                 } catch {
-                    print("[Cardio] HealthKit import failed: \(error)")
+                    logger.error("HealthKit import failed: \(error)")
                 }
             }
 

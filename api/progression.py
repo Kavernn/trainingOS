@@ -21,7 +21,10 @@ Fatigue cap (post-processing):
 RIR fallback: avg_rir provided → rpe_approx = 10 − avg_rir.
 """
 from __future__ import annotations
+import logging
 from datetime import datetime
+
+logger = logging.getLogger("trainingos.progression")
 
 REPS_RULES: dict[str, dict] = {
     "Bench Press":       {"min": 5,  "max": 7},
@@ -158,8 +161,8 @@ def compute_progression_rate(history: list[dict]) -> float | None:
             age_days = (now - d).days
             if age_days <= 28 and e.get("1rm"):
                 entries.append((age_days, float(e["1rm"])))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("compute_progression_rate entry failed: %s", e)
     if len(entries) < 2:
         return None
     n = len(entries)
@@ -219,8 +222,8 @@ def _suggest_uncapped(
         reps = parse_reps(last_reps)
         if reps and all(r >= rule["min"] for r in reps):
             return (round(current_weight + inc, 1), "increase")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.exception("_suggest_uncapped reps parse failed: %s", e)
     return (current_weight, "maintain")
 
 
@@ -320,7 +323,8 @@ def should_increase(reps_str: str, exercise: str) -> bool:
     try:
         reps = parse_reps(reps_str)
         return bool(reps) and all(r >= rule["min"] for r in reps)
-    except Exception:
+    except Exception as e:
+        logger.exception("should_increase failed: %s", e)
         return False
 
 
@@ -348,7 +352,8 @@ def estimate_1rm(weight: float, reps_str: str) -> float | None:
         if avg_reps > 10:
             return round(weight * (36 / (37 - avg_reps)), 1)
         return round(weight * (1 + avg_reps / 30), 1)
-    except Exception:
+    except Exception as e:
+        logger.exception("estimate_1rm failed: %s", e)
         return 0.0
 
 

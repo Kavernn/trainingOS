@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let logger = Logger(subsystem: "TrainingOS", category: "Progression")
 
 struct ProgressionSuggestionsSheet: View {
     let suggestions: [ProgressionSuggestion]
@@ -201,7 +204,7 @@ struct ProgressionSuggestionsSheet: View {
                     suggestedScheme: nil
                 )
             } catch {
-                print("[Progression] undo apply failed for \(info.name): \(error)")
+                logger.error("undo apply failed for \(info.name): \(error)")
             }
         }
     }

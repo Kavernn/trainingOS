@@ -1,5 +1,9 @@
+import logging
+
 from planner import get_today, get_today_date
 from life_stress_engine import refresh_life_stress_score
+
+logger = logging.getLogger("trainingos.morning_brief")
 
 HEAVY = {"Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs"}
 LIGHT = {"Yoga / Tai Chi", "Recovery"}
@@ -34,8 +38,8 @@ def get_morning_brief():
         spirit = _db.get_spirit_metadata(days=2)
         breathwork_yesterday = yesterday in spirit.get("days_with_breathwork", [])
         meditation_yesterday = yesterday in spirit.get("days_with_meditation", [])
-    except Exception:
-        pass
+    except Exception as e:
+        logger.exception("morning_brief spirit fetch failed: %s", e)
 
     # G1: ritual rate for coaching context
     ritual_rate_7d = 0.0
@@ -48,8 +52,8 @@ def get_morning_brief():
             completed = sum(1 for r in ritual_history if r.get("outcome") in ("burned", "survived"))
             ritual_rate_7d = round(completed / 7, 2)
         phoenix_streak, _, _ = _compute_phoenix()
-    except Exception:
-        pass
+    except Exception as e:
+        logger.exception("morning_brief ritual fetch failed: %s", e)
 
     return {
         "date":                  get_today_date(),

@@ -121,8 +121,8 @@ def compute_patterns() -> dict:
                 local_hour = (hour - 4) % 24
                 bucket = local_hour // 3 * 3  # 3-hour buckets
                 hour_counts[bucket] = hour_counts.get(bucket, 0) + 1
-            except Exception:
-                pass
+            except Exception as e:
+                logger.exception("trigger_insights hour parse failed: %s", e)
     if hour_counts:
         peak_hour = max(hour_counts, key=hour_counts.get)
         peak_label = f"{peak_hour}h–{peak_hour+3}h"
@@ -270,8 +270,8 @@ def compute_summary() -> dict:
         try:
             start = date.fromisoformat(str(war_start))
             war_days = (today - start).days + 1
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("battle_stats war_start parse failed: %s", e)
 
     return {
         "victory_streak":  current_streak,

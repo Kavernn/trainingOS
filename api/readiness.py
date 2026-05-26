@@ -139,7 +139,8 @@ def _score_wellness() -> tuple[float, dict]:
             "training_fatigue": components.get("training_fatigue"),
             "flags":            flags,
         }
-    except Exception:
+    except Exception as e:
+        logger.exception("_score_lss failed: %s", e)
         return 65.0, {"lss": None, "data_coverage": 0.0, "flags": {}}
 
 
@@ -159,7 +160,8 @@ def _score_nutrition() -> tuple[float, dict]:
         settings    = db.get_nutrition_settings() or {}
         target_cal  = float(settings.get("calorie_limit")  or settings.get("limite_calories")  or 2400)
         target_prot = float(settings.get("protein_target") or settings.get("objectif_proteines") or 180)
-    except Exception:
+    except Exception as e:
+        logger.exception("_score_nutrition failed: %s", e)
         return 65.0, {"error": True}
 
     entries = db.get_nutrition_entries_recent(2) or []
@@ -252,7 +254,8 @@ def _get_experience_mult() -> float:
         from user_profile import load_user_profile
         level = (load_user_profile().get("training_experience") or "").lower()
         return _EXPERIENCE_MULT.get(level, 1.0)
-    except Exception:
+    except Exception as e:
+        logger.exception("_get_experience_mult failed: %s", e)
         return 1.0
 
 
@@ -378,7 +381,8 @@ def _get_personal_baseline() -> dict:
             float(r["score"]) for r in history
             if r.get("score") is not None and str(r.get("date", ""))[:10] in window
         ]
-    except Exception:
+    except Exception as e:
+        logger.exception("_get_baseline_stats failed: %s", e)
         return {"mean": None, "sd": None, "n": 0}
 
     if len(scores) < 14:

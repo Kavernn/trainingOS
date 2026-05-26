@@ -197,8 +197,8 @@ def get_last_sessions(n: int = 10) -> list:
         rows = db.get_workout_sessions(limit=n)
         if isinstance(rows, list):
             return [r for r in rows if isinstance(r, dict) and "date" in r][:n]
-    except Exception:
-        pass
+    except Exception as e:
+        logger.exception("get_last_sessions failed: %s", e)
     return []
 
 

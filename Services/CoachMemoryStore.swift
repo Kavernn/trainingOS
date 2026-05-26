@@ -1,5 +1,8 @@
 import Foundation
 import Combine
+import OSLog
+
+private let logger = Logger(subsystem: "TrainingOS", category: "CoachMemory")
 
 // MARK: - Coach Memory
 // Persistent, structured facts the AI coach accumulates over time.
@@ -142,7 +145,7 @@ final class CoachMemoryStore: ObservableObject {
                 save()
             }
         } catch {
-            print("[CoachMemory] syncFromServer failed: \(error)")
+            logger.error("syncFromServer failed: \(error)")
         }
     }
 
@@ -159,7 +162,7 @@ final class CoachMemoryStore: ObservableObject {
                 }
                 try await APIService.shared.saveCoachMemory(raw)
             } catch {
-                print("[CoachMemory] pushToServer failed: \(error)")
+                logger.error("pushToServer failed: \(error)")
             }
         }
     }

@@ -1,5 +1,8 @@
 import SwiftUI
 import Combine
+import OSLog
+
+private let logger = Logger(subsystem: "TrainingOS", category: "Intelligence")
 
 struct IntelligenceView: View {
     @State private var messages: [ChatMessage] = []
@@ -384,7 +387,7 @@ struct IntelligenceView: View {
             let refreshed = try? await APIService.shared.fetchPatterns()
             await MainActor.run { patternData = refreshed }
         } catch {
-            print("[Patterns] togglePin error: \(error)")
+            logger.error("togglePin error: \(error)")
         }
     }
 
@@ -394,7 +397,7 @@ struct IntelligenceView: View {
             let refreshed = try? await APIService.shared.fetchPatterns()
             await MainActor.run { patternData = refreshed }
         } catch {
-            print("[Patterns] unpin error: \(error)")
+            logger.error("unpin error: \(error)")
         }
     }
 

@@ -296,18 +296,24 @@ def api_session_delete():
             _db.delete_workout_session_by_type(date, "morning")
 
         # After relational delete, reload weights (history already excludes the deleted date)
-        # and sync current_weight/last_reps to reflect the new most-recent entry
+        # and sync current_weight/last_reps to reflect the new most-recent entry.
+        # Batch: single session-lookup + exercise-lookup + upsert instead of N×3 queries.
         from weights import load_weights
         weights = load_weights()
+        entries = []
         for ex, ex_data in weights.items():
             history = ex_data.get("history", [])
             if not history:
                 continue
             most_recent = history[0]
-            _db.upsert_exercise_log(
-                most_recent["date"], ex,
-                most_recent.get("weight"), most_recent.get("reps"),
-            )
+            entries.append({
+                "date": most_recent["date"],
+                "exercise_name": ex,
+                "weight": most_recent.get("weight"),
+                "reps": most_recent.get("reps"),
+            })
+        if entries:
+            _db.bulk_upsert_exercise_logs(entries)
 
         return jsonify({"success": True})
     except Exception:
@@ -330,35 +336,30 @@ def api_update_session():
         exercises = data.get("exercises") or []
         ex_errors = []
 
-        # Exercise-level mutations (optional)
-        for ex_patch in exercises:
-            ex_name = (ex_patch.get("exercise") or "").strip()
-            if not ex_name:
-                ex_errors.append("exercise missing")
-                continue
-            action = (ex_patch.get("action") or "update").lower()
-
-            if action == "delete":
-                if hasattr(_db, "delete_exercise_log_entry_by_type"):
-                    ok_ex = _db.delete_exercise_log_entry_by_type(date, session_type, ex_name)
-                else:
-                    ok_ex = _db.delete_exercise_log_entry(date, ex_name)
-            else:
-                if "weight" not in ex_patch or "reps" not in ex_patch:
+        # Exercise-level mutations — batched to avoid N+1 queries.
+        # Validation pass first (no DB calls) so we reject bad payloads before touching the DB.
+        if exercises:
+            patches = []
+            for ex_patch in exercises:
+                ex_name = (ex_patch.get("exercise") or "").strip()
+                if not ex_name:
+                    ex_errors.append("exercise missing")
+                    continue
+                action = (ex_patch.get("action") or "update").lower()
+                if action != "delete" and ("weight" not in ex_patch or "reps" not in ex_patch):
                     ex_errors.append(f"{ex_name}: weight/reps required for {action}")
                     continue
-                weight = float(ex_patch.get("weight") or 0)
-                reps = str(ex_patch.get("reps") or "")
-                sets_json = ex_patch.get("sets")
-                if hasattr(_db, "upsert_exercise_log_by_type"):
-                    ok_ex = _db.upsert_exercise_log_by_type(
-                        date, session_type, ex_name, weight, reps, sets_json=sets_json
-                    )
-                else:
-                    ok_ex = _db.upsert_exercise_log(date, ex_name, weight, reps, sets_json=sets_json)
+                patches.append({
+                    "exercise_name": ex_name,
+                    "action": action,
+                    "weight": ex_patch.get("weight"),
+                    "reps": ex_patch.get("reps"),
+                    "sets_json": ex_patch.get("sets"),
+                })
 
-            if not ok_ex:
-                ex_errors.append(f"{ex_name}: {action} failed")
+            if patches:
+                _, batch_errors = _db.bulk_apply_session_exercise_patches(date, session_type, patches)
+                ex_errors.extend(batch_errors)
 
         if session_type == "bonus":
             ok = _db.update_workout_session_bonus(date, patch)

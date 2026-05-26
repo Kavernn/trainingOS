@@ -1796,6 +1796,170 @@ def delete_exercise_log_entry_by_type(session_date: str, session_type: str, exer
         return False
 
 
+def bulk_upsert_exercise_logs(entries: list[dict]) -> bool:
+    """Batch upsert exercise_logs. Each entry: {date, exercise_name, weight, reps, sets_json?}.
+
+    Reduces the per-exercise N+1 to 3 queries total (session lookup, exercise lookup, upsert).
+    Atomic: the single upsert call either fully succeeds or fully fails.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return False
+    if not entries:
+        return True
+
+    def _do() -> bool:
+        dates = list({e["date"] for e in entries})
+        names = list({e["exercise_name"] for e in entries})
+
+        sessions_resp = (
+            _client.table("workout_sessions")
+            .select("id, date")
+            .in_("date", dates)
+            .execute()
+        )
+        session_by_date = {s["date"]: s["id"] for s in (sessions_resp.data or [])}
+
+        ex_resp = (
+            _client.table("exercises")
+            .select("id, name")
+            .in_("name", names)
+            .is_("deleted_at", "null")
+            .execute()
+        )
+        id_by_name = {e["name"]: e["id"] for e in (ex_resp.data or [])}
+
+        payloads = []
+        for entry in entries:
+            session_id = session_by_date.get(entry["date"])
+            exercise_id = id_by_name.get(entry["exercise_name"])
+            if not session_id or not exercise_id:
+                logger.warning(
+                    "bulk_upsert_exercise_logs: skipping %s on %s — session_id=%s exercise_id=%s",
+                    entry["exercise_name"], entry["date"], session_id, exercise_id,
+                )
+                continue
+            row = {
+                "session_id": session_id,
+                "exercise_id": exercise_id,
+                "weight": entry.get("weight"),
+                "reps": entry.get("reps"),
+            }
+            if entry.get("sets_json") is not None:
+                row["sets_json"] = entry["sets_json"]
+            payloads.append(row)
+
+        if not payloads:
+            return True
+
+        resp = (
+            _client.table("exercise_logs")
+            .upsert(payloads, on_conflict="session_id,exercise_id")
+            .execute()
+        )
+        return bool(resp.data)
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("bulk_upsert_exercise_logs retry error: %s", e2)
+                return False
+        logger.error("bulk_upsert_exercise_logs error: %s", e)
+        return False
+
+
+def bulk_apply_session_exercise_patches(
+    session_date: str,
+    session_type: str,
+    patches: list[dict],
+) -> tuple[bool, list[str]]:
+    """Apply a list of exercise patches (upsert/delete) to a session in batch.
+
+    Each patch: {exercise_name, action ('update'|'add'|'delete'), weight?, reps?, sets_json?}
+    Returns (overall_ok, list_of_error_strings).
+
+    Reduces the per-patch N+1 to 4 queries total:
+      1 session lookup, 1 exercise batch lookup, 1 batch delete, 1 batch upsert.
+    """
+    if _client is None or MODE == "OFFLINE":
+        return False, ["offline"]
+    if not patches:
+        return True, []
+
+    def _do() -> tuple[bool, list[str]]:
+        session = get_workout_session_by_type(session_date, session_type)
+        if not session:
+            return False, [f"no session for date={session_date} type={session_type}"]
+        session_id = session["id"]
+
+        names = list({p["exercise_name"] for p in patches})
+        ex_resp = (
+            _client.table("exercises")
+            .select("id, name")
+            .in_("name", names)
+            .is_("deleted_at", "null")
+            .execute()
+        )
+        id_by_name = {e["name"]: e["id"] for e in (ex_resp.data or [])}
+
+        errors: list[str] = []
+        delete_ids: list[str] = []
+        upsert_rows: list[dict] = []
+
+        for patch in patches:
+            ex_name = patch["exercise_name"]
+            exercise_id = id_by_name.get(ex_name)
+            if not exercise_id:
+                errors.append(f"{ex_name}: exercise not found")
+                continue
+            action = (patch.get("action") or "update").lower()
+            if action == "delete":
+                delete_ids.append(exercise_id)
+            else:
+                row = {
+                    "session_id": session_id,
+                    "exercise_id": exercise_id,
+                    "weight": float(patch.get("weight") or 0),
+                    "reps": str(patch.get("reps") or ""),
+                }
+                if patch.get("sets_json") is not None:
+                    row["sets_json"] = patch["sets_json"]
+                upsert_rows.append(row)
+
+        if delete_ids:
+            _client.table("exercise_logs") \
+                .delete() \
+                .eq("session_id", session_id) \
+                .in_("exercise_id", delete_ids) \
+                .execute()
+
+        if upsert_rows:
+            resp = (
+                _client.table("exercise_logs")
+                .upsert(upsert_rows, on_conflict="session_id,exercise_id")
+                .execute()
+            )
+            if not resp.data:
+                errors.append("batch upsert returned no data")
+
+        return len(errors) == 0, errors
+
+    try:
+        return _do()
+    except Exception as e:
+        if _is_disconnect(e) and _reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                logger.error("bulk_apply_session_exercise_patches retry error: %s", e2)
+                return False, [str(e2)]
+        logger.error("bulk_apply_session_exercise_patches error: %s", e)
+        return False, [str(e)]
+
+
 def delete_session_exercise_logs(session_date: str) -> bool:
     """Delete all exercise_logs for a given session date. Returns True on success."""
     if _client is None or MODE == "OFFLINE":

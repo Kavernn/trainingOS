@@ -1,4 +1,7 @@
 import SwiftUI
+import OSLog
+
+private let logger = Logger(subsystem: "TrainingOS", category: "Progression")
 
 // MARK: - Session Picker Sheet
 struct SessionPickerSheet: View {
@@ -977,7 +980,7 @@ struct CoachingChip: View {
                                 )
                                 applied = true
                             } catch {
-                                print("[Progression] apply failed for \(suggestion.exerciseName): \(error)")
+                                logger.error("apply failed for \(suggestion.exerciseName): \(error)")
                             }
                         }
                     }

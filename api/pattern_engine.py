@@ -153,8 +153,8 @@ def _load_context(days: int = 90) -> dict[str, dict]:
                 ctx[d]["protein"]  = round(ctx[d].get("protein",  0) + float(r.get("proteines") or 0), 1)
                 ctx[d]["carbs"]    = round(ctx[d].get("carbs",    0) + float(r.get("glucides")  or 0), 1)
                 ctx[d]["calories"] = round(ctx[d].get("calories", 0) + float(r.get("calories")  or 0), 1)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("_load_context nutrition source failed: %s", e)
 
         # Spirit — breathwork
         try:
@@ -163,8 +163,8 @@ def _load_context(days: int = 90) -> dict[str, dict]:
                 d = str(r.get("started_at") or "")[:10]
                 if d in ctx:
                     ctx[d]["breathwork_done"] = 1.0
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("_load_context breathwork source failed: %s", e)
 
         # Spirit — meditation (completed only)
         try:
@@ -173,8 +173,8 @@ def _load_context(days: int = 90) -> dict[str, dict]:
                 d = str(r.get("started_at") or "")[:10]
                 if d in ctx:
                     ctx[d]["meditation_done"] = 1.0
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("_load_context meditation source failed: %s", e)
 
         # War Room — reset days
         try:
@@ -183,8 +183,8 @@ def _load_context(days: int = 90) -> dict[str, dict]:
                 d = str(r.get("date") or "")[:10]
                 if d in ctx and r.get("status") == "lost":
                     ctx[d]["is_reset_day"] = 1.0
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("_load_context war_room_battles source failed: %s", e)
 
         # War Room — trigger count + mean intensity per day
         try:
@@ -199,8 +199,8 @@ def _load_context(days: int = 90) -> dict[str, dict]:
                     n = ctx[d]["trigger_count"]
                     prev = ctx[d].get("trigger_intensity", 0.0)
                     ctx[d]["trigger_intensity"] = round((prev * (n - 1) + float(intens)) / n, 2)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.exception("_load_context war_room_triggers source failed: %s", e)
 
     return ctx
 
