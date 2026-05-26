@@ -144,29 +144,6 @@ struct PSSView: View {
         .task { await loadData() }
     }
 
-    private func pssDisplayDate(_ record: PSSRecord) -> String {
-        let isoFmt = DateFormatter()
-        isoFmt.dateFormat = "yyyy-MM-dd"
-        isoFmt.locale = Locale(identifier: "fr_CA")
-        let dateFmt = DateFormatter()
-        dateFmt.dateFormat = "d MMM yyyy"
-        dateFmt.locale = Locale(identifier: "fr_CA")
-        if let ts = record.submittedAt {
-            let tsFmt = DateFormatter()
-            tsFmt.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
-            tsFmt.locale = Locale(identifier: "fr_CA")
-            if let date = tsFmt.date(from: String(ts.prefix(19))) {
-                let timeFmt = DateFormatter()
-                timeFmt.dateFormat = "d MMM · HH'h'mm"
-                timeFmt.locale = Locale(identifier: "fr_CA")
-                return timeFmt.string(from: date)
-            }
-        }
-        if let date = isoFmt.date(from: record.date) {
-            return dateFmt.string(from: date)
-        }
-        return record.date
-    }
 
     private func loadData() async {
         isLoading = true
@@ -289,6 +266,32 @@ struct PSSKPICell: View {
         .glassCard(color: color, intensity: 0.05)
         .cornerRadius(12)
     }
+}
+
+// MARK: - Helpers
+
+private func pssDisplayDate(_ record: PSSRecord) -> String {
+    let isoFmt = DateFormatter()
+    isoFmt.dateFormat = "yyyy-MM-dd"
+    isoFmt.locale = Locale(identifier: "fr_CA")
+    let dateFmt = DateFormatter()
+    dateFmt.dateFormat = "d MMM yyyy"
+    dateFmt.locale = Locale(identifier: "fr_CA")
+    if let ts = record.submittedAt {
+        let tsFmt = DateFormatter()
+        tsFmt.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        tsFmt.locale = Locale(identifier: "fr_CA")
+        if let date = tsFmt.date(from: String(ts.prefix(19))) {
+            let timeFmt = DateFormatter()
+            timeFmt.dateFormat = "d MMM · HH'h'mm"
+            timeFmt.locale = Locale(identifier: "fr_CA")
+            return timeFmt.string(from: date)
+        }
+    }
+    if let date = isoFmt.date(from: record.date) {
+        return dateFmt.string(from: date)
+    }
+    return record.date
 }
 
 // MARK: - History Row
@@ -852,6 +855,19 @@ struct PSSQuestionCard: View {
         )
     }
 
+    private static let examples: [Int: String] = [
+        1: "Une panne de voiture, un dossier urgent tombé du ciel, un rendez-vous annulé sans prévenir",
+        2: "Impression que l'agenda décide pour toi, projets qui dérivent, sentiment que les priorités t'échappent",
+        3: "Tension avant une présentation, irritabilité en fin de journée, mal à décompresser après le boulot",
+        4: "Avoir avancé sur tes objectifs, géré une situation difficile avec calme, respecté tes engagements clés",
+        5: "Une to-do list qui n'en finit pas, jongler entre travail, famille et entraînement, ne pas savoir par où commencer",
+        6: "Trouvé une solution à un problème complexe, gardé la tête froide sous pression, rebondi après un contretemps",
+        7: "Savoir où tu en es financièrement, clarté sur ta semaine, te sentir dans ta zone à l'entraînement",
+        8: "Réaction disproportionnée à quelque chose de mineur, tension qui monte sans pouvoir la stopper, couper court à une discussion",
+        9: "Énergie dès le matin, concentration au travail, sensation d'être dans ton flow à l'entraînement",
+        10: "Problèmes qui s'empilent sans solution en vue, coincé sur plusieurs fronts à la fois, fatigue de résoudre en boucle"
+    ]
+
     private var questionHeader: some View {
         HStack(alignment: .top, spacing: 8) {
             Text("\(index)")
@@ -860,10 +876,18 @@ struct PSSQuestionCard: View {
                 .frame(width: 18, height: 18)
                 .background(Color.purple.opacity(0.12))
                 .clipShape(Circle())
-            Text(question.text)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white)
-                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(question.text)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let example = Self.examples[question.id] {
+                    Text(example)
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.35))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 
