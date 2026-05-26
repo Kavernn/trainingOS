@@ -77,7 +77,10 @@ from routes.profile      import profile_bp
 from routes.nutrition    import nutrition_bp
 from routes.ai_coach     import ai_coach_bp
 from routes.goals        import goals_bp
-from routes.analytics    import analytics_bp
+from routes.analytics_load  import analytics_load_bp
+from routes.analytics_coach import analytics_coach_bp
+from routes.analytics_stats import analytics_stats_bp
+from routes.analytics_body  import analytics_body_bp
 from routes.workout      import workout_bp
 from routes.data_views   import data_views_bp
 from routes.wellness     import wellness_bp
@@ -101,7 +104,10 @@ app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
 app.register_blueprint(ai_coach_bp)
 app.register_blueprint(goals_bp)
-app.register_blueprint(analytics_bp)
+app.register_blueprint(analytics_load_bp)
+app.register_blueprint(analytics_coach_bp)
+app.register_blueprint(analytics_stats_bp)
+app.register_blueprint(analytics_body_bp)
 app.register_blueprint(workout_bp)
 app.register_blueprint(data_views_bp)
 app.register_blueprint(wellness_bp)
