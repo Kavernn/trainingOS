@@ -19,7 +19,7 @@ struct MoreView: View {
                 AmbientBackground(color: .orange)
 
                 List {
-                    Section("Rituel & Esprit") {
+                    Section("Quotidien") {
                         // RitualView a son propre NavigationStack — fullScreenCover évite la collision
                         Button {
                             showRitual = true
@@ -31,53 +31,55 @@ struct MoreView: View {
                         .buttonStyle(.plain)
                         .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                         .fullScreenCover(isPresented: $showRitual, onDismiss: {
-                            phoenixStreak = 0 // force reload on re-appear
+                            phoenixStreak = 0
                             Task { phoenixStreak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak ?? 0 }
                         }) {
                             RitualView()
                         }
-                        MoreRow(icon: "book.pages.fill", color: Color(hex: "FF2D20").opacity(0.7), title: "Biographie", subtitle: "Timeline de tes intentions") { RitualBiographyView() }
-                        MoreRow(icon: "wind",        color: Color.moonlight.opacity(0.7), title: "The Void", subtitle: "Respiration, méditation & journal") { SpiritView() }
-                        MoreRow(icon: "calendar.badge.clock", color: .teal, title: "Mes chapitres") { SeasonView() }
+                        MoreRow(icon: "fork.knife",      color: .orange, title: "Nutrition")    { NutritionView() }
+                        MoreRow(icon: "bed.double.fill", color: .purple, title: "Sommeil")      { SleepView() }
+                        MoreRow(icon: "moon.zzz.fill",  color: .blue,   title: "Récupération") { RecoveryView() }
+                        MoreRow(icon: "wind",            color: Color.moonlight.opacity(0.7),
+                                title: "The Void", subtitle: "Respiration, méditation & journal") { SpiritView() }
                     }
                     .listRowBackground(glassRowBG(Color(hex: "FF2D20")))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
-                    Section("Terrain") {
-                        MoreRow(icon: "mappin.and.ellipse", color: Color(hex: "F59E0B"), title: "Gym Finder") { GymFinderView() }
-                    }
-                    .listRowBackground(glassRowBG(Color(hex: "F59E0B")))
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
-
-                    Section("Combat") {
-                        MoreRow(icon: "chart.bar.fill",        color: .blue,   title: "Stats")           { StatsView() }
-                        MoreRow(icon: "target",                color: .orange, title: "Objectifs")        { ObjectifsView() }
-                        MoreRow(icon: "staroflife.fill",       color: .indigo, title: "Workout DNA")      { WorkoutDNASection() }
-                        MoreRow(icon: "timer",                 color: .orange, title: "Timer")            { TimerView() }
-                        MoreRow(icon: "figure.run",            color: .red,    title: "HIIT")             { HIITHistoriqueView() }
-                        MoreRow(icon: "calendar",              color: .teal,   title: "Historique")       { HistoriqueView() }
-                        MoreRow(icon: "star.fill",             color: .yellow, title: "XP & Niveau")      { XPView() }
-                        MoreRow(icon: "cross.fill",            color: Color(hex: "8B6AFF"), title: "Graveyard", subtitle: "Exercices archivés") { GraveyardView() }
-                        MoreRow(icon: "lock.shield.fill",      color: Color.forge, title: "War Room", subtitle: "Résistance aux habitudes difficiles") { WarRoomGateView() }
+                    Section("Entraînement") {
+                        MoreRow(icon: "calendar",              color: .teal,                    title: "Historique") { HistoriqueView() }
+                        MoreRow(icon: "figure.run",            color: .red,                     title: "HIIT")       { HIITHistoriqueView() }
+                        MoreRow(icon: "target",                color: .orange,                  title: "Objectifs")  { ObjectifsView() }
+                        MoreRow(icon: "chart.bar.fill",        color: .blue,                    title: "Stats")      { StatsView() }
+                        MoreRow(icon: "timer",                 color: .orange,                  title: "Timer")      { TimerView() }
+                        MoreRow(icon: "mappin.and.ellipse",    color: Color(hex: "F59E0B"),     title: "Gym Finder") { GymFinderView() }
                     }
                     .listRowBackground(glassRowBG(.blue))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
-                    Section("Corps") {
-                        MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Tableau santé") { HealthDashboardView() }
-                        MoreRow(icon: "scalemass.fill",         color: .green,  title: "Composition")      { BodyCompView() }
-                        MoreRow(icon: "ruler.fill",             color: .teal,   title: "Calculateur Navy") { NavyCalculatorView() }
-                        MoreRow(icon: "fork.knife",             color: .orange, title: "Nutrition")        { NutritionView() }
-                        MoreRow(icon: "figure.run",             color: .teal,   title: "Cardio")           { CardioView() }
-                        MoreRow(icon: "bed.double.fill",        color: .purple, title: "Sommeil")          { SleepView() }
-                        MoreRow(icon: "moon.zzz.fill",         color: .blue,   title: "Récupération")     { RecoveryView() }
-                        MoreRow(icon: "brain.head.profile",    color: .purple, title: "Charge mentale (PSS)") { PSSView() }
-                        MoreRow(icon: "face.smiling.fill",     color: .mint,   title: "Santé Mentale")    { MentalHealthView() }
+                    Section("Corps & Santé") {
+                        MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Tableau santé")         { HealthDashboardView() }
+                        MoreRow(icon: "scalemass.fill",         color: .green,  title: "Composition")           { BodyCompView() }
+                        MoreRow(icon: "figure.run",             color: .teal,   title: "Cardio")                { CardioView() }
+                        MoreRow(icon: "brain.head.profile",    color: .purple, title: "Charge mentale (PSS)")  { PSSView() }
+                        MoreRow(icon: "face.smiling.fill",     color: .mint,   title: "Santé Mentale")         { MentalHealthView() }
                     }
                     .listRowBackground(glassRowBG(.green))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
-                    Section("Session") {
+                    Section("Esprit & Identité") {
+                        MoreRow(icon: "lock.shield.fill",     color: Color.forge,                   title: "War Room",   subtitle: "Résistance aux habitudes difficiles") { WarRoomGateView() }
+                        MoreRow(icon: "staroflife.fill",      color: .indigo,                       title: "Workout DNA")   { WorkoutDNASection() }
+                        MoreRow(icon: "star.fill",            color: .yellow,                       title: "XP & Niveau")   { XPView() }
+                        MoreRow(icon: "book.pages.fill",      color: Color(hex: "FF2D20").opacity(0.7), title: "Biographie", subtitle: "Timeline de tes intentions") { RitualBiographyView() }
+                        MoreRow(icon: "calendar.badge.clock", color: .teal,                         title: "Mes chapitres") { SeasonView() }
+                        MoreRow(icon: "seal.fill",            color: .black,                        title: "Mon serment")   { OathGateView() }
+                    }
+                    .listRowBackground(glassRowBG(.indigo))
+                    .listRowSeparatorTint(Color.white.opacity(0.06))
+
+                    Section("Réglages") {
+                        MoreRow(icon: "person.fill",      color: .purple, title: "Profil")        { ProfileView() }
+                        MoreRow(icon: "bell.badge.fill",  color: .purple, title: "Notifications", subtitle: "Gérer tous les rappels") { NotificationCenterView() }
                         Toggle(isOn: $autoStartTimer) {
                             Label("Timer automatique entre les sets", systemImage: "timer")
                         }
@@ -86,16 +88,8 @@ struct MoreView: View {
                             Label("Afficher la colonne RIR", systemImage: "gauge.medium")
                         }
                         .tint(.orange)
-                    }
-                    .listRowBackground(glassRowBG(.orange))
-                    .listRowSeparatorTint(Color.white.opacity(0.06))
-
-                    Section("Réglages") {
-                        MoreRow(icon: "bell.badge.fill",  color: .purple, title: "Notifications", subtitle: "Gérer tous les rappels") { NotificationCenterView() }
-                        MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Inventaire") { InventaireView() }
-                        MoreRow(icon: "note.text",        color: .blue,   title: "Notes")      { NotesView() }
-                        MoreRow(icon: "person.fill",      color: .purple, title: "Profil")     { ProfileView() }
-                        MoreRow(icon: "seal.fill",        color: .black,  title: "Mon serment") { OathGateView() }
+                        MoreRow(icon: "shippingbox.fill", color: .gray, title: "Inventaire") { InventaireView() }
+                        MoreRow(icon: "note.text",        color: .blue, title: "Notes")      { NotesView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
                     .listRowSeparatorTint(Color.white.opacity(0.06))

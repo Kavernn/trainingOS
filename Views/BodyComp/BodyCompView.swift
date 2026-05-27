@@ -99,6 +99,15 @@ struct BodyCompView: View {
             .sheet(isPresented: $showSheet, onDismiss: { sheetEntry = nil }) {
                 BodyWeightSheet(editEntry: sheetEntry, onSaved: { await loadData() })
             }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: NavyCalculatorView()) {
+                        Image(systemName: "ruler.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.teal)
+                    }
+                }
+            }
             .overlay(alignment: .bottomTrailing) {
                 FAB(icon: "plus") { sheetEntry = nil; showSheet = true }
                     .padding(.trailing, 20)

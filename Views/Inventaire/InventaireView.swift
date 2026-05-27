@@ -89,6 +89,13 @@ struct InventaireView: View {
             .navigationTitle("Inventaire")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    NavigationLink(destination: GraveyardView()) {
+                        Image(systemName: "archivebox.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Color(hex: "8B6AFF"))
+                    }
+                }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showAdd = true } label: {
                         Image(systemName: "plus")
