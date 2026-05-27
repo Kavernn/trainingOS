@@ -13,18 +13,32 @@ private struct RecoveryStats {
     var avgHRMorning: Double = 0
     var avgHRPostWorkout: Double = 0
     var avgHREvening: Double = 0
+    var avgFatigue: Double = 0
+    var countSleep: Int = 0
+    var countSleepQuality: Int = 0
+    var countRestHR: Int = 0
+    var countSteps: Int = 0
+    var countActiveEnergy: Int = 0
+    var countHRV: Int = 0
 
     init(log: [RecoveryEntry]) {
         func avg(_ vals: [Double]) -> Double { vals.isEmpty ? 0 : vals.reduce(0, +) / Double(vals.count) }
-        avgSleep         = avg(log.compactMap(\.sleepHours))
-        avgSleepQuality  = avg(log.compactMap(\.sleepQuality))
-        avgRestHR        = avg(log.compactMap(\.restingHr))
-        avgSteps         = avg(log.compactMap(\.steps).map(Double.init))
-        avgActiveEnergy  = avg(log.compactMap(\.activeEnergy))
-        avgHRV           = avg(log.compactMap(\.hrv))
+        let vSleep        = log.compactMap(\.sleepHours)
+        let vSleepQuality = log.compactMap(\.sleepQuality)
+        let vRestHR       = log.compactMap(\.restingHr).filter { $0 <= 100 }
+        let vSteps        = log.compactMap(\.steps).map(Double.init)
+        let vActiveEnergy = log.compactMap(\.activeEnergy)
+        let vHRV          = log.compactMap(\.hrv)
+        avgSleep         = avg(vSleep);         countSleep        = vSleep.count
+        avgSleepQuality  = avg(vSleepQuality);  countSleepQuality = vSleepQuality.count
+        avgRestHR        = avg(vRestHR);        countRestHR       = vRestHR.count
+        avgSteps         = avg(vSteps);         countSteps        = vSteps.count
+        avgActiveEnergy  = avg(vActiveEnergy);  countActiveEnergy = vActiveEnergy.count
+        avgHRV           = avg(vHRV);           countHRV          = vHRV.count
         avgHRMorning     = avg(log.compactMap(\.hrMorning))
         avgHRPostWorkout = avg(log.compactMap(\.hrPostWorkout))
         avgHREvening     = avg(log.compactMap(\.hrEvening))
+        avgFatigue       = avg(log.compactMap(\.fatigue))
     }
 }
 
@@ -41,6 +55,7 @@ struct RecoveryView: View {
     @State private var backfillDone  = false
     @State private var stats = RecoveryStats(log: [])
     @State private var hrvAnalysis: HRVAnalysis? = nil
+    @State private var dailySummary: DailySummary? = nil
     @AppStorage("hrv_onboarding_done") private var hrvOnboardingDone = false
     @State private var showHRVOnboarding = false
 
@@ -64,6 +79,13 @@ struct RecoveryView: View {
     var avgHRMorning: Double     { stats.avgHRMorning }
     var avgHRPostWorkout: Double { stats.avgHRPostWorkout }
     var avgHREvening: Double     { stats.avgHREvening }
+    var avgFatigue: Double       { stats.avgFatigue }
+    var countSleep: Int          { stats.countSleep }
+    var countSleepQuality: Int   { stats.countSleepQuality }
+    var countRestHR: Int         { stats.countRestHR }
+    var countSteps: Int          { stats.countSteps }
+    var countActiveEnergy: Int   { stats.countActiveEnergy }
+    var countHRV: Int            { stats.countHRV }
 
     var body: some View {
         NavigationStack {
@@ -130,23 +152,39 @@ struct RecoveryView: View {
                             // KPI grid — récupération
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                                 KPICard(value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
-                                        label: "Sommeil moy.", color: .blue)
+                                        label: "Sommeil moy.", color: .blue,
+                                        subtitle: countSleep > 0 ? "sur \(countSleep) logs" : nil)
                                 KPICard(value: avgSleepQuality > 0 ? String(format: "%.1f/10", avgSleepQuality) : "—",
-                                        label: "Qualité moy.", color: .purple)
+                                        label: "Qualité moy.", color: .purple,
+                                        subtitle: countSleepQuality > 0 ? "sur \(countSleepQuality) logs" : nil)
                                 KPICard(value: avgRestHR > 0 ? String(format: "%.0f bpm", avgRestHR) : "—",
-                                        label: "FC repos moy.", color: .red)
+                                        label: "FC repos moy.", color: .red,
+                                        subtitle: countRestHR > 0 ? "sur \(countRestHR) logs" : nil)
                                 KPICard(value: avgSteps > 0 ? String(format: "%.0f", avgSteps) : "—",
-                                        label: "Pas moy./jour", color: .green)
+                                        label: "Pas moy./jour", color: .green,
+                                        subtitle: countSteps > 0 ? "sur \(countSteps) logs" : nil)
                                 KPICard(value: avgActiveEnergy > 0 ? String(format: "%.0f kcal", avgActiveEnergy) : "—",
-                                        label: "Énergie active", color: .orange)
+                                        label: "Énergie active", color: .orange,
+                                        subtitle: countActiveEnergy > 0 ? "sur \(countActiveEnergy) logs" : nil)
                                 KPICard(
                                     value: avgHRV > 0 ? String(format: "%.0f ms", avgHRV) : "—",
                                     label: "HRV moy.",
-                                    color: hrvAnalysis?.zoneColor ?? .green
+                                    color: hrvAnalysis?.zoneColor ?? .green,
+                                    subtitle: countHRV > 0 ? "sur \(countHRV) logs" : nil
                                 )
                             }
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.05)
+
+                            // KPI — Fatigue perçue moyenne
+                            if avgFatigue > 0 {
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                    KPICard(value: String(format: "%.1f/10", avgFatigue),
+                                            label: "Fatigue moy.", color: avgFatigue >= 7 ? .red : (avgFatigue >= 4 ? .orange : .green))
+                                }
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0.055)
+                            }
 
                             // KPI grid — FC journalière
                             if avgHRMorning > 0 || avgHRPostWorkout > 0 || avgHREvening > 0 {
@@ -198,7 +236,8 @@ struct RecoveryView: View {
 
                             // Readiness card
                             if let today = log.first(where: { $0.date == todayStr }) {
-                                ReadinessCard(entry: today)
+                                ReadinessCard(entry: today, backendScore: dailySummary?.recoveryScore,
+                                              hrv7dBaseline: hrvAnalysis?.hrv7dAvg)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.08)
                             }
@@ -325,7 +364,11 @@ struct RecoveryView: View {
         stats = RecoveryStats(log: log)
         // sequential — async let LIFO crash on iOS 26 beta
         let analysis = try? await APIService.shared.fetchHRVAnalysis()
-        await MainActor.run { hrvAnalysis = analysis }
+        let summary  = try? await APIService.shared.fetchDailySummary()
+        await MainActor.run {
+            hrvAnalysis  = analysis
+            dailySummary = summary
+        }
         isLoading = false
     }
 
@@ -479,16 +522,22 @@ struct RecoveryRow: View {
 
 struct ReadinessCard: View {
     let entry: RecoveryEntry
+    var backendScore: Double? = nil
+    var hrv7dBaseline: Double? = nil
 
-    private var score: Double? {
-        var total = 0.0; var count = 0
-        if let q  = entry.sleepQuality  { total += q;                              count += 1 }
-        if let s  = entry.soreness      { total += max(0, 10 - s);                 count += 1 }
-        if let h  = entry.sleepHours    { total += min(10, h / 8 * 10);            count += 1 }
-        if let hrv = entry.hrv          { total += min(10, hrv / 80 * 10);         count += 1 }
-        if let hr  = entry.restingHr    { total += min(10, max(0, (85 - hr) / 45 * 10)); count += 1 }
-        return count >= 2 ? round(total / Double(count) * 10) / 10 : nil
+    private var localScore: Double? {
+        var total = 0.0; var weight = 0.0
+        if let q   = entry.sleepQuality { total += q * 1.5;                                      weight += 1.5 }
+        if let s   = entry.soreness     { total += max(0, 10 - s) * 1.5;                         weight += 1.5 }
+        if let h   = entry.sleepHours   { total += min(10, h / 8 * 10) * 1.5;                    weight += 1.5 }
+        if let hrv = entry.hrv          { let ref = hrv7dBaseline ?? 60.0; total += min(10, hrv / ref * 10) * 4.0; weight += 4.0 }
+        if let hr  = entry.restingHr, hr <= 100 { total += min(10, max(0, (85 - hr) / 45 * 10)) * 1.5;   weight += 1.5 }
+        if let f   = entry.fatigue      { total += max(0, 10 - f) * 1.0;                         weight += 1.0 }
+        if let ep  = entry.energyPre    { total += min(10, ep / 5 * 10) * 0.5;                   weight += 0.5 }
+        return weight >= 2.0 ? round(total / weight * 10) / 10 : nil
     }
+
+    private var score: Double? { backendScore ?? localScore }
 
     private var scoreColor: Color {
         guard let s = score else { return .gray }
@@ -502,7 +551,9 @@ struct ReadinessCard: View {
 
     private var presentCount: Int {
         [entry.hrv.map { _ in () }, entry.restingHr.map { _ in () },
-         entry.sleepHours.map { _ in () }, entry.soreness.map { _ in () }]
+         entry.sleepHours.map { _ in () }, entry.soreness.map { _ in () },
+         entry.sleepQuality.map { _ in () }, entry.fatigue.map { _ in () },
+         entry.energyPre.map { _ in () }]
             .compactMap { $0 }.count
     }
 
@@ -517,18 +568,18 @@ struct ReadinessCard: View {
 
     private var reliabilityLabel: String {
         switch presentCount {
-        case 4:  return "Fiabilité élevée"
-        case 3:  return "Fiabilité partielle"
-        case 2:  return "Données limitées"
-        default: return "Données insuffisantes"
+        case 6...: return "Fiabilité élevée"
+        case 4...: return "Fiabilité partielle"
+        case 2...: return "Données limitées"
+        default:   return "Données insuffisantes"
         }
     }
 
     private var reliabilityColor: Color {
         switch presentCount {
-        case 4:  return .green
-        case 3:  return .orange
-        default: return .red
+        case 6...: return .green
+        case 4...: return .orange
+        default:   return .red
         }
     }
 
@@ -892,6 +943,7 @@ struct LogRecoverySheet: View {
     @State private var hrEveningStr = ""
     @State private var soreness: Double = 0
     @State private var fatigue: Double = 5
+    @State private var energyPre: Double = 0
     @State private var notes = ""
     @State private var isSaving = false
     @State private var isLoadingHK = false
@@ -991,6 +1043,26 @@ struct LogRecoverySheet: View {
                                     Text("10 = Épuisé(e)").font(.system(size: 9)).foregroundColor(.gray)
                                 }
                             }
+                            Divider().background(Color.white.opacity(0.06))
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("ÉNERGIE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    Spacer()
+                                    if energyPre == 0 {
+                                        Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
+                                    } else {
+                                        Text(String(format: "%.0f / 10", energyPre))
+                                            .font(.system(size: 13, weight: .bold)).foregroundColor(energyPreColor(energyPre))
+                                    }
+                                }
+                                Slider(value: $energyPre, in: 0...10, step: 1)
+                                    .tint(energyPre == 0 ? .gray : energyPreColor(energyPre))
+                                HStack {
+                                    Text("0 = Non renseigné").font(.system(size: 9)).foregroundColor(.gray)
+                                    Spacer()
+                                    Text("10 = Excellent").font(.system(size: 9)).foregroundColor(.gray)
+                                }
+                            }
                         }
                         .padding(14).background(Color.appCard).cornerRadius(12)
 
@@ -1075,8 +1147,9 @@ struct LogRecoverySheet: View {
             if let hrm = e.hrMorning     { hrMorningStr     = String(format: "%.0f", hrm) }
             if let hrp = e.hrPostWorkout { hrPostWorkoutStr = String(format: "%.0f", hrp) }
             if let hre = e.hrEvening     { hrEveningStr     = String(format: "%.0f", hre) }
-            if let so  = e.soreness      { soreness = so }
-            if let fa  = e.fatigue       { fatigue  = fa }
+            if let so  = e.soreness      { soreness   = so }
+            if let fa  = e.fatigue       { fatigue    = fa }
+            if let ep  = e.energyPre     { energyPre  = ep }
             notes = e.notes ?? ""
             let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
             if let d = e.date, let parsed = f.date(from: d) { selectedDate = parsed }
@@ -1091,6 +1164,10 @@ struct LogRecoverySheet: View {
 
     private func fatigueColor(_ v: Double) -> Color {
         if v >= 7 { return .red }; if v >= 4 { return .orange }; return .green
+    }
+
+    private func energyPreColor(_ v: Double) -> Color {
+        if v >= 7 { return .green }; if v >= 4 { return .orange }; return .red
     }
 
     private func fillFromHealthKit() {
@@ -1135,6 +1212,7 @@ struct LogRecoverySheet: View {
                     steps:         stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
                     soreness:      soreness == 0 ? nil : soreness,
                     fatigue:       fatigue,
+                    energyPre:     energyPre == 0 ? nil : energyPre,
                     activeEnergy:  activeEnergyStr.isEmpty ? nil : Double(activeEnergyStr),
                     hrMorning:     hrMorningStr.isEmpty ? nil : Double(hrMorningStr),
                     hrPostWorkout: hrPostWorkoutStr.isEmpty ? nil : Double(hrPostWorkoutStr),

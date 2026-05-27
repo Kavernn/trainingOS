@@ -336,6 +336,7 @@ CREATE TABLE IF NOT EXISTS recovery_logs (
     hr_post_workout     SMALLINT,   -- FC post-séance +30 min (migration 017)
     hr_evening          SMALLINT,   -- FC soir 21-23h (migration 017)
     fatigue_perceived   SMALLINT,   -- Hooper Index fatigue perçue 0-10 (migration 038)
+    energy_pre          SMALLINT    CHECK (energy_pre BETWEEN 1 AND 10),  -- Énergie perçue pre-workout 1-10 (migration 053)
     source              TEXT        NOT NULL DEFAULT 'manual',  -- manual | healthkit (migration 001)
     notes               TEXT
 );

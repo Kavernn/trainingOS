@@ -116,14 +116,19 @@ def compute_hrv_analysis(rows: list[dict], target_date: str) -> dict:
             else:
                 hrv_trend = "stable"
 
-    # ── Streak : jours consécutifs sous 7j_avg ───────────────────────────────
+    # ── Streak : jours consécutifs sous 7j_avg (tolère 1 jour sans donnée) ─────
     consecutive_low_days = 0
     if hrv_7d_avg and today_rmssd is not None:
+        gaps = 0
+        MAX_GAPS = 1
         for i in range(7):
             d = (today - timedelta(days=i)).isoformat()
             v = hrv_by_date.get(d)
             if v is None:
-                break
+                gaps += 1
+                if gaps > MAX_GAPS:
+                    break
+                continue
             if v < hrv_7d_avg:
                 consecutive_low_days += 1
             else:

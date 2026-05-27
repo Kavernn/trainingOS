@@ -15,6 +15,7 @@ struct RecoveryEntry: Codable, Identifiable {
     let hrMorning: Double?
     let hrPostWorkout: Double?
     let hrEvening: Double?
+    let energyPre: Double?
     let source: String?
     let notes: String?
 
@@ -30,6 +31,14 @@ struct RecoveryEntry: Codable, Identifiable {
         case hrMorning     = "hr_morning"
         case hrPostWorkout = "hr_post_workout"
         case hrEvening     = "hr_evening"
+        case energyPre     = "energy_pre"
+    }
+}
+
+struct DailySummary: Codable {
+    let recoveryScore: Double?
+    enum CodingKeys: String, CodingKey {
+        case recoveryScore = "recovery_score"
     }
 }
 

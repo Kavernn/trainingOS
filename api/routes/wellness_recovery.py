@@ -47,8 +47,9 @@ def api_recovery_data():
 def api_log_recovery():
     import db as _db
     data  = request.get_json(silent=True) or {}
-    soreness_val = data.get("soreness")
-    fatigue_val = data.get("fatigue_perceived")
+    soreness_val   = data.get("soreness")
+    fatigue_val    = data.get("fatigue_perceived")
+    energy_pre_val = data.get("energy_pre")
     entry = {
         "date":              data.get("date", date.today().isoformat()),
         "sleep_hours":       data.get("sleep_hours"),
@@ -59,6 +60,7 @@ def api_log_recovery():
         "active_energy":     data.get("active_energy"),
         "soreness":          soreness_val if soreness_val else None,
         "fatigue_perceived": fatigue_val if fatigue_val is not None else None,
+        "energy_pre":        energy_pre_val if energy_pre_val else None,
         "hr_morning":        data.get("hr_morning"),
         "hr_post_workout":   data.get("hr_post_workout"),
         "hr_evening":        data.get("hr_evening"),

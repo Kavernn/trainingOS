@@ -14,7 +14,7 @@ extension APIService {
 
     func logRecovery(sleepHours: Double?, sleepQuality: Double?, restingHr: Double?,
                      hrv: Double?, steps: Int?, soreness: Double?,
-                     fatigue: Double? = nil,
+                     fatigue: Double? = nil, energyPre: Double? = nil,
                      activeEnergy: Double? = nil, hrMorning: Double? = nil,
                      hrPostWorkout: Double? = nil, hrEvening: Double? = nil,
                      notes: String, date: String? = nil) async throws {
@@ -26,6 +26,7 @@ extension APIService {
         if let v = steps         { body["steps"]              = v }
         if let v = soreness      { body["soreness"]           = v }
         if let v = fatigue       { body["fatigue_perceived"]  = Int(v) }
+        if let v = energyPre     { body["energy_pre"]         = Int(v) }
         if let v = activeEnergy  { body["active_energy"]      = v }
         if let v = hrMorning     { body["hr_morning"]         = Int(v) }
         if let v = hrPostWorkout { body["hr_post_workout"]    = Int(v) }
@@ -37,6 +38,14 @@ extension APIService {
 
     func deleteRecovery(date: String) async throws {
         _ = try await offlinePost(endpoint: "/api/delete_recovery", payload: ["date": date])
+    }
+
+    func fetchDailySummary(date: String? = nil) async throws -> DailySummary {
+        var urlStr = "\(baseURL)/api/health/daily_summary"
+        if let d = date { urlStr += "?date=\(d)" }
+        let url = URL(string: urlStr)!
+        let data = try await fetchWithCache(url: url, key: "daily_summary_\(date ?? "today")")
+        return try JSONDecoder().decode(DailySummary.self, from: data)
     }
 
     // MARK: - HRV Analysis
