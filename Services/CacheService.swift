@@ -36,18 +36,16 @@ final class CacheService {
         "seance_soir_data":   5 * 60,
         "historique_data":    10 * 60,
         "stats_data":         15 * 60,
-        "programme_data":     3600,
+        "programme_data":     24 * 3600,
         // Health
-        "recovery_data":      10 * 60,
+        "recovery_data":      3600,
         "cardio_data":        10 * 60,
         "acwr":               30 * 60,
-        "deload_data":        30 * 60,
         // Nutrition
         "nutrition_data":     5 * 60,
         // Analytics — computed server-side, changes rarely
         "insights":           30 * 60,
         "life_stress":        30 * 60,
-        "morning_brief_data": 5 * 60,
         "smart_day":          30 * 60,
         "weekly_report":      3600,
         // Profile
@@ -80,6 +78,12 @@ final class CacheService {
         return directory.appendingPathComponent("\(safe).expiry")
     }
 
+    private func savedAtURL(for key: String) -> URL {
+        let safe = key.replacingOccurrences(of: "/", with: "_")
+                      .replacingOccurrences(of: "?", with: "_")
+        return directory.appendingPathComponent("\(safe).savedAt")
+    }
+
     private func ttl(for key: String) -> TimeInterval {
         if let exact = Self.ttls[key] { return exact }
         // Prefix match: "coach_tip_2026-04-16" → "coach_tip"
@@ -93,24 +97,23 @@ final class CacheService {
         mem.setObject(data as NSData, forKey: key as NSString, cost: data.count)
         try? data.write(to: fileURL(for: key), options: .atomic)
         let ttl = ttl(for: key)
-        let expiry = Date().addingTimeInterval(ttl).timeIntervalSince1970
+        let now = Date().timeIntervalSince1970
+        let expiry = now + ttl
         let expiryData = withUnsafeBytes(of: expiry) { Data($0) }
         try? expiryData.write(to: expiryURL(for: key), options: .atomic)
+        let savedAtData = withUnsafeBytes(of: now) { Data($0) }
+        try? savedAtData.write(to: savedAtURL(for: key), options: .atomic)
     }
 
     func load(for key: String) -> Data? {
         // L1: memory hit — no disk I/O
         if let hit = mem.object(forKey: key as NSString) { return hit as Data }
 
-        // L2: disk — check expiry first
+        // L2: disk — check expiry first; expired files kept for stale-while-revalidate
         if let expiryData = try? Data(contentsOf: expiryURL(for: key)),
            expiryData.count == MemoryLayout<Double>.size {
             let expiry = expiryData.withUnsafeBytes { $0.load(as: Double.self) }
-            if Date().timeIntervalSince1970 > expiry {
-                try? FileManager.default.removeItem(at: fileURL(for: key))
-                try? FileManager.default.removeItem(at: expiryURL(for: key))
-                return nil
-            }
+            if Date().timeIntervalSince1970 > expiry { return nil }
         }
         guard let data = try? Data(contentsOf: fileURL(for: key)) else { return nil }
         mem.setObject(data as NSData, forKey: key as NSString, cost: data.count)
@@ -121,5 +124,29 @@ final class CacheService {
         mem.removeObject(forKey: key as NSString)
         try? FileManager.default.removeItem(at: fileURL(for: key))
         try? FileManager.default.removeItem(at: expiryURL(for: key))
+        try? FileManager.default.removeItem(at: savedAtURL(for: key))
+    }
+
+    /// Returns the timestamp when this key was last saved, or nil if never.
+    func savedAt(for key: String) -> Date? {
+        guard let data = try? Data(contentsOf: savedAtURL(for: key)),
+              data.count == MemoryLayout<Double>.size else { return nil }
+        let epoch = data.withUnsafeBytes { $0.load(as: Double.self) }
+        return Date(timeIntervalSince1970: epoch)
+    }
+
+    /// Reads disk cache regardless of expiry — never promotes stale data to mem cache.
+    /// Use in stale-while-revalidate paths: show old value while background refresh runs.
+    func loadIncludingStale(for key: String) -> (data: Data?, isExpired: Bool, savedAt: Date?) {
+        var isExpired = true
+        if let expiryData = try? Data(contentsOf: expiryURL(for: key)),
+           expiryData.count == MemoryLayout<Double>.size {
+            let expiry = expiryData.withUnsafeBytes { $0.load(as: Double.self) }
+            isExpired = Date().timeIntervalSince1970 > expiry
+        }
+        guard let data = try? Data(contentsOf: fileURL(for: key)) else {
+            return (nil, true, nil)
+        }
+        return (data, isExpired, savedAt(for: key))
     }
 }

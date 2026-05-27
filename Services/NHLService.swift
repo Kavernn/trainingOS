@@ -109,7 +109,7 @@ final class NHLService: ObservableObject {
     private var lastFetch: Date = .distantPast
 
     func fetchIfNeeded() async {
-        guard Date().timeIntervalSince(lastFetch) > 300 else { return }
+        guard Date().timeIntervalSince(lastFetch) > (liveGame != nil ? 120 : 3600) else { return }
         await fetch()
     }
 

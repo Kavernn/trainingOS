@@ -52,7 +52,7 @@ class APIService: ObservableObject {
     private init() {}
 
     // MARK: - Cache helper
-    // Stratégie : cache-first + background refresh.
+    // Stratégie : cache-first + stale-while-revalidate + background refresh.
     func fetchWithCache(url: URL, key: String) async throws -> Data {
         if let cached = CacheService.shared.load(for: key) {
             Task.detached(priority: .utility) {
@@ -66,6 +66,21 @@ class APIService: ObservableObject {
             }
             return cached
         }
+        // Expired: serve stale data immediately + background refresh — never block
+        let (stale, _, _) = CacheService.shared.loadIncludingStale(for: key)
+        if let stale {
+            Task.detached(priority: .utility) {
+                var req = URLRequest(url: url)
+                req.timeoutInterval = 15
+                req.cachePolicy = .reloadIgnoringLocalCacheData
+                if let (fresh, resp) = try? await URLSession.authed.data(for: req),
+                   (200...299).contains((resp as? HTTPURLResponse)?.statusCode ?? 0) {
+                    CacheService.shared.save(fresh, for: key)
+                }
+            }
+            return stale
+        }
+        // No cache at all: foreground fetch (first launch or after explicit clear)
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
         req.cachePolicy = .reloadIgnoringLocalCacheData

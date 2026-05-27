@@ -69,7 +69,7 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
     }
 
     private func fetchWeather(for location: CLLocation) async {
-        if let lastUpdated, Date().timeIntervalSince(lastUpdated) < 600 { return }
+        if let lastUpdated, Date().timeIntervalSince(lastUpdated) < 1800 { return }
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
         let urlStr = "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lon)&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=celsius&forecast_days=7&timezone=auto"
