@@ -1,0 +1,129 @@
+from flask import Blueprint, jsonify, request
+from datetime import date
+
+wellness_recovery_bp = Blueprint("wellness_recovery", __name__)
+
+
+@wellness_recovery_bp.route("/api/cardio_data")
+def api_cardio_data():
+    import db as _db
+    log = _db.get_cardio_logs() or []
+    return jsonify({"cardio_log": sorted(log, key=lambda x: x.get("date", ""), reverse=True)})
+
+@wellness_recovery_bp.route("/api/log_cardio", methods=["POST"])
+def api_log_cardio():
+    import db as _db
+    data = request.get_json(silent=True) or {}
+    entry = {
+        "date":         data.get("date", date.today().isoformat()),
+        "type":         data.get("type", "course"),
+        "duration_min": data.get("duration_min"),
+        "distance_km":  data.get("distance_km"),
+        "avg_pace":     data.get("avg_pace"),
+        "avg_hr":       data.get("avg_hr"),
+        "cadence":      data.get("cadence"),
+        "calories":     data.get("calories"),
+        "rpe":          data.get("rpe"),
+        "notes":        data.get("notes", ""),
+    }
+    _db.insert_cardio_log(entry)
+    return jsonify({"ok": True})
+
+@wellness_recovery_bp.route("/api/delete_cardio", methods=["POST"])
+def api_delete_cardio():
+    import db as _db
+    data = request.get_json(silent=True) or {}
+    _db.delete_cardio_log(data.get("date", ""), data.get("type", ""))
+    return jsonify({"ok": True})
+
+
+@wellness_recovery_bp.route("/api/recovery_data")
+def api_recovery_data():
+    import db as _db
+    log = _db.get_recovery_logs() or []
+    return jsonify({"recovery_log": sorted(log, key=lambda x: x.get("date", ""), reverse=True)})
+
+@wellness_recovery_bp.route("/api/log_recovery", methods=["POST"])
+def api_log_recovery():
+    import db as _db
+    data  = request.get_json(silent=True) or {}
+    soreness_val = data.get("soreness")
+    fatigue_val = data.get("fatigue_perceived")
+    entry = {
+        "date":              data.get("date", date.today().isoformat()),
+        "sleep_hours":       data.get("sleep_hours"),
+        "sleep_quality":     data.get("sleep_quality"),
+        "resting_hr":        data.get("resting_hr"),
+        "hrv":               data.get("hrv"),
+        "steps":             data.get("steps"),
+        "active_energy":     data.get("active_energy"),
+        "soreness":          soreness_val if soreness_val else None,
+        "fatigue_perceived": fatigue_val if fatigue_val is not None else None,
+        "hr_morning":        data.get("hr_morning"),
+        "hr_post_workout":   data.get("hr_post_workout"),
+        "hr_evening":        data.get("hr_evening"),
+        "notes":             data.get("notes", ""),
+        "source":            "manual",
+    }
+    ok = _db.upsert_recovery_log(entry)
+    if not ok:
+        return jsonify({"error": "Erreur base de données"}), 500
+    return jsonify({"ok": True})
+
+@wellness_recovery_bp.route("/api/delete_recovery", methods=["POST"])
+def api_delete_recovery():
+    import db as _db
+    data = request.get_json(silent=True) or {}
+    _db.delete_recovery_log(data.get("date", ""))
+    return jsonify({"ok": True})
+
+
+@wellness_recovery_bp.route("/api/healthkit_sync", methods=["POST"])
+def api_healthkit_sync():
+    """Importe les données HealthKit du jour — ne remplace pas les champs déjà remplis."""
+    import db as _db
+    from utils import _today_mtl
+    data  = request.get_json() or {}
+    today = _today_mtl()
+    logs     = _db.get_recovery_logs() or []
+    existing = next((e for e in logs if e.get("date") == today), {})
+    entry = {
+        "date":        today,
+        "sleep_hours": existing.get("sleep_hours") or data.get("sleep_hours"),
+        "resting_hr":  existing.get("resting_hr")  or data.get("resting_hr"),
+        "hrv":         existing.get("hrv")          or data.get("hrv"),
+        "steps":       existing.get("steps")        or data.get("steps"),
+        "sleep_quality": existing.get("sleep_quality"),
+        "soreness":    existing.get("soreness"),
+        "notes":       existing.get("notes", ""),
+    }
+    if not any([entry["sleep_hours"], entry["resting_hr"], entry["hrv"], entry["steps"]]):
+        return jsonify({"ok": False, "msg": "no data"})
+    _db.upsert_recovery_log(entry)
+    return jsonify({"ok": True})
+
+
+@wellness_recovery_bp.route("/api/health/daily_summary")
+def api_health_daily_summary():
+    """
+    Résumé santé unifié pour un jour donné.
+    ?date=YYYY-MM-DD  (défaut : aujourd'hui)
+    """
+    from health_data import get_daily_health_summary
+    target_date = request.args.get("date")
+    return jsonify(get_daily_health_summary(target_date))
+
+
+@wellness_recovery_bp.route("/api/health/weekly_summary")
+def api_health_weekly_summary():
+    """
+    Résumés des N derniers jours (du plus récent au plus ancien).
+    ?days=7  (défaut : 7)
+    """
+    from health_data import get_weekly_health_summary
+    try:
+        days = int(request.args.get("days", 7))
+        days = max(1, min(days, 90))
+    except ValueError:
+        days = 7
+    return jsonify(get_weekly_health_summary(days))

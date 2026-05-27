@@ -97,7 +97,11 @@ from routes.workout_exercises import workout_exercises_bp
 from routes.workout_programs  import workout_programs_bp
 from routes.workout_schedule  import workout_schedule_bp
 from routes.data_views   import data_views_bp
-from routes.wellness     import wellness_bp
+from routes.wellness          import wellness_bp
+from routes.wellness_recovery import wellness_recovery_bp
+from routes.wellness_stress   import wellness_stress_bp
+from routes.wellness_mood     import wellness_mood_bp
+from routes.wellness_spirit   import wellness_spirit_bp
 from routes.coach_tip    import coach_tip_bp
 from routes.body_budget  import body_budget_bp
 from routes.patterns     import patterns_bp
@@ -137,6 +141,10 @@ app.register_blueprint(workout_programs_bp)
 app.register_blueprint(workout_schedule_bp)
 app.register_blueprint(data_views_bp)
 app.register_blueprint(wellness_bp)
+app.register_blueprint(wellness_recovery_bp)
+app.register_blueprint(wellness_stress_bp)
+app.register_blueprint(wellness_mood_bp)
+app.register_blueprint(wellness_spirit_bp)
 app.register_blueprint(coach_tip_bp)
 app.register_blueprint(body_budget_bp)
 app.register_blueprint(patterns_bp)
