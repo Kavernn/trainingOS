@@ -112,6 +112,14 @@
 		88AE06959F6C41BB819C117B /* NotificationCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178857F4F15844198720466F /* NotificationCenterView.swift */; };
 		D665E44F2F5D98BA002AE470 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43A2F5D98B8002AE470 /* Extensions.swift */; };
 		D665E4502F5D98BA002AE470 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665E43C2F5D98B8002AE470 /* DashboardView.swift */; };
+		1CA0933819744850A2C926D1 /* DashboardHeaderCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C092A48A92B45199AD49EE3 /* DashboardHeaderCards.swift */; };
+		5235FFAB182E4E9F9D4F4648 /* DashboardTodayCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E763610F6C4444B969517B6 /* DashboardTodayCards.swift */; };
+		068A26746FD34970A1D410BF /* DashboardBriefCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */; };
+		110ED440D08546FE9E027EC0 /* DashboardNutritionCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF11A8481CB4909A6965C19 /* DashboardNutritionCards.swift */; };
+		D665E4552F5D98BA002AE470 /* DashboardWellnessCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75686E58001949C3B9BD69C3 /* DashboardWellnessCards.swift */; };
+		D665E4562F5D98BA002AE470 /* DashboardWeeklyCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB382E7459714CD59565FCF5 /* DashboardWeeklyCards.swift */; };
+		D665E4572F5D98BA002AE470 /* DashboardReadinessCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 896AC1E82CAF45AE8F69F36D /* DashboardReadinessCards.swift */; };
+		D665E4582F5D98BA002AE470 /* DashboardRitualCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */; };
 		D665E4512F5D98BA002AE470 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = D665E4362F5D98B8002AE470 /* README.md */; };
 		D69D3EEF2F85895800553153 /* SessionDraftStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = D69D3EEE2F85895800553153 /* SessionDraftStore.swift */; };
 		DA26223185CE48C094B9CA75 /* PlateCalculatorSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334E94AE7F3343C483E11FAC /* PlateCalculatorSheet.swift */; };
@@ -314,6 +322,14 @@
 		D665E4392F5D98B8002AE470 /* TrainingOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingOSApp.swift; sourceTree = "<group>"; };
 		D665E43A2F5D98B8002AE470 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		D665E43C2F5D98B8002AE470 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		2C092A48A92B45199AD49EE3 /* DashboardHeaderCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardHeaderCards.swift; sourceTree = "<group>"; };
+		2E763610F6C4444B969517B6 /* DashboardTodayCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardTodayCards.swift; sourceTree = "<group>"; };
+		D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardBriefCards.swift; sourceTree = "<group>"; };
+		3EF11A8481CB4909A6965C19 /* DashboardNutritionCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNutritionCards.swift; sourceTree = "<group>"; };
+		75686E58001949C3B9BD69C3 /* DashboardWellnessCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWellnessCards.swift; sourceTree = "<group>"; };
+		DB382E7459714CD59565FCF5 /* DashboardWeeklyCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardWeeklyCards.swift; sourceTree = "<group>"; };
+		896AC1E82CAF45AE8F69F36D /* DashboardReadinessCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardReadinessCards.swift; sourceTree = "<group>"; };
+		6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardRitualCards.swift; sourceTree = "<group>"; };
 		D665E43E2F5D98B8002AE470 /* HistoriqueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoriqueView.swift; sourceTree = "<group>"; };
 		D665E4402F5D98B8002AE470 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		178857F4F15844198720466F /* NotificationCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCenterView.swift; sourceTree = "<group>"; };
@@ -737,6 +753,14 @@
 			isa = PBXGroup;
 			children = (
 				D665E43C2F5D98B8002AE470 /* DashboardView.swift */,
+				2C092A48A92B45199AD49EE3 /* DashboardHeaderCards.swift */,
+				2E763610F6C4444B969517B6 /* DashboardTodayCards.swift */,
+				D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */,
+				3EF11A8481CB4909A6965C19 /* DashboardNutritionCards.swift */,
+				75686E58001949C3B9BD69C3 /* DashboardWellnessCards.swift */,
+				DB382E7459714CD59565FCF5 /* DashboardWeeklyCards.swift */,
+				896AC1E82CAF45AE8F69F36D /* DashboardReadinessCards.swift */,
+				6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */,
 				CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */,
 				D68B8535D55F4B109509F146 /* MorningRevealView.swift */,
 				C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */,
@@ -1074,6 +1098,14 @@
 				PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */,
 				RH000002RH000002RH000002 /* RPEHelper.swift in Sources */,
 				D665E4502F5D98BA002AE470 /* DashboardView.swift in Sources */,
+				1CA0933819744850A2C926D1 /* DashboardHeaderCards.swift in Sources */,
+				5235FFAB182E4E9F9D4F4648 /* DashboardTodayCards.swift in Sources */,
+				068A26746FD34970A1D410BF /* DashboardBriefCards.swift in Sources */,
+				110ED440D08546FE9E027EC0 /* DashboardNutritionCards.swift in Sources */,
+				D665E4552F5D98BA002AE470 /* DashboardWellnessCards.swift in Sources */,
+				D665E4562F5D98BA002AE470 /* DashboardWeeklyCards.swift in Sources */,
+				D665E4572F5D98BA002AE470 /* DashboardReadinessCards.swift in Sources */,
+				D665E4582F5D98BA002AE470 /* DashboardRitualCards.swift in Sources */,
 				CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */,
 				07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */,
 				AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */,
