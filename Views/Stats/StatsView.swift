@@ -71,59 +71,59 @@ enum StatsPeriod: String, CaseIterable {
 
 // MARK: - Main View
 struct StatsView: View {
-    @State private var weights:          [String: WeightData]    = [:]
-    @State private var sessions:         [String: SessionEntry]  = [:]
-    @State private var hiitLog:          [HIITEntry]             = []
-    @State private var bodyWeight:       [BodyWeightEntry]       = []
-    @State private var recoveryLog:      [RecoveryEntry]         = []
-    @State private var nutritionTarget:  NutritionSettings?      = nil
-    @State private var nutritionDays:    [NutritionDay]          = []
-    @State private var acwr:             ACWRData?               = nil
-    @State private var muscleStats:      [String: MuscleStatEntry]  = [:]
-    @State private var muscleLandmarks:  [String: MuscleLandmark]   = [:]
-    @State private var inventoryTypes:   [String: String]            = [:]
-    @State private var isLoading    = true
-    @State private var fetchError   = false
-    @State private var selectedExercise: String? = nil
-    @State private var searchText   = ""
-    @State private var selectedTab: Int = 0
-    @State private var period: StatsPeriod = .month3
+    @State var weights:          [String: WeightData]    = [:]
+    @State var sessions:         [String: SessionEntry]  = [:]
+    @State var hiitLog:          [HIITEntry]             = []
+    @State var bodyWeight:       [BodyWeightEntry]       = []
+    @State var recoveryLog:      [RecoveryEntry]         = []
+    @State var nutritionTarget:  NutritionSettings?      = nil
+    @State var nutritionDays:    [NutritionDay]          = []
+    @State var acwr:             ACWRData?               = nil
+    @State var muscleStats:      [String: MuscleStatEntry]  = [:]
+    @State var muscleLandmarks:  [String: MuscleLandmark]   = [:]
+    @State var inventoryTypes:   [String: String]            = [:]
+    @State var isLoading    = true
+    @State var fetchError   = false
+    @State var selectedExercise: String? = nil
+    @State var searchText   = ""
+    @State var selectedTab: Int = 0
+    @State var period: StatsPeriod = .month3
 
     // ── Stats Expansion State ────────────────────────────────────────
-    @State private var weeklyTonnage:      [WeeklyTonnageEntry]        = []
-    @State private var patternVolume:      PatternVolumeData?          = nil
-    @State private var complianceWeeks:    [ComplianceWeek]            = []
-    @State private var oneRmTrend:         [String: [OneRMPoint]]      = [:]
-    @State private var hiitCompletion:     [HIITCompletionEntry]       = []
-    @State private var macrosByDayType:    MacrosByDayType?            = nil
-    @State private var proteinWeightRatio: [ProteinWeightPoint]        = []
-    @State private var moodTrend:          [MoodTrendPoint]            = []
-    @State private var pssHistory:         [PSSRecord]                 = []
-    @State private var selfCareStreaks:    [SelfCareStreak]            = []
-    @State private var selfCareCompliance: SelfCareComplianceData?     = nil
-    @State private var sorenessScatter:    [ScatterPoint]              = []
-    @State private var sleepScatter:       [ScatterPoint]              = []
-    @State private var rpeProgression:     RPEProgressionData?         = nil
-    @State private var rirByExercise:      [RIREntry]                  = []
-    @State private var pushPullRatio:      WeeklyReportPushPull?       = nil
-    @State private var sorenessThreshold:  SorenessThreshold?          = nil
-    @State private var hrvBaseline:        HRVBaseline?                = nil
-    @State private var hrvAnalysis:        HRVAnalysis?                = nil
+    @State var weeklyTonnage:      [WeeklyTonnageEntry]        = []
+    @State var patternVolume:      PatternVolumeData?          = nil
+    @State var complianceWeeks:    [ComplianceWeek]            = []
+    @State var oneRmTrend:         [String: [OneRMPoint]]      = [:]
+    @State var hiitCompletion:     [HIITCompletionEntry]       = []
+    @State var macrosByDayType:    MacrosByDayType?            = nil
+    @State var proteinWeightRatio: [ProteinWeightPoint]        = []
+    @State var moodTrend:          [MoodTrendPoint]            = []
+    @State var pssHistory:         [PSSRecord]                 = []
+    @State var selfCareStreaks:    [SelfCareStreak]            = []
+    @State var selfCareCompliance: SelfCareComplianceData?     = nil
+    @State var sorenessScatter:    [ScatterPoint]              = []
+    @State var sleepScatter:       [ScatterPoint]              = []
+    @State var rpeProgression:     RPEProgressionData?         = nil
+    @State var rirByExercise:      [RIREntry]                  = []
+    @State var pushPullRatio:      WeeklyReportPushPull?       = nil
+    @State var sorenessThreshold:  SorenessThreshold?          = nil
+    @State var hrvBaseline:        HRVBaseline?                = nil
+    @State var hrvAnalysis:        HRVAnalysis?                = nil
 
     // ── New stats data ────────────────────────────────────────────────────
-    @State private var adherenceData:    AdherenceData?         = nil
-    @State private var seasonComparison: SeasonComparisonData?  = nil
-    @State private var warRoomStats:     WarRoomSummaryStats?   = nil
-    @State private var graveyardCount:   Int                    = 0
-    @State private var deloadStatus:     DeloadStatusData?      = nil
-    @State private var intensityData:    IntensityData?         = nil
-    @State private var ritualStats:      RitualStats?           = nil
+    @State var adherenceData:    AdherenceData?         = nil
+    @State var seasonComparison: SeasonComparisonData?  = nil
+    @State var warRoomStats:     WarRoomSummaryStats?   = nil
+    @State var graveyardCount:   Int                    = 0
+    @State var deloadStatus:     DeloadStatusData?      = nil
+    @State var intensityData:    IntensityData?         = nil
+    @State var ritualStats:      RitualStats?           = nil
 
     // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
-    @State private var cachedCurrentStreak: Int = 0
-    @State private var cachedBestStreak: Int = 0
-    @State private var cachedWeeklyVolume: Double = 0
-    @State private var cachedPersonalRecords: [(String, Double)] = []
+    @State var cachedCurrentStreak: Int = 0
+    @State var cachedBestStreak: Int = 0
+    @State var cachedWeeklyVolume: Double = 0
+    @State var cachedPersonalRecords: [(String, Double)] = []
 
     // ── KPIs ────────────────────────────────────────────────────────
     var totalSessions: Int { sessions.count }
@@ -171,7 +171,7 @@ struct StatsView: View {
     var personalRecords: [(String, Double)] { cachedPersonalRecords }
 
     // ── Weekly charts ─────────────────────────────────────────────────
-    private var last8Weeks: [String] {
+    var last8Weeks: [String] {
         let tz = TimeZone.current.secondsFromGMT()
         let todayDays = (Int(Date().timeIntervalSince1970) + tz) / 86400
         return (0..<8).reversed().map { i in "W\((todayDays - i * 7 + 3) / 7)" }
@@ -256,7 +256,7 @@ struct StatsView: View {
     }
 
     // ── Week comparison ───────────────────────────────────────────────
-    private func weekBounds(weeksAgo: Int) -> (String, String) {
+    func weekBounds(weeksAgo: Int) -> (String, String) {
         let tz = TimeZone.current.secondsFromGMT()
         let todayDays = (Int(Date().timeIntervalSince1970) + tz) / 86400
         let weekday = ((todayDays + 4) % 7) + 1
@@ -396,7 +396,7 @@ struct StatsView: View {
         ]
     }
 
-    private var tabAmbientColor: Color {
+    var tabAmbientColor: Color {
         switch selectedTab {
         case 1: return .orange
         case 2: return .green
@@ -461,7 +461,7 @@ struct StatsView: View {
         .task { await loadData() }
     }
 
-    private func formatK(_ v: Double) -> String { _formatK(v) }
+    func formatK(_ v: Double) -> String { _formatK(v) }
 
     // Local decodable mirror of the stats response
     private struct StatsAPIResponse: Codable {
@@ -525,7 +525,7 @@ struct StatsView: View {
         }
     }
 
-    private func recalcKPIs() {
+    func recalcKPIs() {
         let fmt = DateFormatter.isoDate
         let base = Date().timeIntervalSince1970
         var count = 0
@@ -588,7 +588,7 @@ struct StatsView: View {
         .prefix(10).map { $0 }
     }
 
-    private func applyStats(_ r: StatsAPIResponse) {
+    func applyStats(_ r: StatsAPIResponse) {
         weights            = r.weights
         sessions           = r.sessions
         hiitLog            = r.hiitLog
@@ -609,7 +609,7 @@ struct StatsView: View {
         recalcKPIs()
     }
 
-    private func applyWellness(_ r: WellnessAPIResponse) {
+    func applyWellness(_ r: WellnessAPIResponse) {
         moodTrend          = r.moodTrend
         pssHistory         = r.pssHistory
         selfCareStreaks    = r.selfCareStreaks
@@ -620,7 +620,7 @@ struct StatsView: View {
         rirByExercise      = r.rirByExercise
     }
 
-    private func loadData() async {
+    func loadData() async {
         fetchError = false
 
         // 1. Show cached data immediately (no spinner if cache exists)
