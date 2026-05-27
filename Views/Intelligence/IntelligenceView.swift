@@ -289,6 +289,11 @@ struct IntelligenceView: View {
                     Task { await togglePin(pattern: daily) }
                 }
                 .padding(.horizontal, 16)
+
+                if daily.family == "C", daily.macroThreshold != nil {
+                    MacroThresholdDetail(pattern: daily)
+                        .padding(.horizontal, 16)
+                }
             } else if patternData != nil {
                 // No daily pattern (data insufficient)
                 HStack(spacing: 8) {

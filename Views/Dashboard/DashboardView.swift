@@ -137,6 +137,20 @@ struct DashboardView: View {
                                 )
                                 .appearAnimation(delay: 0.05)
 
+                                if let pattern = vm.dailyPattern,
+                                   pattern.family == "C",
+                                   pattern.macroThreshold != nil,
+                                   !dash.today.lowercased().contains("repos"),
+                                   !dash.today.lowercased().contains("rest"),
+                                   !dash.today.lowercased().contains("recovery"),
+                                   !dash.today.isEmpty,
+                                   let yesterday = vm.yesterdayNutrition {
+                                    MacroInsightCard(pattern: pattern, yesterday: yesterday) {
+                                        NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
+                                    }
+                                    .appearAnimation(delay: 0.07)
+                                }
+
                                 DailyMetricsRow(
                                     readinessScore: vm.readinessScore,
                                     recovery: vm.todayRecovery,

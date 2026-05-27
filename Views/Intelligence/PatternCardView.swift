@@ -358,6 +358,54 @@ struct PatternDailyChip: View {
     }
 }
 
+// MARK: - Macro Threshold Detail (Family C uniquement)
+
+struct MacroThresholdDetail: View {
+    let pattern: PatternEntry
+
+    private var threshold: MacroThreshold? { pattern.macroThreshold }
+
+    private var macroLabel: String {
+        switch threshold?.macro {
+        case "proteines": return "protéines"
+        case "glucides":  return "glucides"
+        default:          return "calories"
+        }
+    }
+
+    var body: some View {
+        if let t = threshold {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 5) {
+                    Image(systemName: "target")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.purple.opacity(0.7))
+                    Text("SEUIL PERSONNEL CALCULÉ")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Color(white: 0.4))
+                        .tracking(0.5)
+                }
+                Text("Ton seuil optimal : \(Int(t.value))\(t.unit) de \(macroLabel) la veille")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(pattern.confidence == "forte" ? Color.green : Color.yellow)
+                        .frame(width: 5, height: 5)
+                    Text("Basé sur \(pattern.n) paires — corrélation \(pattern.confidence)")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(white: 0.45))
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.purple.opacity(0.06))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.purple.opacity(0.12), lineWidth: 1))
+            .cornerRadius(10)
+        }
+    }
+}
+
 // MARK: - Skeleton
 
 struct PatternCardSkeleton: View {

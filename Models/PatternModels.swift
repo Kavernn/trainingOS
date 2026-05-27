@@ -12,6 +12,12 @@ struct PatternResponse: Codable {
     }
 }
 
+struct MacroThreshold: Codable {
+    let macro: String   // "proteines" / "glucides" / "calories"
+    let value: Double   // seuil en grammes ou kcal
+    let unit: String    // "g" ou "kcal"
+}
+
 struct PatternEntry: Codable, Identifiable {
     let id: String
     let family: String
@@ -28,34 +34,37 @@ struct PatternEntry: Codable, Identifiable {
     var isNew: Bool
     var warRoom: Bool
     var trend: PatternTrend?
+    let macroThreshold: MacroThreshold?
 
     enum CodingKeys: String, CodingKey {
         case id, family, headline, confidence, n, icon, color, pinned, trend
-        case subLabel   = "sub_label"
-        case effectPct  = "effect_pct"
-        case barA       = "bar_a"
-        case barB       = "bar_b"
-        case isNew      = "is_new"
-        case warRoom    = "war_room"
+        case subLabel        = "sub_label"
+        case effectPct       = "effect_pct"
+        case barA            = "bar_a"
+        case barB            = "bar_b"
+        case isNew           = "is_new"
+        case warRoom         = "war_room"
+        case macroThreshold  = "macro_threshold"
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        id         = try c.decode(String.self,      forKey: .id)
-        family     = try c.decode(String.self,      forKey: .family)
-        subLabel   = try c.decode(String.self,      forKey: .subLabel)
-        headline   = try c.decode(String.self,      forKey: .headline)
-        confidence = try c.decode(String.self,      forKey: .confidence)
-        effectPct  = try c.decode(Double.self,      forKey: .effectPct)
-        n          = try c.decode(Int.self,         forKey: .n)
-        barA       = try c.decode(PatternBar.self,  forKey: .barA)
-        barB       = try c.decode(PatternBar.self,  forKey: .barB)
-        icon       = try c.decode(String.self,      forKey: .icon)
-        color      = try c.decode(String.self,      forKey: .color)
-        pinned     = try c.decode(Bool.self,        forKey: .pinned)
-        isNew      = try c.decode(Bool.self,        forKey: .isNew)
-        warRoom    = try c.decodeIfPresent(Bool.self, forKey: .warRoom) ?? false
-        trend      = try c.decodeIfPresent(PatternTrend.self, forKey: .trend)
+        id             = try c.decode(String.self,      forKey: .id)
+        family         = try c.decode(String.self,      forKey: .family)
+        subLabel       = try c.decode(String.self,      forKey: .subLabel)
+        headline       = try c.decode(String.self,      forKey: .headline)
+        confidence     = try c.decode(String.self,      forKey: .confidence)
+        effectPct      = try c.decode(Double.self,      forKey: .effectPct)
+        n              = try c.decode(Int.self,         forKey: .n)
+        barA           = try c.decode(PatternBar.self,  forKey: .barA)
+        barB           = try c.decode(PatternBar.self,  forKey: .barB)
+        icon           = try c.decode(String.self,      forKey: .icon)
+        color          = try c.decode(String.self,      forKey: .color)
+        pinned         = try c.decode(Bool.self,        forKey: .pinned)
+        isNew          = try c.decode(Bool.self,        forKey: .isNew)
+        warRoom        = try c.decodeIfPresent(Bool.self,           forKey: .warRoom) ?? false
+        trend          = try c.decodeIfPresent(PatternTrend.self,   forKey: .trend)
+        macroThreshold = try c.decodeIfPresent(MacroThreshold.self, forKey: .macroThreshold)
     }
 }
 

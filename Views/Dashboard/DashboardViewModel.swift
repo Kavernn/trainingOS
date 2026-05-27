@@ -27,6 +27,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var ritualToday: RitualToday?
     @Published var warRoomEnabled = false
     @Published var hrvAnalysis: HRVAnalysis? = nil
+    @Published var yesterdayNutrition: NutritionDayHistory?
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -86,6 +87,10 @@ final class DashboardViewModel: ObservableObject {
         // Single source of truth: dashboard.todayDate echoes the device date sent via ?date=.
         // Falls back to device date if dashboard failed to load (network + cache both failed).
         let today = APIService.shared.dashboard?.todayDate ?? DateFormatter.isoDate.string(from: Date())
+        let yesterdayStr: String = {
+            let base = DateFormatter.isoDate.date(from: today) ?? Date()
+            return DateFormatter.isoDate.string(from: Calendar.current.date(byAdding: .day, value: -1, to: base) ?? base)
+        }()
 
         // Phase 2: all independent secondary calls in parallel.
         // withTaskGroup is safe on iOS 26 beta (async let parallel has LIFO crash).
@@ -137,6 +142,12 @@ final class DashboardViewModel: ObservableObject {
                     self.logger.error("fetchHRVAnalysis: \(error, privacy: .public)")
                     return 0
                 }
+            }
+            group.addTask { @MainActor [yesterdayStr] in
+                if let history = try? await APIService.shared.fetchNutritionHistory() {
+                    self.yesterdayNutrition = history.first(where: { $0.date == yesterdayStr })
+                }
+                return 0
             }
             group.addTask { @MainActor in
                 self.sleepStages = await HealthKitService.shared.fetchLastNightSleepStages()
@@ -213,6 +224,9 @@ final class DashboardViewModel: ObservableObject {
         }
 
         if criticalFailures >= 1 { partialLoadWarning = true }
+
+        // Propagate macro nutrition hint to session coaching view
+        AppState.shared.macroSessionHint = computeMacroHint()
 
         // Analytics — once per calendar day
         if analyticsLoadedDate != today {
@@ -330,5 +344,25 @@ final class DashboardViewModel: ObservableObject {
         }
         guard totalW >= 0.25 else { return nil }
         return Int((weighted / totalW) * 100)
+    }
+
+    private func computeMacroHint() -> MacroNutritionHint? {
+        guard let pattern = dailyPattern,
+              pattern.family == "C",
+              let t = pattern.macroThreshold,
+              let yesterday = yesterdayNutrition else { return nil }
+        let v: Double
+        let label: String
+        switch t.macro {
+        case "proteines":
+            guard yesterday.proteines > 0 else { return nil }
+            v = yesterday.proteines; label = "protéines"
+        case "calories":
+            guard yesterday.calories > 0 else { return nil }
+            v = yesterday.calories; label = "calories"
+        default:
+            return nil
+        }
+        return MacroNutritionHint(isAbove: v >= t.value, macro: label, value: v, threshold: t.value, unit: t.unit)
     }
 }

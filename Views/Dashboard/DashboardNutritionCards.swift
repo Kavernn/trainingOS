@@ -275,3 +275,80 @@ struct DataGapCard: View {
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
     }
 }
+
+// MARK: - Macro Insight Card (Family C — Nutrition J-1 × Performance)
+struct MacroInsightCard: View {
+    let pattern: PatternEntry
+    let yesterday: NutritionDayHistory
+    let onTap: () -> Void
+
+    private var threshold: MacroThreshold? { pattern.macroThreshold }
+
+    private var yesterdayValue: Double? {
+        guard let t = threshold else { return nil }
+        switch t.macro {
+        case "proteines": return yesterday.proteines > 0 ? yesterday.proteines : nil
+        case "calories":  return yesterday.calories  > 0 ? yesterday.calories  : nil
+        default:          return nil
+        }
+    }
+
+    private var isAboveThreshold: Bool? {
+        guard let t = threshold, let v = yesterdayValue else { return nil }
+        return v >= t.value
+    }
+
+    private var macroLabel: String {
+        switch threshold?.macro {
+        case "proteines": return "protéines"
+        case "glucides":  return "glucides"
+        default:          return "calories"
+        }
+    }
+
+    var body: some View {
+        if let t = threshold, let v = yesterdayValue, let above = isAboveThreshold {
+            Button(action: onTap) {
+                HStack(spacing: 10) {
+                    Image(systemName: above ? "fork.knife" : "exclamationmark.circle.fill")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(above ? .green : .orange)
+                        .frame(width: 22)
+                    VStack(alignment: .leading, spacing: 2) {
+                        if above {
+                            Text("Bonne nutrition hier — conditions optimales")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                        } else {
+                            Text("Hier : \(Int(v))\(t.unit) \(macroLabel) — sous ton seuil optimal (\(Int(t.value))\(t.unit))")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                        }
+                        Text(above
+                             ? "Macros à la hauteur · seuil \(Int(t.value))\(t.unit)"
+                             : "Performance potentiellement réduite aujourd'hui")
+                            .font(.system(size: 11))
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.gray.opacity(0.4))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+                .background(above ? Color.green.opacity(0.08) : Color.orange.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(above ? Color.green.opacity(0.20) : Color.orange.opacity(0.20), lineWidth: 1)
+                )
+                .cornerRadius(12)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}

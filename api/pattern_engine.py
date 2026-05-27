@@ -408,7 +408,7 @@ def _scan_family_C(ex_by_date: dict, context: dict) -> list[dict]:
     seen: set[str] = set()
 
     for exercise, date_vol in ex_by_date.items():
-        if len(date_vol) < 12:
+        if len(date_vol) < 14:
             continue
 
         for nutr_key, nutr_label, icon, color in _NUTR_META:
@@ -428,7 +428,7 @@ def _scan_family_C(ex_by_date: dict, context: dict) -> list[dict]:
                 xs.append(float(nv))
                 ys.append(float(vol))
 
-            if len(xs) < 12:
+            if len(xs) < 14:
                 continue
             r = _pearson(xs, ys)
             if r is None or not _ok_r(r, len(xs)):
@@ -449,6 +449,8 @@ def _scan_family_C(ex_by_date: dict, context: dict) -> list[dict]:
             seen.add(key)
             direction = "augmente" if pct > 0 else "baisse"
             max_avg   = max(avg_hi, avg_lo)
+            _NUTR_UNIT = {"protein": "g", "carbs": "g", "calories": "kcal"}
+            _NUTR_MACRO_KEY = {"protein": "proteines", "carbs": "glucides", "calories": "calories"}
             patterns.append({
                 "id":         key,
                 "family":     "C",
@@ -462,6 +464,11 @@ def _scan_family_C(ex_by_date: dict, context: dict) -> list[dict]:
                 "bar_b":      {"label": f"{nutr_label} faibles", "value": round(avg_lo, 1), "frac": round(avg_lo / max_avg, 3)},
                 "icon":       icon,
                 "color":      color,
+                "macro_threshold": {
+                    "macro": _NUTR_MACRO_KEY[nutr_key],
+                    "value": round(avg_hi, 1),
+                    "unit":  _NUTR_UNIT[nutr_key],
+                },
             })
 
     return patterns

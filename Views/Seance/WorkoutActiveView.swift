@@ -113,6 +113,7 @@ struct WorkoutSeanceView: View {
 
     // Readiness score
     @State private var readiness: ReadinessScore? = nil
+    @ObservedObject private var appState = AppState.shared
 
     // W-D11 — abandon session
     @State private var showAbandonAlert = false
@@ -881,6 +882,22 @@ struct WorkoutSeanceView: View {
                     // Readiness chip
                     if let r = readiness, let score = r.score {
                         ReadinessChip(score: score, label: r.label, color: r.color)
+                    }
+
+                    // Macro nutrition hint — lecture seule, calculé depuis DashboardViewModel
+                    if let hint = appState.macroSessionHint {
+                        HStack(spacing: 6) {
+                            Image(systemName: hint.isAbove ? "fork.knife" : "exclamationmark.circle")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(hint.isAbove ? .green : .orange)
+                            Text(hint.isAbove
+                                 ? "Bonne nutrition hier — conditions optimales"
+                                 : "Nutrition de la veille sous ton seuil optimal (\(hint.macro))")
+                                .font(.system(size: 11))
+                                .foregroundColor(hint.isAbove ? .green.opacity(0.85) : .orange.opacity(0.85))
+                                .lineLimit(1)
+                            Spacer()
+                        }
                     }
 
                     // Énergie inline — remplace la modal bloquante

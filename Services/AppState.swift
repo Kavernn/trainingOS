@@ -1,6 +1,15 @@
 import SwiftUI
 import Combine
 
+// Hint affiché dans la card coaching de séance — calculé par DashboardViewModel après chargement.
+struct MacroNutritionHint: Equatable {
+    let isAbove: Bool
+    let macro: String    // "protéines" / "glucides" / "calories"
+    let value: Double
+    let threshold: Double
+    let unit: String     // "g" ou "kcal"
+}
+
 @MainActor
 final class AppState: ObservableObject {
 
@@ -13,6 +22,7 @@ final class AppState: ObservableObject {
     @Published var userProfile: UserProfile? = nil
     @Published var pendingDeepLink: String? = nil
     @Published var ritualTodayNotDone: Bool = false
+    @Published var macroSessionHint: MacroNutritionHint? = nil
 
     var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
