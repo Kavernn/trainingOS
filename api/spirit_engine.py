@@ -22,7 +22,7 @@ def compute_spirit_axis(last7_dates: set[str], prior7_dates: set[str]) -> tuple[
     """Returns (delta%, details) for optional 4th Phoenix axis."""
     import db
 
-    bw  = db.get_breathwork_sessions(limit=60)  or []
+    bw  = db.get_breathwork_sessions_spirit_alias(limit=60)  or []
     med = db.get_meditation_sessions(limit=60)  or []
     journals = db.get_spirit_journal_entries(limit=30) or []
 
@@ -75,7 +75,7 @@ def compute_spirit_patterns() -> dict:
     today  = _today()
     cutoff = (today - timedelta(days=90)).isoformat()
 
-    bw  = db.get_breathwork_sessions(limit=200) or []
+    bw  = db.get_breathwork_sessions_spirit_alias(limit=200) or []
     med = db.get_meditation_sessions(limit=200) or []
 
     bw_recent  = [s for s in bw  if s.get("started_at", "")[:10] >= cutoff]
