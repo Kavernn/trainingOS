@@ -117,7 +117,7 @@ class APIService: ObservableObject {
         }
 
         await MainActor.run { isLoading = true; isSlow = false; error = nil }
-        var req = URLRequest(url: URL(string: "\(baseURL)/api/dashboard")!)
+        var req = URLRequest(url: URL(string: "\(baseURL)/api/dashboard?date=\(DateFormatter.isoDate.string(from: Date()))")!)
         req.timeoutInterval = 15
         let slowTask = Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)

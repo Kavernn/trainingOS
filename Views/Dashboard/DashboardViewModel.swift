@@ -33,7 +33,6 @@ final class DashboardViewModel: ObservableObject {
     private let logger = Logger(subsystem: "TrainingOS", category: "dashboard")
     // PERF-5: skip expensive analytics if already loaded today
     private var analyticsLoadedDate = ""
-    private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
     // D-D2: localize raw API error strings
     func localizeAPIError(_ raw: String) -> String {
@@ -61,7 +60,6 @@ final class DashboardViewModel: ObservableObject {
     }
 
     func loadAll() async {
-        let today = todayStr
         partialLoadWarning = false
 
         // D-B1: timeout safety net — runs concurrently, fires only if performLoad hangs
@@ -74,14 +72,18 @@ final class DashboardViewModel: ObservableObject {
             }
         }
 
-        await performLoad(today: today)
+        await performLoad()
         timeoutTask.cancel()
     }
 
-    private func performLoad(today: String) async {
+    private func performLoad() async {
         // Phase 1: dashboard first — populates skeleton UI immediately
         do { _ = try await APIService.shared.fetchDashboard() }
         catch { logger.error("fetchDashboard: \(error, privacy: .public)") }
+
+        // Single source of truth: dashboard.todayDate echoes the device date sent via ?date=.
+        // Falls back to device date if dashboard failed to load (network + cache both failed).
+        let today = APIService.shared.dashboard?.todayDate ?? DateFormatter.isoDate.string(from: Date())
 
         // Phase 2: all independent secondary calls in parallel.
         // withTaskGroup is safe on iOS 26 beta (async let parallel has LIFO crash).

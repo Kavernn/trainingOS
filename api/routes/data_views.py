@@ -29,7 +29,12 @@ def api_dashboard():
     hiit_log     = load_hiit_log()
     nutrition_totals = get_today_totals()
     today_str    = get_today()
-    today_date   = get_today_date()
+    _client_date = request.args.get("date", "").strip()
+    try:
+        datetime.strptime(_client_date, "%Y-%m-%d")
+        today_date = _client_date
+    except (ValueError, Exception):
+        today_date = get_today_date()
     schedule     = get_week_schedule()
     suggestions  = get_suggested_weights_for_today(weights, full_program)
 
