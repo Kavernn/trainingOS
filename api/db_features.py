@@ -1198,7 +1198,8 @@ def get_adherence_active_days(pillar: str, month_prefix: str) -> int:
                         .execute())
             else:
                 resp = (db_core._client.table(table).select(col)
-                        .like(col, f"{month_prefix}%")
+                        .gte(col, f"{month_prefix}-01")
+                        .lt(col, next_m)
                         .execute())
             for r in (resp.data or []):
                 val = r.get(col)
@@ -1210,7 +1211,8 @@ def get_adherence_active_days(pillar: str, month_prefix: str) -> int:
     if pillar == "body":
         try:
             resp = (db_core._client.table("workout_sessions").select("date")
-                    .like("date", f"{month_prefix}%")
+                    .gte("date", f"{month_prefix}-01")
+                    .lt("date", next_m)
                     .eq("completed", True)
                     .execute())
             for r in (resp.data or []):
