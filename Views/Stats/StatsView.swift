@@ -464,7 +464,7 @@ struct StatsView: View {
     func formatK(_ v: Double) -> String { _formatK(v) }
 
     // Local decodable mirror of the stats response
-    private struct StatsAPIResponse: Codable {
+    struct StatsAPIResponse: Codable {
         let weights:              [String: WeightData]
         let sessions:             [String: SessionEntry]
         let hiitLog:              [HIITEntry]
@@ -503,7 +503,7 @@ struct StatsView: View {
         }
     }
 
-    private struct WellnessAPIResponse: Codable {
+    struct WellnessAPIResponse: Codable {
         let moodTrend:             [MoodTrendPoint]
         let pssHistory:            [PSSRecord]
         let selfCareStreaks:        [SelfCareStreak]
