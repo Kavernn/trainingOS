@@ -53,6 +53,12 @@
 		A70D23180D5B43EEAB1E1543 /* CoachMemoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 325289C855B34EF58D37849F /* CoachMemoryStore.swift */; };
 		AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010012F5D98B8002AE470 /* MoreView.swift */; };
 		AA0020022F5D98BA002AE470 /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010022F5D98B8002AE470 /* StatsView.swift */; };
+		AA0021022F5D98BA002AE470 /* StatsView+Tabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0011022F5D98B8002AE470 /* StatsView+Tabs.swift */; };
+		AA0022022F5D98BA002AE470 /* StatsTrainingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0012022F5D98B8002AE470 /* StatsTrainingViews.swift */; };
+		AA0023022F5D98BA002AE470 /* StatsBodyViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0013022F5D98B8002AE470 /* StatsBodyViews.swift */; };
+		AA0024022F5D98BA002AE470 /* StatsNutritionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0014022F5D98B8002AE470 /* StatsNutritionViews.swift */; };
+		AA0025022F5D98BA002AE470 /* StatsWellnessViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0015022F5D98B8002AE470 /* StatsWellnessViews.swift */; };
+		AA0026022F5D98BA002AE470 /* StatsComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0016022F5D98B8002AE470 /* StatsComponents.swift */; };
 		AA0020032F5D98BA002AE470 /* ObjectifsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010032F5D98B8002AE470 /* ObjectifsView.swift */; };
 		AA0020042F5D98BA002AE470 /* BodyCompView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010042F5D98B8002AE470 /* BodyCompView.swift */; };
 		AA0020052F5D98BA002AE470 /* HIITHistoriqueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0010052F5D98B8002AE470 /* HIITHistoriqueView.swift */; };
@@ -249,6 +255,12 @@
 		A9F578FC8AECBFD3FF6B65C2 /* TrainingOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TrainingOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0010012F5D98B8002AE470 /* MoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreView.swift; sourceTree = "<group>"; };
 		AA0010022F5D98B8002AE470 /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
+		AA0011022F5D98B8002AE470 /* StatsView+Tabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StatsView+Tabs.swift"; sourceTree = "<group>"; };
+		AA0012022F5D98B8002AE470 /* StatsTrainingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsTrainingViews.swift; sourceTree = "<group>"; };
+		AA0013022F5D98B8002AE470 /* StatsBodyViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsBodyViews.swift; sourceTree = "<group>"; };
+		AA0014022F5D98B8002AE470 /* StatsNutritionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsNutritionViews.swift; sourceTree = "<group>"; };
+		AA0015022F5D98B8002AE470 /* StatsWellnessViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsWellnessViews.swift; sourceTree = "<group>"; };
+		AA0016022F5D98B8002AE470 /* StatsComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsComponents.swift; sourceTree = "<group>"; };
 		AA0010032F5D98B8002AE470 /* ObjectifsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObjectifsView.swift; sourceTree = "<group>"; };
 		AA0010042F5D98B8002AE470 /* BodyCompView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompView.swift; sourceTree = "<group>"; };
 		AA0010052F5D98B8002AE470 /* HIITHistoriqueView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HIITHistoriqueView.swift; sourceTree = "<group>"; };
@@ -468,6 +480,12 @@
 			isa = PBXGroup;
 			children = (
 				AA0010022F5D98B8002AE470 /* StatsView.swift */,
+				AA0011022F5D98B8002AE470 /* StatsView+Tabs.swift */,
+				AA0012022F5D98B8002AE470 /* StatsTrainingViews.swift */,
+				AA0013022F5D98B8002AE470 /* StatsBodyViews.swift */,
+				AA0014022F5D98B8002AE470 /* StatsNutritionViews.swift */,
+				AA0015022F5D98B8002AE470 /* StatsWellnessViews.swift */,
+				AA0016022F5D98B8002AE470 /* StatsComponents.swift */,
 			);
 			path = Stats;
 			sourceTree = "<group>";
@@ -1060,6 +1078,12 @@
 				07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */,
 				AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */,
 				AA0020022F5D98BA002AE470 /* StatsView.swift in Sources */,
+				AA0021022F5D98BA002AE470 /* StatsView+Tabs.swift in Sources */,
+				AA0022022F5D98BA002AE470 /* StatsTrainingViews.swift in Sources */,
+				AA0023022F5D98BA002AE470 /* StatsBodyViews.swift in Sources */,
+				AA0024022F5D98BA002AE470 /* StatsNutritionViews.swift in Sources */,
+				AA0025022F5D98BA002AE470 /* StatsWellnessViews.swift in Sources */,
+				AA0026022F5D98BA002AE470 /* StatsComponents.swift in Sources */,
 				AA0020032F5D98BA002AE470 /* ObjectifsView.swift in Sources */,
 				AA0020042F5D98BA002AE470 /* BodyCompView.swift in Sources */,
 				BC0000012F5D98BA002AE470 /* BodyCompEntry.swift in Sources */,

@@ -1,0 +1,1171 @@
+import SwiftUI
+import Charts
+
+// MARK: - Measurements Trend
+struct MeasurementsTrendView: View {
+    let entries: [BodyWeightEntry]
+
+    private let metrics: [(String, KeyPath<BodyWeightEntry, Double?>, Color)] = [
+        ("Taille", \.waistCm, .purple),
+        ("Bras",   \.armsCm,  .blue),
+        ("Cuisses",\.thighsCm,.orange),
+        ("Hanches",\.hipsCm,  .pink),
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("MENSURATIONS (cm)")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            ForEach(metrics, id: \.0) { label, kp, color in
+                let vals = entries.compactMap { e -> (String, Double)? in
+                    guard let v = e[keyPath: kp] else { return nil }
+                    return (e.date, v)
+                }
+                if vals.count >= 2 {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Circle().fill(color).frame(width: 6, height: 6)
+                            Text(label).font(.system(size: 11, weight: .medium)).foregroundColor(.white)
+                            Spacer()
+                            let diff = vals.last!.1 - vals.first!.1
+                            Text(String(format: "%+.1f cm", diff))
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(diff <= 0 ? .green : .red)
+                            Text(String(format: "%.0f", vals.last!.1))
+                                .font(.system(size: 13, weight: .black)).foregroundColor(color)
+                        }
+                        MiniLineChart(values: vals.map(\.1), color: color)
+                            .frame(height: 28)
+                    }
+                }
+            }
+        }
+        .padding(16).glassCard(color: .purple, intensity: 0.04).cornerRadius(14)
+    }
+}
+
+struct MiniLineChart: View {
+    let values: [Double]
+    let color: Color
+    var body: some View {
+        GeometryReader { geo in
+            let mn = values.min() ?? 0
+            let mx = max(values.max() ?? 1, mn + 0.01)
+            let step = geo.size.width / CGFloat(values.count - 1)
+            Path { path in
+                for (i, v) in values.enumerated() {
+                    let x = CGFloat(i) * step
+                    let y = geo.size.height * (1 - CGFloat((v - mn) / (mx - mn)))
+                    if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                    else { path.addLine(to: CGPoint(x: x, y: y)) }
+                }
+            }
+            .stroke(color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+        }
+    }
+}
+
+// MARK: - Body Fat Chart
+struct BodyFatChartView: View {
+    let entries: [BodyWeightEntry]
+    @ObservedObject private var units = UnitSettings.shared
+
+    private var data: [(String, Double)] {
+        entries.compactMap { e -> (String, Double)? in
+            guard let bf = e.bodyFat, bf > 0 else { return nil }
+            return (e.date, bf)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("% MASSE GRASSE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let last = data.last {
+                    Text(String(format: "%.1f%%", last.1))
+                        .font(.system(size: 18, weight: .black)).foregroundColor(.purple)
+                }
+            }
+            if data.count >= 2 {
+                let vals = data.map(\.1)
+                let mn = (vals.min() ?? 0) - 1
+                let mx = (vals.max() ?? 30) + 1
+                GeometryReader { geo in
+                    let step = geo.size.width / CGFloat(data.count - 1)
+                    ZStack {
+                        Path { path in
+                            for (i, (_, v)) in data.enumerated() {
+                                let x = CGFloat(i) * step
+                                let y = geo.size.height * (1 - CGFloat((v - mn) / (mx - mn)))
+                                if i == 0 { path.move(to: CGPoint(x: x, y: y)) }
+                                else { path.addLine(to: CGPoint(x: x, y: y)) }
+                            }
+                        }
+                        .stroke(Color.purple, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+
+                        ForEach(Array(data.enumerated()), id: \.0) { i, entry in
+                            let x = CGFloat(i) * step
+                            let y = geo.size.height * (1 - CGFloat((entry.1 - mn) / (mx - mn)))
+                            Circle().fill(Color.purple).frame(width: 5, height: 5).position(x: x, y: y)
+                        }
+                    }
+                }
+                .frame(height: 60)
+
+                if let first = data.first, let last = data.last {
+                    let diff = last.1 - first.1
+                    HStack {
+                        Text("Début: \(String(format: "%.1f%%", first.1))").font(.system(size: 10)).foregroundColor(.gray)
+                        Spacer()
+                        Text(String(format: "%+.1f%%", diff))
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(diff <= 0 ? .green : .red)
+                    }
+                }
+            } else {
+                Text("Données insuffisantes — continue à logger.").font(.system(size: 12)).foregroundColor(.gray)
+            }
+        }
+        .padding(16).glassCard(color: .purple, intensity: 0.04).cornerRadius(14)
+    }
+}
+
+// MARK: - Muscle Breakdown
+struct MuscleBreakdownView: View {
+    let stats: [String: MuscleStatEntry]
+    @ObservedObject private var units = UnitSettings.shared
+
+    private var sorted: [(String, MuscleStatEntry)] {
+        stats.sorted { $0.value.volume > $1.value.volume }
+    }
+
+    private var maxVolume: Double {
+        sorted.first?.1.volume ?? 1
+    }
+
+    private func formatVol(_ lbs: Double) -> String {
+        let v = units.display(lbs)
+        if v >= 1_000 { return String(format: "%.0fK \(units.label)", v / 1_000) }
+        return String(format: "%.0f \(units.label)", v)
+    }
+
+    private func daysSince(_ dateStr: String) -> Int? {
+        guard let d = DateFormatter.isoDate.date(from: dateStr) else { return nil }
+        return Int(Date().timeIntervalSince(d) / 86400)
+    }
+
+    private func freshnessColor(_ days: Int?) -> Color {
+        guard let d = days else { return .gray }
+        if d <= 2 { return .orange }
+        if d <= 5 { return .green }
+        return .gray
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionLabel(title: "MUSCLES TRAVAILLÉS", icon: "figure.strengthtraining.traditional")
+
+            GeometryReader { outer in
+                VStack(spacing: 8) {
+                    ForEach(sorted, id: \.0) { muscle, entry in
+                        HStack(spacing: 10) {
+                            Text(muscle.capitalized)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 110, alignment: .leading)
+
+                            let barW = outer.size.width - 168
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.white.opacity(0.06))
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(freshnessColor(daysSince(entry.lastDate)).opacity(0.7))
+                                    .frame(width: barW * CGFloat(entry.volume / maxVolume))
+                            }
+                            .frame(height: 8)
+
+                            VStack(alignment: .trailing, spacing: 1) {
+                                Text(formatVol(entry.volume))
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.8))
+                                if let days = daysSince(entry.lastDate) {
+                                    Text(days == 0 ? "auj." : "\(days)j")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(freshnessColor(days))
+                                }
+                            }
+                            .frame(width: 38, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+            .frame(height: CGFloat(sorted.count) * (8 + 8) - 8)
+
+            HStack(spacing: 16) {
+                legendDot(.orange, "≤ 2j")
+                legendDot(.green,  "3–5j")
+                legendDot(.gray,   "+5j")
+            }
+        }
+        .padding(16)
+        .glassCard()
+        .cornerRadius(16)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label).font(.system(size: 10)).foregroundColor(.gray)
+        }
+    }
+}
+
+// MARK: - PR Tracker
+struct PRTrackerView: View {
+    let weights: [String: WeightData]
+
+    private struct PREntry: Identifiable {
+        let id = UUID()
+        let name: String
+        let prWeight: Double
+        let prDate: String
+        let isRecent: Bool  // < 30 jours
+    }
+
+    private var prs: [PREntry] {
+        let now = Date()
+        return weights.compactMap { name, data -> PREntry? in
+            guard let history = data.history, !history.isEmpty else { return nil }
+            guard let best = history.max(by: { ($0.weight ?? 0) < ($1.weight ?? 0) }),
+                  let w = best.weight, w > 0, let date = best.date else { return nil }
+            let isRecent: Bool
+            if let d = DateFormatter.isoDate.date(from: date) {
+                isRecent = Int(now.timeIntervalSince(d) / 86400) <= 30
+            } else { isRecent = false }
+            return PREntry(name: name, prWeight: w, prDate: date, isRecent: isRecent)
+        }
+        .sorted { $0.prWeight > $1.prWeight }
+        .prefix(10).map { $0 }
+    }
+
+    private func shortDate(_ iso: String) -> String {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+        let o = DateFormatter(); o.locale = Locale(identifier: "fr_CA"); o.dateFormat = "d MMM yyyy"
+        return f.date(from: iso).map { o.string(from: $0) } ?? iso
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("RECORDS PERSONNELS (PR)")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                HStack(spacing: 4) {
+                    Circle().fill(Color.yellow).frame(width: 7, height: 7)
+                    Text("< 30 jours").font(.system(size: 9)).foregroundColor(.gray)
+                }
+            }
+
+            if prs.isEmpty {
+                Text("Aucune donnée.")
+                    .font(.system(size: 13)).foregroundColor(.gray).italic()
+            } else {
+                let maxW = prs.map(\.prWeight).max() ?? 1
+                GeometryReader { outer in
+                    VStack(spacing: 8) {
+                        ForEach(prs) { pr in
+                            HStack(spacing: 10) {
+                                Text(pr.name)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .frame(width: 130, alignment: .leading)
+
+                                let barW = outer.size.width - 225
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                                    Capsule()
+                                        .fill(pr.isRecent ? Color.yellow : Color.orange.opacity(0.6))
+                                        .frame(width: barW * (pr.prWeight / maxW), height: 6)
+                                }
+                                .frame(height: 6)
+
+                                VStack(alignment: .trailing, spacing: 1) {
+                                    Text("\(UnitSettings.shared.display(pr.prWeight), specifier: "%.1f") \(UnitSettings.shared.label)")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(pr.isRecent ? .yellow : .orange)
+                                    Text(shortDate(pr.prDate))
+                                        .font(.system(size: 9))
+                                        .foregroundColor(.gray)
+                                }
+                                .frame(width: 75, alignment: .trailing)
+                            }
+                        }
+                    }
+                }
+                .frame(height: CGFloat(prs.count) * (6 + 8) - 8)
+            }
+        }
+        .padding(16)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Volume par groupe musculaire
+struct MuscleVolumeView: View {
+    let stats: [String: MuscleStatEntry]
+
+    private var sorted: [(String, Double)] {
+        stats.map { ($0.key, $0.value.volume) }
+            .filter { $0.1 > 0 }
+            .sorted { $0.1 > $1.1 }
+            .prefix(10).map { $0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("VOLUME PAR GROUPE MUSCULAIRE")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(2)
+                .foregroundColor(.gray)
+
+            if sorted.isEmpty {
+                Text("Aucune donnée.")
+                    .font(.system(size: 13)).foregroundColor(.gray).italic()
+            } else {
+                let maxVol = sorted.first?.1 ?? 1
+                GeometryReader { outer in
+                    VStack(spacing: 8) {
+                        ForEach(sorted, id: \.0) { muscle, volume in
+                            HStack(spacing: 10) {
+                                Text(muscle.capitalized)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                    .frame(width: 110, alignment: .leading)
+
+                                let barW = outer.size.width - 202
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color(hex: "191926")).frame(height: 6)
+                                    Capsule()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color.blue.opacity(0.9), Color.blue.opacity(0.5)],
+                                                startPoint: .leading, endPoint: .trailing
+                                            )
+                                        )
+                                        .frame(width: barW * (volume / maxVol), height: 6)
+                                }
+                                .frame(height: 6)
+
+                                Text("\(UnitSettings.shared.display(volume), specifier: "%.0f") \(UnitSettings.shared.label)")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.blue.opacity(0.8))
+                                    .frame(width: 72, alignment: .trailing)
+                            }
+                        }
+                    }
+                }
+                .frame(height: CGFloat(sorted.count) * (6 + 8) - 8)
+            }
+        }
+        .padding(16)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+}
+
+// MARK: - Volume Landmarks Card
+struct VolumeLandmarksCard: View {
+    let landmarks: [String: MuscleLandmark]
+
+    private var sorted: [(String, MuscleLandmark)] {
+        landmarks.sorted { a, b in
+            let priorityA = a.1.zone == .overMRV ? 0 : a.1.zone == .underMEV ? 1 : 2
+            let priorityB = b.1.zone == .overMRV ? 0 : b.1.zone == .underMEV ? 1 : 2
+            return priorityA != priorityB ? priorityA < priorityB : a.0 < b.0
+        }
+    }
+
+    private func zoneColor(_ zone: MuscleLandmark.Zone) -> Color {
+        switch zone {
+        case .underMEV:       return .blue
+        case .optimal:        return .green
+        case .approachingMRV: return .orange
+        case .overMRV:        return .red
+        }
+    }
+
+    private func zoneLabel(_ zone: MuscleLandmark.Zone) -> String {
+        switch zone {
+        case .underMEV:       return "↑ sets"
+        case .optimal:        return "optimal ✓"
+        case .approachingMRV: return "proche max"
+        case .overMRV:        return "surcharge"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .font(.system(size: 11))
+                    .foregroundColor(.purple)
+                Text("VOLUME HEBDO — LANDMARKS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                CardInfoButton(title: "Volume landmarks", entries: InfoEntry.volumeLandmarkEntries)
+            }
+
+            HStack(spacing: 14) {
+                legendDot(.blue,   "Sous le min")
+                legendDot(.green,  "Optimal")
+                legendDot(.orange, "Proche du max")
+                legendDot(.red,    "Surcharge")
+            }
+
+            GeometryReader { outer in
+                VStack(spacing: 7) {
+                    ForEach(sorted, id: \.0) { muscle, lm in
+                        let barW = outer.size.width - 190
+                        let ratio = min(Double(lm.weeklySets) / Double(lm.mrv), 1.2)
+                        HStack(spacing: 8) {
+                            Text(muscle.capitalized)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(width: 100, alignment: .leading)
+                                .lineLimit(1)
+
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.white.opacity(0.06))
+                                    .frame(height: 8)
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(zoneColor(lm.zone).opacity(0.8))
+                                    .frame(width: min(barW * ratio, barW), height: 8)
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.4))
+                                    .frame(width: 1, height: 12)
+                                    .offset(x: barW * Double(lm.mev) / Double(lm.mrv))
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.25))
+                                    .frame(width: 1, height: 12)
+                                    .offset(x: min(barW * Double(lm.mav) / Double(lm.mrv), barW - 1))
+                            }
+                            .frame(height: 12)
+
+                            Text("\(lm.weeklySets)")
+                                .font(.system(size: 12, weight: .black))
+                                .foregroundColor(zoneColor(lm.zone))
+                                .frame(width: 22, alignment: .trailing)
+
+                            Text(zoneLabel(lm.zone))
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundColor(zoneColor(lm.zone).opacity(0.8))
+                                .frame(width: 44, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+            .frame(height: CGFloat(sorted.count) * (12 + 7) - 7)
+
+            Text("MEV · MAV · MRV d'après Renaissance Periodization (Israetel et al.)")
+                .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+                .padding(.top, 2)
+        }
+        .padding(16)
+        .glassCard()
+        .cornerRadius(16)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(.gray)
+        }
+    }
+}
+
+// MARK: - Body Recomposition Tracker
+struct BodyRecompView: View {
+    let entries: [BodyWeightEntry]
+    @ObservedObject private var units = UnitSettings.shared
+
+    private struct RecompPoint: Identifiable {
+        let id = UUID()
+        let date: String
+        let weight: Double
+        let fatMass: Double
+        let leanMass: Double
+    }
+
+    private var points: [RecompPoint] {
+        entries.compactMap { e -> RecompPoint? in
+            guard e.weight > 0, let bf = e.bodyFat, bf > 0 else { return nil }
+            let fat  = e.weight * (bf / 100.0)
+            let lean = e.weight - fat
+            return RecompPoint(date: e.date, weight: e.weight, fatMass: fat, leanMass: lean)
+        }
+    }
+
+    private var delta30: (lean: Double, fat: Double)? {
+        guard points.count >= 2 else { return nil }
+        let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400))
+        let recent = points.filter { $0.date >= cutoff }
+        guard let first = recent.first, let last = recent.last else { return nil }
+        return (lean: last.leanMass - first.leanMass, fat: last.fatMass - first.fatMass)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("BODY RECOMPOSITION — 3 COURBES")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            if points.count < 3 {
+                EmptyChartPlaceholder(message: "Logge ton % de masse grasse pour activer le recomp tracker")
+            } else {
+                recompChart
+                if let d = delta30 {
+                    deltaRow(d)
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+
+    private func chartY(_ v: Double, h: CGFloat, minV: Double, range: Double) -> CGFloat {
+        h * (1 - CGFloat((v - minV) / range))
+    }
+
+    private func recompLine(_ kp: KeyPath<RecompPoint, Double>, color: Color, step: CGFloat, h: CGFloat, minV: Double, range: Double) -> some View {
+        Path { path in
+            for (i, p) in points.enumerated() {
+                let x = CGFloat(i) * step
+                let yv = chartY(p[keyPath: kp], h: h, minV: minV, range: range)
+                if i == 0 { path.move(to: CGPoint(x: x, y: yv)) }
+                else       { path.addLine(to: CGPoint(x: x, y: yv)) }
+            }
+        }
+        .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+    }
+
+    @ViewBuilder private var recompChart: some View {
+        GeometryReader { g in
+            let w = g.size.width
+            let h = g.size.height
+            let allVals = points.flatMap { [$0.weight, $0.fatMass, $0.leanMass] }
+            let minV = (allVals.min() ?? 0) * 0.95
+            let maxV = (allVals.max() ?? 1) * 1.05
+            let range = maxV - minV
+            let step  = w / CGFloat(max(points.count - 1, 1))
+
+            ZStack {
+                recompLine(\.weight,   color: .gray.opacity(0.6),            step: step, h: h, minV: minV, range: range)
+                recompLine(\.fatMass,  color: Color(hex: "E74C3C").opacity(0.8), step: step, h: h, minV: minV, range: range)
+                recompLine(\.leanMass, color: Color(hex: "F5A623"),           step: step, h: h, minV: minV, range: range)
+            }
+        }
+        .frame(height: 100)
+
+        HStack(spacing: 16) {
+            legendDot(.gray,                   "Poids total")
+            legendDot(Color(hex: "E74C3C"),    "Masse grasse")
+            legendDot(Color(hex: "F5A623"),    "Masse maigre")
+        }
+        .font(.system(size: 10)).foregroundColor(.gray)
+    }
+
+    @ViewBuilder private func deltaRow(_ d: (lean: Double, fat: Double)) -> some View {
+        Rectangle().fill(Color.white.opacity(0.06)).frame(height: 0.5)
+        HStack(spacing: 20) {
+            deltaKPI(
+                label: "Masse maigre (30j)",
+                value: units.format(d.lean, decimals: 1),
+                good: d.lean >= 0
+            )
+            deltaKPI(
+                label: "Masse grasse (30j)",
+                value: units.format(d.fat, decimals: 1),
+                good: d.fat <= 0
+            )
+            Spacer()
+        }
+    }
+
+    @ViewBuilder private func deltaKPI(label: String, value: String, good: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(good ? .green : .orange)
+            Text(label)
+                .font(.system(size: 10)).foregroundColor(.gray)
+        }
+    }
+
+    private func legendDot(_ c: Color, _ t: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(c).frame(width: 7, height: 7)
+            Text(t)
+        }
+    }
+}
+
+// MARK: - Season Comparison Card
+struct SeasonComparisonCard: View {
+    let data: SeasonComparisonData
+    @ObservedObject private var units = UnitSettings.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar.badge.clock")
+                    .foregroundColor(.orange).font(.system(size: 12))
+                Text("COMPARAISON SAISONS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            }
+
+            if let current = data.current {
+                seasonTable(current: current, previous: data.previous)
+            } else {
+                Text("Aucune saison active")
+                    .font(.system(size: 13)).foregroundColor(.gray)
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+
+    @ViewBuilder private func seasonTable(current: SeasonCompStats, previous: SeasonCompStats?) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("").frame(height: 16)
+                Text("Vol. moy/sem").font(.system(size: 11)).foregroundColor(.gray)
+                Text("Séances").font(.system(size: 11)).foregroundColor(.gray)
+                Text("PSS moy.").font(.system(size: 11)).foregroundColor(.gray)
+                Text("Δ poids").font(.system(size: 11)).foregroundColor(.gray)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(alignment: .center, spacing: 10) {
+                Text(current.title ?? "En cours")
+                    .font(.system(size: 10, weight: .bold)).foregroundColor(.orange)
+                    .lineLimit(1).frame(height: 16)
+                valCell(current.volumeAvgWeek.map { units.format($0, decimals: 0) })
+                valCell(current.sessionsCount.map { "\($0)" })
+                valCell(current.pssAvg.map { "\($0)" })
+                weightCell(current.weightDelta)
+            }
+            .frame(maxWidth: .infinity)
+
+            if let prev = previous {
+                VStack(alignment: .center, spacing: 10) {
+                    Text("").frame(height: 16)
+                    deltaArrow(current.volumeAvgWeek, prev.volumeAvgWeek, higherBetter: true)
+                    deltaArrow(current.sessionsCount.map(Double.init), prev.sessionsCount.map(Double.init), higherBetter: true)
+                    deltaArrow(current.pssAvg.map(Double.init), prev.pssAvg.map(Double.init), higherBetter: false)
+                    Text("").frame(height: 18)
+                }
+                .frame(width: 40)
+
+                VStack(alignment: .center, spacing: 10) {
+                    Text(prev.title ?? "Précédente")
+                        .font(.system(size: 10, weight: .bold)).foregroundColor(.gray)
+                        .lineLimit(1).frame(height: 16)
+                    valCell(prev.volumeAvgWeek.map { units.format($0, decimals: 0) }, dim: true)
+                    valCell(prev.sessionsCount.map { "\($0)" }, dim: true)
+                    valCell(prev.pssAvg.map { "\($0)" }, dim: true)
+                    weightCell(prev.weightDelta, dim: true)
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    @ViewBuilder private func valCell(_ v: String?, dim: Bool = false) -> some View {
+        Text(v ?? "—")
+            .font(.system(size: 13, weight: .bold))
+            .foregroundColor(dim ? .gray : .white)
+            .frame(height: 18)
+    }
+
+    @ViewBuilder private func weightCell(_ delta: Double?, dim: Bool = false) -> some View {
+        if let d = delta {
+            let sign = d > 0 ? "+" : ""
+            let color: Color = dim ? .gray : (d < 0 ? .green : .orange)
+            Text("\(sign)\(units.format(d, decimals: 1))")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(color)
+                .frame(height: 18)
+        } else {
+            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray).frame(height: 18)
+        }
+    }
+
+    @ViewBuilder private func deltaArrow(_ a: Double?, _ b: Double?, higherBetter: Bool) -> some View {
+        if let c = a, let p = b, p != 0 {
+            let diff = c - p
+            let isGood = higherBetter ? diff > 0 : diff < 0
+            let pct = Int(round(abs(diff) / abs(p) * 100))
+            let sym = diff > 0 ? "↑" : "↓"
+            Text("\(sym)\(pct)%")
+                .font(.system(size: 9, weight: .bold))
+                .foregroundColor(isGood ? .green : .orange)
+                .frame(height: 18)
+        } else {
+            Text("").frame(height: 18)
+        }
+    }
+}
+
+// MARK: - Transformation Markers Card
+struct TransformationMarkersCard: View {
+    let tombstoneCount: Int
+    let warRoomStats: WarRoomSummaryStats?
+
+    var body: some View {
+        let showWarRoom = warRoomStats?.warStartDate != nil
+        VStack(alignment: .leading, spacing: 12) {
+            Text("MARQUEURS DE TRANSFORMATION")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(tombstoneCount > 0 ? "\(tombstoneCount)" : "—")
+                        .font(.system(size: 30, weight: .black))
+                        .foregroundColor(.orange)
+                        .contentTransition(.numericText())
+                    Text(tombstoneCount == 1 ? "limite enterrée" : "limites enterrées")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                    if tombstoneCount == 0 {
+                        Text("Continue à logger")
+                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(Color.orange.opacity(0.07))
+                .cornerRadius(12)
+
+                if showWarRoom, let wr = warRoomStats {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(wr.totalVictories)")
+                            .font(.system(size: 30, weight: .black))
+                            .foregroundColor(Color(hex: "2ECC71"))
+                            .contentTransition(.numericText())
+                        Text("jours de victoire")
+                            .font(.system(size: 11)).foregroundColor(.gray)
+                        Text("Ne descend jamais")
+                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(12)
+                    .background(Color(hex: "2ECC71").opacity(0.07))
+                    .cornerRadius(12)
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+}
+
+// MARK: - Strength Progression 6 months
+struct StrengthProgressionCard: View {
+    let trend: [String: [OneRMPoint]]
+    let weights: [String: WeightData]
+    @ObservedObject private var units = UnitSettings.shared
+
+    private struct LiftDelta: Identifiable {
+        let id = UUID()
+        let name: String
+        let current: Double
+        let baseline: Double
+        var delta: Double { current - baseline }
+        var deltaPct: Int { baseline > 0 ? Int(round(delta / baseline * 100)) : 0 }
+    }
+
+    private var top5: [LiftDelta] {
+        let sorted = weights.sorted { ($0.value.history?.count ?? 0) > ($1.value.history?.count ?? 0) }
+            .prefix(10).map(\.key)
+        let cutoff180 = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 180 * 86400))
+
+        return sorted.compactMap { name -> LiftDelta? in
+            guard let pts = trend[name], !pts.isEmpty else { return nil }
+            let sorted_pts = pts.sorted { $0.date < $1.date }
+            guard let current = sorted_pts.last?.oneRM, current > 0 else { return nil }
+            let baseline_pt = sorted_pts.first(where: { $0.date >= cutoff180 }) ?? sorted_pts.first
+            guard let baseline = baseline_pt?.oneRM, baseline > 0 else { return nil }
+            return LiftDelta(name: name, current: current, baseline: baseline)
+        }
+        .sorted { abs($0.deltaPct) > abs($1.deltaPct) }
+        .prefix(5).map { $0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("PROGRESSION FORCE — 6 MOIS")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            if top5.isEmpty {
+                EmptyChartPlaceholder(message: "Continue à logger — activé après 6 mois de données")
+            } else {
+                let maxCurrent = top5.map(\.current).max() ?? 1
+                VStack(spacing: 10) {
+                    ForEach(top5) { lift in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(lift.name)
+                                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                                    .lineLimit(1)
+                                Spacer()
+                                let sign = lift.delta >= 0 ? "+" : ""
+                                Text("\(sign)\(lift.deltaPct)%")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(lift.delta >= 0 ? .green : .orange)
+                            }
+                            GeometryReader { g in
+                                let w = g.size.width
+                                ZStack(alignment: .leading) {
+                                    Capsule()
+                                        .fill(Color.gray.opacity(0.25))
+                                        .frame(width: w * CGFloat(lift.baseline / maxCurrent), height: 8)
+                                    Capsule()
+                                        .fill(lift.delta >= 0 ? Color(hex: "F5A623") : .orange)
+                                        .frame(width: w * CGFloat(lift.current / maxCurrent), height: 8)
+                                        .opacity(0.85)
+                                }
+                            }
+                            .frame(height: 8)
+                            HStack {
+                                Text("Baseline: \(units.format(lift.baseline, decimals: 0))")
+                                    .font(.system(size: 9)).foregroundColor(.gray)
+                                Spacer()
+                                Text("Actuel: \(units.format(lift.current, decimals: 0))")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(Color(hex: "F5A623"))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+}
+
+// MARK: - Strength Curve Chart (1RM over time)
+struct StrengthCurveChart: View {
+    let history: [WeightHistoryEntry]
+    @ObservedObject private var units = UnitSettings.shared
+    @State private var metric: ChartMetric = .oneRM
+
+    enum ChartMetric: String, CaseIterable {
+        case oneRM = "1RM estimé"
+        case weight = "Poids"
+    }
+
+    private struct DataPoint: Identifiable {
+        let id: String
+        let date: Date
+        let value: Double
+        let isPR: Bool
+    }
+
+    private var points: [DataPoint] {
+        let entries = history.compactMap { e -> (Date, Double)? in
+            guard let dateStr = e.date,
+                  let date = DateFormatter.isoDate.date(from: dateStr) else { return nil }
+            let value: Double
+            switch metric {
+            case .oneRM:
+                if let stored = e.oneRM, stored > 0 { value = stored }
+                else if let w = e.weight, w > 0, let r = e.reps {
+                    let avg = avgReps(r)
+                    guard avg > 0 else { return nil }
+                    value = w * (1 + avg / 30.0)
+                } else { return nil }
+            case .weight:
+                guard let w = e.weight, w > 0 else { return nil }
+                value = w
+            }
+            return (date, units.display(value))
+        }.sorted { $0.0 < $1.0 }
+
+        guard !entries.isEmpty else { return [] }
+        let prValue = entries.map(\.1).max() ?? 0
+        return entries.map { date, val in
+            DataPoint(id: date.description, date: date, value: val, isPR: val >= prValue)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("COURBE DE FORCE")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Picker("", selection: $metric) {
+                    ForEach(ChartMetric.allCases, id: \.self) { m in
+                        Text(m.rawValue).tag(m)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 200)
+            }
+
+            if points.count < 2 {
+                Text("Données insuffisantes — continue à logger.")
+                    .font(.system(size: 13)).foregroundColor(.gray)
+                    .frame(maxWidth: .infinity, minHeight: 140, alignment: .center)
+            } else {
+                Chart {
+                    ForEach(points) { p in
+                        LineMark(
+                            x: .value("Date", p.date),
+                            y: .value(metric.rawValue, p.value)
+                        )
+                        .foregroundStyle(Color.orange)
+                        .interpolationMethod(.monotone)
+
+                        PointMark(
+                            x: .value("Date", p.date),
+                            y: .value(metric.rawValue, p.value)
+                        )
+                        .foregroundStyle(p.isPR ? Color.orange : Color.orange.opacity(0.4))
+                        .symbolSize(p.isPR ? 80 : 30)
+                    }
+
+                    if let pr = points.last(where: \.isPR) {
+                        RuleMark(y: .value("PR", pr.value))
+                            .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .foregroundStyle(Color.orange.opacity(0.3))
+                            .annotation(position: .top, alignment: .trailing) {
+                                Text("PR \(units.format(pr.value))")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.orange)
+                            }
+                    }
+                }
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .month)) { _ in
+                        AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                        AxisValueLabel(format: .dateTime.month(.abbreviated), centered: true)
+                            .foregroundStyle(Color.gray)
+                    }
+                }
+                .chartYAxis {
+                    AxisMarks { val in
+                        AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
+                        AxisValueLabel()
+                            .foregroundStyle(Color.gray)
+                    }
+                }
+                .chartPlotStyle { plot in
+                    plot.background(Color.clear)
+                }
+                .frame(height: 180)
+            }
+        }
+        .padding(16).background(Color.appCard).cornerRadius(14)
+    }
+}
+
+// MARK: - Intensity Card (%1RM)
+struct IntensityCard: View {
+    let data: IntensityData
+
+    private var zoneLabel: String {
+        switch data.zone {
+        case "force":        return "Zone force (>80%)"
+        case "hypertrophie": return "Zone hypertrophie (65–80%)"
+        default:             return "Zone volume / décharge (<65%)"
+        }
+    }
+    private var zoneColor: Color {
+        switch data.zone {
+        case "force":        return .red
+        case "hypertrophie": return .orange
+        default:             return .blue
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("INTENSITÉ RELATIVE — %1RM")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+
+            HStack(alignment: .bottom, spacing: 12) {
+                if let pct = data.avgPct1rm {
+                    Text(String(format: "%.0f%%", pct))
+                        .font(.system(size: 36, weight: .black))
+                        .foregroundColor(zoneColor)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(zoneLabel)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(zoneColor)
+                    Text("\(data.setsCount) sets cette semaine")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                }
+                Spacer()
+            }
+
+            GeometryReader { g in
+                let w = g.size.width
+                ZStack(alignment: .leading) {
+                    HStack(spacing: 0) {
+                        Rectangle().fill(Color.blue.opacity(0.25)).frame(width: w * 0.65)
+                        Rectangle().fill(Color.orange.opacity(0.25)).frame(width: w * 0.15)
+                        Rectangle().fill(Color.red.opacity(0.25))
+                    }
+                    .cornerRadius(4)
+
+                    if let pct = data.avgPct1rm {
+                        let clamped = min(max(pct / 100.0, 0), 1.0)
+                        Rectangle()
+                            .fill(zoneColor)
+                            .frame(width: 3, height: 20)
+                            .offset(x: w * clamped - 1.5)
+                    }
+                }
+                .frame(height: 12)
+                .cornerRadius(4)
+
+                HStack {
+                    Text("<65%").font(.system(size: 8)).foregroundColor(.blue)
+                    Spacer()
+                    Text("65–80%").font(.system(size: 8)).foregroundColor(.orange)
+                    Spacer()
+                    Text(">80%").font(.system(size: 8)).foregroundColor(.red)
+                }
+                .offset(y: 16)
+            }
+            .frame(height: 32)
+        }
+        .padding(16).glassCard(color: zoneColor, intensity: 0.04).cornerRadius(14)
+    }
+}
+
+// MARK: - Deload Status Card
+struct DeloadStatusCard: View {
+    let data: DeloadStatusData
+
+    private var weeksSince: Int { data.weeksSinceDeload ?? 0 }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("DELOAD")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                if data.deloadActif {
+                    Text("Deload actif")
+                        .font(.system(size: 15, weight: .bold)).foregroundColor(.blue)
+                } else if let w = data.weeksSinceDeload {
+                    Text("\(w) sem.")
+                        .font(.system(size: 28, weight: .black))
+                        .foregroundColor(deloadColor)
+                    Text("depuis le dernier deload")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                } else {
+                    Text("—")
+                        .font(.system(size: 28, weight: .black)).foregroundColor(.gray)
+                    Text("pas encore de deload enregistré")
+                        .font(.system(size: 11)).foregroundColor(.gray)
+                }
+            }
+            Spacer()
+            if data.recommande {
+                VStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 20)).foregroundColor(.orange)
+                    Text("Recommandé")
+                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.orange)
+                }
+            }
+        }
+        .padding(16).glassCard(color: deloadColor, intensity: 0.04).cornerRadius(14)
+    }
+
+    private var deloadColor: Color {
+        if data.recommande { return .orange }
+        guard let w = data.weeksSinceDeload else { return .gray }
+        if w <= 4 { return .green }
+        if w <= 6 { return .orange }
+        return .red
+    }
+}
+
+// MARK: - Push/Pull Ratio Card
+struct PushPullRatioCard: View {
+    let data: WeeklyReportPushPull
+
+    private var imbalanceColor: Color {
+        guard let imb = data.imbalance else { return .green }
+        return imb.contains("dominant") ? .orange : .green
+    }
+
+    private var imbalanceText: String {
+        switch data.imbalance {
+        case "push_dominant": return "Trop de PUSH — ajoute des tirages"
+        case "pull_dominant": return "Trop de PULL — équilibre avec des poussées"
+        default:              return "Ratio équilibré ✓"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "arrow.left.arrow.right").foregroundColor(.orange)
+                Text("RATIO PUSH / PULL")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let ratio = data.ratio {
+                    Text(String(format: "%.2f", ratio))
+                        .font(.system(size: 16, weight: .black))
+                        .foregroundColor(imbalanceColor)
+                }
+            }
+
+            let total = data.pushVolume + data.pullVolume + data.legsVolume
+            if total > 0 {
+                VStack(spacing: 6) {
+                    ForEach([
+                        ("PUSH", data.pushVolume, Color.orange),
+                        ("PULL", data.pullVolume, Color.blue),
+                        ("LEGS", data.legsVolume, Color.green),
+                    ], id: \.0) { label, vol, color in
+                        HStack(spacing: 8) {
+                            Text(label)
+                                .font(.system(size: 10, weight: .bold)).tracking(1)
+                                .foregroundColor(.gray)
+                                .frame(width: 36, alignment: .leading)
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.06)).frame(height: 8)
+                                    RoundedRectangle(cornerRadius: 3).fill(color)
+                                        .frame(width: geo.size.width * CGFloat(vol / total), height: 8)
+                                }
+                            }
+                            .frame(height: 8)
+                            Text(_formatK(vol) + " lbs")
+                                .font(.system(size: 10)).foregroundColor(.gray)
+                                .frame(width: 60, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+
+            Text(imbalanceText)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(imbalanceColor)
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(14)
+    }
+}
