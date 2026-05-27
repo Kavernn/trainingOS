@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - Evening Ritual Entry Card
 
-private struct EveningRitualEntryCard: View {
+struct EveningRitualEntryCard: View {
     let ritual: RitualToday
     let onComplete: () -> Void
     @State private var showRitualEvening = false
@@ -65,7 +65,7 @@ private struct EveningRitualEntryCard: View {
 
 // MARK: - Breathwork Nudge Card
 
-private struct BreathworkNudgeCard: View {
+struct BreathworkNudgeCard: View {
     @AppStorage("breathwork.nudge.dismissed.date") private var dismissedDate = ""
 
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
@@ -111,7 +111,7 @@ private struct BreathworkNudgeCard: View {
 
 // MARK: - Quick War Room Trigger Sheet
 
-private struct QuickWarRoomTriggerSheet: View {
+struct QuickWarRoomTriggerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedContext: TriggerContext = .stress
     @State private var intensity: Double = 5
@@ -245,7 +245,7 @@ private struct QuickWarRoomTriggerSheet: View {
 
 // MARK: - Morning Ritual Entry Card
 
-private struct MorningRitualEntryCard: View {
+struct MorningRitualEntryCard: View {
     let ritual: RitualToday
     let onComplete: () -> Void
     @State private var showRitual = false
@@ -307,7 +307,7 @@ private struct MorningRitualEntryCard: View {
 
 // MARK: - E5: Demon Dashboard Banner
 
-private struct DemonDashboardBanner: View {
+struct DemonDashboardBanner: View {
     let demon: RitualDemon
     let onComplete: () -> Void
     @State private var showRitual = false
@@ -355,7 +355,7 @@ private struct DemonDashboardBanner: View {
 
 // MARK: - Season Midpoint Card (D44-D46)
 
-private struct SeasonMidpointCard: View {
+struct SeasonMidpointCard: View {
     let seasonNumber: Int
     @State private var showOath = false
 
@@ -404,7 +404,7 @@ private struct SeasonMidpointCard: View {
 
 // MARK: - Quick Battle Sheet (War Room victory / defeat)
 
-private struct QuickBattleSheet: View {
+struct QuickBattleSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isSaving = false
     @State private var saved = false

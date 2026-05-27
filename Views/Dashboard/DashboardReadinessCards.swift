@@ -52,7 +52,7 @@ struct SleepStagingBar: View {
     }
 }
 
-private struct StageLegendItem: View {
+struct StageLegendItem: View {
     let color: Color
     let label: String
     let hours: Double
@@ -157,7 +157,7 @@ struct ReadinessScoreCard: View {
     }
 }
 
-private struct ReadinessMetricRow: View {
+struct ReadinessMetricRow: View {
     let icon: String
     let label: String
     let value: String

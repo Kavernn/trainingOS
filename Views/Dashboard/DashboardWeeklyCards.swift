@@ -200,7 +200,7 @@ struct WeeklyReportView: View {
     }
 }
 
-private struct WeeklyKPI: View {
+struct WeeklyKPI: View {
     let value: String
     let label: String
     let icon:  String
