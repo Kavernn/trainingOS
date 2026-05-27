@@ -411,6 +411,7 @@ struct ExerciseCard: View {
             logResult = result
             onLogged?()
             triggerNotificationFeedback(.success)
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { showUndo = true }
             if autoStartTimer, let secs = restSeconds, secs > 0 {
                 RestTimerManager.shared.start(seconds: secs, exerciseName: name)
@@ -520,7 +521,7 @@ struct ExerciseCard: View {
                             placeholder: Double(evm.perSetHint(for: i)
                                 .replacingOccurrences(of: ",", with: ".")) ?? 0,
                             isDisabled: evm.setBySetMode && !isActive && !isDone,
-                            autoFocus: i == 0 && !alreadyLogged && !evm.setBySetMode
+                            autoFocus: false
                         )
                         if evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double" {
                             let rawVal = Double(evm.sets[i].weight.replacingOccurrences(of: ",", with: ".")) ?? 0

@@ -1453,6 +1453,7 @@ struct WorkoutSeanceView: View {
             if !updated.isEmpty { sessionSupersets = updated }
         }
         .toast($toast)
+        .scrollDismissesKeyboard(.immediately)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if timer.isVisible {
                 FloatingRestTimerCard()
