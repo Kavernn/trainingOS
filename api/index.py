@@ -61,6 +61,8 @@ def _require_api_key():
     # Skip auth when key not configured (local dev without env var)
     if not _API_KEY:
         return
+    if request.path in ("/favicon.ico", "/favicon.png"):
+        return
     auth = request.headers.get("Authorization", "")
     if auth != f"Bearer {_API_KEY}":
         return jsonify({"error": "Unauthorized"}), 401
