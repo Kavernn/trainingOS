@@ -38,7 +38,7 @@ def api_spirit_config_update():
 def api_spirit_breathwork_get():
     import db
     limit  = int(request.args.get("limit", 60))
-    return jsonify(db.get_breathwork_sessions(limit=limit) or [])
+    return jsonify(db.get_breathwork_sessions_spirit_alias(limit=limit) or [])
 
 
 # WARNING: This route writes to breathwork_sessions.protocol (text) + Spirit columns (duration_sec, cycles, etc.).
@@ -59,6 +59,7 @@ def api_spirit_breathwork_log():
 
     payload = {
         "protocol":       protocol,
+        "date":           date.today().isoformat(),
         "duration_sec":   max(0, int(data.get("duration_sec", 0))),
         "cycles":         max(0, int(data.get("cycles", 0))),
         "triggered_from": triggered_from,

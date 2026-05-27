@@ -47,7 +47,7 @@ def _compute_prs(history: dict) -> dict:
             key = target.replace(" ", "_")
             prs[key] = {
                 "weight": best_weight,
-                "reps":   int(best_entry.get("reps") or 1),
+                "reps":   int(str(best_entry.get("reps") or "1").split(",")[0].strip() or "1"),
                 "date":   best_entry.get("date", ""),
                 "name":   best_name,
             }
@@ -63,7 +63,7 @@ def _compute_weekly_volume(history: dict) -> float:
             if (e.get("date") or "") < cutoff:
                 continue
             w         = float(e.get("weight") or 0)
-            r         = int(e.get("reps") or 1)
+            r         = int(str(e.get("reps") or "1").split(",")[0].strip() or "1")
             sets_list = e.get("sets")
             s         = len(sets_list) if isinstance(sets_list, list) else 1
             total    += w * r * s

@@ -15,6 +15,7 @@ from datetime import date as date_cls, timedelta
 import uuid
 
 import db
+import db_wellness as _db_wellness
 
 # ── Techniques disponibles ────────────────────────────────────────────────────
 
@@ -107,7 +108,7 @@ def log_session(technique_id: str, duration_sec: int, cycles: int) -> dict:
 
 
 def get_history(days: int = 30) -> list:
-    sessions = db.get_breathwork_sessions(days=days)
+    sessions = _db_wellness.get_breathwork_sessions(days=days)
     # Enrichit technique_id si absent (données migrées)
     for s in sessions:
         if not s.get("technique_id") and s.get("technique"):

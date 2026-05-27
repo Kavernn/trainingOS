@@ -77,7 +77,7 @@ def _fetch_sessions(days: int = FETCH_DAYS) -> list[dict]:
         cutoff = (date_cls.today() - timedelta(days=days)).isoformat()
         resp = (
             db._client.table("workout_sessions")
-            .select("date, rpe, duration_min, session_volume")
+            .select("date, rpe, duration_min")
             .gte("date", cutoff)
             .order("date", desc=False)
             .execute()
@@ -100,7 +100,7 @@ def _aggregate_daily(rows: list[dict]) -> dict[str, float]:
         if not raw_date:
             continue
         d = str(raw_date)[:10]
-        load = _session_load(r.get("rpe"), r.get("duration_min"), r.get("session_volume"))
+        load = _session_load(r.get("rpe"), r.get("duration_min"), None)
         daily[d] = daily.get(d, 0.0) + load
     return daily
 

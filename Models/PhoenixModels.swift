@@ -22,12 +22,14 @@ struct PhoenixScore: Codable {
     }
 
     init(from decoder: Decoder) throws {
-        let c        = try decoder.container(keyedBy: CodingKeys.self)
-        score        = (try? c.decode(Double.self,       forKey: .score))        ?? 0.0
-        state        = (try? c.decode(String.self,       forKey: .state))        ?? "foundation"
-        axes         = (try? c.decode(PhoenixAxes.self,  forKey: .axes))         ?? Self.foundationAxes
-        isFoundation = (try? c.decode(Bool.self,         forKey: .isFoundation)) ?? true
-        rawDelta     = (try? c.decode(Double.self,       forKey: .rawDelta))     ?? 0.0
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        
+        // decodeIfPresent évite de lever une erreur interne inutilement si la clé est juste absente ou nulle
+        score        = (try? c.decodeIfPresent(Double.self,       forKey: .score))       ?? 0.0
+        state        = (try? c.decodeIfPresent(String.self,       forKey: .state))       ?? "foundation"
+        axes         = (try? c.decodeIfPresent(PhoenixAxes.self,  forKey: .axes))        ?? PhoenixScore.foundationAxes
+        isFoundation = (try? c.decodeIfPresent(Bool.self,         forKey: .isFoundation)) ?? true
+        rawDelta     = (try? c.decodeIfPresent(Double.self,       forKey: .rawDelta))     ?? 0.0
     }
 
     var phoenixState: PhoenixState {

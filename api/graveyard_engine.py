@@ -75,7 +75,7 @@ def _best_1rm_from_entry(entry: dict) -> float:
         if candidates:
             return max(candidates)
     w = float(entry.get("weight") or 0)
-    r = int(entry.get("reps") or 0)
+    r = int(str(entry.get("reps") or "0").split(",")[0].strip() or "0")
     return _epley_1rm(w, r)
 
 

@@ -77,7 +77,7 @@ def _working_sets(days: int = 28) -> dict[str, list[dict]]:
                 continue
 
             w = float(entry.get("weight") or 0)
-            r = int(entry.get("reps") or 0)
+            r = int(str(entry.get("reps") or "0").split(",")[0].strip() or "0")
             if w <= 0 or r <= 0:
                 continue
 

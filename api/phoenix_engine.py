@@ -54,7 +54,7 @@ def _workout_axis(last7: set[str], prior7: set[str]) -> tuple[float, dict]:
         for entry in entries:
             d = entry.get("date", "")
             weight = float(entry.get("weight") or 0)
-            reps   = float(entry.get("reps")   or 0)
+            reps   = float(str(entry.get("reps") or "0").split(",")[0].strip() or "0")
             ev     = weight * reps
             if d in last7:
                 last_vol += ev
