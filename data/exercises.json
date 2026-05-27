@@ -346,7 +346,22 @@
     "level": "beginner",
     "increment": 0.0,
     "default_scheme": "3x60s",
+    "tracking_type": "time",
+    "load_profile": "endurance",
     "muscles": ["abdominaux","gainage"]
+  },
+
+  "Deadhang": {
+    "type": "bodyweight",
+    "category": "grip",
+    "pattern": "hang",
+    "level": "intermediate",
+    "increment": 0.0,
+    "default_scheme": "3x45s",
+    "tracking_type": "time",
+    "load_profile": "endurance",
+    "muscles": ["grip","forearms","lats"],
+    "tips": "Épaules engagées, pas de shrug — tiens jusqu'à l'échec propre"
   },
 
   "Hanging Leg Raise": {

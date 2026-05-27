@@ -40,6 +40,125 @@ logger = logging.getLogger("trainingos.progression")
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _parse_time_scheme(scheme: str) -> tuple[int, int]:
+    """Parse '3x60s' → (num_sets=3, target_seconds=60). Returns (0,0) on failure."""
+    try:
+        parts = scheme.strip().split("x")
+        sec_part = (parts[1] if len(parts) > 1 else parts[0]).rstrip("s")
+        return int(parts[0]), int(sec_part)
+    except Exception:
+        return 0, 0
+
+
+def _time_plateau_count(history: list[dict], target_secs: int) -> int:
+    """Count consecutive history entries where all set durations >= target_secs."""
+    count = 0
+    for entry in history:
+        reps_str = entry.get("reps") or ""
+        durations = [_to_int(r) for r in reps_str.split(",") if r.strip()]
+        if not durations:
+            sets = _sets_from_log(entry)
+            durations = [_to_int(s.get("reps")) for s in sets]
+        if durations and all(d >= target_secs for d in durations):
+            count += 1
+        else:
+            break
+    return count
+
+
+def _suggest_endurance(
+    name: str,
+    log: dict,
+    prev_log: dict,
+    info: dict,
+    history: list[dict],
+) -> Optional[dict]:
+    """Progression basée sur la durée pour Plank, Deadhang, etc.
+
+    Règles :
+    - Tous les sets >= target → +5s la prochaine session
+    - Pas tous atteints → maintenir, objectif = atteindre la cible
+    - Plateau >= 3 sessions → +1 set (si < 5 sets) OU +2s
+    """
+    default_scheme = (info.get("default_scheme") or "")
+    target_sets, target_secs = _parse_time_scheme(default_scheme)
+    if target_secs == 0:
+        return None
+
+    reps_str = log.get("reps") or ""
+    cur_durations = [_to_int(r) for r in reps_str.split(",") if r.strip()]
+    if not cur_durations:
+        sets = _sets_from_log(log)
+        cur_durations = [_to_int(s.get("reps")) for s in sets]
+    if not cur_durations:
+        return None
+
+    all_hit = all(d >= target_secs for d in cur_durations)
+    avg_dur = int(sum(cur_durations) / len(cur_durations))
+    n_sets  = len(cur_durations)
+    plateau = _time_plateau_count(history, target_secs)
+
+    def _fmt(secs: int) -> str:
+        return f"{secs // 60}m {secs % 60}s" if secs >= 60 else f"{secs}s"
+
+    if all_hit:
+        if plateau >= 3:
+            if n_sets < 5:
+                new_scheme = f"{n_sets + 1}x{target_secs}s"
+                return {
+                    "exercise_name":    name,
+                    "load_profile":     "endurance",
+                    "suggestion_type":  "increase_sets",
+                    "current_weight":   0,
+                    "suggested_weight": 0,
+                    "current_scheme":   default_scheme,
+                    "suggested_scheme": new_scheme,
+                    "reason":           f"Bloqué {plateau}× — essaie {n_sets + 1} séries × {_fmt(target_secs)}",
+                    "fatigue_warning":  False,
+                }
+            new_secs   = target_secs + 2
+            new_scheme = f"{n_sets}x{new_secs}s"
+            return {
+                "exercise_name":    name,
+                "load_profile":     "endurance",
+                "suggestion_type":  "increase_weight",
+                "current_weight":   0,
+                "suggested_weight": 0,
+                "current_scheme":   default_scheme,
+                "suggested_scheme": new_scheme,
+                "reason":           f"Bloqué {plateau}× à {n_sets} séries — target +2s → {_fmt(new_secs)}",
+                "fatigue_warning":  False,
+            }
+        new_secs   = target_secs + 5
+        new_scheme = f"{n_sets}x{new_secs}s"
+        return {
+            "exercise_name":    name,
+            "load_profile":     "endurance",
+            "suggestion_type":  "increase_weight",
+            "current_weight":   0,
+            "suggested_weight": 0,
+            "current_scheme":   default_scheme,
+            "suggested_scheme": new_scheme,
+            "reason":           f"Dernière fois : {n_sets}×{_fmt(avg_dur)} — objectif : {n_sets}×{_fmt(new_secs)}",
+            "fatigue_warning":  False,
+        }
+
+    return {
+        "exercise_name":    name,
+        "load_profile":     "endurance",
+        "suggestion_type":  "maintain",
+        "current_weight":   0,
+        "suggested_weight": 0,
+        "current_scheme":   default_scheme,
+        "suggested_scheme": default_scheme,
+        "reason":           (
+            f"Dernière fois : {n_sets}×{_fmt(avg_dur)} (target {_fmt(target_secs)})"
+            f" — objectif : {n_sets}×{_fmt(target_secs)}"
+        ),
+        "fatigue_warning":  False,
+    }
+
+
 def _parse_scheme(scheme: str) -> tuple[int, int]:
     """Parse '3x8-12' → (num_sets=3, top_reps=12). Returns (0,0) on failure."""
     try:
@@ -180,6 +299,9 @@ def _suggest_for_exercise(
 
     if not load_profile:
         return None
+
+    if load_profile == "endurance":
+        return _suggest_endurance(name, log, prev_log, info, history)
 
     all_sets  = _sets_from_log(log)
     working   = _working_sets(all_sets)
