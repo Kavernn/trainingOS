@@ -89,24 +89,26 @@ final class DashboardViewModel: ObservableObject {
         // withTaskGroup is safe on iOS 26 beta (async let parallel has LIFO crash).
         // @MainActor in each task: properties are MainActor-isolated.
         // Network awaits still suspend and yield the actor, so fetches run concurrently.
-        var secondaryFailures = 0
+        // Tasks return 1 only for CRITICAL calls — banner shown when criticalFailures >= 1.
+        var criticalFailures = 0
         await withTaskGroup(of: Int.self) { group in
             group.addTask { @MainActor in
                 do { self.deload = try await APIService.shared.fetchDeloadData(); return 0 }
-                catch { self.logger.error("fetchDeload: \(error, privacy: .public)"); return 1 }
+                catch { self.logger.error("fetchDeload: \(error, privacy: .public)"); return 0 }
             }
             group.addTask { @MainActor in
                 do { self.moodDue = try await APIService.shared.checkMoodDue(); return 0 }
-                catch { self.logger.error("checkMoodDue: \(error, privacy: .public)"); return 1 }
+                catch { self.logger.error("checkMoodDue: \(error, privacy: .public)"); return 0 }
             }
             group.addTask { @MainActor in
                 do { self.morningBrief = try await APIService.shared.fetchMorningBrief(); return 0 }
-                catch { self.logger.error("fetchMorningBrief: \(error, privacy: .public)"); return 1 }
+                catch { self.logger.error("fetchMorningBrief: \(error, privacy: .public)"); return 0 }
             }
             group.addTask { @MainActor in
                 do { self.eveningSession = try await APIService.shared.fetchSeanceSoirData(); return 0 }
-                catch { self.logger.error("fetchSeanceSoir: \(error, privacy: .public)"); return 1 }
+                catch { self.logger.error("fetchSeanceSoir: \(error, privacy: .public)"); return 0 }
             }
+            // CRITICAL: drives the readiness score displayed on the dashboard
             group.addTask { @MainActor in
                 do {
                     let log = try await APIService.shared.fetchRecoveryData()
@@ -127,7 +129,7 @@ final class DashboardViewModel: ObservableObject {
                     return 0
                 } catch {
                     self.logger.error("fetchHRVAnalysis: \(error, privacy: .public)")
-                    return 1
+                    return 0
                 }
             }
             group.addTask { @MainActor in
@@ -142,7 +144,6 @@ final class DashboardViewModel: ObservableObject {
                 await AlertService.shared.fetch()
                 return 0
             }
-            // Phoenix Score in Phase 2 — critical metric, shown at top of dashboard
             group.addTask { @MainActor in
                 do {
                     let score = try await APIService.shared.fetchPhoenixScore()
@@ -171,7 +172,7 @@ final class DashboardViewModel: ObservableObject {
                     return 0
                 } catch {
                     self.logger.error("fetchPhoenixScore: \(error, privacy: .public)")
-                    return 1
+                    return 0
                 }
             }
             group.addTask { @MainActor in
@@ -181,7 +182,7 @@ final class DashboardViewModel: ObservableObject {
                     return 0
                 } catch {
                     self.logger.error("fetchPatterns: \(error, privacy: .public)")
-                    return 1
+                    return 0
                 }
             }
             group.addTask { @MainActor in
@@ -195,17 +196,17 @@ final class DashboardViewModel: ObservableObject {
                     return 0
                 } catch {
                     self.logger.error("fetchRitualToday: \(error, privacy: .public)")
-                    return 1
+                    return 0
                 }
             }
             group.addTask { @MainActor in
                 self.bodyBudget = try? await APIService.shared.fetchBodyBudget()
                 return 0
             }
-            for await failures in group { secondaryFailures += failures }
+            for await failures in group { criticalFailures += failures }
         }
 
-        if secondaryFailures >= 2 { partialLoadWarning = true }
+        if criticalFailures >= 1 { partialLoadWarning = true }
 
         // Analytics — once per calendar day
         if analyticsLoadedDate != today {
