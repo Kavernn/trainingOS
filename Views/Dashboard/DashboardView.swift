@@ -263,6 +263,28 @@ struct DashboardView: View {
                                         }
                                     }
                                     .appearAnimation(delay: 0.32)
+                                } else if vm.morningBriefFailed {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "brain.head.profile")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.gray.opacity(0.45))
+                                        Text("Coaching non disponible pour l'instant")
+                                            .font(.system(size: 12))
+                                            .foregroundColor(.gray.opacity(0.55))
+                                        Spacer()
+                                        Button {
+                                            Task { await vm.refreshMorningBrief() }
+                                        } label: {
+                                            Image(systemName: "arrow.clockwise")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.gray.opacity(0.45))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .padding(.horizontal, 4)
+                                    .appearAnimation(delay: 0.32)
                                 }
 
                                 WeatherChipView(vm: weatherVM)
@@ -285,7 +307,7 @@ struct DashboardView: View {
                             await api.fetchDashboard()
                             vm.deload         = try? await APIService.shared.fetchDeloadData()
                             vm.moodDue        = try? await APIService.shared.checkMoodDue()
-                            vm.morningBrief   = try? await APIService.shared.fetchMorningBrief()
+                            await vm.refreshMorningBrief()
                             vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
                             vm.bodyBudget     = try? await APIService.shared.fetchBodyBudget()
                             vm.readinessData  = try? await APIService.shared.fetchReadiness()

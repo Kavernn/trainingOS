@@ -29,6 +29,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var hrvAnalysis: HRVAnalysis? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
+    @Published var morningBriefFailed = false
 
     private let logger = Logger(subsystem: "TrainingOS", category: "dashboard")
     // PERF-5: skip expensive analytics if already loaded today
@@ -61,6 +62,7 @@ final class DashboardViewModel: ObservableObject {
 
     func loadAll() async {
         partialLoadWarning = false
+        morningBriefFailed = false
 
         // D-B1: timeout safety net — runs concurrently, fires only if performLoad hangs
         let timeoutTask = Task { [weak self] in
@@ -102,7 +104,11 @@ final class DashboardViewModel: ObservableObject {
             }
             group.addTask { @MainActor in
                 do { self.morningBrief = try await APIService.shared.fetchMorningBrief(); return 0 }
-                catch { self.logger.error("fetchMorningBrief: \(error, privacy: .public)"); return 0 }
+                catch {
+                    self.logger.error("fetchMorningBrief: \(error, privacy: .public)")
+                    self.morningBriefFailed = true
+                    return 0
+                }
             }
             group.addTask { @MainActor in
                 do { self.eveningSession = try await APIService.shared.fetchSeanceSoirData(); return 0 }
@@ -276,6 +282,16 @@ final class DashboardViewModel: ObservableObject {
         if let updated = try? await APIService.shared.fetchRitualToday() {
             ritualToday = updated
             AppState.shared.ritualTodayNotDone = !updated.morningDone
+        }
+    }
+
+    func refreshMorningBrief() async {
+        morningBriefFailed = false
+        do {
+            morningBrief = try await APIService.shared.fetchMorningBrief()
+        } catch {
+            logger.error("refreshMorningBrief: \(error, privacy: .public)")
+            morningBriefFailed = true
         }
     }
 
