@@ -35,6 +35,7 @@ from sessions     import load_sessions
 from deload       import detect_fatigue_rpe
 from pss          import get_latest_pss_score
 from hrv_engine   import compute_hrv_analysis
+from utils        import _today_mtl
 
 
 # ── Constantes ────────────────────────────────────────────────────────────────
@@ -60,7 +61,7 @@ def _rec_entry_for(target_date: str) -> Optional[dict]:
 
 def _recent_rec_entries(days: int) -> list[dict]:
     """Retourne les entrées recovery_log des `days` derniers jours (date DESC)."""
-    today = date_cls.today()
+    today = date_cls.fromisoformat(_today_mtl())
     dates = {(today - timedelta(days=i)).isoformat() for i in range(days)}
     log   = _load_recovery_log()
     entries = [e for e in log if e.get("date") in dates]
@@ -93,9 +94,15 @@ def detect_sleep_deprivation(target_date: str) -> bool:
     return False
 
 
-def detect_training_overload() -> bool:
-    """Vrai si le RPE moyen des 3 dernières séances ≥ 8.5 (réutilise deload.py)."""
-    return detect_fatigue_rpe().get("fatigue", False)
+def detect_training_overload(target_date: str | None = None) -> bool:
+    """Vrai si le RPE moyen des 3 séances les plus récentes ≤ target_date est ≥ 8.5."""
+    sessions = load_sessions()
+    if not sessions:
+        return False
+    cutoff = target_date or _today_mtl()
+    recent = sorted([d for d in sessions if d <= cutoff], reverse=True)[:3]
+    rpes   = [float(sessions[d]["rpe"]) for d in recent if sessions[d].get("rpe")]
+    return len(rpes) >= 2 and (sum(rpes) / len(rpes)) >= 8.5
 
 
 # ── Calcul du score ───────────────────────────────────────────────────────────
@@ -283,7 +290,7 @@ def compute_life_stress_score(target_date: str) -> dict:
     flags = {
         "hrv_drop":          detect_hrv_drop(target_date),
         "sleep_deprivation": detect_sleep_deprivation(target_date),
-        "training_overload": detect_training_overload(),
+        "training_overload": detect_training_overload(target_date),
     }
 
     # ── Recommandations ───────────────────────────────────────────────────────
@@ -322,7 +329,7 @@ def get_life_stress_score(target_date: str | None = None) -> dict:
     Par défaut : aujourd'hui.
     """
     if target_date is None:
-        target_date = date_cls.today().isoformat()
+        target_date = _today_mtl()
 
     cached = db.get_life_stress_score_db(target_date)
     if cached:
@@ -336,7 +343,7 @@ def get_life_stress_score(target_date: str | None = None) -> dict:
 def refresh_life_stress_score(target_date: str | None = None) -> dict:
     """Force le recalcul et met à jour le cache pour une date."""
     if target_date is None:
-        target_date = date_cls.today().isoformat()
+        target_date = _today_mtl()
     result = compute_life_stress_score(target_date)
     db.upsert_life_stress_score(result)
     return result
@@ -347,7 +354,7 @@ def get_recent_life_stress_trend(days: int = 7) -> list[dict]:
     Retourne les LSS des `days` derniers jours (du plus récent au plus ancien).
     Calcule les scores manquants à la volée.
     """
-    today = date_cls.today()
+    today = date_cls.fromisoformat(_today_mtl())
     trend = []
 
     for i in range(days):

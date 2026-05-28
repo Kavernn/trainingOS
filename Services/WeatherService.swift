@@ -15,7 +15,6 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
     @Published var temperature: Double? = nil
     @Published var conditionSymbol: String = "cloud.fill"
     @Published var cityName: String = ""
-    @Published var lastUpdated: Date? = nil
     @Published var locationDenied: Bool = false
     @Published var forecast: [DayForecast] = []
 
@@ -28,6 +27,7 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
         super.init()
         locationManager.delegate = self
         locationManager.desiredAccuracy = kCLLocationAccuracyKilometer
+        restoreFromCache()
     }
 
     func requestUpdate() {
@@ -69,14 +69,25 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
     }
 
     private func fetchWeather(for location: CLLocation) async {
-        if let lastUpdated, Date().timeIntervalSince(lastUpdated) < 1800 { return }
+        if CacheService.shared.load(for: "weather_data") != nil { return }
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
         let urlStr = "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lon)&current=temperature_2m,weather_code&daily=temperature_2m_max,temperature_2m_min,weather_code&temperature_unit=celsius&forecast_days=7&timezone=auto"
         guard let url = URL(string: urlStr),
               let (data, _) = try? await URLSession.shared.data(from: url),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+        parseWeatherJSON(json)
+        CacheService.shared.save(data, for: "weather_data")
+    }
 
+    private func restoreFromCache() {
+        guard let data = CacheService.shared.load(for: "weather_data"),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return }
+        parseWeatherJSON(json)
+    }
+
+    private func parseWeatherJSON(_ json: [String: Any]) {
         if let current = json["current"] as? [String: Any],
            let temp = current["temperature_2m"] as? Double {
             temperature = temp
@@ -86,10 +97,10 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
         }
 
         if let daily = json["daily"] as? [String: Any],
-           let times  = daily["time"]             as? [String],
+           let times  = daily["time"]               as? [String],
            let maxArr = daily["temperature_2m_max"] as? [Double],
            let minArr = daily["temperature_2m_min"] as? [Double],
-           let codes  = daily["weather_code"]      as? [Int] {
+           let codes  = daily["weather_code"]       as? [Int] {
             let fmt = ISO8601DateFormatter()
             fmt.formatOptions = [.withFullDate]
             forecast = zip(times.indices, times).compactMap { i, dateStr -> DayForecast? in
@@ -99,8 +110,6 @@ final class WeatherViewModel: NSObject, ObservableObject, CLLocationManagerDeleg
                                    symbol: Self.symbol(for: codes[i]))
             }
         }
-
-        lastUpdated = Date()
     }
 
     private func reverseGeocode(_ location: CLLocation) async {

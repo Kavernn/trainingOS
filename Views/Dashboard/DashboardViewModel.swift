@@ -316,34 +316,9 @@ final class DashboardViewModel: ObservableObject {
         return false
     }
 
-    // Readiness score 0–100. Uses server value when available, falls back to local computation.
     var readinessScore: Int? {
-        if let s = smartDay?.recoveryScore, s > 0 {
-            // Server returns 0–10 scale
-            return min(100, Int((s / 10.0) * 100))
-        }
-        guard let rec = todayRecovery else { return nil }
-        var weighted = 0.0
-        var totalW   = 0.0
-        if let hrv = rec.hrv {
-            weighted += min(1, max(0, (hrv - 15) / 65)) * 0.30
-            totalW   += 0.30
-        }
-        if let sleep = rec.sleepHours {
-            let n: Double = sleep >= 7 && sleep <= 9 ? 1 : sleep < 7 ? max(0, sleep / 7) : max(0, 1 - (sleep - 9) / 3)
-            weighted += n * 0.35
-            totalW   += 0.35
-        }
-        if let rhr = rec.restingHr {
-            weighted += min(1, max(0, (80 - rhr) / 35)) * 0.25
-            totalW   += 0.25
-        }
-        if let soreness = rec.soreness {
-            weighted += max(0, 1 - soreness / 5) * 0.10
-            totalW   += 0.10
-        }
-        guard totalW >= 0.25 else { return nil }
-        return Int((weighted / totalW) * 100)
+        guard let s = smartDay?.recoveryScore, s > 0 else { return nil }
+        return min(100, Int((s / 10.0) * 100))
     }
 
     private func computeMacroHint() -> MacroNutritionHint? {

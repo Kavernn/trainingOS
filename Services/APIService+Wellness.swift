@@ -73,6 +73,8 @@ extension APIService {
         }
         CacheService.shared.clear(for: "pss_history")
         CacheService.shared.clear(for: "pss_check_due_full")
+        CacheService.shared.clear(prefix: "life_stress_trend")
+        CacheService.shared.clear(for: "phoenix_score")
         return try JSONDecoder().decode(PSSRecord.self, from: data)
     }
 

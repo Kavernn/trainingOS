@@ -55,6 +55,10 @@ final class CacheService {
         // Ritual — force-cleared on write but still registered for consistency
         "ritual_today": 5 * 60,
         "ritual_streak": 5 * 60,
+        // Morning brief — generated once per morning, valid 1 h
+        "morning_brief": 3600,
+        // Weather — Open-Meteo, refreshed every 30 min
+        "weather_data":  1800,
     ]
 
     init(directory: URL? = nil) {
@@ -125,6 +129,20 @@ final class CacheService {
         try? FileManager.default.removeItem(at: fileURL(for: key))
         try? FileManager.default.removeItem(at: expiryURL(for: key))
         try? FileManager.default.removeItem(at: savedAtURL(for: key))
+    }
+
+    func clear(prefix: String) {
+        let safe = prefix.replacingOccurrences(of: "/", with: "_")
+                         .replacingOccurrences(of: "?", with: "_")
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil
+        ) else { return }
+        var found = false
+        for url in files where url.lastPathComponent.hasPrefix(safe) {
+            try? FileManager.default.removeItem(at: url)
+            found = true
+        }
+        if found { mem.removeAllObjects() }
     }
 
     /// Returns the timestamp when this key was last saved, or nil if never.

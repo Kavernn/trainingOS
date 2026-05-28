@@ -17,7 +17,8 @@ from typing import Optional
 import uuid
 
 import db
-from pss import get_latest_pss_score
+from pss   import get_latest_pss_score
+from utils import _today_mtl
 
 # ── Émotions disponibles ──────────────────────────────────────────────────────
 
@@ -96,7 +97,7 @@ def get_history(days: int = 30, limit: int = 20, offset: int = 0) -> dict:
 
 
 def get_today_entry() -> dict | None:
-    today = date_cls.today().isoformat()
+    today = _today_mtl()
     entries = db.get_mood_logs(limit=1)
     if entries and entries[0].get("date") == today:
         return entries[0]

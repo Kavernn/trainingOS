@@ -22,6 +22,7 @@ from typing import Optional
 import db
 from body_weight import load_body_weight
 from sessions    import load_sessions
+from utils       import _today_mtl
 
 
 def _load_recovery_log() -> list:
@@ -230,13 +231,13 @@ def merge_health_metrics(target_date: str) -> dict:
 def get_daily_health_summary(target_date: str | None = None) -> dict:
     """Résumé santé unifié pour une date (défaut = aujourd'hui)."""
     if target_date is None:
-        target_date = date_cls.today().isoformat()
+        target_date = _today_mtl()
     return merge_health_metrics(target_date)
 
 
 def get_weekly_health_summary(days: int = 7) -> list[dict]:
     """Résumés des `days` derniers jours, du plus récent au plus ancien."""
-    today = date_cls.today()
+    today = date_cls.fromisoformat(_today_mtl())
     return [
         merge_health_metrics((today - timedelta(days=i)).isoformat())
         for i in range(days)
