@@ -617,6 +617,7 @@ def analyser_deload(weights: dict) -> dict:
     deload_targets = list(dict.fromkeys(stagnant_names + drop_names))
 
     fatigue_type = fatigue_diag["fatigue_type"]
+    prescription = calculer_poids_deload(weights, deload_targets, fatigue_type=fatigue_type) if recommande else {}
 
     rapport = {
         "deload_actif":          state["active"],
@@ -628,7 +629,8 @@ def analyser_deload(weights: dict) -> dict:
         "recommande":            recommande,
         "planned_deload_due":    planned["due"],
         "weeks_since_deload":    planned.get("weeks_since"),
-        "deload_prescription":   calculer_poids_deload(weights, deload_targets, fatigue_type=fatigue_type) if recommande else {},
+        "deload_prescription":   prescription,
+        "poids_deload":          {ex: data["poids_deload"] for ex, data in prescription.items()},
         "fatigue_score":         fatigue_data["score"],
         "fatigue_components":    fatigue_data["components"],
         "streak_days":           fatigue_data["streak_days"],
