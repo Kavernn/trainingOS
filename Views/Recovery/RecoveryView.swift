@@ -43,7 +43,10 @@ private struct RecoveryStats {
 }
 
 struct RecoveryView: View {
+    var onOpenSession: (() -> Void)? = nil
+
     @EnvironmentObject private var appState: AppState
+    @ObservedObject private var api = APIService.shared
     @State private var log: [RecoveryEntry] = []
     @State private var isLoading = true
     @State private var showSheet = false
@@ -97,60 +100,64 @@ struct RecoveryView: View {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
 
-                            // Watch sync status (iOS uniquement — HealthKit non dispo sur Mac)
-                            #if !targetEnvironment(macCatalyst)
-                            WatchSyncBannerView(sync: watchSync) {
-                                Task {
-                                    await watchSync.requestAuthorizationAndSync()
-                                    await loadData()
-                                }
-                            }
-                            .padding(.horizontal, 16)
-                            .appearAnimation(delay: 0)
-                            #endif
-
-                            // HealthKit backfill banner
+                            // Banners HealthKit — priorité : backfill > watch sync, jamais les deux
                             #if !targetEnvironment(macCatalyst)
                             if !entriesMissingHK.isEmpty && !backfillDone {
                                 HStack(spacing: 10) {
                                     Image(systemName: "heart.text.square.fill")
-                                        .foregroundColor(.red)
-                                        .font(.system(size: 15))
-                                    VStack(alignment: .leading, spacing: 1) {
-                                        Text("\(entriesMissingHK.count) entrée\(entriesMissingHK.count > 1 ? "s" : "") sans FC / HRV")
-                                            .font(.system(size: 12, weight: .semibold))
-                                            .foregroundColor(.white)
-                                        Text("Synchroniser depuis Apple Santé")
-                                            .font(.system(size: 10))
-                                            .foregroundColor(.gray)
-                                    }
+                                        .font(.system(size: 13)).foregroundColor(.red)
+                                    Text("\(entriesMissingHK.count) entrée\(entriesMissingHK.count > 1 ? "s" : "") sans FC/HRV")
+                                        .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                                        .lineLimit(1)
                                     Spacer()
-                                    Button {
-                                        Task { await backfillFromHealthKit() }
-                                    } label: {
+                                    Button { Task { await backfillFromHealthKit() } } label: {
                                         if isBackfilling {
-                                            ProgressView().tint(.white).scaleEffect(0.75)
+                                            ProgressView().tint(.red).scaleEffect(0.65)
                                         } else {
                                             Text("Sync")
-                                                .font(.system(size: 12, weight: .semibold))
-                                                .foregroundColor(.white)
-                                                .padding(.horizontal, 12).padding(.vertical, 6)
-                                                .background(Color.red.opacity(0.8))
-                                                .cornerRadius(8)
+                                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.red)
                                         }
                                     }
                                     .disabled(isBackfilling)
                                 }
-                                .padding(12)
-                                .background(Color.red.opacity(0.08))
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2), lineWidth: 1))
-                                .cornerRadius(12)
+                                .padding(.horizontal, 12).padding(.vertical, 8)
+                                .background(Color.red.opacity(0.07))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.14), lineWidth: 1))
+                                .cornerRadius(10)
                                 .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0)
+                            } else {
+                                WatchSyncBannerView(sync: watchSync) {
+                                    Task {
+                                        await watchSync.requestAuthorizationAndSync()
+                                        await loadData()
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .appearAnimation(delay: 0)
                             }
                             #endif
 
+                            // Banner lien récupération → performance
+                            RecoveryPerformanceBanner(
+                                dashboard: api.dashboard,
+                                hrvAnalysis: hrvAnalysis,
+                                recoveryScore: dailySummary?.recoveryScore,
+                                onTap: onOpenSession
+                            )
+                            .padding(.horizontal, 16)
+                            .appearAnimation(delay: 0.02)
+
+                            // Readiness card — composite score, dominant dès l'ouverture
+                            if let today = log.first(where: { $0.date == todayStr }) {
+                                ReadinessCard(entry: today, backendScore: dailySummary?.recoveryScore,
+                                              hrv7dBaseline: hrvAnalysis?.hrv7dAvg)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.04)
+                            }
+
                             // KPI grid — récupération
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                                 KPICard(value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
                                         label: "Sommeil moy.", color: .blue,
                                         subtitle: countSleep > 0 ? "sur \(countSleep) logs" : nil)
@@ -178,7 +185,7 @@ struct RecoveryView: View {
 
                             // KPI — Fatigue perçue moyenne
                             if avgFatigue > 0 {
-                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                                     KPICard(value: String(format: "%.1f/10", avgFatigue),
                                             label: "Fatigue moy.", color: avgFatigue >= 7 ? .red : (avgFatigue >= 4 ? .orange : .green))
                                 }
@@ -188,7 +195,7 @@ struct RecoveryView: View {
 
                             // KPI grid — FC journalière
                             if avgHRMorning > 0 || avgHRPostWorkout > 0 || avgHREvening > 0 {
-                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                                     KPICard(value: avgHRMorning > 0 ? String(format: "%.0f bpm", avgHRMorning) : "—",
                                             label: "FC matin moy.", color: .cyan)
                                     KPICard(value: avgHRPostWorkout > 0 ? String(format: "%.0f bpm", avgHRPostWorkout) : "—",
@@ -214,17 +221,17 @@ struct RecoveryView: View {
                                     .appearAnimation(delay: 0.075)
                             }
 
-                            // Contextual tips HRV (une seule fois par scénario)
+                            // Contextual tips HRV — un seul affiché, le plus prioritaire
                             if let hrv = hrvAnalysis {
                                 if hrv.streakAlert {
                                     HRVContextualTipView(
                                         tipId: "streak_alert",
                                         icon: "exclamationmark.triangle.fill",
-                                        message: "Ton HRV est sous ta baseline depuis \(hrv.consecutiveLowDays) jours consécutifs. Priorité à la récupération — réduis le volume cette semaine."
+                                        message: "Ton HRV est sous ta baseline depuis \(hrv.consecutiveLowDays) jours consécutifs. Priorité à la récupération — réduis le volume cette semaine.",
+                                        accentColor: .orange
                                     )
                                     .padding(.horizontal, 16)
-                                }
-                                if hrv.hrvCv ?? 0 > 20 {
+                                } else if hrv.hrvCv ?? 0 > 20 {
                                     HRVContextualTipView(
                                         tipId: "high_cv",
                                         icon: "waveform.path.ecg",
@@ -234,18 +241,12 @@ struct RecoveryView: View {
                                 }
                             }
 
-                            // Readiness card
-                            if let today = log.first(where: { $0.date == todayStr }) {
-                                ReadinessCard(entry: today, backendScore: dailySummary?.recoveryScore,
-                                              hrv7dBaseline: hrvAnalysis?.hrv7dAvg)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.08)
-                            }
-
                             // HRV chart
                             let hrvEntries = Array(log.prefix(14).reversed())
                             if hrvEntries.filter({ $0.hrv != nil }).count >= 2 {
-                                HRVChart(entries: hrvEntries)
+                                HRVChart(entries: hrvEntries,
+                                         baseline: hrvAnalysis?.hrv7dAvg,
+                                         zoneColor: hrvAnalysis?.zoneColor ?? .green)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.1)
                             }
@@ -286,11 +287,12 @@ struct RecoveryView: View {
                             if log.isEmpty {
                                 RecoveryEmptyState()
                             } else {
-                                VStack(alignment: .leading, spacing: 8) {
+                                VStack(alignment: .leading, spacing: 0) {
                                     Text("HISTORIQUE")
                                         .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                         .padding(.horizontal, 16)
-                                    ForEach(log) { entry in
+                                        .padding(.bottom, 8)
+                                    ForEach(Array(log.enumerated()), id: \.1.id) { i, entry in
                                         RecoveryRow(
                                             entry: entry,
                                             onEdit: { editTarget = entry },
@@ -307,6 +309,12 @@ struct RecoveryView: View {
                                             }
                                         )
                                         .padding(.horizontal, 16)
+                                        if i < log.count - 1 {
+                                            Rectangle()
+                                                .fill(Color.white.opacity(0.06))
+                                                .frame(height: 0.5)
+                                                .padding(.horizontal, 24)
+                                        }
                                     }
                                 }
                             }
@@ -433,88 +441,162 @@ struct RecoveryRow: View {
     let entry: RecoveryEntry
     var onEdit: (() -> Void)? = nil
     let onDelete: () -> Void
+
+    @State private var expanded      = false
     @State private var confirmDelete = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(entry.date ?? "")
-                        .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
-                    if entry.isFromWatch {
-                        Label("Watch", systemImage: "applewatch")
+        VStack(alignment: .leading, spacing: 0) {
+
+            // ── Always-visible header ─────────────────────────────────────
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 6) {
+                        Text(entry.date ?? "")
+                            .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                        if entry.isFromWatch {
+                            Label("Watch", systemImage: "applewatch")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.cyan)
+                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                .background(Color.cyan.opacity(0.15))
+                                .cornerRadius(6)
+                        }
+                    }
+                    // 3 primary KPIs
+                    HStack(spacing: 10) {
+                        kpiPill("moon.fill",
+                                entry.sleepHours.map { String(format: "%.1fh", $0) } ?? "—",
+                                sleepColor(entry.sleepHours))
+                        kpiPill("bolt.fill",
+                                entry.energyPre.map { String(format: "%.0f/10", $0) } ?? "—",
+                                energyColor(entry.energyPre))
+                        kpiPill("flame.fill",
+                                entry.soreness.map { String(format: "%.0f/10", $0) } ?? "—",
+                                sorenessColor(entry.soreness))
+                    }
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 6) {
+                    HStack(spacing: 6) {
+                        if let onEdit {
+                            Button(action: onEdit) {
+                                Image(systemName: "pencil")
+                                    .font(.system(size: 11))
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.orange.opacity(0.12))
+                                    .foregroundColor(.orange.opacity(0.8))
+                                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Button { confirmDelete = true } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 11))
+                                .frame(width: 26, height: 26)
+                                .background(Color.red.opacity(0.1))
+                                .foregroundColor(.red.opacity(0.7))
+                                .clipShape(RoundedRectangle(cornerRadius: 7))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+                    } label: {
+                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.cyan)
-                            .padding(.horizontal, 5).padding(.vertical, 2)
-                            .background(Color.cyan.opacity(0.15))
-                            .cornerRadius(6)
+                            .foregroundColor(.gray.opacity(0.45))
+                            .frame(width: 26, height: 16)
                     }
-                }
-                HStack(spacing: 10) {
-                    if let h = entry.sleepHours {
-                        Label(String(format: "%.1fh", h), systemImage: "moon.fill")
-                            .font(.system(size: 11)).foregroundColor(.blue)
-                    }
-                    if let q = entry.sleepQuality {
-                        Label(String(format: "%.0f/10", q), systemImage: "star.fill")
-                            .font(.system(size: 11)).foregroundColor(.purple)
-                    }
-                    if let hr = entry.restingHr {
-                        Label(String(format: "%.0f bpm", hr), systemImage: "heart.fill")
-                            .font(.system(size: 11)).foregroundColor(.red)
-                    }
-                }
-                if let s = entry.steps {
-                    Label("\(s) pas", systemImage: "figure.walk")
-                        .font(.system(size: 11)).foregroundColor(.green)
+                    .buttonStyle(.plain)
                 }
             }
+            .padding(12)
 
-            Spacer()
+            // ── Expanded secondary section ────────────────────────────────
+            if expanded {
+                Rectangle()
+                    .fill(Color.white.opacity(0.06))
+                    .frame(height: 0.5)
+                    .padding(.horizontal, 12)
 
-            if let soreness = entry.soreness {
-                VStack(spacing: 2) {
-                    Text(String(format: "%.0f", soreness))
-                        .font(.system(size: 18, weight: .black))
-                        .foregroundColor(sorenessColor(soreness))
-                    Text("douleurs")
-                        .font(.system(size: 9)).foregroundColor(.gray)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        if let q = entry.sleepQuality {
+                            secChip("star.fill", String(format: "%.0f/10", q), "qualité", .purple)
+                        }
+                        if let f = entry.fatigue {
+                            secChip("bolt.slash.fill", String(format: "%.0f/10", f), "fatigue", .orange)
+                        }
+                        if let hr = entry.restingHr {
+                            secChip("heart.fill", String(format: "%.0f bpm", hr), "FC repos", .red)
+                        }
+                        if let hrv = entry.hrv {
+                            secChip("waveform.path.ecg", String(format: "%.0f ms", hrv), "HRV", .cyan)
+                        }
+                        if let s = entry.steps {
+                            let sLabel = s >= 1_000 ? String(format: "%.1fk", Double(s) / 1_000) : "\(s)"
+                            secChip("figure.walk", sLabel, "pas", .green)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                }
+                .padding(.vertical, 10)
+
+                if let n = entry.notes, !n.isEmpty {
+                    Text(n)
+                        .font(.system(size: 11)).foregroundColor(.gray.opacity(0.75))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 12).padding(.bottom, 10)
                 }
             }
-
-            if let onEdit {
-                Button(action: onEdit) {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 12))
-                        .frame(width: 30, height: 30)
-                        .background(Color.orange.opacity(0.12))
-                        .foregroundColor(.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                }
-                .buttonStyle(.plain)
-            }
-
-            Button { confirmDelete = true } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 12))
-                    .frame(width: 30, height: 30)
-                    .background(Color.red.opacity(0.1))
-                    .foregroundColor(.red.opacity(0.8))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
-            .buttonStyle(.plain)
         }
-        .padding(12)
-        .background(Color.appCard)
-        .cornerRadius(12)
+        .background(Color.appCard).cornerRadius(12)
+        .animation(.easeInOut(duration: 0.2), value: expanded)
         .confirmationDialog("Supprimer cette entrée ?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { onDelete() }
             Button("Annuler", role: .cancel) {}
         }
     }
 
-    private func sorenessColor(_ v: Double) -> Color {
-        if v >= 7 { return .red }; if v >= 4 { return .orange }; return .green
+    private func kpiPill(_ icon: String, _ value: String, _ color: Color) -> some View {
+        let isNil = value == "—"
+        return HStack(spacing: 3) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundColor(isNil ? .gray.opacity(0.3) : color)
+            Text(value)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(isNil ? .gray.opacity(0.35) : .white.opacity(0.9))
+        }
+    }
+
+    private func secChip(_ icon: String, _ value: String, _ label: String, _ color: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon).font(.system(size: 9)).foregroundColor(color)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(value).font(.system(size: 11, weight: .semibold)).foregroundColor(.white.opacity(0.9))
+                Text(label).font(.system(size: 8)).foregroundColor(.gray.opacity(0.55))
+            }
+        }
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .background(color.opacity(0.08))
+        .cornerRadius(8)
+    }
+
+    private func sorenessColor(_ v: Double?) -> Color {
+        guard let v else { return .gray }
+        return v >= 7 ? .red : (v >= 4 ? .orange : .green)
+    }
+    private func energyColor(_ v: Double?) -> Color {
+        guard let v else { return .gray }
+        return v >= 7 ? .green : (v >= 4 ? .orange : .red)
+    }
+    private func sleepColor(_ v: Double?) -> Color {
+        guard let v else { return .gray }
+        return v >= 7 ? .green : (v >= 6 ? .orange : .red)
     }
 }
 
@@ -668,44 +750,181 @@ struct ReadinessCard: View {
 
 struct HRVChart: View {
     let entries: [RecoveryEntry]
-    var maxHRV: Double { max(entries.compactMap(\.hrv).max() ?? 1, 80) }
+    var baseline: Double? = nil
+    var zoneColor: Color = .green
+
+    @State private var trim: CGFloat = 0
+    @State private var selectedPt: Int? = nil
+
+    private let kL: CGFloat = 28  // leading space for Y labels
+
+    private static let dateFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+
+    private var pts: [(idx: Int, val: Double)] {
+        entries.enumerated().compactMap { i, e in
+            guard let v = e.hrv, v > 0 else { return nil }
+            return (i, v)
+        }
+    }
+    private var yMax: Double { max((pts.map(\.val).max() ?? 60) * 1.1, 60) }
+    private var yMin: Double { max((pts.map(\.val).min() ?? 0) - 15, 0) }
+    private var yRng: Double { max(yMax - yMin, 1) }
+
+    private func xAt(_ idx: Int, w: CGFloat) -> CGFloat {
+        guard entries.count > 1 else { return kL + (w - kL) / 2 }
+        return kL + CGFloat(idx) / CGFloat(entries.count - 1) * (w - kL)
+    }
+    private func yAt(_ val: Double, h: CGFloat) -> CGFloat {
+        h - CGFloat((val - yMin) / yRng) * h
+    }
+
+    private func linePath(w: CGFloat, h: CGFloat) -> Path {
+        var path = Path(); var moved = false
+        for pt in pts {
+            let cp = CGPoint(x: xAt(pt.idx, w: w), y: yAt(pt.val, h: h))
+            if !moved { path.move(to: cp); moved = true } else { path.addLine(to: cp) }
+        }
+        return path
+    }
+    private func areaPath(w: CGFloat, h: CGFloat) -> Path {
+        guard let first = pts.first, let last = pts.last else { return Path() }
+        var path = Path()
+        path.move(to: CGPoint(x: xAt(first.idx, w: w), y: h))
+        path.addLine(to: CGPoint(x: xAt(first.idx, w: w), y: yAt(first.val, h: h)))
+        for pt in pts.dropFirst() { path.addLine(to: CGPoint(x: xAt(pt.idx, w: w), y: yAt(pt.val, h: h))) }
+        path.addLine(to: CGPoint(x: xAt(last.idx, w: w), y: h))
+        path.closeSubpath()
+        return path
+    }
+
+    @ViewBuilder
+    private func gridLine(step: Int, w: CGFloat, h: CGFloat) -> some View {
+        let frac = Double(step) / 4.0
+        let yy   = CGFloat(1.0 - frac) * h
+        let val  = yMin + frac * yRng
+        Path { p in p.move(to: CGPoint(x: kL, y: yy)); p.addLine(to: CGPoint(x: w, y: yy)) }
+            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+        Text(String(format: "%.0f", val))
+            .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
+            .frame(width: kL - 4, alignment: .trailing)
+            .position(x: (kL - 4) / 2, y: yy)
+    }
+
+    private func dayAbbrev(_ e: RecoveryEntry) -> String {
+        guard let d = e.date, let date = Self.dateFmt.date(from: d) else { return "" }
+        return ["D","L","M","M","J","V","S"][Calendar.current.component(.weekday, from: date) - 1]
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("HRV — 14 DERNIERS JOURS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
-                    let hrv   = e.hrv ?? 0
-                    let pct   = maxHRV > 0 ? hrv / maxHRV : 0
-                    let color: Color = hrv >= 50 ? .green : (hrv >= 30 ? .orange : .red)
-                    VStack(spacing: 2) {
-                        if hrv > 0 {
-                            Text(String(format: "%.0f", hrv))
-                                .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
-                        }
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(hrv > 0 ? color.opacity(i == entries.count - 1 ? 1 : 0.55) : Color.clear)
-                            .frame(height: max(hrv > 0 ? CGFloat(pct) * 60 : 0, hrv > 0 ? 2 : 0))
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("HRV — 14 DERNIERS JOURS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                if let b = baseline {
+                    Text("baseline \(Int(b)) ms")
+                        .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
                 }
             }
-            .frame(height: 70)
-            HStack(spacing: 12) {
-                legendDot(.green,  "≥50 ms")
-                legendDot(.orange, "30-50 ms")
-                legendDot(.red,    "<30 ms")
+
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                ZStack(alignment: .topLeading) {
+                    ForEach(0..<5, id: \.self) { step in gridLine(step: step, w: w, h: h) }
+
+                    if let b = baseline, b > yMin, b < yMax {
+                        let by = yAt(b, h: h)
+                        Path { p in p.move(to: CGPoint(x: kL, y: by)); p.addLine(to: CGPoint(x: w, y: by)) }
+                            .stroke(zoneColor.opacity(0.45),
+                                    style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    }
+
+                    areaPath(w: w, h: h).fill(zoneColor.opacity(0.07))
+
+                    linePath(w: w, h: h)
+                        .trim(from: 0, to: trim)
+                        .stroke(zoneColor, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+
+                    ForEach(Array(pts.enumerated()), id: \.0) { j, pt in
+                        Circle()
+                            .fill(zoneColor)
+                            .frame(width: selectedPt == j ? 8 : 4,
+                                   height: selectedPt == j ? 8 : 4)
+                            .position(x: xAt(pt.idx, w: w), y: yAt(pt.val, h: h))
+                            .animation(.easeInOut(duration: 0.15), value: selectedPt)
+                    }
+
+                    if let j = selectedPt, j < pts.count {
+                        let pt = pts[j]
+                        let tx = xAt(pt.idx, w: w)
+                        let ty = yAt(pt.val, h: h)
+                        let lbl = entries.indices.contains(pt.idx) ? (entries[pt.idx].date ?? "") : ""
+                        VStack(spacing: 2) {
+                            Text(String(format: "%.0f ms", pt.val))
+                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                            Text(lbl).font(.system(size: 9)).foregroundColor(.gray)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background(Color.appCard.opacity(0.97))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(zoneColor.opacity(0.3), lineWidth: 1))
+                        .cornerRadius(8)
+                        .position(x: min(max(tx, 55), w - 55), y: max(ty - 36, 22))
+                    }
+
+                    Color.clear.contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0)
+                            .onChanged { v in
+                                guard !pts.isEmpty else { return }
+                                let tx = v.location.x
+                                let j = pts.indices.min(by: {
+                                    abs(xAt(pts[$0].idx, w: w) - tx) <
+                                    abs(xAt(pts[$1].idx, w: w) - tx)
+                                }) ?? 0
+                                selectedPt = j
+                            }
+                            .onEnded { _ in
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    withAnimation { selectedPt = nil }
+                                }
+                            }
+                        )
+                }
+            }
+            .frame(height: 90)
+            .onAppear { withAnimation(.easeInOut(duration: 0.5)) { trim = 1 } }
+
+            HStack(spacing: 0) {
+                Spacer().frame(width: kL)
+                ForEach(Array(entries.enumerated()), id: \.0) { _, e in
+                    Text(dayAbbrev(e))
+                        .font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            HStack(spacing: 14) {
+                HStack(spacing: 4) {
+                    Circle().fill(zoneColor).frame(width: 6, height: 6)
+                    Text("HRV personnelle").font(.system(size: 9)).foregroundColor(.gray)
+                }
+                if baseline != nil {
+                    HStack(spacing: 4) {
+                        HStack(spacing: 1) {
+                            Rectangle().fill(zoneColor.opacity(0.5)).frame(width: 3, height: 1)
+                            Rectangle().fill(Color.clear).frame(width: 2, height: 1)
+                            Rectangle().fill(zoneColor.opacity(0.5)).frame(width: 3, height: 1)
+                            Rectangle().fill(Color.clear).frame(width: 2, height: 1)
+                            Rectangle().fill(zoneColor.opacity(0.5)).frame(width: 2, height: 1)
+                        }
+                        Text("Baseline 7j").font(.system(size: 9)).foregroundColor(.gray)
+                    }
+                }
             }
         }
         .padding(16).glassCard(color: .green, intensity: 0.05).cornerRadius(14)
-    }
-
-    private func legendDot(_ color: Color, _ label: String) -> some View {
-        HStack(spacing: 4) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
-        }
     }
 }
 
@@ -713,49 +932,182 @@ struct HRVChart: View {
 
 struct RHRChart: View {
     let entries: [RecoveryEntry]
-    // Inverted: lower RHR = better. Display as distance from ceiling (85 bpm).
-    private let ceiling: Double = 85
+
+    @State private var trim: CGFloat = 0
+    @State private var selectedPt: Int? = nil
+
+    private let kL: CGFloat = 28
+    private static let dateFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+
+    private var pts: [(idx: Int, val: Double)] {
+        entries.enumerated().compactMap { i, e in
+            guard let v = e.restingHr, v > 0 else { return nil }
+            return (i, v)
+        }
+    }
+    private var lineColor: Color {
+        let avg = pts.isEmpty ? 0 : pts.map(\.val).reduce(0, +) / Double(pts.count)
+        return avg <= 55 ? .green : (avg <= 65 ? .orange : .red)
+    }
+    // Ensure 40–60 reference band is always visible
+    private var yMax: Double { max((pts.map(\.val).max() ?? 60) + 5, 70) }
+    private var yMin: Double { min((pts.map(\.val).min() ?? 50) - 5, 35) }
+    private var yRng: Double { max(yMax - yMin, 1) }
+
+    private func xAt(_ idx: Int, w: CGFloat) -> CGFloat {
+        guard entries.count > 1 else { return kL + (w - kL) / 2 }
+        return kL + CGFloat(idx) / CGFloat(entries.count - 1) * (w - kL)
+    }
+    private func yAt(_ val: Double, h: CGFloat) -> CGFloat {
+        h - CGFloat((val - yMin) / yRng) * h
+    }
+
+    private func linePath(w: CGFloat, h: CGFloat) -> Path {
+        var path = Path(); var moved = false
+        for pt in pts {
+            let cp = CGPoint(x: xAt(pt.idx, w: w), y: yAt(pt.val, h: h))
+            if !moved { path.move(to: cp); moved = true } else { path.addLine(to: cp) }
+        }
+        return path
+    }
+    private func areaPath(w: CGFloat, h: CGFloat) -> Path {
+        guard let first = pts.first, let last = pts.last else { return Path() }
+        var path = Path()
+        path.move(to: CGPoint(x: xAt(first.idx, w: w), y: h))
+        path.addLine(to: CGPoint(x: xAt(first.idx, w: w), y: yAt(first.val, h: h)))
+        for pt in pts.dropFirst() { path.addLine(to: CGPoint(x: xAt(pt.idx, w: w), y: yAt(pt.val, h: h))) }
+        path.addLine(to: CGPoint(x: xAt(last.idx, w: w), y: h))
+        path.closeSubpath()
+        return path
+    }
+
+    @ViewBuilder
+    private func gridLine(step: Int, w: CGFloat, h: CGFloat) -> some View {
+        let frac = Double(step) / 4.0
+        let yy   = CGFloat(1.0 - frac) * h
+        let val  = yMin + frac * yRng
+        Path { p in p.move(to: CGPoint(x: kL, y: yy)); p.addLine(to: CGPoint(x: w, y: yy)) }
+            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+        Text(String(format: "%.0f", val))
+            .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
+            .frame(width: kL - 4, alignment: .trailing)
+            .position(x: (kL - 4) / 2, y: yy)
+    }
+
+    private func dayAbbrev(_ e: RecoveryEntry) -> String {
+        guard let d = e.date, let date = Self.dateFmt.date(from: d) else { return "" }
+        return ["D","L","M","M","J","V","S"][Calendar.current.component(.weekday, from: date) - 1]
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("FC REPOS — 14 DERNIERS JOURS")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
-                    let hr    = e.restingHr ?? 0
-                    // Normalize: bar height = how LOW the HR is (good = tall bar)
-                    let pct   = hr > 0 ? max(0, (ceiling - hr) / (ceiling - 35)) : 0
-                    let color: Color = hr > 0 ? (hr <= 55 ? .green : (hr <= 65 ? .orange : .red)) : .clear
-                    VStack(spacing: 2) {
-                        if hr > 0 {
-                            Text(String(format: "%.0f", hr))
-                                .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
-                        }
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(hr > 0 ? color.opacity(i == entries.count - 1 ? 1 : 0.55) : Color.clear)
-                            .frame(height: max(hr > 0 ? CGFloat(pct) * 60 : 0, hr > 0 ? 2 : 0))
+
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                ZStack(alignment: .topLeading) {
+                    ForEach(0..<5, id: \.self) { step in gridLine(step: step, w: w, h: h) }
+
+                    // Optimal zone band fill (40–60 bpm)
+                    let y40 = yAt(40, h: h)
+                    let y60 = yAt(60, h: h)
+                    Rectangle()
+                        .fill(Color.green.opacity(0.05))
+                        .frame(width: w - kL, height: abs(y40 - y60))
+                        .position(x: kL + (w - kL) / 2, y: min(y40, y60) + abs(y40 - y60) / 2)
+
+                    // 60 bpm dashed reference
+                    Path { p in p.move(to: CGPoint(x: kL, y: y60)); p.addLine(to: CGPoint(x: w, y: y60)) }
+                        .stroke(Color.green.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    // 40 bpm dashed reference
+                    Path { p in p.move(to: CGPoint(x: kL, y: y40)); p.addLine(to: CGPoint(x: w, y: y40)) }
+                        .stroke(Color.green.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+
+                    areaPath(w: w, h: h).fill(lineColor.opacity(0.07))
+
+                    linePath(w: w, h: h)
+                        .trim(from: 0, to: trim)
+                        .stroke(lineColor, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+
+                    ForEach(Array(pts.enumerated()), id: \.0) { j, pt in
+                        Circle()
+                            .fill(lineColor)
+                            .frame(width: selectedPt == j ? 8 : 4,
+                                   height: selectedPt == j ? 8 : 4)
+                            .position(x: xAt(pt.idx, w: w), y: yAt(pt.val, h: h))
+                            .animation(.easeInOut(duration: 0.15), value: selectedPt)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
+
+                    if let j = selectedPt, j < pts.count {
+                        let pt  = pts[j]
+                        let tx  = xAt(pt.idx, w: w)
+                        let ty  = yAt(pt.val, h: h)
+                        let lbl = entries.indices.contains(pt.idx) ? (entries[pt.idx].date ?? "") : ""
+                        VStack(spacing: 2) {
+                            Text(String(format: "%.0f bpm", pt.val))
+                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                            Text(lbl).font(.system(size: 9)).foregroundColor(.gray)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background(Color.appCard.opacity(0.97))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(lineColor.opacity(0.3), lineWidth: 1))
+                        .cornerRadius(8)
+                        .position(x: min(max(tx, 55), w - 55), y: max(ty - 36, 22))
+                    }
+
+                    Color.clear.contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0)
+                            .onChanged { v in
+                                guard !pts.isEmpty else { return }
+                                let tx = v.location.x
+                                let j = pts.indices.min(by: {
+                                    abs(xAt(pts[$0].idx, w: w) - tx) <
+                                    abs(xAt(pts[$1].idx, w: w) - tx)
+                                }) ?? 0
+                                selectedPt = j
+                            }
+                            .onEnded { _ in
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    withAnimation { selectedPt = nil }
+                                }
+                            }
+                        )
                 }
             }
-            .frame(height: 70)
-            HStack(spacing: 12) {
-                legendDot(.green,  "≤55 bpm")
-                legendDot(.orange, "55-65 bpm")
-                legendDot(.red,    ">65 bpm")
-                Spacer()
-                Text("Barre haute = FC basse = mieux")
-                    .font(.system(size: 8)).foregroundColor(.gray.opacity(0.6))
+            .frame(height: 90)
+            .onAppear { withAnimation(.easeInOut(duration: 0.5)) { trim = 1 } }
+
+            HStack(spacing: 0) {
+                Spacer().frame(width: kL)
+                ForEach(Array(entries.enumerated()), id: \.0) { _, e in
+                    Text(dayAbbrev(e))
+                        .font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            HStack(spacing: 14) {
+                HStack(spacing: 4) {
+                    Circle().fill(lineColor).frame(width: 6, height: 6)
+                    Text("FC repos").font(.system(size: 9)).foregroundColor(.gray)
+                }
+                HStack(spacing: 4) {
+                    HStack(spacing: 1) {
+                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.clear).frame(width: 2, height: 1)
+                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.clear).frame(width: 2, height: 1)
+                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 2, height: 1)
+                    }
+                    Text("Zone optimale 40–60 bpm").font(.system(size: 9)).foregroundColor(.gray)
+                }
             }
         }
         .padding(16).glassCard(color: .red, intensity: 0.04).cornerRadius(14)
-    }
-
-    private func legendDot(_ color: Color, _ label: String) -> some View {
-        HStack(spacing: 4) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
-        }
     }
 }
 
@@ -827,93 +1179,304 @@ struct HRMomentsChart: View {
 // MARK: - Sleep Chart
 struct SleepChart: View {
     let entries: [RecoveryEntry]
-    var maxH: Double { max(entries.compactMap(\.sleepHours).max() ?? 1, 9) }
+
+    @State private var appeared  = false
+    @State private var selectedIdx: Int? = nil
+
+    private let kL: CGFloat = 28
+
+    private static let dateFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+
+    private var yMax: Double { max(entries.compactMap(\.sleepHours).max() ?? 8, 9) }
+
+    private func barColor(_ h: Double) -> Color { h >= 7 ? .green : (h >= 6 ? .orange : .red) }
+
+    @ViewBuilder
+    private func gridLine(step: Int, w: CGFloat, h: CGFloat) -> some View {
+        let frac = Double(step) / 4.0
+        let yy   = CGFloat(1.0 - frac) * h
+        let val  = yMax * frac
+        Path { p in p.move(to: CGPoint(x: kL, y: yy)); p.addLine(to: CGPoint(x: w, y: yy)) }
+            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+        Text(String(format: "%.0fh", val))
+            .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
+            .frame(width: kL - 4, alignment: .trailing)
+            .position(x: (kL - 4) / 2, y: yy)
+    }
+
+    private func dayAbbrev(_ e: RecoveryEntry) -> String {
+        guard let d = e.date, let date = Self.dateFmt.date(from: d) else { return "" }
+        return ["D","L","M","M","J","V","S"][Calendar.current.component(.weekday, from: date) - 1]
+    }
+
+    private func barDelay(_ i: Int) -> Double { Double(i) * 0.04 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("SOMMEIL — DERNIERS JOURS")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
-                    let h = e.sleepHours ?? 0
-                    let pct = maxH > 0 ? h / maxH : 0
-                    let color: Color = h >= 7 ? .blue : (h >= 5 ? .orange : .red)
-                    VStack(spacing: 2) {
-                        if h > 0 {
-                            Text(String(format: "%.0fh", h))
-                                .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
-                        }
+
+            GeometryReader { geo in
+                let w        = geo.size.width
+                let h        = geo.size.height
+                let chartW   = w - kL
+                let n        = max(entries.count, 1)
+                let slot: CGFloat = chartW / CGFloat(n)
+                let barW: CGFloat = max(slot * 0.65, 3)
+
+                ZStack(alignment: .topLeading) {
+                    ForEach(0..<5, id: \.self) { step in gridLine(step: step, w: w, h: h) }
+
+                    // 7h objective dashed line
+                    let y7 = h - CGFloat(7.0 / yMax) * h
+                    Path { p in p.move(to: CGPoint(x: kL, y: y7)); p.addLine(to: CGPoint(x: w, y: y7)) }
+                        .stroke(Color.green.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+
+                    // Bars
+                    ForEach(Array(entries.enumerated()), id: \.0) { i, e in
+                        let hours  = e.sleepHours ?? 0
+                        let color  = barColor(hours)
+                        let barH   = hours > 0 ? CGFloat(hours / yMax) * h : 0
+                        let cx     = kL + CGFloat(i) * slot + slot / 2
+
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(color.opacity(i == entries.count - 1 ? 1 : 0.5))
-                            .frame(height: max(CGFloat(pct) * 60, 2))
+                            .fill(color.opacity(selectedIdx == i ? 1.0 : 0.65))
+                            .frame(width: barW, height: max(barH, hours > 0 ? 2 : 0))
+                            .scaleEffect(y: appeared ? 1 : 0, anchor: .bottom)
+                            .position(x: cx, y: h - max(barH, hours > 0 ? 2 : 0) / 2)
+                            .animation(.easeOut(duration: 0.5).delay(barDelay(i)), value: appeared)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
+
+                    // Tooltip
+                    if let j = selectedIdx, entries.indices.contains(j) {
+                        let sleepH = entries[j].sleepHours ?? 0
+                        let cx     = kL + CGFloat(j) * slot + slot / 2
+                        let barH   = CGFloat(sleepH / yMax) * h
+                        VStack(spacing: 2) {
+                            Text(String(format: "%.1fh", sleepH))
+                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                            Text(entries[j].date ?? "")
+                                .font(.system(size: 9)).foregroundColor(.gray)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background(Color.appCard.opacity(0.97))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(barColor(sleepH).opacity(0.3), lineWidth: 1))
+                        .cornerRadius(8)
+                        .position(x: min(max(cx, 50), w - 50), y: max(h - barH - 30, 22))
+                    }
+
+                    // Touch layer
+                    Color.clear.contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0)
+                            .onChanged { v in
+                                let idx = Int((v.location.x - kL) / slot)
+                                if entries.indices.contains(idx) { selectedIdx = idx }
+                            }
+                            .onEnded { _ in
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    withAnimation { selectedIdx = nil }
+                                }
+                            }
+                        )
                 }
             }
-            .frame(height: 70)
+            .frame(height: 90)
+            .onAppear { withAnimation(.easeOut(duration: 0.5)) { appeared = true } }
+
+            // X axis
+            HStack(spacing: 0) {
+                Spacer().frame(width: kL)
+                ForEach(Array(entries.enumerated()), id: \.0) { _, e in
+                    Text(dayAbbrev(e))
+                        .font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
             // Legend
             HStack(spacing: 12) {
+                legendDot(.green,  "≥7h")
+                legendDot(.orange, "6–7h")
+                legendDot(.red,    "<6h")
+                Spacer()
                 HStack(spacing: 4) {
-                    Circle().fill(Color.blue).frame(width: 6, height: 6)
-                    Text("≥7h").font(.system(size: 9)).foregroundColor(.gray)
-                }
-                HStack(spacing: 4) {
-                    Circle().fill(Color.orange).frame(width: 6, height: 6)
-                    Text("5-7h").font(.system(size: 9)).foregroundColor(.gray)
-                }
-                HStack(spacing: 4) {
-                    Circle().fill(Color.red).frame(width: 6, height: 6)
-                    Text("<5h").font(.system(size: 9)).foregroundColor(.gray)
+                    HStack(spacing: 1) {
+                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.clear).frame(width: 2, height: 1)
+                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.clear).frame(width: 2, height: 1)
+                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 2, height: 1)
+                    }
+                    Text("Objectif 7h").font(.system(size: 9)).foregroundColor(.gray)
                 }
             }
         }
         .padding(16).glassCard(color: .blue, intensity: 0.05).cornerRadius(14)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+        }
     }
 }
 
 // MARK: - Steps Chart
 struct StepsChart: View {
     let entries: [RecoveryEntry]
-    var maxSteps: Double { max(entries.compactMap(\.steps).map(Double.init).max() ?? 1, 10_000) }
+    var stepGoal: Int = 10_000
+
+    @State private var appeared   = false
+    @State private var selectedIdx: Int? = nil
+
+    private let kL: CGFloat = 30  // slightly wider — "10.5k" Y labels need a bit more room
+
+    private static let dateFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+
+    private var yMax: Double {
+        let m = entries.compactMap(\.steps).map(Double.init).max() ?? 0
+        return max(m * 1.1, Double(stepGoal) * 1.15)
+    }
+
+    private func barColor(_ s: Double) -> Color { s >= 10_000 ? .green : (s >= 7_000 ? .orange : .red) }
+
+    private func stepsLabel(_ s: Double) -> String {
+        s >= 1_000 ? String(format: "%.1fk", s / 1_000) : "\(Int(s))"
+    }
+
+    @ViewBuilder
+    private func gridLine(step: Int, w: CGFloat, h: CGFloat) -> some View {
+        let frac = Double(step) / 4.0
+        let yy   = CGFloat(1.0 - frac) * h
+        let val  = yMax * frac
+        Path { p in p.move(to: CGPoint(x: kL, y: yy)); p.addLine(to: CGPoint(x: w, y: yy)) }
+            .stroke(Color.white.opacity(0.08), lineWidth: 0.5)
+        Text(stepsLabel(val))
+            .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
+            .frame(width: kL - 4, alignment: .trailing)
+            .position(x: (kL - 4) / 2, y: yy)
+    }
+
+    private func dayAbbrev(_ e: RecoveryEntry) -> String {
+        guard let d = e.date, let date = Self.dateFmt.date(from: d) else { return "" }
+        return ["D","L","M","M","J","V","S"][Calendar.current.component(.weekday, from: date) - 1]
+    }
+
+    private func barDelay(_ i: Int) -> Double { Double(i) * 0.04 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("PAS — DERNIERS JOURS")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(Array(entries.enumerated()), id: \.0) { i, e in
-                    let steps = Double(e.steps ?? 0)
-                    let pct   = maxSteps > 0 ? steps / maxSteps : 0
-                    let color: Color = steps >= 10_000 ? .green : (steps >= 7_000 ? .orange : .red)
-                    VStack(spacing: 2) {
-                        if steps > 0 {
-                            Text(steps >= 1000 ? String(format: "%.0fk", steps / 1000) : "\(Int(steps))")
-                                .font(.system(size: 7)).foregroundColor(color.opacity(0.8))
-                        }
+
+            GeometryReader { geo in
+                let w      = geo.size.width
+                let h      = geo.size.height
+                let chartW = w - kL
+                let n      = max(entries.count, 1)
+                let slot: CGFloat = chartW / CGFloat(n)
+                let barW: CGFloat = max(slot * 0.65, 3)
+
+                ZStack(alignment: .topLeading) {
+                    ForEach(0..<5, id: \.self) { step in gridLine(step: step, w: w, h: h) }
+
+                    // 10k objective dashed line
+                    let yGoal = h - CGFloat(Double(stepGoal) / yMax) * h
+                    Path { p in p.move(to: CGPoint(x: kL, y: yGoal)); p.addLine(to: CGPoint(x: w, y: yGoal)) }
+                        .stroke(Color.green.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+
+                    // Bars
+                    ForEach(Array(entries.enumerated()), id: \.0) { i, e in
+                        let steps  = Double(e.steps ?? 0)
+                        let color  = barColor(steps)
+                        let barH   = steps > 0 ? CGFloat(steps / yMax) * h : 0
+                        let cx     = kL + CGFloat(i) * slot + slot / 2
+
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(color.opacity(i == entries.count - 1 ? 1 : 0.5))
-                            .frame(height: max(CGFloat(pct) * 60, 2))
+                            .fill(color.opacity(selectedIdx == i ? 1.0 : 0.65))
+                            .frame(width: barW, height: max(barH, steps > 0 ? 2 : 0))
+                            .scaleEffect(y: appeared ? 1 : 0, anchor: .bottom)
+                            .position(x: cx, y: h - max(barH, steps > 0 ? 2 : 0) / 2)
+                            .animation(.easeOut(duration: 0.5).delay(barDelay(i)), value: appeared)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: 70, alignment: .bottom)
+
+                    // Tooltip
+                    if let j = selectedIdx, entries.indices.contains(j) {
+                        let steps  = Double(entries[j].steps ?? 0)
+                        let cx     = kL + CGFloat(j) * slot + slot / 2
+                        let barH   = CGFloat(steps / yMax) * h
+                        VStack(spacing: 2) {
+                            Text(stepsLabel(steps) + " pas")
+                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.white)
+                            Text(entries[j].date ?? "")
+                                .font(.system(size: 9)).foregroundColor(.gray)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 5)
+                        .background(Color.appCard.opacity(0.97))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(barColor(steps).opacity(0.3), lineWidth: 1))
+                        .cornerRadius(8)
+                        .position(x: min(max(cx, 55), w - 55), y: max(h - barH - 30, 22))
+                    }
+
+                    // Touch layer
+                    Color.clear.contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0)
+                            .onChanged { v in
+                                let idx = Int((v.location.x - kL) / slot)
+                                if entries.indices.contains(idx) { selectedIdx = idx }
+                            }
+                            .onEnded { _ in
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                    withAnimation { selectedIdx = nil }
+                                }
+                            }
+                        )
                 }
             }
-            .frame(height: 70)
+            .frame(height: 90)
+            .onAppear { withAnimation(.easeOut(duration: 0.5)) { appeared = true } }
+
+            // X axis
+            HStack(spacing: 0) {
+                Spacer().frame(width: kL)
+                ForEach(Array(entries.enumerated()), id: \.0) { _, e in
+                    Text(dayAbbrev(e))
+                        .font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            // Legend
             HStack(spacing: 12) {
+                legendDot(.green,  "≥10k")
+                legendDot(.orange, "7k–10k")
+                legendDot(.red,    "<7k")
+                Spacer()
                 HStack(spacing: 4) {
-                    Circle().fill(Color.green).frame(width: 6, height: 6)
-                    Text("≥10k").font(.system(size: 9)).foregroundColor(.gray)
-                }
-                HStack(spacing: 4) {
-                    Circle().fill(Color.orange).frame(width: 6, height: 6)
-                    Text("7k-10k").font(.system(size: 9)).foregroundColor(.gray)
-                }
-                HStack(spacing: 4) {
-                    Circle().fill(Color.red).frame(width: 6, height: 6)
-                    Text("<7k").font(.system(size: 9)).foregroundColor(.gray)
+                    HStack(spacing: 1) {
+                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.clear).frame(width: 2, height: 1)
+                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 3, height: 1)
+                        Rectangle().fill(Color.clear).frame(width: 2, height: 1)
+                        Rectangle().fill(Color.green.opacity(0.5)).frame(width: 2, height: 1)
+                    }
+                    Text("Objectif 10k").font(.system(size: 9)).foregroundColor(.gray)
                 }
             }
         }
         .padding(16).glassCard(color: .green, intensity: 0.05).cornerRadius(14)
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+        }
     }
 }
 
@@ -948,6 +1511,9 @@ struct LogRecoverySheet: View {
     @State private var isSaving = false
     @State private var isLoadingHK = false
     @State private var apiError: String? = nil
+    @State private var showFullMode = false
+    @AppStorage("recoveryLogPrefersFull") private var prefersFull = false
+    @AppStorage("recoveryLogFullUseCount") private var fullUseCount = 0
 
     private var isEditing: Bool { prefillEntry != nil }
 
@@ -963,13 +1529,14 @@ struct LogRecoverySheet: View {
                 ScrollView {
                     VStack(spacing: 18) {
 
-                        // Date picker
+                        // Date picker — toujours visible
                         DatePicker("Date", selection: $selectedDate, in: ...Date(), displayedComponents: .date)
                             .datePickerStyle(.compact)
                             .colorScheme(.dark)
                             .padding(14).background(Color.appCard).cornerRadius(12)
 
-                        // HealthKit auto-fill button
+                        // HealthKit auto-fill — toujours visible
+                        #if !targetEnvironment(macCatalyst)
                         Button(action: fillFromHealthKit) {
                             HStack(spacing: 8) {
                                 if isLoadingHK {
@@ -989,136 +1556,205 @@ struct LogRecoverySheet: View {
                         }
                         .disabled(isLoadingHK)
                         .buttonStyle(SpringButtonStyle())
+                        #endif
 
-                        // Sleep
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("SOMMEIL").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                            HStack(spacing: 12) {
-                                RecoveryField(label: "DURÉE (h)", placeholder: "7.5", text: $sleepHoursStr)
-                                RecoveryField(label: "FC REPOS (bpm)", placeholder: "58", text: $restingHrStr)
-                            }
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack {
-                                    Text("QUALITÉ").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                    Spacer()
-                                    Text(String(format: "%.0f / 10", sleepQuality))
-                                        .font(.system(size: 13, weight: .bold)).foregroundColor(.blue)
-                                }
-                                Slider(value: $sleepQuality, in: 1...10, step: 1)
-                                    .tint(.orange)
-                            }
-                        }
-                        .padding(14).background(Color.appCard).cornerRadius(12)
+                        if showFullMode {
+                            // ── MODE COMPLET ─────────────────────────────
 
-                        // Douleurs musculaires + Fatigue perçue (Hooper Index)
-                        VStack(alignment: .leading, spacing: 14) {
+                            // Sleep complet
                             VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                    Spacer()
-                                    Text(String(format: "%.0f / 10", soreness))
-                                        .font(.system(size: 13, weight: .bold)).foregroundColor(sorenessColor(soreness))
+                                Text("SOMMEIL").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                HStack(spacing: 12) {
+                                    RecoveryField(label: "DURÉE (h)", placeholder: "7.5", text: $sleepHoursStr)
+                                    RecoveryField(label: "FC REPOS (bpm)", placeholder: "58", text: $restingHrStr)
                                 }
-                                Slider(value: $soreness, in: 0...10, step: 1)
-                                    .tint(sorenessColor(soreness))
-                                HStack {
-                                    Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
-                                    Spacer()
-                                    Text("10 = Sévère").font(.system(size: 9)).foregroundColor(.gray)
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("QUALITÉ").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Spacer()
+                                        Text(String(format: "%.0f / 10", sleepQuality))
+                                            .font(.system(size: 13, weight: .bold)).foregroundColor(.blue)
+                                    }
+                                    Slider(value: $sleepQuality, in: 1...10, step: 1).tint(.orange)
                                 }
                             }
-                            Divider().background(Color.white.opacity(0.06))
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("FATIGUE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                    Spacer()
-                                    Text(String(format: "%.0f / 10", fatigue))
-                                        .font(.system(size: 13, weight: .bold)).foregroundColor(fatigueColor(fatigue))
-                                }
-                                Slider(value: $fatigue, in: 0...10, step: 1)
-                                    .tint(fatigueColor(fatigue))
-                                HStack {
-                                    Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
-                                    Spacer()
-                                    Text("10 = Épuisé(e)").font(.system(size: 9)).foregroundColor(.gray)
-                                }
-                            }
-                            Divider().background(Color.white.opacity(0.06))
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("ÉNERGIE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                    Spacer()
-                                    if energyPre == 0 {
-                                        Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
-                                    } else {
-                                        Text(String(format: "%.0f / 10", energyPre))
-                                            .font(.system(size: 13, weight: .bold)).foregroundColor(energyPreColor(energyPre))
+                            .padding(14).background(Color.appCard).cornerRadius(12)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+
+                            // Douleurs + Fatigue + Énergie
+                            VStack(alignment: .leading, spacing: 14) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Spacer()
+                                        Text(String(format: "%.0f / 10", soreness)).font(.system(size: 13, weight: .bold)).foregroundColor(sorenessColor(soreness))
+                                    }
+                                    Slider(value: $soreness, in: 0...10, step: 1).tint(sorenessColor(soreness))
+                                    HStack {
+                                        Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
+                                        Spacer()
+                                        Text("10 = Sévère").font(.system(size: 9)).foregroundColor(.gray)
                                     }
                                 }
-                                Slider(value: $energyPre, in: 0...10, step: 1)
-                                    .tint(energyPre == 0 ? .gray : energyPreColor(energyPre))
-                                HStack {
-                                    Text("0 = Non renseigné").font(.system(size: 9)).foregroundColor(.gray)
-                                    Spacer()
-                                    Text("10 = Excellent").font(.system(size: 9)).foregroundColor(.gray)
+                                Divider().background(Color.white.opacity(0.06))
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("FATIGUE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Spacer()
+                                        Text(String(format: "%.0f / 10", fatigue)).font(.system(size: 13, weight: .bold)).foregroundColor(fatigueColor(fatigue))
+                                    }
+                                    Slider(value: $fatigue, in: 0...10, step: 1).tint(fatigueColor(fatigue))
+                                    HStack {
+                                        Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
+                                        Spacer()
+                                        Text("10 = Épuisé(e)").font(.system(size: 9)).foregroundColor(.gray)
+                                    }
+                                }
+                                Divider().background(Color.white.opacity(0.06))
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("ÉNERGIE PERÇUE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Spacer()
+                                        if energyPre == 0 {
+                                            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
+                                        } else {
+                                            Text(String(format: "%.0f / 10", energyPre)).font(.system(size: 13, weight: .bold)).foregroundColor(energyPreColor(energyPre))
+                                        }
+                                    }
+                                    Slider(value: $energyPre, in: 0...10, step: 1).tint(energyPre == 0 ? .gray : energyPreColor(energyPre))
+                                    HStack {
+                                        Text("0 = Non renseigné").font(.system(size: 9)).foregroundColor(.gray)
+                                        Spacer()
+                                        Text("10 = Excellent").font(.system(size: 9)).foregroundColor(.gray)
+                                    }
                                 }
                             }
-                        }
-                        .padding(14).background(Color.appCard).cornerRadius(12)
+                            .padding(14).background(Color.appCard).cornerRadius(12)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
 
-                        // Activité
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("ACTIVITÉ QUOTIDIENNE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                            HStack(spacing: 12) {
-                                RecoveryField(label: "PAS", placeholder: "8500", text: $stepsStr, keyboardType: .numberPad)
-                                RecoveryField(label: "HRV (ms)", placeholder: "45", text: $hrvStr)
+                            // Activité
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("ACTIVITÉ QUOTIDIENNE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                HStack(spacing: 12) {
+                                    RecoveryField(label: "PAS", placeholder: "8500", text: $stepsStr, keyboardType: .numberPad)
+                                    RecoveryField(label: "HRV (ms)", placeholder: "45", text: $hrvStr)
+                                }
+                                HStack(spacing: 12) {
+                                    RecoveryField(label: "ÉNERGIE ACTIVE (kcal)", placeholder: "350", text: $activeEnergyStr, keyboardType: .numberPad)
+                                    Spacer().frame(maxWidth: .infinity)
+                                }
                             }
-                            HStack(spacing: 12) {
-                                RecoveryField(label: "ÉNERGIE ACTIVE (kcal)", placeholder: "350", text: $activeEnergyStr, keyboardType: .numberPad)
-                                Spacer().frame(maxWidth: .infinity)
-                            }
-                        }
-                        .padding(14).background(Color.appCard).cornerRadius(12)
+                            .padding(14).background(Color.appCard).cornerRadius(12)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
 
-                        // Fréquence cardiaque
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "heart.fill").font(.system(size: 10)).foregroundColor(.red)
-                                Text("FRÉQUENCE CARDIAQUE (bpm)").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            // Fréquence cardiaque
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "heart.fill").font(.system(size: 10)).foregroundColor(.red)
+                                    Text("FRÉQUENCE CARDIAQUE (bpm)").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                }
+                                HStack(spacing: 12) {
+                                    RecoveryField(label: "MATIN (06-09h)", placeholder: "62", text: $hrMorningStr, keyboardType: .numberPad)
+                                    RecoveryField(label: "POST SÉANCE (+30min)", placeholder: "88", text: $hrPostWorkoutStr, keyboardType: .numberPad)
+                                }
+                                HStack(spacing: 12) {
+                                    RecoveryField(label: "SOIR (21-23h)", placeholder: "58", text: $hrEveningStr, keyboardType: .numberPad)
+                                    Spacer().frame(maxWidth: .infinity)
+                                }
                             }
-                            HStack(spacing: 12) {
-                                RecoveryField(label: "MATIN (06-09h)", placeholder: "62", text: $hrMorningStr, keyboardType: .numberPad)
-                                RecoveryField(label: "POST SÉANCE (+30min)", placeholder: "88", text: $hrPostWorkoutStr, keyboardType: .numberPad)
-                            }
-                            HStack(spacing: 12) {
-                                RecoveryField(label: "SOIR (21-23h)", placeholder: "58", text: $hrEveningStr, keyboardType: .numberPad)
-                                Spacer().frame(maxWidth: .infinity)
-                            }
-                        }
-                        .padding(14).background(Color.appCard).cornerRadius(12)
+                            .padding(14).background(Color.appCard).cornerRadius(12)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
 
-                        // Notes
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                            TextField("Comment tu te sens...", text: $notes, axis: .vertical)
-                                .lineLimit(3, reservesSpace: true)
-                                .foregroundColor(.white)
-                                .padding(12)
-                                .background(Color(hex: "191926"))
-                                .cornerRadius(10)
+                            // Notes
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                TextField("Comment tu te sens...", text: $notes, axis: .vertical)
+                                    .lineLimit(3, reservesSpace: true)
+                                    .foregroundColor(.white)
+                                    .padding(12)
+                                    .background(Color(hex: "191926"))
+                                    .cornerRadius(10)
+                            }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
+
+                        } else {
+                            // ── MODE RAPIDE ───────────────────────────────
+
+                            // Sommeil (heures uniquement)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("SOMMEIL").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                RecoveryField(label: "DURÉE (h)", placeholder: "7.5", text: $sleepHoursStr)
+                            }
+                            .padding(14).background(Color.appCard).cornerRadius(12)
+
+                            // Énergie + Soreness
+                            VStack(alignment: .leading, spacing: 16) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("ÉNERGIE DU JOUR").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Spacer()
+                                        if energyPre == 0 {
+                                            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
+                                        } else {
+                                            Text(String(format: "%.0f / 10", energyPre)).font(.system(size: 13, weight: .bold)).foregroundColor(energyPreColor(energyPre))
+                                        }
+                                    }
+                                    Slider(value: $energyPre, in: 0...10, step: 1).tint(energyPre == 0 ? .gray : energyPreColor(energyPre))
+                                    HStack {
+                                        Text("0 = Non renseigné").font(.system(size: 9)).foregroundColor(.gray)
+                                        Spacer()
+                                        Text("10 = Excellent").font(.system(size: 9)).foregroundColor(.gray)
+                                    }
+                                }
+                                Divider().background(Color.white.opacity(0.06))
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("DOULEURS MUSCULAIRES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Spacer()
+                                        Text(String(format: "%.0f / 10", soreness)).font(.system(size: 13, weight: .bold)).foregroundColor(sorenessColor(soreness))
+                                    }
+                                    Slider(value: $soreness, in: 0...10, step: 1).tint(sorenessColor(soreness))
+                                    HStack {
+                                        Text("0 = Aucune").font(.system(size: 9)).foregroundColor(.gray)
+                                        Spacer()
+                                        Text("10 = Sévère").font(.system(size: 9)).foregroundColor(.gray)
+                                    }
+                                }
+                            }
+                            .padding(14).background(Color.appCard).cornerRadius(12)
                         }
 
+                        // Bouton Logger — toujours visible
                         Button(action: save) {
                             Group {
                                 if isSaving { ProgressView().tint(.white) }
-                                else { Text("Enregistrer").font(.system(size: 15, weight: .semibold)).foregroundColor(.white) }
+                                else { Text("Logger").font(.system(size: 16, weight: .semibold)).foregroundColor(.white) }
                             }
                         }
-                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .frame(maxWidth: .infinity).padding(.vertical, 16)
                         .background(Color.orange).cornerRadius(14)
                         .buttonStyle(SpringButtonStyle())
+
+                        // Lien mode complet — seulement en mode rapide
+                        if !showFullMode {
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.3)) { showFullMode = true }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "plus.circle")
+                                        .font(.system(size: 12))
+                                    Text("Plus de détails")
+                                        .font(.system(size: 13))
+                                }
+                                .foregroundColor(Color(white: 0.40))
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Spacer(minLength: 8)
                     }
                     .padding(20)
+                    .animation(.easeInOut(duration: 0.3), value: showFullMode)
                 }
                 .scrollDismissesKeyboard(.interactively)
             }
@@ -1138,6 +1774,7 @@ struct LogRecoverySheet: View {
 
     private func prefill() {
         if let e = prefillEntry {
+            showFullMode = true  // édition → mode complet toujours
             if let h   = e.sleepHours    { sleepHoursStr    = String(format: "%.1f", h) }
             if let q   = e.sleepQuality  { sleepQuality     = q }
             if let hr  = e.restingHr     { restingHrStr     = String(format: "%.0f", hr) }
@@ -1154,6 +1791,7 @@ struct LogRecoverySheet: View {
             let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
             if let d = e.date, let parsed = f.date(from: d) { selectedDate = parsed }
         } else {
+            showFullMode = prefersFull
             fillFromHealthKit()
         }
     }
@@ -1202,16 +1840,20 @@ struct LogRecoverySheet: View {
 
     private func save() {
         isSaving = true
+        if showFullMode {
+            fullUseCount += 1
+            if fullUseCount >= 3 { prefersFull = true }
+        }
         Task {
             do {
                 try await APIService.shared.logRecovery(
                     sleepHours:    Double(sleepHoursStr.replacingOccurrences(of: ",", with: ".")),
-                    sleepQuality:  sleepQuality,
+                    sleepQuality:  showFullMode ? sleepQuality : nil,
                     restingHr:     Double(restingHrStr),
                     hrv:           Double(hrvStr),
                     steps:         stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
                     soreness:      soreness == 0 ? nil : soreness,
-                    fatigue:       fatigue,
+                    fatigue:       showFullMode ? fatigue : nil,
                     energyPre:     energyPre == 0 ? nil : energyPre,
                     activeEnergy:  activeEnergyStr.isEmpty ? nil : Double(activeEnergyStr),
                     hrMorning:     hrMorningStr.isEmpty ? nil : Double(hrMorningStr),
@@ -1258,50 +1900,45 @@ struct WatchSyncBannerView: View {
     @ObservedObject var sync: WatchSyncService
     let onSync: () -> Void
 
+    private var statusText: String {
+        if sync.isSyncing { return "Synchronisation en cours..." }
+        if let last = sync.lastSyncDate { return "Sync Watch · \(last.formatted(.relative(presentation: .numeric)))" }
+        if let err = sync.lastError { return err }
+        return "Apple Watch · Appuyer pour synchroniser"
+    }
+    private var statusColor: Color {
+        if sync.isSyncing { return .cyan }
+        if sync.lastError != nil { return .red }
+        return .gray
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "applewatch")
-                .font(.system(size: 14))
-                .foregroundColor(.cyan)
+                .font(.system(size: 12)).foregroundColor(.cyan)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Apple Watch")
-                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
-                if sync.isSyncing {
-                    Text("Synchronisation...")
-                        .font(.system(size: 10)).foregroundColor(.cyan)
-                } else if let last = sync.lastSyncDate {
-                    Text("Dernière sync : \(last, style: .relative)")
-                        .font(.system(size: 10)).foregroundColor(.gray)
-                } else if let err = sync.lastError {
-                    Text(err)
-                        .font(.system(size: 10)).foregroundColor(.red)
-                } else {
-                    Text("Appuyer pour synchroniser")
-                        .font(.system(size: 10)).foregroundColor(.gray)
-                }
-            }
+            Text(statusText)
+                .font(.system(size: 12)).foregroundColor(statusColor)
+                .lineLimit(1)
 
             Spacer()
 
             Button(action: onSync) {
-                Group {
-                    if sync.isSyncing {
-                        ProgressView().tint(.cyan).scaleEffect(0.7)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 13))
-                            .foregroundColor(.cyan)
-                    }
+                if sync.isSyncing {
+                    ProgressView().tint(.cyan).scaleEffect(0.6)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12)).foregroundColor(.cyan)
                 }
-                .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
             .disabled(sync.isSyncing)
+            .frame(width: 28, height: 28)
         }
-        .padding(12)
-        .background(Color.cyan.opacity(0.08))
-        .cornerRadius(12)
+        .padding(.horizontal, 12).padding(.vertical, 8)
+        .background(Color.cyan.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.cyan.opacity(0.12), lineWidth: 1))
+        .cornerRadius(10)
     }
 }
 
@@ -1494,6 +2131,8 @@ struct HRVBaselineProgressView: View {
     let dataPoints: Int
     let target = 7
 
+    @State private var displayProgress: Double = 0
+
     private var progress: Double { min(1.0, Double(dataPoints) / Double(target)) }
     private var daysLeft: Int    { max(0, target - dataPoints) }
 
@@ -1504,63 +2143,79 @@ struct HRVBaselineProgressView: View {
                 Text("BASELINE EN CONSTRUCTION")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
+                Text("\(Int(progress * 100))%")
+                    .font(.system(size: 11, weight: .bold)).foregroundColor(.cyan)
             }
+
             Text("Continue — ta baseline personnelle se construit.")
                 .font(.system(size: 14, weight: .medium)).foregroundColor(.white)
+
             Text(daysLeft > 0
                  ? "\(daysLeft) jour\(daysLeft > 1 ? "s" : "") de plus pour des insights précis."
                  : "Baseline prête dans quelques instants.")
                 .font(.system(size: 13)).foregroundColor(.gray)
+
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.08)).frame(height: 6)
-                    RoundedRectangle(cornerRadius: 4).fill(Color.cyan)
-                        .frame(width: geo.size.width * progress, height: 6)
-                        .animation(.easeOut(duration: 0.6), value: progress)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white.opacity(0.08))
+                        .frame(height: 8)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.cyan)
+                        .frame(width: geo.size.width * displayProgress, height: 8)
                 }
             }
-            .frame(height: 6)
-            HStack {
-                Text("\(dataPoints) / \(target) jours collectés")
-                    .font(.system(size: 11)).foregroundColor(.gray.opacity(0.7))
-                Spacer()
-                Text("\(Int(progress * 100))%")
-                    .font(.system(size: 11, weight: .semibold)).foregroundColor(.cyan)
-            }
+            .frame(height: 8)
+
+            Text("\(dataPoints) / \(target) jours de données collectés")
+                .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
         }
         .padding(14)
-        .background(Color.appCard)
-        .cornerRadius(14)
+        .glassCard(color: .cyan, intensity: 0.05).cornerRadius(14)
+        .onAppear {
+            withAnimation(.easeOut(duration: 0.6)) { displayProgress = progress }
+        }
     }
 }
 
 // MARK: - HRV Contextual Tip (one-time dismissable)
 
 struct HRVContextualTipView: View {
-    let tipId:   String
-    let icon:    String
-    let message: String
+    let tipId:      String
+    let icon:       String
+    let message:    String
+    var accentColor: Color = .cyan
 
     @State private var dismissed = false
     private var shownKey: String { "hrv_tip_shown_\(tipId)" }
 
     var body: some View {
         if !dismissed && !UserDefaults.standard.bool(forKey: shownKey) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: icon).font(.system(size: 15)).foregroundColor(.cyan).padding(.top, 1)
-                Text(message).font(.system(size: 13)).foregroundColor(.white.opacity(0.85)).fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 13))
+                    .foregroundColor(accentColor)
+                    .padding(.top, 1)
+                Text(message)
+                    .font(.system(size: 12))
+                    .foregroundColor(.white.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer()
                 Button {
                     UserDefaults.standard.set(true, forKey: shownKey)
-                    withAnimation { dismissed = true }
+                    withAnimation(.easeOut(duration: 0.2)) { dismissed = true }
                 } label: {
-                    Image(systemName: "xmark").font(.system(size: 11)).foregroundColor(.gray)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10))
+                        .foregroundColor(.gray.opacity(0.6))
+                        .frame(width: 22, height: 22)
                 }
             }
-            .padding(12)
-            .background(Color.cyan.opacity(0.07))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan.opacity(0.15), lineWidth: 1))
-            .cornerRadius(12)
+            .padding(10)
+            .background(accentColor.opacity(0.06))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(accentColor.opacity(0.12), lineWidth: 1))
+            .cornerRadius(10)
+            .transition(.opacity.combined(with: .move(edge: .top)))
         }
     }
 }
@@ -1677,5 +2332,99 @@ private struct HRVFAQItem: View {
             }
         }
         .background(Color.appCard).cornerRadius(12)
+    }
+}
+
+// MARK: - Recovery Performance Banner
+
+private struct RecoveryPerformanceBanner: View {
+    let dashboard: DashboardData?
+    let hrvAnalysis: HRVAnalysis?
+    let recoveryScore: Double?
+    var onTap: (() -> Void)? = nil
+
+    private enum BannerState {
+        case rest
+        case hrvCritical
+        case low(Double)
+        case moderate
+        case good(Double)
+    }
+
+    private var bannerState: BannerState? {
+        guard let dash = dashboard else { return nil }
+        let dayAbbrev = String(dash.today.prefix(3))
+        let plan = dash.schedule[dayAbbrev]
+        let isRest = plan == nil || (plan ?? "").lowercased() == "rest" || (plan ?? "").isEmpty
+        if isRest { return .rest }
+
+        if let hrv = hrvAnalysis, hrv.baselineAvailable, hrv.hrvZone == "red" {
+            return .hrvCritical
+        }
+
+        guard let score = recoveryScore else { return nil }
+        if score < 4.0  { return .low(score) }
+        if score <= 6.5 { return .moderate }
+        return .good(score)
+    }
+
+    private typealias Cfg = (icon: String, text: String, color: Color)
+
+    private func config(for state: BannerState) -> Cfg {
+        switch state {
+        case .rest:
+            return ("moon.zzz.fill",
+                    "Journée de repos — profites-en pour récupérer.",
+                    .gray)
+        case .hrvCritical:
+            return ("waveform.path.ecg",
+                    "HRV sous ta baseline — priorise la récupération, réduis l'intensité.",
+                    .red)
+        case .low(let s):
+            return ("exclamationmark.triangle.fill",
+                    "Récupération à \(String(format: "%.1f", s))/10 — réduis le volume de ta séance aujourd'hui.",
+                    .orange)
+        case .moderate:
+            return ("bolt.fill",
+                    "Récupération modérée — reste sur le programme, écoute ton corps.",
+                    Color(red: 1, green: 0.6, blue: 0))
+        case .good(let s):
+            return ("checkmark.circle.fill",
+                    "Bonne récupération (\(String(format: "%.1f", s))/10) — conditions optimales pour ta séance.",
+                    .green)
+        }
+    }
+
+    var body: some View {
+        if let state = bannerState {
+            let c = config(for: state)
+            Button { onTap?() } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: c.icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(c.color)
+                        .frame(width: 20)
+                    Text(c.text)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(Color(white: 0.85))
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.85)
+                    Spacer(minLength: 0)
+                    if onTap != nil {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.gray.opacity(0.5))
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+                .background(c.color.opacity(0.08))
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(c.color.opacity(0.20), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .disabled(onTap == nil)
+        }
     }
 }

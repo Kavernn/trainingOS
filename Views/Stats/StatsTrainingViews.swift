@@ -670,23 +670,27 @@ struct KPICard: View {
     let color: Color
     var subtitle: String? = nil
 
+    private var isNull: Bool { value == "—" }
+
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 20, weight: .black)).foregroundColor(color)
+                .font(.system(size: 22, weight: .black))
+                .foregroundColor(isNull ? .gray.opacity(0.35) : color)
                 .contentTransition(.numericText()).minimumScaleFactor(0.6).lineLimit(1)
             Text(label)
-                .font(.system(size: 9, weight: .medium)).tracking(1).foregroundColor(.gray)
-                .lineLimit(1)
+                .font(.system(size: 9, weight: .semibold)).tracking(1.3)
+                .foregroundColor(.gray.opacity(0.65))
+                .textCase(.uppercase).lineLimit(1)
             if let sub = subtitle {
                 Text(sub)
-                    .font(.system(size: 8)).foregroundColor(.gray.opacity(0.55))
+                    .font(.system(size: 8)).foregroundColor(.gray.opacity(0.45))
                     .lineLimit(1).minimumScaleFactor(0.7)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .glassCard(color: color, intensity: 0.05).cornerRadius(12)
+        .padding(.vertical, 16)
+        .glassCard(color: isNull ? .gray : color, intensity: isNull ? 0.02 : 0.05).cornerRadius(12)
     }
 }
 
