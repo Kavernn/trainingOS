@@ -84,3 +84,70 @@ enum FoodCatalogStore {
         return (try? apiDecoder.decode(Resp.self, from: data))?.items ?? []
     }
 }
+
+// MARK: - Recent Foods
+
+private struct RecentFoodEntry: Codable {
+    var name: String
+    var quantity: Double
+    var unit: String
+    var timestamp: Date
+}
+
+enum RecentFoodsStore {
+    struct Item: Identifiable {
+        let id: UUID
+        let food: FoodItem
+        let quantity: Double
+    }
+
+    private static let key = "recent_foods_v1"
+
+    static func record(name: String, quantity: Double, unit: String) {
+        var entries = load()
+        entries.removeAll { $0.name == name }
+        entries.insert(RecentFoodEntry(name: name, quantity: quantity, unit: unit, timestamp: Date()), at: 0)
+        if entries.count > 50 { entries = Array(entries.prefix(50)) }
+        guard let data = try? JSONEncoder().encode(entries) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    static func topRecent(catalog: [FoodItem], days: Int = 7, limit: Int = 5) -> [Item] {
+        let cutoff = Date().addingTimeInterval(-Double(days) * 86400)
+        let recent = load().filter { $0.timestamp >= cutoff }
+        guard !recent.isEmpty else { return [] }
+
+        var counts: [String: Int] = [:]
+        var latestDate: [String: Date] = [:]
+        var latestQty: [String: Double] = [:]
+
+        for entry in recent {
+            counts[entry.name, default: 0] += 1
+            if (latestDate[entry.name] ?? .distantPast) < entry.timestamp {
+                latestDate[entry.name] = entry.timestamp
+                latestQty[entry.name] = entry.quantity
+            }
+        }
+
+        return counts
+            .sorted {
+                $0.value != $1.value
+                    ? $0.value > $1.value
+                    : (latestDate[$0.key] ?? .distantPast) > (latestDate[$1.key] ?? .distantPast)
+            }
+            .prefix(limit)
+            .compactMap { name, _ in
+                guard let food = catalog.first(where: { $0.name == name }),
+                      let qty = latestQty[name]
+                else { return nil }
+                return Item(id: food.id, food: food, quantity: qty)
+            }
+    }
+
+    private static func load() -> [RecentFoodEntry] {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let items = try? JSONDecoder().decode([RecentFoodEntry].self, from: data)
+        else { return [] }
+        return items
+    }
+}

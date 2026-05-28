@@ -250,18 +250,41 @@ struct IntelligenceView: View {
 
     @ViewBuilder
     private var chatSectionView: some View {
-        ChatPanel(
-            messages: $messages,
-            input: $input,
-            isLoading: $isLoading,
-            userHasInteracted: $userHasInteracted,
-            sendMessage: sendMessage
-        ) {
-            TopicExplorer { q in sendQuery(q) }
+        VStack(spacing: 0) {
+            if messages.isEmpty {
+                CoachContextSummary(
+                    lssData: lssData,
+                    dashboard: api.dashboard,
+                    nutritionHistory: nutritionHistory
+                )
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
-                .padding(.bottom, 20)
+                .padding(.bottom, 4)
+                .transition(.opacity)
+            }
+
+            ChatPanel(
+                messages: $messages,
+                input: $input,
+                isLoading: $isLoading,
+                userHasInteracted: $userHasInteracted,
+                sendMessage: sendMessage,
+                chips: {
+                    QuestionChipsView(
+                        lssData: lssData,
+                        dashboard: api.dashboard,
+                        nutritionHistory: nutritionHistory,
+                        onTap: { sendQuery($0) }
+                    )
+                }
+            ) {
+                TopicExplorer { q in sendQuery(q) }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 20)
+            }
         }
+        .animation(.easeOut(duration: 0.25), value: messages.isEmpty)
     }
 
     @ViewBuilder
@@ -2994,4 +3017,196 @@ struct OneRMProgrammingCard: View {
         .cornerRadius(14)
         .animation(.easeInOut(duration: 0.2), value: selected)
     }
+}
+
+// MARK: - Coach Context Summary
+
+private struct CoachContextSummary: View {
+    let lssData: LifeStressScore?
+    let dashboard: DashboardData?
+    let nutritionHistory: [NutritionDayHistory]
+
+    private struct Bullet: Identifiable {
+        let id = UUID()
+        let icon: String
+        let text: String
+        let color: Color
+    }
+
+    private var bullets: [Bullet] {
+        var result: [Bullet] = []
+
+        // 1. Séance du jour
+        if let dash = dashboard {
+            let dayAbbrev = String(dash.today.prefix(3))
+            if let plan = dash.schedule[dayAbbrev], plan.lowercased() != "rest", !plan.isEmpty {
+                if dash.alreadyLoggedToday {
+                    result.append(Bullet(icon: "checkmark.circle.fill",
+                                         text: "Séance \(plan) complétée aujourd'hui",
+                                         color: .green))
+                } else {
+                    result.append(Bullet(icon: "dumbbell.fill",
+                                         text: "Séance \(plan) prévue aujourd'hui",
+                                         color: .purple))
+                }
+            }
+        }
+
+        // 2. Récupération / LSS
+        if let lss = lssData {
+            let isAlert = lss.flags.hrvDrop || lss.flags.sleepDeprivation || lss.flags.trainingOverload
+            if isAlert {
+                let detail: String
+                if lss.flags.hrvDrop { detail = "HRV en baisse" }
+                else if lss.flags.sleepDeprivation { detail = "sommeil insuffisant" }
+                else { detail = "charge élevée" }
+                result.append(Bullet(icon: "exclamationmark.triangle.fill",
+                                     text: "Récupération \(Int(lss.score))/100 — \(detail)",
+                                     color: lss.score < 40 ? .red : .orange))
+            } else {
+                result.append(Bullet(icon: "checkmark.shield.fill",
+                                     text: "Récupération \(Int(lss.score))/100 — dans la norme",
+                                     color: .green))
+            }
+        }
+
+        // 3. Nutrition d'hier
+        if let yest = yesterdayEntry(from: nutritionHistory),
+           let target = dashboard?.nutritionSettings?.proteines, target > 0 {
+            let prot = yest.proteines
+            if prot < target * 0.90 {
+                result.append(Bullet(icon: "fork.knife",
+                                     text: "Hier : \(Int(prot))g protéines sur \(Int(target))g objectif",
+                                     color: prot < target * 0.70 ? .red : .orange))
+            } else {
+                result.append(Bullet(icon: "fork.knife",
+                                     text: "Nutrition d'hier sur cible",
+                                     color: .green))
+            }
+        }
+
+        return Array(result.prefix(3))
+    }
+
+    var body: some View {
+        let b = bullets
+        if !b.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Ce que je sais de toi aujourd'hui")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Color(white: 0.40))
+                    .tracking(0.3)
+                    .padding(.bottom, 9)
+
+                VStack(alignment: .leading, spacing: 7) {
+                    ForEach(b) { bullet in
+                        HStack(spacing: 8) {
+                            Image(systemName: bullet.icon)
+                                .font(.system(size: 11))
+                                .foregroundColor(bullet.color.opacity(0.8))
+                                .frame(width: 16, alignment: .center)
+                            Text(bullet.text)
+                                .font(.system(size: 13))
+                                .foregroundColor(Color(white: 0.60))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.85)
+                        }
+                    }
+                }
+
+                Rectangle()
+                    .fill(Color.white.opacity(0.07))
+                    .frame(height: 0.5)
+                    .padding(.top, 10)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(Color.white.opacity(0.03))
+            .cornerRadius(10)
+        }
+    }
+}
+
+// MARK: - Question Chips
+
+private struct QuestionChipsView: View {
+    let lssData: LifeStressScore?
+    let dashboard: DashboardData?
+    let nutritionHistory: [NutritionDayHistory]
+    var onTap: (String) -> Void
+
+    private var chips: [String] {
+        var result: [String] = []
+
+        // Séance aujourd'hui non complétée
+        if let dash = dashboard {
+            let dayAbbrev = String(dash.today.prefix(3))
+            if let plan = dash.schedule[dayAbbrev],
+               plan.lowercased() != "rest", !plan.isEmpty,
+               !dash.alreadyLoggedToday {
+                result.append("Prépare-moi pour ma séance")
+                result.append("Quel volume aujourd'hui ?")
+            }
+        }
+
+        // Récupération critique
+        if let lss = lssData {
+            if lss.flags.hrvDrop || lss.flags.sleepDeprivation || lss.flags.trainingOverload || lss.score < 40 {
+                result.append("Comment récupérer plus vite ?")
+                result.append("Dois-je m'entraîner aujourd'hui ?")
+            }
+        }
+
+        // Déficit protéines hier
+        if let yest = yesterdayEntry(from: nutritionHistory),
+           let target = dashboard?.nutritionSettings?.proteines, target > 0,
+           yest.proteines < target * 0.80 {
+            result.append("Comment atteindre mes protéines ?")
+            result.append("Suggère un repas riche en protéines")
+        }
+
+        // Compléter avec les chips par défaut
+        let defaults = ["Analyse ma semaine", "Que faire aujourd'hui ?",
+                        "Optimise ma récupération", "Comment progresser plus vite ?"]
+        for d in defaults {
+            if result.count >= 6 { break }
+            if !result.contains(d) { result.append(d) }
+        }
+
+        return result
+    }
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(chips, id: \.self) { chip in
+                    Button { onTap(chip) } label: {
+                        Text(chip)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.purple.opacity(0.9))
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 7)
+                            .background(Color.purple.opacity(0.10))
+                            .clipShape(Capsule())
+                            .overlay(Capsule()
+                                .stroke(Color.purple.opacity(0.28), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 6)
+        }
+        .background(Color.appBg)
+    }
+}
+
+// MARK: - Shared helper
+
+private func yesterdayEntry(from history: [NutritionDayHistory]) -> NutritionDayHistory? {
+    guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) else { return nil }
+    let fmt = DateFormatter()
+    fmt.dateFormat = "yyyy-MM-dd"
+    let yStr = fmt.string(from: yesterday)
+    return history.first { $0.date == yStr }
 }

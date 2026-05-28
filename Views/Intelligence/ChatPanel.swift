@@ -1,7 +1,7 @@
 import SwiftUI
 import Foundation
 
-struct ChatPanel<Placeholder: View>: View {
+struct ChatPanel<Placeholder: View, ChipsView: View>: View {
     @Binding var messages: [ChatMessage]
     @Binding var input: String
     @Binding var isLoading: Bool
@@ -10,6 +10,7 @@ struct ChatPanel<Placeholder: View>: View {
     @FocusState private var inputFocused: Bool
 
     var sendMessage: () -> Void
+    @ViewBuilder var chips: () -> ChipsView
     @ViewBuilder var placeholder: () -> Placeholder
 
     private var canSend: Bool {
@@ -88,6 +89,11 @@ struct ChatPanel<Placeholder: View>: View {
             Rectangle()
                 .fill(Color.white.opacity(0.07))
                 .frame(height: 0.5)
+
+            if messages.isEmpty {
+                chips()
+                    .transition(.opacity)
+            }
 
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("Message...", text: $input, axis: .vertical)

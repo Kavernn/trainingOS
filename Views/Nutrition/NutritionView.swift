@@ -66,6 +66,15 @@ struct NutritionView: View {
                                 .padding(.horizontal, 16)
                             }
 
+                            // Message actionnable déficit / surplus
+                            NutritionActionMessage(
+                                totals: vm.totals,
+                                settings: effectiveSettings,
+                                hasEntries: !vm.entries.isEmpty
+                            )
+                            .padding(.horizontal, 16)
+                            .appearAnimation(delay: 0.03)
+
                             // Hero calories + macros
                             MacroSummaryCard(totals: vm.totals, settings: effectiveSettings)
                                 .padding(.horizontal, 16)
@@ -274,6 +283,78 @@ struct NutritionView: View {
         .toast($toast)
     }
 
+}
+
+// MARK: - Nutrition Action Message
+
+private struct NutritionActionMessage: View {
+    let totals: NutritionTotals?
+    let settings: NutritionSettings?
+    let hasEntries: Bool
+
+    private enum MsgState {
+        case noEntries
+        case proteinLow(Int)
+        case proteinClose(Int)
+        case proteinOnTarget(consumed: Int, target: Int)
+        case allOnTarget
+    }
+
+    private var msgState: MsgState? {
+        guard let pTarget = settings?.proteines, pTarget > 0 else { return nil }
+        guard hasEntries else { return .noEntries }
+        let consumed = totals?.proteines ?? 0
+        let ratio = consumed / pTarget
+        if ratio < 0.70 { return .proteinLow(Int(pTarget - consumed)) }
+        if ratio < 0.90 { return .proteinClose(Int(pTarget - consumed)) }
+        let calConsumed = Int(totals?.calories ?? 0)
+        let calTarget   = Int(settings?.calories ?? 0)
+        let calRatio    = calTarget > 0 ? Double(calConsumed) / Double(calTarget) : 1.0
+        if calRatio >= 0.90 { return .allOnTarget }
+        return .proteinOnTarget(consumed: calConsumed, target: calTarget)
+    }
+
+    var body: some View {
+        if let state = msgState {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(msgColor(state))
+                    .frame(width: 8, height: 8)
+                Text(msgText(state))
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(msgColor(state))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(msgColor(state).opacity(0.08))
+            .cornerRadius(12)
+            .overlay(RoundedRectangle(cornerRadius: 12)
+                .stroke(msgColor(state).opacity(0.2), lineWidth: 1))
+        }
+    }
+
+    private func msgText(_ state: MsgState) -> String {
+        switch state {
+        case .noEntries:                          return "Aucun repas loggué — commence maintenant."
+        case .proteinLow(let g):                  return "Il te manque \(g)g de protéines aujourd'hui."
+        case .proteinClose(let g):                return "Encore \(g)g de protéines pour atteindre ton objectif."
+        case .proteinOnTarget(let c, let t):      return "Protéines sur cible. Calories : \(c) / \(t) kcal."
+        case .allOnTarget:                        return "Objectifs nutrition atteints aujourd'hui."
+        }
+    }
+
+    private func msgColor(_ state: MsgState) -> Color {
+        switch state {
+        case .noEntries:       return .gray
+        case .proteinLow:      return .red
+        case .proteinClose:    return .orange
+        case .proteinOnTarget: return .blue
+        case .allOnTarget:     return .green
+        }
+    }
 }
 
 // MARK: - Protein Progress Card
@@ -977,6 +1058,10 @@ struct AddNutritionSheet: View {
         searchText.isEmpty ? catalog : catalog.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
+    private var recentItems: [RecentFoodsStore.Item] {
+        RecentFoodsStore.topRecent(catalog: catalog)
+    }
+
     @State private var mealType: String = {
         let h = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
         switch h {
@@ -1028,6 +1113,32 @@ struct AddNutritionSheet: View {
                     .listRowBackground(Color.appCard)
 
                     if !manualMode {
+                        // ── Récents ──────────────────────────────────────
+                        if !recentItems.isEmpty && searchText.isEmpty {
+                            Section("RÉCENTS") {
+                                ForEach(recentItems) { item in
+                                    Button {
+                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                            selected = item.food
+                                            quantity = fmtN(item.quantity)
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(item.food.name)
+                                                .font(.system(size: 14, weight: .medium))
+                                                .foregroundColor(.white)
+                                            Spacer()
+                                            Text("\(fmtN(item.quantity)) \(item.food.refUnit)")
+                                                .font(.system(size: 13))
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .listRowBackground(Color.appCard)
+                        }
+
                         // ── Repas sauvegardés ────────────────────────────
                         Section(header: HStack {
                             Text("REPAS SAUVEGARDÉS")
@@ -1435,6 +1546,7 @@ struct AddNutritionSheet: View {
                     proteines: m.prot, glucides: m.gluc, lipides: m.lip,
                     mealType: mealType
                 )
+                RecentFoodsStore.record(name: item.name, quantity: qty, unit: item.refUnit)
             }
             triggerNotificationFeedback(.success)
             await onSaved()
