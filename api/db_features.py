@@ -1284,3 +1284,59 @@ def get_coach_war_room_shared() -> bool:
 def set_coach_war_room_shared(value: bool) -> bool:
     """Toggle War Room sharing with the coach."""
     return update_profile({"coach_war_room_shared": value})
+
+
+# ── Body Budget Log (EMA 3j) ──────────────────────────────────────────────────
+
+def upsert_body_budget_log(data: dict) -> bool:
+    """Insert or update today's body_budget_log row."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+
+    def _do() -> bool:
+        resp = (
+            db_core._client.table("body_budget_log")
+            .upsert(data, on_conflict="date")
+            .execute()
+        )
+        return bool(resp.data)
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("upsert_body_budget_log retry: %s", e2)
+                return False
+        db_core.logger.error("upsert_body_budget_log error: %s", e)
+        return False
+
+
+def get_body_budget_recent(days: int = 3) -> List[dict]:
+    """Return the last N days of body_budget_log rows, ordered by date DESC."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            db_core._client.table("body_budget_log")
+            .select("date, raw_score, smoothed_score")
+            .order("date", desc=True)
+            .limit(days)
+            .execute()
+        )
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_body_budget_recent retry: %s", e2)
+                return []
+        db_core.logger.error("get_body_budget_recent error: %s", e)
+        return []

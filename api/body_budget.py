@@ -285,18 +285,46 @@ def compute() -> dict:
         n_score, n_det = _score_nutrition()
 
         raw = _apply_interactions(t_score, s_score, n_score)
+        raw_score = round(max(0.0, min(100.0, raw)))
 
-        # Smoothing: compare with previous 2 days (not implemented in DB — single-pass for now)
-        # Future: store daily scores in KV for multi-day smoothing
-        score = round(max(0.0, min(100.0, raw)))
+        # EMA 3j: fetch last 3 stored days, exclude today (handles multiple calls/day)
+        today_str = _today_iso()
+        history   = db.get_body_budget_recent(3)
+        prev_rows = [r for r in history if str(r.get("date", ""))[:10] != today_str]
 
-        insight = _build_insight(score, t_score, s_score, n_score, t_det, s_det, n_det)
+        # Smooth: α=0.6 → today weighted 60%, yesterday 40%
+        if prev_rows:
+            prev_smoothed = float(prev_rows[0]["smoothed_score"])
+            smoothed = 0.6 * raw_score + 0.4 * prev_smoothed
+        else:
+            smoothed = float(raw_score)
+        smoothed_score = round(smoothed)
+
+        # Trend: smoothed today vs average of up to 2 previous smoothed scores
+        prev_smoothed_scores = [float(r["smoothed_score"]) for r in prev_rows[:2]]
+        trend = _compute_trend(smoothed, prev_smoothed_scores)
+
+        # Persist — upsert so multiple calls/day just overwrite
+        try:
+            db.upsert_body_budget_log({
+                "date":           today_str,
+                "raw_score":      raw_score,
+                "smoothed_score": smoothed_score,
+                "training":       round(t_score),
+                "stress":         round(s_score),
+                "nutrition":      round(n_score),
+                "computed_at":    datetime.now(timezone.utc).isoformat(),
+            })
+        except Exception:
+            pass
+
+        insight = _build_insight(smoothed_score, t_score, s_score, n_score, t_det, s_det, n_det)
 
         return {
-            "score":           score,
-            "trend":           "stable",
-            "trend_available": False,
-            "insight": insight,
+            "score":           smoothed_score,
+            "trend":           trend,
+            "trend_available": len(prev_smoothed_scores) >= 1,
+            "insight":         insight,
             "pillars": {
                 "training":   round(t_score),
                 "stress":     round(s_score),
