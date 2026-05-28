@@ -2,6 +2,19 @@ import SwiftUI
 import Combine
 import OSLog
 
+// MARK: - Critical Alert Types
+
+enum DashboardAlertDestination {
+    case recovery, hrv, workout, deload
+}
+
+struct CriticalSignal {
+    let message: String
+    let actionLabel: String
+    let destination: DashboardAlertDestination
+    let icon: String
+}
+
 @MainActor
 final class DashboardViewModel: ObservableObject {
 
@@ -319,6 +332,70 @@ final class DashboardViewModel: ObservableObject {
     var readinessScore: Int? {
         guard let s = smartDay?.recoveryScore, s > 0 else { return nil }
         return min(100, Int((s / 10.0) * 100))
+    }
+
+    // MARK: - Critical Alert System
+
+    func criticalSignal(dash: DashboardData) -> CriticalSignal? {
+        // 1. Deload critique — priorité maximale
+        if let report = deload, report.fatigueLevel == 2 {
+            return CriticalSignal(
+                message: "Fatigue accumulée détectée — un deload s'impose cette semaine.",
+                actionLabel: "Voir le plan deload",
+                destination: .deload,
+                icon: "bolt.fill"
+            )
+        }
+        // 2. Score récupération critique
+        if let score = readinessScore, score < 40 {
+            return CriticalSignal(
+                message: "Récupération à \(score)/100 — réduis le volume de ta séance aujourd'hui.",
+                actionLabel: "Voir récupération",
+                destination: .recovery,
+                icon: "heart.fill"
+            )
+        }
+        // 3. HRV > 20% sous la baseline 30j
+        if let analysis = hrvAnalysis,
+           let rmssd = analysis.todayRmssd,
+           let baseline = analysis.hrv30dAvg,
+           baseline > 0, rmssd < baseline * 0.80 {
+            let pct = Int(((baseline - rmssd) / baseline) * 100)
+            return CriticalSignal(
+                message: "HRV \(pct)% sous ta baseline — priorise la récupération aujourd'hui.",
+                actionLabel: "Voir HRV",
+                destination: .hrv,
+                icon: "heart.fill"
+            )
+        }
+        // 4. Streak en danger
+        let low = dash.today.lowercased()
+        let isRestDay = low.contains("repos") || low.contains("rest") || low.contains("recovery")
+        if !isRestDay, !dash.today.isEmpty, !dash.alreadyLoggedToday {
+            let streak = computeCurrentStreak(sessions: dash.sessions, todayStr: dash.todayDate)
+            if streak > 2 {
+                return CriticalSignal(
+                    message: "Séance prévue aujourd'hui — ton streak de \(streak) jours est en jeu.",
+                    actionLabel: "Commencer la séance",
+                    destination: .workout,
+                    icon: "flame.fill"
+                )
+            }
+        }
+        return nil
+    }
+
+    private func computeCurrentStreak(sessions: [String: SessionEntry], todayStr: String) -> Int {
+        guard let today = DateFormatter.isoDate.date(from: todayStr) else { return 0 }
+        var count = 0
+        var date = Calendar.current.date(byAdding: .day, value: -1, to: today) ?? today
+        for _ in 0..<60 {
+            let key = DateFormatter.isoDate.string(from: date)
+            guard sessions[key] != nil else { break }
+            count += 1
+            date = Calendar.current.date(byAdding: .day, value: -1, to: date) ?? date
+        }
+        return count
     }
 
     private func computeMacroHint() -> MacroNutritionHint? {

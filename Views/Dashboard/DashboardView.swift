@@ -22,10 +22,6 @@ struct DashboardView: View {
     @State private var showMorningReveal = false
     // D-D4: show MorningReveal again without triggering hideForToday
     @State private var showMorningRevealReview = false
-    // D-D8: persist deload applied date to suppress re-appearance on refresh
-    @AppStorage("deloadAppliedDate") private var deloadAppliedDate = ""
-    // D-B3: deload applying state for timeout tracking
-    @State private var showDeloadTimeoutAlert = false
     // D-D6: sleep dismiss confirmation
     @State private var showSleepDismissConfirm = false
     @State private var showNutritionAddSheet = false
@@ -76,7 +72,7 @@ struct DashboardView: View {
                     VStack(spacing: 0) {
                         ScrollView(showsIndicators: false) {
                             VStack(alignment: .leading, spacing: 14) {
-                                // D-D1: partial load warning banner
+                                // 1 — Partial load warning
                                 if vm.partialLoadWarning {
                                     HStack(spacing: 10) {
                                         Image(systemName: "exclamationmark.triangle.fill")
@@ -102,33 +98,19 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0)
                                 }
 
-                                if let alert = alertService.visibleAlert {
-                                    ProactiveBannerCard(alert: alert) {
-                                        withAnimation(.easeOut(duration: 0.25)) {
-                                            alertService.dismiss(alert)
-                                        }
+                                // 2 — Critical alert (above the fold, before everything)
+                                if let signal = vm.criticalSignal(dash: dash) {
+                                    CriticalAlertCard(signal: signal) {
+                                        handleAlertAction(signal: signal, dash: dash)
                                     }
                                     .appearAnimation(delay: 0)
                                 }
 
-                                if let phoenix = vm.phoenixScore {
-                                    PhoenixCard(score: phoenix, dayDelta: vm.phoenixDayDelta)
-                                        .appearAnimationHot(delay: 0)
-                                }
-
-                                if let season = vm.activeSeason {
-                                    SeasonBannerView(season: season) { showSeasonClose = true }
-                                        .appearAnimation(delay: 0.02)
-                                }
-
-                                if let season = vm.activeSeason, (44...46).contains(season.dayNumber) {
-                                    SeasonMidpointCard(seasonNumber: season.number)
-                                        .appearAnimation(delay: 0.03)
-                                }
-
+                                // 3 — Greeting
                                 GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
-                                    .appearAnimation(delay: 0.04)
+                                    .appearAnimation(delay: 0.03)
 
+                                // 4 — Séance du jour
                                 TodayCardView(
                                     dash: dash,
                                     showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
@@ -137,124 +119,17 @@ struct DashboardView: View {
                                 )
                                 .appearAnimation(delay: 0.05)
 
-                                if let pattern = vm.dailyPattern,
-                                   pattern.family == "C",
-                                   pattern.macroThreshold != nil,
-                                   !dash.today.lowercased().contains("repos"),
-                                   !dash.today.lowercased().contains("rest"),
-                                   !dash.today.lowercased().contains("recovery"),
-                                   !dash.today.isEmpty,
-                                   let yesterday = vm.yesterdayNutrition {
-                                    MacroInsightCard(pattern: pattern, yesterday: yesterday) {
-                                        NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
-                                    }
-                                    .appearAnimation(delay: 0.07)
-                                }
-
-                                DailyMetricsRow(
-                                    readinessScore: vm.readinessScore,
-                                    recovery: vm.todayRecovery,
-                                    nutritionTotals: dash.nutritionTotals,
-                                    nutritionSettings: dash.nutritionSettings,
-                                    moodDue: vm.moodDue,
-                                    readinessIsLocal: vm.readinessIsLocal,
-                                    onMoodTap: { showMoodSheet = true },
-                                    hrvAnalysis: vm.hrvAnalysis
-                                )
-                                .appearAnimation(delay: 0.10)
-
-                                HRVMorningNudgeView(analysis: vm.hrvAnalysis)
-                                    .appearAnimation(delay: 0.11)
-
-                                WeekProgressStripView(dash: dash)
-                                    .appearAnimation(delay: 0.15)
-
-                                if let report = vm.deload, report.fatigueLevel == 2 {
-                                    DeloadBannerView(report: report) {
-                                        await applyDeload(report: report)
-                                    }
-                                    .appearAnimation(delay: 0.20)
-                                } else if let report = vm.deload, report.fatigueLevel == 1 {
-                                    // D-D7: fatigue level 1 — lighter chip, not the full red banner
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundColor(.yellow)
-                                            .font(.system(size: 12))
-                                        Text("Fatigue légère. Réduis le volume — ne joue pas avec le feu.")
-                                            .font(.system(size: 12))
-                                            .foregroundColor(.white.opacity(0.85))
-                                        Spacer()
-                                    }
-                                    .padding(.horizontal, 12).padding(.vertical, 9)
-                                    .background(Color.yellow.opacity(0.08))
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow.opacity(0.2), lineWidth: 1))
-                                    .cornerRadius(10)
-                                    .appearAnimation(delay: 0.20)
-                                }
-
-                                BodyBudgetCard(budget: vm.bodyBudget)
-                                    .appearAnimation(delay: 0.25)
-
-                                DailyStreakCard(sessions: dash.sessions)
-                                    .appearAnimation(delay: 0.28)
-
-                                if let goal = dash.profile.goal, !goal.isEmpty {
-                                    GoalReminderView(goal: goal)
-                                        .appearAnimation(delay: 0.30)
-                                }
-
-                                if let tip = vm.coachTip {
-                                    CoachTipCard(tip: tip)
-                                        .appearAnimation(delay: 0.33)
-                                }
-
-                                if let pattern = vm.dailyPattern {
-                                    PatternDailyChip(pattern: pattern) {
-                                        // Navigate to Intelligence tab
-                                        NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
-                                    }
-                                    .appearAnimation(delay: 0.35)
-                                }
-
-                                // Morning ritual entrypoint — visible before 14h when morning not done
+                                // 5 — Rituel matin (actionnable, avant 14h)
                                 if let ritual = vm.ritualToday,
                                    !ritual.morningDone,
                                    Calendar.current.component(.hour, from: Date()) < 14 {
                                     MorningRitualEntryCard(ritual: ritual) {
                                         Task { await vm.refreshRitual() }
                                     }
-                                    .appearAnimation(delay: 0.37)
+                                    .appearAnimation(delay: 0.07)
                                 }
 
-                                // Evening ritual entrypoint — visible after 18h when evening not done
-                                if let ritual = vm.ritualToday,
-                                   !ritual.eveningDone,
-                                   Calendar.current.component(.hour, from: Date()) >= 18 {
-                                    EveningRitualEntryCard(ritual: ritual) {
-                                        Task { await vm.refreshRitual() }
-                                    }
-                                    .appearAnimation(delay: 0.38)
-                                }
-
-                                // E5: Demon haunting banner — visible when a demon >= 3 days old
-                                if let ritual = vm.ritualToday,
-                                   let topDemon = ritual.demons.filter({ $0.carryCount >= 3 }).max(by: { $0.carryCount < $1.carryCount }) {
-                                    DemonDashboardBanner(demon: topDemon) {
-                                        Task { await vm.refreshRitual() }
-                                    }
-                                    .appearAnimation(delay: 0.39)
-                                }
-
-                                // Breathwork nudge — visible when latest LSS score is low (stress high)
-                                if let lss = vm.lssTrend.last, lss.score < 50 {
-                                    BreathworkNudgeCard()
-                                        .appearAnimation(delay: 0.40)
-                                }
-
-                                XPChipView(sessions: dash.sessions)
-                                    .appearAnimation(delay: 0.36)
-
-                                // D-D4: allow user to re-read morning brief without re-triggering hideForToday
+                                // 6 — Morning brief / coaching
                                 if let brief = vm.morningBrief {
                                     Button {
                                         showMorningRevealReview = true
@@ -276,7 +151,7 @@ struct DashboardView: View {
                                             showMorningRevealReview = false
                                         }
                                     }
-                                    .appearAnimation(delay: 0.32)
+                                    .appearAnimation(delay: 0.09)
                                 } else if vm.morningBriefFailed {
                                     HStack(spacing: 8) {
                                         Image(systemName: "brain.head.profile")
@@ -298,20 +173,141 @@ struct DashboardView: View {
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 8)
                                     .padding(.horizontal, 4)
+                                    .appearAnimation(delay: 0.09)
+                                }
+
+                                if let tip = vm.coachTip {
+                                    CoachTipCard(tip: tip)
+                                        .appearAnimation(delay: 0.11)
+                                }
+
+                                // 7 — Phoenix + récupération
+                                if let phoenix = vm.phoenixScore {
+                                    PhoenixCard(score: phoenix, dayDelta: vm.phoenixDayDelta)
+                                        .appearAnimationHot(delay: 0.12)
+                                }
+
+                                // 8 — Body budget
+                                BodyBudgetCard(budget: vm.bodyBudget)
+                                    .appearAnimation(delay: 0.14)
+
+                                // 9 — Métriques du jour
+                                DailyMetricsRow(
+                                    readinessScore: vm.readinessScore,
+                                    recovery: vm.todayRecovery,
+                                    nutritionTotals: dash.nutritionTotals,
+                                    nutritionSettings: dash.nutritionSettings,
+                                    moodDue: vm.moodDue,
+                                    readinessIsLocal: vm.readinessIsLocal,
+                                    onMoodTap: { showMoodSheet = true },
+                                    hrvAnalysis: vm.hrvAnalysis
+                                )
+                                .appearAnimation(delay: 0.16)
+
+                                // 10 — Macros (pattern C uniquement)
+                                if let pattern = vm.dailyPattern,
+                                   pattern.family == "C",
+                                   pattern.macroThreshold != nil,
+                                   !dash.today.lowercased().contains("repos"),
+                                   !dash.today.lowercased().contains("rest"),
+                                   !dash.today.lowercased().contains("recovery"),
+                                   !dash.today.isEmpty,
+                                   let yesterday = vm.yesterdayNutrition {
+                                    MacroInsightCard(pattern: pattern, yesterday: yesterday) {
+                                        NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
+                                    }
+                                    .appearAnimation(delay: 0.18)
+                                }
+
+                                // 11 — HRV nudge
+                                HRVMorningNudgeView(analysis: vm.hrvAnalysis)
+                                    .appearAnimation(delay: 0.20)
+
+                                // 12 — Progression semaine
+                                WeekProgressStripView(dash: dash)
+                                    .appearAnimation(delay: 0.22)
+
+                                // 13 — Streak
+                                DailyStreakCard(sessions: dash.sessions)
+                                    .appearAnimation(delay: 0.24)
+
+                                // 14 — Pattern
+                                if let pattern = vm.dailyPattern {
+                                    PatternDailyChip(pattern: pattern) {
+                                        NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
+                                    }
+                                    .appearAnimation(delay: 0.26)
+                                }
+
+                                // 15 — Breathwork (stress élevé)
+                                if let lss = vm.lssTrend.last, lss.score < 50 {
+                                    BreathworkNudgeCard()
+                                        .appearAnimation(delay: 0.28)
+                                }
+
+                                // 16 — Objectif
+                                if let goal = dash.profile.goal, !goal.isEmpty {
+                                    GoalReminderView(goal: goal)
+                                        .appearAnimation(delay: 0.30)
+                                }
+
+                                // 17 — Rituel soir (après 18h)
+                                if let ritual = vm.ritualToday,
+                                   !ritual.eveningDone,
+                                   Calendar.current.component(.hour, from: Date()) >= 18 {
+                                    EveningRitualEntryCard(ritual: ritual) {
+                                        Task { await vm.refreshRitual() }
+                                    }
                                     .appearAnimation(delay: 0.32)
                                 }
 
-                                WeatherChipView(vm: weatherVM)
-                                    .appearAnimation(delay: 0.35)
+                                // 18 — Démon rituel
+                                if let ritual = vm.ritualToday,
+                                   let topDemon = ritual.demons.filter({ $0.carryCount >= 3 }).max(by: { $0.carryCount < $1.carryCount }) {
+                                    DemonDashboardBanner(demon: topDemon) {
+                                        Task { await vm.refreshRitual() }
+                                    }
+                                    .appearAnimation(delay: 0.33)
+                                }
 
-                                // D-C3: hide widget entirely during off-season
+                                // 19 — Saison
+                                if let season = vm.activeSeason {
+                                    SeasonBannerView(season: season) { showSeasonClose = true }
+                                        .appearAnimation(delay: 0.34)
+                                }
+
+                                if let season = vm.activeSeason, (44...46).contains(season.dayNumber) {
+                                    SeasonMidpointCard(seasonNumber: season.number)
+                                        .appearAnimation(delay: 0.35)
+                                }
+
+                                // 20 — XP
+                                XPChipView(sessions: dash.sessions)
+                                    .appearAnimation(delay: 0.36)
+
+                                // 21 — Météo
+                                WeatherChipView(vm: weatherVM)
+                                    .appearAnimation(delay: 0.38)
+
+                                // 22 — Habs (hors off-season)
                                 if !nhlService.isOffSeason {
                                     HabsWidget(service: nhlService)
                                         .appearAnimation(delay: 0.40)
                                 }
 
+                                // 23 — Citation
                                 QuoteOfDayView()
-                                    .appearAnimation(delay: 0.45)
+                                    .appearAnimation(delay: 0.42)
+
+                                // ProactiveBannerCard (notifications système)
+                                if let alert = alertService.visibleAlert {
+                                    ProactiveBannerCard(alert: alert) {
+                                        withAnimation(.easeOut(duration: 0.25)) {
+                                            alertService.dismiss(alert)
+                                        }
+                                    }
+                                    .appearAnimation(delay: 0.44)
+                                }
                             }
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
@@ -526,6 +522,18 @@ struct DashboardView: View {
         if low.contains("legs") || low.contains("lower") { return .yellow }
         if low.contains("yoga")  { return .purple }
         return .blue
+    }
+
+    private func handleAlertAction(signal: CriticalSignal, dash: DashboardData) {
+        switch signal.destination {
+        case .recovery, .hrv:
+            NotificationCenter.default.post(name: .navigateToRecovery, object: nil)
+        case .workout:
+            onOpenSession?()
+        case .deload:
+            guard let report = vm.deload else { return }
+            Task { await applyDeload(report: report) }
+        }
     }
 
     private func applyDeload(report: DeloadReport) async -> Bool {

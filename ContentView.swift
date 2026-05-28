@@ -79,6 +79,9 @@ private struct iOSContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .navigateToIntelligence)) { _ in
             selectedTab = 0
         }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToRecovery)) { _ in
+            selectedTab = 4
+        }
         .onReceive(appState.$pendingDeepLink.compactMap { $0 }) { link in
             switch link {
             case "intelligence": selectedTab = 0

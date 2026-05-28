@@ -58,11 +58,11 @@ struct TodayCardView: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(isLoggedToday ? .green : todayColor)
                 }
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text("AUJOURD'HUI")
-                        .font(.system(size: 9, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        .font(.system(size: 9, weight: .bold)).tracking(2).foregroundColor(.gray.opacity(0.7))
                     Text(dash.today)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(isLoggedToday ? .green : todayColor)
                 }
                 Spacer()
@@ -699,5 +699,86 @@ struct SoirCardView: View {
         }
         .glassCardAccent(data.alreadyLogged ? .green : sessionColor)
         .cornerRadius(16)
+    }
+}
+
+// MARK: - Critical Alert Card
+
+struct CriticalAlertCard: View {
+    let signal: CriticalSignal
+    let onAction: () -> Void
+
+    @AppStorage("criticalAlertDismissedDate") private var dismissedDate = ""
+    @State private var dragOffset: CGFloat = 0
+    @State private var cardOpacity: Double = 1
+
+    private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
+    private var isDismissed: Bool { dismissedDate == todayStr }
+
+    var body: some View {
+        if !isDismissed {
+            cardContent
+        }
+    }
+
+    private var cardContent: some View {
+        HStack(spacing: 12) {
+            Image(systemName: signal.icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.red)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(signal.message)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white.opacity(0.92))
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(action: onAction) {
+                    Text(signal.actionLabel)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(Color.red.opacity(0.85))
+                        .underline()
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.left")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.red.opacity(0.4))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(Color.red.opacity(0.10))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.28), lineWidth: 1))
+        .cornerRadius(12)
+        .offset(x: dragOffset)
+        .opacity(cardOpacity)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    if value.translation.width < 0 {
+                        dragOffset = value.translation.width
+                        cardOpacity = max(0, 1 + value.translation.width / 160)
+                    }
+                }
+                .onEnded { value in
+                    if value.translation.width < -80 {
+                        withAnimation(.easeOut(duration: 0.22)) {
+                            dragOffset = -UIScreen.main.bounds.width
+                            cardOpacity = 0
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                            dismissedDate = todayStr
+                        }
+                    } else {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                            dragOffset = 0
+                            cardOpacity = 1
+                        }
+                    }
+                }
+        )
     }
 }

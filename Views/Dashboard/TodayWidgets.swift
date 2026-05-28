@@ -444,6 +444,20 @@ struct DailyMetricsRow: View {
         return .red
     }
 
+    private var readinessAttention: Bool {
+        guard let s = readinessScore else { return false }
+        return s >= 40 && s < 60
+    }
+
+    private var hrvAttention: Bool {
+        guard let hrv = hrvAnalysis,
+              let rmssd = hrv.todayRmssd,
+              let baseline = hrv.hrv30dAvg,
+              baseline > 0 else { return false }
+        let ratio = rmssd / baseline
+        return ratio >= 0.80 && ratio < 0.90
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             NavigationLink(destination: RecoveryView()) {
@@ -451,9 +465,9 @@ struct DailyMetricsRow: View {
                     icon: "heart.fill",
                     value: readinessScore.map { "\($0)" } ?? "–",
                     unit: readinessScore != nil ? "/100" : "",
-                    // D-D14: asterisk when score is locally computed
                     label: readinessIsLocal ? "Préparation ↗" : "Préparation",
-                    color: readinessColor
+                    color: readinessColor,
+                    isAttention: readinessAttention
                 )
             }
             .buttonStyle(.plain)
@@ -492,7 +506,8 @@ struct DailyMetricsRow: View {
                         value: hrv.todayRmssd.map { "\(Int($0))\(hrv.trendArrow)" } ?? "–",
                         unit: hrv.todayRmssd != nil ? "ms" : "",
                         label: hrv.hrvZone != nil ? (hrv.hrvZone == "green" ? "HRV optimal" : hrv.hrvZone == "orange" ? "HRV normal" : "HRV faible") : "HRV",
-                        color: hrv.zoneColor
+                        color: hrv.zoneColor,
+                        isAttention: hrvAttention
                     )
                 }
                 .buttonStyle(.plain)
@@ -507,15 +522,23 @@ private struct MetricChip: View {
     let unit: String
     let label: String
     let color: Color
+    var isAttention: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(color)
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(color)
+                if isAttention {
+                    Circle()
+                        .fill(Color.orange)
+                        .frame(width: 5, height: 5)
+                }
+            }
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value)
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
                 if !unit.isEmpty {
                     Text(unit)
@@ -525,7 +548,7 @@ private struct MetricChip: View {
             }
             Text(label)
                 .font(.system(size: 10))
-                .foregroundColor(.gray)
+                .foregroundColor(.gray.opacity(0.8))
                 .lineLimit(1)
         }
         .padding(.horizontal, 12)
@@ -534,7 +557,10 @@ private struct MetricChip: View {
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.appCard)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.06), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(
+                    isAttention ? Color.orange.opacity(0.25) : Color.white.opacity(0.06),
+                    lineWidth: 1
+                ))
         )
     }
 }
