@@ -7,6 +7,8 @@ struct MoreView: View {
     @AppStorage("show_rir_column") private var showRIRColumn = false
     @State private var phoenixStreak: Int = 0
     @State private var showRitual = false
+    @State private var showNutritionDirect = false
+    @State private var showRecoveryDirect = false
 
     private var ritualSubtitle: String? {
         if phoenixStreak >= 2 { return "🔥 \(phoenixStreak) jours consécutifs" }
@@ -101,6 +103,14 @@ struct MoreView: View {
             .navigationBarTitleDisplayMode(.large)
             .task {
                 phoenixStreak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak ?? 0
+            }
+            .fullScreenCover(isPresented: $showNutritionDirect) { NutritionView() }
+            .fullScreenCover(isPresented: $showRecoveryDirect)  { RecoveryView() }
+            .onReceive(NotificationCenter.default.publisher(for: .navigateToNutrition)) { _ in
+                showNutritionDirect = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .navigateToRecovery)) { _ in
+                showRecoveryDirect = true
             }
         }
     }

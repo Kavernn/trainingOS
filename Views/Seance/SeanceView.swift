@@ -22,6 +22,12 @@ struct SeanceView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task { await vm.load() }
+        .onReceive(NotificationCenter.default.publisher(for: .sessionCompleted)) { _ in
+            Task {
+                let streak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak
+                ActionFeedbackManager.shared.show(.sessionComplete(streak: streak))
+            }
+        }
     }
 
     @ViewBuilder

@@ -25,9 +25,15 @@ struct RitualView: View {
                 } else if let r = ritual {
                     switch phase {
                     case .morning:
-                        RitualMorningView(ritual: r) { updated in ritual = updated }
+                        RitualMorningView(ritual: r) { updated in
+                            ritual = updated
+                            if updated.morningDone { ActionFeedbackManager.shared.show(.ritualComplete) }
+                        }
                     case .evening:
-                        RitualEveningView(ritual: r) { updated in ritual = updated }
+                        RitualEveningView(ritual: r) { updated in
+                            ritual = updated
+                            if updated.eveningDone { ActionFeedbackManager.shared.show(.ritualComplete) }
+                        }
                     case .done:
                         RitualDoneView(ritual: r, onDemons: {
                             demonsSnapshot = r.demons
@@ -87,6 +93,7 @@ struct RitualBiographyView: View {
     @State private var isLoading = true
     @State private var page = 0
     @State private var hasMore = true
+    @State private var showRitual = false
     private let pageSize = 30
     private let red = Color(hex: "FF2D20")
 
@@ -111,10 +118,32 @@ struct RitualBiographyView: View {
             if isLoading && entries.isEmpty {
                 ProgressView().tint(red)
             } else if entries.isEmpty {
-                VStack(spacing: 12) {
+                VStack(spacing: 16) {
                     Image(systemName: "flame.slash").font(.system(size: 36)).foregroundColor(Color(white: 0.25))
-                    Text("Aucune intention enregistrée").font(.system(size: 14)).foregroundColor(Color(white: 0.35))
+                    VStack(spacing: 6) {
+                        Text("Tes rituels construisent ta discipline.")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(Color(white: 0.55))
+                            .multilineTextAlignment(.center)
+                        Text("Commence avec un seul.")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(white: 0.35))
+                    }
+                    Button {
+                        showRitual = true
+                    } label: {
+                        Text("Créer mon premier rituel")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(red)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(red.opacity(0.12))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(red.opacity(0.3), lineWidth: 1))
+                    }
                 }
+                .padding(.horizontal, 40)
+                .fullScreenCover(isPresented: $showRitual) { RitualView() }
             } else {
                 ScrollView(showsIndicators: false) {
                     LazyVStack(alignment: .leading, spacing: 24, pinnedViews: .sectionHeaders) {

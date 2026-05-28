@@ -75,12 +75,19 @@ private struct iOSContentView: View {
         .overlay(alignment: .top) { offlineBanner }
         .overlay(alignment: .bottom) { offlineToast }
         .tint(.orange)
+        .globalActionFeedback()
         .animation(.spring(response: 0.4, dampingFraction: 0.8), value: sync.offlineToast)
         .onReceive(NotificationCenter.default.publisher(for: .navigateToIntelligence)) { _ in
             selectedTab = 0
         }
         .onReceive(NotificationCenter.default.publisher(for: .navigateToRecovery)) { _ in
             selectedTab = 4
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToNutrition)) { _ in
+            selectedTab = 4
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToSeance)) { _ in
+            selectedTab = 2
         }
         .onReceive(appState.$pendingDeepLink.compactMap { $0 }) { link in
             switch link {

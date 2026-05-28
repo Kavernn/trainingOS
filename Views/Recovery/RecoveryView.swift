@@ -285,7 +285,7 @@ struct RecoveryView: View {
 
                             // History
                             if log.isEmpty {
-                                RecoveryEmptyState()
+                                RecoveryEmptyState(onAddTap: { showSheet = true })
                             } else {
                                 VStack(alignment: .leading, spacing: 0) {
                                     Text("HISTORIQUE")
@@ -1482,8 +1482,16 @@ struct StepsChart: View {
 
 // MARK: - Empty State
 struct RecoveryEmptyState: View {
+    var onAddTap: (() -> Void)? = nil
+
     var body: some View {
-        EmptyStateView(icon: "moon.zzz.fill", title: "Aucune donnée de récupération", subtitle: "Appuie sur + pour en ajouter une")
+        EmptyStateView(
+            icon: "moon.zzz.fill",
+            title: "Comment tu te sens ce matin ?",
+            subtitle: "30 secondes suffisent.",
+            action: onAddTap,
+            actionLabel: "Logger ma récupération"
+        )
     }
 }
 

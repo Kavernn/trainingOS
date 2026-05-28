@@ -748,11 +748,15 @@ struct TabChip: View {
 struct EmptyHistoriqueView: View {
     let label: String
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "tray").font(.system(size: 40)).foregroundColor(.gray)
-            Text(label).foregroundColor(.gray)
+        VStack(spacing: 8) {
+            Image(systemName: "tray").font(.system(size: 40)).foregroundColor(.gray.opacity(0.5))
+            Text("Tes séances apparaîtront ici\naprès ton premier workout.")
+                .font(.system(size: 14))
+                .foregroundColor(.gray)
+                .multilineTextAlignment(.center)
         }
-        .padding(.top, 40)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 48)
     }
 }
 

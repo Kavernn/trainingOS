@@ -70,7 +70,8 @@ struct NutritionView: View {
                             NutritionActionMessage(
                                 totals: vm.totals,
                                 settings: effectiveSettings,
-                                hasEntries: !vm.entries.isEmpty
+                                hasEntries: !vm.entries.isEmpty,
+                                onAddMeal: { showAdd = true }
                             )
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.03)
@@ -221,6 +222,7 @@ struct NutritionView: View {
                 AddNutritionSheet(onSaved: {
                     await vm.loadData()
                     await AlertService.shared.fetch()
+                    await showMealFeedback()
                 }, onLogged: { templateName in
                     toast = ToastMessage(message: "Repas '\(templateName)' ajouté ✓", style: .success)
                 })
@@ -283,6 +285,20 @@ struct NutritionView: View {
         .toast($toast)
     }
 
+    @MainActor
+    private func showMealFeedback() async {
+        let pTarget = effectiveSettings?.proteines ?? 0
+        let consumed = vm.totals?.proteines ?? 0
+        if pTarget > 0, consumed >= pTarget * 0.95 {
+            let goalFb = ActionFeedback.proteinGoalReached
+            if goalFb.shouldShow {
+                ActionFeedbackManager.shared.show(goalFb)
+                return
+            }
+        }
+        let remaining = pTarget > 0 ? max(0, Int(pTarget - consumed)) : nil
+        ActionFeedbackManager.shared.show(.mealLogged(proteinRemaining: remaining))
+    }
 }
 
 // MARK: - Nutrition Action Message
@@ -291,6 +307,7 @@ private struct NutritionActionMessage: View {
     let totals: NutritionTotals?
     let settings: NutritionSettings?
     let hasEntries: Bool
+    var onAddMeal: (() -> Void)? = nil
 
     private enum MsgState {
         case noEntries
@@ -316,15 +333,29 @@ private struct NutritionActionMessage: View {
 
     var body: some View {
         if let state = msgState {
-            HStack(spacing: 10) {
-                Circle()
-                    .fill(msgColor(state))
-                    .frame(width: 8, height: 8)
-                Text(msgText(state))
-                    .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(msgColor(state))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(msgColor(state))
+                        .frame(width: 8, height: 8)
+                    Text(msgText(state))
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(msgColor(state))
+                        .minimumScaleFactor(0.75)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if case .noEntries = state, let action = onAddMeal {
+                    Button(action: action) {
+                        Text("Logger un repas")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(Color.orange.opacity(0.12))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                    }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
@@ -338,7 +369,7 @@ private struct NutritionActionMessage: View {
 
     private func msgText(_ state: MsgState) -> String {
         switch state {
-        case .noEntries:                          return "Aucun repas loggué — commence maintenant."
+        case .noEntries:                          return "Premier repas de la journée ?\nLogue-le en 10 secondes."
         case .proteinLow(let g):                  return "Il te manque \(g)g de protéines aujourd'hui."
         case .proteinClose(let g):                return "Encore \(g)g de protéines pour atteindre ton objectif."
         case .proteinOnTarget(let c, let t):      return "Protéines sur cible. Calories : \(c) / \(t) kcal."

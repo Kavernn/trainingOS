@@ -136,6 +136,9 @@ struct PSSView: View {
             .sheet(isPresented: $showSheet) {
                 PSSQuestionnaireSheet(isShort: isShortMode, onSaved: { record in
                     showBreathworkAfter = (record?.category == "moderate" || record?.category == "high")
+                    if let r = record {
+                        ActionFeedbackManager.shared.show(.pssComplete(score: r.score, maxScore: r.maxScore))
+                    }
                     await loadData()
                 })
             }

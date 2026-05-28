@@ -2,20 +2,12 @@ import SwiftUI
 
 // MARK: - Phoenix Card
 
-// Wrapper Identifiable pour les alerts de guidance
-private struct GuidanceAlert: Identifiable {
-    let id = UUID()
-    let label: String
-    let text: String
-}
-
 struct PhoenixCard: View {
     let score: PhoenixScore
     var dayDelta: Double? = nil
 
     @State private var seeds = PhoenixSeed.generate(count: 40)
     @State private var isVisible = false
-    @State private var guidanceAlert: GuidanceAlert? = nil
 
     var body: some View {
         let state = score.phoenixState
@@ -33,9 +25,6 @@ struct PhoenixCard: View {
                 .stroke(state.glowColor.opacity(0.25), lineWidth: 1)
         )
         .shadow(color: state.glowColor.opacity(state.glowOpacity), radius: state.glowRadius)
-        .alert(item: $guidanceAlert) { a in
-            Alert(title: Text(a.label), message: Text(a.text), dismissButton: .default(Text("OK")))
-        }
     }
 
     // Priority guidance: worst-delta axis message shown below the score
@@ -151,23 +140,23 @@ struct PhoenixCard: View {
         HStack(alignment: .top, spacing: 0) {
             PhoenixAxisPill(label: "CORPS",  delta: score.axes.workout.delta,   color: state.scoreColor,
                             guidance: g?.workout) {
-                if let msg = g?.workout   { guidanceAlert = GuidanceAlert(label: "Corps",  text: msg) }
+                NotificationCenter.default.post(name: .navigateToSeance, object: nil)
             }
             div.frame(height: pillDividerHeight(g?.workout,   g?.stress))
             PhoenixAxisPill(label: "MENTAL", delta: score.axes.stress.delta,    color: state.scoreColor,
                             guidance: g?.stress) {
-                if let msg = g?.stress    { guidanceAlert = GuidanceAlert(label: "Mental", text: msg) }
+                NotificationCenter.default.post(name: .navigateToRecovery, object: nil)
             }
             div.frame(height: pillDividerHeight(g?.stress,    g?.nutrition))
             PhoenixAxisPill(label: "FUEL",   delta: score.axes.nutrition.delta, color: state.scoreColor,
                             guidance: g?.nutrition) {
-                if let msg = g?.nutrition { guidanceAlert = GuidanceAlert(label: "Fuel",   text: msg) }
+                NotificationCenter.default.post(name: .navigateToNutrition, object: nil)
             }
             div.frame(height: pillDividerHeight(g?.nutrition, g?.spirit))
             if let spirit = score.axes.spirit {
                 PhoenixAxisPill(label: "ESPRIT", delta: spirit.delta, color: state.scoreColor,
                                 guidance: g?.spirit) {
-                    if let msg = g?.spirit { guidanceAlert = GuidanceAlert(label: "Esprit", text: msg) }
+                    NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
                 }
             } else {
                 PhoenixAxisPillInactive(label: "ESPRIT")

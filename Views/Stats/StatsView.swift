@@ -420,6 +420,18 @@ struct StatsView: View {
                         Button("Réessayer") { Task { await loadData() } }
                             .foregroundColor(.orange).fontWeight(.semibold)
                     }
+                } else if weights.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "chart.bar").font(.system(size: 40)).foregroundColor(.gray.opacity(0.4))
+                        Text("Tes stats se construisent séance après séance.")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                        Text("Continue à logger.")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray.opacity(0.6))
+                    }
+                    .padding(.horizontal, 40)
                 } else {
                     VStack(spacing: 0) {
                         StatsTabBar(selectedTab: $selectedTab)

@@ -373,6 +373,51 @@ struct ProgrammeView: View {
                                 .padding(.horizontal, 16)
                             }
 
+                            if sessionOrder.isEmpty {
+                                VStack(spacing: 20) {
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "list.bullet.clipboard")
+                                            .font(.system(size: 40))
+                                            .foregroundColor(.gray.opacity(0.4))
+                                        Text("Aucun programme actif.")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(.white.opacity(0.75))
+                                        Text("Importe ton programme ou démarre une séance libre.")
+                                            .font(.system(size: 13))
+                                            .foregroundColor(.gray)
+                                            .multilineTextAlignment(.center)
+                                            .padding(.horizontal, 16)
+                                    }
+                                    VStack(spacing: 12) {
+                                        Button { showCreateProgram = true } label: {
+                                            Text("Importer un programme")
+                                                .font(.system(size: 15, weight: .semibold))
+                                                .foregroundColor(.white)
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 14)
+                                                .background(Color.orange)
+                                                .cornerRadius(14)
+                                        }
+                                        .buttonStyle(.plain)
+                                        Button {
+                                            NotificationCenter.default.post(name: .navigateToSeance, object: nil)
+                                        } label: {
+                                            Text("Séance libre")
+                                                .font(.system(size: 15, weight: .medium))
+                                                .foregroundColor(.orange)
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 14)
+                                                .background(Color.orange.opacity(0.10))
+                                                .cornerRadius(14)
+                                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                    .padding(.horizontal, 24)
+                                }
+                                .padding(.vertical, 40)
+                            }
+
                             ForEach(sessionOrder, id: \.self) { seance in
                                 sessionCard(for: seance)
                             }
