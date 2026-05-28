@@ -605,7 +605,8 @@ def analyser_deload(weights: dict) -> dict:
     )
 
     recommande = (
-        len(stagnants) >= 2
+        fatigue_data["score"] >= 75
+        or len(stagnants) >= 2
         or fatigue["fatigue"]
         or len(drops) > 0
         or planned["due"]
