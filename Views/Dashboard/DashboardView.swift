@@ -119,6 +119,12 @@ struct DashboardView: View {
                                 )
                                 .appearAnimation(delay: 0.05)
 
+                                // 4.5 — Activité cardio du jour
+                                if let cardio = vm.cardioToday {
+                                    DashboardCardioCard(entry: cardio)
+                                        .appearAnimation(delay: 0.06)
+                                }
+
                                 // 5 — Rituel matin (actionnable, avant 14h)
                                 if let ritual = vm.ritualToday,
                                    !ritual.morningDone,

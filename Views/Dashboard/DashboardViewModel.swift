@@ -41,6 +41,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var warRoomEnabled = false
     @Published var hrvAnalysis: HRVAnalysis? = nil
     @Published var yesterdayNutrition: NutritionDayHistory?
+    @Published var cardioToday: CardioEntry? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -231,6 +232,11 @@ final class DashboardViewModel: ObservableObject {
             }
             group.addTask { @MainActor in
                 self.bodyBudget = try? await APIService.shared.fetchBodyBudget()
+                return 0
+            }
+            group.addTask { @MainActor in
+                let all = (try? await APIService.shared.fetchCardioData()) ?? []
+                self.cardioToday = all.first(where: { $0.date == today })
                 return 0
             }
             for await failures in group { criticalFailures += failures }
