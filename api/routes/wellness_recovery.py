@@ -15,17 +15,24 @@ def api_log_cardio():
     import db as _db
     data = request.get_json(silent=True) or {}
     entry = {
-        "date":         data.get("date", date.today().isoformat()),
-        "type":         data.get("type", "course"),
-        "duration_min": data.get("duration_min"),
-        "distance_km":  data.get("distance_km"),
-        "avg_pace":     data.get("avg_pace"),
-        "avg_hr":       data.get("avg_hr"),
-        "cadence":      data.get("cadence"),
-        "calories":     data.get("calories"),
-        "rpe":          data.get("rpe"),
-        "notes":        data.get("notes", ""),
+        "date":             data.get("date", date.today().isoformat()),
+        "type":             data.get("type", "course"),
+        "duration_min":     data.get("duration_min"),
+        "distance_km":      data.get("distance_km"),
+        "avg_pace":         data.get("avg_pace"),
+        "avg_hr":           data.get("avg_hr"),
+        "cadence":          data.get("cadence"),
+        "calories":         data.get("calories"),
+        "rpe":              data.get("rpe"),
+        "notes":            data.get("notes", ""),
+        "start_time":       data.get("start_time"),
+        "end_time":         data.get("end_time"),
+        "pace_avg_seconds": data.get("pace_avg_seconds"),
+        "gps_points":       data.get("gps_points"),
+        "route_encoded":    data.get("route_encoded"),
     }
+    # Strip None values — don't overwrite existing columns with nulls
+    entry = {k: v for k, v in entry.items() if v is not None}
     _db.insert_cardio_log(entry)
     return jsonify({"ok": True})
 

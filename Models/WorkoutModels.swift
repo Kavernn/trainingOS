@@ -554,13 +554,24 @@ struct CardioEntry: Codable, Identifiable {
     let calories: Double?
     let rpe: Double?
     let notes: String?
+    // GPS tracking fields (nullable — historical entries unaffected)
+    let startTime: String?
+    let endTime: String?
+    let paceAvgSeconds: Int?
+    let gpsPoints: [[String: Double]]?
+    let routeEncoded: String?
 
     enum CodingKeys: String, CodingKey {
         case date, type, rpe, notes, cadence, calories
-        case durationMin = "duration_min"
-        case distanceKm  = "distance_km"
-        case avgPace     = "avg_pace"
-        case avgHr       = "avg_hr"
+        case durationMin     = "duration_min"
+        case distanceKm      = "distance_km"
+        case avgPace         = "avg_pace"
+        case avgHr           = "avg_hr"
+        case startTime       = "start_time"
+        case endTime         = "end_time"
+        case paceAvgSeconds  = "pace_avg_seconds"
+        case gpsPoints       = "gps_points"
+        case routeEncoded    = "route_encoded"
     }
 }
 

@@ -12,10 +12,12 @@ struct CardioView: View {
     @State private var log: [CardioEntry] = []
     @State private var isLoading = true
     @State private var showSheet = false
+    @State private var showActiveSession = false
     @State private var isImportingHK = false
     @State private var apiError: String? = nil
     @State private var toast: ToastMessage? = nil
     @ObservedObject private var hk = HealthKitService.shared
+    @ObservedObject private var sessionManager = CardioSessionManager.shared
     @AppStorage("cardio_max_hr") private var maxHR: Int = 190
 
     // KPIs
@@ -105,6 +107,17 @@ struct CardioView: View {
             .navigationTitle("Cardio")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button { showActiveSession = true } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 13))
+                            Text("GPS")
+                                .font(.system(size: 13, weight: .medium))
+                        }
+                        .foregroundColor(sessionManager.sessionState != .idle ? .red : .teal)
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: importFromHealthKit) {
                         HStack(spacing: 4) {
@@ -125,10 +138,36 @@ struct CardioView: View {
             .sheet(isPresented: $showSheet) {
                 LogCardioSheet(onSaved: { await loadData() })
             }
+            .fullScreenCover(isPresented: $showActiveSession) {
+                CardioActiveView()
+                    .onDisappear { Task { await loadData() } }
+            }
             .overlay(alignment: .bottomTrailing) {
-                FAB(icon: "plus") { showSheet = true }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, fabBottomPadding + 16)
+                VStack(spacing: 12) {
+                    // GPS session button
+                    if sessionManager.sessionState != .idle {
+                        Button {
+                            showActiveSession = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 8, height: 8)
+                                Text("En cours")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Color.black.opacity(0.7))
+                            .cornerRadius(20)
+                            .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.red.opacity(0.5), lineWidth: 1))
+                        }
+                    }
+                    FAB(icon: "plus") { showSheet = true }
+                }
+                .padding(.trailing, 20)
+                .padding(.bottom, fabBottomPadding + 16)
             }
         }
         .task { await loadData() }

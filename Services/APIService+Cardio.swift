@@ -14,15 +14,22 @@ extension APIService {
 
     func logCardio(type: String, durationMin: Double?, distanceKm: Double?,
                    avgPace: String?, avgHr: Double?, cadence: Double?,
-                   calories: Double?, rpe: Double?, notes: String) async throws {
+                   calories: Double?, rpe: Double?, notes: String,
+                   startTime: String? = nil, endTime: String? = nil,
+                   paceAvgSeconds: Int? = nil,
+                   gpsPoints: [[String: Double]]? = nil) async throws {
         var body: [String: Any] = ["type": type, "notes": notes]
-        if let v = durationMin { body["duration_min"] = v }
-        if let v = distanceKm  { body["distance_km"]  = v }
-        if let v = avgPace     { body["avg_pace"]      = v }
-        if let v = avgHr       { body["avg_hr"]        = v }
-        if let v = cadence     { body["cadence"]       = v }
-        if let v = calories    { body["calories"]      = v }
-        if let v = rpe         { body["rpe"]           = v }
+        if let v = durationMin      { body["duration_min"]      = v }
+        if let v = distanceKm       { body["distance_km"]       = v }
+        if let v = avgPace          { body["avg_pace"]           = v }
+        if let v = avgHr            { body["avg_hr"]             = v }
+        if let v = cadence          { body["cadence"]            = v }
+        if let v = calories         { body["calories"]           = v }
+        if let v = rpe              { body["rpe"]                = v }
+        if let v = startTime        { body["start_time"]         = v }
+        if let v = endTime          { body["end_time"]           = v }
+        if let v = paceAvgSeconds   { body["pace_avg_seconds"]   = v }
+        if let v = gpsPoints        { body["gps_points"]         = v }
         _ = try await offlinePost(endpoint: "/api/log_cardio", payload: body)
     }
 

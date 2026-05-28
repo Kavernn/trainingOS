@@ -76,6 +76,9 @@
 		AB0CAE533C2329F302A8DE75 /* TimeCapsuleModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A76154790AE80AF270345B19 /* TimeCapsuleModels.swift */; };
 		AB5A5BBA12AEB12AF0596F9C /* APIService+WorkoutDNA.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7692E44A985A89B88122708 /* APIService+WorkoutDNA.swift */; };
 		APICA002APICA002APICA002 /* APIService+Cardio.swift in Sources */ = {isa = PBXBuildFile; fileRef = APICA001APICA001APICA001 /* APIService+Cardio.swift */; };
+		C4D5E6F7A8B9C0D1E2F3A4B5 /* CardioSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */; };
+		E6F7A8B9C0D1E2F3A4B5C6D7 /* CardioActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */; };
+		A8B9C0D1E2F3A4B5C6D7E8F9 /* CardioSummaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */; };
 		APIGO002APIGO002APIGO002 /* APIService+Goals.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIGO001APIGO001APIGO001 /* APIService+Goals.swift */; };
 		APIME002APIME002APIME002 /* APIService+Mental.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIME001APIME001APIME001 /* APIService+Mental.swift */; };
 		APINU002APINU002APINU002 /* APIService+Nutrition.swift in Sources */ = {isa = PBXBuildFile; fileRef = APINU001APINU001APINU001 /* APIService+Nutrition.swift */; };
@@ -286,6 +289,9 @@
 		AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMemoryView.swift; sourceTree = "<group>"; };
 		AFA0A200B6F7F9BFE3A59D58 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		APICA001APICA001APICA001 /* APIService+Cardio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Cardio.swift"; sourceTree = "<group>"; };
+		D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSessionManager.swift; sourceTree = "<group>"; };
+		F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioActiveView.swift; sourceTree = "<group>"; };
+		B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSummaryView.swift; sourceTree = "<group>"; };
 		APIGO001APIGO001APIGO001 /* APIService+Goals.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Goals.swift"; sourceTree = "<group>"; };
 		APIME001APIME001APIME001 /* APIService+Mental.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Mental.swift"; sourceTree = "<group>"; };
 		APINU001APINU001APINU001 /* APIService+Nutrition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Nutrition.swift"; sourceTree = "<group>"; };
@@ -702,6 +708,7 @@
 				APIGO001APIGO001APIGO001 /* APIService+Goals.swift */,
 				APINU001APINU001APINU001 /* APIService+Nutrition.swift */,
 				APICA001APICA001APICA001 /* APIService+Cardio.swift */,
+				D5E6F7A8B9C0D1E2F3A4B5C6 /* CardioSessionManager.swift */,
 				APIWE001APIWE001APIWE001 /* APIService+Wellness.swift */,
 				APIME001APIME001APIME001 /* APIService+Mental.swift */,
 				APISL001APISL001APISL001 /* APIService+Sleep.swift */,
@@ -873,6 +880,8 @@
 			isa = PBXGroup;
 			children = (
 				AAD71080385415CDA19C0F0A /* CardioView.swift */,
+				F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */,
+				B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */,
 			);
 			path = Cardio;
 			sourceTree = "<group>";
@@ -1083,6 +1092,7 @@
 				APIGO002APIGO002APIGO002 /* APIService+Goals.swift in Sources */,
 				APINU002APINU002APINU002 /* APIService+Nutrition.swift in Sources */,
 				APICA002APICA002APICA002 /* APIService+Cardio.swift in Sources */,
+				C4D5E6F7A8B9C0D1E2F3A4B5 /* CardioSessionManager.swift in Sources */,
 				APIWE002APIWE002APIWE002 /* APIService+Wellness.swift in Sources */,
 				APIME002APIME002APIME002 /* APIService+Mental.swift in Sources */,
 				APISL002APISL002APISL002 /* APIService+Sleep.swift in Sources */,
@@ -1140,6 +1150,8 @@
 				AA00200A2F5D98BA002AE470 /* InventaireView.swift in Sources */,
 				AA00200B2F5D98BA002AE470 /* IntelligenceView.swift in Sources */,
 				663379608FE0A821EC0F7D89 /* CardioView.swift in Sources */,
+				E6F7A8B9C0D1E2F3A4B5C6D7 /* CardioActiveView.swift in Sources */,
+				A8B9C0D1E2F3A4B5C6D7E8F9 /* CardioSummaryView.swift in Sources */,
 				7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */,
 				913EC83173A0479A8FA00023 /* SleepView.swift in Sources */,
 				9E8ED6F12F56136AE817562F /* HealthKitService.swift in Sources */,
@@ -1444,7 +1456,8 @@
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "VinceSeven utilise Face ID pour protéger tes zones privées (journal, serment, War Room).";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "VinceSeven lit vos données santé (pas, sommeil, fréquence cardiaque, HRV) pour remplir automatiquement vos entrées de récupération.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "VinceSeven peut écrire votre poids dans l'app Santé.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "VinceSeven utilise ta position pour afficher la météo locale.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "VinceSeven utilise ta position en arrière-plan pour enregistrer ton tracé GPS pendant les séances cardio.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "VinceSeven utilise ta position pour afficher la météo locale et enregistrer tes séances cardio.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choisir une photo de profil";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -1486,7 +1499,8 @@
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "VinceSeven utilise Face ID pour protéger tes zones privées (journal, serment, War Room).";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "VinceSeven lit vos données santé (pas, sommeil, fréquence cardiaque, HRV) pour remplir automatiquement vos entrées de récupération.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "VinceSeven peut écrire votre poids dans l'app Santé.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "VinceSeven utilise ta position pour afficher la météo locale.";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "VinceSeven utilise ta position en arrière-plan pour enregistrer ton tracé GPS pendant les séances cardio.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "VinceSeven utilise ta position pour afficher la météo locale et enregistrer tes séances cardio.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choisir une photo de profil";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

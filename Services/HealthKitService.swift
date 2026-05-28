@@ -59,7 +59,8 @@ class HealthKitService: ObservableObject {
     func requestAuthorization() async -> Bool {
         guard HKHealthStore.isHealthDataAvailable() else { return false }
         do {
-            try await store.requestAuthorization(toShare: [], read: readTypes)
+            let shareTypes: Set<HKSampleType> = [HKWorkoutType.workoutType()]
+        try await store.requestAuthorization(toShare: shareTypes, read: readTypes)
             isAuthorized = true
             return true
         } catch {
@@ -404,6 +405,32 @@ class HealthKitService: ObservableObject {
         }
     }
 
+    // MARK: - Write Cardio Workout to HealthKit
+    func saveCardioWorkout(type: String, startDate: Date, endDate: Date, distanceKm: Double?) async {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        let activityType: HKWorkoutActivityType
+        switch type {
+        case "course":   activityType = .running
+        case "vélo":     activityType = .cycling
+        case "marche":   activityType = .walking
+        default:         activityType = .other
+        }
+        var totalDistance: HKQuantity? = nil
+        if let km = distanceKm, km > 0 {
+            totalDistance = HKQuantity(unit: .meter(), doubleValue: km * 1000)
+        }
+        let workout = HKWorkout(
+            activityType: activityType,
+            start: startDate,
+            end: endDate,
+            duration: endDate.timeIntervalSince(startDate),
+            totalEnergyBurned: nil,
+            totalDistance: totalDistance,
+            metadata: nil
+        )
+        try? await store.save(workout)
+    }
+
     // MARK: - Workout → CardioEntry
     func workoutToCardioEntry(_ w: HKWorkout) -> (type: String, durationMin: Double, distanceKm: Double?, calories: Double?, avgHr: Double?) {
         let type: String
@@ -461,6 +488,7 @@ class HealthKitService: ObservableObject {
                          hrEvening: nil, workouts: [])
     }
     func enableBackgroundDelivery(onChange: @escaping () -> Void) async {}
+    func saveCardioWorkout(type: String, startDate: Date, endDate: Date, distanceKm: Double?) async {}
 }
 
 #endif
