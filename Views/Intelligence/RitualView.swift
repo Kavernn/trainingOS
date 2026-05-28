@@ -5,7 +5,6 @@ struct RitualView: View {
     @State private var ritual: RitualToday? = nil
     @State private var isLoading = true
     @State private var showDemons = false
-    @State private var demonsSnapshot: [RitualDemon] = []
     @Environment(\.dismiss) private var dismiss
 
     private var phase: RitualPhase {
@@ -36,7 +35,6 @@ struct RitualView: View {
                         }
                     case .done:
                         RitualDoneView(ritual: r, onDemons: {
-                            demonsSnapshot = r.demons
                             showDemons = true
                         })
                     case .loading:
@@ -58,7 +56,7 @@ struct RitualView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .fullScreenCover(isPresented: $showDemons) {
-            DemonsView(demons: demonsSnapshot)
+            DemonsView(demons: ritual?.demons ?? [])
         }
         .task { await load() }
     }
