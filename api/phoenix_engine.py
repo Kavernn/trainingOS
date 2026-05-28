@@ -41,6 +41,18 @@ def _window(offset: int, span: int = 7) -> set[str]:
 
 # ── Axes ──────────────────────────────────────────────────────────────────────
 
+def _find_stagnant_exercise(history: dict) -> str | None:
+    """Return the name of the first exercise with identical weight on 3+ consecutive sessions."""
+    for name, entries in history.items():
+        if len(entries) < 3:
+            continue
+        last3 = entries[:3]
+        weights = [float(e.get("weight") or 0) for e in last3]
+        if weights[0] > 0 and len(set(weights)) == 1:
+            return name
+    return None
+
+
 def _workout_axis(last7: set[str], prior7: set[str]) -> tuple[float, dict]:
     history = db.get_all_exercise_history() or {}
     sessions_raw = db.get_workout_sessions(limit=50) or []
@@ -61,11 +73,13 @@ def _workout_axis(last7: set[str], prior7: set[str]) -> tuple[float, dict]:
             elif d in prior7:
                 prior_vol += ev
 
+    stagnant = _find_stagnant_exercise(history)
     details = {
-        "last_sessions":  len(last_sessions),
-        "prior_sessions": len(prior_sessions),
-        "last_volume":    round(last_vol),
-        "prior_volume":   round(prior_vol),
+        "last_sessions":     len(last_sessions),
+        "prior_sessions":    len(prior_sessions),
+        "last_volume":       round(last_vol),
+        "prior_volume":      round(prior_vol),
+        "stagnant_exercise": stagnant,
     }
 
     has_baseline = prior_vol > 0 or len(prior_sessions) > 0
@@ -202,6 +216,171 @@ def _map_state(score: float) -> str:
 _WEIGHTS = {"workout": 0.40, "mind": 0.20, "fuel": 0.20, "spirit": 0.20}
 
 
+# ── Guidance helpers ──────────────────────────────────────────────────────────
+
+def _guidance_workout(details: dict) -> str:
+    if not details.get("has_baseline"):
+        return "Log tes données pour débloquer ce conseil."
+
+    last_s   = details.get("last_sessions",  0)
+    prior_s  = details.get("prior_sessions", 0)
+    last_v   = details.get("last_volume",    0)
+    prior_v  = details.get("prior_volume",   0)
+    stagnant = details.get("stagnant_exercise")
+
+    # Priority 1: fewer sessions than last week
+    if last_s < prior_s:
+        s_label = "séance" if last_s <= 1 else "séances"
+        return (f"{last_s} {s_label} cette semaine vs {prior_s} la semaine dernière. "
+                "Une séance aujourd'hui comblerait l'écart.")
+
+    # Priority 2: volume down
+    if prior_v > 0 and last_v < prior_v:
+        pct = round((prior_v - last_v) / prior_v * 100)
+        return (f"Ton volume est {pct}% sous la semaine dernière. "
+                "Ajoute 1 série sur tes composés aujourd'hui.")
+
+    # Priority 3: stagnant exercise
+    if stagnant:
+        return (f"{stagnant} stagne depuis 3 sessions. "
+                "Revois la charge à ta prochaine séance.")
+
+    return "Entraînement sur la bonne trajectoire. Continue."
+
+
+def _guidance_mind(mind_details: dict) -> str:
+    try:
+        today  = date.fromisoformat(_today_iso())
+        week   = {(today - timedelta(days=i)).isoformat() for i in range(7)}
+
+        # 1. PSS — most recent within 7 days
+        pss_records = db.get_pss_records(limit=10) or []
+        recent_pss  = next((r for r in pss_records if r.get("date") in week), None)
+        if recent_pss:
+            score = float(recent_pss.get("pss_score") or recent_pss.get("score") or 0)
+            if score > 20:
+                return (f"Ton stress est élevé ({int(score)}/40). "
+                        "10 min de respiration aujourd'hui.")
+
+        # 2. HRV + sleep from recovery logs (enrichment only — no score impact)
+        rec_logs     = db.get_recovery_logs(limit=8) or []
+        recent_logs  = sorted(
+            [r for r in rec_logs if r.get("date") in week],
+            key=lambda r: r.get("date", ""), reverse=True
+        )
+        if recent_logs:
+            hrv_vals = [float(r["hrv"]) for r in recent_logs if r.get("hrv")]
+            if len(hrv_vals) >= 2:
+                today_hrv  = hrv_vals[0]
+                baseline   = sum(hrv_vals[1:]) / len(hrv_vals[1:])
+                if baseline > 0 and today_hrv < baseline * 0.90:
+                    return "Ton HRV est sous ta baseline. Priorise la récupération aujourd'hui."
+
+            sleep_vals = [float(r["sleep_quality"]) for r in recent_logs if r.get("sleep_quality")]
+            if sleep_vals:
+                avg_sleep = sum(sleep_vals) / len(sleep_vals)
+                if avg_sleep < 6:
+                    return (f"Qualité de sommeil à {avg_sleep:.1f}/10 cette semaine. "
+                            "Vise une heure de coucher plus tôt ce soir.")
+
+        # 3. No PSS and no baseline data → prompt
+        if not recent_pss and not mind_details.get("has_baseline"):
+            return "Fais ton check-in PSS pour débloquer les insights Mind."
+
+        return "Stress sous contrôle cette semaine."
+
+    except Exception as exc:
+        logger.warning("_guidance_mind error: %s", exc)
+        return "Log tes données pour débloquer ce conseil."
+
+
+def _guidance_fuel(fuel_details: dict) -> str:
+    try:
+        today_str = _today_iso()
+        settings  = db.get_nutrition_settings() or {}
+        cal_target  = float(settings.get("calorie_limit")  or settings.get("limite_calories")    or 2000)
+        prot_target = float(settings.get("protein_target") or settings.get("objectif_proteines") or 150)
+
+        entries     = db.get_nutrition_entries_recent(7) or []
+        today_entry = next((e for e in entries if e.get("date") == today_str), None)
+
+        if today_entry:
+            prot = float(today_entry.get("proteines") or 0)
+            cals = float(today_entry.get("calories")  or 0)
+
+            if prot_target > 0 and prot < prot_target * 0.85:
+                missing = round(prot_target - prot)
+                return (f"Il te manque {missing}g de protéines aujourd'hui. "
+                        "Un repas riche en protéines suffit.")
+
+            if cal_target > 0 and cals < cal_target * 0.80:
+                missing = round(cal_target - cals)
+                return (f"{int(cals)} kcal loggées — {missing} kcal sous ton objectif "
+                        f"de {int(cal_target)} kcal.")
+
+        # Log consistency this week
+        today_dt    = date.fromisoformat(today_str)
+        week_dates  = {(today_dt - timedelta(days=i)).isoformat() for i in range(7)}
+        logged_days = sum(1 for e in entries if e.get("date") in week_dates)
+        missing_days = 7 - logged_days
+        if missing_days > 2:
+            return (f"Tu n'as pas loggé {missing_days} jours cette semaine. "
+                    "Un log partiel vaut mieux que rien.")
+
+        return "Nutrition sur cible. Continue."
+
+    except Exception as exc:
+        logger.warning("_guidance_fuel error: %s", exc)
+        return "Log tes données pour débloquer ce conseil."
+
+
+def _guidance_spirit(spirit_details: dict) -> str:
+    try:
+        bw_last  = spirit_details.get("breathwork_last",  0)
+        med_last = spirit_details.get("meditation_last",  0)
+        j_last   = spirit_details.get("journal_last",     0)
+
+        # Priority 1: no journal entry this week
+        if j_last == 0:
+            return "Pas d'entrée journal cette semaine. 2 minutes ce soir suffisent."
+
+        # Priority 2: no breathwork and no meditation → suggest morning ritual
+        if bw_last == 0 and med_last == 0:
+            ritual = db.get_ritual_today(_today_iso()) or {}
+            if ritual and not ritual.get("morning_at"):
+                return ("Aucune pratique cette semaine. "
+                        "Commence par ton rituel matinal aujourd'hui.")
+            return ("Aucune pratique cette semaine. "
+                    "Commence par ton rituel matinal aujourd'hui.")
+
+        # Priority 3: only one type active — suggest the missing one
+        if bw_last > 0 and med_last == 0:
+            return "Continue le breathwork — ajoute une session de méditation cette semaine."
+        if med_last > 0 and bw_last == 0:
+            return "Continue la méditation — ajoute une session de breathwork cette semaine."
+
+        return "Pratiques Spirit consistantes. Continue."
+
+    except Exception as exc:
+        logger.warning("_guidance_spirit error: %s", exc)
+        return "Log tes données pour débloquer ce conseil."
+
+
+def compute_guidance(
+    workout_details: dict,
+    mind_details:    dict,
+    fuel_details:    dict,
+    spirit_details:  dict,
+) -> dict:
+    """Generate one actionable message per axis from real data. Additive — no score impact."""
+    return {
+        "workout":   _guidance_workout(workout_details),
+        "stress":    _guidance_mind(mind_details),
+        "nutrition": _guidance_fuel(fuel_details),
+        "spirit":    _guidance_spirit(spirit_details),
+    }
+
+
 # ── Main entry ────────────────────────────────────────────────────────────────
 
 def compute() -> dict:
@@ -226,10 +405,13 @@ def compute() -> dict:
     if fuel_details.get("has_baseline"):    active["fuel"]    = fuel_delta
     if spirit_details.get("has_baseline"):  active["spirit"]  = spirit_delta
 
+    guidance = compute_guidance(workout_details, mind_details, fuel_details, spirit_details)
+
     if not active:
         return {
             "score": 0.0, "state": "foundation",
             "axes": axes_payload, "is_foundation": True, "raw_delta": 0.0,
+            "guidance": guidance,
         }
 
     # Normalize weights to active axes
@@ -241,11 +423,12 @@ def compute() -> dict:
     final      = scaled * multiplier
 
     result: dict = {
-        "score":        round(final, 1),
-        "state":        _map_state(final),
-        "axes":         axes_payload,
+        "score":         round(final, 1),
+        "state":         _map_state(final),
+        "axes":          axes_payload,
         "is_foundation": False,
-        "raw_delta":    round(raw_delta, 1),
+        "raw_delta":     round(raw_delta, 1),
+        "guidance":      guidance,
     }
     if multiplier != 1.0:
         result["war_room_multiplier"] = round(multiplier, 3)

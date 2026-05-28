@@ -2,12 +2,20 @@ import SwiftUI
 
 // MARK: - Phoenix Card
 
+// Wrapper Identifiable pour les alerts de guidance
+private struct GuidanceAlert: Identifiable {
+    let id = UUID()
+    let label: String
+    let text: String
+}
+
 struct PhoenixCard: View {
     let score: PhoenixScore
     var dayDelta: Double? = nil
 
     @State private var seeds = PhoenixSeed.generate(count: 40)
     @State private var isVisible = false
+    @State private var guidanceAlert: GuidanceAlert? = nil
 
     var body: some View {
         let state = score.phoenixState
@@ -25,6 +33,27 @@ struct PhoenixCard: View {
                 .stroke(state.glowColor.opacity(0.25), lineWidth: 1)
         )
         .shadow(color: state.glowColor.opacity(state.glowOpacity), radius: state.glowRadius)
+        .alert(item: $guidanceAlert) { a in
+            Alert(title: Text(a.label), message: Text(a.text), dismissButton: .default(Text("OK")))
+        }
+    }
+
+    // Priority guidance: worst-delta axis message shown below the score
+    private var priorityGuidance: String? {
+        guard let g = score.guidance, !score.isFoundation else { return nil }
+        let candidates: [(Double, String?)] = [
+            (score.axes.workout.delta,          g.workout),
+            (score.axes.stress.delta,           g.stress),
+            (score.axes.nutrition.delta,        g.nutrition),
+            (score.axes.spirit?.delta ?? 0,     g.spirit),
+        ]
+        return candidates
+            .compactMap { delta, msg -> (Double, String)? in
+                guard let msg else { return nil }
+                return (delta, msg)
+            }
+            .min(by: { $0.0 < $1.0 })
+            .map { $0.1 }
     }
 
     @ViewBuilder
@@ -96,7 +125,16 @@ struct PhoenixCard: View {
                             .font(.system(size: 10, weight: .medium))
                     }
                     .foregroundColor(dColor.opacity(0.85))
-                    .padding(.bottom, 4)
+                }
+                if let hint = priorityGuidance {
+                    Text(hint)
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(.white.opacity(0.45))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 4)
                 }
             }
         }
@@ -105,24 +143,41 @@ struct PhoenixCard: View {
 
     @ViewBuilder
     private func axesSection(state: PhoenixState) -> some View {
-        let div = Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1, height: 34)
+        let g   = score.guidance
+        let div = Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1)
         Rectangle()
             .fill(Color.white.opacity(0.06))
             .frame(height: 1)
-        HStack(spacing: 0) {
-            PhoenixAxisPill(label: "CORPS",  delta: score.axes.workout.delta,   color: state.scoreColor)
-            div
-            PhoenixAxisPill(label: "MENTAL", delta: score.axes.stress.delta,    color: state.scoreColor)
-            div
-            PhoenixAxisPill(label: "FUEL",   delta: score.axes.nutrition.delta, color: state.scoreColor)
-            div
+        HStack(alignment: .top, spacing: 0) {
+            PhoenixAxisPill(label: "CORPS",  delta: score.axes.workout.delta,   color: state.scoreColor,
+                            guidance: g?.workout) {
+                if let msg = g?.workout   { guidanceAlert = GuidanceAlert(label: "Corps",  text: msg) }
+            }
+            div.frame(height: pillDividerHeight(g?.workout,   g?.stress))
+            PhoenixAxisPill(label: "MENTAL", delta: score.axes.stress.delta,    color: state.scoreColor,
+                            guidance: g?.stress) {
+                if let msg = g?.stress    { guidanceAlert = GuidanceAlert(label: "Mental", text: msg) }
+            }
+            div.frame(height: pillDividerHeight(g?.stress,    g?.nutrition))
+            PhoenixAxisPill(label: "FUEL",   delta: score.axes.nutrition.delta, color: state.scoreColor,
+                            guidance: g?.nutrition) {
+                if let msg = g?.nutrition { guidanceAlert = GuidanceAlert(label: "Fuel",   text: msg) }
+            }
+            div.frame(height: pillDividerHeight(g?.nutrition, g?.spirit))
             if let spirit = score.axes.spirit {
-                PhoenixAxisPill(label: "ESPRIT", delta: spirit.delta, color: state.scoreColor)
+                PhoenixAxisPill(label: "ESPRIT", delta: spirit.delta, color: state.scoreColor,
+                                guidance: g?.spirit) {
+                    if let msg = g?.spirit { guidanceAlert = GuidanceAlert(label: "Esprit", text: msg) }
+                }
             } else {
                 PhoenixAxisPillInactive(label: "ESPRIT")
             }
         }
         .padding(.vertical, 10)
+    }
+
+    private func pillDividerHeight(_ a: String?, _ b: String?) -> CGFloat {
+        (a != nil || b != nil) ? 54 : 34
     }
 }
 
@@ -132,8 +187,11 @@ struct PhoenixAxisPill: View {
     let label: String
     let delta: Double
     let color: Color
+    var guidance: String? = nil
+    var onTap: (() -> Void)? = nil
 
     var body: some View {
+        let deltaColor: Color = delta >= 0 ? color : Color(hex: "FF5555")
         VStack(spacing: 3) {
             Text(label)
                 .font(.system(size: 6, weight: .black)).tracking(0.6)
@@ -144,9 +202,20 @@ struct PhoenixAxisPill: View {
                 Text(String(format: "%.0f%%", abs(delta)))
                     .font(.system(size: 12, weight: .bold, design: .rounded))
             }
-            .foregroundColor(delta >= 0 ? color : Color(hex: "FF5555"))
+            .foregroundColor(deltaColor)
+            if let g = guidance {
+                Text(g)
+                    .font(.system(size: 9, weight: .regular))
+                    .foregroundColor(.white.opacity(0.40))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
+            }
         }
         .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture { if guidance != nil { onTap?() } }
     }
 }
 

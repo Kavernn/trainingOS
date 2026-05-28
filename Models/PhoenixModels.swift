@@ -7,6 +7,7 @@ struct PhoenixScore: Codable {
     let axes: PhoenixAxes
     let isFoundation: Bool
     let rawDelta: Double
+    let guidance: PhoenixGuidance?
 
     private static let foundationAxes = PhoenixAxes(
         workout:   PhoenixAxisData(delta: 0),
@@ -16,20 +17,19 @@ struct PhoenixScore: Codable {
     )
 
     enum CodingKeys: String, CodingKey {
-        case score, state, axes
+        case score, state, axes, guidance
         case isFoundation = "is_foundation"
         case rawDelta     = "raw_delta"
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        
-        // decodeIfPresent évite de lever une erreur interne inutilement si la clé est juste absente ou nulle
-        score        = (try? c.decodeIfPresent(Double.self,       forKey: .score))       ?? 0.0
-        state        = (try? c.decodeIfPresent(String.self,       forKey: .state))       ?? "foundation"
-        axes         = (try? c.decodeIfPresent(PhoenixAxes.self,  forKey: .axes))        ?? PhoenixScore.foundationAxes
-        isFoundation = (try? c.decodeIfPresent(Bool.self,         forKey: .isFoundation)) ?? true
-        rawDelta     = (try? c.decodeIfPresent(Double.self,       forKey: .rawDelta))     ?? 0.0
+        score        = (try? c.decodeIfPresent(Double.self,          forKey: .score))        ?? 0.0
+        state        = (try? c.decodeIfPresent(String.self,          forKey: .state))        ?? "foundation"
+        axes         = (try? c.decodeIfPresent(PhoenixAxes.self,     forKey: .axes))         ?? PhoenixScore.foundationAxes
+        isFoundation = (try? c.decodeIfPresent(Bool.self,            forKey: .isFoundation)) ?? true
+        rawDelta     = (try? c.decodeIfPresent(Double.self,          forKey: .rawDelta))     ?? 0.0
+        guidance     = try? c.decodeIfPresent(PhoenixGuidance.self,  forKey: .guidance)
     }
 
     var phoenixState: PhoenixState {
@@ -46,6 +46,13 @@ struct PhoenixAxes: Codable {
 
 struct PhoenixAxisData: Codable {
     let delta: Double
+}
+
+struct PhoenixGuidance: Codable {
+    let workout:   String?
+    let stress:    String?
+    let nutrition: String?
+    let spirit:    String?
 }
 
 enum PhoenixState: String, Codable {
