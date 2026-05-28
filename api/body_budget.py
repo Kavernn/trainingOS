@@ -294,7 +294,7 @@ def compute() -> dict:
 
         return {
             "score":           score,
-            "trend":           None,     # EMA 3j non implémenté — supprimer flèche UI
+            "trend":           "stable",
             "trend_available": False,
             "insight": insight,
             "pillars": {
