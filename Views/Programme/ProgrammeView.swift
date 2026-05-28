@@ -1563,6 +1563,7 @@ struct AddExerciseSheet: View {
     let seance: String
     let inventory: [String]
     let inventorySchemes: [String: String]
+    var recentExercises: [String] = []
     let onAdd: (String, String) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -1648,6 +1649,48 @@ struct AddExerciseSheet: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
+                    }
+
+                    // Récents — exercices ajoutés à la volée dans les séances précédentes
+                    if !recentExercises.isEmpty && name.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("RÉCENTS")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(1.5)
+                                .foregroundColor(.gray.opacity(0.55))
+                                .padding(.horizontal, 16)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(recentExercises, id: \.self) { ex in
+                                        Button {
+                                            onAdd(ex, inventorySchemes[ex] ?? "3x8-12")
+                                            dismiss()
+                                        } label: {
+                                            HStack(spacing: 5) {
+                                                Image(systemName: "clock.arrow.circlepath")
+                                                    .font(.system(size: 10))
+                                                    .foregroundColor(.orange.opacity(0.7))
+                                                Text(ex)
+                                                    .font(.system(size: 13, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .lineLimit(1)
+                                            }
+                                            .padding(.horizontal, 12).padding(.vertical, 7)
+                                            .background(Color.orange.opacity(0.1))
+                                            .cornerRadius(10)
+                                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.22), lineWidth: 1))
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                            }
+                            Divider()
+                                .background(Color.white.opacity(0.06))
+                                .padding(.horizontal, 16)
+                                .padding(.top, 2)
+                        }
+                        .padding(.bottom, 6)
                     }
 
                     // Scheme field

@@ -49,7 +49,7 @@ struct StepperInput: View {
 
             ZStack {
                 Text(valueStr.isEmpty ? placeholderText : displayText)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundColor(valueStr.isEmpty ? .gray.opacity(0.35) : .white)
                     .frame(minWidth: 52, alignment: .center)
                     .allowsHitTesting(false)
@@ -79,6 +79,7 @@ struct StepperInput: View {
         }
         .background(Color(hex: "191926"))
         .cornerRadius(10)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.09), lineWidth: 1))
         .onChange(of: isManualFocused) { _, focused in
             if !focused { validateInput() }
         }
@@ -102,13 +103,18 @@ struct StepperInput: View {
 
     @ViewBuilder
     private func stepIcon(systemName: String, isHeld: Bool) -> some View {
-        Image(systemName: systemName)
-            .font(.system(size: 15, weight: .semibold))
-            .frame(width: 44, height: 44)
-            .foregroundColor(isDisabled ? .gray.opacity(0.2) : .white.opacity(isHeld ? 1.0 : 0.7))
-            .scaleEffect(isHeld ? 0.82 : 1.0)
-            .animation(.easeInOut(duration: 0.08), value: isHeld)
-            .contentShape(Rectangle())
+        ZStack {
+            Circle()
+                .fill(Color.white.opacity(isDisabled ? 0 : (isHeld ? 0.1 : 0.04)))
+                .frame(width: 32, height: 32)
+            Image(systemName: systemName)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(isDisabled ? .gray.opacity(0.2) : .white.opacity(isHeld ? 1.0 : 0.9))
+        }
+        .frame(width: 44, height: 44)
+        .scaleEffect(isHeld ? 0.82 : 1.0)
+        .animation(.easeInOut(duration: 0.08), value: isHeld)
+        .contentShape(Rectangle())
     }
 
     private func startHold(_ direction: Int) {
@@ -168,8 +174,10 @@ private struct HoldToLogButton: View {
     var body: some View {
         let holding = isHolding && isEnabled
         ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(logFlash ? Color.green : Color(hex: "1a1a2e"))
+            RoundedRectangle(cornerRadius: 14)
+                .fill(logFlash ? Color.green : holding ? Color.orange.opacity(0.18) : Color.orange.opacity(0.07))
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(logFlash ? Color.clear : Color.orange.opacity(isEnabled ? 0.35 : 0.1), lineWidth: 1)
             HStack(spacing: 8) {
                 Image(systemName: icon).font(.system(size: 20))
                 Text(holding ? "Maintenir..." : label)
@@ -177,12 +185,12 @@ private struct HoldToLogButton: View {
             }
             .foregroundColor(logFlash ? .black : (isEnabled ? .white : .gray))
         }
-        .frame(maxWidth: .infinity).frame(height: 50)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(maxWidth: .infinity).frame(height: 54)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
         .scaleEffect(holding ? 0.97 : 1.0)
         .animation(.easeInOut(duration: 0.1), value: holding)
         .animation(.easeInOut(duration: 0.12), value: logFlash)
-        .opacity(isEnabled ? 1 : 0.6)
+        .opacity(isEnabled ? 1 : 0.55)
         .gesture(
             LongPressGesture(minimumDuration: 0.4)
                 .updating($isHolding) { _, state, _ in state = true }
@@ -318,7 +326,7 @@ struct ExerciseCard: View {
     }
 
     private var borderColor: Color {
-        if alreadyLogged { return .green.opacity(0.28) }
+        if alreadyLogged { return .green.opacity(0.42) }
         if isFocused     { return .orange.opacity(0.30) }
         if isExpanded    { return .orange.opacity(0.12) }
         return .white.opacity(0.07)
@@ -800,6 +808,8 @@ struct ExerciseCard: View {
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(borderColor, lineWidth: 1))
+        .opacity(alreadyLogged && !isExpanded ? 0.72 : 1.0)
+        .animation(.easeInOut(duration: 0.25), value: alreadyLogged)
         .onAppear {
             evm.initializeSets()
             if !evm.painZone.isEmpty || !exoNote.isEmpty { showAdvanced = true }
@@ -889,7 +899,7 @@ struct ExerciseCard: View {
                 Spacer()
                 headerTrailing
             }
-            .padding(.horizontal, 16).padding(.vertical, 13)
+            .padding(.horizontal, 16).padding(.vertical, 15)
         }
         .buttonStyle(.plain)
     }
@@ -954,15 +964,15 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private var expandedContent: some View {
-        Divider().background(Color.white.opacity(0.07))
-        VStack(alignment: .leading, spacing: 12) {
+        Divider().background(Color.white.opacity(0.10))
+        VStack(alignment: .leading, spacing: 14) {
             expandedTopBar
             if logResult == nil, let s = suggestion, s.suggestionType != "maintain" {
                 CoachingChip(suggestion: s)
             }
             if let h = hint, !h.isEmpty {
                 Text(h).font(.system(size: 12, weight: .regular)).italic()
-                    .foregroundColor(.gray.opacity(0.6))
+                    .foregroundColor(.white.opacity(0.42))
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if alreadyLogged && !evm.isEditing { loggedStateDisplay } else { formView }

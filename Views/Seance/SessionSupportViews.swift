@@ -963,7 +963,7 @@ struct CoachingChip: View {
                         .font(.system(size: 13, weight: .black)).foregroundColor(typeColor)
                 }
                 Text(suggestion.reason)
-                    .font(.system(size: 11)).foregroundColor(.white.opacity(0.5))
+                    .font(.system(size: 11)).foregroundColor(.white.opacity(0.65))
                     .lineLimit(1)
                 Spacer()
                 Button("Ignorer") { ignored = true }

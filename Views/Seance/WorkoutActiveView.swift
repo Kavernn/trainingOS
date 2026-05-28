@@ -118,6 +118,7 @@ struct WorkoutSeanceView: View {
     // W-D11 — abandon session
     @State private var showAbandonAlert = false
     @State private var allLoggedPulse = false
+    @State private var completionGlow = false
 
     // Warmup guidance banner — shown pre-session, dismissable
     @State private var showWarmupBanner = true
@@ -127,6 +128,26 @@ struct WorkoutSeanceView: View {
         let vals = vm.logResults.values.compactMap(\.rpe)
         guard !vals.isEmpty else { return 7.0 }
         return (vals.reduce(0, +) / Double(vals.count) * 2).rounded() / 2  // arrondi au 0.5
+    }
+
+    private var progressDone: Int {
+        exerciseRenderItems.filter { isItemLogged($0) }.count
+    }
+    private var progressTotal: Int { exerciseRenderItems.count }
+    private var progressComplete: Bool { progressTotal > 0 && progressDone >= progressTotal }
+
+    private var recentAdHocExercises: [String] {
+        let programExercises = Set(data.fullProgram.values.flatMap { $0.keys })
+        let calendar = Calendar.current
+        guard let cutoffDate = calendar.date(byAdding: .day, value: -30, to: Date()) else { return [] }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        let cutoffStr = fmt.string(from: cutoffDate)
+        return data.weights
+            .filter { name, wd in !programExercises.contains(name) && (wd.lastLogged ?? "") >= cutoffStr }
+            .sorted { a, b in (a.value.lastLogged ?? "") > (b.value.lastLogged ?? "") }
+            .prefix(5)
+            .map(\.key)
     }
 
     private func preloadAIAnalysis() {
@@ -528,13 +549,13 @@ struct WorkoutSeanceView: View {
 
     @ViewBuilder
     private func supersetBlock(group: String, entry: SupersetEntry, schemeA: String, schemeB: String, nextName: String?) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 10) {
             HStack(spacing: 8) {
                 Text(group)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.orange)
                     .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 5)
                     .background(Color.orange.opacity(0.15))
                     .clipShape(Capsule())
                 Text("Superset")
@@ -566,12 +587,12 @@ struct WorkoutSeanceView: View {
             draggableCard(name: entry.a, scheme: schemeA, nextExerciseName: nil, forceNoRest: true)
 
             HStack(spacing: 5) {
-                Image(systemName: "arrow.down")
-                    .font(.system(size: 10))
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 11))
                 Text("enchaîner")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.system(size: 11, weight: .semibold))
             }
-            .foregroundColor(.orange.opacity(0.6))
+            .foregroundColor(.orange.opacity(0.8))
             .frame(maxWidth: .infinity, alignment: .center)
 
             draggableCard(name: entry.b, scheme: schemeB, nextExerciseName: nextName,
@@ -783,7 +804,7 @@ struct WorkoutSeanceView: View {
         ScrollView {
             VStack(spacing: 16) {
                 // Header
-                VStack(spacing: 6) {
+                VStack(spacing: 9) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Button {
@@ -820,9 +841,9 @@ struct WorkoutSeanceView: View {
                                         .font(.system(size: 11, weight: .bold, design: .monospaced))
                                 }
                                 .foregroundColor(.cyan.opacity(0.75))
-                                .padding(.horizontal, 7).padding(.vertical, 4)
+                                .padding(.horizontal, 8).padding(.vertical, 5)
                                 .background(Color.cyan.opacity(0.08))
-                                .cornerRadius(6)
+                                .cornerRadius(8)
                             }
                             .transition(.opacity)
                         }
@@ -854,30 +875,39 @@ struct WorkoutSeanceView: View {
                             .padding(.leading, 8)
                         }
                     }
-                    // Progress
-                    let done = vm.logResults.count
-                    let total = exercises.count
-                    HStack {
-                        Text(done == total && total > 0 ? "Tous les exercices loggés ✓" : "\(done) / \(total) exercices")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(done == total && total > 0 ? .green : .gray)
-                            .scaleEffect(allLoggedPulse ? 1.1 : 1.0)
-                            .animation(.spring(response: 0.3, dampingFraction: 0.55), value: allLoggedPulse)
+                    // Progress bar — superset-aware
+                    let done = progressDone
+                    let total = progressTotal
+                    let allDone = progressComplete
+                    HStack(spacing: 6) {
+                        Text(allDone ? "Tous les exercices loggés" : "\(done) / \(total) exercices")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(allDone ? .green : .secondary)
+                            .animation(.easeInOut(duration: 0.2), value: allDone)
+                        if allDone {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.green)
+                                .transition(.scale.combined(with: .opacity))
+                        }
                         Spacer()
                     }
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.white.opacity(0.08))
-                        .frame(height: 4)
+                    .animation(.easeInOut(duration: 0.2), value: allDone)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(Color.white.opacity(0.07))
+                        .frame(height: 5)
                         .overlay(
                             GeometryReader { g in
-                                let fraction: CGFloat = total > 0 ? CGFloat(done) / CGFloat(total) : 0
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(done == total && total > 0 ? Color.green : Color.orange)
+                                let fraction: CGFloat = total > 0 ? min(1.0, CGFloat(done) / CGFloat(total)) : 0
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(allDone ? Color.green : Color.orange)
                                     .frame(width: g.size.width * fraction)
-                                    .animation(.spring(response: 0.5), value: done)
+                                    .animation(.spring(response: 0.45, dampingFraction: 0.75), value: done)
                             },
                             alignment: .leading
                         )
+                        .shadow(color: allDone ? Color.green.opacity(0.35) : .clear, radius: 5)
+                        .animation(.easeInOut(duration: 0.3), value: allDone)
 
                     // Readiness chip
                     if let r = readiness, let score = r.score {
@@ -938,11 +968,11 @@ struct WorkoutSeanceView: View {
                         }
                     }
                     .padding(.horizontal, 10).padding(.vertical, 7)
-                    .background(Color.yellow.opacity(0.04))
-                    .cornerRadius(8)
+                    .background(Color.yellow.opacity(0.07))
+                    .cornerRadius(10)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .padding(.top, 12)
 
                 // Resume banner — shown when exercises were already logged (partial prior session)
                 if vm.isResuming {
@@ -1167,13 +1197,13 @@ struct WorkoutSeanceView: View {
                         if vm.isFinishing {
                             ProgressView().tint(.white).scaleEffect(0.8)
                         } else {
-                            Image(systemName: "checkmark.circle.fill")
+                            Image(systemName: completionGlow ? "flag.checkered" : "checkmark.circle.fill")
                         }
                         Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
                             .font(.system(size: 15, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(canFinish && !vm.isFinishing ? Color.orange : Color(hex: "1a1a2e"))
+                    .background(!canFinish || vm.isFinishing ? Color(hex: "1a1a2e") : completionGlow ? Color.green : Color.orange)
                     .foregroundColor(canFinish && !vm.isFinishing ? .white : .gray)
                     .cornerRadius(14)
                     .overlay(
@@ -1181,9 +1211,13 @@ struct WorkoutSeanceView: View {
                             RoundedRectangle(cornerRadius: 14)
                                 .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                     )
+                    .shadow(color: completionGlow && !vm.isFinishing ? Color.green.opacity(0.5) : .clear, radius: 12)
+                    .scaleEffect(allLoggedPulse && completionGlow ? 1.02 : 1.0)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.6), value: allLoggedPulse)
                 }
                 .disabled(!canFinish || vm.isFinishing)
-                .animation(.easeInOut(duration: 0.2), value: canFinish)
+                .animation(.easeInOut(duration: 0.25), value: canFinish)
+                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: completionGlow)
                 .padding(.horizontal, 16)
                 .padding(.top, canFinish ? 10 : 6)
                 .padding(.bottom, 10)
@@ -1234,7 +1268,13 @@ struct WorkoutSeanceView: View {
             .onAppear { rpe = computedSessionRPE }
         }
         .onChange(of: vm.logResults.count) { count in
-            guard count == exercises.count else { return }
+            guard count > 0 else { completionGlow = false; return }
+            triggerImpact(style: .light)
+            let done = exerciseRenderItems.filter { isItemLogged($0) }.count
+            let total = exerciseRenderItems.count
+            let allDone = total > 0 && done >= total
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { completionGlow = allDone }
+            guard allDone else { return }
             preloadAIAnalysis()
             allLoggedPulse = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { allLoggedPulse = false }
@@ -1337,7 +1377,12 @@ struct WorkoutSeanceView: View {
             }
         }
         .sheet(isPresented: $showAddLocal) {
-            AddExerciseSheet(seance: data.today, inventory: inventory, inventorySchemes: [:]) { ex, scheme in
+            AddExerciseSheet(
+                seance: data.today,
+                inventory: inventory,
+                inventorySchemes: [:],
+                recentExercises: recentAdHocExercises
+            ) { ex, scheme in
                 // Local-only: adds to this session without modifying the programme
                 localProgram[ex] = scheme
             }
