@@ -134,7 +134,7 @@ def _recovery_to_sleep(entry: dict) -> dict:
         "bedtime":          "—",
         "wake_time":        "—",
         "duration_hours":   h,
-        "quality":          0,
+        "quality":          None,
         "quality_label":    "Auto (HealthKit)",
         "quality_emoji":    "⌚",
         "duration_category": _duration_category(h),
@@ -209,7 +209,7 @@ def get_stats() -> dict:
         return {"avg_duration": None, "avg_quality": None, "total": 0, "streak": 0}
 
     recent7  = [r for r in records[:7] if r.get("duration_hours") is not None]
-    recent7q = [r for r in records[:7] if r.get("quality") is not None]
+    recent7q = [r for r in records[:7] if r.get("quality")]
 
     avg_duration = round(sum(r["duration_hours"] for r in recent7) / len(recent7), 1) if recent7 else None
     avg_quality  = round(sum(r["quality"] for r in recent7q) / len(recent7q), 1) if recent7q else None

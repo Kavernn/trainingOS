@@ -1520,7 +1520,7 @@ struct LogRecoverySheet: View {
 
     @State private var selectedDate = Date()
     @State private var sleepHoursStr = ""
-    @State private var sleepQuality: Double = 7
+    @State private var sleepQuality: Double = 0
     @State private var restingHrStr = ""
     @State private var hrvStr = ""
     @State private var stepsStr = ""
@@ -1704,10 +1704,28 @@ struct LogRecoverySheet: View {
                         } else {
                             // ── MODE RAPIDE ───────────────────────────────
 
-                            // Sommeil (heures uniquement)
-                            VStack(alignment: .leading, spacing: 8) {
+                            // Sommeil (heures + qualité)
+                            VStack(alignment: .leading, spacing: 10) {
                                 Text("SOMMEIL").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                 RecoveryField(label: "DURÉE (h)", placeholder: "7.5", text: $sleepHoursStr)
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("QUALITÉ").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Spacer()
+                                        if sleepQuality == 0 {
+                                            Text("—").font(.system(size: 13, weight: .bold)).foregroundColor(.gray)
+                                        } else {
+                                            Text(String(format: "%.0f / 10", sleepQuality))
+                                                .font(.system(size: 13, weight: .bold)).foregroundColor(.blue)
+                                        }
+                                    }
+                                    Slider(value: $sleepQuality, in: 0...10, step: 1).tint(.orange)
+                                    HStack {
+                                        Text("0 = Non renseigné").font(.system(size: 9)).foregroundColor(.gray)
+                                        Spacer()
+                                        Text("10 = Excellent").font(.system(size: 9)).foregroundColor(.gray)
+                                    }
+                                }
                             }
                             .padding(14).background(Color.appCard).cornerRadius(12)
 
@@ -1872,7 +1890,7 @@ struct LogRecoverySheet: View {
             do {
                 try await APIService.shared.logRecovery(
                     sleepHours:    Double(sleepHoursStr.replacingOccurrences(of: ",", with: ".")),
-                    sleepQuality:  showFullMode ? sleepQuality : nil,
+                    sleepQuality:  sleepQuality > 0 ? sleepQuality : nil,
                     restingHr:     Double(restingHrStr),
                     hrv:           Double(hrvStr),
                     steps:         stepsStr.isEmpty ? nil : (Int(stepsStr) ?? Int(Double(stepsStr.replacingOccurrences(of: ",", with: ".")) ?? 0)),
