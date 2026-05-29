@@ -194,7 +194,7 @@ def _score_subjective_stress(entry: dict) -> Optional[float]:
     if pss:
         try:
             pss_date = date_cls.fromisoformat(pss["date"])
-            if (date_cls.today() - pss_date).days <= 30:
+            if (date_cls.fromisoformat(_today_mtl()) - pss_date).days <= 30:
                 score = float(pss["score"])
                 max_s = float(pss.get("max_score", 40))
                 return _clamp((1.0 - score / max_s) * 100.0)
