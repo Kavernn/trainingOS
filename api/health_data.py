@@ -21,6 +21,7 @@ from typing import Optional
 
 import db
 from body_weight import load_body_weight
+from hrv_engine  import compute_hrv_analysis
 from sessions    import load_sessions
 from utils       import _today_mtl
 
@@ -80,9 +81,25 @@ def compute_recovery_score(
 
     # Énergie perçue — 10%
     if (ep := entry.get("energy_pre")) is not None:
-        score += min(float(ep) / 5.0 * 10, 10) * 1.0;  weight += 1.0
+        score += min(float(ep), 10) * 1.0;  weight += 1.0
 
-    return round(score / weight, 1) if weight > 0 else None
+    if weight == 0:
+        return None
+
+    base = score / weight
+
+    # Delta FC cardiaque — modificateur ±5% (non pondéré — données rarement renseignées)
+    # delta faible = clearance autonomique rapide = récupération cardiaque avancée.
+    hr_m = entry.get("hr_morning")
+    hr_p = entry.get("hr_post_workout")
+    if hr_m is not None and hr_p is not None:
+        delta = float(hr_p) - float(hr_m)
+        if delta <= 10:
+            base = min(10.0, base * 1.05)
+        elif delta > 20:
+            base = max(0.0,  base * 0.95)
+
+    return round(base, 1)
 
 
 # ── Totaux nutritionnels pour une date ───────────────────────────────────────
@@ -163,7 +180,8 @@ def merge_health_metrics(target_date: str) -> dict:
         _set_if(result, "resting_heart_rate", rec.get("resting_hr"))
         _set_if(result, "hrv",                rec.get("hrv"))
         _set_if(result, "soreness",           rec.get("soreness"))
-        score = compute_recovery_score(rec)
+        hrv_analysis = compute_hrv_analysis(rec_log, target_date)
+        score = compute_recovery_score(rec, hrv_analysis)
         if score is not None:
             result["recovery_score"] = score
         _add_source(result, "manual")

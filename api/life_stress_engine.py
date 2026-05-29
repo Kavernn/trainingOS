@@ -162,34 +162,21 @@ def _score_subjective_stress(entry: dict) -> Optional[float]:
     Stress subjectif → 0-100 (100 = pas de stress).
 
     Priorité :
-      1. Wellness sliders du jour (mood + tension) — Hooper Index quotidien
-         (Hooper & Mackinnon 1995). Prédicteurs quotidiens les plus réactifs.
+      1. fatigue_perceived (Hooper Index — Hooper & Mackinnon 1995)
+         Signal quotidien direct depuis recovery_logs.
       2. Score PSS récent (≤ 30 jours) — tendance mensuelle uniquement.
          PSS n'est pas un instrument de modulation quotidienne.
-      3. Fallback : soreness inversé depuis recovery_log.
+      3. mood_logs.score (≤ 7 jours) — humeur générale récente.
+      4. Fallback : soreness inversé depuis recovery_log.
     """
     from datetime import date as date_cls
 
-    # 1. Wellness sliders — modulation quotidienne (Hooper Index, Hooper & Mackinnon 1995)
-    mood              = entry.get("mood")              # 0-10 (10 = humeur parfaite)
-    tension           = entry.get("tension")           # 0-10 (10 = très tendu → invertir)
-    fatigue_perceived = entry.get("fatigue_perceived") # 0-10 (10 = très fatigué → invertir)
-
-    if mood is not None and tension is not None and fatigue_perceived is not None:
-        # Hooper complet : 3 dimensions subjectives pondérées
-        mood_score    = float(mood) * 10.0
-        tension_score = (10.0 - float(tension)) * 10.0
-        fatigue_score = (10.0 - float(fatigue_perceived)) * 10.0
-        return _clamp(mood_score * 0.4 + tension_score * 0.3 + fatigue_score * 0.3)
-    elif mood is not None and tension is not None:
-        mood_score    = float(mood) * 10.0
-        tension_score = (10.0 - float(tension)) * 10.0
-        return _clamp(mood_score * 0.6 + tension_score * 0.4)
-    elif fatigue_perceived is not None:
-        # Fatigue seule disponible — signal Hooper partiel
+    # 1. Fatigue perçue — signal Hooper primaire (Hooper & Mackinnon 1995)
+    fatigue_perceived = entry.get("fatigue_perceived")
+    if fatigue_perceived is not None:
         return _clamp((10.0 - float(fatigue_perceived)) * 10.0)
 
-    # 2. PSS récent — indicateur de tendance mensuelle (Cohen et al. 1983)
+    # 2. PSS récent — tendance mensuelle (Cohen et al. 1983)
     pss = get_latest_pss_score("full") or get_latest_pss_score("short")
     if pss:
         try:
@@ -201,7 +188,17 @@ def _score_subjective_stress(entry: dict) -> Optional[float]:
         except (KeyError, ValueError):
             pass
 
-    # 3. Fallback soreness
+    # 3. Humeur récente — mood_logs (≤7j, score 1-10 : haut = bien = score élevé)
+    try:
+        mood_entries = db.get_mood_logs(days=7, limit=1)
+        if mood_entries:
+            mood_score = mood_entries[0].get("score")
+            if mood_score is not None:
+                return _clamp(float(mood_score) / 10.0 * 100.0)
+    except Exception:
+        pass
+
+    # 4. Soreness inversée — fallback final
     soreness = entry.get("soreness")
     if soreness is None:
         return None

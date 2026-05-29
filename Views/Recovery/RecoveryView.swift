@@ -625,7 +625,7 @@ struct ReadinessCard: View {
         if let hrv = entry.hrv          { let ref = hrv7dBaseline ?? 60.0; total += min(10, hrv / ref * 10) * 4.0; weight += 4.0 }
         if let hr  = entry.restingHr, hr <= 100 { total += min(10, max(0, (85 - hr) / 45 * 10)) * 1.5;   weight += 1.5 }
         if let f   = entry.fatigue      { total += max(0, 10 - f) * 1.0;                         weight += 1.0 }
-        if let ep  = entry.energyPre    { total += min(10, ep / 5 * 10) * 0.5;                   weight += 0.5 }
+        if let ep  = entry.energyPre    { total += min(10, ep) * 0.5;                             weight += 0.5 }
         return weight >= 2.0 ? round(total / weight * 10) / 10 : nil
     }
 

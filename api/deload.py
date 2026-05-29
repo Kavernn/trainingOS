@@ -386,10 +386,10 @@ def _estimate_fatigue_duration(sessions: dict, log_by_date: dict, today) -> int:
         d   = (today - timedelta(days=i)).isoformat()
         s   = sessions.get(d, {})
         rec = log_by_date.get(d, {})
-        rpe   = float(s.get("rpe") or 0)
-        sleep = _adjusted_sleep_quality(rec) if rec else 10.0
-        mood  = float(rec.get("mood") or 10)
-        if rpe >= 8.5 or sleep <= 4.0 or mood <= 3.0:
+        rpe     = float(s.get("rpe") or 0)
+        sleep   = _adjusted_sleep_quality(rec) if rec else 10.0
+        fatigue = float(rec.get("fatigue_perceived") or 5)
+        if rpe >= 8.5 or sleep <= 4.0 or fatigue >= 8.0:
             return i
     return 0
 
@@ -444,7 +444,7 @@ def diagnose_fatigue_type(weights: dict | None = None) -> dict:
 
     markers: dict[str, bool] = {
         "rpe_high_stable_load": False,
-        "mood_low":             False,
+        "fatigue_high":         False,
         "sleep_poor":           False,
         "hrv_below_baseline":   False,
         "rhr_above_baseline":   False,
@@ -468,19 +468,17 @@ def diagnose_fatigue_type(weights: dict | None = None) -> dict:
             if vol_ratio <= 1.1:
                 markers["rpe_high_stable_load"] = True
 
-    # ── Marqueur 2 : Humeur basse persistante (≥5 jours sur 7) ──────────────
-    # Échelle : 0–10 (wellness slider, auto-rapporté).
+    # ── Marqueur 2 : Fatigue perçue élevée persistante (≥3 jours sur 7) ────────
+    # fatigue_perceived : 1-10 (10 = épuisé — Hooper Index, Hooper & Mackinnon 1995)
     # ⚠️  Ce marqueur seul ne suffit PAS à diagnostiquer la fatigue centrale.
     #     Il faut ≥3 marqueurs cumulés (Meeusen et al. 2013 — ECSS/ACSM consensus).
-    #     Les sliders sont des indicateurs de tendance, non des instruments validés
-    #     (POMS / RESTQ-Sport / DALDA). Ils sont utilisés en combinaison uniquement.
-    moods_7j = [
-        float(log_by_date[d].get("mood") or 0)
+    fatigue_7j = [
+        float(log_by_date[d].get("fatigue_perceived") or 0)
         for d in dates_14j[:7]
-        if d in log_by_date and log_by_date[d].get("mood") is not None
+        if d in log_by_date and log_by_date[d].get("fatigue_perceived") is not None
     ]
-    if len(moods_7j) >= 5 and sum(moods_7j) / len(moods_7j) <= 3.0:
-        markers["mood_low"] = True
+    if len(fatigue_7j) >= 3 and sum(fatigue_7j) / len(fatigue_7j) >= 7.0:
+        markers["fatigue_high"] = True
 
     # ── Marqueur 3 : Sommeil perturbé persistant (≥5 jours sur 7) ───────────
     # Échelle : 1–10. Seuil : moyenne ≤4.0 = "mauvaise qualité persistante".
