@@ -450,67 +450,6 @@ def api_soreness_threshold():
     })
 
 
-@analytics_load_bp.route("/api/readiness")
-def api_readiness():
-    """Return today's recovery/readiness score for pre-workout display."""
-    from health_data import get_daily_health_summary, compute_recovery_score
-    from hrv_engine  import compute_hrv_analysis
-    import db as _db
-    from datetime import date as date_cls
-
-    today   = date_cls.today().isoformat()
-
-    rec_log_full = _db.get_recovery_logs(limit=95)
-    hrv_analysis = compute_hrv_analysis(rec_log_full, today)
-
-    summary = get_daily_health_summary(today)
-
-    rec_log  = _db.get_recovery_logs(limit=5)
-    today_rec = next((e for e in rec_log if str(e.get("date",""))[:10] == today), None)
-    if today_rec:
-        score = compute_recovery_score(today_rec, hrv_analysis=hrv_analysis)
-    else:
-        score = summary.get("recovery_score")
-
-    components = {}
-    if today_rec:
-        sq = today_rec.get("sleep_quality")
-        sh = today_rec.get("sleep_hours")
-        so = today_rec.get("soreness")
-        hv = today_rec.get("hrv")
-        if sq is not None: components["sleep_quality"] = sq
-        if sh is not None: components["sleep_hours"]   = sh
-        if so is not None: components["soreness"]      = so
-        if hv is not None: components["hrv"]           = hv
-
-    hrv_baseline = hrv_analysis.get("hrv_7d_avg")
-
-    if score is None:
-        label = "Non mesuré"
-        color = "gray"
-    elif score >= 7.5:
-        label = "Optimal"
-        color = "green"
-    elif score >= 5.5:
-        label = "Bon"
-        color = "yellow"
-    elif score >= 4:
-        label = "Modéré"
-        color = "orange"
-    else:
-        label = "Faible"
-        color = "red"
-
-    return jsonify({
-        "score":         score,
-        "label":         label,
-        "color":         color,
-        "components":    components,
-        "hrv_baseline":  hrv_baseline,
-        "data_sources":  summary.get("data_sources", []),
-    })
-
-
 @analytics_load_bp.route("/api/stats/intensity")
 def api_stats_intensity():
     """Average %1RM across all working sets logged in the last 7 days."""
