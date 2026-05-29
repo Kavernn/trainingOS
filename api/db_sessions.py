@@ -3,6 +3,7 @@ import logging
 from typing import Dict, List, Optional, Tuple
 import db_core
 from db_exercises import get_exercise_id, get_or_create_exercise_id
+from utils import _today_mtl
 
 
 def get_workout_sessions(limit: int = 100, offset: int = 0) -> List[dict]:
@@ -92,7 +93,7 @@ def get_session_streaks() -> dict:
 
     all_set = set(dates)
     current = 0
-    d = _date.today()
+    d = _date.fromisoformat(_today_mtl())
     if d.isoformat() not in all_set:
         d -= timedelta(days=1)
     while current < 365:
