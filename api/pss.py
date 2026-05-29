@@ -17,6 +17,7 @@ from typing import Optional
 import uuid
 
 import db
+from utils import _today_mtl
 
 # ── Questions PSS-10 (version française validée) ──────────────────────────────
 
@@ -146,7 +147,7 @@ def save_pss_record(
 
     record = {
         "id":              str(uuid.uuid4()),
-        "date":            date_cls.today().isoformat(),
+        "date":            _today_mtl(),
         "type":            result["type"],
         "responses":       result["raw_responses"],
         "score":           result["score"],
@@ -192,7 +193,7 @@ def check_due(pss_type: str = "full") -> dict:
 
     interval = _FULL_INTERVAL_DAYS if pss_type == "full" else _SHORT_INTERVAL_DAYS
     last     = date_cls.fromisoformat(relevant[0]["date"])
-    today    = date_cls.today()
+    today    = date_cls.fromisoformat(_today_mtl())
     delta    = (today - last).days
     next_due = (last + timedelta(days=interval)).isoformat()
     is_due   = delta >= interval
