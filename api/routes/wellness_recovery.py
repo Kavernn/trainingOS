@@ -97,14 +97,15 @@ def api_healthkit_sync():
     logs     = _db.get_recovery_logs() or []
     existing = next((e for e in logs if e.get("date") == today), {})
     entry = {
-        "date":        today,
-        "sleep_hours": existing.get("sleep_hours") or data.get("sleep_hours"),
-        "resting_hr":  existing.get("resting_hr")  or data.get("resting_hr"),
-        "hrv":         existing.get("hrv")          or data.get("hrv"),
-        "steps":       existing.get("steps")        or data.get("steps"),
+        "date":          today,
+        "sleep_hours":   existing.get("sleep_hours") or data.get("sleep_hours"),
+        "resting_hr":    existing.get("resting_hr")  or data.get("resting_hr"),
+        "hrv":           existing.get("hrv")          or data.get("hrv"),
+        "steps":         existing.get("steps")        or data.get("steps"),
         "sleep_quality": existing.get("sleep_quality"),
-        "soreness":    existing.get("soreness"),
-        "notes":       existing.get("notes", ""),
+        "soreness":      existing.get("soreness"),
+        "notes":         existing.get("notes", ""),
+        "source":        existing.get("source") or "healthkit",
     }
     if not any([entry["sleep_hours"], entry["resting_hr"], entry["hrv"], entry["steps"]]):
         return jsonify({"ok": False, "msg": "no data"})

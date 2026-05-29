@@ -1289,9 +1289,15 @@ struct SleepChart: View {
             HStack(spacing: 0) {
                 Spacer().frame(width: kL)
                 ForEach(Array(entries.enumerated()), id: \.0) { _, e in
-                    Text(dayAbbrev(e))
-                        .font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
-                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 1) {
+                        Text(dayAbbrev(e))
+                            .font(.system(size: 8)).foregroundColor(.gray.opacity(0.4))
+                        if e.source == "healthkit" {
+                            Image(systemName: "applewatch")
+                                .font(.system(size: 6)).foregroundColor(.blue.opacity(0.5))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
 

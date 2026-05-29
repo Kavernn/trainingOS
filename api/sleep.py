@@ -112,11 +112,14 @@ def save_sleep_entry(
 
     db.upsert_sleep_record(entry)
 
-    # Keep recovery_log in sync so todaySleepLogged (reads recovery_log.sleep_hours) reflects this.
+    # Sync vers recovery_logs — la saisie manuelle est la source de vérité.
+    # source="manual" empêche l'écrasement par HealthKit.
+    # sleep_quality converti 1-5 → 1-10 pour cohérence avec recovery_logs.
     existing_rec = next((r for r in db.get_recovery_logs(limit=7) if r.get("date") == today), {})
     existing_rec["date"]          = today
     existing_rec["sleep_hours"]   = duration
-    existing_rec["sleep_quality"] = quality
+    existing_rec["sleep_quality"] = quality * 2
+    existing_rec["source"]        = "manual"
     db.upsert_recovery_log(existing_rec)
 
     return entry
@@ -144,12 +147,18 @@ def _recovery_to_sleep(entry: dict) -> dict:
 
 
 def _get_all_records() -> list:
-    """Return sleep_records, falling back to recovery_log when empty."""
-    records = db.get_sleep_records()
-    if records:
-        return records
-    recovery = db.get_recovery_logs(limit=60)
-    return [_recovery_to_sleep(r) for r in recovery if r.get("sleep_hours")]
+    """Merge per-date : sleep_records prime, fallback recovery_logs par jour."""
+    sleep_recs = {r["date"]: r for r in (db.get_sleep_records() or [])}
+    recovery   = {r["date"]: r for r in (db.get_recovery_logs(limit=60) or [])
+                  if r.get("sleep_hours")}
+    all_dates  = sorted(set(sleep_recs) | set(recovery), reverse=True)
+    result = []
+    for d in all_dates:
+        if d in sleep_recs:
+            result.append(sleep_recs[d])
+        else:
+            result.append(_recovery_to_sleep(recovery[d]))
+    return result
 
 
 def get_history(limit: int = 20, offset: int = 0) -> dict:
