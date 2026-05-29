@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from sessions import load_sessions
 import db as _db
+from utils import _today_mtl
 
 
 BASE_DIR      = Path(__file__).parent
@@ -220,8 +221,7 @@ _fatigue_cache: dict = {}
 
 def get_cached_fatigue_score() -> int:
     """Return today's fatigue score (0–100). Cached in memory for the request lifetime."""
-    from datetime import date
-    today = date.today().isoformat()
+    today = _today_mtl()
     if _fatigue_cache.get("date") == today:
         return int(_fatigue_cache.get("score", 0))
     result = compute_fatigue_score()
@@ -243,7 +243,7 @@ def check_planned_deload() -> dict:
         return {"due": False, "weeks_since": None, "weeks_target": weeks_target}
     try:
         last        = date.fromisoformat(last_str)
-        weeks_since = (date.today() - last).days / 7
+        weeks_since = (date.fromisoformat(_today_mtl()) - last).days / 7
         return {
             "due":          weeks_since >= weeks_target,
             "weeks_since":  round(weeks_since, 1),
@@ -264,13 +264,12 @@ def activer_deload(reason: str):
 
 
 def desactiver_deload():
-    from datetime import date
     state = load_deload_state()
     save_deload_state({
         "active":         False,
         "since":          None,
         "reason":         None,
-        "last_completed": date.today().isoformat(),
+        "last_completed": _today_mtl(),
         # Preserve previous last_completed if already set (only overwrite on actual deload end)
     })
 
@@ -293,7 +292,7 @@ def compute_fatigue_score() -> dict:
     if not sessions:
         return {"score": 0, "components": {"rpe": 0, "streak": 0, "volume": 0, "frequency": 0}, "streak_days": 0}
 
-    today = date.today()
+    today = date.fromisoformat(_today_mtl())
     dates_7j  = [(today - timedelta(days=i)).isoformat() for i in range(7)]
     dates_30j = [(today - timedelta(days=i)).isoformat() for i in range(30)]
 
@@ -439,7 +438,7 @@ def diagnose_fatigue_type(weights: dict | None = None) -> dict:
     if weights is None:
         weights = _load_weights_safe()
 
-    today    = date.today()
+    today    = date.fromisoformat(_today_mtl())
     sessions = load_sessions()
     log_by_date = {e["date"]: e for e in _load_recovery_log() if "date" in e}
 
