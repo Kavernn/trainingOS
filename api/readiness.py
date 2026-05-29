@@ -1,12 +1,19 @@
 """
 readiness.py — Pre-session Readiness Score (0-100).
 
-5 modules with adaptive weights:
-  Fatigue accumulée   30%  (ACWR + sessions dures 48h)
-  Bien-être (LSS)     25%  (sommeil + HRV + RHR + stress + fatigue entraînement)
-  Nutrition           20%  (adhérence cals/protéines 24-48h)
-  Récupération musc.  15%  (courbe exponentielle + multiplicateur volume)
-  Pattern historique  10%  (jours de repos uniquement — weekday pattern retiré)
+8 modules with adaptive weights (NSCA/ACSM aligned):
+  HRV normalisé        25%  (baseline personnelle 7j — Plews 2013, Buchheit 2014)
+  Charge ACWR          20%  (acute:chronic workload ratio — Gabbett 2016)
+  Qualité du sommeil   15%  (score 0-10 — Fullagar et al. 2015)
+  Durée du sommeil     10%  (objectif 8h — Fullagar et al. 2015)
+  Fatigue subjective   10%  (Hooper Index — fatigue perçue — Hooper & Mackinnon 1995)
+  Récupération musc.   10%  (courbe exponentielle — MacDougall 1995)
+  Nutrition             5%  (adhérence cals/protéines — ACSM 2016)
+  Pattern repos         5%  (supercompensation — Zatsiorsky & Kraemer 2006)
+
+Modificateurs multiplicatifs post-scoring :
+  Delta FC cardiaque   ±5%  (hr_morning / hr_post_workout)
+  Active energy        −5%  (>800 kcal jour de repos)
 
 Verdict : go | moderate | rest
   — Relatif à baseline 28j si ≥14 jours de données (Plews et al. 2013)
@@ -39,21 +46,24 @@ _CAT_LABEL = {
 }
 
 _WEIGHTS = {
-    "fatigue":    0.30,
-    "wellness":   0.25,
-    "nutrition":  0.20,
-    "muscle_rec": 0.15,
-    "pattern":    0.10,
+    "hrv":            0.25,  # Plews 2013, Buchheit 2014
+    "acwr":           0.20,  # Gabbett 2016
+    "sleep_quality":  0.15,  # Fullagar et al. 2015
+    "sleep_duration": 0.10,  # Fullagar et al. 2015
+    "subjective":     0.10,  # Hooper & Mackinnon 1995
+    "muscle_rec":     0.10,  # MacDougall 1995
+    "nutrition":      0.05,  # ACSM 2016
+    "pattern":        0.05,  # Zatsiorsky & Kraemer 2006
 }
 
 # Muscle recovery — courbe exponentielle (MacDougall 1995, Zatsiorsky & Kraemer 2006)
-_RECOVERY_K              = 3.0   # k≈3 → 95% récupération à t=threshold
-_VOL_THRESHOLD_HIGH      = 6     # >6 sets → +25% temps de récupération
-_VOL_THRESHOLD_VERY_HIGH = 9     # >9 sets → +50% temps de récupération
+_RECOVERY_K              = 3.0
+_VOL_THRESHOLD_HIGH      = 6
+_VOL_THRESHOLD_VERY_HIGH = 9
 _VOL_MULT_HIGH           = 1.25
 _VOL_MULT_VERY_HIGH      = 1.50
 
-# Repeated Bout Effect : avancé récupère plus vite (Zatsiorsky & Kraemer 2006)
+# Repeated Bout Effect (Zatsiorsky & Kraemer 2006)
 _EXPERIENCE_MULT = {
     "beginner":     1.15,
     "intermediate": 1.00,
@@ -61,24 +71,58 @@ _EXPERIENCE_MULT = {
 }
 
 
-# ── Module 1: Accumulated Fatigue ─────────────────────────────────────────────
+# ── Module 1: HRV normalisé ───────────────────────────────────────────────────
 
-def _score_fatigue() -> tuple[float, dict]:
+def _score_hrv() -> tuple[float | None, dict]:
+    """HRV normalisé vs baseline personnelle 7j (Plews 2013).
+
+    Délègue à hrv_engine.compute_hrv_analysis() pour cohérence.
+    Score 100 = HRV du jour ≥ baseline; dégradation proportionnelle en dessous.
+    Retourne None si baseline indisponible (< 3 jours de données).
+    """
+    from hrv_engine import compute_hrv_analysis
+    try:
+        rows     = db.get_recovery_logs() or []
+        analysis = compute_hrv_analysis(rows, _today_mtl())
+        if not analysis.get("baseline_available"):
+            return None, {"data_insufficient": True, "reason": "baseline_unavailable"}
+        score = analysis.get("hrv_score")
+        if score is None:
+            return None, {"data_insufficient": True}
+        return round(float(score), 1), {
+            "hrv_score": round(float(score), 1),
+            "zone":      analysis.get("hrv_zone"),
+            "today_hrv": analysis.get("today_hrv"),
+            "baseline":  analysis.get("baseline_7j"),
+        }
+    except Exception as e:
+        logger.exception("_score_hrv failed: %s", e)
+        return None, {"data_insufficient": True}
+
+
+# ── Module 2: Charge ACWR ─────────────────────────────────────────────────────
+
+def _score_acwr() -> tuple[float | None, dict]:
+    """Charge accumulée ACWR + séances intenses 48h (Gabbett 2016).
+
+    Zone optimale 0.8–1.3 : sweet spot injury prevention / adaptation.
+    Séances RPE ≥7 dans les 48h → pénalité supplémentaire si ≥2.
+    """
     details: dict = {}
     try:
         from acwr import calc_acwr
         acwr_data = calc_acwr()
         acwr = float(acwr_data.get("ratio") or 0)
-        details["acwr"] = round(acwr, 2)
+        details["acwr"]    = round(acwr, 2)
         details["acute"]   = round(float(acwr_data.get("acute_load")   or 0), 1)
         details["chronic"] = round(float(acwr_data.get("chronic_load") or 0), 1)
     except Exception:
         acwr = None
         details["acwr"] = None
 
-    today     = date_cls.fromisoformat(_today_mtl())
-    recent    = db.get_workout_sessions(limit=10) or []
-    hard_48h  = 0
+    today    = date_cls.fromisoformat(_today_mtl())
+    recent   = db.get_workout_sessions(limit=10) or []
+    hard_48h = 0
     for s in recent:
         try:
             delta = (today - date_cls.fromisoformat(str(s.get("date") or "")[:10])).days
@@ -89,7 +133,7 @@ def _score_fatigue() -> tuple[float, dict]:
     details["hard_sessions_48h"] = hard_48h
 
     if acwr is None:
-        return 65.0, details
+        return None, {**details, "data_insufficient": True}
 
     if acwr < 0.8:
         score = 60.0
@@ -112,40 +156,79 @@ def _score_fatigue() -> tuple[float, dict]:
     return round(max(0.0, min(100.0, score)), 1), details
 
 
-# ── Module 2: Wellness (Life Stress Score — moteur central) ───────────────────
+# ── Module 3: Qualité du sommeil ──────────────────────────────────────────────
 
-def _score_wellness() -> tuple[float, dict]:
-    """Lit le Life Stress Score depuis le moteur central.
+def _score_sleep_quality() -> tuple[float | None, dict]:
+    """Qualité du sommeil 0-10 → 0-100 (Fullagar et al. 2015).
 
-    Remplace _score_stress() qui lisait PSS directement.
-    Le LSS est la source de vérité : sommeil 30%, HRV 25%, RHR 20%,
-    stress subjectif 15%, fatigue 10% — pondération normalisée sur les
-    données disponibles (fonctionne sans Apple Watch).
+    Source : recovery_logs.sleep_quality (synchronisé depuis sleep_records × 2).
     """
-    from life_stress_engine import get_life_stress_score
-
     try:
-        lss        = get_life_stress_score(_today_mtl())
-        score      = float(lss.get("score") or 50.0)
-        coverage   = float(lss.get("data_coverage") or 0.0)
-        components = lss.get("components") or {}
-        flags      = lss.get("flags") or {}
-        return round(score, 1), {
-            "lss":              round(score, 1),
-            "data_coverage":    coverage,
-            "sleep":            components.get("sleep_quality"),
-            "hrv":              components.get("hrv_trend"),
-            "rhr":              components.get("rhr_trend"),
-            "subjective":       components.get("subjective_stress"),
-            "training_fatigue": components.get("training_fatigue"),
-            "flags":            flags,
-        }
+        today_s   = _today_mtl()
+        rec_logs  = db.get_recovery_logs() or []
+        today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
+        if not today_rec or today_rec.get("sleep_quality") is None:
+            return None, {"data_insufficient": True}
+        sq    = float(today_rec["sleep_quality"])
+        score = min(100.0, sq * 10.0)
+        return round(score, 1), {"sleep_quality": sq}
     except Exception as e:
-        logger.exception("_score_lss failed: %s", e)
-        return 65.0, {"lss": None, "data_coverage": 0.0, "flags": {}}
+        logger.exception("_score_sleep_quality failed: %s", e)
+        return None, {"data_insufficient": True}
 
 
-# ── Module 3: Nutrition ───────────────────────────────────────────────────────
+# ── Module 4: Durée du sommeil ────────────────────────────────────────────────
+
+def _score_sleep_duration() -> tuple[float | None, dict]:
+    """Durée du sommeil vs objectif 8h (Fullagar et al. 2015).
+
+    Score 100 à 8h+; dégradation linéaire en dessous.
+    Dormir plus de 8h ne pénalise pas (récupération prolongée = bénéfique).
+    """
+    try:
+        today_s   = _today_mtl()
+        rec_logs  = db.get_recovery_logs() or []
+        today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
+        if not today_rec or today_rec.get("sleep_hours") is None:
+            return None, {"data_insufficient": True}
+        hours = float(today_rec["sleep_hours"])
+        score = min(100.0, (hours / 8.0) * 100.0)
+        return round(score, 1), {"sleep_hours": hours}
+    except Exception as e:
+        logger.exception("_score_sleep_duration failed: %s", e)
+        return None, {"data_insufficient": True}
+
+
+# ── Module 5: Fatigue subjective ──────────────────────────────────────────────
+
+def _score_subjective() -> tuple[float | None, dict]:
+    """Fatigue perçue — Hooper Index (Hooper & Mackinnon 1995).
+
+    Signal primaire : fatigue_perceived (0-10, haut = très fatigué).
+    Fallback : soreness (DOMS direct — signal physique proche).
+    Retourne None si aucune donnée subjective disponible.
+    """
+    try:
+        today_s   = _today_mtl()
+        rec_logs  = db.get_recovery_logs() or []
+        today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
+        if not today_rec:
+            return None, {"data_insufficient": True}
+        fp = today_rec.get("fatigue_perceived")
+        if fp is not None:
+            score = (10.0 - float(fp)) * 10.0
+            return round(min(100.0, max(0.0, score)), 1), {"signal": "fatigue_perceived", "value": float(fp)}
+        soreness = today_rec.get("soreness")
+        if soreness is not None:
+            score = (10.0 - float(soreness)) * 10.0
+            return round(min(100.0, max(0.0, score)), 1), {"signal": "soreness_fallback", "value": float(soreness)}
+        return None, {"data_insufficient": True}
+    except Exception as e:
+        logger.exception("_score_subjective failed: %s", e)
+        return None, {"data_insufficient": True}
+
+
+# ── Module 6: Nutrition ───────────────────────────────────────────────────────
 
 def _ratio_score(r: float) -> float:
     if 0.85 <= r <= 1.10:  return 90.0
@@ -161,6 +244,7 @@ def _score_nutrition() -> tuple[float, dict]:
         settings    = db.get_nutrition_settings() or {}
         target_cal  = float(settings.get("calorie_limit")  or settings.get("limite_calories")  or 2400)
         target_prot = float(settings.get("protein_target") or settings.get("objectif_proteines") or 180)
+        target_carb = float(settings.get("glucides_target") or 0)
     except Exception as e:
         logger.exception("_score_nutrition failed: %s", e)
         return 65.0, {"error": True}
@@ -177,12 +261,14 @@ def _score_nutrition() -> tuple[float, dict]:
     for e in entries:
         d = str(e.get("date") or "")[:10]
         if d not in by_day:
-            by_day[d] = {"cal": 0.0, "prot": 0.0}
+            by_day[d] = {"cal": 0.0, "prot": 0.0, "carb": 0.0}
         by_day[d]["cal"]  += float(e.get("calories",  0) or 0)
         by_day[d]["prot"] += float(e.get("proteines", 0) or 0)
+        by_day[d]["carb"] += float(e.get("glucides",  0) or 0)
 
-    # Skip today when not enough of the day has elapsed (< 20% of eating window)
     day_weights = [(yest_s, 1.0)] if is_too_early else [(today_s, 0.65), (yest_s, 0.35)]
+
+    use_carbs = target_carb > 0
 
     pairs = []
     for d, w in day_weights:
@@ -190,7 +276,14 @@ def _score_nutrition() -> tuple[float, dict]:
             continue
         cal_r  = by_day[d]["cal"]  / target_cal  if target_cal  > 0 else 0.0
         prot_r = by_day[d]["prot"] / target_prot if target_prot > 0 else 0.0
-        pairs.append((_ratio_score(cal_r) * 0.5 + _ratio_score(prot_r) * 0.5, w))
+        if use_carbs:
+            carb_r    = by_day[d]["carb"] / target_carb
+            day_score = (_ratio_score(cal_r) * 0.40
+                         + _ratio_score(prot_r) * 0.40
+                         + _ratio_score(carb_r) * 0.20)
+        else:
+            day_score = _ratio_score(cal_r) * 0.5 + _ratio_score(prot_r) * 0.5
+        pairs.append((day_score, w))
 
     if not pairs:
         return 50.0, {"no_data": True}
@@ -198,7 +291,6 @@ def _score_nutrition() -> tuple[float, dict]:
     score = sum(s * w for s, w in pairs) / sum(w for _, w in pairs)
 
     if today_s in by_day and not is_too_early:
-        # Scale expected intake by day progress to avoid false deficit early in day
         expected_cal = target_cal * (ctx["progress"] if not ctx["is_end_of_day"] else 1.0)
         deficit = expected_cal - by_day[today_s]["cal"]
         details["cal_deficit"] = int(target_cal - by_day[today_s]["cal"])
@@ -206,20 +298,19 @@ def _score_nutrition() -> tuple[float, dict]:
             score = max(0.0, score - 15.0)
         details["cal_pct"]  = int(by_day[today_s]["cal"]  / target_cal  * 100) if target_cal  > 0 else None
         details["prot_pct"] = int(by_day[today_s]["prot"] / target_prot * 100) if target_prot > 0 else None
+        if use_carbs:
+            details["carb_pct"] = int(by_day[today_s]["carb"] / target_carb * 100)
 
     return round(max(0.0, min(100.0, score)), 1), details
 
 
-# ── Module 4: Pattern (repos uniquement) ──────────────────────────────────────
+# ── Module 7: Pattern (repos uniquement) ──────────────────────────────────────
 
 def _score_pattern() -> tuple[float, dict]:
-    """Score basé uniquement sur les jours de repos depuis la dernière séance.
+    """Score basé sur les jours de repos depuis la dernière séance.
 
-    Retiré : pattern par jour de semaine — non validé scientifiquement
-    (chronotype et contexte de vie sont de meilleurs prédicteurs).
-
-    Gardé : jours depuis dernière séance — resynthèse glycogénique et
-    supercompensation (Zatsiorsky & Kraemer 2006).
+    Resynthèse glycogénique et supercompensation (Zatsiorsky & Kraemer 2006).
+    Pattern par jour de semaine retiré — non validé scientifiquement.
     """
     details: dict = {}
     raw   = db.get_workout_sessions(limit=20) or []
@@ -255,10 +346,9 @@ def _score_pattern() -> tuple[float, dict]:
     return round(max(0.0, min(100.0, score)), 1), details
 
 
-# ── Module 5: Muscle Group Recovery ───────────────────────────────────────────
+# ── Module 8: Muscle Group Recovery ───────────────────────────────────────────
 
 def _get_experience_mult() -> float:
-    """Retourne le multiplicateur de récupération selon training_experience."""
     try:
         from user_profile import load_user_profile
         level = (load_user_profile().get("training_experience") or "").lower()
@@ -272,11 +362,8 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
     """Returns (score, module_details, muscle_breakdown {cat: {...}}).
 
     Courbe exponentielle : frac = 1 - e^(-k × t/T)
-    Plus réaliste que linéaire — récupération rapide dans les premières heures
-    (clearance métabolique), ralentit ensuite (réparation structurelle).
-
-    Volume multiplicateur : >6 sets → +25% threshold, >9 sets → +50%
-    (MacDougall et al. 1995 — marqueurs de dommages musculaires).
+    Volume multiplicateur : >6 sets → +25% threshold, >9 sets → +50% (MacDougall 1995).
+    Soreness modifier — DOMS direct (Hooper & Mackinnon 1995).
     """
     all_hist  = db.get_all_exercise_history() or {}
     ex_info   = db.get_exercises_info_bulk(list(all_hist.keys())) if all_hist else {}
@@ -315,7 +402,6 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
         return 85.0, {"no_recent_training": True}, {}
 
     def _count_sets_for_cat(cat: str) -> int:
-        """Compte les sets pour un groupe musculaire dans sa dernière session."""
         session_date = cat_date.get(cat, "")
         if not session_date:
             return 0
@@ -364,12 +450,30 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
         fractions.append(frac)
 
     score = (sum(fractions) / len(fractions)) * 100
+
+    soreness_modifier: int | None = None
+    try:
+        today_s   = _today_mtl()
+        rec_logs  = db.get_recovery_logs() or []
+        today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
+        if today_rec and today_rec.get("soreness") is not None:
+            s = float(today_rec["soreness"])
+            if s >= 7:
+                score             *= 0.80
+                soreness_modifier  = -20
+            elif s <= 3:
+                score              = min(100.0, score * 1.10)
+                soreness_modifier  = +10
+    except Exception:
+        pass
+
     worst = min(breakdown.items(), key=lambda x: x[1]["pct"])
     details = {
-        "worst_cat":       worst[0],
-        "worst_pct":       worst[1]["pct"],
-        "worst_remaining": worst[1]["hours_remaining"],
-        "worst_label":     worst[1]["label"],
+        "worst_cat":         worst[0],
+        "worst_pct":         worst[1]["pct"],
+        "worst_remaining":   worst[1]["hours_remaining"],
+        "worst_label":       worst[1]["label"],
+        "soreness_modifier": soreness_modifier,
     }
     return round(max(0.0, min(100.0, score)), 1), details, breakdown
 
@@ -430,14 +534,18 @@ def _verdict(score: float, baseline: dict | None = None) -> tuple[str, bool]:
 # ── Messaging ─────────────────────────────────────────────────────────────────
 
 def _build_messaging(
-    verdict: str, modules: dict,
-    fatigue_d: dict, wellness_d: dict, nutrition_d: dict,
-    pattern_d: dict, muscle_d: dict, breakdown: dict,
+    verdict: str,
+    modules: dict,
+    details: dict,
+    breakdown: dict,
 ) -> tuple[str, str | None, float]:
     """Returns (why, adjustment, progression_modifier)."""
 
-    mod_scores = {k: modules[k]["score"] for k in modules}
-    worst_k    = min(mod_scores, key=mod_scores.__getitem__)
+    scored = {k: modules[k]["score"] for k in modules if modules[k].get("score") is not None}
+    if not scored:
+        return "Données insuffisantes — écoute ton ressenti aujourd'hui.", None, 1.0
+
+    worst_k = min(scored, key=scored.__getitem__)
 
     if verdict == "go":
         return "Toutes tes métriques sont au vert — c'est le bon moment pour pousser.", None, 1.0
@@ -445,50 +553,75 @@ def _build_messaging(
     prog_mod = 0.65 if verdict == "rest" else 0.90
 
     if worst_k == "muscle_rec":
-        lbl  = muscle_d.get("worst_label", "tes muscles")
-        hrs  = muscle_d.get("worst_remaining", 0)
-        pct  = muscle_d.get("worst_pct", 0)
-        why  = f"Tes {lbl} ne sont récupérés qu'à {pct}% — il manque encore {hrs}h idéalement."
+        m_det = details.get("muscle_rec", {})
+        lbl   = m_det.get("worst_label", "tes muscles")
+        hrs   = m_det.get("worst_remaining", 0)
+        pct   = m_det.get("worst_pct", 0)
+        why   = f"Tes {lbl} ne sont récupérés qu'à {pct}% — il manque encore {hrs}h idéalement."
         if verdict == "rest":
             adj = "Repos actif recommandé — mobilité ou marche. Reviens demain pour ta séance prévue."
         else:
-            ready = [v["label"] for c, v in breakdown.items() if v["pct"] >= 90 and c != muscle_d.get("worst_cat")]
+            ready = [v["label"] for c, v in breakdown.items() if v["pct"] >= 90 and c != m_det.get("worst_cat")]
             if ready:
                 adj = f"Focus {' + '.join(ready[:2])} aujourd'hui — {lbl} pas encore prêts."
             else:
                 adj = "Drop tes working sets de 10% et évite les exercices ciblant tes muscles fatigués."
         return why, adj, prog_mod
 
-    if worst_k == "fatigue":
-        acwr = fatigue_d.get("acwr") or "?"
-        why  = f"Charge accumulée élevée (ACWR {acwr}) — tu as poussé fort ces derniers jours."
+    if worst_k == "acwr":
+        a_det = details.get("acwr", {})
+        acwr  = a_det.get("acwr") or "?"
+        why   = f"Charge accumulée élevée (ACWR {acwr}) — tu as poussé fort ces derniers jours."
         if verdict == "rest":
             adj = "Repos ou cardio léger uniquement. Si tu t'entraînes : 60-70% des charges habituelles."
         else:
             adj = "Drop tes working sets de 10% — garde le même RPE cible, réduis le volume total."
         return why, adj, prog_mod
 
-    if worst_k == "wellness":
-        lss   = wellness_d.get("lss") or 50
-        flags = wellness_d.get("flags") or {}
-        parts = []
-        if flags.get("sleep_deprivation"):
-            parts.append("manque de sommeil")
-        if flags.get("hrv_drop"):
-            parts.append("chute de HRV")
-        if flags.get("training_overload"):
-            parts.append("surcharge d'entraînement")
-        cause = " + ".join(parts) if parts else "stress global élevé"
-        why   = f"Ton score bien-être est à {int(lss)}/100 ({cause}) — la récupération est limitée."
+    if worst_k == "hrv":
+        h_det = details.get("hrv", {})
+        zone  = h_det.get("zone", "")
+        why   = f"Ta HRV est en dessous de ta baseline personnelle ({zone}) — ton système nerveux récupère encore."
         if verdict == "rest":
-            adj = "Rest day prioritaire. Mobilité légère OK mais pas d'intensité aujourd'hui."
+            adj = "Système nerveux sous pression — pas d'effort intense. Marche, yoga, ou repos complet."
         else:
-            adj = "Entraîne-toi, mais ne cherche pas à battre des PRs — qualité d'exécution plutôt qu'intensité."
+            adj = "Entraîne-toi avec intention mais évite les efforts maximaux — laisse ton SNA se régénérer."
+        return why, adj, prog_mod
+
+    if worst_k in ("sleep_quality", "sleep_duration"):
+        sd_det = details.get("sleep_duration", {})
+        sq_det = details.get("sleep_quality", {})
+        hours  = sd_det.get("sleep_hours")
+        sq     = sq_det.get("sleep_quality")
+        if hours is not None and hours < 6:
+            why = f"Seulement {hours:.1f}h de sommeil cette nuit — récupération incomplète."
+        elif sq is not None and sq < 5:
+            why = f"Qualité de sommeil faible ({sq:.0f}/10) — ton corps n'a pas bien récupéré."
+        else:
+            why = "Ton sommeil de cette nuit limite ta récupération."
+        if verdict == "rest":
+            adj = "Priorité à la récupération — couche-toi plus tôt ce soir. Pas d'entraînement intense."
+        else:
+            adj = "Réduis l'intensité de 10-15% et favorise les temps de repos entre les séries."
+        return why, adj, prog_mod
+
+    if worst_k == "subjective":
+        s_det = details.get("subjective", {})
+        value = s_det.get("value")
+        if value is not None:
+            why = f"Fatigue perçue élevée ({value:.0f}/10) — ton ressenti indique que le corps a besoin de récupérer."
+        else:
+            why = "Fatigue subjective élevée — écoute ton ressenti."
+        if verdict == "rest":
+            adj = "Repos actif ou récupération totale. Ton corps te dit qu'il a besoin de souffler."
+        else:
+            adj = "Entraîne-toi mais ne cherche pas à battre des PRs — qualité d'exécution plutôt qu'intensité."
         return why, adj, prog_mod
 
     if worst_k == "nutrition":
-        prot_pct = nutrition_d.get("prot_pct")
-        deficit  = nutrition_d.get("cal_deficit")
+        n_det    = details.get("nutrition", {})
+        prot_pct = n_det.get("prot_pct")
+        deficit  = n_det.get("cal_deficit")
         if prot_pct is not None and prot_pct < 80:
             why = f"Protéines à {prot_pct}% de ton objectif hier — réserves énergétiques sous-optimales."
         elif deficit and deficit > 500:
@@ -504,6 +637,31 @@ def _build_messaging(
     why = "Tes métriques de récupération sont limitantes aujourd'hui — écoute ton corps."
     adj = "Drop tes working sets de 10% et priorise la technique sur l'intensité."
     return why, adj, prog_mod
+
+
+# ── Active energy modifier (repos uniquement) ─────────────────────────────────
+
+def _active_energy_modifier() -> tuple[float, bool]:
+    """Retourne (multiplicateur, appliqué).
+
+    Si jour de repos ET active_energy > 800 kcal → récupération moins efficace → −5%.
+    Ignoré les jours d'entraînement (dépense attendue).
+    """
+    try:
+        today_s   = _today_mtl()
+        sessions  = db.get_workout_sessions(limit=5) or []
+        has_today = any(str(s.get("date", ""))[:10] == today_s for s in sessions)
+        if has_today:
+            return 1.0, False
+
+        rec_logs  = db.get_recovery_logs() or []
+        today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
+        if today_rec and today_rec.get("active_energy") is not None:
+            if float(today_rec["active_energy"]) > 800:
+                return 0.95, True
+    except Exception:
+        pass
+    return 1.0, False
 
 
 # ── 30-min cache ──────────────────────────────────────────────────────────────
@@ -522,35 +680,60 @@ def compute() -> dict:
         return cached["data"]
 
     try:
-        f_score, f_det = _score_fatigue()
-        w_score, w_det = _score_wellness()
-        n_score, n_det = _score_nutrition()
-        p_score, p_det = _score_pattern()
-        m_score, m_det, breakdown = _score_muscle_recovery()
+        hrv_score,  hrv_det              = _score_hrv()
+        acwr_score, acwr_det             = _score_acwr()
+        sq_score,   sq_det               = _score_sleep_quality()
+        sd_score,   sd_det               = _score_sleep_duration()
+        sub_score,  sub_det              = _score_subjective()
+        m_score,    m_det,    breakdown  = _score_muscle_recovery()
+        n_score,    n_det                = _score_nutrition()
+        p_score,    p_det                = _score_pattern()
 
-        composite = (
-            f_score * _WEIGHTS["fatigue"]
-            + w_score * _WEIGHTS["wellness"]
-            + n_score * _WEIGHTS["nutrition"]
-            + m_score * _WEIGHTS["muscle_rec"]
-            + p_score * _WEIGHTS["pattern"]
-        )
-        score    = round(max(0.0, min(100.0, composite)))
+        _raw = [
+            ("hrv",            hrv_score,  _WEIGHTS["hrv"]),
+            ("acwr",           acwr_score, _WEIGHTS["acwr"]),
+            ("sleep_quality",  sq_score,   _WEIGHTS["sleep_quality"]),
+            ("sleep_duration", sd_score,   _WEIGHTS["sleep_duration"]),
+            ("subjective",     sub_score,  _WEIGHTS["subjective"]),
+            ("muscle_rec",     m_score,    _WEIGHTS["muscle_rec"]),
+            ("nutrition",      n_score,    _WEIGHTS["nutrition"]),
+            ("pattern",        p_score,    _WEIGHTS["pattern"]),
+        ]
+        _avail   = [(s, w) for _, s, w in _raw if s is not None]
+        _total_w = sum(w for _, w in _avail)
+        composite = (sum(s * w for s, w in _avail) / _total_w) if _total_w > 0 else 65.0
+
+        ae_mult, ae_applied = _active_energy_modifier()
+        score    = round(max(0.0, min(100.0, composite * ae_mult)))
         baseline = _get_personal_baseline()
         verdict, is_relative = _verdict(float(score), baseline)
 
+        def _mod_score(s: float | None) -> int | None:
+            return round(s) if s is not None else None
+
         modules = {
-            "fatigue":    {"score": round(f_score), "label": "Fatigue",    "detail": _fatigue_detail(f_det)},
-            "wellness":   {"score": round(w_score), "label": "Bien-être",  "detail": _wellness_detail(w_det)},
-            "nutrition":  {"score": round(n_score), "label": "Nutrition",  "detail": _nutrition_detail(n_det)},
-            "pattern":    {"score": round(p_score), "label": "Pattern",    "detail": _pattern_detail(p_det)},
-            "muscle_rec": {"score": round(m_score), "label": "Récup musc", "detail": _muscle_detail(m_det)},
+            "hrv":            {"score": _mod_score(hrv_score),  "label": "HRV",            "detail": _hrv_detail(hrv_det)},
+            "acwr":           {"score": _mod_score(acwr_score), "label": "Charge",          "detail": _acwr_detail(acwr_det)},
+            "sleep_quality":  {"score": _mod_score(sq_score),   "label": "Qualité sommeil", "detail": _sleep_quality_detail(sq_det)},
+            "sleep_duration": {"score": _mod_score(sd_score),   "label": "Durée sommeil",   "detail": _sleep_duration_detail(sd_det)},
+            "subjective":     {"score": _mod_score(sub_score),  "label": "Ressenti",        "detail": _subjective_detail(sub_det)},
+            "muscle_rec":     {"score": _mod_score(m_score),    "label": "Récup musc",      "detail": _muscle_detail(m_det)},
+            "nutrition":      {"score": _mod_score(n_score),    "label": "Nutrition",       "detail": _nutrition_detail(n_det)},
+            "pattern":        {"score": _mod_score(p_score),    "label": "Pattern",         "detail": _pattern_detail(p_det)},
         }
 
-        why, adjustment, prog_mod = _build_messaging(
-            verdict, modules,
-            f_det, w_det, n_det, p_det, m_det, breakdown,
-        )
+        all_details = {
+            "hrv":            hrv_det,
+            "acwr":           acwr_det,
+            "sleep_quality":  sq_det,
+            "sleep_duration": sd_det,
+            "subjective":     sub_det,
+            "muscle_rec":     m_det,
+            "nutrition":      n_det,
+            "pattern":        p_det,
+        }
+
+        why, adjustment, prog_mod = _build_messaging(verdict, modules, all_details, breakdown)
 
         today_session = None
         try:
@@ -560,17 +743,18 @@ def compute() -> dict:
             pass
 
         data = {
-            "score":                score,
-            "verdict":              verdict,
-            "verdict_method":       "relative" if is_relative else "absolute_cold_start",
-            "baseline":             baseline if is_relative else None,
-            "why":                  why,
-            "adjustment":           adjustment,
-            "progression_modifier": prog_mod,
-            "modules":              modules,
-            "muscle_recovery":      breakdown,
-            "today_session":        today_session,
-            "computed_at":          datetime.now(timezone.utc).isoformat(),
+            "score":                 score,
+            "verdict":               verdict,
+            "verdict_method":        "relative" if is_relative else "absolute_cold_start",
+            "baseline":              baseline if is_relative else None,
+            "why":                   why,
+            "adjustment":            adjustment,
+            "progression_modifier":  prog_mod,
+            "modules":               modules,
+            "muscle_recovery":       breakdown,
+            "today_session":         today_session,
+            "active_energy_penalty": ae_applied,
+            "computed_at":           datetime.now(timezone.utc).isoformat(),
         }
         _CACHE["result"] = {"data": data, "ts": now}
         return data
@@ -593,7 +777,17 @@ def invalidate_cache() -> None:
 
 # ── Detail formatters ─────────────────────────────────────────────────────────
 
-def _fatigue_detail(d: dict) -> str:
+def _hrv_detail(d: dict) -> str:
+    if d.get("data_insufficient"):
+        return "Baseline HRV insuffisante (< 3 jours)"
+    score = d.get("hrv_score")
+    zone  = d.get("zone", "")
+    if score is not None:
+        return f"HRV {int(score)}/100 — {zone}" if zone else f"HRV score {int(score)}/100"
+    return "Données HRV indisponibles"
+
+
+def _acwr_detail(d: dict) -> str:
     acwr = d.get("acwr")
     if acwr is None:
         return "Données ACWR insuffisantes"
@@ -605,20 +799,30 @@ def _fatigue_detail(d: dict) -> str:
     return s
 
 
-def _wellness_detail(d: dict) -> str:
-    lss      = d.get("lss")
-    coverage = d.get("data_coverage") or 0.0
-    flags    = d.get("flags") or {}
-    if lss is None:
-        return "Données bien-être insuffisantes"
-    parts = [f"LSS {int(lss)}/100"]
-    if flags.get("sleep_deprivation"):
-        parts.append("manque de sommeil")
-    if flags.get("hrv_drop"):
-        parts.append("HRV en baisse")
-    if coverage < 0.6:
-        parts.append(f"couverture {int(coverage * 100)}%")
-    return " · ".join(parts)
+def _sleep_quality_detail(d: dict) -> str:
+    if d.get("data_insufficient"):
+        return "Qualité sommeil non renseignée"
+    sq = d.get("sleep_quality")
+    return f"Qualité {sq:.0f}/10" if sq is not None else "Données sommeil indisponibles"
+
+
+def _sleep_duration_detail(d: dict) -> str:
+    if d.get("data_insufficient"):
+        return "Durée sommeil non renseignée"
+    hours = d.get("sleep_hours")
+    return f"{hours:.1f}h cette nuit" if hours is not None else "Durée inconnue"
+
+
+def _subjective_detail(d: dict) -> str:
+    if d.get("data_insufficient"):
+        return "Ressenti non renseigné"
+    signal = d.get("signal", "")
+    value  = d.get("value")
+    if value is not None:
+        if "soreness" in signal:
+            return f"Courbatures {value:.0f}/10 (fallback)"
+        return f"Fatigue perçue {value:.0f}/10"
+    return "Données subjectives indisponibles"
 
 
 def _nutrition_detail(d: dict) -> str:

@@ -21,20 +21,25 @@ struct ReadinessResponse: Codable {
 }
 
 struct ReadinessModules: Codable {
-    let fatigue:   ReadinessModule
-    let stress:    ReadinessModule
-    let nutrition: ReadinessModule
-    let pattern:   ReadinessModule
-    let muscleRec: ReadinessModule
+    let hrv:           ReadinessModule
+    let acwr:          ReadinessModule
+    let sleepQuality:  ReadinessModule
+    let sleepDuration: ReadinessModule
+    let subjective:    ReadinessModule
+    let muscleRec:     ReadinessModule
+    let nutrition:     ReadinessModule
+    let pattern:       ReadinessModule
 
     enum CodingKeys: String, CodingKey {
-        case fatigue, stress, nutrition, pattern
-        case muscleRec = "muscle_rec"
+        case hrv, acwr, subjective, nutrition, pattern
+        case sleepQuality  = "sleep_quality"
+        case sleepDuration = "sleep_duration"
+        case muscleRec     = "muscle_rec"
     }
 }
 
 struct ReadinessModule: Codable {
-    let score:  Int
+    let score:  Int?   // nil = données insuffisantes → afficher "—"
     let label:  String
     let detail: String
 }

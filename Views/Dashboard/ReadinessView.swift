@@ -222,14 +222,17 @@ struct ReadinessSheet: View {
         }
     }
 
-    private var modulesArray: [(label: String, score: Int, detail: String)] {
+    private var modulesArray: [(label: String, score: Int?, detail: String)] {
         let m = readiness.modules
         return [
-            (m.fatigue.label,   m.fatigue.score,   m.fatigue.detail),
-            (m.stress.label,    m.stress.score,    m.stress.detail),
-            (m.nutrition.label, m.nutrition.score, m.nutrition.detail),
-            (m.pattern.label,   m.pattern.score,   m.pattern.detail),
-            (m.muscleRec.label, m.muscleRec.score, m.muscleRec.detail),
+            (m.hrv.label,           m.hrv.score,           m.hrv.detail),
+            (m.acwr.label,          m.acwr.score,          m.acwr.detail),
+            (m.sleepQuality.label,  m.sleepQuality.score,  m.sleepQuality.detail),
+            (m.sleepDuration.label, m.sleepDuration.score, m.sleepDuration.detail),
+            (m.subjective.label,    m.subjective.score,    m.subjective.detail),
+            (m.muscleRec.label,     m.muscleRec.score,     m.muscleRec.detail),
+            (m.nutrition.label,     m.nutrition.score,     m.nutrition.detail),
+            (m.pattern.label,       m.pattern.score,       m.pattern.detail),
         ]
     }
 }
@@ -275,7 +278,7 @@ private struct VerdictOrb: View {
 // MARK: - Module Row
 
 private struct ModuleRow: View {
-    let mod: (label: String, score: Int, detail: String)
+    let mod: (label: String, score: Int?, detail: String)
 
     var body: some View {
         HStack(spacing: 12) {
@@ -284,10 +287,10 @@ private struct ModuleRow: View {
                 Circle()
                     .stroke(scoreColor.opacity(0.20), lineWidth: 2)
                 Circle()
-                    .trim(from: 0, to: CGFloat(mod.score) / 100)
+                    .trim(from: 0, to: CGFloat(mod.score ?? 0) / 100)
                     .stroke(scoreColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                Text("\(mod.score)")
+                Text(mod.score.map { "\($0)" } ?? "—")
                     .font(.system(size: 10, weight: .bold, design: .rounded))
                     .foregroundColor(scoreColor)
             }
@@ -309,7 +312,8 @@ private struct ModuleRow: View {
     }
 
     private var scoreColor: Color {
-        switch mod.score {
+        guard let s = mod.score else { return .gray }
+        switch s {
         case 75...: return .green
         case 50..<75: return Color(red: 0.98, green: 0.76, blue: 0.15)
         default:     return .red
