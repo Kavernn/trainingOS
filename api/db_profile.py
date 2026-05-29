@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Dict, List, Optional
 import db_core
+from utils import _today_mtl
 
 
 def get_profile() -> dict:
@@ -181,7 +182,7 @@ def get_nutrition_entries_recent(n: int = 7) -> List[dict]:
 
     def _do() -> List[dict]:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=n * 2)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=n * 2)).isoformat()
         resp = (
             db_core._client.table("nutrition_entries")
             .select("date, calories, proteines, glucides, lipides")
