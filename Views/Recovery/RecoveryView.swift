@@ -55,7 +55,7 @@ struct RecoveryView: View {
     @State private var toast: ToastMessage? = nil
     @ObservedObject private var watchSync = WatchSyncService.shared
     @State private var isBackfilling = false
-    @State private var backfillDone  = false
+    @AppStorage("hk_backfill_done_date") private var backfillDoneDate = ""
     @State private var stats = RecoveryStats(log: [])
     @State private var hrvAnalysis: HRVAnalysis? = nil
     @State private var dailySummary: DailySummary? = nil
@@ -64,9 +64,19 @@ struct RecoveryView: View {
 
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
+    private static let isoFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+
     private var entriesMissingHK: [RecoveryEntry] {
-        log.filter { $0.restingHr == nil || $0.hrv == nil }
+        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        return log.filter {
+            guard let d = $0.date, let date = Self.isoFmt.date(from: d) else { return false }
+            return date >= cutoff && ($0.restingHr == nil || $0.hrv == nil)
+        }
     }
+
+    private var backfillDone: Bool { backfillDoneDate == todayStr }
 
     private var alreadyLoggedToday: Bool {
         log.contains { $0.date == todayStr }
@@ -422,8 +432,8 @@ struct RecoveryView: View {
 
         await loadData()
         await MainActor.run {
-            isBackfilling = false
-            backfillDone  = true
+            isBackfilling   = false
+            backfillDoneDate = todayStr
             if updated > 0 {
                 toast = ToastMessage(
                     message: "\(updated) entrée\(updated > 1 ? "s" : "") mise\(updated > 1 ? "s" : "") à jour depuis Santé",
