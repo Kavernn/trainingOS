@@ -5,6 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request
 from datetime import date
 import logging
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos.war_room")
 war_room_bp = Blueprint("war_room", __name__)
@@ -59,7 +60,7 @@ def api_wr_battle_upsert():
     if status not in ("victory", "lost", "active"):
         return jsonify({"error": "status must be victory | lost | active"}), 400
 
-    battle_date = data.get("date") or date.today().isoformat()
+    battle_date = data.get("date") or _today_mtl()
     payload = {
         "date":   battle_date,
         "status": status,
@@ -101,7 +102,7 @@ def api_wr_trigger_log():
     yielded   = bool(data.get("yielded", False))
 
     payload = {
-        "date":         data.get("date") or date.today().isoformat(),
+        "date":         data.get("date") or _today_mtl(),
         "context":      context,
         "context_note": (data.get("context_note") or "").strip() or None,
         "intensity":    intensity,

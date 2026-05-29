@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
 from datetime import timedelta
 import logging
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos")
 
@@ -58,7 +59,7 @@ def api_body_projection():
         series = sorted(series, key=lambda x: x["date"])
         if len(series) < 5:
             return None
-        today = date_cls.today()
+        today = date_cls.fromisoformat(_today_mtl())
         def _days(d: str) -> int:
             try:
                 return (date_cls.fromisoformat(d) - date_cls(2026, 1, 1)).days
@@ -98,7 +99,7 @@ def api_body_projection():
         days_needed = (target - cur) / slope
         if days_needed < 0:
             return None
-        arrival = (date_cls.today() + timedelta(days=int(days_needed))).isoformat()
+        arrival = (date_cls.fromisoformat(_today_mtl()) + timedelta(days=int(days_needed))).isoformat()
         return arrival
 
     bf_reg     = _linreg(bf_series)

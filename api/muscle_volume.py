@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 import db
+from utils import _today_mtl
 
 VOLUME_RANGES = {
     "optimal_min": 10,
@@ -36,7 +37,7 @@ def compute_weekly_hard_sets(days: int = 7) -> dict:
 
     Un "hard set" = tout set logué où RPE ≥ 7 (ou RPE absent → compté conservative).
     """
-    cutoff = (date.today() - timedelta(days=days)).isoformat()
+    cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
     logs   = db.get_exercise_logs_since(cutoff)
 
     counts: dict[str, int] = {}

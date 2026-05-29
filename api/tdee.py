@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from typing import Optional
 import db
+from utils import _today_mtl
 
 _LBS_TO_KG = 0.453592
 
@@ -42,7 +43,7 @@ def _sessions_per_week() -> float:
     """Séances complétées sur les 28 derniers jours → fréquence hebdo."""
     from datetime import date, timedelta
     sessions = db.get_workout_sessions(limit=28) or []
-    cutoff   = (date.today() - timedelta(days=28)).isoformat()
+    cutoff   = (date.fromisoformat(_today_mtl()) - timedelta(days=28)).isoformat()
     recent   = [s for s in sessions if (s.get("date") or "") >= cutoff and s.get("completed")]
     return len(recent) / 4.0
 

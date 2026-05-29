@@ -3,17 +3,9 @@ from __future__ import annotations
 import logging
 import math
 from datetime import date, timedelta
+from utils import _today_mtl_date as _today
 
 logger = logging.getLogger("trainingos.spirit")
-
-
-def _today() -> date:
-    try:
-        from zoneinfo import ZoneInfo
-        from datetime import datetime
-        return datetime.now(ZoneInfo("America/Montreal")).date()
-    except Exception:
-        return date.today()
 
 
 # ── Spirit Phoenix axis ───────────────────────────────────────────────────────

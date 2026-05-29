@@ -5,6 +5,7 @@ import db_core
 from db_body import get_body_weight_logs, get_recovery_logs, get_cardio_logs
 from db_sessions import get_workout_sessions, get_all_exercise_history
 from db_profile import get_nutrition_entries_recent
+from utils import _today_mtl
 
 
 def get_mood_logs(days: int = 0, limit: int = 0) -> List[dict]:
@@ -16,7 +17,7 @@ def get_mood_logs(days: int = 0, limit: int = 0) -> List[dict]:
         from datetime import date as _date, timedelta
         q = db_core._client.table("mood_logs").select("*").order("date", desc=True)
         if days:
-            cutoff = (_date.today() - timedelta(days=days)).isoformat()
+            cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
             q = q.gte("date", cutoff)
         if limit:
             q = q.limit(limit)
@@ -306,7 +307,7 @@ def get_breathwork_sessions(days: int = 30) -> List[dict]:
 
     def _do() -> List[dict]:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         resp = (
             db_core._client.table("breathwork_sessions")
             .select("*")
@@ -429,7 +430,7 @@ def get_self_care_log(days: int = 90) -> Dict[str, List[str]]:
 
     def _do() -> Dict[str, List[str]]:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         resp = (
             db_core._client.table("self_care_logs")
             .select("date, habit_id")
@@ -689,7 +690,7 @@ def get_sessions_for_correlations(days: int = 60) -> Dict[str, dict]:
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return {}
     from datetime import date as _date, timedelta
-    cutoff = (_date.today() - timedelta(days=days)).isoformat()
+    cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
     result: Dict[str, dict] = {}
 
     def _do_sessions() -> None:
@@ -863,7 +864,7 @@ def compute_smart_goal_current(goal_type: str) -> Optional[float]:
 
         if goal_type == "training_frequency":
             from datetime import date as _date, timedelta
-            cutoff   = (_date.today() - timedelta(days=7)).isoformat()
+            cutoff   = (_date.fromisoformat(_today_mtl()) - timedelta(days=7)).isoformat()
             sessions = get_workout_sessions(limit=50)
             return float(sum(1 for s in sessions if (s.get("date") or "") >= cutoff))
 
@@ -877,7 +878,7 @@ def compute_smart_goal_current(goal_type: str) -> Optional[float]:
             from datetime import date as _date, timedelta
             entries = get_nutrition_entries_recent(365)
             dates   = {e["date"] for e in entries if e.get("date")}
-            streak, d = 0, _date.today()
+            streak, d = 0, _date.fromisoformat(_today_mtl())
             while d.isoformat() in dates:
                 streak += 1
                 d -= timedelta(days=1)
@@ -907,7 +908,7 @@ def compute_smart_goal_current(goal_type: str) -> Optional[float]:
 
         if goal_type == "monthly_distance":
             from datetime import date as _date, timedelta
-            cutoff  = (_date.today() - timedelta(days=30)).isoformat()
+            cutoff  = (_date.fromisoformat(_today_mtl()) - timedelta(days=30)).isoformat()
             logs    = get_cardio_logs(limit=200)
             total   = sum(float(e.get("distance_km") or 0) for e in logs
                           if (e.get("date") or "") >= cutoff)
@@ -931,7 +932,7 @@ def compute_smart_goal_current(goal_type: str) -> Optional[float]:
             from datetime import date as _date, timedelta
             recs  = get_sleep_records(limit=365)
             dates = {r["date"][:10] for r in recs if r.get("date")}
-            streak, d = 0, _date.today()
+            streak, d = 0, _date.fromisoformat(_today_mtl())
             while d.isoformat() in dates:
                 streak += 1
                 d -= timedelta(days=1)

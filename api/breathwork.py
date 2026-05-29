@@ -15,6 +15,7 @@ from datetime import date as date_cls, timedelta
 import uuid
 
 import db
+from utils import _today_mtl
 import db_wellness as _db_wellness
 
 # ── Techniques disponibles ────────────────────────────────────────────────────
@@ -95,13 +96,13 @@ def log_session(technique_id: str, duration_sec: int, cycles: int) -> dict:
     technique_name = _TECHNIQUE_MAP[technique_id]["name"]
     session = {
         "id":           str(uuid.uuid4()),
-        "date":         date_cls.today().isoformat(),
+        "date":         _today_mtl(),
         "technique_id": technique_id,
         "technique":    technique_name,
         "duration_sec": duration_sec,
         "duration_min": duration_sec // 60,
         "cycles":       cycles,
-        "logged_at":    date_cls.today().isoformat(),
+        "logged_at":    _today_mtl(),
     }
     db.insert_breathwork_session(session)
     return session

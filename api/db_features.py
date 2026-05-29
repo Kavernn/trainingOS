@@ -1,5 +1,6 @@
 from __future__ import annotations
 from datetime import datetime, timezone, date as _date, timedelta as _td
+from utils import _today_mtl
 from typing import Dict, List, Optional
 import db_core
 from db_profile import get_profile, update_profile
@@ -95,7 +96,7 @@ def get_ritual_demons() -> List[dict]:
         return []
 
     def _do() -> List[dict]:
-        cutoff = (_date.today() - _td(days=180)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - _td(days=180)).isoformat()
         resp = (
             db_core._client.table("daily_ritual")
             .select("date, intention, carry_count, carried_from, truth")
@@ -1085,7 +1086,7 @@ def get_prev_season_had_reset(current_season_id: str) -> bool:
 def get_spirit_metadata(days: int = 7) -> dict:
     """Return Spirit pillar metadata for the last N days.
     Counts and dates only — journal content is never queried or returned."""
-    today = _date.today()
+    today = _date.fromisoformat(_today_mtl())
     cutoff = (today - _td(days=days)).isoformat()
     result: dict = {
         "breathwork_count": 0,
@@ -1144,7 +1145,7 @@ def get_war_room_coach_context() -> Optional[dict]:
     try:
         config = get_war_room_config() or {}
         battles = get_war_room_battles(limit=180)
-        cutoff = (_date.today() - _td(days=90)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - _td(days=90)).isoformat()
         recent = [b for b in battles if b.get("date", "") >= cutoff]
         victories = sum(1 for b in recent if b.get("status") == "victory")
         total = len(recent)
@@ -1153,7 +1154,7 @@ def get_war_room_coach_context() -> Optional[dict]:
         days_since_reset: Optional[int] = None
         if last_reset_date:
             try:
-                days_since_reset = (_date.today() - _date.fromisoformat(last_reset_date)).days
+                days_since_reset = (_date.fromisoformat(_today_mtl()) - _date.fromisoformat(last_reset_date)).days
             except Exception:
                 pass
         return {

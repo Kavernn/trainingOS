@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 import logging
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos")
 
@@ -94,7 +95,7 @@ def api_peak_prediction():
         slope = num / den if den != 0 else 0
     else:
         slope = 0
-    today = date_cls.today()
+    today = date_cls.fromisoformat(_today_mtl())
 
     def level(s):
         if s >= 65:   return "go"
@@ -127,7 +128,7 @@ def api_hrv_baseline():
     from datetime import date as date_cls
 
     rec_log = _db.get_recovery_logs(limit=60)
-    today   = date_cls.today().isoformat()
+    today   = date_cls.fromisoformat(_today_mtl()).isoformat()
 
     hrv_vals = []
     today_hrv = None
@@ -185,7 +186,7 @@ def api_hrv_analysis():
     from hrv_engine import compute_hrv_analysis
 
     rows     = _db.get_recovery_logs(limit=95)
-    analysis = compute_hrv_analysis(rows, date_cls.today().isoformat())
+    analysis = compute_hrv_analysis(rows, date_cls.fromisoformat(_today_mtl()).isoformat())
     return jsonify(analysis)
 
 
@@ -195,15 +196,15 @@ def api_overtraining_risk():
     import db as _db
     from datetime import date as date_cls
 
-    today  = date_cls.today().isoformat()
+    today  = date_cls.fromisoformat(_today_mtl()).isoformat()
     risk   = 0
     flags  = []
     detail = {}
 
     # 1. RPE trend (7j vs 21j)
     sessions_raw = _db.get_workout_sessions(limit=30)
-    rpe_7  = [s["rpe"] for s in sessions_raw if s.get("rpe") and str(s.get("date","")) >= (date_cls.today() - timedelta(days=7)).isoformat()]
-    rpe_21 = [s["rpe"] for s in sessions_raw if s.get("rpe") and str(s.get("date","")) >= (date_cls.today() - timedelta(days=21)).isoformat()]
+    rpe_7  = [s["rpe"] for s in sessions_raw if s.get("rpe") and str(s.get("date","")) >= (date_cls.fromisoformat(_today_mtl()) - timedelta(days=7)).isoformat()]
+    rpe_21 = [s["rpe"] for s in sessions_raw if s.get("rpe") and str(s.get("date","")) >= (date_cls.fromisoformat(_today_mtl()) - timedelta(days=21)).isoformat()]
     if len(rpe_7) >= 2 and len(rpe_21) >= 3:
         avg7  = sum(rpe_7)  / len(rpe_7)
         avg21 = sum(rpe_21) / len(rpe_21)
@@ -341,7 +342,7 @@ def api_mesocycle_status():
 
     from datetime import date as date_cls
     if last_deload_date:
-        weeks_since = (date_cls.today() - date_cls.fromisoformat(last_deload_date)).days // 7
+        weeks_since = (date_cls.fromisoformat(_today_mtl()) - date_cls.fromisoformat(last_deload_date)).days // 7
     else:
         weeks_since = current_week % 8
 
@@ -349,7 +350,7 @@ def api_mesocycle_status():
         active_prog = _db.get_active_program()
         if active_prog and active_prog.get("cycle_start_date"):
             cycle_start = date_cls.fromisoformat(str(active_prog["cycle_start_date"])[:10])
-            weeks_since = max(0, (date_cls.today() - cycle_start).days // 7)
+            weeks_since = max(0, (date_cls.fromisoformat(_today_mtl()) - cycle_start).days // 7)
     except Exception:
         pass
 
@@ -456,7 +457,7 @@ def api_stats_intensity():
     import db as _db
     from datetime import date, timedelta
 
-    cutoff = (date.today() - timedelta(days=7)).isoformat()
+    cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=7)).isoformat()
 
     one_rms: dict[str, float] = {}
     for r in _db.get_current_1rm_estimates():

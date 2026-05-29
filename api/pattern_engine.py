@@ -21,6 +21,7 @@ from collections import defaultdict
 from datetime import date as date_cls, timedelta, timezone, datetime
 
 import db
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos.pattern_engine")
 
@@ -104,7 +105,7 @@ def _entry_volume(e: dict) -> float | None:
 # ── Data loaders ──────────────────────────────────────────────────────────────
 
 def _load_context(days: int = 90) -> dict[str, dict]:
-    today  = date_cls.today()
+    today  = date_cls.fromisoformat(_today_mtl())
     window = {(today - timedelta(days=i)).isoformat() for i in range(days)}
     ctx: dict[str, dict] = {d: {} for d in window}
 
@@ -207,7 +208,7 @@ def _load_context(days: int = 90) -> dict[str, dict]:
 
 def _load_ex_by_date(days: int = 90) -> dict[str, dict[str, float]]:
     """Return {exercise: {date: max_volume}} for last N days."""
-    cutoff  = (date_cls.today() - timedelta(days=days)).isoformat()
+    cutoff  = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
     ex_hist = db.get_all_exercise_history() or {}
     result: dict[str, dict[str, float]] = defaultdict(dict)
     for name, entries in ex_hist.items():
@@ -879,8 +880,8 @@ def get_daily_pattern() -> dict:
     shown_log    = state.get("shown_log", [])
     shown_ids    = {e["id"] for e in shown_log}
     pinned_set   = set(state.get("pinned", []))
-    today        = date_cls.today().isoformat()
-    cutoff_45    = (date_cls.today() - timedelta(days=45)).isoformat()
+    today        = date_cls.fromisoformat(_today_mtl()).isoformat()
+    cutoff_45    = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=45)).isoformat()
 
     # War Room patterns are sandboxed — exclude from daily rotation
     eligible = [p for p in all_patterns if not p.get("war_room")]

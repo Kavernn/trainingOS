@@ -102,7 +102,7 @@ def get_current_week() -> int:
         start       = date.fromisoformat(created_str)
     except Exception:
         start = date(2026, 3, 3)
-    delta = date.today() - start
+    delta = date.fromisoformat(_today_mtl()) - start
     return max(1, (delta.days // 7) + 1)
 
 
@@ -118,7 +118,7 @@ def get_mesocycle_info() -> dict:
     except Exception:
         start = date(2026, 4, 25)
 
-    week = max(1, ((date.today() - start).days // 7) + 1)
+    week = max(1, ((date.fromisoformat(_today_mtl()) - start).days // 7) + 1)
 
     if week <= 2:
         phase, phase_label, rpe_target = "Mise en place", "S1–S2", "7"
@@ -330,7 +330,7 @@ def _calc_weekly_sets_per_muscle(weights: dict, inventory: dict) -> dict[str, in
     """Count direct hard sets per muscle group logged in the last 7 days."""
     from datetime import date, timedelta
     from progression import parse_reps
-    cutoff = (date.today() - timedelta(days=7)).isoformat()
+    cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=7)).isoformat()
     weekly: dict[str, int] = {}
     for ex_name, ex_data in weights.items():
         raw_muscles = (inventory.get(ex_name) or {}).get("muscles") or []

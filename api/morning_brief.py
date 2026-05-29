@@ -34,7 +34,8 @@ def get_morning_brief():
     try:
         from datetime import date, timedelta
         import db as _db
-        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        from utils import _today_mtl as _tmtl
+        yesterday = (date.fromisoformat(_tmtl()) - timedelta(days=1)).isoformat()
         spirit = _db.get_spirit_metadata(days=2)
         breathwork_yesterday = yesterday in spirit.get("days_with_breathwork", [])
         meditation_yesterday = yesterday in spirit.get("days_with_meditation", [])

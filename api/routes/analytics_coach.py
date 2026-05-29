@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 import logging
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos")
 
@@ -188,7 +189,7 @@ def api_smart_day():
     import db as _db
     from datetime import date as date_cls, timedelta
 
-    today = date_cls.today().isoformat()
+    today = date_cls.fromisoformat(_today_mtl()).isoformat()
     summary      = get_daily_health_summary(today)
     recovery     = summary.get("recovery_score")      # 0–10
     hrv          = summary.get("hrv")
@@ -203,7 +204,7 @@ def api_smart_day():
         if not d:
             continue
         try:
-            delta = (date_cls.today() - date_cls.fromisoformat(str(d))).days
+            delta = (date_cls.fromisoformat(_today_mtl()) - date_cls.fromisoformat(str(d))).days
         except ValueError:
             continue
         if sname not in sessions_by_type or delta < sessions_by_type[sname]:
@@ -280,7 +281,7 @@ def api_weekly_report():
     import db as _db
     from datetime import date as date_cls, timedelta
 
-    today = date_cls.today()
+    today = date_cls.fromisoformat(_today_mtl())
     week_start = (today - timedelta(days=6)).isoformat()
 
     sessions_raw = _db.get_workout_sessions(limit=30)
@@ -507,7 +508,7 @@ def api_adherence():
     import db as _db
     from datetime import date
 
-    today        = date.today()
+    today        = date.fromisoformat(_today_mtl())
     month_prefix = today.strftime("%Y-%m")
     first_day    = today.replace(day=1)
     days_elapsed = (today - first_day).days + 1

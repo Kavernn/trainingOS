@@ -5,6 +5,7 @@ import logging
 import uuid
 from calendar import monthrange
 from datetime import datetime, timezone, date as date_cls, timedelta
+from utils import _today_mtl
 from typing import Optional
 
 import db
@@ -56,7 +57,7 @@ def _compute_prs(history: dict) -> dict:
 
 def _compute_weekly_volume(history: dict) -> float:
     """Average weekly volume (kg × reps × sets) over the last 4 weeks."""
-    cutoff = (date_cls.today() - timedelta(weeks=4)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(weeks=4)).isoformat()
     total  = 0.0
     for entries in history.values():
         for e in entries:
@@ -73,7 +74,7 @@ def _compute_weekly_volume(history: dict) -> float:
 def _compute_sessions_per_month() -> float:
     if db._client is None:
         return 0.0
-    cutoff = (date_cls.today() - timedelta(days=30)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=30)).isoformat()
     try:
         resp = (
             db._client.table("workout_sessions")
@@ -107,7 +108,7 @@ def _compute_macros_avg() -> dict:
     carbs = fat = 0.0
     if db._client is not None:
         try:
-            cutoff = (date_cls.today() - timedelta(days=60)).isoformat()
+            cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=60)).isoformat()
             resp   = (
                 db._client.table("nutrition_entries")
                 .select("date, glucides, lipides")

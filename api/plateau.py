@@ -5,6 +5,7 @@ All weights are in lbs.
 from __future__ import annotations
 import logging, math, time
 from datetime import datetime, date, timedelta
+from utils import _today_mtl
 from collections import defaultdict, Counter
 from typing import Optional
 
@@ -57,7 +58,7 @@ def _working_sets(days: int = 28) -> dict[str, list[dict]]:
     Returns {exercise_name: [sessions oldest→newest]} for compound exercises
     in the last N days. One entry per date = max-e1RM set.
     """
-    cutoff = (date.today() - timedelta(days=days)).isoformat()
+    cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
 
     history       = db.get_all_exercise_history()     # {name: [{date, weight, reps}]} newest-first
     exercises_meta = db.get_exercises() or {}
@@ -104,7 +105,7 @@ def _pss_context() -> dict:
     if not records:
         return {"available": False}
 
-    today         = date.today()
+    today         = date.fromisoformat(_today_mtl())
     week_ago      = (today - timedelta(days=7)).isoformat()
     three_wks_ago = (today - timedelta(days=21)).isoformat()
 
@@ -179,7 +180,7 @@ def _body_weight_lbs() -> Optional[float]:
 
 def _score(sessions: list[dict]) -> dict:
     """Compute plateau score 0–100 for one exercise over the last 3 weeks."""
-    cutoff = (date.today() - timedelta(days=21)).isoformat()
+    cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=21)).isoformat()
     window = [s for s in sessions if s["date"] >= cutoff]
 
     if len(window) < 3:
@@ -207,7 +208,7 @@ def _score(sessions: list[dict]) -> dict:
             peak             = e1rms[i]
             last_improvement = window[i]["date"]
 
-    days_since = (date.today() - date.fromisoformat(last_improvement)).days
+    days_since = (date.fromisoformat(_today_mtl()) - date.fromisoformat(last_improvement)).days
     if   days_since > 21: score += 30
     elif days_since > 14: score += 20
     elif days_since > 10: score += 10
@@ -426,13 +427,13 @@ def detect(force: bool = False) -> dict:
         if score < 40:
             continue
 
-        cutoff_21 = (date.today() - timedelta(days=21)).isoformat()
+        cutoff_21 = (date.fromisoformat(_today_mtl()) - timedelta(days=21)).isoformat()
         window    = [s for s in sessions if s["date"] >= cutoff_21]
         if not window:
             continue
 
         first_date    = date.fromisoformat(window[0]["date"])
-        plateau_weeks = max(1, round((date.today() - first_date).days / 7))
+        plateau_weeks = max(1, round((date.fromisoformat(_today_mtl()) - first_date).days / 7))
 
         weight_lbs = info["working_weight_lbs"]
         reps       = info["working_reps"]

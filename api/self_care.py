@@ -19,6 +19,7 @@ from datetime import date as date_cls, timedelta
 import uuid
 
 import db
+from utils import _today_mtl
 
 # ── Habitudes par défaut ──────────────────────────────────────────────────────
 
@@ -69,14 +70,14 @@ def delete_habit(habit_id: str) -> bool:
 
 def log_today(habit_ids: list[str]) -> dict:
     """Remplace le log du jour par la liste fournie."""
-    today     = date_cls.today().isoformat()
+    today     = date_cls.fromisoformat(_today_mtl()).isoformat()
     valid_ids = {h["id"] for h in get_habits()}
     filtered  = [hid for hid in habit_ids if hid in valid_ids]
     db.set_self_care_log_for_date(today, filtered)
     return get_today_status()
 
 def get_today_status() -> dict:
-    today  = date_cls.today().isoformat()
+    today  = date_cls.fromisoformat(_today_mtl()).isoformat()
     habits = get_habits()
     log    = db.get_self_care_log(days=1)
     done   = set(log.get(today, []))
@@ -94,7 +95,7 @@ def get_streaks() -> list[dict]:
     """Calcule le streak courant et max pour chaque habitude."""
     habits = get_habits()
     log    = db.get_self_care_log(days=90)
-    today  = date_cls.today()
+    today  = date_cls.fromisoformat(_today_mtl())
     result = []
 
     for habit in habits:
@@ -137,7 +138,7 @@ def get_completion_rate(days: int = 7) -> float:
     if not habits:
         return 0.0
     log = db.get_self_care_log(days=days)
-    today = date_cls.today()
+    today = date_cls.fromisoformat(_today_mtl())
     totals = []
     for i in range(days):
         key  = (today - timedelta(days=i)).isoformat()

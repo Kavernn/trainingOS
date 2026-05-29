@@ -5,6 +5,7 @@ from datetime import date, timedelta, datetime, timezone
 from typing import Optional
 
 import db
+from utils import _today_mtl_date as _today
 
 logger = logging.getLogger("trainingos.seasons")
 
@@ -18,14 +19,6 @@ ARC_TITLES = {
     "plateau":     "THE PLATEAU",
     "descent":     "THE DESCENT",
 }
-
-
-def _today() -> date:
-    try:
-        from zoneinfo import ZoneInfo
-        return datetime.now(ZoneInfo("America/Montreal")).date()
-    except Exception:
-        return date.today()
 
 
 def _fmt(v, precision: int = 0) -> str:

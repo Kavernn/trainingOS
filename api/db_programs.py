@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 import db_core
 from db_profile import get_profile, update_profile
+from utils import _today_mtl
 
 
 def get_all_programs() -> list:
@@ -98,7 +99,7 @@ def get_session_override() -> dict | None:
         return None
     try:
         override = _json.loads(raw) if isinstance(raw, str) else raw
-        if isinstance(override, dict) and override.get("date") == date.today().isoformat():
+        if isinstance(override, dict) and override.get("date") == _today_mtl():
             return override
     except Exception:
         pass
@@ -114,7 +115,7 @@ def set_session_override(session: str | None) -> bool:
     from datetime import date
     if session is None:
         return update_profile({"session_override": None})
-    payload = {"date": date.today().isoformat(), "session": session}
+    payload = {"date": _today_mtl(), "session": session}
     return update_profile({"session_override": _json.dumps(payload)})
 
 

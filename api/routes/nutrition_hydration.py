@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 import logging
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos")
 nutrition_hydration_bp = Blueprint("nutrition_hydration", __name__)
@@ -22,7 +23,7 @@ def api_hydration():
         weight_kg  = weight_lbs * 0.453592 if weight_lbs else 75.0
         base_ml    = round(weight_kg * 35)
 
-        today    = date.today().isoformat()
+        today    = _today_mtl()
         sessions = _db.get_workout_sessions(limit=7) or []
         had_session = any(
             s.get("date") == today and s.get("completed")

@@ -15,6 +15,7 @@ from datetime import date as date_cls
 import uuid
 
 import db
+from utils import _today_mtl
 
 # ── Prompts quotidiens (rotation par jour de l'année) ─────────────────────────
 
@@ -54,7 +55,7 @@ PROMPTS = [
 
 
 def get_today_prompt() -> str:
-    day_of_year = date_cls.today().timetuple().tm_yday
+    day_of_year = date_cls.fromisoformat(_today_mtl()).timetuple().tm_yday
     return PROMPTS[day_of_year % len(PROMPTS)]
 
 
@@ -66,7 +67,7 @@ def save_entry(prompt: str, content: str, mood_score: int | None = None) -> dict
 
     entry = {
         "id":      str(uuid.uuid4()),
-        "date":    date_cls.today().isoformat(),
+        "date":    date_cls.fromisoformat(_today_mtl()).isoformat(),
         "prompt":  prompt,
         "content": content.strip(),
     }
@@ -99,5 +100,5 @@ def search_entries(query: str) -> list:
 
 def get_entry_count(days: int = 7) -> int:
     from datetime import timedelta
-    cutoff = (date_cls.today() - timedelta(days=days)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
     return db.count_journal_entries_since(cutoff)

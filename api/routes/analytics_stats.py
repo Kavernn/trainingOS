@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 import logging
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos")
 
@@ -95,7 +96,7 @@ def api_macro_gap():
     import db as _db
     from datetime import date as date_cls
 
-    today    = date_cls.today().isoformat()
+    today    = date_cls.fromisoformat(_today_mtl()).isoformat()
     settings = load_nutrition_settings() or {}
     days     = get_recent_days(1)
     today_data = days[0] if days else {}
@@ -159,7 +160,7 @@ def api_nutrition_timing():
     import db as _db
     from datetime import date as date_cls, timedelta
 
-    cutoff = (date_cls.today() - timedelta(days=60)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=60)).isoformat()
     sessions_raw = _db.get_workout_sessions(limit=60)
     session_dates = {str(s.get("date", ""))[:10] for s in sessions_raw if s.get("date")}
 

@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
 import logging, os, json as _json
 from datetime import date
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos")
 
@@ -112,7 +113,7 @@ def api_daily_tip():
     if not api_key:
         return jsonify({"error": "ANTHROPIC_API_KEY manquant"}), 500
 
-    today = date.today().isoformat()
+    today = _today_mtl()
     context = _gather_context()
     logger.info("Coach tip — date=%s context_len=%d", today, len(context))
 

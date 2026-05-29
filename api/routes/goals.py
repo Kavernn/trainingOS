@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 import logging
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos")
 goals_bp = Blueprint("goals", __name__)
@@ -69,7 +70,7 @@ def api_update_body_weight():
         thighs_cm   = float(data.get("thighs_cm")) if data.get("thighs_cm") is not None else None
         hips_cm     = float(data.get("hips_cm"))   if data.get("hips_cm")   is not None else None
 
-        if not target_date or not ("2020-01-01" <= target_date <= _date.today().isoformat()):
+        if not target_date or not ("2020-01-01" <= target_date <= _today_mtl()):
             return jsonify({"error": "date invalide"}), 400
         if not new_poids or not (80 <= new_poids <= 500):
             return jsonify({"error": "Poids invalide (80–500 lbs)"}), 400

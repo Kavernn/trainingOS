@@ -26,6 +26,7 @@ from datetime import date as date_cls, timedelta
 from typing import Optional
 
 import db
+from utils import _today_mtl
 
 # ── Catalogue des paires ──────────────────────────────────────────────────────
 # (id, label, x_key, y_key, lag_days, sf_icon, color)
@@ -65,7 +66,7 @@ MIN_N = 5      # points minimum par paire
 # ── Chargement des données (4 lectures relationnelles) ─────────────────────────
 
 def _load_by_date(days: int) -> dict[str, dict]:
-    today = date_cls.today()
+    today = date_cls.fromisoformat(_today_mtl())
     date_range = {
         (today - timedelta(days=i)).isoformat()
         for i in range(days)
@@ -426,7 +427,7 @@ def _describe(pair_id: str, r: float, xs: list[float], ys: list[float]) -> str:
 
 def get_correlations(days: int = 60) -> dict:
     days = max(14, min(days, 90))
-    today = date_cls.today().isoformat()
+    today = date_cls.fromisoformat(_today_mtl()).isoformat()
 
     by_date = _load_by_date(days)
     data_points = sum(1 for v in by_date.values() if v)

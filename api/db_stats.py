@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 import db_core
 from db_body import get_recovery_logs, get_body_weight_logs
 from db_sessions import get_workout_sessions
+from utils import _today_mtl
 from db_wellness import (
     get_mood_logs, get_pss_records, get_sleep_records,
     get_self_care_habits, get_self_care_log, get_sessions_for_correlations,
@@ -18,7 +19,7 @@ def get_weekly_tonnage(weeks: int = 8) -> list[dict]:
 
     def _do() -> list[dict]:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(weeks=weeks)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(weeks=weeks)).isoformat()
         resp = (
             db_core._client.table("v_weekly_volume")
             .select("week_start, total_volume, session_count")
@@ -54,7 +55,7 @@ def get_pattern_volume(days: int = 28) -> dict:
         from weights import load_weights
         from inventory import load_inventory
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         weights = load_weights()
         inventory = load_inventory() or {}
         pattern_vol: dict[str, float] = {}
@@ -87,7 +88,7 @@ def get_programme_compliance(weeks: int = 8) -> list[dict]:
             planned_per_week = 4
 
         # Completed sessions in last N weeks
-        cutoff = (_date.today() - timedelta(weeks=weeks)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(weeks=weeks)).isoformat()
         sess_resp = (
             db_core._client.table("workout_sessions")
             .select("date, completed")
@@ -105,7 +106,7 @@ def get_programme_compliance(weeks: int = 8) -> list[dict]:
                 continue
             week_counts[monday] = week_counts.get(monday, 0) + 1
 
-        today = _date.today()
+        today = _date.fromisoformat(_today_mtl())
         result = []
         for w in range(weeks):
             monday = today - timedelta(days=today.weekday()) - timedelta(weeks=weeks - 1 - w)
@@ -132,7 +133,7 @@ def get_one_rm_trend(days: int = 84) -> dict:
         from weights import load_weights
         from inventory import load_inventory
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         weights = load_weights()
         inventory = load_inventory() or {}
         compound_patterns = {"squat", "hinge", "push", "pull"}
@@ -166,7 +167,7 @@ def get_hiit_completion(weeks: int = 8) -> list[dict]:
 
     def _do() -> list[dict]:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(weeks=weeks)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(weeks=weeks)).isoformat()
         resp = (
             db_core._client.table("hiit_logs")
             .select("date, session_type, rounds_planned, rounds_completed, rpe")
@@ -208,7 +209,7 @@ def get_nutrition_daily_full(days: int = 60) -> list[dict]:
 
     def _do() -> list[dict]:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         resp = (
             db_core._client.table("nutrition_entries")
             .select("date, calories, proteines, glucides, lipides")
@@ -289,7 +290,7 @@ def get_protein_weight_ratio(days: int = 60) -> list[dict]:
     """
     try:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         nutr_days = get_nutrition_daily_full(days)
         bw_logs = get_body_weight_logs(limit=200)
         bw_map = {str(e.get("date", ""))[:10]: float(e.get("weight") or 0) for e in bw_logs if e.get("weight")}
@@ -312,7 +313,7 @@ def get_mood_trend(days: int = 60) -> list[dict]:
     """Return mood score + life stress score per day for the last N days."""
     try:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         mood_logs = get_mood_logs(days=days)
         mood_map: dict[str, int] = {
             str(m.get("date", ""))[:10]: int(m["score"])
@@ -350,7 +351,7 @@ def _get_session_volume_map(days: int = 200) -> dict[str, float]:
         return {}
     try:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         resp = (
             db_core._client.table("v_session_volume")
             .select("date, total_volume")
@@ -511,7 +512,7 @@ def get_self_care_compliance(days: int = 30) -> dict:
     """Return self-care compliance rate and daily counts for the last N days."""
     try:
         from datetime import date as _date, timedelta
-        cutoff = (_date.today() - timedelta(days=days)).isoformat()
+        cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         sc_log = get_self_care_log(days=days)
         habits = get_self_care_habits()
         total_habits = len(habits)
@@ -544,7 +545,7 @@ def get_self_care_streaks_computed() -> list[dict]:
         for date_str, habit_ids in sc_log.items():
             for hid in habit_ids:
                 habit_dates.setdefault(hid, set()).add(date_str)
-        today = _date.today()
+        today = _date.fromisoformat(_today_mtl())
         result = []
         for h in habits:
             hid = h.get("id", "")
@@ -630,7 +631,7 @@ def get_sessions_with_energy_pre(days: int = 90) -> list[dict]:
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
     from datetime import date as _date, timedelta
-    cutoff = (_date.today() - timedelta(days=days)).isoformat()
+    cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
 
     def _do() -> list[dict]:
         resp = (
@@ -678,7 +679,7 @@ def get_exercise_logs_with_category(days: int = 90) -> list[dict]:
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
     from datetime import date as _date, timedelta
-    cutoff = (_date.today() - timedelta(days=days)).isoformat()
+    cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
 
     def _do() -> list[dict]:
         resp = (

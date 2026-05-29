@@ -5,6 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request
 from datetime import date
 import logging
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos.spirit")
 spirit_bp = Blueprint("spirit", __name__)
@@ -59,7 +60,7 @@ def api_spirit_breathwork_log():
 
     payload = {
         "protocol":       protocol,
-        "date":           date.today().isoformat(),
+        "date":           _today_mtl(),
         "duration_sec":   max(0, int(data.get("duration_sec", 0))),
         "cycles":         max(0, int(data.get("cycles", 0))),
         "triggered_from": triggered_from,
@@ -121,7 +122,7 @@ def api_spirit_journal_save():
     import db
     data = request.get_json(silent=True) or {}
     payload = {
-        "date":         data.get("date") or date.today().isoformat(),
+        "date":         data.get("date") or _today_mtl(),
         "grateful_for": (data.get("grateful_for") or "").strip()[:80] or None,
         "conquered":    (data.get("conquered")    or "").strip()[:80] or None,
         "haunting":     (data.get("haunting")     or "").strip()[:80] or None,

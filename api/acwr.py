@@ -24,6 +24,7 @@ from datetime import date as date_cls, timedelta
 from typing import Optional
 
 import db
+from utils import _today_mtl
 
 
 # ─────────────────────────────────────────────────────────────
@@ -74,7 +75,7 @@ def _fetch_sessions(days: int = FETCH_DAYS) -> list[dict]:
     if db._client is None:
         return []
     try:
-        cutoff = (date_cls.today() - timedelta(days=days)).isoformat()
+        cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
         resp = (
             db._client.table("workout_sessions")
             .select("date, rpe, duration_min")
@@ -141,7 +142,7 @@ def _run_ewma(daily: dict[str, float]) -> list[dict]:
 
     # Itère sur tous les jours calendaires (repos = 0)
     start = date_cls.fromisoformat(sorted_dates[0])
-    end   = date_cls.today()
+    end   = date_cls.fromisoformat(_today_mtl())
     current = start
 
     while current <= end:

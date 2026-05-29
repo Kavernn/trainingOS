@@ -302,7 +302,7 @@ def get_hydration_today() -> int:
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return 0
     from datetime import date
-    today = date.today().isoformat()
+    today = _today_mtl()
 
     def _do() -> int:
         resp = (
@@ -334,7 +334,7 @@ def log_hydration(amount_ml: int) -> None:
     def _do() -> None:
         from datetime import date
         db_core._client.table("hydration_logs").insert({
-            "date":      date.today().isoformat(),
+            "date":      _today_mtl(),
             "amount_ml": amount_ml,
         }).execute()
 

@@ -6,6 +6,7 @@ import json
 import logging
 import math
 from datetime import date as date_cls, datetime, timedelta, timezone
+from utils import _today_mtl
 from typing import Optional
 
 import db
@@ -50,7 +51,7 @@ def _classify_ppl(category: str) -> str:
 
 
 def _compute_ppl(history: dict, ex_info: dict) -> dict:
-    cutoff = (date_cls.today() - timedelta(days=90)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat()
     counts = {"push": 0, "pull": 0, "legs": 0, "core": 0, "other": 0}
 
     for name, entries in history.items():
@@ -96,7 +97,7 @@ def _compute_ppl(history: dict, ex_info: dict) -> dict:
 # ── 2. Intensity Profile ──────────────────────────────────────────────────────
 
 def _compute_intensity(history: dict, ex_info: dict) -> dict:
-    cutoff = (date_cls.today() - timedelta(days=90)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat()
     zone_counts = {"strength": 0, "power": 0, "hypertrophy": 0, "endurance": 0, "conditioning": 0}
     compound_sets = isolation_sets = 0
     weighted: list[float] = []
@@ -162,7 +163,7 @@ def _compute_intensity(history: dict, ex_info: dict) -> dict:
 def _compute_consistency() -> dict:
     if db._client is None:
         return {}
-    cutoff = (date_cls.today() - timedelta(days=90)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat()
     try:
         resp  = db._client.table("workout_sessions").select("date").gte("date", cutoff).order("date").execute()
         rows  = resp.data or []
@@ -178,7 +179,7 @@ def _compute_consistency() -> dict:
 
     spw = round(len(dates) / 13.0, 1)
 
-    today = date_cls.today()
+    today = date_cls.fromisoformat(_today_mtl())
     weekly: dict[int, int] = {w: 0 for w in range(13)}
     for d_str in dates:
         w = min(12, (today - date_cls.fromisoformat(d_str)).days // 7)
@@ -236,7 +237,7 @@ def _compute_consistency() -> dict:
 def _compute_recovery(intensity_score: int) -> dict:
     if db._client is None:
         return {}
-    cutoff = (date_cls.today() - timedelta(days=90)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat()
     try:
         resp  = db._client.table("workout_sessions").select("date").gte("date", cutoff).order("date").execute()
         dates = sorted(set(r["date"] for r in (resp.data or []) if r.get("date")))
@@ -272,7 +273,7 @@ def _compute_recovery(intensity_score: int) -> dict:
 # ── 5. Signature Lifts ────────────────────────────────────────────────────────
 
 def _compute_signature_lifts(history: dict) -> list:
-    cutoff_30 = (date_cls.today() - timedelta(days=30)).isoformat()
+    cutoff_30 = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=30)).isoformat()
     lifts: dict[str, dict] = {}
 
     for name, entries in history.items():
@@ -373,8 +374,8 @@ def compute() -> dict:
         seed        = _dna_seed(ppl, intensity, consistency, recovery)
 
         result = {
-            "period":          {"from": (date_cls.today() - timedelta(days=90)).isoformat(),
-                                "to":   date_cls.today().isoformat()},
+            "period":          {"from": (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat(),
+                                "to":   date_cls.fromisoformat(_today_mtl()).isoformat()},
             "archetype":       arch,
             "ppl":             ppl,
             "intensity":       intensity,

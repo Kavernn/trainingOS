@@ -2,6 +2,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request
 import db
 import season_engine
+from utils import _today_mtl
 
 seasons_bp = Blueprint("seasons", __name__)
 
@@ -67,7 +68,7 @@ def get_seasons_comparison():
     # ── Current season — live stats ───────────────────────────────────────
     # Avg weekly volume
     if season_start:
-        weeks_active = max(1, (date.today() - date.fromisoformat(season_start)).days / 7)
+        weeks_active = max(1, (date.fromisoformat(_today_mtl()) - date.fromisoformat(season_start)).days / 7)
     else:
         weeks_active = 1
     tonnage_rows = _db.get_weekly_tonnage(min(int(weeks_active) + 2, 52))

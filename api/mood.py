@@ -62,12 +62,12 @@ def save_mood_entry(
     # Contexte PSS du jour si disponible
     pss = get_latest_pss_score("full") or get_latest_pss_score("short")
     pss_score_linked = None
-    if pss and pss.get("date") == date_cls.today().isoformat():
+    if pss and pss.get("date") == _today_mtl():
         pss_score_linked = pss.get("score")
 
     entry = {
         "id":               str(uuid.uuid4()),
-        "date":             date_cls.today().isoformat(),
+        "date":             _today_mtl(),
         "score":            score,
         "emotions":         emotions,
         "notes":            notes,

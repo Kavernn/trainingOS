@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from datetime import date
+from utils import _today_mtl
 
 wellness_recovery_bp = Blueprint("wellness_recovery", __name__)
 
@@ -15,7 +16,7 @@ def api_log_cardio():
     import db as _db
     data = request.get_json(silent=True) or {}
     entry = {
-        "date":             data.get("date", date.today().isoformat()),
+        "date":             data.get("date", _today_mtl()),
         "type":             data.get("type", "course"),
         "duration_min":     data.get("duration_min"),
         "distance_km":      data.get("distance_km"),
@@ -58,7 +59,7 @@ def api_log_recovery():
     fatigue_val    = data.get("fatigue_perceived")
     energy_pre_val = data.get("energy_pre")
     entry = {
-        "date":              data.get("date", date.today().isoformat()),
+        "date":              data.get("date", _today_mtl()),
         "sleep_hours":       data.get("sleep_hours"),
         "sleep_quality":     data.get("sleep_quality"),
         "resting_hr":        data.get("resting_hr"),
