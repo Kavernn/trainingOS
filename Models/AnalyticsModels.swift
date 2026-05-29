@@ -51,9 +51,9 @@ struct DeloadReport: Codable {
         rpeAvg7j     = try c.decodeIfPresent(Double.self,         forKey: .rpeAvg7j)
     }
 
-    /// 0 = OK, 1 = attention (score ≥ 65), 2 = critique (score ≥ 75 ou deload recommandé)
+    /// 0 = OK, 1 = attention (score ≥ 65), 2 = critique (score ≥ 75 sur 7–30j)
     var fatigueLevel: Int {
-        if recommande || fatigueScore >= 75 { return 2 }
+        if fatigueScore >= 75 { return 2 }
         if fatigueScore >= 65 { return 1 }
         return 0
     }
