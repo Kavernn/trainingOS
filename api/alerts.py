@@ -7,20 +7,12 @@ import logging
 from datetime import date, datetime, timedelta, timezone
 
 import db
-from utils import _today_mtl
+from utils import _today_mtl, _hour_mtl
 from nutrition import load_settings as load_nutrition_settings
 from body_weight import load_body_weight
 from user_profile import load_user_profile
 
 logger = logging.getLogger("trainingos.alerts")
-
-
-def _hour_mtl() -> int:
-    try:
-        from zoneinfo import ZoneInfo
-        return datetime.now(ZoneInfo("America/Montreal")).hour
-    except Exception:
-        return datetime.now().hour
 
 
 def _time_str_mtl() -> str:

@@ -19,7 +19,7 @@ import db
 import math
 import logging
 from datetime import datetime, timezone, timedelta, date
-from utils import _today_mtl as _today_iso
+from utils import _today_mtl as _today_iso, get_nutrition_time_context
 
 logger = logging.getLogger("trainingos.phoenix")
 
@@ -114,6 +114,13 @@ def _fuel_axis(last7: set[str], prior7: set[str]) -> tuple[float, dict]:
 
     cal_target  = float(settings.get("calorie_limit")  or settings.get("limite_calories")    or 2000)
     prot_target = float(settings.get("protein_target") or settings.get("objectif_proteines") or 150)
+
+    # Exclude today from last7 if day is not substantially complete (< 80% of eating window)
+    today = _today_iso()
+    if today in last7:
+        ctx = get_nutrition_time_context(today)
+        if not ctx["is_end_of_day"]:
+            last7 = last7 - {today}
 
     def _adherence(dates: set[str]) -> tuple[float, int]:
         day_entries = [e for e in entries if e.get("date") in dates]

@@ -37,6 +37,65 @@ def _today_mtl_date() -> date:
     """Return today's date as a date object in Montreal timezone."""
     return date.fromisoformat(_today_mtl())
 
+def _hour_mtl() -> int:
+    return _now_mtl().hour
+
+
+def get_nutrition_time_context(target_date: str | None = None) -> dict:
+    """Temporal context for nutrition scoring.
+
+    progress: 0.0 (wake) → 1.0 (nutrition end time, default 21:00)
+    is_too_early:  progress < 0.20 — skip today's data to avoid false deficits
+    is_end_of_day: progress > 0.80 — day is reliable enough to score fully
+    """
+    today = _today_mtl()
+    if target_date and target_date < today:
+        return {"progress": 1.0, "is_too_early": False, "is_end_of_day": True,
+                "wake_time": "07:00", "end_time": "21:00", "current_hour": 23}
+
+    now = _now_mtl()
+    current_minutes = now.hour * 60 + now.minute
+
+    wake_time_str = "07:00"
+    try:
+        import db as _db
+        recs = _db.get_sleep_records(limit=1) or []
+        if recs and recs[0].get("wake_time"):
+            wake_time_str = str(recs[0]["wake_time"])[:5]
+    except Exception:
+        pass
+
+    end_time_str = "21:00"
+    try:
+        import db as _db
+        settings = _db.get_nutrition_settings() or {}
+        if settings.get("nutrition_end_time"):
+            end_time_str = str(settings["nutrition_end_time"])[:5]
+    except Exception:
+        pass
+
+    def _hhmm_to_min(s: str) -> int:
+        try:
+            h, m = s.split(":")
+            return int(h) * 60 + int(m)
+        except Exception:
+            return 0
+
+    wake_min = _hhmm_to_min(wake_time_str)
+    end_min  = _hhmm_to_min(end_time_str)
+    window   = max(1, end_min - wake_min)
+    elapsed  = current_minutes - wake_min
+    progress = max(0.0, min(1.0, elapsed / window))
+
+    return {
+        "progress":      round(progress, 3),
+        "is_too_early":  progress < 0.20,
+        "is_end_of_day": progress > 0.80,
+        "wake_time":     wake_time_str,
+        "end_time":      end_time_str,
+        "current_hour":  now.hour,
+    }
+
 
 def cap_scheme_sets(scheme: str, max_sets: int = 3) -> str:
     """Cap the set count in a scheme string. '4x8' → '3x8', '3x8-12' unchanged."""

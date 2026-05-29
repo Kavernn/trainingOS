@@ -18,7 +18,7 @@ import math, time as _time, logging
 from datetime import date as date_cls, datetime, timedelta, timezone
 
 import db
-from utils import _today_mtl
+from utils import _today_mtl, get_nutrition_time_context
 
 logger = logging.getLogger("trainingos.readiness")
 
@@ -170,6 +170,9 @@ def _score_nutrition() -> tuple[float, dict]:
     today_s = today.isoformat()
     yest_s  = (today - timedelta(days=1)).isoformat()
 
+    ctx          = get_nutrition_time_context(today_s)
+    is_too_early = ctx["is_too_early"]
+
     by_day: dict[str, dict] = {}
     for e in entries:
         d = str(e.get("date") or "")[:10]
@@ -178,8 +181,11 @@ def _score_nutrition() -> tuple[float, dict]:
         by_day[d]["cal"]  += float(e.get("calories",  0) or 0)
         by_day[d]["prot"] += float(e.get("proteines", 0) or 0)
 
+    # Skip today when not enough of the day has elapsed (< 20% of eating window)
+    day_weights = [(yest_s, 1.0)] if is_too_early else [(today_s, 0.65), (yest_s, 0.35)]
+
     pairs = []
-    for d, w in [(today_s, 0.65), (yest_s, 0.35)]:
+    for d, w in day_weights:
         if d not in by_day:
             continue
         cal_r  = by_day[d]["cal"]  / target_cal  if target_cal  > 0 else 0.0
@@ -191,9 +197,11 @@ def _score_nutrition() -> tuple[float, dict]:
 
     score = sum(s * w for s, w in pairs) / sum(w for _, w in pairs)
 
-    if today_s in by_day:
-        deficit = target_cal - by_day[today_s]["cal"]
-        details["cal_deficit"] = int(deficit)
+    if today_s in by_day and not is_too_early:
+        # Scale expected intake by day progress to avoid false deficit early in day
+        expected_cal = target_cal * (ctx["progress"] if not ctx["is_end_of_day"] else 1.0)
+        deficit = expected_cal - by_day[today_s]["cal"]
+        details["cal_deficit"] = int(target_cal - by_day[today_s]["cal"])
         if deficit > 500:
             score = max(0.0, score - 15.0)
         details["cal_pct"]  = int(by_day[today_s]["cal"]  / target_cal  * 100) if target_cal  > 0 else None
