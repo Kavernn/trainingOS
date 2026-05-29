@@ -91,7 +91,7 @@ def save_sleep_entry(
     quality: int,
     notes: str | None = None,
 ) -> dict:
-    today    = date_cls.today().isoformat()
+    today    = _today_local()
     duration = _calc_duration(bedtime, wake_time)
     history  = db.get_sleep_records(limit=6)
 
@@ -208,7 +208,7 @@ def get_stats() -> dict:
     avg_quality  = round(sum(r["quality"] for r in recent7q) / len(recent7q), 1) if recent7q else None
 
     streak = 0
-    day    = date_cls.today()
+    day    = date_cls.fromisoformat(_today_local())
     dates  = {r["date"] for r in records}
     while day.isoformat() in dates:
         streak += 1
