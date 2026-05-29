@@ -46,6 +46,26 @@ struct PhoenixAxes: Codable {
 
 struct PhoenixAxisData: Codable {
     let delta: Double
+    let hasBaseline: Bool
+
+    private struct Details: Codable {
+        let hasBaseline: Bool?
+        enum CodingKeys: String, CodingKey { case hasBaseline = "has_baseline" }
+    }
+
+    init(delta: Double, hasBaseline: Bool = true) {
+        self.delta = delta
+        self.hasBaseline = hasBaseline
+    }
+
+    init(from decoder: Decoder) throws {
+        let c       = try decoder.container(keyedBy: CodingKeys.self)
+        delta       = (try? c.decodeIfPresent(Double.self, forKey: .delta))   ?? 0.0
+        let details = try? c.decodeIfPresent(Details.self, forKey: .details)
+        hasBaseline = details?.hasBaseline ?? true
+    }
+
+    enum CodingKeys: String, CodingKey { case delta, details }
 }
 
 struct PhoenixGuidance: Codable {

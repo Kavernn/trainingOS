@@ -990,11 +990,27 @@ struct IntelligenceView: View {
         // Nutrition today (1 line)
         let nt = dash.nutritionTotals; let ns = dash.nutritionSettings
         var nutr: [String] = []
-        if let cal = nt.calories   { nutr.append("cal:\(String(format: "%.0f", cal))\(ns?.calories.map { "/\(String(format: "%.0f", $0))" } ?? "")") }
-        if let prot = nt.proteines { nutr.append("prot:\(String(format: "%.0f", prot))g\(ns?.proteines.map { "/\(String(format: "%.0f", $0))g" } ?? "")") }
+        if let cal = nt.calories {
+            var s = "cal:\(String(format: "%.0f", cal))"
+            if let target = ns?.calories, target > 0 {
+                s += "/\(String(format: "%.0f", target))(\(Int((cal / target * 100).rounded()))%)"
+            }
+            nutr.append(s)
+        }
+        if let prot = nt.proteines {
+            var s = "prot:\(String(format: "%.0f", prot))g"
+            if let target = ns?.proteines, target > 0 {
+                s += "/\(String(format: "%.0f", target))g(\(Int((prot / target * 100).rounded()))%)"
+            }
+            nutr.append(s)
+        }
         if let carbs = nt.glucides { nutr.append("carbs:\(String(format: "%.0f", carbs))g") }
         if let fat = nt.lipides    { nutr.append("lip:\(String(format: "%.0f", fat))g") }
         if !nutr.isEmpty { lines.append("nutri: \(nutr.joined(separator: " "))") }
+        let logged7 = nutritionHistory.prefix(7).filter { $0.calories > 0 || $0.proteines > 0 }.count
+        if !nutritionHistory.isEmpty {
+            lines.append("nutri-7j: \(logged7)/\(min(nutritionHistory.count, 7)) jours loggués")
+        }
 
         // Mental health (7d summary)
         if let mental = mentalData {

@@ -126,14 +126,19 @@ def _fuel_axis(last7: set[str], prior7: set[str]) -> tuple[float, dict]:
         day_entries = [e for e in entries if e.get("date") in dates]
         if not day_entries:
             return 0.0, 0
-        scores = []
+        daily_totals: dict[str, dict] = {}
         for e in day_entries:
-            cal  = float(e.get("calories") or 0)
-            prot = float(e.get("proteines") or 0)
-            cal_score  = min(1.0, cal  / cal_target)  if cal_target  else 0.0
-            prot_score = min(1.0, prot / prot_target) if prot_target else 0.0
+            day = e.get("date", "")
+            if day not in daily_totals:
+                daily_totals[day] = {"calories": 0.0, "proteines": 0.0}
+            daily_totals[day]["calories"]  += float(e.get("calories")  or 0)
+            daily_totals[day]["proteines"] += float(e.get("proteines") or 0)
+        scores = []
+        for totals in daily_totals.values():
+            cal_score  = min(1.0, totals["calories"]  / cal_target)  if cal_target  else 0.0
+            prot_score = min(1.0, totals["proteines"] / prot_target) if prot_target else 0.0
             scores.append((cal_score + prot_score) / 2)
-        return sum(scores) / len(scores), len(scores)
+        return sum(scores) / len(scores), len(daily_totals)
 
     last_adh,  last_count  = _adherence(last7)
     prior_adh, prior_count = _adherence(prior7)

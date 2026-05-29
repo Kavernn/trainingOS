@@ -49,20 +49,26 @@ def load_settings() -> dict:
             "heavy":    _target("heavy",    2550, 270),
             "rest":     _target("rest",     2100, 160),
         },
+        "nutrition_end_time": str(raw.get("nutrition_end_time") or "")[:5] or None,
     }
 
 
 def save_settings(limite_calories: int, objectif_proteines: int,
                   glucides: float = 235, lipides: float = 75,
-                  day_type_targets: dict | None = None):
+                  day_type_targets: dict | None = None,
+                  nutrition_end_time: str | None = None):
     patch: dict = {
-        "calorie_limit":  limite_calories,
-        "protein_target": objectif_proteines,
-        "glucides":       glucides,
-        "lipides":        lipides,
+        "calorie_limit":   limite_calories,
+        "protein_target":  objectif_proteines,
+        "glucides":        glucides,
+        "lipides":         lipides,
+        "glucides_target": int(glucides),
+        "lipides_target":  int(lipides),
     }
     if day_type_targets is not None:
         patch["day_type_targets"] = day_type_targets
+    if nutrition_end_time is not None:
+        patch["nutrition_end_time"] = nutrition_end_time
     db.update_nutrition_settings(patch)
 
 

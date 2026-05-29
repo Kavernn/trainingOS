@@ -103,19 +103,22 @@ struct AdherenceRingsCard: View {
     let data: AdherenceData
 
     private struct Pillar {
-        let label: String
-        let pct: Int
-        let color: Color
+        let label:   String
+        let pct:     Int
+        let color:   Color
+        let rawDays: Int?
     }
 
     private var pillars: [Pillar] {
         [
-            Pillar(label: "Body",   pct: data.bodyPct,   color: Color(hex: "F5A623")),
-            Pillar(label: "Mind",   pct: data.mindPct,   color: .blue),
-            Pillar(label: "Fuel",   pct: data.fuelPct,   color: .green),
-            Pillar(label: "Spirit", pct: data.spiritPct, color: Color(hex: "9B59B6")),
+            Pillar(label: "Body",        pct: data.bodyPct,   color: Color(hex: "F5A623"), rawDays: nil),
+            Pillar(label: "Mind",        pct: data.mindPct,   color: .blue,                rawDays: nil),
+            Pillar(label: "Consistance", pct: data.fuelPct,   color: .green,               rawDays: data.fuelDays),
+            Pillar(label: "Spirit",      pct: data.spiritPct, color: Color(hex: "9B59B6"), rawDays: nil),
         ]
     }
+
+    @State private var showFuelInfo = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -149,15 +152,32 @@ struct AdherenceRingsCard: View {
                             Text(pillars[i].label)
                                 .font(.system(size: 12)).foregroundColor(.white.opacity(0.85))
                             Spacer()
-                            Text("\(pillars[i].pct)%")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(adherenceColor(pillars[i].pct))
+                            if pillars[i].rawDays == .some(0) {
+                                Text("—")
+                                    .font(.system(size: 12, weight: .bold)).foregroundColor(.gray)
+                            } else {
+                                Text("\(pillars[i].pct)%")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(adherenceColor(pillars[i].pct))
+                            }
+                            if pillars[i].rawDays != nil {
+                                Button { showFuelInfo = true } label: {
+                                    Image(systemName: "info.circle")
+                                        .font(.system(size: 11)).foregroundColor(.secondary)
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
                 }
             }
         }
         .padding(16).glassCard().cornerRadius(14)
+        .alert("Consistance", isPresented: $showFuelInfo) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Jours avec au moins un repas loggué ce mois-ci")
+        }
     }
 
     private func adherenceColor(_ pct: Int) -> Color {

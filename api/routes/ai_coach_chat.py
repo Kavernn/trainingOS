@@ -189,6 +189,25 @@ def api_ai_coach():
         except Exception:
             pass
 
+        nutrition_block = ""
+        try:
+            from readiness import _score_nutrition
+            nutr_score, nutr_details = _score_nutrition()
+            if not nutr_details.get("no_data") and not nutr_details.get("error"):
+                nlines = ["=== NUTRITION — QUALITÉ ==="]
+                cal_pct  = nutr_details.get("cal_pct")
+                prot_pct = nutr_details.get("prot_pct")
+                score_line = f"Score qualité aujourd'hui : {int(nutr_score)}/100"
+                if cal_pct is not None and prot_pct is not None:
+                    score_line += f" (calories : {cal_pct}%, protéines : {prot_pct}%)"
+                nlines.append(score_line)
+                entries7 = _db.get_nutrition_entries_recent(7) or []
+                logged_days = len({e.get("date") for e in entries7 if e.get("date")})
+                nlines.append(f"Régularité 7j : {logged_days}/7 jours loggués")
+                nutrition_block = "\n".join(nlines)
+        except Exception:
+            pass
+
         prog_block = ""
         try:
             from smart_progression import generate_suggestions
@@ -307,6 +326,8 @@ def api_ai_coach():
             system_parts.append(f"DONNÉES ATHLÈTE EN TEMPS RÉEL:\n{context}")
         if acwr_block:
             system_parts.append(acwr_block)
+        if nutrition_block:
+            system_parts.append(nutrition_block)
         if spirit_block:
             system_parts.append(spirit_block)
         if war_room_block:

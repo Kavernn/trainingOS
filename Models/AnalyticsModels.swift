@@ -731,6 +731,7 @@ struct AdherenceData: Codable {
     let spiritPct:   Int
     let daysElapsed: Int
     let period:      String
+    let fuelDays:    Int?
 
     enum CodingKeys: String, CodingKey {
         case bodyPct     = "body_pct"
@@ -739,6 +740,7 @@ struct AdherenceData: Codable {
         case spiritPct   = "spirit_pct"
         case daysElapsed = "days_elapsed"
         case period
+        case fuelDays    = "fuel_days"
     }
 }
 

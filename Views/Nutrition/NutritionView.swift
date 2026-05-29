@@ -76,6 +76,12 @@ struct NutritionView: View {
                             .padding(.horizontal, 16)
                             .appearAnimation(delay: 0.03)
 
+                            if let score = vm.qualityScore, !vm.qualityIsTooEarly, !vm.qualityNoData {
+                                NutritionQualityBadge(score: score)
+                                    .padding(.horizontal, 16)
+                                    .appearAnimation(delay: 0.04)
+                            }
+
                             // Hero calories + macros
                             MacroSummaryCard(totals: vm.totals, settings: effectiveSettings)
                                 .padding(.horizontal, 16)
@@ -2421,6 +2427,7 @@ struct NutritionSettingsSheet: View {
     @State private var lightGluc:    String
     @State private var restCalT:     String
     @State private var restGluc:     String
+    @State private var endTime:      Date
     @State private var isSaving  = false
     @State private var saveError: String? = nil
 
@@ -2439,7 +2446,18 @@ struct NutritionSettingsSheet: View {
         _lightGluc    = State(initialValue: dtt.map { "\(Int($0.light.glucides))" }    ?? "185")
         _restCalT     = State(initialValue: dtt.map { "\(Int($0.rest.calories))" }     ?? "2100")
         _restGluc     = State(initialValue: dtt.map { "\(Int($0.rest.glucides))" }     ?? "160")
+        _endTime      = State(initialValue: {
+            guard let t = settings?.nutritionEndTime,
+                  let d = NutritionSettingsSheet.hmmFormatter.date(from: t) else {
+                return Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: Date())!
+            }
+            return d
+        }())
     }
+
+    private static let hmmFormatter: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
+    }()
 
     private var canSave: Bool {
         [proteines, lipides, heavyCal, heavyGluc, moderateCal, moderateGluc,
@@ -2476,6 +2494,13 @@ struct NutritionSettingsSheet: View {
                         DayTypeRow(icon: "moon.fill",                           color: .blue,
                                    label: "Repos",    calPlaceholder: "2100",   glucPlaceholder: "160",
                                    cal: $restCalT,    gluc: $restGluc)
+                    }
+                    .listRowBackground(Color.appCard)
+
+                    Section(header: Text("FENÊTRE NUTRITIONNELLE")) {
+                        DatePicker("Fin de journée", selection: $endTime, displayedComponents: .hourAndMinute)
+                            .foregroundColor(.white)
+                            .tint(.orange)
                     }
                     .listRowBackground(Color.appCard)
                 }
@@ -2525,7 +2550,8 @@ struct NutritionSettingsSheet: View {
                     "moderate": ["calories": Int(mCal), "glucides": Int(mGluc)],
                     "heavy":    ["calories": Int(hCal), "glucides": Int(hGluc)],
                     "rest":     ["calories": Int(rCal), "glucides": Int(rGluc)],
-                ]
+                ],
+                nutritionEndTime: NutritionSettingsSheet.hmmFormatter.string(from: endTime)
             )
             await onSaved()
             dismiss()
@@ -3272,6 +3298,47 @@ struct BarcodeCameraView: UIViewRepresentable {
             session.stopRunning()
             onDetected?(code)
         }
+    }
+}
+
+private struct NutritionQualityBadge: View {
+    let score: Int
+    @State private var showInfo = false
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(qualityColor)
+                .frame(width: 8, height: 8)
+            Text("Qualité du jour")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.secondary)
+            Spacer()
+            Text("\(score)/100")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(qualityColor)
+            Button { showInfo = true } label: {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+        .alert("Qualité du jour", isPresented: $showInfo) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Calories et protéines vs tes objectifs aujourd'hui")
+        }
+    }
+
+    private var qualityColor: Color {
+        if score > 75 { return .green }
+        if score >= 50 { return .orange }
+        return .red
     }
 }
 

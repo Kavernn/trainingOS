@@ -67,14 +67,16 @@ struct NutritionSettings: Codable {
     let glucides: Double?
     let lipides: Double?
     let dayTypeTargets: DayTypeTargets?
+    let nutritionEndTime: String?
 
     var hasDynamicGoals: Bool { true }
 
     init(calories: Double?, proteines: Double?, glucides: Double?, lipides: Double?,
-         dayTypeTargets: DayTypeTargets? = nil) {
+         dayTypeTargets: DayTypeTargets? = nil, nutritionEndTime: String? = nil) {
         self.calories = calories; self.proteines = proteines
         self.glucides = glucides; self.lipides = lipides
         self.dayTypeTargets = dayTypeTargets
+        self.nutritionEndTime = nutritionEndTime
     }
 
     init(from decoder: Decoder) throws {
@@ -83,9 +85,10 @@ struct NutritionSettings: Codable {
                  ?? (try? c.decode(Double.self, forKey: .init("calories")))
         proteines = (try? c.decode(Double.self, forKey: .init("objectif_proteines")))
                  ?? (try? c.decode(Double.self, forKey: .init("proteines")))
-        glucides       = try? c.decode(Double.self, forKey: .init("glucides"))
-        lipides        = try? c.decode(Double.self, forKey: .init("lipides"))
-        dayTypeTargets = try? c.decode(DayTypeTargets.self, forKey: .init("day_type_targets"))
+        glucides        = try? c.decode(Double.self,        forKey: .init("glucides"))
+        lipides         = try? c.decode(Double.self,        forKey: .init("lipides"))
+        dayTypeTargets  = try? c.decode(DayTypeTargets.self, forKey: .init("day_type_targets"))
+        nutritionEndTime = try? c.decode(String.self,       forKey: .init("nutrition_end_time"))
     }
 }
 
@@ -114,6 +117,23 @@ struct NutritionDataResponse: Decodable {
         case todaySession     = "today_session"
         case effectiveCalories = "effective_calories"
         case effectiveGlucides = "effective_glucides"
+    }
+}
+
+// MARK: - Nutrition Quality Score
+struct NutritionQualityResponse: Decodable {
+    let score: Int
+    let calPct: Int?
+    let protPct: Int?
+    let isTooEarly: Bool
+    let noData: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case score
+        case calPct     = "cal_pct"
+        case protPct    = "prot_pct"
+        case isTooEarly = "is_too_early"
+        case noData     = "no_data"
     }
 }
 

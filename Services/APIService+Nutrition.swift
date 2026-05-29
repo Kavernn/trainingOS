@@ -137,7 +137,8 @@ extension APIService {
 
     func updateNutritionSettings(calories: Double, proteines: Double, glucides: Double,
                                   lipides: Double,
-                                  dayTypeTargets: [String: [String: Int]]? = nil) async throws {
+                                  dayTypeTargets: [String: [String: Int]]? = nil,
+                                  nutritionEndTime: String? = nil) async throws {
         var payload: [String: Any] = [
             "limite_calories":    Int(calories),
             "objectif_proteines": Int(proteines),
@@ -145,6 +146,7 @@ extension APIService {
             "lipides":            lipides,
         ]
         if let dtt = dayTypeTargets { payload["day_type_targets"] = dtt }
+        if let t   = nutritionEndTime { payload["nutrition_end_time"] = t }
         _ = try await offlinePost(endpoint: "/api/nutrition/settings", payload: payload)
     }
 

@@ -78,6 +78,7 @@ def api_nutrition_settings():
         float(data.get("glucides", 235)),
         float(data.get("lipides",  75)),
         day_type_targets=day_type_targets,
+        nutrition_end_time=data.get("nutrition_end_time") or None,
     )
     return jsonify({"success": True})
 
@@ -172,4 +173,19 @@ def api_nutrition_data():
         "today_session":      today_session,
         "effective_calories": effective_calories,
         "effective_glucides": effective_glucides,
+    })
+
+
+@nutrition_bp.route("/api/nutrition/quality", methods=["GET"])
+def api_nutrition_quality():
+    from readiness import _score_nutrition
+    from utils import get_nutrition_time_context, _today_mtl
+    score, details = _score_nutrition()
+    ctx = get_nutrition_time_context(_today_mtl())
+    return jsonify({
+        "score":        int(score),
+        "cal_pct":      details.get("cal_pct"),
+        "prot_pct":     details.get("prot_pct"),
+        "is_too_early": ctx.get("is_too_early", False),
+        "no_data":      details.get("no_data", False),
     })

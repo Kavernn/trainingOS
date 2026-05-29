@@ -367,7 +367,8 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
     """
     all_hist  = db.get_all_exercise_history() or {}
     ex_info   = db.get_exercises_info_bulk(list(all_hist.keys())) if all_hist else {}
-    today_dt  = datetime.now(timezone.utc)
+    from utils import _now_mtl
+    today_dt  = _now_mtl()
 
     cat_last_h: dict[str, float] = {}
     cat_profile: dict[str, str]  = {}

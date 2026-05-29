@@ -148,8 +148,14 @@ struct PhoenixCard: View {
                 NotificationCenter.default.post(name: .navigateToRecovery, object: nil)
             }
             div.frame(height: pillDividerHeight(g?.stress,    g?.nutrition))
-            PhoenixAxisPill(label: "FUEL",   delta: score.axes.nutrition.delta, color: state.scoreColor,
-                            guidance: g?.nutrition) {
+            PhoenixAxisPill(
+                label: "PROGRESSION",
+                delta: score.axes.nutrition.delta,
+                color: state.scoreColor,
+                guidance: g?.nutrition,
+                hasBaseline: score.axes.nutrition.hasBaseline,
+                infoText: "Évolution de ta nutrition sur les 7 derniers jours vs les 7 précédents"
+            ) {
                 NotificationCenter.default.post(name: .navigateToNutrition, object: nil)
             }
             div.frame(height: pillDividerHeight(g?.nutrition, g?.spirit))
@@ -177,7 +183,10 @@ struct PhoenixAxisPill: View {
     let delta: Double
     let color: Color
     var guidance: String? = nil
+    var hasBaseline: Bool = true
+    var infoText: String? = nil
     var onTap: (() -> Void)? = nil
+    @State private var showInfo = false
 
     var body: some View {
         let deltaColor: Color = delta >= 0 ? color : Color(hex: "FF5555")
@@ -185,13 +194,19 @@ struct PhoenixAxisPill: View {
             Text(label)
                 .font(.system(size: 6, weight: .black)).tracking(0.6)
                 .foregroundColor(.white.opacity(0.35))
-            HStack(spacing: 2) {
-                Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
-                    .font(.system(size: 7, weight: .bold))
-                Text(String(format: "%.0f%%", abs(delta)))
+            if hasBaseline {
+                HStack(spacing: 2) {
+                    Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
+                        .font(.system(size: 7, weight: .bold))
+                    Text(String(format: "%.0f%%", abs(delta)))
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                }
+                .foregroundColor(deltaColor)
+            } else {
+                Text("—")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundColor(.white.opacity(0.30))
             }
-            .foregroundColor(deltaColor)
             if let g = guidance {
                 Text(g)
                     .font(.system(size: 9, weight: .regular))
@@ -205,6 +220,12 @@ struct PhoenixAxisPill: View {
         .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .onTapGesture { if guidance != nil { onTap?() } }
+        .onLongPressGesture { if infoText != nil { showInfo = true } }
+        .alert(label, isPresented: $showInfo) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let info = infoText { Text(info) }
+        }
     }
 }
 

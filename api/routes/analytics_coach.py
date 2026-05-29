@@ -528,6 +528,7 @@ def api_adherence():
         "spirit_pct":   _pct(spirit_days),
         "days_elapsed": days_elapsed,
         "period":       month_prefix,
+        "fuel_days":    fuel_days,
     })
 
 
