@@ -2395,9 +2395,8 @@ private struct RecoveryPerformanceBanner: View {
 
     private var bannerState: BannerState? {
         guard let dash = dashboard else { return nil }
-        let dayAbbrev = String(dash.today.prefix(3))
-        let plan = dash.schedule[dayAbbrev]
-        let isRest = plan == nil || (plan ?? "").lowercased() == "rest" || (plan ?? "").isEmpty
+        let t = dash.today.lowercased()
+        let isRest = t.isEmpty || t == "repos" || t == "rest"
         if isRest { return .rest }
 
         if let hrv = hrvAnalysis, hrv.baselineAvailable, hrv.hrvZone == "red" {
