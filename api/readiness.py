@@ -18,6 +18,7 @@ import math, time as _time, logging
 from datetime import date as date_cls, datetime, timedelta, timezone
 
 import db
+from utils import _today_mtl
 
 logger = logging.getLogger("trainingos.readiness")
 
@@ -75,7 +76,7 @@ def _score_fatigue() -> tuple[float, dict]:
         acwr = None
         details["acwr"] = None
 
-    today     = date_cls.today()
+    today     = date_cls.fromisoformat(_today_mtl())
     recent    = db.get_workout_sessions(limit=10) or []
     hard_48h  = 0
     for s in recent:
@@ -124,7 +125,7 @@ def _score_wellness() -> tuple[float, dict]:
     from life_stress_engine import get_life_stress_score
 
     try:
-        lss        = get_life_stress_score(date_cls.today().isoformat())
+        lss        = get_life_stress_score(_today_mtl())
         score      = float(lss.get("score") or 50.0)
         coverage   = float(lss.get("data_coverage") or 0.0)
         components = lss.get("components") or {}
@@ -165,7 +166,7 @@ def _score_nutrition() -> tuple[float, dict]:
         return 65.0, {"error": True}
 
     entries = db.get_nutrition_entries_recent(2) or []
-    today   = date_cls.today()
+    today   = date_cls.fromisoformat(_today_mtl())
     today_s = today.isoformat()
     yest_s  = (today - timedelta(days=1)).isoformat()
 
@@ -214,7 +215,7 @@ def _score_pattern() -> tuple[float, dict]:
     """
     details: dict = {}
     raw   = db.get_workout_sessions(limit=20) or []
-    today = date_cls.today()
+    today = date_cls.fromisoformat(_today_mtl())
 
     days_since: dict[str, int] = {}
     for s in raw:
@@ -372,7 +373,7 @@ def _get_personal_baseline() -> dict:
 
     Cold start (<14 jours de données) : retourne mean=None → seuils absolus.
     """
-    today  = date_cls.today()
+    today  = date_cls.fromisoformat(_today_mtl())
     window = {(today - timedelta(days=i)).isoformat() for i in range(1, 29)}
 
     try:
