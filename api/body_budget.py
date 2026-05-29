@@ -13,6 +13,7 @@ from __future__ import annotations
 import db
 import logging
 from datetime import datetime, timezone, timedelta
+from utils import _today_mtl as _today_iso
 
 logger = logging.getLogger("trainingos.body_budget")
 
@@ -20,17 +21,6 @@ logger = logging.getLogger("trainingos.body_budget")
 _W_T = 0.40   # Training pillar weight
 _W_S = 0.30   # Stress pillar weight
 _W_N = 0.30   # Nutrition pillar weight
-
-
-# ── Helpers ────────────────────────────────────────────────────────────────────
-
-def _today_iso() -> str:
-    try:
-        from zoneinfo import ZoneInfo
-        return datetime.now(ZoneInfo("America/Montreal")).strftime("%Y-%m-%d")
-    except Exception:
-        utc = datetime.now(timezone.utc)
-        return (utc - timedelta(hours=5)).strftime("%Y-%m-%d")
 
 
 def _days_back(n: int) -> list[str]:

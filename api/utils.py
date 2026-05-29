@@ -33,6 +33,10 @@ def _now_mtl() -> datetime:
 def _today_mtl() -> str:
     return _now_mtl().strftime("%Y-%m-%d")
 
+def _today_mtl_date() -> date:
+    """Return today's date as a date object in Montreal timezone."""
+    return date.fromisoformat(_today_mtl())
+
 
 def cap_scheme_sets(scheme: str, max_sets: int = 3) -> str:
     """Cap the set count in a scheme string. '4x8' → '3x8', '3x8-12' unchanged."""

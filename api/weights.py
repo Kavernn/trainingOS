@@ -16,14 +16,7 @@ New format (relational): exercise_logs table with exercise_id FK, no computed fi
 """
 import db
 from datetime import datetime, timezone, timedelta
-
-def _today_local() -> str:
-    """Return today's date in America/Toronto timezone (UTC-5/UTC-4)."""
-    try:
-        from zoneinfo import ZoneInfo
-        return datetime.now(ZoneInfo("America/Toronto")).strftime("%Y-%m-%d")
-    except Exception:
-        return (datetime.now(timezone.utc) - timedelta(hours=5)).strftime("%Y-%m-%d")
+from utils import _today_mtl as _today_local
 
 
 def _calc_1rm(weight, reps_str):

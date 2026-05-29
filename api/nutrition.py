@@ -1,31 +1,7 @@
 import db
 import uuid
 from datetime import datetime, timezone, timedelta
-
-
-def _today_mtl() -> str:
-    """Return today's date in Montreal/Eastern timezone."""
-    try:
-        from zoneinfo import ZoneInfo
-        return datetime.now(ZoneInfo("America/Montreal")).strftime("%Y-%m-%d")
-    except Exception:
-        pass
-    try:
-        import pytz
-        return datetime.now(pytz.timezone("America/Montreal")).strftime("%Y-%m-%d")
-    except Exception:
-        pass
-    # DST-aware fallback
-    utc = datetime.now(timezone.utc)
-    from datetime import timedelta as td
-    def nth_sunday(y, m, n):
-        first = datetime(y, m, 1)
-        return first + td(days=(6 - first.weekday()) % 7 + 7 * (n - 1))
-    y = utc.year
-    dst_start = nth_sunday(y, 3,  2).replace(hour=7, tzinfo=timezone.utc)
-    dst_end   = nth_sunday(y, 11, 1).replace(hour=6, tzinfo=timezone.utc)
-    offset = -4 if dst_start <= utc < dst_end else -5
-    return (utc + td(hours=offset)).strftime("%Y-%m-%d")
+from utils import _today_mtl
 
 
 # ── Settings ─────────────────────────────────────────────────────────────────

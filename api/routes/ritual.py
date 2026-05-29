@@ -2,19 +2,12 @@
 from __future__ import annotations
 from flask import Blueprint, jsonify, request
 from datetime import date, timedelta, datetime, timezone
-from zoneinfo import ZoneInfo
 import random
 import logging
+from utils import _today_mtl_date as _today_mtl
 
 logger = logging.getLogger("trainingos.ritual")
 ritual_bp = Blueprint("ritual", __name__)
-
-_MTL = ZoneInfo("America/Montreal")
-
-
-def _today_mtl() -> date:
-    """Return today's date in Montreal timezone."""
-    return datetime.now(_MTL).date()
 
 
 # ── Suggestions par type de vérité ───────────────────────────────────────────

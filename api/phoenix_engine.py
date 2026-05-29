@@ -19,18 +19,9 @@ import db
 import math
 import logging
 from datetime import datetime, timezone, timedelta, date
+from utils import _today_mtl as _today_iso
 
 logger = logging.getLogger("trainingos.phoenix")
-
-
-# ── Date helpers ──────────────────────────────────────────────────────────────
-
-def _today_iso() -> str:
-    try:
-        from zoneinfo import ZoneInfo
-        return datetime.now(ZoneInfo("America/Montreal")).strftime("%Y-%m-%d")
-    except Exception:
-        return (datetime.now(timezone.utc) - timedelta(hours=5)).strftime("%Y-%m-%d")
 
 
 def _window(offset: int, span: int = 7) -> set[str]:

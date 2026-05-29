@@ -16,6 +16,7 @@ from datetime import date as date_cls, datetime, timedelta
 import uuid
 
 import db
+from utils import _today_mtl as _today_local
 
 _QUALITY_LABELS = {1: "Très mauvais", 2: "Mauvais", 3: "Moyen", 4: "Bon", 5: "Excellent"}
 _QUALITY_EMOJIS = {1: "😫", 2: "😕", 3: "😐", 4: "😊", 5: "🌟"}
@@ -175,14 +176,6 @@ def get_history(limit: int = 20, offset: int = 0) -> dict:
     }
 
 
-def _today_local() -> str:
-    """Return today's date in Montreal timezone (handles UTC offset on Vercel)."""
-    try:
-        from zoneinfo import ZoneInfo
-        from datetime import datetime as _dt
-        return _dt.now(ZoneInfo("America/Montreal")).date().isoformat()
-    except Exception:
-        return date_cls.today().isoformat()
 
 
 def get_today() -> dict | None:
