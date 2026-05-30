@@ -117,6 +117,7 @@ from routes.spirit       import spirit_bp
 from routes.oath         import oath_bp
 from routes.seasons      import seasons_bp
 from routes.gym_finder   import gym_finder_bp
+from routes.cardio_metrics import cardio_metrics_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -160,6 +161,7 @@ app.register_blueprint(spirit_bp)
 app.register_blueprint(oath_bp)
 app.register_blueprint(seasons_bp)
 app.register_blueprint(gym_finder_bp)
+app.register_blueprint(cardio_metrics_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────

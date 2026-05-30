@@ -541,6 +541,113 @@ struct BodyWeightEntry: Codable, Identifiable {
     }
 }
 
+// MARK: - Cardio Metrics
+struct CardioMetrics: Codable {
+    let vo2maxEstimated: Double?
+    let vo2maxCategory: String?
+    let vo2maxTrend: String?
+    let thresholdPaceMinPerKm: String?
+    let fcZones: FCZones?
+    let hrSource: String?
+    let zoneDistribution: [String: Double]?
+    let acwrCardio: CardioACWR?
+    let paceZones: PaceZones?
+    let bestPaceSecPerKm: Double?
+    let guides: CardioGuides?
+    let dataCoverage: CardioCoverage?
+
+    enum CodingKeys: String, CodingKey {
+        case vo2maxEstimated     = "vo2max_estimated"
+        case vo2maxCategory      = "vo2max_category"
+        case vo2maxTrend         = "vo2max_trend"
+        case thresholdPaceMinPerKm = "threshold_pace_min_per_km"
+        case fcZones             = "fc_zones"
+        case hrSource            = "hr_source"
+        case zoneDistribution    = "zone_distribution"
+        case acwrCardio          = "acwr_cardio"
+        case paceZones           = "pace_zones"
+        case bestPaceSecPerKm    = "best_pace_sec_per_km"
+        case guides
+        case dataCoverage        = "data_coverage"
+    }
+}
+
+struct FCZones: Codable {
+    let maxHr: Int
+    let zone1: [Int]
+    let zone2: [Int]
+    let zone3: [Int]
+    let zone4: [Int]
+    let zone5: [Int]
+    enum CodingKeys: String, CodingKey {
+        case maxHr = "max_hr"
+        case zone1, zone2, zone3, zone4, zone5
+    }
+}
+
+struct CardioACWR: Codable {
+    let ratio: Double
+    let acuteLoad: Double
+    let chronicLoad: Double
+    let zone: String
+    enum CodingKeys: String, CodingKey {
+        case ratio, zone
+        case acuteLoad   = "acute_load"
+        case chronicLoad = "chronic_load"
+    }
+}
+
+struct PaceZones: Codable {
+    let easy: String
+    let moderate: String
+    let tempo: String
+    let threshold: String
+    let race: String
+}
+
+struct CardioGuides: Codable {
+    let vo2max: String
+    let threshold: String
+    let acwr: String
+    let zones: String
+    let pace: String
+}
+
+struct CardioCoverage: Codable {
+    let hasFc: Bool
+    let hasPace: Bool
+    let sessions30d: Int
+    let vo2maxSessions: Int
+    let hrSource: String
+    enum CodingKeys: String, CodingKey {
+        case hasFc          = "has_fc"
+        case hasPace        = "has_pace"
+        case sessions30d    = "sessions_30d"
+        case vo2maxSessions = "vo2max_sessions"
+        case hrSource       = "hr_source"
+    }
+}
+
+// MARK: - Unified Cardio History
+enum UnifiedCardioEntry: Identifiable {
+    case cardio(CardioEntry)
+    case hiit(HIITEntry)
+
+    var id: String {
+        switch self {
+        case .cardio(let e): return "cardio-\(e.id)"
+        case .hiit(let e):   return "hiit-\(e.id)"
+        }
+    }
+
+    var date: String? {
+        switch self {
+        case .cardio(let e): return e.date
+        case .hiit(let e):   return e.date
+        }
+    }
+}
+
 // MARK: - Cardio
 struct CardioEntry: Codable, Identifiable {
     var id: String { (date ?? "") + (type ?? "") }
