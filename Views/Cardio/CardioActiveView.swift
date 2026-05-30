@@ -144,6 +144,25 @@ struct CardioActiveView: View {
                     })
                 }
             }
+
+            if session.sessionState == .idle {
+                VStack {
+                    HStack {
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(10)
+                                .background(.ultraThinMaterial)
+                                .clipShape(Circle())
+                        }
+                        .padding(.leading, 20)
+                        .padding(.top, 56)
+                        Spacer()
+                    }
+                    Spacer()
+                }
+            }
         }
         // FIX: empêche le swipe-down accidentel pendant une session active ou en pause
         .interactiveDismissDisabled(
@@ -255,10 +274,30 @@ private struct IdleMapView: UIViewRepresentable {
 
 private struct ActiveLayout: View {
     @ObservedObject private var session = CardioSessionManager.shared
+    @Environment(\.dismiss) private var dismiss
     @State private var showFinishConfirm = false
 
     var body: some View {
         VStack(spacing: 0) {
+
+            HStack {
+                Button(action: { dismiss() }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 13, weight: .semibold))
+                        Text("Réduire")
+                            .font(.system(size: 13, weight: .medium))
+                    }
+                    .foregroundColor(.white.opacity(0.6))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(Capsule())
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 56)
 
             MetricsBlock()
 
