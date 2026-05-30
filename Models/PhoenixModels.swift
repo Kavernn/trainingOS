@@ -65,6 +65,11 @@ struct PhoenixAxisData: Codable {
         hasBaseline = details?.hasBaseline ?? true
     }
 
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(delta, forKey: .delta)
+    }
+
     enum CodingKeys: String, CodingKey { case delta, details }
 }
 
