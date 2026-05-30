@@ -39,8 +39,7 @@ struct MoreView: View {
                             RitualView()
                         }
                         MoreRow(icon: "fork.knife",      color: .orange, title: "Nutrition")    { NutritionView() }
-                        MoreRow(icon: "bed.double.fill", color: .purple, title: "Sommeil")      { SleepView() }
-                        MoreRow(icon: "moon.zzz.fill",  color: .blue,   title: "Récupération") { RecoveryView() }
+                        MoreRow(icon: "bolt.heart.fill", color: .orange, title: "Énergie & Récupération") { EnergyRecoveryView() }
                         MoreRow(icon: "wind",            color: Color.moonlight.opacity(0.7),
                                 title: "The Void", subtitle: "Respiration, méditation & journal") { SpiritView() }
                     }
@@ -104,7 +103,7 @@ struct MoreView: View {
                 phoenixStreak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak ?? 0
             }
             .fullScreenCover(isPresented: $showNutritionDirect) { NutritionView() }
-            .fullScreenCover(isPresented: $showRecoveryDirect)  { RecoveryView() }
+            .fullScreenCover(isPresented: $showRecoveryDirect)  { EnergyRecoveryView() }
             .onReceive(NotificationCenter.default.publisher(for: .navigateToNutrition)) { _ in
                 showNutritionDirect = true
             }

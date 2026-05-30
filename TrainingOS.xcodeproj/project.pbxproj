@@ -24,6 +24,7 @@
 		1CA0933819744850A2C926D1 /* DashboardHeaderCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C092A48A92B45199AD49EE3 /* DashboardHeaderCards.swift */; };
 		1D462FB9E69CF0CEDDBF854D /* ReadinessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5FB27DA5D308C889BDBF9 /* ReadinessModels.swift */; };
 		2013CE6D9FC8EE527D8B63F2 /* AnalyticsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */; };
+		ENMOD002ENMOD002ENMOD002 /* EnergyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */; };
 		2642EDF085E09321C150429B /* APIService+Ritual.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED6AAE13530007B583B67B1D /* APIService+Ritual.swift */; };
 		3051B1AF2D2C0AFF6C7D1FAD /* APIService+Patterns.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B033EEBE81776A77969C32 /* APIService+Patterns.swift */; };
 		312D934570D77F3F3B873C09 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64709C7BAEA141594DB92A70 /* EmptyStateView.swift */; };
@@ -87,6 +88,7 @@
 		APIME002APIME002APIME002 /* APIService+Mental.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIME001APIME001APIME001 /* APIService+Mental.swift */; };
 		APINU002APINU002APINU002 /* APIService+Nutrition.swift in Sources */ = {isa = PBXBuildFile; fileRef = APINU001APINU001APINU001 /* APIService+Nutrition.swift */; };
 		APIPR002APIPR002APIPR002 /* APIService+Profile.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIPR001APIPR001APIPR001 /* APIService+Profile.swift */; };
+		APIEN002APIEN002APIEN002 /* APIService+Energy.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIEN001APIEN001APIEN001 /* APIService+Energy.swift */; };
 		APISL002APISL002APISL002 /* APIService+Sleep.swift in Sources */ = {isa = PBXBuildFile; fileRef = APISL001APISL001APISL001 /* APIService+Sleep.swift */; };
 		APIWE002APIWE002APIWE002 /* APIService+Wellness.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIWE001APIWE001APIWE001 /* APIService+Wellness.swift */; };
 		APIWO002APIWO002APIWO002 /* APIService+Workout.swift in Sources */ = {isa = PBXBuildFile; fileRef = APIWO001APIWO001APIWO001 /* APIService+Workout.swift */; };
@@ -197,6 +199,7 @@
 		WR009001AA00300B2F5DAAAA /* WarMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR009000AA00300B2F5DAAAA /* WarMapView.swift */; };
 		WR010001AA00300B2F5DAAAA /* WarRoomSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */; };
 		WTHR002WTHR002WTHR002002 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTHR001WTHR001WTHR001001 /* WeatherService.swift */; };
+		ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ER001000ER001000ER001000 /* EnergyRecoveryView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -249,6 +252,7 @@
 		4F922AFAAF1C2226DC78C22E /* BodyBudgetModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyBudgetModels.swift; sourceTree = "<group>"; };
 		51D25C3758A0A6DEB7E93A6C /* APIService+TimeCapsule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+TimeCapsule.swift"; sourceTree = "<group>"; };
 		552F808C866A877BFC051570 /* WellnessModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WellnessModels.swift; sourceTree = "<group>"; };
+		ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnergyModels.swift; sourceTree = "<group>"; };
 		55B033EEBE81776A77969C32 /* APIService+Patterns.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Patterns.swift"; sourceTree = "<group>"; };
 		5F9FC27F6F10E2BBE5805E5F /* ToastView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		6186E51D3E2986E22EC27AC3 /* PlateauModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlateauModels.swift; sourceTree = "<group>"; };
@@ -301,6 +305,7 @@
 		APIME001APIME001APIME001 /* APIService+Mental.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Mental.swift"; sourceTree = "<group>"; };
 		APINU001APINU001APINU001 /* APIService+Nutrition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Nutrition.swift"; sourceTree = "<group>"; };
 		APIPR001APIPR001APIPR001 /* APIService+Profile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Profile.swift"; sourceTree = "<group>"; };
+		APIEN001APIEN001APIEN001 /* APIService+Energy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Energy.swift"; sourceTree = "<group>"; };
 		APISL001APISL001APISL001 /* APIService+Sleep.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Sleep.swift"; sourceTree = "<group>"; };
 		APIWE001APIWE001APIWE001 /* APIService+Wellness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Wellness.swift"; sourceTree = "<group>"; };
 		APIWO001APIWO001APIWO001 /* APIService+Workout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Workout.swift"; sourceTree = "<group>"; };
@@ -412,6 +417,7 @@
 		WR009000AA00300B2F5DAAAA /* WarMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarMapView.swift; sourceTree = "<group>"; };
 		WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomSettingsView.swift; sourceTree = "<group>"; };
 		WTHR001WTHR001WTHR001001 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+		ER001000ER001000ER001000 /* EnergyRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyRecoveryView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -689,6 +695,7 @@
 				552F808C866A877BFC051570 /* WellnessModels.swift */,
 				76F5880EE01F89F628060F5D /* GoalsModels.swift */,
 				E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */,
+				ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */,
 				EDD35C9A164F89962D3E6E18 /* ProfileModels.swift */,
 				4F922AFAAF1C2226DC78C22E /* BodyBudgetModels.swift */,
 				E163D5411790B6DA5108E310 /* PatternModels.swift */,
@@ -725,6 +732,7 @@
 				APIWE001APIWE001APIWE001 /* APIService+Wellness.swift */,
 				APIME001APIME001APIME001 /* APIService+Mental.swift */,
 				APISL001APISL001APISL001 /* APIService+Sleep.swift */,
+				APIEN001APIEN001APIEN001 /* APIService+Energy.swift */,
 				NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */,
 				WTHR001WTHR001WTHR001001 /* WeatherService.swift */,
 				NHLS001NHLS001NHLS001001 /* NHLService.swift */,
@@ -860,6 +868,7 @@
 				AA00300B2F5D98B8002AE470 /* Intelligence */,
 				EA73F5AEC260AD6BE1B97728 /* Cardio */,
 				EE494F72F21A4AAE1BCC94D5 /* Recovery */,
+				ER000000ER000000ER000000 /* EnergyRecovery */,
 				BFFFE9FA995E4CFDB5583CC6 /* Sleep */,
 				BB2200052F5D98BA002AE470 /* HealthDashboard */,
 				CC3300032F5D98BA002AE472 /* PSS */,
@@ -905,6 +914,14 @@
 				0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */,
 			);
 			path = Recovery;
+			sourceTree = "<group>";
+		};
+		ER000000ER000000ER000000 /* EnergyRecovery */ = {
+			isa = PBXGroup;
+			children = (
+				ER001000ER001000ER001000 /* EnergyRecoveryView.swift */,
+			);
+			path = EnergyRecovery;
 			sourceTree = "<group>";
 		};
 		GF000000AA00300B2F5DEEEE /* GymFinder */ = {
@@ -1109,6 +1126,7 @@
 				APIWE002APIWE002APIWE002 /* APIService+Wellness.swift in Sources */,
 				APIME002APIME002APIME002 /* APIService+Mental.swift in Sources */,
 				APISL002APISL002APISL002 /* APIService+Sleep.swift in Sources */,
+				APIEN002APIEN002APIEN002 /* APIService+Energy.swift in Sources */,
 				NOTSC002NOTSC002NOTSC002 /* NotificationScheduler.swift in Sources */,
 				WTHR002WTHR002WTHR002002 /* WeatherService.swift in Sources */,
 				NHLS002NHLS002NHLS002002 /* NHLService.swift in Sources */,
@@ -1207,6 +1225,7 @@
 				F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */,
 				FBCACC3302AC10C5231E0521 /* GoalsModels.swift in Sources */,
 				2013CE6D9FC8EE527D8B63F2 /* AnalyticsModels.swift in Sources */,
+				ENMOD002ENMOD002ENMOD002 /* EnergyModels.swift in Sources */,
 				D618A6BF2FA81E94001AEADD /* ChatPanel.swift in Sources */,
 				0D8210D4F61FF52D9FFFE4DF /* ProfileModels.swift in Sources */,
 				536A301CA097593473B475D5 /* DashboardViewModel.swift in Sources */,
@@ -1276,6 +1295,7 @@
 				GF003001AA00300B2F5DEEEE /* GymFiltersView.swift in Sources */,
 				GF004001AA00300B2F5DEEEE /* GymFinderView.swift in Sources */,
 				GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */,
+				ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

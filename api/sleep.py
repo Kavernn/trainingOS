@@ -127,23 +127,41 @@ def save_sleep_entry(
 
 
 def _recovery_to_sleep(entry: dict) -> dict:
-    """Convert a recovery_log entry to a sleep-compatible record (HealthKit fallback)."""
-    h = entry.get("sleep_hours") or 0.0
+    """Convert a recovery_log entry to a sleep-compatible SleepEntry dict.
+
+    Manual entries (source='manual') carry sleep_quality on 1-10 scale →
+    mapped to 1-5 to match SleepLogSheet convention.
+    HealthKit entries have no quality → quality=0 (excluded from avg stats,
+    decodes safely as Int in Swift).
+    """
+    h      = entry.get("sleep_hours") or 0.0
+    source = entry.get("source") or "healthkit"
+    sq_raw = entry.get("sleep_quality")  # 1-10 in recovery_logs
+
+    if sq_raw and source == "manual":
+        quality = max(1, min(5, round(sq_raw / 2)))
+        q_label = _QUALITY_LABELS.get(quality, "—")
+        q_emoji = _QUALITY_EMOJIS.get(quality, "")
+    else:
+        quality = 0
+        q_label = "Auto (Apple Watch)"
+        q_emoji = "⌚"
+
     return {
-        "id":               entry.get("id", ""),
-        "date":             entry["date"],
-        "bedtime":          "—",
-        "wake_time":        "—",
-        "duration_hours":   h,
-        "quality":          None,
-        "quality_label":    "Auto (HealthKit)",
-        "quality_emoji":    "⌚",
+        "id":                entry.get("id") or "",
+        "date":              entry["date"],
+        "bedtime":           "—",
+        "wake_time":         "—",
+        "duration_hours":    h,
+        "quality":           quality,
+        "quality_label":     q_label,
+        "quality_emoji":     q_emoji,
         "duration_category": _duration_category(h),
-        "duration_color":   _duration_color(h),
-        "notes":            entry.get("notes") or None,
-        "insights":         _insights(h, 3, []),
-        "source":           "healthkit",
-        "logged_at":        entry.get("date"),
+        "duration_color":    _duration_color(h),
+        "notes":             entry.get("notes") or None,
+        "insights":          _insights(h, quality if quality else 3, []),
+        "source":            source,
+        "logged_at":         entry.get("date"),
     }
 
 

@@ -1,0 +1,152 @@
+import Foundation
+import SwiftUI
+
+// MARK: - Energy Daily
+
+struct EnergyDaily: Codable {
+    // Erreur profil incomplet
+    let error: String?
+    let message: String?
+    let missing: [String]?
+
+    // Données calculées
+    let date: String?
+    let bmr: Int?
+    let bmrFormula: String?
+    let eatWorkouts: Int?
+    let eatCardio: Int?
+    let neat: Int?
+    let tdee: Int?
+    let intake: Int?
+    let balance: Int?
+    let balanceStatus: String?
+    let objective: String?
+    let targetBalance: String?
+    let breakdown: EnergyBreakdown?
+
+    var isError: Bool { error != nil }
+
+    enum CodingKeys: String, CodingKey {
+        case error, message, missing, date, bmr, neat, tdee, intake, balance, objective, breakdown
+        case bmrFormula    = "bmr_formula"
+        case eatWorkouts   = "eat_workouts"
+        case eatCardio     = "eat_cardio"
+        case balanceStatus = "balance_status"
+        case targetBalance = "target_balance"
+    }
+}
+
+// MARK: - Breakdown
+
+struct EnergyBreakdown: Codable {
+    let workouts: [EnergySession]?
+    let cardio: [EnergySession]?
+    let steps: Int?
+    let neatCalories: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case workouts, cardio, steps
+        case neatCalories = "neat_calories"
+    }
+}
+
+struct EnergySession: Codable, Identifiable {
+    let type: String
+    let name: String?
+    let durationMin: Int?
+    let calories: Int
+    let rpe: Int?
+    let met: Double?
+    let source: String?
+
+    var id: String { "\(type)-\(durationMin ?? 0)-\(calories)-\(name ?? "")" }
+
+    enum CodingKeys: String, CodingKey {
+        case type, name, calories, rpe, met, source
+        case durationMin = "duration_min"
+    }
+}
+
+// MARK: - History (7j)
+
+struct EnergyHistoryDay: Codable, Identifiable {
+    var id: String { date }
+    let date: String
+    let bmr: Int
+    let eatWorkouts: Int
+    let eatCardio: Int
+    let neat: Int?
+    let tdee: Int
+    let intake: Int?
+    let balance: Int?
+    let balanceStatus: String?
+    let hasData: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case date, bmr, tdee, intake, balance, neat
+        case eatWorkouts   = "eat_workouts"
+        case eatCardio     = "eat_cardio"
+        case balanceStatus = "balance_status"
+        case hasData       = "has_data"
+    }
+
+    var isSurplus: Bool { (balance ?? 0) >= 0 }
+
+    var shortDate: String {
+        let parts = date.split(separator: "-")
+        guard parts.count == 3 else { return date }
+        return "\(parts[2])/\(parts[1])"
+    }
+}
+
+// MARK: - Display helpers
+
+extension EnergyDaily {
+    var energyScore: Int {
+        switch balanceStatus {
+        case "balanced":         return 90
+        case "surplus_optimal":  return 85
+        case "deficit_optimal":  return 85
+        case "surplus_low":      return 65
+        case "deficit_light":    return 65
+        case "surplus_high":     return 50
+        case "surplus":          return 50
+        case "deficit":          return 45
+        case "deficit_aggressive": return 35
+        case "deficit_severe":   return 15
+        default:                 return 50
+        }
+    }
+
+    var statusLabel: String {
+        switch balanceStatus {
+        case "balanced":           return "Équilibré"
+        case "surplus_optimal":    return "Surplus optimal"
+        case "deficit_optimal":    return "Déficit optimal"
+        case "surplus_low":        return "Surplus léger"
+        case "surplus_high":       return "Surplus élevé"
+        case "surplus":            return "En surplus"
+        case "deficit_light":      return "Déficit léger"
+        case "deficit":            return "En déficit"
+        case "deficit_aggressive": return "Déficit agressif"
+        case "deficit_severe":     return "Déficit sévère"
+        default:                   return "—"
+        }
+    }
+
+    var statusColor: Color {
+        let score = energyScore
+        if score >= 75 { return .green }
+        if score >= 50 { return .orange }
+        return .red
+    }
+
+    var bmrFormulaLabel: String {
+        bmrFormula == "katch_mcArdle" ? "Katch-McArdle" : "Mifflin-St Jeor"
+    }
+
+    var formattedBalance: String {
+        guard let b = balance else { return "—" }
+        return b >= 0 ? "+\(b) kcal" : "\(b) kcal"
+    }
+}
