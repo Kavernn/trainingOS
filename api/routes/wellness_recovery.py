@@ -31,6 +31,7 @@ def api_log_cardio():
         "pace_avg_seconds": data.get("pace_avg_seconds"),
         "gps_points":       data.get("gps_points"),
         "route_encoded":    data.get("route_encoded"),
+        "coach_note":       data.get("coach_note"),
     }
     # Strip None values — don't overwrite existing columns with nulls
     entry = {k: v for k, v in entry.items() if v is not None}

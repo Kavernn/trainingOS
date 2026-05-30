@@ -298,20 +298,27 @@ CREATE POLICY "anon_all" ON public.body_weight_logs FOR ALL TO anon USING (true)
 
 -- === 15. cardio_logs ===
 -- Séances cardio — colonnes HealthKit intégrées (migration 001 inline)
+-- GPS tracking (migration 054) — coach note (migration 057)
 CREATE TABLE IF NOT EXISTS cardio_logs (
-    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    date            DATE        NOT NULL,
-    type            TEXT        NOT NULL,   -- course | vélo | natation | marche | autre
-    duration_min    INT,
-    distance_km     NUMERIC,
-    avg_hr          NUMERIC,               -- migration 001
-    avg_pace        TEXT,                  -- migration 001
-    calories        NUMERIC,               -- migration 001
-    cadence         NUMERIC,               -- migration 001
-    notes           TEXT,                  -- migration 001
-    source          TEXT        NOT NULL DEFAULT 'manual',  -- manual | healthkit (migration 001)
-    rpe             NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),
-    logged_at       TIMESTAMPTZ DEFAULT NOW()
+    id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    date              DATE        NOT NULL,
+    type              TEXT        NOT NULL,   -- course | vélo | natation | marche | autre | hiit | tempo | endurance | leger | velo
+    duration_min      INT,
+    distance_km       NUMERIC(6,3),
+    avg_hr            NUMERIC,               -- migration 001
+    avg_pace          TEXT,                  -- migration 001
+    calories          NUMERIC,               -- migration 001
+    cadence           NUMERIC,               -- migration 001
+    notes             TEXT,                  -- migration 001
+    source            TEXT        NOT NULL DEFAULT 'manual',  -- manual | healthkit (migration 001)
+    rpe               NUMERIC(4,1) CHECK (rpe BETWEEN 1 AND 10),
+    logged_at         TIMESTAMPTZ DEFAULT NOW(),
+    start_time        TIMESTAMPTZ,           -- migration 054
+    end_time          TIMESTAMPTZ,           -- migration 054
+    pace_avg_seconds  INTEGER,               -- migration 054
+    gps_points        JSONB,                 -- migration 054 — [{lat, lng, timestamp}]
+    route_encoded     TEXT,                  -- migration 054
+    coach_note        TEXT                   -- migration 057 — conseil post-session généré
 );
 
 CREATE INDEX IF NOT EXISTS idx_cardio_logs_date ON cardio_logs (date DESC);

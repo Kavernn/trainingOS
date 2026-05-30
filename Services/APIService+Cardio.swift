@@ -17,7 +17,8 @@ extension APIService {
                    calories: Double?, rpe: Double?, notes: String,
                    startTime: String? = nil, endTime: String? = nil,
                    paceAvgSeconds: Int? = nil,
-                   gpsPoints: [[String: Double]]? = nil) async throws {
+                   gpsPoints: [[String: Double]]? = nil,
+                   coachNote: String? = nil) async throws {
         var body: [String: Any] = ["type": type, "notes": notes]
         if let v = durationMin      { body["duration_min"]      = v }
         if let v = distanceKm       { body["distance_km"]       = v }
@@ -30,6 +31,7 @@ extension APIService {
         if let v = endTime          { body["end_time"]           = v }
         if let v = paceAvgSeconds   { body["pace_avg_seconds"]   = v }
         if let v = gpsPoints        { body["gps_points"]         = v }
+        if let v = coachNote        { body["coach_note"]         = v }
         _ = try await offlinePost(endpoint: "/api/log_cardio", payload: body)
     }
 

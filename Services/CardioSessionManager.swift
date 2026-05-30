@@ -29,6 +29,7 @@ struct CompletedCardioSession {
     let durationSeconds: Int
     let distanceKm: Double
     let paceAvgSeconds: Int?
+    let maxPaceSecondsPerKm: Int
     let gpsPoints: [GPSPoint]
 }
 
@@ -50,6 +51,9 @@ final class CardioSessionManager: NSObject, ObservableObject {
     // Session metadata
     @Published var selectedType: String = "course"
 
+    // Fastest pace seen this session (lowest seconds/km = fastest)
+    @Published var maxPaceSecondsPerKm: Int = 0
+
     // Computed pace — nil if distance < 0.1km
     var paceString: String {
         guard distanceKm >= 0.1 else { return "—/km" }
@@ -62,6 +66,13 @@ final class CardioSessionManager: NSObject, ObservableObject {
     var paceAvgSeconds: Int? {
         guard distanceKm >= 0.1 else { return nil }
         return Int(Double(elapsedSeconds) / distanceKm)
+    }
+
+    var maxPaceString: String {
+        guard maxPaceSecondsPerKm > 0 else { return "—" }
+        let mins = maxPaceSecondsPerKm / 60
+        let secs = maxPaceSecondsPerKm % 60
+        return String(format: "%d:%02d /km", mins, secs)
     }
 
     // Internal
@@ -147,6 +158,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
             durationSeconds: duration,
             distanceKm: distanceKm,
             paceAvgSeconds: paceAvgSeconds,
+            maxPaceSecondsPerKm: maxPaceSecondsPerKm,
             gpsPoints: accumulatedGPSPoints
         )
         sessionState = .completed
@@ -172,6 +184,7 @@ final class CardioSessionManager: NSObject, ObservableObject {
         routePoints = []
         distanceKm = 0.0
         elapsedSeconds = 0
+        maxPaceSecondsPerKm = 0
         completedSession = nil
         sessionState = .idle
     }
@@ -192,6 +205,23 @@ final class CardioSessionManager: NSObject, ObservableObject {
             self.elapsedSeconds = self.pausedElapsed + Int(Date().timeIntervalSince(base))
         }
         RunLoop.main.add(timer!, forMode: .common)
+    }
+
+    // MARK: - Max Pace
+
+    private func updateMaxPace() {
+        guard accumulatedGPSPoints.count >= 2 else { return }
+        let last = accumulatedGPSPoints[accumulatedGPSPoints.count - 1]
+        let prev = accumulatedGPSPoints[accumulatedGPSPoints.count - 2]
+        let timeDelta = last.timestamp - prev.timestamp
+        let distDelta = last.clLocation.distance(from: prev.clLocation) / 1000.0
+        guard timeDelta > 0.5, distDelta > 0.002 else { return }
+        let segPace = Int(timeDelta / distDelta)
+        // Filtre GPS glitch : < 60s/km serait > 60 km/h (impossible à pied ou en vélo normal)
+        guard segPace >= 60 else { return }
+        if maxPaceSecondsPerKm == 0 || segPace < maxPaceSecondsPerKm {
+            maxPaceSecondsPerKm = segPace
+        }
     }
 
     // MARK: - Persistence
@@ -283,6 +313,7 @@ extension CardioSessionManager: CLLocationManagerDelegate {
             self.accumulatedGPSPoints.append(point)
             self.routePoints.append(loc)
             self.distanceKm = self.computeDistance(from: self.routePoints)
+            self.updateMaxPace()
             self.persistGPSPoints()
         }
     }

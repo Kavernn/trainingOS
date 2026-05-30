@@ -289,6 +289,23 @@ class HealthKitService: ObservableObject {
         return await fetchAvgHR(start: start, end: end)
     }
 
+    // MARK: - Session HR & Calories (for post-session summary)
+
+    func fetchWorkoutHR(start: Date, end: Date) async -> Double? {
+        return await fetchAvgHR(start: start, end: end)
+    }
+
+    func fetchWorkoutCalories(start: Date, end: Date) async -> Double? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return nil }
+        let pred = HKQuery.predicateForSamples(withStart: start, end: end)
+        return await withCheckedContinuation { cont in
+            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .cumulativeSum) { _, stats, _ in
+                cont.resume(returning: stats?.sumQuantity()?.doubleValue(for: .kilocalorie()))
+            }
+            store.execute(q)
+        }
+    }
+
     // MARK: - Today Active Energy
     func fetchTodayActiveEnergy() async -> Double? {
         return await fetchActiveEnergy(for: Date())
