@@ -35,8 +35,10 @@ extension APIService {
         _ = try await offlinePost(endpoint: "/api/log_cardio", payload: body)
     }
 
-    func fetchCardioMetrics() async throws -> CardioMetrics {
-        let url = URL(string: "\(baseURL)/api/cardio/metrics")!
+    func fetchCardioMetrics(maxHR: Int) async throws -> CardioMetrics {
+        var comps = URLComponents(string: "\(baseURL)/api/cardio/metrics")!
+        comps.queryItems = [URLQueryItem(name: "max_hr", value: "\(maxHR)")]
+        let url = comps.url!
         let data = try await fetchWithCache(url: url, key: "cardio_metrics")
         return try JSONDecoder().decode(CardioMetrics.self, from: data)
     }

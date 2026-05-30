@@ -63,13 +63,16 @@ def _vo2max_category(vo2max: float, age: int, sex: str) -> str:
         return "Faible"
 
 
-def _resolve_max_hr(sessions: list[dict], age: int | None) -> tuple[int, str]:
+def _resolve_max_hr(sessions: list[dict], age: int | None, override: int | None = None) -> tuple[int, str]:
     """
     Priority:
-      1. max(avg_hr) × 1.10 from sessions (observed + 10%)
-      2. 220 - age
+      1. override (AppStorage cardio_max_hr passed as ?max_hr query param)
+      2. max(avg_hr) × 1.10 from sessions (observed + 10%)
+      3. 220 - age
     Returns (max_hr, source).
     """
+    if override and override > 100:
+        return override, "manual"
     hr_values = [float(s["avg_hr"]) for s in sessions if s.get("avg_hr")]
     if hr_values:
         observed_max = max(hr_values)
@@ -264,17 +267,20 @@ def _guide_pace(best_pace_s: float | None, acwr_zone: str) -> str:
 
 @cardio_metrics_bp.route("/api/cardio/metrics")
 def api_cardio_metrics():
+    from flask import request as _req
     import db as _db
 
     today = date_cls.fromisoformat(_today_mtl())
     cutoff_30 = (today - timedelta(days=30)).isoformat()
 
-    profile   = _db.get_profile() or {}
-    all_cardio = _db.get_cardio_logs(limit=200) or []
-    recent    = [s for s in all_cardio if str(s.get("date", ""))[:10] >= cutoff_30]
+    max_hr_override = _req.args.get("max_hr", type=int)
 
-    age  = profile.get("age")
-    sex  = profile.get("sex", "")
+    profile    = _db.get_profile() or {}
+    all_cardio = _db.get_cardio_logs(limit=200) or []
+    recent     = [s for s in all_cardio if str(s.get("date", ""))[:10] >= cutoff_30]
+
+    age = profile.get("age")
+    sex = profile.get("sex", "")
 
     # ── VO2max ────────────────────────────────────────────────
     vo2_sessions = [
@@ -302,7 +308,7 @@ def api_cardio_metrics():
                 vo2max_trend = "up" if delta > 0 else ("down" if delta < 0 else "stable")
 
     # ── FC max & zones ────────────────────────────────────────
-    max_hr, hr_source = _resolve_max_hr(recent, age)
+    max_hr, hr_source = _resolve_max_hr(recent, age, override=max_hr_override)
     zones = _fc_zones(max_hr)
     has_hr = any(s.get("avg_hr") for s in recent)
     zone_dist = _zone_time_distribution(recent, max_hr)
