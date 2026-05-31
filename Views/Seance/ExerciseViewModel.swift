@@ -130,11 +130,13 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     var avgWeight: Double? {
-        let vals = sets
-            .compactMap { Double($0.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")) }
-            .filter { $0 > 0 }
-        guard !vals.isEmpty else { return nil }
-        return vals.reduce(0, +) / Double(vals.count)
+        var sum = 0.0; var count = 0
+        for s in sets {
+            if let v = Double(s.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")), v > 0 {
+                sum += v; count += 1
+            }
+        }
+        return count > 0 ? sum / Double(count) : nil
     }
 
     var canLog: Bool {
