@@ -684,8 +684,9 @@ def get_exercise_logs_with_category(days: int = 90) -> list[dict]:
     def _do() -> list[dict]:
         resp = (
             db_core._client.table("exercise_logs")
-            .select("weight, reps, sets_json, workout_sessions(date), exercises(name, category, load_profile)")
+            .select("weight, reps, workout_sessions(date), exercises(name, category, load_profile)")
             .gte("workout_sessions(date)", cutoff)
+            .limit(1000)
             .execute()
         )
         rows = resp.data or []
@@ -703,7 +704,6 @@ def get_exercise_logs_with_category(days: int = 90) -> list[dict]:
                 "load_profile": ex.get("load_profile"),
                 "weight":       r.get("weight", 0),
                 "reps":         r.get("reps", ""),
-                "sets_json":    r.get("sets_json"),
             })
         return result
 
