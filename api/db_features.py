@@ -103,6 +103,7 @@ def get_ritual_demons() -> List[dict]:
             .eq("outcome", "survived")
             .gte("date", cutoff)
             .order("date", desc=False)
+            .limit(100)
             .execute()
         )
         return resp.data or []
