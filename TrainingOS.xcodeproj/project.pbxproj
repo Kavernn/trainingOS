@@ -76,6 +76,14 @@
 		7ACF294B2ADCEC68F9444BAC /* PatternModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E163D5411790B6DA5108E310 /* PatternModels.swift */; };
 		7AD4CFB0BBB9317BCEEE460C /* DemonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D52AB3DCF112E90A48C999EB /* DemonsView.swift */; };
 		7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */; };
+		RV0001RV0001RV0001RV0001 /* RecoveryRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0001RR0001RR0001RR0001 /* RecoveryRow.swift */; };
+		RV0002RV0002RV0002RV0002 /* ReadinessCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0002RR0002RR0002RR0002 /* ReadinessCard.swift */; };
+		RV0003RV0003RV0003RV0003 /* RecoveryCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0003RR0003RR0003RR0003 /* RecoveryCharts.swift */; };
+		RV0004RV0004RV0004RV0004 /* RecoveryEmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0004RR0004RR0004RR0004 /* RecoveryEmptyState.swift */; };
+		RV0005RV0005RV0005RV0005 /* LogRecoverySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0005RR0005RR0005RR0005 /* LogRecoverySheet.swift */; };
+		RV0006RV0006RV0006RV0006 /* WatchSyncBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0006RR0006RR0006RR0006 /* WatchSyncBannerView.swift */; };
+		RV0007RV0007RV0007RV0007 /* HRVAnalysisCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0007RR0007RR0007RR0007 /* HRVAnalysisCard.swift */; };
+		RV0008RV0008RV0008RV0008 /* RecoveryPerformanceBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = RR0008RR0008RR0008RR0008 /* RecoveryPerformanceBanner.swift */; };
 		848288DCA8A442D283353361 /* PRCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */; };
 		SC0002SC0002SC0002SC0002 /* SessionChips.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC0001SC0001SC0001SC0001 /* SessionChips.swift */; };
 		GB0002GB0002GB0002GB0002 /* GhostBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = GB0001GB0001GB0001GB0001 /* GhostBanner.swift */; };
@@ -260,6 +268,14 @@
 /* Begin PBXFileReference section */
 		058BA2E35BCC575568655DDC /* ExerciseViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ExerciseViewModel.swift; sourceTree = "<group>"; };
 		0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryView.swift; sourceTree = "<group>"; };
+		RR0001RR0001RR0001RR0001 /* RecoveryRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryRow.swift; sourceTree = "<group>"; };
+		RR0002RR0002RR0002RR0002 /* ReadinessCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadinessCard.swift; sourceTree = "<group>"; };
+		RR0003RR0003RR0003RR0003 /* RecoveryCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryCharts.swift; sourceTree = "<group>"; };
+		RR0004RR0004RR0004RR0004 /* RecoveryEmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryEmptyState.swift; sourceTree = "<group>"; };
+		RR0005RR0005RR0005RR0005 /* LogRecoverySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogRecoverySheet.swift; sourceTree = "<group>"; };
+		RR0006RR0006RR0006RR0006 /* WatchSyncBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSyncBannerView.swift; sourceTree = "<group>"; };
+		RR0007RR0007RR0007RR0007 /* HRVAnalysisCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HRVAnalysisCard.swift; sourceTree = "<group>"; };
+		RR0008RR0008RR0008RR0008 /* RecoveryPerformanceBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPerformanceBanner.swift; sourceTree = "<group>"; };
 		07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ErrorBannerView.swift; sourceTree = "<group>"; };
 		07F5AB1A421041E59142D99A /* NutritionViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
 		NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionActionMessage.swift; sourceTree = "<group>"; };
@@ -1026,6 +1042,14 @@
 			isa = PBXGroup;
 			children = (
 				0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */,
+				RR0001RR0001RR0001RR0001 /* RecoveryRow.swift */,
+				RR0002RR0002RR0002RR0002 /* ReadinessCard.swift */,
+				RR0003RR0003RR0003RR0003 /* RecoveryCharts.swift */,
+				RR0004RR0004RR0004RR0004 /* RecoveryEmptyState.swift */,
+				RR0005RR0005RR0005RR0005 /* LogRecoverySheet.swift */,
+				RR0006RR0006RR0006RR0006 /* WatchSyncBannerView.swift */,
+				RR0007RR0007RR0007RR0007 /* HRVAnalysisCard.swift */,
+				RR0008RR0008RR0008RR0008 /* RecoveryPerformanceBanner.swift */,
 			);
 			path = Recovery;
 			sourceTree = "<group>";
@@ -1336,6 +1360,14 @@
 				E6F7A8B9C0D1E2F3A4B5C6D7 /* CardioActiveView.swift in Sources */,
 				A8B9C0D1E2F3A4B5C6D7E8F9 /* CardioSummaryView.swift in Sources */,
 				7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */,
+				RV0001RV0001RV0001RV0001 /* RecoveryRow.swift in Sources */,
+				RV0002RV0002RV0002RV0002 /* ReadinessCard.swift in Sources */,
+				RV0003RV0003RV0003RV0003 /* RecoveryCharts.swift in Sources */,
+				RV0004RV0004RV0004RV0004 /* RecoveryEmptyState.swift in Sources */,
+				RV0005RV0005RV0005RV0005 /* LogRecoverySheet.swift in Sources */,
+				RV0006RV0006RV0006RV0006 /* WatchSyncBannerView.swift in Sources */,
+				RV0007RV0007RV0007RV0007 /* HRVAnalysisCard.swift in Sources */,
+				RV0008RV0008RV0008RV0008 /* RecoveryPerformanceBanner.swift in Sources */,
 				913EC83173A0479A8FA00023 /* SleepView.swift in Sources */,
 				9E8ED6F12F56136AE817562F /* HealthKitService.swift in Sources */,
 				AA1100032F5D98BA002AE470 /* NetworkMonitor.swift in Sources */,
