@@ -360,7 +360,7 @@ def get_food_catalog() -> list:
         return []
 
     def _do() -> list:
-        resp = db_core._client.table("food_catalog").select("*").execute()
+        resp = db_core._client.table("food_catalog").select("*").limit(200).execute()
         return resp.data or []
 
     try:
@@ -410,7 +410,7 @@ def get_meal_templates() -> list:
         return []
 
     def _do() -> list:
-        resp = db_core._client.table("meal_templates").select("*").order("name").execute()
+        resp = db_core._client.table("meal_templates").select("id, name, items").order("name").limit(50).execute()
         return resp.data or []
 
     try:
