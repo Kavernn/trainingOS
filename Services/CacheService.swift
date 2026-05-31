@@ -40,7 +40,7 @@ final class CacheService {
         // Health
         "recovery_data":      3600,
         "cardio_data":        10 * 60,
-        "acwr":               30 * 60,
+        "acwr":               60 * 60,
         // Nutrition — invalidated explicitly on food log
         "nutrition_data":     30 * 60,
         // Coach memory — local UserDefaults, but registered for consistency
