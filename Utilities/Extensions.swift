@@ -67,6 +67,34 @@ extension DateFormatter {
         f.timeZone = TimeZone.autoupdatingCurrent
         return f
     }()
+
+    static let isoYearMonth: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
+    static let shortDateFR: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "d MMM"
+        f.locale = Locale(identifier: "fr_FR")
+        return f
+    }()
+
+    static let longDateFR: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "d MMM yyyy"
+        f.locale = Locale(identifier: "fr_FR")
+        return f
+    }()
+
+    static let monthYearFR: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "MMMM yyyy"
+        f.locale = Locale(identifier: "fr_FR")
+        return f
+    }()
 }
 
 // MARK: - Beep generator (WAV en mémoire, joue par-dessus la musique)

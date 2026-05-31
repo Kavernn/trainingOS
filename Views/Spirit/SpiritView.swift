@@ -156,7 +156,7 @@ class SpiritViewModel: ObservableObject {
     }
 
     func todayHasJournal() -> Bool {
-        let today = ISO8601DateFormatter().string(from: Date()).prefix(10).description
+        let today = DateFormatter.isoDate.string(from: Date())
         return journalStubs.contains { $0.date == today }
     }
 }

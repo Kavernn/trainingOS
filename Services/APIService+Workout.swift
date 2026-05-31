@@ -162,8 +162,7 @@ extension APIService {
         var progReq = URLRequest(url: progUrl)
         progReq.httpMethod = "POST"
         progReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let formatter = DateFormatter(); formatter.dateFormat = "yyyy-MM-dd"
-        let dateStr = formatter.string(from: Date())
+        let dateStr = DateFormatter.isoDate.string(from: Date())
         progReq.httpBody = try JSONSerialization.data(withJSONObject: [
             "action": "create",
             "name": "\(content.name) — \(dateStr)"

@@ -54,8 +54,7 @@ struct ProfileView: View {
     // MARK: - Computed
 
     private var sessionsThisMonth: Int {
-        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM"
-        let key = fmt.string(from: Date())
+        let key = DateFormatter.isoYearMonth.string(from: Date())
         return api.dashboard?.sessions.keys.filter { $0.hasPrefix(key) }.count ?? 0
     }
 
@@ -67,9 +66,8 @@ struct ProfileView: View {
         let sorted = bodyComp.history.sorted { $0.date < $1.date }
         guard let latest = sorted.last else { return nil }
         let cutoff = Calendar.current.date(byAdding: .day, value: -28, to: Date()) ?? Date()
-        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
         guard let ref = sorted.last(where: {
-            guard let d = fmt.date(from: $0.date) else { return false }
+            guard let d = DateFormatter.isoDate.date(from: $0.date) else { return false }
             return d <= cutoff && $0.date != latest.date
         }) else { return nil }
         return latest.weight - ref.weight
@@ -955,28 +953,19 @@ struct ProfileView: View {
     // MARK: - Helpers
 
     private func formattedShortDate(_ iso: String) -> String {
-        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-        guard let date = df.date(from: String(iso.prefix(10))) else { return iso }
-        let out = DateFormatter(); out.dateFormat = "d MMM yyyy"
-        out.locale = Locale(identifier: "fr_FR")
-        return out.string(from: date)
+        guard let date = DateFormatter.isoDate.date(from: String(iso.prefix(10))) else { return iso }
+        return DateFormatter.longDateFR.string(from: date)
     }
 
     private func shortDate(_ iso: String) -> String {
-        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-        guard let date = df.date(from: String(iso.prefix(10))) else { return iso }
-        let out = DateFormatter(); out.dateFormat = "d MMM"
-        out.locale = Locale(identifier: "fr_FR")
-        return out.string(from: date)
+        guard let date = DateFormatter.isoDate.date(from: String(iso.prefix(10))) else { return iso }
+        return DateFormatter.shortDateFR.string(from: date)
     }
 
     private func buildMemberSince(isoDate: String) -> String {
-        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
-        guard let date = df.date(from: String(isoDate.prefix(10))) else { return "" }
+        guard let date = DateFormatter.isoDate.date(from: String(isoDate.prefix(10))) else { return "" }
         let months = Calendar.current.dateComponents([.month], from: date, to: Date()).month ?? 0
-        let out = DateFormatter(); out.dateFormat = "MMMM yyyy"
-        out.locale = Locale(identifier: "fr_FR")
-        let label = out.string(from: date).capitalized
+        let label = DateFormatter.monthYearFR.string(from: date).capitalized
         if months < 1 { return "Warrior since today." }
         return "Warrior since \(label)"
     }
