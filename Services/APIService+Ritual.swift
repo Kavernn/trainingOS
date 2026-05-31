@@ -5,13 +5,13 @@ extension APIService {
     func fetchRitualToday() async throws -> RitualToday {
         let url  = try buildURL(path: "/api/ritual/today")
         let data = try await fetchWithCache(url: url, key: "ritual_today")
-        return try JSONDecoder().decode(RitualToday.self, from: data)
+        return try APIService.decoder.decode(RitualToday.self, from: data)
     }
 
     func fetchPhoenixStats() async throws -> PhoenixStats {
         let url  = try buildURL(path: "/api/ritual/streak")
         let data = try await fetchWithCache(url: url, key: "ritual_streak")
-        return try JSONDecoder().decode(PhoenixStats.self, from: data)
+        return try APIService.decoder.decode(PhoenixStats.self, from: data)
     }
 
     func saveRitualMorning(intention: String, carryCount: Int = 0, carriedFrom: String? = nil) async throws {
@@ -25,7 +25,7 @@ extension APIService {
         let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: ["outcome": outcome])
         CacheInvalidation.ritualActioned.invalidate()
         guard let data else { throw APIError.queuedOffline }
-        return try JSONDecoder().decode(RitualEveningResult.self, from: data)
+        return try APIService.decoder.decode(RitualEveningResult.self, from: data)
     }
 
     func killDemon(date: String) async throws {
@@ -36,13 +36,13 @@ extension APIService {
     func fetchRitualStats() async throws -> RitualStats {
         let url  = try buildURL(path: "/api/ritual/stats")
         let data = try await fetchWithCache(url: url, key: "ritual_stats")
-        return try JSONDecoder().decode(RitualStats.self, from: data)
+        return try APIService.decoder.decode(RitualStats.self, from: data)
     }
 
     func fetchRitualCorrelations() async throws -> RitualCorrelations {
         let url  = try buildURL(path: "/api/ritual/correlations")
         let data = try await fetchWithCache(url: url, key: "ritual_correlations")
-        return try JSONDecoder().decode(RitualCorrelations.self, from: data)
+        return try APIService.decoder.decode(RitualCorrelations.self, from: data)
     }
 
     func fetchRitualHistoryFull(limit: Int = 90, offset: Int = 0) async throws -> RitualHistoryPage {
@@ -53,7 +53,7 @@ extension APIService {
         if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
             throw APIError.serverError(http.statusCode, "fetchRitualHistoryFull HTTP \(http.statusCode)")
         }
-        return try JSONDecoder().decode(RitualHistoryPage.self, from: data)
+        return try APIService.decoder.decode(RitualHistoryPage.self, from: data)
     }
 
     func saveRitualChecklist(weightLogged: Bool? = nil, hydrationDone: Bool? = nil,
@@ -80,6 +80,6 @@ extension APIService {
         let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: payload)
         CacheInvalidation.ritualUpdated.invalidate()
         guard let data else { throw APIError.queuedOffline }
-        return try JSONDecoder().decode(RitualEveningResult.self, from: data)
+        return try APIService.decoder.decode(RitualEveningResult.self, from: data)
     }
 }

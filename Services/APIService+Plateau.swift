@@ -6,7 +6,7 @@ extension APIService {
         if force { items.append(URLQueryItem(name: "force", value: "1")) }
         let url  = try buildURL(path: "/api/plateau_alerts", queryItems: items)
         let data = try await fetchWithCache(url: url, key: "plateau_alerts")
-        return try JSONDecoder().decode(PlateauResponse.self, from: data)
+        return try APIService.decoder.decode(PlateauResponse.self, from: data)
     }
 
     func updatePlateauStatus(id: String, status: String) async throws {

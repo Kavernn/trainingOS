@@ -13,13 +13,13 @@ extension APIService {
             URLQueryItem(name: "offset", value: "\(offset)")
         ])
         let data = try await fetchWithCache(url: url, key: cacheKey)
-        return try JSONDecoder().decode(PagedResponse<SleepEntry>.self, from: data)
+        return try APIService.decoder.decode(PagedResponse<SleepEntry>.self, from: data)
     }
 
     func fetchSleepToday() async throws -> SleepEntry? {
         let url = try buildURL(path: "/api/sleep/today")
         let data = try await fetchWithCache(url: url, key: "sleep_today")
-        if let entry = try? JSONDecoder().decode(SleepEntry.self, from: data) {
+        if let entry = try? APIService.decoder.decode(SleepEntry.self, from: data) {
             return entry
         } else if !data.isEmpty && data != Data("null".utf8) {
             sleepLogger.warning("⚠️ fetchSleepToday decode failed — may indicate API schema change")
@@ -30,7 +30,7 @@ extension APIService {
     func fetchSleepStats() async throws -> SleepStats {
         let url = try buildURL(path: "/api/sleep/stats")
         let data = try await fetchWithCache(url: url, key: "sleep_stats")
-        return try JSONDecoder().decode(SleepStats.self, from: data)
+        return try APIService.decoder.decode(SleepStats.self, from: data)
     }
 
     func logSleep(bedtime: String, wakeTime: String, quality: Int,
@@ -42,7 +42,7 @@ extension APIService {
             throw APIError.queuedOffline
         }
         CacheInvalidation.sleepMutated.invalidate()
-        return try JSONDecoder().decode(SleepEntry.self, from: data)
+        return try APIService.decoder.decode(SleepEntry.self, from: data)
     }
 
     func deleteSleepEntry(id: String) async throws {

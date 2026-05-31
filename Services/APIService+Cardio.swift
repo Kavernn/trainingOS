@@ -9,7 +9,7 @@ extension APIService {
             let cardioLog: [CardioEntry]
             enum CodingKeys: String, CodingKey { case cardioLog = "cardio_log" }
         }
-        return try JSONDecoder().decode(Resp.self, from: data).cardioLog
+        return try APIService.decoder.decode(Resp.self, from: data).cardioLog
     }
 
     func logCardio(type: String, durationMin: Double?, distanceKm: Double?,
@@ -38,7 +38,7 @@ extension APIService {
     func fetchCardioMetrics(maxHR: Int) async throws -> CardioMetrics {
         let url = try buildURL(path: "/api/cardio/metrics", queryItems: [URLQueryItem(name: "max_hr", value: "\(maxHR)")])
         let data = try await fetchWithCache(url: url, key: "cardio_metrics")
-        return try JSONDecoder().decode(CardioMetrics.self, from: data)
+        return try APIService.decoder.decode(CardioMetrics.self, from: data)
     }
 
     func deleteCardio(date: String, type: String) async throws {

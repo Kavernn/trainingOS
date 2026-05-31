@@ -9,7 +9,7 @@ extension APIService {
             let recoveryLog: [RecoveryEntry]
             enum CodingKeys: String, CodingKey { case recoveryLog = "recovery_log" }
         }
-        return try JSONDecoder().decode(Resp.self, from: data).recoveryLog
+        return try APIService.decoder.decode(Resp.self, from: data).recoveryLog
     }
 
     func logRecovery(sleepHours: Double?, sleepQuality: Double?, restingHr: Double?,
@@ -45,21 +45,21 @@ extension APIService {
         if let d = date { items.append(URLQueryItem(name: "date", value: d)) }
         let url = try buildURL(path: "/api/health/daily_summary", queryItems: items)
         let data = try await fetchWithCache(url: url, key: "daily_summary_\(date ?? "today")")
-        return try JSONDecoder().decode(DailySummary.self, from: data)
+        return try APIService.decoder.decode(DailySummary.self, from: data)
     }
 
     // MARK: - HRV Analysis
     func fetchHRVAnalysis() async throws -> HRVAnalysis {
         let url  = try buildURL(path: "/api/hrv/analysis")
         let data = try await fetchWithCache(url: url, key: "hrv_analysis")
-        return try JSONDecoder().decode(HRVAnalysis.self, from: data)
+        return try APIService.decoder.decode(HRVAnalysis.self, from: data)
     }
 
     // MARK: - PSS
     func fetchPSSQuestions(isShort: Bool = false) async throws -> [PSSQuestion] {
         let url = try buildURL(path: "/api/pss/questions", queryItems: [URLQueryItem(name: "short", value: "\(isShort)")])
         let data = try await fetchWithCache(url: url, key: "pss_questions_\(isShort)")
-        return try JSONDecoder().decode([PSSQuestion].self, from: data)
+        return try APIService.decoder.decode([PSSQuestion].self, from: data)
     }
 
     func submitPSS(responses: [Int], isShort: Bool = false, notes: String? = nil,
@@ -72,7 +72,7 @@ extension APIService {
             throw APIError.queuedOffline
         }
         CacheInvalidation.pssSubmitted.invalidate()
-        return try JSONDecoder().decode(PSSRecord.self, from: data)
+        return try APIService.decoder.decode(PSSRecord.self, from: data)
     }
 
     func fetchPSSHistory(type: String? = nil) async throws -> [PSSRecord] {
@@ -80,13 +80,13 @@ extension APIService {
         if let type { items.append(URLQueryItem(name: "type", value: type)) }
         let url = try buildURL(path: "/api/pss/history", queryItems: items)
         let data = try await fetchWithCache(url: url, key: "pss_history")
-        return try JSONDecoder().decode([PSSRecord].self, from: data)
+        return try APIService.decoder.decode([PSSRecord].self, from: data)
     }
 
     func checkPSSDue(type: String = "full") async throws -> PSSDueStatus {
         let url = try buildURL(path: "/api/pss/check_due", queryItems: [URLQueryItem(name: "type", value: type)])
         let data = try await fetchWithCache(url: url, key: "pss_check_due_\(type)")
-        return try JSONDecoder().decode(PSSDueStatus.self, from: data)
+        return try APIService.decoder.decode(PSSDueStatus.self, from: data)
     }
 
     // MARK: - Life Stress Engine
@@ -96,13 +96,13 @@ extension APIService {
         if forceRefresh { items.append(URLQueryItem(name: "refresh", value: "true")) }
         let url = try buildURL(path: "/api/life_stress/score", queryItems: items)
         let data = try await fetchWithCache(url: url, key: "life_stress_\(date ?? "today")")
-        return try JSONDecoder().decode(LifeStressScore.self, from: data)
+        return try APIService.decoder.decode(LifeStressScore.self, from: data)
     }
 
     func fetchLifeStressTrend(days: Int = 7) async throws -> [LifeStressScore] {
         let url = try buildURL(path: "/api/life_stress/trend", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
         let data = try await fetchWithCache(url: url, key: "life_stress_trend_\(days)")
-        return try JSONDecoder().decode([LifeStressScore].self, from: data)
+        return try APIService.decoder.decode([LifeStressScore].self, from: data)
     }
 
     // MARK: - Coach / Morning Brief
@@ -110,12 +110,12 @@ extension APIService {
         let today = DateFormatter.isoDate.string(from: Date())
         let url = try buildURL(path: "/api/coach/daily_tip")
         let data = try await fetchWithCache(url: url, key: "coach_tip_\(today)")
-        return try JSONDecoder().decode(CoachTip.self, from: data)
+        return try APIService.decoder.decode(CoachTip.self, from: data)
     }
 
     func fetchMorningBrief() async throws -> MorningBriefData {
         let url = try buildURL(path: "/api/coach/morning_brief")
         let data = try await fetchWithCache(url: url, key: "morning_brief")
-        return try JSONDecoder().decode(MorningBriefData.self, from: data)
+        return try APIService.decoder.decode(MorningBriefData.self, from: data)
     }
 }

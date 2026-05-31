@@ -8,7 +8,7 @@ extension APIService {
     func fetchSeanceData() async throws -> SeanceData {
         let url = try buildURL(path: "/api/seance_data")
         let data = try await fetchWithCache(url: url, key: "seance_data")
-        return try JSONDecoder().decode(SeanceData.self, from: data)
+        return try APIService.decoder.decode(SeanceData.self, from: data)
     }
 
     func fetchSeanceData(sessionName: String) async throws -> SeanceData {
@@ -16,7 +16,7 @@ extension APIService {
         comps.queryItems = [URLQueryItem(name: "session_name", value: sessionName)]
         guard let url = comps.url else { throw URLError(.badURL) }
         let (data, _) = try await URLSession.authed.data(from: url)
-        return try JSONDecoder().decode(SeanceData.self, from: data)
+        return try APIService.decoder.decode(SeanceData.self, from: data)
     }
 
     func logExercise(exercise: String, weight: Double, reps: String,
@@ -36,7 +36,7 @@ extension APIService {
         }
         CacheInvalidation.exerciseLogged(isSecond: isSecond, isBonus: isBonus).invalidate()
         do {
-            return try JSONDecoder().decode(LogExerciseResponse.self, from: data)
+            return try APIService.decoder.decode(LogExerciseResponse.self, from: data)
         } catch {
             workoutLogger.error("❌ logExercise decode failed: \(error, privacy: .public)")
             throw APIError.decodingFailed(endpoint: "/api/log", error: error)
@@ -68,7 +68,7 @@ extension APIService {
     func fetchSeanceSoirData() async throws -> SeanceSoirData {
         let url = try buildURL(path: "/api/seance_soir_data")
         let data = try await fetchWithCache(url: url, key: "seance_soir_data")
-        return try JSONDecoder().decode(SeanceSoirData.self, from: data)
+        return try APIService.decoder.decode(SeanceSoirData.self, from: data)
     }
 
     func deleteSession(date: String, sessionType: String = "morning") async throws {
@@ -104,7 +104,7 @@ extension APIService {
             let hiitLog: [HIITEntry]
             enum CodingKeys: String, CodingKey { case hiitLog = "hiit_log" }
         }
-        return try JSONDecoder().decode(HIITResponse.self, from: data).hiitLog
+        return try APIService.decoder.decode(HIITResponse.self, from: data).hiitLog
     }
 
     func logHIIT(sessionType: String, rounds: Int, workTime: Int, restTime: Int,
@@ -143,14 +143,14 @@ extension APIService {
             throw NSError(domain: "API", code: http.statusCode,
                           userInfo: [NSLocalizedDescriptionKey: msg ?? "Erreur \(http.statusCode)"])
         }
-        return try JSONDecoder().decode(GeneratedProgram.self, from: data)
+        return try APIService.decoder.decode(GeneratedProgram.self, from: data)
     }
 
     func fetchLatestGeneratedProgram() async throws -> GeneratedProgram? {
         let url = try buildURL(path: "/api/ai/generated_program/latest")
         let (data, response) = try await URLSession.authed.data(for: URLRequest(url: url))
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
-        return try JSONDecoder().decode(GeneratedProgram.self, from: data)
+        return try APIService.decoder.decode(GeneratedProgram.self, from: data)
     }
 
     func approveGeneratedProgram(_ gp: GeneratedProgram) async throws -> String {
@@ -267,7 +267,7 @@ extension APIService {
     func fetchPeakPrediction() async throws -> PeakPredictionResponse {
         let url = try buildURL(path: "/api/peak_prediction")
         let data = try await fetchWithCache(url: url, key: "peak_prediction")
-        return try JSONDecoder().decode(PeakPredictionResponse.self, from: data)
+        return try APIService.decoder.decode(PeakPredictionResponse.self, from: data)
     }
 
     func fetchProgressionSuggestions(date: String, sessionType: String,
@@ -281,7 +281,7 @@ extension APIService {
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
         let (data, _) = try await URLSession.authed.data(for: req)
-        return try JSONDecoder().decode(ProgressionSuggestionsResponse.self, from: data).suggestions
+        return try APIService.decoder.decode(ProgressionSuggestionsResponse.self, from: data).suggestions
     }
 
     func applyProgression(exerciseName: String, suggestedWeight: Double,
@@ -297,7 +297,7 @@ extension APIService {
     func fetchSmartDay() async throws -> SmartDayRecommendation {
         let url = try buildURL(path: "/api/smart_day")
         let data = try await fetchWithCache(url: url, key: "smart_day")
-        return try JSONDecoder().decode(SmartDayRecommendation.self, from: data)
+        return try APIService.decoder.decode(SmartDayRecommendation.self, from: data)
     }
 
     func fetchWeeklyReport() async throws -> WeeklyReport {
@@ -305,7 +305,7 @@ extension APIService {
         var req = URLRequest(url: url)
         req.timeoutInterval = 20
         let (data, _) = try await URLSession.authed.data(for: req)
-        return try JSONDecoder().decode(WeeklyReport.self, from: data)
+        return try APIService.decoder.decode(WeeklyReport.self, from: data)
     }
 
     func applyDeload(poidsDeload: [String: Double]) async throws {

@@ -11,13 +11,13 @@ extension APIService {
         guard (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0) else {
             throw URLError(.badServerResponse)
         }
-        return try JSONDecoder().decode(CapsuleSnapshot.self, from: data)
+        return try APIService.decoder.decode(CapsuleSnapshot.self, from: data)
     }
 
     func fetchTimeCapsules() async throws -> [TimeCapsule] {
         let url  = try buildURL(path: "/api/time_capsule")
         let data = try await fetchWithCache(url: url, key: "time_capsules")
-        return try JSONDecoder().decode(TimeCapsuleListResponse.self, from: data).capsules
+        return try APIService.decoder.decode(TimeCapsuleListResponse.self, from: data).capsules
     }
 
     func createTimeCapsule(durationMonths: Int, message: String?) async throws -> TimeCapsule {
@@ -33,7 +33,7 @@ extension APIService {
             throw URLError(.badServerResponse)
         }
         CacheInvalidation.timeCapsuleCreated.invalidate()
-        return try JSONDecoder().decode(TimeCapsule.self, from: data)
+        return try APIService.decoder.decode(TimeCapsule.self, from: data)
     }
 
     func openTimeCapsule(id: String) async throws -> TimeCapsule {
@@ -45,6 +45,6 @@ extension APIService {
             throw URLError(.badServerResponse)
         }
         CacheInvalidation.timeCapsuleOpened.invalidate()
-        return try JSONDecoder().decode(TimeCapsule.self, from: data)
+        return try APIService.decoder.decode(TimeCapsule.self, from: data)
     }
 }

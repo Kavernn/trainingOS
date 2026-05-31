@@ -52,6 +52,18 @@ class APIService: ObservableObject {
     /// Prevents "Commencer la séance" from reappearing while the fresh dashboard is loading.
     @Published var sessionLoggedToday = false
 
+    static let decoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.dateDecodingStrategy = .iso8601
+        return d
+    }()
+
+    static let encoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .iso8601
+        return e
+    }()
+
     private let logger = Logger(subsystem: "TrainingOS", category: "api")
     private var consecutiveDashboardFailures = 0
     private init() {}
@@ -146,7 +158,7 @@ class APIService: ObservableObject {
     func fetchDashboard() async {
         if let cached = CacheService.shared.load(for: "dashboard"),
            dashboard == nil {
-            if let decoded = try? JSONDecoder().decode(DashboardData.self, from: cached) {
+            if let decoded = try? APIService.decoder.decode(DashboardData.self, from: cached) {
                 await MainActor.run { self.dashboard = decoded }
             } else {
                 logger.warning("⚠️ Dashboard cache decode failed — stale cache cleared")
@@ -180,7 +192,7 @@ class APIService: ObservableObject {
             }
             slowTask.cancel()
             await MainActor.run { self.isSlow = false }
-            let decoded = try JSONDecoder().decode(DashboardData.self, from: data)
+            let decoded = try APIService.decoder.decode(DashboardData.self, from: data)
             await MainActor.run {
                 self.dashboard = decoded
                 self.isLoading = false
@@ -217,7 +229,7 @@ class APIService: ObservableObject {
     private func revertOptimisticFlagFromStaleCache() {
         guard sessionLoggedToday else { return }
         let (stale, _, _) = CacheService.shared.loadIncludingStale(for: "dashboard")
-        if let stale, let decoded = try? JSONDecoder().decode(DashboardData.self, from: stale) {
+        if let stale, let decoded = try? APIService.decoder.decode(DashboardData.self, from: stale) {
             sessionLoggedToday = decoded.alreadyLoggedToday
         } else {
             sessionLoggedToday = false

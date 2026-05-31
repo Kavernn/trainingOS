@@ -5,7 +5,7 @@ extension APIService {
     func fetchProfileStats() async throws -> ProfileStats {
         let url  = try buildURL(path: "/api/profile_stats")
         let data = try await fetchWithCache(url: url, key: "profile_stats")
-        return try JSONDecoder().decode(ProfileStats.self, from: data)
+        return try APIService.decoder.decode(ProfileStats.self, from: data)
     }
 
     // MARK: - Body Weight / Profil
@@ -20,7 +20,7 @@ extension APIService {
                 case profile; case bodyWeight = "body_weight"; case tendance
             }
         }
-        let r = try JSONDecoder().decode(ProfilResponse.self, from: data)
+        let r = try APIService.decoder.decode(ProfilResponse.self, from: data)
         return (r.profile, r.bodyWeight, r.tendance)
     }
 
@@ -82,14 +82,14 @@ extension APIService {
     func fetchWeights() async throws -> [String: WeightData] {
         let url = try buildURL(path: "/api/weights")
         let data = try await fetchWithCache(url: url, key: "weights")
-        return try JSONDecoder().decode([String: WeightData].self, from: data)
+        return try APIService.decoder.decode([String: WeightData].self, from: data)
     }
 
     func fetchExerciseWeightData(name: String) async throws -> WeightData? {
         let encoded = name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name
         guard let url = URL(string: "\(baseURL)/api/weights?exercise=\(encoded)") else { return nil }
         let (data, _) = try await URLSession.authed.data(from: url)
-        let dict = try JSONDecoder().decode([String: WeightData].self, from: data)
+        let dict = try APIService.decoder.decode([String: WeightData].self, from: data)
         return dict[name]
     }
 
@@ -141,12 +141,12 @@ extension APIService {
         if let date { items.append(URLQueryItem(name: "date", value: date)) }
         let url = try buildURL(path: "/api/health/daily_summary", queryItems: items)
         let data = try await fetchWithCache(url: url, key: "health_daily_\(date ?? "today")")
-        return try JSONDecoder().decode(DailyHealthSummary.self, from: data)
+        return try APIService.decoder.decode(DailyHealthSummary.self, from: data)
     }
 
     func fetchWeeklyHealthSummary(days: Int = 7) async throws -> [DailyHealthSummary] {
         let url = try buildURL(path: "/api/health/weekly_summary", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
         let data = try await fetchWithCache(url: url, key: "health_weekly_\(days)")
-        return try JSONDecoder().decode([DailyHealthSummary].self, from: data)
+        return try APIService.decoder.decode([DailyHealthSummary].self, from: data)
     }
 }

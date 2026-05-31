@@ -16,14 +16,14 @@ extension APIService {
             let entries: [NutritionEntry]
             let totals: NutritionTotals?
         }
-        let r = try JSONDecoder().decode(NutrResponse.self, from: data)
+        let r = try APIService.decoder.decode(NutrResponse.self, from: data)
         return (r.settings, r.entries, r.totals)
     }
 
     func fetchNutritionHistory() async throws -> [NutritionDayHistory] {
         let url = URL(string: "\(baseURL)/api/nutrition_data")!
         let data = try await fetchWithCache(url: url, key: "nutrition_data")
-        return try JSONDecoder().decode(NutritionDataResponse.self, from: data).history
+        return try APIService.decoder.decode(NutritionDataResponse.self, from: data).history
     }
 
     func addNutritionEntry(name: String, calories: Double, proteines: Double,
@@ -57,11 +57,11 @@ extension APIService {
         req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
         let (data, resp) = try await URLSession.authed.data(for: req)
         if let http = resp as? HTTPURLResponse, http.statusCode != 200 {
-            let msg = (try? JSONDecoder().decode([String: String].self, from: data))?["error"]
+            let msg = (try? APIService.decoder.decode([String: String].self, from: data))?["error"]
                       ?? "Erreur serveur (\(http.statusCode))"
             throw ScanLabelError(message: msg)
         }
-        return try JSONDecoder().decode(ScanResult.self, from: data)
+        return try APIService.decoder.decode(ScanResult.self, from: data)
     }
 
     func scanBarcode(_ code: String) async throws -> BarcodeResult {
@@ -75,12 +75,12 @@ extension APIService {
             if let offResult = try? await scanBarcodeOpenFoodFacts(code) {
                 return offResult
             }
-            let msg = (try? JSONDecoder().decode([String: String].self, from: data))?["error"]
+            let msg = (try? APIService.decoder.decode([String: String].self, from: data))?["error"]
                       ?? "Produit introuvable"
             throw ScanLabelError(message: msg)
         }
         guard http.statusCode == 200 else { throw URLError(.badServerResponse) }
-        return try JSONDecoder().decode(BarcodeResult.self, from: data)
+        return try APIService.decoder.decode(BarcodeResult.self, from: data)
     }
 
     private func scanBarcodeOpenFoodFacts(_ code: String) async throws -> BarcodeResult {
@@ -119,7 +119,7 @@ extension APIService {
             }
         }
 
-        let response = try JSONDecoder().decode(OFFResponse.self, from: data)
+        let response = try APIService.decoder.decode(OFFResponse.self, from: data)
         guard response.status == 1, let product = response.product else {
             throw ScanLabelError(message: "Produit introuvable")
         }
@@ -178,7 +178,7 @@ extension APIService {
               let (data, _) = try? await URLSession.authed.data(from: url) else { return [] }
         struct Resp: Decodable { let templates: [MealTemplate] }
         do {
-            return try JSONDecoder().decode(Resp.self, from: data).templates
+            return try APIService.decoder.decode(Resp.self, from: data).templates
         } catch {
             nutritionLogger.error("❌ fetchMealTemplates decode failed: \(error, privacy: .public)")
             return []
@@ -195,7 +195,7 @@ extension APIService {
                                                payload: ["name": name, "items": itemDicts]) else {
             throw APIError.queuedOffline
         }
-        return try JSONDecoder().decode(Resp.self, from: data).template
+        return try APIService.decoder.decode(Resp.self, from: data).template
     }
 
     func updateMealTemplate(id: String, name: String, items: [MealTemplateItem]) async throws {

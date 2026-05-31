@@ -4,6 +4,6 @@ extension APIService {
     func fetchBodyBudget() async throws -> BodyBudgetResponse {
         let url = try buildURL(path: "/api/body_budget")
         let data = try await fetchWithCache(url: url, key: "body_budget")
-        return try JSONDecoder().decode(BodyBudgetResponse.self, from: data)
+        return try APIService.decoder.decode(BodyBudgetResponse.self, from: data)
     }
 }

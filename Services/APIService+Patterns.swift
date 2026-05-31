@@ -5,7 +5,7 @@ extension APIService {
     func fetchPatterns() async throws -> PatternResponse {
         let url  = try buildURL(path: "/api/patterns/daily")
         let data = try await fetchWithCache(url: url, key: "patterns_daily")
-        return try JSONDecoder().decode(PatternResponse.self, from: data)
+        return try APIService.decoder.decode(PatternResponse.self, from: data)
     }
 
     func pinPattern(id: String) async throws {
@@ -28,6 +28,6 @@ extension APIService {
     func fetchWarRoomPatternsEngine() async throws -> [PatternEntry] {
         let url  = try buildURL(path: "/api/patterns/war_room")
         let data = try await fetchWithCache(url: url, key: "patterns_war_room")
-        return try JSONDecoder().decode([PatternEntry].self, from: data)
+        return try APIService.decoder.decode([PatternEntry].self, from: data)
     }
 }

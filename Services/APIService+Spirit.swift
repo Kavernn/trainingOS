@@ -10,7 +10,7 @@ extension APIService {
     func getSpiritConfig() async throws -> SpiritConfig {
         let url  = try buildURL(path: "/api/spirit/config")
         let data = try await fetchWithCache(url: url, key: "spirit_config")
-        return try JSONDecoder().decode(SpiritConfig.self, from: data)
+        return try APIService.decoder.decode(SpiritConfig.self, from: data)
     }
 
     func updateSpiritConfig(_ fields: [String: Any]) async throws {
@@ -23,7 +23,7 @@ extension APIService {
     func getSpiritBreathSessions(limit: Int = 60) async throws -> [SpiritBreathSession] {
         let url  = try buildURL(path: "/api/spirit/breathwork", queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
         let data = try await fetchWithCache(url: url, key: "spirit_breathwork")
-        return try JSONDecoder().decode([SpiritBreathSession].self, from: data)
+        return try APIService.decoder.decode([SpiritBreathSession].self, from: data)
     }
 
     func logBreathwork(
@@ -47,7 +47,7 @@ extension APIService {
     func getMeditationSessions(limit: Int = 60) async throws -> [MeditationSession] {
         let url  = try buildURL(path: "/api/spirit/meditation", queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
         let data = try await fetchWithCache(url: url, key: "spirit_meditation")
-        return try JSONDecoder().decode([MeditationSession].self, from: data)
+        return try APIService.decoder.decode([MeditationSession].self, from: data)
     }
 
     func logMeditation(plannedSec: Int, actualSec: Int, bellInterval: Int, completed: Bool) async throws {
@@ -66,7 +66,7 @@ extension APIService {
     func getSpiritJournalStubs(limit: Int = 30) async throws -> [SpiritJournalStub] {
         let url  = try buildURL(path: "/api/spirit/journal", queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
         let data = try await fetchWithCache(url: url, key: "spirit_journal_list")
-        return try JSONDecoder().decode([SpiritJournalStub].self, from: data)
+        return try APIService.decoder.decode([SpiritJournalStub].self, from: data)
     }
 
     func getSpiritJournalEntry(date: String) async throws -> SpiritJournalEntry? {
@@ -74,7 +74,7 @@ extension APIService {
         let cacheKey = "spirit_journal_\(date)"
         let data = try await fetchWithCache(url: url, key: cacheKey)
         if data.isEmpty || data == Data("{}".utf8) { return nil }
-        if let entry = try? JSONDecoder().decode(SpiritJournalEntry.self, from: data) {
+        if let entry = try? APIService.decoder.decode(SpiritJournalEntry.self, from: data) {
             return entry
         } else if !data.isEmpty && data != Data("null".utf8) {
             spiritLogger.warning("⚠️ getSpiritJournalEntry decode failed — may indicate API schema change")
@@ -96,6 +96,6 @@ extension APIService {
     func getSpiritPatterns() async throws -> SpiritPatterns {
         let url  = try buildURL(path: "/api/spirit/patterns")
         let data = try await fetchWithCache(url: url, key: "spirit_patterns")
-        return try JSONDecoder().decode(SpiritPatterns.self, from: data)
+        return try APIService.decoder.decode(SpiritPatterns.self, from: data)
     }
 }
