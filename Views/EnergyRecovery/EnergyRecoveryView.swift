@@ -32,7 +32,8 @@ struct EnergyRecoveryView: View {
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 20) {
                             if activeTab == 0 {
-                                EnergyTabContent(energy: energy, history: history)
+                                EnergyTabContent(energy: energy, history: history,
+                                                 activeEnergy: recoveryLog.first?.activeEnergy)
                                 DynamicSuggestionsSection(
                                     energy: energy,
                                     recoveryToday: recoveryLog.first,
@@ -128,6 +129,7 @@ private struct ERTabPicker: View {
 private struct EnergyTabContent: View {
     let energy: EnergyDaily?
     let history: [EnergyHistoryDay]
+    var activeEnergy: Double? = nil
 
     var body: some View {
         VStack(spacing: 16) {
@@ -136,7 +138,7 @@ private struct EnergyTabContent: View {
                     EnergyErrorCard(message: e.message ?? "Complète ton profil pour calculer ton bilan.")
                 } else {
                     EnergyHeaderCard(energy: e)
-                    EnergyBreakdownCard(energy: e)
+                    EnergyBreakdownCard(energy: e, activeEnergy: activeEnergy)
                 }
             } else {
                 EnergyErrorCard(message: "Impossible de charger le bilan énergétique.")
@@ -246,13 +248,15 @@ struct EnergyHeaderCard: View {
 
 private struct EnergyBreakdownCard: View {
     let energy: EnergyDaily
+    var activeEnergy: Double? = nil
 
     var body: some View {
-        let bmrVal  = energy.bmr ?? 0
-        let eatW    = energy.eatWorkouts ?? 0
-        let eatC    = energy.eatCardio ?? 0
-        let neatVal = energy.neat ?? 0
-        let tdee    = energy.tdee ?? 0
+        let bmrVal   = energy.bmr ?? 0
+        let eatW     = energy.eatWorkouts ?? 0
+        let eatC     = energy.eatCardio ?? 0
+        let neatVal  = energy.neat ?? 0
+        let tdee     = energy.tdee ?? 0
+        let isRestDay = eatW == 0 && eatC == 0
 
         VStack(alignment: .leading, spacing: 12) {
             Text("DÉPENSES DU JOUR")
@@ -294,6 +298,29 @@ private struct EnergyBreakdownCard: View {
                         Text("Active Apple Watch pour calculer ton NEAT")
                             .font(.system(size: 12))
                             .foregroundColor(.gray)
+                    }
+                    .padding(.top, 2)
+                }
+
+                if let ae = activeEnergy, ae > 0 {
+                    HStack(spacing: 8) {
+                        Image(systemName: "applewatch")
+                            .font(.system(size: 12))
+                            .foregroundColor(isRestDay && ae > 800 ? .orange : .gray)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Dépense active (HealthKit)")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.white.opacity(0.75))
+                            if isRestDay && ae > 800 {
+                                Text("Activité élevée malgré le repos")
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        Spacer()
+                        Text("\(Int(ae)) kcal")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundColor(isRestDay && ae > 800 ? .orange : .gray)
                     }
                     .padding(.top, 2)
                 }
@@ -660,6 +687,20 @@ private struct RecoveryMetricsGrid: View {
         let steps       = entry.steps
         let soreness    = entry.soreness
         let fatigue     = entry.fatigue
+        let hrMorning   = entry.hrMorning
+        let hrPost      = entry.hrPostWorkout
+        let hrEvening   = entry.hrEvening
+        let energyPre   = entry.energyPre
+        let deltaFC: Double? = hrMorning.flatMap { m in hrPost.map { p in p - m } }
+        let deltaColor: Color = deltaFC.map { d in d <= 10 ? .green : d <= 20 ? .orange : .red } ?? .gray
+        let hrvSubtitle: String? = {
+            guard let h = hrv else { return nil }
+            if h.baselineAvailable, let score = h.hrvScore {
+                let label = score >= 70 ? "au-dessus" : score >= 40 ? "dans ta norme" : "en dessous"
+                return "\(Int(score))/100 — \(label) de ta baseline"
+            }
+            return "Baseline en cours (\(h.dataPoints7d)/7 j)"
+        }()
 
         VStack(spacing: 10) {
             HStack(spacing: 16) {
@@ -706,7 +747,8 @@ private struct RecoveryMetricsGrid: View {
                       spacing: 8) {
                 metricCell(label: "HRV",
                            value: hrvVal.map { "\(Int($0)) ms" } ?? "—",
-                           icon: "waveform.path.ecg", color: .blue)
+                           icon: "waveform.path.ecg", color: .blue,
+                           subtitle: hrvSubtitle)
                 metricCell(label: "FC Repos",
                            value: rhr.map { "\(Int($0)) bpm" } ?? "—",
                            icon: "heart.fill", color: .red)
@@ -719,12 +761,34 @@ private struct RecoveryMetricsGrid: View {
                 metricCell(label: "Fatigue",
                            value: fatigue.map { "\(Int($0))/10" } ?? "—",
                            icon: "gauge", color: .purple)
+                metricCell(label: "Énergie perçue",
+                           value: energyPre.map { "\(Int($0))/10" } ?? "—",
+                           icon: "bolt.fill",
+                           color: energyPre.map { $0 >= 7 ? Color.green : $0 >= 4 ? Color.orange : Color.red } ?? .gray,
+                           valueColor: energyPre.map { $0 >= 7 ? Color.green : $0 >= 4 ? Color.orange : Color.red } ?? .white)
+                metricCell(label: "FC Matin",
+                           value: hrMorning.map { "\(Int($0)) bpm" } ?? "—",
+                           icon: "sun.max.fill", color: .yellow)
+                metricCell(label: "FC Post-Séance",
+                           value: hrPost.map { "\(Int($0)) bpm" } ?? "—",
+                           icon: "figure.strengthtraining.traditional", color: .orange)
+                metricCell(label: "FC Soir",
+                           value: hrEvening.map { "\(Int($0)) bpm" } ?? "—",
+                           icon: "moon.fill", color: .indigo)
+                if let d = deltaFC {
+                    metricCell(label: "Delta FC",
+                               value: (d >= 0 ? "+" : "") + "\(Int(d)) bpm",
+                               icon: "arrow.up.arrow.down", color: deltaColor,
+                               valueColor: deltaColor)
+                }
             }
         }
     }
 
     private func metricCell(label: String, value: String,
-                            icon: String, color: Color) -> some View {
+                            icon: String, color: Color,
+                            valueColor: Color = .white,
+                            subtitle: String? = nil) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 11))
@@ -737,7 +801,13 @@ private struct RecoveryMetricsGrid: View {
                     .foregroundColor(.gray)
                 Text(value)
                     .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(valueColor)
+                if let sub = subtitle {
+                    Text(sub)
+                        .font(.system(size: 9))
+                        .foregroundColor(.gray)
+                        .lineLimit(1)
+                }
             }
         }
         .padding(8)

@@ -93,7 +93,7 @@ def save_sleep_entry(
 ) -> dict:
     today    = _today_local()
     duration = _calc_duration(bedtime, wake_time)
-    history  = db.get_sleep_records(limit=6)
+    history  = _get_all_records()[:6]
 
     entry = {
         "id":               str(uuid.uuid4()),
@@ -111,17 +111,21 @@ def save_sleep_entry(
         "logged_at":        datetime.now().isoformat(),
     }
 
-    db.upsert_sleep_record(entry)
-
-    # Sync vers recovery_logs — la saisie manuelle est la source de vérité.
+    # Source de vérité : recovery_logs — sleep_records est archivée, ne plus alimenter.
     # source="manual" empêche l'écrasement par HealthKit.
     # sleep_quality converti 1-5 → 1-10 pour cohérence avec recovery_logs.
     existing_rec = next((r for r in db.get_recovery_logs(limit=7) if r.get("date") == today), {})
     existing_rec["date"]          = today
     existing_rec["sleep_hours"]   = duration
-    existing_rec["sleep_quality"] = quality * 2
+    existing_rec["sleep_quality"] = round((quality - 1) / 4 * 9 + 1, 1)
     existing_rec["source"]        = "manual"
-    db.upsert_recovery_log(existing_rec)
+    ok = db.upsert_recovery_log(existing_rec)
+    if not ok:
+        import logging as _logging
+        _logging.getLogger(__name__).error(
+            "sleep write to recovery_logs failed for date=%s — readiness sleep modules will return None",
+            today,
+        )
 
     return entry
 
@@ -148,7 +152,7 @@ def _recovery_to_sleep(entry: dict) -> dict:
         q_emoji = "⌚"
 
     return {
-        "id":                entry.get("id") or "",
+        "id":                entry["date"],
         "date":              entry["date"],
         "bedtime":           "—",
         "wake_time":         "—",
@@ -166,18 +170,13 @@ def _recovery_to_sleep(entry: dict) -> dict:
 
 
 def _get_all_records() -> list:
-    """Merge per-date : sleep_records prime, fallback recovery_logs par jour."""
-    sleep_recs = {r["date"]: r for r in (db.get_sleep_records() or [])}
-    recovery   = {r["date"]: r for r in (db.get_recovery_logs(limit=60) or [])
-                  if r.get("sleep_hours")}
-    all_dates  = sorted(set(sleep_recs) | set(recovery), reverse=True)
-    result = []
-    for d in all_dates:
-        if d in sleep_recs:
-            result.append(sleep_recs[d])
-        else:
-            result.append(_recovery_to_sleep(recovery[d]))
-    return result
+    """Source de vérité unique : recovery_logs.sleep_hours (saisie manuelle)."""
+    recovery = db.get_recovery_logs(limit=90) or []
+    return sorted(
+        [_recovery_to_sleep(r) for r in recovery if r.get("sleep_hours") is not None],
+        key=lambda r: r["date"],
+        reverse=True,
+    )
 
 
 def get_history(limit: int = 20, offset: int = 0) -> dict:
@@ -197,21 +196,14 @@ def get_history(limit: int = 20, offset: int = 0) -> dict:
 
 
 def get_today() -> dict | None:
-    today   = _today_local()
-    records = db.get_sleep_records(limit=1)
-    if records and records[0].get("date") == today:
-        return records[0]
-    # Fallback: check recovery_log for today (or yesterday to handle late-night logging)
-    recovery = db.get_recovery_logs(limit=1)
-    if not recovery:
-        return None
-    entry = recovery[0]
-    entry_date = entry.get("date", "")
-    if entry.get("sleep_hours") and entry_date >= (
-        date_cls.fromisoformat(today) - timedelta(days=1)
-    ).isoformat():
-        return _recovery_to_sleep(entry)
-    return None
+    today    = _today_local()
+    recovery = db.get_recovery_logs(limit=7) or []
+    entry    = next(
+        (r for r in recovery
+         if r.get("date") == today and r.get("sleep_hours") is not None),
+        None,
+    )
+    return _recovery_to_sleep(entry) if entry else None
 
 
 def get_stats() -> dict:
@@ -241,4 +233,13 @@ def get_stats() -> dict:
 
 
 def delete_entry(record_id: str) -> bool:
-    return db.delete_sleep_record(record_id)
+    """record_id est la date ISO. Efface sleep_hours/sleep_quality uniquement.
+    Les autres métriques (HRV, FC, steps) sont préservées.
+    """
+    logs  = db.get_recovery_logs(limit=90) or []
+    entry = next((r for r in logs if r.get("date") == record_id), None)
+    if not entry:
+        return False
+    entry["sleep_hours"]   = None
+    entry["sleep_quality"] = None
+    return db.upsert_recovery_log(entry)

@@ -514,3 +514,72 @@ struct DashboardInsightsCard: View {
         .glassCard(color: .purple, intensity: 0.05)
     }
 }
+
+// MARK: - LSS Mini Card (dashboard)
+
+struct LSSMiniCard: View {
+    let trend: [LifeStressScore]
+
+    private var today: LifeStressScore? { trend.first }
+
+    private var color: Color {
+        guard let s = today?.score else { return .gray }
+        if s >= 70 { return .green }
+        if s >= 40 { return .orange }
+        return .red
+    }
+
+    private var delta: Double? {
+        guard trend.count >= 2 else { return nil }
+        return trend[0].score - trend[1].score
+    }
+
+    var body: some View {
+        guard let lss = today else { return AnyView(EmptyView()) }
+
+        return AnyView(
+            NavigationLink(destination: MentalHealthView()) {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(color.opacity(0.12))
+                            .frame(width: 40, height: 40)
+                        Text("\(Int(lss.score))")
+                            .font(.system(size: 15, weight: .black, design: .rounded))
+                            .foregroundColor(color)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("STRESS DE VIE")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(2)
+                            .foregroundColor(.gray)
+                        HStack(spacing: 6) {
+                            Text("\(Int(lss.score))/100")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundColor(color)
+                            if let d = delta {
+                                HStack(spacing: 2) {
+                                    Image(systemName: d >= 3 ? "arrow.up.right" : d <= -3 ? "arrow.down.right" : "arrow.right")
+                                        .font(.system(size: 9, weight: .bold))
+                                    Text("\(d >= 0 ? "+" : "")\(Int(d))")
+                                        .font(.system(size: 10))
+                                }
+                                .foregroundColor(d >= 3 ? .green : d <= -3 ? .orange : .gray)
+                            }
+                        }
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.gray.opacity(0.5))
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(Color.appCard)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.18), lineWidth: 1))
+                .cornerRadius(14)
+            }
+            .buttonStyle(.plain)
+        )
+    }
+}

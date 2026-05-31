@@ -237,7 +237,11 @@ struct DashboardView: View {
                                 DailyStreakCard(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.24)
 
-                                // 14 — Pattern
+                                // 14 — LSS micro-widget
+                                LSSMiniCard(trend: vm.lssTrend)
+                                    .appearAnimation(delay: 0.25)
+
+                                // 15 — Pattern
                                 if let pattern = vm.dailyPattern {
                                     PatternDailyChip(pattern: pattern) {
                                         NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)

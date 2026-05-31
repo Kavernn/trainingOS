@@ -275,6 +275,4 @@ from db_features import (
     get_current_1rm_estimates,
     get_coach_war_room_shared,
     set_coach_war_room_shared,
-    upsert_body_budget_log,
-    get_body_budget_recent,
 )

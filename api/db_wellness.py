@@ -118,7 +118,8 @@ def insert_pss_record(entry: dict) -> Optional[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Sleep records
+# Sleep records — TABLE ARCHIVÉE, ne plus alimenter.
+# Source de vérité sommeil : recovery_logs.sleep_hours (saisie manuelle).
 # ---------------------------------------------------------------------------
 
 def get_sleep_records(limit: int = 0, offset: int = 0) -> List[dict]:
@@ -147,7 +148,7 @@ def get_sleep_records(limit: int = 0, offset: int = 0) -> List[dict]:
 
 
 def upsert_sleep_record(entry: dict) -> Optional[dict]:
-    """Insert or replace sleep record for a date (on_conflict=date)."""
+    """ARCHIVÉE — ne plus appeler. Source de vérité : recovery_logs."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return None
 

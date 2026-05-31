@@ -103,7 +103,6 @@ from routes.wellness_stress   import wellness_stress_bp
 from routes.wellness_mood     import wellness_mood_bp
 from routes.wellness_spirit   import wellness_spirit_bp
 from routes.coach_tip    import coach_tip_bp
-from routes.body_budget  import body_budget_bp
 from routes.patterns     import patterns_bp
 from routes.readiness    import readiness_bp
 from routes.time_capsule import time_capsule_bp
@@ -148,7 +147,6 @@ app.register_blueprint(wellness_stress_bp)
 app.register_blueprint(wellness_mood_bp)
 app.register_blueprint(wellness_spirit_bp)
 app.register_blueprint(coach_tip_bp)
-app.register_blueprint(body_budget_bp)
 app.register_blueprint(patterns_bp)
 app.register_blueprint(readiness_bp)
 app.register_blueprint(time_capsule_bp)
