@@ -445,13 +445,16 @@ class SeanceViewModel: ObservableObject {
         }
         var failedExercises: [String] = []
 
+        var batchInvalidations: [CacheInvalidation] = []
         for result in logResults.values {
             do {
                 let response = try await APIService.shared.logExercise(
                     exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
                     sets: result.sets, force: true,
                     isSecond: result.isSecond, isBonus: result.isBonus,
-                    equipmentType: result.equipmentType, painZone: result.painZone)
+                    equipmentType: result.equipmentType, painZone: result.painZone,
+                    invalidate: false)
+                batchInvalidations.append(.exerciseLogged(isSecond: result.isSecond, isBonus: result.isBonus))
                 if response.isPR == true {
                     prCelebrations.append((name: result.name, oneRM: response.oneRM ?? 0))
                 }
@@ -467,6 +470,7 @@ class SeanceViewModel: ObservableObject {
                                                    exerciseLogs: exerciseLogs)
         } catch APIError.serverError(409, _) {
             // Session already completed — exercises were individually logged above, treat as success.
+            CacheInvalidation.invalidateBatch(batchInvalidations)
             await APIService.shared.fetchDashboard()
             showSuccess = true
             return

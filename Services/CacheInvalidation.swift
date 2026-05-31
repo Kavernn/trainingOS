@@ -163,4 +163,16 @@ enum CacheInvalidation {
         keys.forEach { CacheService.shared.clear(for: $0) }
         prefixesToClear.forEach { CacheService.shared.clear(prefix: $0) }
     }
+
+    /// Deduplicates keys across N cases before clearing — use when calling invalidate() in a loop.
+    static func invalidateBatch(_ cases: [CacheInvalidation]) {
+        var uniqueKeys = Set<String>()
+        var uniquePrefixes = Set<String>()
+        for c in cases {
+            c.keys.forEach { uniqueKeys.insert($0) }
+            c.prefixesToClear.forEach { uniquePrefixes.insert($0) }
+        }
+        uniqueKeys.forEach { CacheService.shared.clear(for: $0) }
+        uniquePrefixes.forEach { CacheService.shared.clear(prefix: $0) }
+    }
 }

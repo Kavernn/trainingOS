@@ -22,7 +22,8 @@ extension APIService {
     func logExercise(exercise: String, weight: Double, reps: String,
                      rpe: Double? = nil, sets: [[String: Any]] = [],
                      force: Bool = false, isSecond: Bool = false, isBonus: Bool = false,
-                     equipmentType: String = "", painZone: String = "") async throws -> LogExerciseResponse {
+                     equipmentType: String = "", painZone: String = "",
+                     invalidate: Bool = true) async throws -> LogExerciseResponse {
         var body: [String: Any] = ["exercise": exercise, "weight": weight, "reps": reps]
         if let rpe { body["rpe"] = rpe }
         if !sets.isEmpty { body["sets"] = sets }
@@ -34,7 +35,7 @@ extension APIService {
         guard let data = try await offlinePost(endpoint: "/api/log", payload: body) else {
             return LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
         }
-        CacheInvalidation.exerciseLogged(isSecond: isSecond, isBonus: isBonus).invalidate()
+        if invalidate { CacheInvalidation.exerciseLogged(isSecond: isSecond, isBonus: isBonus).invalidate() }
         do {
             return try APIService.decoder.decode(LogExerciseResponse.self, from: data)
         } catch {
