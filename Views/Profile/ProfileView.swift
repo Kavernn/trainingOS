@@ -77,11 +77,7 @@ struct ProfileView: View {
         if allTimeVolumeLbs >= 1_000_000 {
             return String(format: "%.1fM lbs", allTimeVolumeLbs / 1_000_000)
         }
-        let fmt = NumberFormatter()
-        fmt.numberStyle = .decimal
-        fmt.groupingSeparator = " "
-        fmt.maximumFractionDigits = 0
-        return (fmt.string(from: NSNumber(value: allTimeVolumeLbs)) ?? "\(Int(allTimeVolumeLbs))") + " lbs"
+        return (NumberFormatter.spaceGrouped.string(from: NSNumber(value: allTimeVolumeLbs)) ?? "\(Int(allTimeVolumeLbs))") + " lbs"
     }
 
     private var volumeTrend: (pct: Double, positive: Bool)? {

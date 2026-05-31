@@ -104,6 +104,16 @@ extension DateFormatter {
     }()
 }
 
+extension NumberFormatter {
+    static let spaceGrouped: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = " "
+        f.maximumFractionDigits = 0
+        return f
+    }()
+}
+
 // MARK: - Beep generator (WAV en mémoire, joue par-dessus la musique)
 /// Génère un bip sinusoïdal à la fréquence `hz` et le retourne prêt à jouer.
 /// Utilise AVAudioSession .playback + .mixWithOthers : audible même en mode silencieux,
