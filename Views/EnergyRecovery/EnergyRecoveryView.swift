@@ -610,10 +610,10 @@ private struct RecoverySectionContent: View {
     private var today: RecoveryEntry? { log.first }
 
     private var readinessScore: Double? {
-        if let s = summary?.recoveryScore { return s }
-        if let h = hrv?.hrvScore          { return h }
+        if let s = summary?.recoveryScore { return s * 10 }  // backend 0-10 → 0-100
+        if let h = hrv?.hrvScore          { return h }        // déjà 0-100
         guard let e = today else          { return nil }
-        return computeReadiness(from: e)
+        return computeReadiness(from: e)                       // déjà 0-100
     }
 
     var body: some View {
@@ -1241,7 +1241,7 @@ private struct DynamicSuggestionsSection: View {
         let sleepHours    = sleepToday?.durationHours ?? 0
         let fatigue       = recoveryToday?.fatigue ?? 0
         let soreness      = recoveryToday?.soreness ?? 0
-        let readiness     = summary?.recoveryScore ?? hrv?.hrvScore
+        let readiness     = summary?.recoveryScore.map { $0 * 10 } ?? hrv?.hrvScore
         let hrvZone       = hrv?.hrvZone ?? ""
 
         // ── Alertes prioritaires (rouge) ───────────────────────────────────
