@@ -49,6 +49,14 @@
 		7AD4CFB0BBB9317BCEEE460C /* DemonsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D52AB3DCF112E90A48C999EB /* DemonsView.swift */; };
 		7EA2D26DEE90B553FCA9F265 /* RecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */; };
 		848288DCA8A442D283353361 /* PRCelebrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */; };
+		SC0002SC0002SC0002SC0002 /* SessionChips.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC0001SC0001SC0001SC0001 /* SessionChips.swift */; };
+		GB0002GB0002GB0002GB0002 /* GhostBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = GB0001GB0001GB0001GB0001 /* GhostBanner.swift */; };
+		ACS0002ACS0002ACS0002AC2 /* AddCardioSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACS0001ACS0001ACS0001AC1 /* AddCardioSheet.swift */; };
+		AHS0002AHS0002AHS0002AH2 /* AddHIITSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AHS0001AHS0001AHS0001AH1 /* AddHIITSheet.swift */; };
+		SPK0002SPK0002SPK0002SP2 /* SessionPreferenceKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */; };
+		MAC0002MAC0002MAC0002MA2 /* MidWorkoutAdvisorCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */; };
+		WGB0002WGB0002WGB0002WG2 /* WarmupGuidanceBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = WGB0001WGB0001WGB0001WG1 /* WarmupGuidanceBanner.swift */; };
+		STV0002STV0002STV0002ST2 /* SessionTimerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STV0001STV0001STV0001ST1 /* SessionTimerView.swift */; };
 		88AE06959F6C41BB819C117B /* NotificationCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178857F4F15844198720466F /* NotificationCenterView.swift */; };
 		8D9484E011854C59BD3B4840 /* BehaviorTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CCC113F806D404EB7F7D565 /* BehaviorTracker.swift */; };
 		913EC83173A0479A8FA00023 /* SleepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 387B78078AEB4A1E9AA577C1 /* SleepView.swift */; };
@@ -270,6 +278,14 @@
 		9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutDNAView.swift; sourceTree = "<group>"; };
 		9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReadinessView.swift; sourceTree = "<group>"; };
 		A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRCelebrationView.swift; sourceTree = "<group>"; };
+		SC0001SC0001SC0001SC0001 /* SessionChips.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionChips.swift; sourceTree = "<group>"; };
+		GB0001GB0001GB0001GB0001 /* GhostBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhostBanner.swift; sourceTree = "<group>"; };
+		ACS0001ACS0001ACS0001AC1 /* AddCardioSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCardioSheet.swift; sourceTree = "<group>"; };
+		AHS0001AHS0001AHS0001AH1 /* AddHIITSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddHIITSheet.swift; sourceTree = "<group>"; };
+		SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionPreferenceKeys.swift; sourceTree = "<group>"; };
+		MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MidWorkoutAdvisorCard.swift; sourceTree = "<group>"; };
+		WGB0001WGB0001WGB0001WG1 /* WarmupGuidanceBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarmupGuidanceBanner.swift; sourceTree = "<group>"; };
+		STV0001STV0001STV0001ST1 /* SessionTimerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionTimerView.swift; sourceTree = "<group>"; };
 		A76154790AE80AF270345B19 /* TimeCapsuleModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TimeCapsuleModels.swift; sourceTree = "<group>"; };
 		A7692E44A985A89B88122708 /* APIService+WorkoutDNA.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+WorkoutDNA.swift"; sourceTree = "<group>"; };
 		A8115703CA371513172F372F /* DashboardViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
@@ -835,6 +851,14 @@
 				VAR00001VAR00001VAR00001 /* CreateVariantSheet.swift */,
 				A3BCB1E93F594E8EB37A9985 /* PRCelebrationView.swift */,
 				334E94AE7F3343C483E11FAC /* PlateCalculatorSheet.swift */,
+				SC0001SC0001SC0001SC0001 /* SessionChips.swift */,
+				GB0001GB0001GB0001GB0001 /* GhostBanner.swift */,
+				ACS0001ACS0001ACS0001AC1 /* AddCardioSheet.swift */,
+				AHS0001AHS0001AHS0001AH1 /* AddHIITSheet.swift */,
+				SPK0001SPK0001SPK0001SP1 /* SessionPreferenceKeys.swift */,
+				MAC0001MAC0001MAC0001MA1 /* MidWorkoutAdvisorCard.swift */,
+				WGB0001WGB0001WGB0001WG1 /* WarmupGuidanceBanner.swift */,
+				STV0001STV0001STV0001ST1 /* SessionTimerView.swift */,
 			);
 			path = Seance;
 			sourceTree = "<group>";
@@ -1111,6 +1135,14 @@
 				D665E4482F5D98BA002AE470 /* SeanceView.swift in Sources */,
 				WAV00002WAV00002WAV00002 /* WorkoutActiveView.swift in Sources */,
 				SSV00002SSV00002SSV00002 /* SessionSupportViews.swift in Sources */,
+				SC0002SC0002SC0002SC0002 /* SessionChips.swift in Sources */,
+				GB0002GB0002GB0002GB0002 /* GhostBanner.swift in Sources */,
+				ACS0002ACS0002ACS0002AC2 /* AddCardioSheet.swift in Sources */,
+				AHS0002AHS0002AHS0002AH2 /* AddHIITSheet.swift in Sources */,
+				SPK0002SPK0002SPK0002SP2 /* SessionPreferenceKeys.swift in Sources */,
+				MAC0002MAC0002MAC0002MA2 /* MidWorkoutAdvisorCard.swift in Sources */,
+				WGB0002WGB0002WGB0002WG2 /* WarmupGuidanceBanner.swift in Sources */,
+				STV0002STV0002STV0002ST2 /* SessionTimerView.swift in Sources */,
 				AA11001B2F5D98BA002AE470 /* SeanceSoirView.swift in Sources */,
 				BB3300012F5D98BA002AE471 /* BonusSeanceView.swift in Sources */,
 				D665E4492F5D98BA002AE470 /* HistoriqueView.swift in Sources */,
