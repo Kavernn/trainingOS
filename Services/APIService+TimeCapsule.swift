@@ -32,8 +32,7 @@ extension APIService {
         guard (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0) else {
             throw URLError(.badServerResponse)
         }
-        CacheService.shared.clear(for: "time_capsules")
-        CacheService.shared.clear(for: "capsule_snapshot")
+        CacheInvalidation.timeCapsuleCreated.invalidate()
         return try JSONDecoder().decode(TimeCapsule.self, from: data)
     }
 
@@ -45,7 +44,7 @@ extension APIService {
         guard (200...299).contains((response as? HTTPURLResponse)?.statusCode ?? 0) else {
             throw URLError(.badServerResponse)
         }
-        CacheService.shared.clear(for: "time_capsules")
+        CacheInvalidation.timeCapsuleOpened.invalidate()
         return try JSONDecoder().decode(TimeCapsule.self, from: data)
     }
 }

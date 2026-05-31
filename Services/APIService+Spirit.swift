@@ -12,7 +12,7 @@ extension APIService {
 
     func updateSpiritConfig(_ fields: [String: Any]) async throws {
         _ = try await offlinePost(endpoint: "/api/spirit/config", payload: fields)
-        CacheService.shared.clear(for: "spirit_config")
+        CacheInvalidation.spiritConfigUpdated.invalidate()
     }
 
     // MARK: Breathwork
@@ -36,7 +36,7 @@ extension APIService {
             "triggered_from": triggeredFrom,
         ]
         _ = try await offlinePost(endpoint: "/api/spirit/breathwork", payload: body)
-        CacheService.shared.clear(for: "spirit_breathwork")
+        CacheInvalidation.spiritBreathworkLogged.invalidate()
     }
 
     // MARK: Meditation
@@ -55,7 +55,7 @@ extension APIService {
             "completed":     completed,
         ]
         _ = try await offlinePost(endpoint: "/api/spirit/meditation", payload: body)
-        CacheService.shared.clear(for: "spirit_meditation")
+        CacheInvalidation.spiritMeditationLogged.invalidate()
     }
 
     // MARK: Journal
@@ -80,7 +80,7 @@ extension APIService {
         if let c = conquered,   !c.isEmpty { body["conquered"]    = c }
         if let h = haunting,    !h.isEmpty { body["haunting"]      = h }
         _ = try await offlinePost(endpoint: "/api/spirit/journal", payload: body)
-        CacheService.shared.clear(for: "spirit_journal_list")
+        CacheInvalidation.spiritJournalLogged.invalidate()
     }
 
     // MARK: Patterns

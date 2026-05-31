@@ -33,16 +33,12 @@ extension APIService {
         guard let data = try await offlinePost(endpoint: "/api/sleep/log", payload: body) else {
             throw APIError.queuedOffline
         }
-        CacheService.shared.clear(for: "sleep_history")
-        CacheService.shared.clear(for: "sleep_today")
-        CacheService.shared.clear(for: "sleep_stats")
+        CacheInvalidation.sleepMutated.invalidate()
         return try JSONDecoder().decode(SleepEntry.self, from: data)
     }
 
     func deleteSleepEntry(id: String) async throws {
         _ = try await offlinePost(endpoint: "/api/sleep/delete", payload: ["id": id])
-        CacheService.shared.clear(for: "sleep_history")
-        CacheService.shared.clear(for: "sleep_today")
-        CacheService.shared.clear(for: "sleep_stats")
+        CacheInvalidation.sleepMutated.invalidate()
     }
 }

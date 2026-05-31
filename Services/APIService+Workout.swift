@@ -31,10 +31,7 @@ extension APIService {
         guard let data = try await offlinePost(endpoint: "/api/log", payload: body) else {
             return LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
         }
-        if !isBonus { CacheService.shared.clear(for: isSecond ? "seance_soir_data" : "seance_data") }
-        CacheService.shared.clear(for: "dashboard")
-        CacheService.shared.clear(for: "stats_data")
-        CacheService.shared.clear(for: "phoenix_score")
+        CacheInvalidation.exerciseLogged(isSecond: isSecond, isBonus: isBonus).invalidate()
         return (try? JSONDecoder().decode(LogExerciseResponse.self, from: data))
             ?? LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
     }
@@ -57,13 +54,7 @@ extension APIService {
             await MainActor.run { sessionLoggedToday = true }
         }
         if try await offlinePost(endpoint: "/api/log_session", payload: body) != nil {
-            CacheService.shared.clear(for: "dashboard")
-            CacheService.shared.clear(for: "historique_data")
-            if !bonusSession {
-                CacheService.shared.clear(for: secondSession ? "seance_soir_data" : "seance_data")
-            }
-            CacheService.shared.clear(for: "stats_data")
-            CacheService.shared.clear(for: "phoenix_score")
+            CacheInvalidation.sessionLogged(isSecond: secondSession, isBonus: bonusSession).invalidate()
         }
     }
 
@@ -76,8 +67,7 @@ extension APIService {
     func deleteSession(date: String, sessionType: String = "morning") async throws {
         if try await offlinePost(endpoint: "/api/session/delete",
                                  payload: ["date": date, "session_type": sessionType]) != nil {
-            CacheService.shared.clear(for: "historique_data")
-            CacheService.shared.clear(for: "dashboard")
+            CacheInvalidation.sessionMutated.invalidate()
         }
     }
 
@@ -85,8 +75,7 @@ extension APIService {
         var body: [String: Any] = ["date": date, "comment": comment, "session_type": sessionType]
         if let rpe { body["rpe"] = rpe }
         if try await offlinePost(endpoint: "/api/update_session", payload: body) != nil {
-            CacheService.shared.clear(for: "historique_data")
-            CacheService.shared.clear(for: "dashboard")
+            CacheInvalidation.sessionMutated.invalidate()
         }
     }
 
@@ -96,8 +85,7 @@ extension APIService {
         if let rpe { body["rpe"] = rpe }
         if let exercises { body["exercises"] = exercises }
         if try await offlinePost(endpoint: "/api/session/edit", payload: body) != nil {
-            CacheService.shared.clear(for: "historique_data")
-            CacheService.shared.clear(for: "dashboard")
+            CacheInvalidation.sessionMutated.invalidate()
         }
     }
 
@@ -120,8 +108,7 @@ extension APIService {
             "rpe": rpe, "notes": notes, "second_session": secondSession
         ]
         _ = try await offlinePost(endpoint: "/api/log_hiit", payload: body)
-        CacheService.shared.clear(for: "dashboard")
-        CacheService.shared.clear(for: "hiit_data")
+        CacheInvalidation.hiitLogged.invalidate()
     }
 
     func deleteHIIT(date: String, sessionType: String) async throws {
@@ -233,8 +220,7 @@ extension APIService {
         ])
         _ = try? await URLSession.authed.data(for: approveReq)
 
-        CacheService.shared.clear(for: "programme_data")
-        CacheService.shared.clear(for: "stats_data")
+        CacheInvalidation.programmeApproved.invalidate()
         return programmeId
     }
 
@@ -326,8 +312,7 @@ extension APIService {
         if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
             throw APIError.serverError(http.statusCode, "Impossible d'appliquer le déload pour le moment.")
         }
-        CacheService.shared.clear(for: "seance_data")
-        CacheService.shared.clear(for: "dashboard")
+        CacheInvalidation.deloadApplied.invalidate()
     }
 
     // MARK: - Stats Data

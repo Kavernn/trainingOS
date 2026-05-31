@@ -107,7 +107,7 @@ final class SyncManager: ObservableObject {
         }
 
         if syncedSessionMutation {
-            CacheService.shared.clear(for: "dashboard")
+            CacheInvalidation.dashboardInvalidated.invalidate()
             await APIService.shared.fetchDashboard()
         }
 

@@ -21,15 +21,13 @@ extension APIService {
 
     func startSeason() async throws -> Season? {
         guard let data = try await offlinePost(endpoint: "/api/seasons/start", payload: [:]) else { return nil }
-        CacheService.shared.clear(for: "season_active")
-        CacheService.shared.clear(for: "seasons_list")
+        CacheInvalidation.seasonMutated.invalidate()
         return try? JSONDecoder().decode(Season.self, from: data)
     }
 
     func closeSeason(id: String) async throws -> SeasonReport? {
         guard let data = try await offlinePost(endpoint: "/api/seasons/\(id)/close", payload: [:]) else { return nil }
-        CacheService.shared.clear(for: "season_active")
-        CacheService.shared.clear(for: "seasons_list")
+        CacheInvalidation.seasonMutated.invalidate()
         return try? JSONDecoder().decode(SeasonReport.self, from: data)
     }
 
@@ -41,7 +39,7 @@ extension APIService {
         req.timeoutInterval = 20
         req.setValue("Bearer \(APIConfig.apiKey)", forHTTPHeaderField: "Authorization")
         let (data, _) = try await URLSession.authed.data(for: req)
-        CacheService.shared.clear(for: "seasons_list")
+        CacheInvalidation.seasonUpdated.invalidate()
         return try? JSONDecoder().decode(Season.self, from: data)
     }
 }

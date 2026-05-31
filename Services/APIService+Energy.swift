@@ -17,7 +17,6 @@ extension APIService {
     }
 
     func invalidateEnergyCache() {
-        CacheService.shared.clear(for: "energy_daily_today")
-        CacheService.shared.clear(for: "energy_history_7")
+        CacheInvalidation.energyLogged.invalidate()
     }
 }

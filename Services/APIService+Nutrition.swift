@@ -166,7 +166,7 @@ extension APIService {
         req.httpBody = body
         req.timeoutInterval = 15
         _ = try? await URLSession.authed.data(for: req)
-        CacheService.shared.clear(for: "food_catalog")
+        CacheInvalidation.foodCatalogUpdated.invalidate()
     }
 
     // MARK: - Meal Templates

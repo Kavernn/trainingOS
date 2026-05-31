@@ -33,7 +33,7 @@ extension APIService {
         if let v = hrEvening     { body["hr_evening"]         = Int(v) }
         if let d = date          { body["date"]               = d }
         _ = try await offlinePost(endpoint: "/api/log_recovery", payload: body)
-        CacheService.shared.clear(for: "recovery_data")
+        CacheInvalidation.recoveryLogged.invalidate()
     }
 
     func deleteRecovery(date: String) async throws {
@@ -71,10 +71,7 @@ extension APIService {
         guard let data = try await offlinePost(endpoint: "/api/pss/submit", payload: body) else {
             throw APIError.queuedOffline
         }
-        CacheService.shared.clear(for: "pss_history")
-        CacheService.shared.clear(for: "pss_check_due_full")
-        CacheService.shared.clear(prefix: "life_stress_trend")
-        CacheService.shared.clear(for: "phoenix_score")
+        CacheInvalidation.pssSubmitted.invalidate()
         return try JSONDecoder().decode(PSSRecord.self, from: data)
     }
 

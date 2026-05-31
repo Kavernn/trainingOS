@@ -12,7 +12,7 @@ extension APIService {
 
     func updateWarRoomConfig(_ fields: [String: Any]) async throws {
         _ = try await offlinePost(endpoint: "/api/war_room/config", payload: fields)
-        CacheService.shared.clear(for: "war_room_config")
+        CacheInvalidation.warRoomConfigUpdated.invalidate()
     }
 
     // MARK: Summary
@@ -35,8 +35,7 @@ extension APIService {
         var body: [String: Any] = ["date": date, "status": status.rawValue]
         if let notes { body["notes"] = notes }
         let data = try await offlinePost(endpoint: "/api/war_room/battle", payload: body)
-        CacheService.shared.clear(for: "war_room_summary")
-        CacheService.shared.clear(for: "war_room_battles")
+        CacheInvalidation.warRoomBattleLogged.invalidate()
         guard let data else { throw APIError.queuedOffline }
         let resp = try JSONDecoder().decode(BattleUpsertResponse.self, from: data)
         return resp.summary
@@ -65,7 +64,7 @@ extension APIService {
         ]
         if let note = contextNote, !note.isEmpty { body["context_note"] = note }
         let data = try await offlinePost(endpoint: "/api/war_room/trigger", payload: body)
-        CacheService.shared.clear(for: "war_room_triggers")
+        CacheInvalidation.warRoomTriggerLogged.invalidate()
         guard let data else { return "" }
         let resp = try JSONDecoder().decode(TriggerLogResponse.self, from: data)
         return resp.id
@@ -84,7 +83,7 @@ extension APIService {
             "label": label, "category": category.rawValue, "sort_order": sortOrder,
         ]
         let data = try await offlinePost(endpoint: "/api/war_room/arsenal", payload: body)
-        CacheService.shared.clear(for: "war_room_arsenal")
+        CacheInvalidation.warRoomArsenalMutated.invalidate()
         guard let data else { return "" }
         let resp = try JSONDecoder().decode(ArsenalAddResponse.self, from: data)
         return resp.id
@@ -92,12 +91,12 @@ extension APIService {
 
     func deleteArsenalItem(_ id: String) async throws {
         _ = try await offlinePost(endpoint: "/api/war_room/arsenal/\(id)", method: "DELETE", payload: [:])
-        CacheService.shared.clear(for: "war_room_arsenal")
+        CacheInvalidation.warRoomArsenalMutated.invalidate()
     }
 
     func deployArsenalItem(_ id: String) async throws {
         _ = try await offlinePost(endpoint: "/api/war_room/arsenal/\(id)/deploy", payload: [:])
-        CacheService.shared.clear(for: "war_room_arsenal")
+        CacheInvalidation.warRoomArsenalMutated.invalidate()
     }
 
     // MARK: Patterns

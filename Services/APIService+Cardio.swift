@@ -44,7 +44,6 @@ extension APIService {
     func deleteCardio(date: String, type: String) async throws {
         _ = try await offlinePost(endpoint: "/api/delete_cardio",
                                   payload: ["date": date, "type": type])
-        CacheService.shared.clear(for: "cardio_history")
-        CacheService.shared.clear(for: "stats_cardio")
+        CacheInvalidation.cardioLogged.invalidate()
     }
 }

@@ -18,23 +18,19 @@ extension APIService {
         var payload: [String: Any] = ["intention": intention, "carry_count": carryCount]
         if let f = carriedFrom { payload["carried_from"] = f }
         _ = try await offlinePost(endpoint: "/api/ritual/morning", payload: payload)
-        CacheService.shared.clear(for: "ritual_today")
-        CacheService.shared.clear(for: "ritual_streak")
+        CacheInvalidation.ritualActioned.invalidate()
     }
 
     func saveRitualEvening(outcome: String) async throws -> RitualEveningResult {
         let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: ["outcome": outcome])
-        CacheService.shared.clear(for: "ritual_today")
-        CacheService.shared.clear(for: "ritual_streak")
+        CacheInvalidation.ritualActioned.invalidate()
         guard let data else { throw APIError.queuedOffline }
         return try JSONDecoder().decode(RitualEveningResult.self, from: data)
     }
 
     func killDemon(date: String) async throws {
         _ = try await offlinePost(endpoint: "/api/ritual/kill-demon", payload: ["date": date])
-        CacheService.shared.clear(for: "ritual_today")
-        CacheService.shared.clear(for: "ritual_streak")
-        CacheService.shared.clear(for: "ritual_stats")
+        CacheInvalidation.ritualUpdated.invalidate()
     }
 
     func fetchRitualStats() async throws -> RitualStats {
@@ -69,7 +65,7 @@ extension APIService {
         if let v = proteinDone   { payload["protein_done"]    = v }
         guard !payload.isEmpty else { return }
         _ = try await offlinePost(endpoint: "/api/ritual/checklist", payload: payload)
-        CacheService.shared.clear(for: "ritual_today")
+        CacheInvalidation.ritualItemActioned.invalidate()
     }
 
     func saveRitualEveningFull(outcome: String, reflection: String? = nil,
@@ -82,9 +78,7 @@ extension APIService {
         if let g = gratitude, !g.isEmpty  { payload["gratitude"]     = g }
 
         let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: payload)
-        CacheService.shared.clear(for: "ritual_today")
-        CacheService.shared.clear(for: "ritual_streak")
-        CacheService.shared.clear(for: "ritual_stats")
+        CacheInvalidation.ritualUpdated.invalidate()
         guard let data else { throw APIError.queuedOffline }
         return try JSONDecoder().decode(RitualEveningResult.self, from: data)
     }

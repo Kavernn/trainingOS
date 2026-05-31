@@ -16,6 +16,6 @@ extension APIService {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try JSONSerialization.data(withJSONObject: ["status": status])
         _ = try await URLSession.authed.data(for: req)
-        CacheService.shared.clear(for: "plateau_alerts")
+        CacheInvalidation.plateauDismissed.invalidate()
     }
 }

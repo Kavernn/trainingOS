@@ -13,7 +13,7 @@ extension APIService {
             endpoint: "/api/patterns/pin",
             payload: ["pattern_id": id]
         )
-        CacheService.shared.clear(for: "patterns_daily")
+        CacheInvalidation.patternsPinMutated.invalidate()
     }
 
     func unpinPattern(id: String) async throws {
@@ -23,7 +23,7 @@ extension APIService {
         req.setValue("Bearer \(APIConfig.apiKey)", forHTTPHeaderField: "Authorization")
         req.timeoutInterval = 15
         _ = try await URLSession.authed.data(for: req)
-        CacheService.shared.clear(for: "patterns_daily")
+        CacheInvalidation.patternsPinMutated.invalidate()
     }
 
     func fetchWarRoomPatternsEngine() async throws -> [PatternEntry] {

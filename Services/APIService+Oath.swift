@@ -18,8 +18,7 @@ extension APIService {
     func saveOath(text: String, wordCount: Int) async throws -> OathModel? {
         let body: [String: Any] = ["text": text, "word_count": wordCount]
         guard let data = try await offlinePost(endpoint: "/api/oath", payload: body) else { return nil }
-        CacheService.shared.clear(for: "oath_current")
-        CacheService.shared.clear(for: "oath_versions")
+        CacheInvalidation.oathUpdated.invalidate()
         return try? JSONDecoder().decode(OathModel.self, from: data)
     }
 

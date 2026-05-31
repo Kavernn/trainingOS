@@ -37,7 +37,7 @@ extension APIService {
         if let v = thighsCm { body["thighs_cm"] = v }
         if let v = hipsCm   { body["hips_cm"]   = v }
         _ = try await offlinePost(endpoint: "/api/body_weight", payload: body)
-        CacheService.shared.clear(for: "profil_data")
+        CacheInvalidation.bodyWeightMutated.invalidate()
         await BodyCompService.shared.refresh()
     }
 
@@ -54,14 +54,14 @@ extension APIService {
         if let v = thighsCm { body["thighs_cm"] = v }
         if let v = hipsCm   { body["hips_cm"]   = v }
         _ = try await offlinePost(endpoint: "/api/body_weight/update", payload: body)
-        CacheService.shared.clear(for: "profil_data")
+        CacheInvalidation.bodyWeightMutated.invalidate()
         await BodyCompService.shared.refresh()
     }
 
     func deleteBodyWeight(date: String, weight: Double) async throws {
         _ = try await offlinePost(endpoint: "/api/body_weight/delete",
                                   payload: ["date": date, "poids": weight])
-        CacheService.shared.clear(for: "profil_data")
+        CacheInvalidation.bodyWeightMutated.invalidate()
         await BodyCompService.shared.refresh()
     }
 
@@ -100,7 +100,7 @@ extension APIService {
             "pattern": pattern, "default_scheme": scheme, "category": category,
         ]
         _ = try await offlinePost(endpoint: "/api/save_exercise", payload: payload)
-        CacheService.shared.clear(for: "seance_data")
+        CacheInvalidation.exerciseSaved.invalidate()
     }
 
     func setAllRestSeconds(_ seconds: Int) async throws {
@@ -132,8 +132,7 @@ extension APIService {
         }
         body["workouts"] = workouts
         _ = try await offlinePost(endpoint: "/api/wearable/sync", payload: body)
-        CacheService.shared.clear(for: "recovery_data")
-        CacheService.shared.clear(for: "cardio_data")
+        CacheInvalidation.wearableSynced.invalidate()
     }
 
     // MARK: - Health Dashboard

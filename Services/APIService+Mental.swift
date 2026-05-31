@@ -16,8 +16,7 @@ extension APIService {
         guard let data = try await offlinePost(endpoint: "/api/mood/log", payload: body) else {
             throw APIError.queuedOffline
         }
-        CacheService.shared.clear(for: "mood_history")
-        CacheService.shared.clear(for: "mood_check_due")
+        CacheInvalidation.moodLogged.invalidate()
         return try JSONDecoder().decode(MoodEntry.self, from: data)
     }
 
@@ -54,7 +53,7 @@ extension APIService {
         guard let data = try await offlinePost(endpoint: "/api/journal/save", payload: body) else {
             throw APIError.queuedOffline
         }
-        CacheService.shared.clear(for: "journal_entries")
+        CacheInvalidation.journalLogged.invalidate()
         return try JSONDecoder().decode(JournalEntry.self, from: data)
     }
 
@@ -81,7 +80,7 @@ extension APIService {
         guard let data = try await offlinePost(endpoint: "/api/breathwork/log", payload: [
             "technique_id": techniqueId, "duration_sec": durationSec, "cycles": cycles,
         ]) else { throw APIError.queuedOffline }
-        CacheService.shared.clear(for: "breathwork_stats")
+        CacheInvalidation.breathworkLogged.invalidate()
         return try JSONDecoder().decode(BreathworkSession.self, from: data)
     }
 
@@ -108,8 +107,7 @@ extension APIService {
         guard let data = try await offlinePost(endpoint: "/api/self_care/log",
                                                payload: ["habit_ids": habitIds])
         else { throw APIError.queuedOffline }
-        CacheService.shared.clear(for: "self_care_today")
-        CacheService.shared.clear(for: "self_care_streaks")
+        CacheInvalidation.selfCareLogged.invalidate()
         return try JSONDecoder().decode(SelfCareToday.self, from: data)
     }
 
@@ -125,8 +123,7 @@ extension APIService {
                                                payload: ["name": name, "icon": icon,
                                                          "category": category])
         else { throw APIError.queuedOffline }
-        CacheService.shared.clear(for: "self_care_habits")
-        CacheService.shared.clear(for: "self_care_today")
+        CacheInvalidation.selfCareHabitsUpdated.invalidate()
         return try JSONDecoder().decode(SelfCareHabit.self, from: data)
     }
 
