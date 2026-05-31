@@ -60,7 +60,6 @@ extension APIService {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: fields)
         req.timeoutInterval = 20
-        req.setValue("Bearer \(APIConfig.apiKey)", forHTTPHeaderField: "Authorization")
         let (data, _) = try await URLSession.authed.data(for: req)
         CacheInvalidation.seasonUpdated.invalidate()
         do {
