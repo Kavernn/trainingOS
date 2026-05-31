@@ -19,7 +19,7 @@ def api_ai_coach():
     try:
         data        = request.get_json(silent=True) or {}
         prompt      = data.get("prompt", "")
-        context     = data.get("context", "")
+        context     = (data.get("context", "") or "")[:2048]
         messages_in = data.get("messages", [])
 
         if messages_in:
@@ -46,7 +46,7 @@ def api_ai_coach():
 
         history_block = ""
         try:
-            past = _db.get_coach_history(limit=10)
+            past = _db.get_coach_history(limit=5)
             past = [p for p in reversed(past) if p.get("user_message") or p.get("assistant_response")]
             if past:
                 lines = ["=== HISTORIQUE DES SESSIONS PRÉCÉDENTES ==="]
