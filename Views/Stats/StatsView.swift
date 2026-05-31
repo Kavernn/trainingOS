@@ -38,8 +38,7 @@ func weekLabel(_ key: String) -> String {
     guard key.hasPrefix("W"), let weekIdx = Int(key.dropFirst()) else { return key }
     let tz = TimeZone.current.secondsFromGMT()
     let d = Date(timeIntervalSince1970: TimeInterval(weekIdx * 7 * 86400 - 3 * 86400 - tz))
-    let f = DateFormatter(); f.dateFormat = "d MMM"; f.locale = Locale(identifier: "fr_CA")
-    return f.string(from: d)
+    return DateFormatter.shortDateFRCA.string(from: d)
 }
 
 func _formatK(_ v: Double) -> String {
@@ -129,8 +128,7 @@ struct StatsView: View {
     var totalSessions: Int { sessions.count }
 
     var sessionsThisMonth: Int {
-        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM"
-        let key = fmt.string(from: Date())
+        let key = DateFormatter.isoYearMonth.string(from: Date())
         return sessions.keys.filter { $0.hasPrefix(key) }.count
     }
 

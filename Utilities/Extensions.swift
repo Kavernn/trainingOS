@@ -95,6 +95,13 @@ extension DateFormatter {
         f.locale = Locale(identifier: "fr_FR")
         return f
     }()
+
+    static let shortDateFRCA: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "d MMM"
+        f.locale = Locale(identifier: "fr_CA")
+        return f
+    }()
 }
 
 // MARK: - Beep generator (WAV en mémoire, joue par-dessus la musique)
