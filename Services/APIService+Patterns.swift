@@ -20,7 +20,6 @@ extension APIService {
         guard let url = URL(string: "\(baseURL)/api/patterns/pin/\(id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? id)") else { return }
         var req = URLRequest(url: url)
         req.httpMethod = "DELETE"
-        req.setValue("Bearer \(APIConfig.apiKey)", forHTTPHeaderField: "Authorization")
         req.timeoutInterval = 15
         _ = try await URLSession.authed.data(for: req)
         CacheInvalidation.patternsPinMutated.invalidate()
