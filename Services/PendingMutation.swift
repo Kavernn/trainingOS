@@ -4,13 +4,14 @@ import Foundation
 /// Stored in UserDefaults (JSON) so it survives app restarts and offline periods.
 struct PendingMutation: Codable {
 
-    var id:          UUID
-    var endpoint:    String
-    var method:      String
-    var payloadData: Data
-    var createdAt:   Date
-    var retryCount:  Int
-    var isSynced:    Bool
+    var id:           UUID
+    var endpoint:     String
+    var method:       String
+    var payloadData:  Data
+    var createdAt:    Date
+    var retryCount:   Int
+    var isSynced:     Bool
+    var nextRetryAt:  Date?
 
     init(endpoint: String, method: String = "POST", payload: [String: Any]) {
         self.id          = UUID()
@@ -20,6 +21,7 @@ struct PendingMutation: Codable {
         self.createdAt   = Date()
         self.retryCount  = 0
         self.isSynced    = false
+        self.nextRetryAt = nil
     }
 
     var payloadDict: [String: Any]? {

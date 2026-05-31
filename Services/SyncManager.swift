@@ -83,7 +83,10 @@ final class SyncManager: ObservableObject {
         defer { isSyncing = false }
 
         let cap = maxRetries
-        var pending = queue.load().filter { !$0.isSynced && $0.retryCount < cap }
+        let now = Date()
+        var pending = queue.load().filter {
+            !$0.isSynced && $0.retryCount < cap && ($0.nextRetryAt == nil || $0.nextRetryAt! <= now)
+        }
         pending.sort { $0.createdAt < $1.createdAt }
 
         guard !pending.isEmpty else {
@@ -102,6 +105,9 @@ final class SyncManager: ObservableObject {
                 if sessionEndpoints.contains(mutation.endpoint) { syncedSessionMutation = true }
             } else {
                 mutation.retryCount += 1
+                // Exponential backoff: 2m, 4m, 8m, 16m, 32m
+                let delaySeconds = min(pow(2.0, Double(mutation.retryCount)) * 120, 32 * 60)
+                mutation.nextRetryAt = Date().addingTimeInterval(delaySeconds)
             }
             queue.update(mutation)
         }
