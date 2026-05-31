@@ -27,6 +27,7 @@ final class CacheService {
         c.totalCostLimit = 20 * 1024 * 1024  // 20 MB
         return c
     }()
+    private var memoryKeys = Set<String>()
 
     /// TTL in seconds per cache key (default: 3600s / 1h)
     private static let ttls: [String: TimeInterval] = [
@@ -101,6 +102,7 @@ final class CacheService {
 
     func save(_ data: Data, for key: String) {
         mem.setObject(data as NSData, forKey: key as NSString, cost: data.count)
+        memoryKeys.insert(key)
         try? data.write(to: fileURL(for: key), options: .atomic)
         let ttl = ttl(for: key)
         let now = Date().timeIntervalSince1970
@@ -128,6 +130,7 @@ final class CacheService {
 
     func clear(for key: String) {
         mem.removeObject(forKey: key as NSString)
+        memoryKeys.remove(key)
         try? FileManager.default.removeItem(at: fileURL(for: key))
         try? FileManager.default.removeItem(at: expiryURL(for: key))
         try? FileManager.default.removeItem(at: savedAtURL(for: key))
@@ -139,12 +142,13 @@ final class CacheService {
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: nil
         ) else { return }
-        var found = false
         for url in files where url.lastPathComponent.hasPrefix(safe) {
             try? FileManager.default.removeItem(at: url)
-            found = true
         }
-        if found { mem.removeAllObjects() }
+        for key in memoryKeys where key.hasPrefix(prefix) {
+            mem.removeObject(forKey: key as NSString)
+            memoryKeys.remove(key)
+        }
     }
 
     /// Returns the timestamp when this key was last saved, or nil if never.
