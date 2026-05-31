@@ -117,7 +117,7 @@ def save_sleep_entry(
     existing_rec = next((r for r in db.get_recovery_logs(limit=7) if r.get("date") == today), {})
     existing_rec["date"]          = today
     existing_rec["sleep_hours"]   = duration
-    existing_rec["sleep_quality"] = round((quality - 1) / 4 * 9 + 1, 1)
+    existing_rec["sleep_quality"] = round((quality - 1) / 4 * 9 + 1)
     existing_rec["source"]        = "manual"
     ok = db.upsert_recovery_log(existing_rec)
     if not ok:
