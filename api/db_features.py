@@ -181,7 +181,7 @@ def get_war_room_config() -> Optional[dict]:
         return None
 
     def _do():
-        resp = db_core._client.table("war_room_config").select("*").eq("id", 1).maybe_single().execute()
+        resp = db_core._client.table("war_room_config").select("id, war_start_date, substance_label, integration_phoenix, integration_readiness, integration_ai_coach, victory_streak").eq("id", 1).maybe_single().execute()
         return resp.data
 
     try:
@@ -416,7 +416,7 @@ def get_spirit_config() -> Optional[dict]:
         return None
 
     def _do():
-        resp = db_core._client.table("spirit_config").select("*").eq("id", 1).maybe_single().execute()
+        resp = db_core._client.table("spirit_config").select("id, integration_phoenix").eq("id", 1).maybe_single().execute()
         return resp.data
 
     try:
@@ -811,7 +811,7 @@ def get_active_season() -> Optional[dict]:
     def _do():
         resp = (
             db_core._client.table("seasons")
-            .select("*")
+            .select("id, number, status, started_at, ended_at, generated_title, custom_title, dominant_arc, personal_note, ritual_completion_rate")
             .eq("status", "active")
             .order("created_at", desc=True)
             .limit(1)
@@ -839,7 +839,7 @@ def get_all_seasons() -> List[dict]:
     def _do():
         resp = (
             db_core._client.table("seasons")
-            .select("*")
+            .select("id, number, status, started_at, ended_at, generated_title, custom_title, dominant_arc, personal_note, ritual_completion_rate")
             .order("number", desc=True)
             .execute()
         )
@@ -865,7 +865,7 @@ def get_season_by_id(season_id: str) -> Optional[dict]:
     def _do():
         resp = (
             db_core._client.table("seasons")
-            .select("*")
+            .select("id, number, status, started_at, ended_at, generated_title, custom_title, dominant_arc, personal_note, ritual_completion_rate")
             .eq("id", season_id)
             .maybe_single()
             .execute()
@@ -1018,7 +1018,7 @@ def get_season_snapshots(season_id: str) -> List[dict]:
     def _do():
         resp = (
             db_core._client.table("season_snapshots")
-            .select("*")
+            .select("id, season_id, type, captured_at, weight_lbs, body_fat_pct, phoenix_avg, phoenix_workout_avg, phoenix_stress_avg, phoenix_nutrition_avg, phoenix_resilience_avg, phoenix_spirit_avg, pss_score, war_room_streak, top_prs, ritual_completion_rate, avg_sleep_hrs, avg_calories, breathwork_sessions_total, meditation_minutes_total, journal_entries_total")
             .eq("season_id", season_id)
             .order("captured_at", desc=False)
             .execute()
