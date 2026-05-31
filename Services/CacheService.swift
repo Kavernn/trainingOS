@@ -30,19 +30,21 @@ final class CacheService {
 
     /// TTL in seconds per cache key (default: 3600s / 1h)
     private static let ttls: [String: TimeInterval] = [
-        // Core
-        "dashboard":          5 * 60,
-        "seance_data":        5 * 60,
-        "seance_soir_data":   5 * 60,
-        "historique_data":    10 * 60,
-        "stats_data":         15 * 60,
+        // Core — invalidated explicitly after each workout log / session complete
+        "dashboard":          30 * 60,
+        "seance_data":        30 * 60,
+        "seance_soir_data":   30 * 60,
+        "historique_data":    60 * 60,
+        "stats_data":         60 * 60,
         "programme_data":     24 * 3600,
         // Health
         "recovery_data":      3600,
         "cardio_data":        10 * 60,
         "acwr":               30 * 60,
-        // Nutrition
-        "nutrition_data":     5 * 60,
+        // Nutrition — invalidated explicitly on food log
+        "nutrition_data":     30 * 60,
+        // Coach memory — local UserDefaults, but registered for consistency
+        "coach_memory":       60 * 60,
         // Analytics — computed server-side, changes rarely
         "insights":           30 * 60,
         "life_stress":        30 * 60,
