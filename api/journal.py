@@ -78,16 +78,15 @@ def save_entry(prompt: str, content: str, mood_score: int | None = None) -> dict
 
 
 def get_entries(limit: int = 20, offset: int = 0) -> dict:
-    all_entries = db.get_journal_entries_all()
-    total = len(all_entries)
-    page  = all_entries[offset: offset + limit]
+    page  = db.get_journal_entries_all(limit=limit + 1, offset=offset)
+    has_more = len(page) > limit
+    items = page[:limit]
     return {
-        "items":      page,
-        "offset":     offset,
-        "limit":      limit,
-        "total":      total,
-        "has_more":   offset + limit < total,
-        "next_offset": offset + limit if offset + limit < total else None,
+        "items":       items,
+        "offset":      offset,
+        "limit":       limit,
+        "has_more":    has_more,
+        "next_offset": offset + limit if has_more else None,
     }
 
 

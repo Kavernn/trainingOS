@@ -195,8 +195,8 @@ def delete_sleep_record(record_id: str) -> bool:
 # Journal entries
 # ---------------------------------------------------------------------------
 
-def get_journal_entries_all(limit: int = 0, offset: int = 0) -> List[dict]:
-    """Return journal entries, newest first."""
+def get_journal_entries_all(limit: int = 100, offset: int = 0) -> List[dict]:
+    """Return journal entries, newest first. Default LIMIT 100 to cap egress."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
 
