@@ -3,7 +3,7 @@ import Foundation
 extension APIService {
 
     func getActiveSeasonRaw() async throws -> Data {
-        let url = URL(string: "\(baseURL)/api/seasons/active")!
+        let url = try buildURL(path: "/api/seasons/active")
         return try await fetchWithCache(url: url, key: "season_active")
     }
 
@@ -14,7 +14,7 @@ extension APIService {
     }
 
     func getAllSeasons() async throws -> [Season] {
-        let url  = URL(string: "\(baseURL)/api/seasons")!
+        let url  = try buildURL(path: "/api/seasons")
         let data = try await fetchWithCache(url: url, key: "seasons_list")
         return (try? JSONDecoder().decode([Season].self, from: data)) ?? []
     }
@@ -34,7 +34,7 @@ extension APIService {
     }
 
     func updateSeason(id: String, fields: [String: Any]) async throws -> Season? {
-        var req = URLRequest(url: URL(string: "\(baseURL)/api/seasons/\(id)")!)
+        var req = URLRequest(url: try buildURL(path: "/api/seasons/\(id)"))
         req.httpMethod = "PATCH"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: fields)

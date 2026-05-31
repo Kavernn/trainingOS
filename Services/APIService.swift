@@ -17,10 +17,12 @@ extension URLSession {
 enum APIError: LocalizedError {
     case serverError(Int, String)
     case queuedOffline  // mutation enqueued — not a failure, just deferred
+    case invalidURL(path: String)
     var errorDescription: String? {
         switch self {
         case .serverError(_, let msg): return msg
         case .queuedOffline: return "Enregistré hors-ligne — sera synchronisé à la reconnexion."
+        case .invalidURL(let path): return "URL invalide — \(path)"
         }
     }
 }
@@ -51,6 +53,9 @@ class APIService: ObservableObject {
     private let logger = Logger(subsystem: "TrainingOS", category: "api")
     private var consecutiveDashboardFailures = 0
     private init() {}
+
+    private let baseHost: String = URL(string: APIConfig.base)?.host ?? ""
+    private let baseScheme: String = URL(string: APIConfig.base)?.scheme ?? "https"
 
     // MARK: - Cache helper
     // Stratégie : cache-first + stale-while-revalidate + background refresh.
@@ -93,6 +98,17 @@ class APIService: ObservableObject {
         return data
     }
 
+    // MARK: - URL Builder
+    func buildURL(path: String, queryItems: [URLQueryItem] = []) throws -> URL {
+        var components = URLComponents()
+        components.scheme = baseScheme
+        components.host = baseHost
+        components.path = path
+        if !queryItems.isEmpty { components.queryItems = queryItems }
+        guard let url = components.url else { throw APIError.invalidURL(path: path) }
+        return url
+    }
+
     // MARK: - Offline-safe POST helper
     // Every mutation goes through this. If the network call fails (offline),
     // the payload is saved as a PendingMutation and replayed by SyncManager
@@ -133,7 +149,12 @@ class APIService: ObservableObject {
         }
 
         await MainActor.run { isLoading = true; isSlow = false; error = nil }
-        var req = URLRequest(url: URL(string: "\(baseURL)/api/dashboard?date=\(DateFormatter.isoDate.string(from: Date()))")!)
+        guard let url = try? buildURL(path: "/api/dashboard",
+                                      queryItems: [URLQueryItem(name: "date", value: DateFormatter.isoDate.string(from: Date()))]) else {
+            await MainActor.run { isLoading = false; error = "URL invalide — /api/dashboard" }
+            return
+        }
+        var req = URLRequest(url: url)
         req.timeoutInterval = 15
         let slowTask = Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
@@ -200,7 +221,7 @@ class APIService: ObservableObject {
     // MARK: - Coach Memory (server-side sync)
 
     func fetchCoachMemory() async throws -> [[String: Any]] {
-        guard let url = URL(string: "\(baseURL)/api/coach/memory") else { throw URLError(.badURL) }
+        let url = try buildURL(path: "/api/coach/memory")
         let (data, resp) = try await URLSession.authed.data(for: URLRequest(url: url))
         if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
             throw APIError.serverError(http.statusCode, "fetchCoachMemory HTTP \(http.statusCode)")
@@ -210,7 +231,7 @@ class APIService: ObservableObject {
     }
 
     func saveCoachMemory(_ entries: [[String: Any]]) async throws {
-        guard let url = URL(string: "\(baseURL)/api/coach/memory") else { throw URLError(.badURL) }
+        let url = try buildURL(path: "/api/coach/memory")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")

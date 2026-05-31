@@ -3,7 +3,7 @@ import Foundation
 extension APIService {
     // MARK: - Cardio
     func fetchCardioData() async throws -> [CardioEntry] {
-        let url = URL(string: "\(baseURL)/api/cardio_data")!
+        let url = try buildURL(path: "/api/cardio_data")
         let data = try await fetchWithCache(url: url, key: "cardio_data")
         struct Resp: Codable {
             let cardioLog: [CardioEntry]
@@ -36,9 +36,7 @@ extension APIService {
     }
 
     func fetchCardioMetrics(maxHR: Int) async throws -> CardioMetrics {
-        var comps = URLComponents(string: "\(baseURL)/api/cardio/metrics")!
-        comps.queryItems = [URLQueryItem(name: "max_hr", value: "\(maxHR)")]
-        let url = comps.url!
+        let url = try buildURL(path: "/api/cardio/metrics", queryItems: [URLQueryItem(name: "max_hr", value: "\(maxHR)")])
         let data = try await fetchWithCache(url: url, key: "cardio_metrics")
         return try JSONDecoder().decode(CardioMetrics.self, from: data)
     }

@@ -3,14 +3,14 @@ import Foundation
 extension APIService {
 
     func getCurrentOath() async throws -> OathModel? {
-        let url  = URL(string: "\(baseURL)/api/oath/current")!
+        let url  = try buildURL(path: "/api/oath/current")
         let data = try await fetchWithCache(url: url, key: "oath_current")
         if data.isEmpty || data == Data("{}".utf8) { return nil }
         return try? JSONDecoder().decode(OathModel.self, from: data)
     }
 
     func getOathVersions() async throws -> [OathModel] {
-        let url  = URL(string: "\(baseURL)/api/oath/versions")!
+        let url  = try buildURL(path: "/api/oath/versions")
         let data = try await fetchWithCache(url: url, key: "oath_versions")
         return (try? JSONDecoder().decode([OathModel].self, from: data)) ?? []
     }

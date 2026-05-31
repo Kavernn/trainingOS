@@ -2,10 +2,9 @@ import Foundation
 
 extension APIService {
     func fetchPlateauAlerts(force: Bool = false) async throws -> PlateauResponse {
-        let urlStr = force
-            ? "\(baseURL)/api/plateau_alerts?force=1"
-            : "\(baseURL)/api/plateau_alerts"
-        let url  = URL(string: urlStr)!
+        var items: [URLQueryItem] = []
+        if force { items.append(URLQueryItem(name: "force", value: "1")) }
+        let url  = try buildURL(path: "/api/plateau_alerts", queryItems: items)
         let data = try await fetchWithCache(url: url, key: "plateau_alerts")
         return try JSONDecoder().decode(PlateauResponse.self, from: data)
     }

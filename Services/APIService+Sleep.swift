@@ -5,19 +5,22 @@ extension APIService {
     func fetchSleepHistory(limit: Int = 20,
                            offset: Int = 0) async throws -> PagedResponse<SleepEntry> {
         let cacheKey = offset == 0 ? "sleep_history" : "sleep_history_\(offset)"
-        let url = URL(string: "\(baseURL)/api/sleep/history?limit=\(limit)&offset=\(offset)")!
+        let url = try buildURL(path: "/api/sleep/history", queryItems: [
+            URLQueryItem(name: "limit", value: "\(limit)"),
+            URLQueryItem(name: "offset", value: "\(offset)")
+        ])
         let data = try await fetchWithCache(url: url, key: cacheKey)
         return try JSONDecoder().decode(PagedResponse<SleepEntry>.self, from: data)
     }
 
     func fetchSleepToday() async throws -> SleepEntry? {
-        let url = URL(string: "\(baseURL)/api/sleep/today")!
+        let url = try buildURL(path: "/api/sleep/today")
         let data = try await fetchWithCache(url: url, key: "sleep_today")
         return try? JSONDecoder().decode(SleepEntry.self, from: data)
     }
 
     func fetchSleepStats() async throws -> SleepStats {
-        let url = URL(string: "\(baseURL)/api/sleep/stats")!
+        let url = try buildURL(path: "/api/sleep/stats")
         let data = try await fetchWithCache(url: url, key: "sleep_stats")
         return try JSONDecoder().decode(SleepStats.self, from: data)
     }

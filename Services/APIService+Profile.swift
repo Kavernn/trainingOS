@@ -3,14 +3,14 @@ import Foundation
 extension APIService {
     // MARK: - Profile Stats (lightweight)
     func fetchProfileStats() async throws -> ProfileStats {
-        let url  = URL(string: "\(baseURL)/api/profile_stats")!
+        let url  = try buildURL(path: "/api/profile_stats")
         let data = try await fetchWithCache(url: url, key: "profile_stats")
         return try JSONDecoder().decode(ProfileStats.self, from: data)
     }
 
     // MARK: - Body Weight / Profil
     func fetchProfilData() async throws -> (profile: UserProfile, bodyWeight: [BodyWeightEntry], tendance: String) {
-        let url = URL(string: "\(baseURL)/api/profil_data")!
+        let url = try buildURL(path: "/api/profil_data")
         let data = try await fetchWithCache(url: url, key: "profil_data")
         struct ProfilResponse: Codable {
             let profile: UserProfile
@@ -80,7 +80,7 @@ extension APIService {
 
     // MARK: - Weights
     func fetchWeights() async throws -> [String: WeightData] {
-        let url = URL(string: "\(baseURL)/api/weights")!
+        let url = try buildURL(path: "/api/weights")
         let data = try await fetchWithCache(url: url, key: "weights")
         return try JSONDecoder().decode([String: WeightData].self, from: data)
     }
@@ -138,15 +138,15 @@ extension APIService {
 
     // MARK: - Health Dashboard
     func fetchDailyHealthSummary(date: String? = nil) async throws -> DailyHealthSummary {
-        var urlStr = "\(baseURL)/api/health/daily_summary"
-        if let date { urlStr += "?date=\(date)" }
-        let url = URL(string: urlStr)!
+        var items: [URLQueryItem] = []
+        if let date { items.append(URLQueryItem(name: "date", value: date)) }
+        let url = try buildURL(path: "/api/health/daily_summary", queryItems: items)
         let data = try await fetchWithCache(url: url, key: "health_daily_\(date ?? "today")")
         return try JSONDecoder().decode(DailyHealthSummary.self, from: data)
     }
 
     func fetchWeeklyHealthSummary(days: Int = 7) async throws -> [DailyHealthSummary] {
-        let url = URL(string: "\(baseURL)/api/health/weekly_summary?days=\(days)")!
+        let url = try buildURL(path: "/api/health/weekly_summary", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
         let data = try await fetchWithCache(url: url, key: "health_weekly_\(days)")
         return try JSONDecoder().decode([DailyHealthSummary].self, from: data)
     }

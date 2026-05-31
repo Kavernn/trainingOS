@@ -5,7 +5,7 @@ extension APIService {
     // MARK: Config
 
     func getWarRoomConfig() async throws -> WarRoomConfig {
-        let url  = URL(string: "\(baseURL)/api/war_room/config")!
+        let url  = try buildURL(path: "/api/war_room/config")
         let data = try await fetchWithCache(url: url, key: "war_room_config")
         return try JSONDecoder().decode(WarRoomConfig.self, from: data)
     }
@@ -18,7 +18,7 @@ extension APIService {
     // MARK: Summary
 
     func getWarRoomSummary() async throws -> WarRoomSummary {
-        let url  = URL(string: "\(baseURL)/api/war_room/summary")!
+        let url  = try buildURL(path: "/api/war_room/summary")
         let data = try await fetchWithCache(url: url, key: "war_room_summary")
         return try JSONDecoder().decode(WarRoomSummary.self, from: data)
     }
@@ -26,7 +26,7 @@ extension APIService {
     // MARK: Battles
 
     func getWarRoomBattles(limit: Int = 90) async throws -> [WarRoomBattle] {
-        let url  = URL(string: "\(baseURL)/api/war_room/battles?limit=\(limit)")!
+        let url  = try buildURL(path: "/api/war_room/battles", queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
         let data = try await fetchWithCache(url: url, key: "war_room_battles")
         return try JSONDecoder().decode([WarRoomBattle].self, from: data)
     }
@@ -45,7 +45,7 @@ extension APIService {
     // MARK: Triggers
 
     func getWarRoomTriggers(limit: Int = 90) async throws -> [WarRoomTrigger] {
-        let url  = URL(string: "\(baseURL)/api/war_room/triggers?limit=\(limit)")!
+        let url  = try buildURL(path: "/api/war_room/triggers", queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
         let data = try await fetchWithCache(url: url, key: "war_room_triggers")
         return try JSONDecoder().decode([WarRoomTrigger].self, from: data)
     }
@@ -74,7 +74,7 @@ extension APIService {
     // MARK: Arsenal
 
     func getWarRoomArsenal() async throws -> [WarRoomArsenalItem] {
-        let url  = URL(string: "\(baseURL)/api/war_room/arsenal")!
+        let url  = try buildURL(path: "/api/war_room/arsenal")
         let data = try await fetchWithCache(url: url, key: "war_room_arsenal")
         return try JSONDecoder().decode([WarRoomArsenalItem].self, from: data)
     }
@@ -103,7 +103,7 @@ extension APIService {
     // MARK: Patterns
 
     func getWarRoomPatterns() async throws -> WarRoomPatterns {
-        let url  = URL(string: "\(baseURL)/api/war_room/patterns")!
+        let url  = try buildURL(path: "/api/war_room/patterns")
         let data = try await fetchWithCache(url: url, key: "war_room_patterns")
         return try JSONDecoder().decode(WarRoomPatterns.self, from: data)
     }
@@ -111,7 +111,7 @@ extension APIService {
     // MARK: War Map
 
     func getWarMap() async throws -> [WarMapMonth] {
-        let url  = URL(string: "\(baseURL)/api/war_room/map")!
+        let url  = try buildURL(path: "/api/war_room/map")
         let data = try await fetchWithCache(url: url, key: "war_room_map")
         return try JSONDecoder().decode([WarMapMonth].self, from: data)
     }

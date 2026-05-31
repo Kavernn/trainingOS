@@ -3,7 +3,7 @@ import Foundation
 extension APIService {
     // MARK: - Objectifs
     func fetchObjectifsData() async throws -> [ObjectifEntry] {
-        let url = URL(string: "\(baseURL)/api/objectifs_data")!
+        let url = try buildURL(path: "/api/objectifs_data")
         let data = try await fetchWithCache(url: url, key: "objectifs_data")
         struct ObjResponse: Codable { let goals: [String: ObjData] }
         struct ObjData: Codable {
@@ -30,7 +30,7 @@ extension APIService {
 
     // MARK: - Smart Goals
     func fetchSmartGoals() async throws -> [SmartGoalEntry] {
-        let url = URL(string: "\(baseURL)/api/smart_goals")!
+        let url = try buildURL(path: "/api/smart_goals")
         let data = try await fetchWithCache(url: url, key: "smart_goals")
         struct R: Codable { let smart_goals: [SmartGoalEntry] }
         return try JSONDecoder().decode(R.self, from: data).smart_goals
@@ -50,26 +50,26 @@ extension APIService {
 
     // MARK: - Insights / ACWR / Deload / Correlations
     func fetchInsights() async throws -> [InsightEntry] {
-        let url = URL(string: "\(baseURL)/api/insights")!
+        let url = try buildURL(path: "/api/insights")
         let data = try await fetchWithCache(url: url, key: "insights")
         struct R: Codable { let insights: [InsightEntry] }
         return try JSONDecoder().decode(R.self, from: data).insights
     }
 
     func fetchDeloadData() async throws -> DeloadReport {
-        let url = URL(string: "\(baseURL)/api/deload")!
+        let url = try buildURL(path: "/api/deload")
         let data = try await fetchWithCache(url: url, key: "deload")
         return try JSONDecoder().decode(DeloadReport.self, from: data)
     }
 
     func fetchACWR() async throws -> ACWRData {
-        let url = URL(string: "\(baseURL)/api/acwr")!
+        let url = try buildURL(path: "/api/acwr")
         let data = try await fetchWithCache(url: url, key: "acwr")
         return try JSONDecoder().decode(ACWRData.self, from: data)
     }
 
     func fetchCorrelations(days: Int = 60) async throws -> CorrelationsData {
-        let url = URL(string: "\(baseURL)/api/insights/correlations?days=\(days)")!
+        let url = try buildURL(path: "/api/insights/correlations", queryItems: [URLQueryItem(name: "days", value: "\(days)")])
         let data = try await fetchWithCache(url: url, key: "correlations")
         return try JSONDecoder().decode(CorrelationsData.self, from: data)
     }

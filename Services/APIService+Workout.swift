@@ -3,7 +3,7 @@ import Foundation
 extension APIService {
     // MARK: - Seance Data
     func fetchSeanceData() async throws -> SeanceData {
-        let url = URL(string: "\(baseURL)/api/seance_data")!
+        let url = try buildURL(path: "/api/seance_data")
         let data = try await fetchWithCache(url: url, key: "seance_data")
         return try JSONDecoder().decode(SeanceData.self, from: data)
     }
@@ -68,7 +68,7 @@ extension APIService {
     }
 
     func fetchSeanceSoirData() async throws -> SeanceSoirData {
-        let url = URL(string: "\(baseURL)/api/seance_soir_data")!
+        let url = try buildURL(path: "/api/seance_soir_data")
         let data = try await fetchWithCache(url: url, key: "seance_soir_data")
         return try JSONDecoder().decode(SeanceSoirData.self, from: data)
     }
@@ -103,7 +103,7 @@ extension APIService {
 
     // MARK: - HIIT
     func fetchHIITData() async throws -> [HIITEntry] {
-        let url = URL(string: "\(baseURL)/api/hiit_data")!
+        let url = try buildURL(path: "/api/hiit_data")
         let data = try await fetchWithCache(url: url, key: "hiit_data")
         struct HIITResponse: Codable {
             let hiitLog: [HIITEntry]
@@ -138,7 +138,7 @@ extension APIService {
 
     // MARK: - Generated Program
     func generateProgram() async throws -> GeneratedProgram {
-        let url = URL(string: "\(baseURL)/api/ai/generate_program")!
+        let url = try buildURL(path: "/api/ai/generate_program")
         var req = URLRequest(url: url)
         req.httpMethod  = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -153,7 +153,7 @@ extension APIService {
     }
 
     func fetchLatestGeneratedProgram() async throws -> GeneratedProgram? {
-        let url = URL(string: "\(baseURL)/api/ai/generated_program/latest")!
+        let url = try buildURL(path: "/api/ai/generated_program/latest")
         let (data, response) = try await URLSession.authed.data(for: URLRequest(url: url))
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
         return try? JSONDecoder().decode(GeneratedProgram.self, from: data)
@@ -163,7 +163,7 @@ extension APIService {
         let content = gp.programJson
         let week1   = content.weeks.first
 
-        let progUrl = URL(string: "\(baseURL)/api/programs")!
+        let progUrl = try buildURL(path: "/api/programs")
         var progReq = URLRequest(url: progUrl)
         progReq.httpMethod = "POST"
         progReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -181,12 +181,12 @@ extension APIService {
         }
 
         let days = week1?.days ?? []
-        let base = baseURL
+        let programmeURL = try buildURL(path: "/api/programme")
         await withTaskGroup(of: Void.self) { group in
             for day in days {
                 let name = day.name; let pid = programmeId
                 group.addTask {
-                    var req = URLRequest(url: URL(string: "\(base)/api/programme")!)
+                    var req = URLRequest(url: programmeURL)
                     req.httpMethod = "POST"
                     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     req.httpBody = try? JSONSerialization.data(withJSONObject: [
@@ -203,7 +203,7 @@ extension APIService {
                     let dayName = day.name; let exName = ex.name
                     let scheme = "\(ex.sets)x\(ex.reps)"; let pid = programmeId
                     group.addTask {
-                        var req = URLRequest(url: URL(string: "\(base)/api/programme")!)
+                        var req = URLRequest(url: programmeURL)
                         req.httpMethod = "POST"
                         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
                         req.httpBody = try? JSONSerialization.data(withJSONObject: [
@@ -217,14 +217,14 @@ extension APIService {
         }
 
         if !content.schedule.isEmpty {
-            var schedReq = URLRequest(url: URL(string: "\(baseURL)/api/morning_schedule")!)
+            var schedReq = URLRequest(url: try buildURL(path: "/api/morning_schedule"))
             schedReq.httpMethod = "POST"
             schedReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
             schedReq.httpBody = try JSONSerialization.data(withJSONObject: ["schedule": content.schedule])
             _ = try? await URLSession.authed.data(for: schedReq)
         }
 
-        var approveReq = URLRequest(url: URL(string: "\(baseURL)/api/ai/generated_program/approve")!)
+        var approveReq = URLRequest(url: try buildURL(path: "/api/ai/generated_program/approve"))
         approveReq.httpMethod = "POST"
         approveReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
         approveReq.httpBody = try JSONSerialization.data(withJSONObject: [
@@ -240,7 +240,7 @@ extension APIService {
 
     func fetchPostWorkoutBrief(sessionType: String, rpe: Double?, exos: [String],
                                comment: String?, date: String) async throws -> String {
-        let url = URL(string: "\(baseURL)/api/ai/post_workout")!
+        let url = try buildURL(path: "/api/ai/post_workout")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -258,7 +258,7 @@ extension APIService {
     }
 
     func fetchWeeklyNarrative(context: String, weekKey: String) async throws -> String {
-        let url = URL(string: "\(baseURL)/api/ai/narrative")!
+        let url = try buildURL(path: "/api/ai/narrative")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -272,19 +272,19 @@ extension APIService {
     }
 
     func fetchPeakPrediction() async throws -> PeakPredictionResponse {
-        let url = URL(string: "\(baseURL)/api/peak_prediction")!
+        let url = try buildURL(path: "/api/peak_prediction")
         let data = try await fetchWithCache(url: url, key: "peak_prediction")
         return try JSONDecoder().decode(PeakPredictionResponse.self, from: data)
     }
 
     func fetchProgressionSuggestions(date: String, sessionType: String,
                                      sessionName: String = "") async throws -> [ProgressionSuggestion] {
-        var urlStr = "\(baseURL)/api/progression_suggestions?date=\(date)&session_type=\(sessionType)"
-        if !sessionName.isEmpty,
-           let encoded = sessionName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
-            urlStr += "&session_name=\(encoded)"
-        }
-        let url = URL(string: urlStr)!
+        var items: [URLQueryItem] = [
+            URLQueryItem(name: "date", value: date),
+            URLQueryItem(name: "session_type", value: sessionType)
+        ]
+        if !sessionName.isEmpty { items.append(URLQueryItem(name: "session_name", value: sessionName)) }
+        let url = try buildURL(path: "/api/progression_suggestions", queryItems: items)
         var req = URLRequest(url: url)
         req.timeoutInterval = 15
         let (data, _) = try await URLSession.authed.data(for: req)
@@ -302,13 +302,13 @@ extension APIService {
     }
 
     func fetchSmartDay() async throws -> SmartDayRecommendation {
-        let url = URL(string: "\(baseURL)/api/smart_day")!
+        let url = try buildURL(path: "/api/smart_day")
         let data = try await fetchWithCache(url: url, key: "smart_day")
         return try JSONDecoder().decode(SmartDayRecommendation.self, from: data)
     }
 
     func fetchWeeklyReport() async throws -> WeeklyReport {
-        let url = URL(string: "\(baseURL)/api/weekly_report")!
+        let url = try buildURL(path: "/api/weekly_report")
         var req = URLRequest(url: url)
         req.timeoutInterval = 20
         let (data, _) = try await URLSession.authed.data(for: req)
@@ -316,7 +316,7 @@ extension APIService {
     }
 
     func applyDeload(poidsDeload: [String: Double]) async throws {
-        let url = URL(string: "\(baseURL)/api/apply_deload")!
+        let url = try buildURL(path: "/api/apply_deload")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -332,14 +332,14 @@ extension APIService {
 
     // MARK: - Stats Data
     func fetchStatsData() async throws {
-        let url = URL(string: "\(baseURL)/api/stats_data")!
+        let url = try buildURL(path: "/api/stats_data")
         var req = URLRequest(url: url); req.timeoutInterval = 15
         let (data, _) = try await URLSession.authed.data(for: req)
         CacheService.shared.save(data, for: "stats_data")
     }
 
     func fetchStatsWellness() async throws -> Data {
-        let url = URL(string: "\(baseURL)/api/stats_wellness")!
+        let url = try buildURL(path: "/api/stats_wellness")
         var req = URLRequest(url: url); req.timeoutInterval = 20
         let (data, _) = try await URLSession.authed.data(for: req)
         CacheService.shared.save(data, for: "stats_wellness")

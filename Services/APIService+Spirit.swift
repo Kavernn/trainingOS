@@ -5,7 +5,7 @@ extension APIService {
     // MARK: Config
 
     func getSpiritConfig() async throws -> SpiritConfig {
-        let url  = URL(string: "\(baseURL)/api/spirit/config")!
+        let url  = try buildURL(path: "/api/spirit/config")
         let data = try await fetchWithCache(url: url, key: "spirit_config")
         return try JSONDecoder().decode(SpiritConfig.self, from: data)
     }
@@ -18,7 +18,7 @@ extension APIService {
     // MARK: Breathwork
 
     func getSpiritBreathSessions(limit: Int = 60) async throws -> [SpiritBreathSession] {
-        let url  = URL(string: "\(baseURL)/api/spirit/breathwork?limit=\(limit)")!
+        let url  = try buildURL(path: "/api/spirit/breathwork", queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
         let data = try await fetchWithCache(url: url, key: "spirit_breathwork")
         return try JSONDecoder().decode([SpiritBreathSession].self, from: data)
     }
@@ -42,7 +42,7 @@ extension APIService {
     // MARK: Meditation
 
     func getMeditationSessions(limit: Int = 60) async throws -> [MeditationSession] {
-        let url  = URL(string: "\(baseURL)/api/spirit/meditation?limit=\(limit)")!
+        let url  = try buildURL(path: "/api/spirit/meditation", queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
         let data = try await fetchWithCache(url: url, key: "spirit_meditation")
         return try JSONDecoder().decode([MeditationSession].self, from: data)
     }
@@ -61,7 +61,7 @@ extension APIService {
     // MARK: Journal
 
     func getSpiritJournalStubs(limit: Int = 30) async throws -> [SpiritJournalStub] {
-        let url  = URL(string: "\(baseURL)/api/spirit/journal?limit=\(limit)")!
+        let url  = try buildURL(path: "/api/spirit/journal", queryItems: [URLQueryItem(name: "limit", value: "\(limit)")])
         let data = try await fetchWithCache(url: url, key: "spirit_journal_list")
         return try JSONDecoder().decode([SpiritJournalStub].self, from: data)
     }
@@ -86,7 +86,7 @@ extension APIService {
     // MARK: Patterns
 
     func getSpiritPatterns() async throws -> SpiritPatterns {
-        let url  = URL(string: "\(baseURL)/api/spirit/patterns")!
+        let url  = try buildURL(path: "/api/spirit/patterns")
         let data = try await fetchWithCache(url: url, key: "spirit_patterns")
         return try JSONDecoder().decode(SpiritPatterns.self, from: data)
     }

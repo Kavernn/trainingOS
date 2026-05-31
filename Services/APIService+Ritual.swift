@@ -3,13 +3,13 @@ import Foundation
 extension APIService {
 
     func fetchRitualToday() async throws -> RitualToday {
-        let url  = URL(string: "\(baseURL)/api/ritual/today")!
+        let url  = try buildURL(path: "/api/ritual/today")
         let data = try await fetchWithCache(url: url, key: "ritual_today")
         return try JSONDecoder().decode(RitualToday.self, from: data)
     }
 
     func fetchPhoenixStats() async throws -> PhoenixStats {
-        let url  = URL(string: "\(baseURL)/api/ritual/streak")!
+        let url  = try buildURL(path: "/api/ritual/streak")
         let data = try await fetchWithCache(url: url, key: "ritual_streak")
         return try JSONDecoder().decode(PhoenixStats.self, from: data)
     }
@@ -38,13 +38,13 @@ extension APIService {
     }
 
     func fetchRitualStats() async throws -> RitualStats {
-        let url  = URL(string: "\(baseURL)/api/ritual/stats")!
+        let url  = try buildURL(path: "/api/ritual/stats")
         let data = try await fetchWithCache(url: url, key: "ritual_stats")
         return try JSONDecoder().decode(RitualStats.self, from: data)
     }
 
     func fetchRitualCorrelations() async throws -> RitualCorrelations {
-        let url  = URL(string: "\(baseURL)/api/ritual/correlations")!
+        let url  = try buildURL(path: "/api/ritual/correlations")
         let data = try await fetchWithCache(url: url, key: "ritual_correlations")
         return try JSONDecoder().decode(RitualCorrelations.self, from: data)
     }

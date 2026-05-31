@@ -3,7 +3,7 @@ import Foundation
 extension APIService {
 
     func fetchCapsuleSnapshot() async throws -> CapsuleSnapshot {
-        let url = URL(string: "\(baseURL)/api/time_capsule/snapshot")!
+        let url = try buildURL(path: "/api/time_capsule/snapshot")
         var req = URLRequest(url: url)
         req.timeoutInterval = 20
         req.cachePolicy = .reloadIgnoringLocalCacheData
@@ -15,13 +15,13 @@ extension APIService {
     }
 
     func fetchTimeCapsules() async throws -> [TimeCapsule] {
-        let url  = URL(string: "\(baseURL)/api/time_capsule")!
+        let url  = try buildURL(path: "/api/time_capsule")
         let data = try await fetchWithCache(url: url, key: "time_capsules")
         return try JSONDecoder().decode(TimeCapsuleListResponse.self, from: data).capsules
     }
 
     func createTimeCapsule(durationMonths: Int, message: String?) async throws -> TimeCapsule {
-        let url = URL(string: "\(baseURL)/api/time_capsule")!
+        let url = try buildURL(path: "/api/time_capsule")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -38,7 +38,7 @@ extension APIService {
     }
 
     func openTimeCapsule(id: String) async throws -> TimeCapsule {
-        let url = URL(string: "\(baseURL)/api/time_capsule/\(id)/open")!
+        let url = try buildURL(path: "/api/time_capsule/\(id)/open")
         var req = URLRequest(url: url)
         req.httpMethod = "PATCH"
         let (data, response) = try await URLSession.authed.data(for: req)
