@@ -178,7 +178,7 @@ final class ExerciseViewModel: ObservableObject {
 
     private func saveDraft() {
         let draft = sets.map { DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe) }
-        if let data = try? JSONEncoder().encode(draft) {
+        if let data = try? APIService.encoder.encode(draft) {
             UserDefaults.standard.set(data, forKey: draftKey)
             draftSavedAt = Date()
         }
@@ -186,7 +186,7 @@ final class ExerciseViewModel: ObservableObject {
 
     private func loadDraft() -> [DraftSet]? {
         guard let data = UserDefaults.standard.data(forKey: draftKey) else { return nil }
-        return try? JSONDecoder().decode([DraftSet].self, from: data)
+        return try? APIService.decoder.decode([DraftSet].self, from: data)
     }
 
     func clearDraft() {

@@ -28,13 +28,13 @@ enum SessionDraftStore {
     }
 
     static func save(date: String, sessionType: String = "morning", values: [PersistedExerciseLogResult]) {
-        guard let data = try? JSONEncoder().encode(values) else { return }
+        guard let data = try? APIService.encoder.encode(values) else { return }
         UserDefaults.standard.set(data, forKey: key(date: date, sessionType: sessionType))
     }
 
     static func load(date: String, sessionType: String = "morning") -> [PersistedExerciseLogResult] {
         guard let data = UserDefaults.standard.data(forKey: key(date: date, sessionType: sessionType)),
-              let decoded = try? JSONDecoder().decode([PersistedExerciseLogResult].self, from: data) else {
+              let decoded = try? APIService.decoder.decode([PersistedExerciseLogResult].self, from: data) else {
             return []
         }
         return decoded
