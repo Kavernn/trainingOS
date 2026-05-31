@@ -19,7 +19,7 @@ def get_exercises() -> Dict[str, dict] | None:
         page_size = 1000
         start = 0
         while True:
-            resp = db_core._client.table("exercises").select("*").is_("deleted_at", "null").order("name").range(start, start + page_size - 1).execute()
+            resp = db_core._client.table("exercises").select("id, name, type, category, default_scheme, load_profile, muscles, increment").is_("deleted_at", "null").order("name").range(start, start + page_size - 1).execute()
             batch = resp.data or []
             rows.extend(batch)
             if len(batch) < page_size:
@@ -46,7 +46,7 @@ def get_exercise_by_name(name: str) -> Optional[dict]:
         return None
 
     def _do() -> Optional[dict]:
-        resp = db_core._client.table("exercises").select("*").eq("name", name).is_("deleted_at", "null").single().execute()
+        resp = db_core._client.table("exercises").select("id, name, type, category, default_scheme, load_profile, muscles, increment, gif_url, image_url_alt, tips, level, pattern").eq("name", name).is_("deleted_at", "null").single().execute()
         return resp.data
 
     try:
