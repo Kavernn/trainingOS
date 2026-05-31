@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let workoutLogger = Logger(subsystem: "TrainingOS", category: "api+workout")
 
 extension APIService {
     // MARK: - Seance Data
@@ -32,8 +35,12 @@ extension APIService {
             return LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
         }
         CacheInvalidation.exerciseLogged(isSecond: isSecond, isBonus: isBonus).invalidate()
-        return (try? JSONDecoder().decode(LogExerciseResponse.self, from: data))
-            ?? LogExerciseResponse(success: nil, newWeight: nil, oneRM: nil, isPR: nil)
+        do {
+            return try JSONDecoder().decode(LogExerciseResponse.self, from: data)
+        } catch {
+            workoutLogger.error("❌ logExercise decode failed: \(error, privacy: .public)")
+            throw APIError.decodingFailed(endpoint: "/api/log", error: error)
+        }
     }
 
     func logSession(exos: [String], rpe: Double, comment: String,
@@ -143,7 +150,7 @@ extension APIService {
         let url = try buildURL(path: "/api/ai/generated_program/latest")
         let (data, response) = try await URLSession.authed.data(for: URLRequest(url: url))
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else { return nil }
-        return try? JSONDecoder().decode(GeneratedProgram.self, from: data)
+        return try JSONDecoder().decode(GeneratedProgram.self, from: data)
     }
 
     func approveGeneratedProgram(_ gp: GeneratedProgram) async throws -> String {

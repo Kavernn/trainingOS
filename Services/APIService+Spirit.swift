@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let spiritLogger = Logger(subsystem: "TrainingOS", category: "api+spirit")
 
 extension APIService {
 
@@ -71,7 +74,12 @@ extension APIService {
         let cacheKey = "spirit_journal_\(date)"
         let data = try await fetchWithCache(url: url, key: cacheKey)
         if data.isEmpty || data == Data("{}".utf8) { return nil }
-        return try? JSONDecoder().decode(SpiritJournalEntry.self, from: data)
+        if let entry = try? JSONDecoder().decode(SpiritJournalEntry.self, from: data) {
+            return entry
+        } else if !data.isEmpty && data != Data("null".utf8) {
+            spiritLogger.warning("⚠️ getSpiritJournalEntry decode failed — may indicate API schema change")
+        }
+        return nil
     }
 
     func saveSpiritJournal(date: String, gratefulFor: String?, conquered: String?, haunting: String?) async throws {

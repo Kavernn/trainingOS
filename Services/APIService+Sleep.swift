@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let sleepLogger = Logger(subsystem: "TrainingOS", category: "api+sleep")
 
 extension APIService {
     // MARK: - Sommeil
@@ -16,7 +19,12 @@ extension APIService {
     func fetchSleepToday() async throws -> SleepEntry? {
         let url = try buildURL(path: "/api/sleep/today")
         let data = try await fetchWithCache(url: url, key: "sleep_today")
-        return try? JSONDecoder().decode(SleepEntry.self, from: data)
+        if let entry = try? JSONDecoder().decode(SleepEntry.self, from: data) {
+            return entry
+        } else if !data.isEmpty && data != Data("null".utf8) {
+            sleepLogger.warning("⚠️ fetchSleepToday decode failed — may indicate API schema change")
+        }
+        return nil
     }
 
     func fetchSleepStats() async throws -> SleepStats {

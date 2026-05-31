@@ -1,5 +1,8 @@
 import Foundation
+import OSLog
 import UserNotifications
+
+private let nutritionLogger = Logger(subsystem: "TrainingOS", category: "api+nutrition")
 
 extension APIService {
     // MARK: - Nutrition
@@ -174,7 +177,12 @@ extension APIService {
         guard let url = URL(string: "\(baseURL)/api/meal_templates"),
               let (data, _) = try? await URLSession.authed.data(from: url) else { return [] }
         struct Resp: Decodable { let templates: [MealTemplate] }
-        return (try? JSONDecoder().decode(Resp.self, from: data))?.templates ?? []
+        do {
+            return try JSONDecoder().decode(Resp.self, from: data).templates
+        } catch {
+            nutritionLogger.error("❌ fetchMealTemplates decode failed: \(error, privacy: .public)")
+            return []
+        }
     }
 
     func createMealTemplate(name: String, items: [MealTemplateItem]) async throws -> MealTemplate {

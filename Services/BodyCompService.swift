@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import OSLog
 
 // ── Staleness ────────────────────────────────────────────────────────────────
 
@@ -133,10 +134,14 @@ final class BodyCompService: ObservableObject {
     func refresh() async {
         isLoading = true
         defer { isLoading = false }
-        guard let (_, bw, _) = try? await APIService.shared.fetchProfilData() else { return }
-        let sorted = bw.sorted { $0.date < $1.date }
-        history = sorted
-        latest  = sorted.last
+        do {
+            let (_, bw, _) = try await APIService.shared.fetchProfilData()
+            let sorted = bw.sorted { $0.date < $1.date }
+            history = sorted
+            latest  = sorted.last
+        } catch {
+            Logger(subsystem: "TrainingOS", category: "bodycomp").error("❌ BodyCompService.refresh failed: \(error, privacy: .public)")
+        }
     }
 
     func refreshWithLegacyCheck() async {
@@ -144,21 +149,25 @@ final class BodyCompService: ObservableObject {
         defer { isLoading = false }
         // fetchProfilData returns legacy_weight_pending — decode raw to capture it
         guard let url = URL(string: "\(APIConfig.base)/api/profil_data") else { return }
-        guard let data = try? await APIService.shared.fetchWithCache(url: url, key: "profil_data") else { return }
+        do {
+            let data = try await APIService.shared.fetchWithCache(url: url, key: "profil_data")
 
-        struct ProfilRaw: Decodable {
-            let bodyWeight: [BodyWeightEntry]
-            let legacyWeightPending: Bool?
-            enum CodingKeys: String, CodingKey {
-                case bodyWeight         = "body_weight"
-                case legacyWeightPending = "legacy_weight_pending"
+            struct ProfilRaw: Decodable {
+                let bodyWeight: [BodyWeightEntry]
+                let legacyWeightPending: Bool?
+                enum CodingKeys: String, CodingKey {
+                    case bodyWeight         = "body_weight"
+                    case legacyWeightPending = "legacy_weight_pending"
+                }
             }
+            let r = try JSONDecoder().decode(ProfilRaw.self, from: data)
+            let sorted = r.bodyWeight.sorted { $0.date < $1.date }
+            history              = sorted
+            latest               = sorted.last
+            legacyWeightPending  = r.legacyWeightPending ?? false
+        } catch {
+            Logger(subsystem: "TrainingOS", category: "bodycomp").error("❌ BodyCompService.refreshWithLegacyCheck failed: \(error, privacy: .public)")
         }
-        guard let r = try? JSONDecoder().decode(ProfilRaw.self, from: data) else { return }
-        let sorted = r.bodyWeight.sorted { $0.date < $1.date }
-        history              = sorted
-        latest               = sorted.last
-        legacyWeightPending  = r.legacyWeightPending ?? false
     }
 
     func importLegacyWeight(_ weightLbs: Double) async {

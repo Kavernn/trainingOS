@@ -18,11 +18,13 @@ enum APIError: LocalizedError {
     case serverError(Int, String)
     case queuedOffline  // mutation enqueued — not a failure, just deferred
     case invalidURL(path: String)
+    case decodingFailed(endpoint: String, error: Error)
     var errorDescription: String? {
         switch self {
         case .serverError(_, let msg): return msg
         case .queuedOffline: return "Enregistré hors-ligne — sera synchronisé à la reconnexion."
         case .invalidURL(let path): return "URL invalide — \(path)"
+        case .decodingFailed(let endpoint, _): return "Données incompatibles sur \(endpoint) — mise à jour requise"
         }
     }
 }
@@ -143,9 +145,13 @@ class APIService: ObservableObject {
     // MARK: - Dashboard
     func fetchDashboard() async {
         if let cached = CacheService.shared.load(for: "dashboard"),
-           let decoded = try? JSONDecoder().decode(DashboardData.self, from: cached),
            dashboard == nil {
-            await MainActor.run { self.dashboard = decoded }
+            if let decoded = try? JSONDecoder().decode(DashboardData.self, from: cached) {
+                await MainActor.run { self.dashboard = decoded }
+            } else {
+                logger.warning("⚠️ Dashboard cache decode failed — stale cache cleared")
+                CacheService.shared.clear(for: "dashboard")
+            }
         }
 
         await MainActor.run { isLoading = true; isSlow = false; error = nil }
