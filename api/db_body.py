@@ -225,7 +225,7 @@ def get_recovery_logs(limit: int = 100) -> List[dict]:
     def _fetch():
         return (
             db_core._client.table("recovery_logs")
-            .select("*")
+            .select("date, sleep_hours, sleep_quality, resting_hr, hrv, steps, soreness, fatigue_perceived, active_energy, hr_morning, hr_post_workout, hr_evening, energy_pre, source, notes")
             .order("date", desc=True)
             .limit(limit)
             .execute()
