@@ -14,6 +14,19 @@
 		07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D68B8535D55F4B109509F146 /* MorningRevealView.swift */; };
 		08073E1B777979BC5C2CE724 /* RitualEveningView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1412A3C124DEC128C01A2D96 /* RitualEveningView.swift */; };
 		0886AB2185354BBDA38FD7C4 /* NutritionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07F5AB1A421041E59142D99A /* NutritionViewModel.swift */; };
+		NA0001NA0001NA0001NA0001 /* NutritionActionMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */; };
+		NA0002NA0002NA0002NA0002 /* ProteinProgressCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0002NR0002NR0002NR0002 /* ProteinProgressCard.swift */; };
+		NA0003NA0003NA0003NA0003 /* NutritionCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0003NR0003NR0003NR0003 /* NutritionCharts.swift */; };
+		NA0004NA0004NA0004NA0004 /* MacroSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0004NR0004NR0004NR0004 /* MacroSummaryCard.swift */; };
+		NA0005NA0005NA0005NA0005 /* NutritionEntryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0005NR0005NR0005NR0005 /* NutritionEntryViews.swift */; };
+		NA0006NA0006NA0006NA0006 /* AddNutritionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0006NR0006NR0006NR0006 /* AddNutritionSheet.swift */; };
+		NA0007NA0007NA0007NA0007 /* EditNutritionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0007NR0007NR0007NR0007 /* EditNutritionSheet.swift */; };
+		NA0008NA0008NA0008NA0008 /* DayTypeBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0008NR0008NR0008NR0008 /* DayTypeBadge.swift */; };
+		NA0009NA0009NA0009NA0009 /* NutritionAnalyticsCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0009NR0009NR0009NR0009 /* NutritionAnalyticsCards.swift */; };
+		NA0010NA0010NA0010NA0010 /* NutritionSettingsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0010NR0010NR0010NR0010 /* NutritionSettingsSheet.swift */; };
+		NA0011NA0011NA0011NA0011 /* ScanLabelSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0011NR0011NR0011NR0011 /* ScanLabelSheet.swift */; };
+		NA0012NA0012NA0012NA0012 /* MealTemplateSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */; };
+		NA0013NA0013NA0013NA0013 /* BarcodeScannerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = NR0013NR0013NR0013NR0013 /* BarcodeScannerSheet.swift */; };
 		0D8210D4F61FF52D9FFFE4DF /* ProfileModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDD35C9A164F89962D3E6E18 /* ProfileModels.swift */; };
 		110ED440D08546FE9E027EC0 /* DashboardNutritionCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EF11A8481CB4909A6965C19 /* DashboardNutritionCards.swift */; };
 		11DB911AE8186DDE463BAA71 /* ToastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F9FC27F6F10E2BBE5805E5F /* ToastView.swift */; };
@@ -232,6 +245,19 @@
 		0692BAD378B2EFECD9C7F518 /* RecoveryView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RecoveryView.swift; sourceTree = "<group>"; };
 		07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ErrorBannerView.swift; sourceTree = "<group>"; };
 		07F5AB1A421041E59142D99A /* NutritionViewModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NutritionViewModel.swift; sourceTree = "<group>"; };
+		NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionActionMessage.swift; sourceTree = "<group>"; };
+		NR0002NR0002NR0002NR0002 /* ProteinProgressCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProteinProgressCard.swift; sourceTree = "<group>"; };
+		NR0003NR0003NR0003NR0003 /* NutritionCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionCharts.swift; sourceTree = "<group>"; };
+		NR0004NR0004NR0004NR0004 /* MacroSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroSummaryCard.swift; sourceTree = "<group>"; };
+		NR0005NR0005NR0005NR0005 /* NutritionEntryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionEntryViews.swift; sourceTree = "<group>"; };
+		NR0006NR0006NR0006NR0006 /* AddNutritionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNutritionSheet.swift; sourceTree = "<group>"; };
+		NR0007NR0007NR0007NR0007 /* EditNutritionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditNutritionSheet.swift; sourceTree = "<group>"; };
+		NR0008NR0008NR0008NR0008 /* DayTypeBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayTypeBadge.swift; sourceTree = "<group>"; };
+		NR0009NR0009NR0009NR0009 /* NutritionAnalyticsCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionAnalyticsCards.swift; sourceTree = "<group>"; };
+		NR0010NR0010NR0010NR0010 /* NutritionSettingsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionSettingsSheet.swift; sourceTree = "<group>"; };
+		NR0011NR0011NR0011NR0011 /* ScanLabelSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanLabelSheet.swift; sourceTree = "<group>"; };
+		NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealTemplateSheets.swift; sourceTree = "<group>"; };
+		NR0013NR0013NR0013NR0013 /* BarcodeScannerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeScannerSheet.swift; sourceTree = "<group>"; };
 		106008F1BB4042C0803D076D /* GraveyardModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GraveyardModels.swift; sourceTree = "<group>"; };
 		12186D7E0477FF4F0975C7DA /* RitualView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualView.swift; sourceTree = "<group>"; };
 		1412A3C124DEC128C01A2D96 /* RitualEveningView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualEveningView.swift; sourceTree = "<group>"; };
@@ -580,6 +606,19 @@
 				34D99C0DF3AB4F7ABC77DFE0 /* FoodCatalogStore.swift */,
 				1E46E472EA174AE18FBAA9FB /* FoodCatalogView.swift */,
 				07F5AB1A421041E59142D99A /* NutritionViewModel.swift */,
+				NR0001NR0001NR0001NR0001 /* NutritionActionMessage.swift */,
+				NR0002NR0002NR0002NR0002 /* ProteinProgressCard.swift */,
+				NR0003NR0003NR0003NR0003 /* NutritionCharts.swift */,
+				NR0004NR0004NR0004NR0004 /* MacroSummaryCard.swift */,
+				NR0005NR0005NR0005NR0005 /* NutritionEntryViews.swift */,
+				NR0006NR0006NR0006NR0006 /* AddNutritionSheet.swift */,
+				NR0007NR0007NR0007NR0007 /* EditNutritionSheet.swift */,
+				NR0008NR0008NR0008NR0008 /* DayTypeBadge.swift */,
+				NR0009NR0009NR0009NR0009 /* NutritionAnalyticsCards.swift */,
+				NR0010NR0010NR0010NR0010 /* NutritionSettingsSheet.swift */,
+				NR0011NR0011NR0011NR0011 /* ScanLabelSheet.swift */,
+				NR0012NR0012NR0012NR0012 /* MealTemplateSheets.swift */,
+				NR0013NR0013NR0013NR0013 /* BarcodeScannerSheet.swift */,
 			);
 			path = Nutrition;
 			sourceTree = "<group>";
@@ -1199,6 +1238,19 @@
 				AA0020062F5D98BA002AE470 /* NutritionView.swift in Sources */,
 				44C9676C9DEC490EA46497D2 /* FoodCatalogStore.swift in Sources */,
 				FF51E36866234A41AFD33040 /* FoodCatalogView.swift in Sources */,
+				NA0001NA0001NA0001NA0001 /* NutritionActionMessage.swift in Sources */,
+				NA0002NA0002NA0002NA0002 /* ProteinProgressCard.swift in Sources */,
+				NA0003NA0003NA0003NA0003 /* NutritionCharts.swift in Sources */,
+				NA0004NA0004NA0004NA0004 /* MacroSummaryCard.swift in Sources */,
+				NA0005NA0005NA0005NA0005 /* NutritionEntryViews.swift in Sources */,
+				NA0006NA0006NA0006NA0006 /* AddNutritionSheet.swift in Sources */,
+				NA0007NA0007NA0007NA0007 /* EditNutritionSheet.swift in Sources */,
+				NA0008NA0008NA0008NA0008 /* DayTypeBadge.swift in Sources */,
+				NA0009NA0009NA0009NA0009 /* NutritionAnalyticsCards.swift in Sources */,
+				NA0010NA0010NA0010NA0010 /* NutritionSettingsSheet.swift in Sources */,
+				NA0011NA0011NA0011NA0011 /* ScanLabelSheet.swift in Sources */,
+				NA0012NA0012NA0012NA0012 /* MealTemplateSheets.swift in Sources */,
+				NA0013NA0013NA0013NA0013 /* BarcodeScannerSheet.swift in Sources */,
 				AA0020072F5D98BA002AE470 /* ProgrammeView.swift in Sources */,
 				AA0020082F5D98BA002AE470 /* XPView.swift in Sources */,
 				AA0020092F5D98BA002AE470 /* NotesView.swift in Sources */,
