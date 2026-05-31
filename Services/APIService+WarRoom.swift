@@ -65,7 +65,7 @@ extension APIService {
         if let note = contextNote, !note.isEmpty { body["context_note"] = note }
         let data = try await offlinePost(endpoint: "/api/war_room/trigger", payload: body)
         CacheInvalidation.warRoomTriggerLogged.invalidate()
-        guard let data else { return "" }
+        guard let data else { throw APIError.queuedOffline }
         let resp = try JSONDecoder().decode(TriggerLogResponse.self, from: data)
         return resp.id
     }
@@ -84,7 +84,7 @@ extension APIService {
         ]
         let data = try await offlinePost(endpoint: "/api/war_room/arsenal", payload: body)
         CacheInvalidation.warRoomArsenalMutated.invalidate()
-        guard let data else { return "" }
+        guard let data else { throw APIError.queuedOffline }
         let resp = try JSONDecoder().decode(ArsenalAddResponse.self, from: data)
         return resp.id
     }
