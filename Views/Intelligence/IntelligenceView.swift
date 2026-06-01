@@ -146,50 +146,31 @@ struct IntelligenceView: View {
                         .padding(.bottom, 8)
                     }
 
-                    // Insight principal du jour
-                    if let insight = dailyInsight, !insight.isEmpty {
-                        InsightPrincipalCard(
-                            insight: insight,
-                            onNavigateToProgramme: {
-                                withAnimation(.easeInOut(duration: 0.2)) { selectedSection = .programme }
-                            }
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 4)
-                    } else if isLoadingInsight {
-                        SkeletonBar(height: 90, radius: 14)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 4)
-                    }
-
-                    // Post-séance feedback (visible 2h après la séance)
-                    if shouldShowPostSeanceCard, let psd = postSessionData {
-                        PostSeanceCard(data: psd)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 4)
-                    }
-
-                    // Progression — top 3 lifts by objective
-                    if !weightsData.isEmpty {
-                        ProgressionCard(
-                            weightsData: weightsData,
-                            goal: api.dashboard?.profile.goal
-                        )
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 4)
-                    }
-
                     // Section content
                     if selectedSection == .chat {
+                        // Cards fixes au-dessus du chat (le chat gère son propre scroll + clavier)
+                        summaryCardsView
                         chatSectionView
                     } else if selectedSection == .patterns {
-                        ScrollView(showsIndicators: false) { patternsSectionView }
+                        ScrollView(showsIndicators: false) {
+                            summaryCardsView
+                            patternsSectionView
+                        }
                     } else if selectedSection == .programme {
-                        ScrollView(showsIndicators: false) { programmeSectionView }
+                        ScrollView(showsIndicators: false) {
+                            summaryCardsView
+                            programmeSectionView
+                        }
                     } else if selectedSection == .bilan {
-                        ScrollView(showsIndicators: false) { bilanSectionView }
+                        ScrollView(showsIndicators: false) {
+                            summaryCardsView
+                            bilanSectionView
+                        }
                     } else {
-                        ScrollView(showsIndicators: false) { memoireSectionView }
+                        ScrollView(showsIndicators: false) {
+                            summaryCardsView
+                            memoireSectionView
+                        }
                     }
 
                     // Section pills — bottom nav bar
@@ -319,6 +300,37 @@ struct IntelligenceView: View {
     }
 
     // MARK: - Section Views
+
+    @ViewBuilder
+    private var summaryCardsView: some View {
+        if let insight = dailyInsight, !insight.isEmpty {
+            InsightPrincipalCard(
+                insight: insight,
+                onNavigateToProgramme: {
+                    withAnimation(.easeInOut(duration: 0.2)) { selectedSection = .programme }
+                }
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 4)
+        } else if isLoadingInsight {
+            SkeletonBar(height: 90, radius: 14)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+        }
+        if shouldShowPostSeanceCard, let psd = postSessionData {
+            PostSeanceCard(data: psd)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 4)
+        }
+        if !weightsData.isEmpty {
+            ProgressionCard(
+                weightsData: weightsData,
+                goal: api.dashboard?.profile.goal
+            )
+            .padding(.horizontal, 16)
+            .padding(.bottom, 4)
+        }
+    }
 
     @ViewBuilder
     private var chatSectionView: some View {
