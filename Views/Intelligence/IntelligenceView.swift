@@ -168,8 +168,6 @@ struct IntelligenceView: View {
 
                     // Section content
                     if selectedSection == .chat {
-                        // Cards fixes au-dessus du chat (le chat gère son propre scroll + clavier)
-                        summaryCardsView
                         chatSectionView
                     } else if selectedSection == .patterns {
                         ScrollView(showsIndicators: false) {
@@ -194,16 +192,16 @@ struct IntelligenceView: View {
                     }
 
                 }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 0) {
-                    Divider().background(Color.white.opacity(0.08))
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(CoachSection.allCases, id: \.self) { section in
-                                Button {
-                                    withAnimation(.easeInOut(duration: 0.2)) { selectedSection = section }
-                                } label: {
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    VStack(spacing: 0) {
+                        Divider().background(Color.white.opacity(0.08))
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(CoachSection.allCases, id: \.self) { section in
+                                    Button {
+                                        hideKeyboard()
+                                        withAnimation(.easeInOut(duration: 0.2)) { selectedSection = section }
+                                    } label: {
                                     HStack(spacing: 5) {
                                         Image(systemName: section.icon)
                                             .font(.system(size: 11, weight: .semibold))
