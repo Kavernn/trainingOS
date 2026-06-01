@@ -53,6 +53,7 @@
 		1D462FB9E69CF0CEDDBF854D /* ReadinessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5FB27DA5D308C889BDBF9 /* ReadinessModels.swift */; };
 		2013CE6D9FC8EE527D8B63F2 /* AnalyticsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */; };
 		ENMOD002ENMOD002ENMOD002 /* EnergyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */; };
+		SM001001AA00300B2F5DFFFF /* StatsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SM001000AA00300B2F5DFFFF /* StatsModels.swift */; };
 		2642EDF085E09321C150429B /* APIService+Ritual.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED6AAE13530007B583B67B1D /* APIService+Ritual.swift */; };
 		3051B1AF2D2C0AFF6C7D1FAD /* APIService+Patterns.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55B033EEBE81776A77969C32 /* APIService+Patterns.swift */; };
 		312D934570D77F3F3B873C09 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64709C7BAEA141594DB92A70 /* EmptyStateView.swift */; };
@@ -343,6 +344,7 @@
 		51D25C3758A0A6DEB7E93A6C /* APIService+TimeCapsule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+TimeCapsule.swift"; sourceTree = "<group>"; };
 		552F808C866A877BFC051570 /* WellnessModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WellnessModels.swift; sourceTree = "<group>"; };
 		ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnergyModels.swift; sourceTree = "<group>"; };
+		SM001000AA00300B2F5DFFFF /* StatsModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = StatsModels.swift; sourceTree = "<group>"; };
 		55B033EEBE81776A77969C32 /* APIService+Patterns.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Patterns.swift"; sourceTree = "<group>"; };
 		5F9FC27F6F10E2BBE5805E5F /* ToastView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ToastView.swift; sourceTree = "<group>"; };
 		6186E51D3E2986E22EC27AC3 /* PlateauModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PlateauModels.swift; sourceTree = "<group>"; };
@@ -843,6 +845,7 @@
 				OA001000AA00300B2F5DCCCC /* OathModels.swift */,
 				SE001000AA00300B2F5DDDDD /* SeasonModels.swift */,
 				GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */,
+				SM001000AA00300B2F5DFFFF /* StatsModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1493,6 +1496,7 @@
 				SE005001AA00300B2F5DDDDD /* SeasonCloseView.swift in Sources */,
 				SE006001AA00300B2F5DDDDD /* SeasonReportView.swift in Sources */,
 				GF006001AA00300B2F5DEEEE /* GymFinderModels.swift in Sources */,
+				SM001001AA00300B2F5DFFFF /* StatsModels.swift in Sources */,
 				GF007001AA00300B2F5DEEEE /* GymFinderService.swift in Sources */,
 				GF001001AA00300B2F5DEEEE /* GymContributeView.swift in Sources */,
 				GF002001AA00300B2F5DEEEE /* GymDetailView.swift in Sources */,
