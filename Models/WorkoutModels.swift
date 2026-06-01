@@ -409,6 +409,21 @@ struct HIITEntry: Codable, Identifiable {
     let rpe: Double?
     let notes: String?
 
+    init(
+        id: String = UUID().uuidString,
+        date: String?, sessionType: String?, rounds: Int?,
+        workTime: Int?, restTime: Int?, rpe: Double?, notes: String?
+    ) {
+        self.id          = id
+        self.date        = date
+        self.sessionType = sessionType
+        self.rounds      = rounds
+        self.workTime    = workTime
+        self.restTime    = restTime
+        self.rpe         = rpe
+        self.notes       = notes
+    }
+
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         date        = try c.decodeIfPresent(String.self,  forKey: .date)
