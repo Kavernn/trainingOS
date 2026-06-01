@@ -29,15 +29,16 @@ func avgReps(_ reps: String) -> Double {
 }
 
 func isoWeekKey(_ dateStr: String) -> String {
-    guard let d = DateFormatter.isoDate.date(from: dateStr) else { return "" }
-    let epochDays = (Int(d.timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
-    return "W\((epochDays + 3) / 7)"
+    DateFormatter.isoDate.date(from: dateStr)?.isoWeekKey ?? ""
 }
 
 func weekLabel(_ key: String) -> String {
-    guard key.hasPrefix("W"), let weekIdx = Int(key.dropFirst()) else { return key }
-    let tz = TimeZone.current.secondsFromGMT()
-    let d = Date(timeIntervalSince1970: TimeInterval(weekIdx * 7 * 86400 - 3 * 86400 - tz))
+    let parts = key.components(separatedBy: "-W")
+    guard parts.count == 2, let yr = Int(parts[0]), let wk = Int(parts[1]) else { return key }
+    var comps = DateComponents()
+    comps.yearForWeekOfYear = yr; comps.weekOfYear = wk; comps.weekday = 2
+    let cal = Calendar(identifier: .iso8601)
+    guard let d = cal.date(from: comps) else { return key }
     return DateFormatter.shortDateFRCA.string(from: d)
 }
 
@@ -118,6 +119,8 @@ struct StatsView: View {
     @State var intensityData:    IntensityData?         = nil
     @State var ritualStats:      RitualStats?           = nil
 
+    // ── Streak — source serveur unique (P1.2) ───────────────────────────────
+    @State var streakData: StreakResponse? = nil
     // ── KPI cache — recomputed in recalcKPIs() called from applyStats() ──
     @State var cachedCurrentStreak: Int = 0
     @State var cachedBestStreak: Int = 0
@@ -141,8 +144,8 @@ struct StatsView: View {
         return rpes.isEmpty ? 0 : rpes.reduce(0, +) / Double(rpes.count)
     }
 
-    var currentStreak: Int { cachedCurrentStreak }
-    var bestStreak: Int    { cachedBestStreak }
+    var currentStreak: Int { streakData?.currentStreak ?? cachedCurrentStreak }
+    var bestStreak: Int    { streakData?.bestStreak    ?? cachedBestStreak }
     var weeklyVolume: Double { cachedWeeklyVolume }
 
     var exercisesCount: Int { weights.filter { $0.value.history?.isEmpty == false }.count }
@@ -170,9 +173,10 @@ struct StatsView: View {
 
     // ── Weekly charts ─────────────────────────────────────────────────
     var last8Weeks: [String] {
-        let tz = TimeZone.current.secondsFromGMT()
-        let todayDays = (Int(Date().timeIntervalSince1970) + tz) / 86400
-        return (0..<8).reversed().map { i in "W\((todayDays - i * 7 + 3) / 7)" }
+        let cal = Calendar(identifier: .iso8601)
+        return (0..<8).reversed().map { i in
+            (cal.date(byAdding: .weekOfYear, value: -i, to: Date()) ?? Date()).isoWeekKey
+        }
     }
 
     var weeklyFrequency: [(String, Double)] {
@@ -254,16 +258,7 @@ struct StatsView: View {
     }
 
     // ── Week comparison ───────────────────────────────────────────────
-    func weekBounds(weeksAgo: Int) -> (String, String) {
-        let tz = TimeZone.current.secondsFromGMT()
-        let todayDays = (Int(Date().timeIntervalSince1970) + tz) / 86400
-        let weekday = ((todayDays + 4) % 7) + 1
-        let daysSinceMonday = (weekday + 5) % 7
-        let mondayDays = todayDays - daysSinceMonday - weeksAgo * 7
-        let monday = Date(timeIntervalSince1970: TimeInterval(mondayDays * 86400 - tz))
-        let sunday = Date(timeIntervalSince1970: TimeInterval((mondayDays + 6) * 86400 - tz))
-        return (DateFormatter.isoDate.string(from: monday), DateFormatter.isoDate.string(from: sunday))
-    }
+    func weekBounds(weeksAgo: Int) -> (String, String) { Date().isoWeekBounds(weeksAgo: weeksAgo) }
 
     var thisWeekSessions:   Int {
         let (mon, sun) = weekBounds(weeksAgo: 0)
@@ -538,31 +533,15 @@ struct StatsView: View {
     func recalcKPIs() {
         let fmt = DateFormatter.isoDate
         let base = Date().timeIntervalSince1970
-        var count = 0
-        for i in 0..<365 {
-            let key = fmt.string(from: Date(timeIntervalSince1970: base - Double(i) * 86400.0))
-            if sessions[key] != nil { count += 1 }
-            else if i == 0 { }
-            else { break }
-        }
-        cachedCurrentStreak = count
 
-        let sorted = sessions.keys.compactMap { fmt.date(from: $0) }.sorted()
-        if sorted.isEmpty {
-            cachedBestStreak = 0
-        } else {
-            var best = 1; var cur = 1
-            for i in 1..<sorted.count {
-                let diff = Int(round((sorted[i].timeIntervalSince1970 - sorted[i-1].timeIntervalSince1970) / 86400.0))
-                if diff == 1 { cur += 1; best = max(best, cur) } else { cur = 1 }
-            }
-            cachedBestStreak = best
-        }
+        // Streak now comes from server (P1.2); cachedCurrentStreak/bestStreak kept as fallback only
 
         let epochDays = (Int(base) + TimeZone.current.secondsFromGMT()) / 86400
         let weekday = ((epochDays + 4) % 7) + 1
         let daysSinceMonday = (weekday + 5) % 7
-        let mondayStr = fmt.string(from: Date(timeIntervalSince1970: base - Double(daysSinceMonday) * 86400.0))
+        // Calendar.current handles DST transitions correctly (not raw 86400s arithmetic)
+        let mondayDate = Calendar.current.date(byAdding: .day, value: -daysSinceMonday, to: Date()) ?? Date()
+        let mondayStr = fmt.string(from: mondayDate)
         // Unique source de vérité : exercise history, identique à weeklyVolumeChart.
         cachedWeeklyVolume = weights.values.flatMap { $0.history ?? [] }.compactMap { e -> Double? in
             guard let date = e.date, date >= mondayStr else { return nil }
@@ -666,6 +645,9 @@ struct StatsView: View {
             CacheService.shared.save(wData, for: "stats_wellness")
             applyWellness(decodedW)
         }
+
+        // Streak — source serveur unique (P1.2)
+        streakData = try? await APIService.shared.fetchStreaks(date: AppState.shared.todayStr)
 
         isLoading = false
         // Schedule contextual notifications (inactivity + streak milestones)

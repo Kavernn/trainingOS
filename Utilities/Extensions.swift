@@ -64,7 +64,7 @@ extension DateFormatter {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.locale = Locale(identifier: "en_US_POSIX")
-        f.timeZone = TimeZone.autoupdatingCurrent
+        f.timeZone = TimeZone.current
         return f
     }()
 
@@ -144,6 +144,28 @@ func makeBeep(hz: Double, duration: Double) -> AVAudioPlayer? {
     let player = try? AVAudioPlayer(data: wav, fileTypeHint: "wav")
     player?.prepareToPlay()
     return player
+}
+
+// MARK: - ISO Week helpers
+extension Date {
+    // "YYYY-Www" — ISO 8601 week key, Monday-based
+    var isoWeekKey: String {
+        let cal = Calendar(identifier: .iso8601)
+        let c = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: self)
+        guard let yr = c.yearForWeekOfYear, let wk = c.weekOfYear else { return "" }
+        return String(format: "%d-W%02d", yr, wk)
+    }
+
+    // Returns (monday, sunday) as "YYYY-MM-DD", weeksAgo weeks back
+    func isoWeekBounds(weeksAgo: Int = 0) -> (String, String) {
+        let cal = Calendar(identifier: .iso8601)
+        let target = cal.date(byAdding: .weekOfYear, value: -weeksAgo, to: self)!
+        var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: target)
+        comps.weekday = 2
+        let monday = cal.date(from: comps)!
+        let sunday = cal.date(byAdding: .day, value: 6, to: monday)!
+        return (DateFormatter.isoDate.string(from: monday), DateFormatter.isoDate.string(from: sunday))
+    }
 }
 
 // MARK: - Model UI extensions (color helpers that need SwiftUI but must not live in Models/)
