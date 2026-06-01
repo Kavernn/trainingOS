@@ -13,6 +13,8 @@ extension APIService {
     func getActiveSeason() async throws -> Season? {
         let data = try await getActiveSeasonRaw()
         if data.isEmpty || data == Data("{}".utf8) { return nil }
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           json["id"] == nil { return nil }
         do {
             return try APIService.decoder.decode(Season.self, from: data)
         } catch {
