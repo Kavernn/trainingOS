@@ -82,8 +82,10 @@ def _score_hrv() -> tuple[float | None, dict]:
     """
     from hrv_engine import compute_hrv_analysis
     try:
+        from user_profile import load_user_profile
+        sensitivity = str(load_user_profile().get("hrv_sensitivity") or "standard")
         rows     = db.get_recovery_logs() or []
-        analysis = compute_hrv_analysis(rows, _today_mtl())
+        analysis = compute_hrv_analysis(rows, _today_mtl(), sensitivity=sensitivity)
         if not analysis.get("baseline_available"):
             return None, {"data_insufficient": True, "reason": "baseline_unavailable"}
         score = analysis.get("hrv_score")
@@ -192,8 +194,10 @@ def _score_sleep_duration() -> tuple[float | None, dict]:
         if not today_rec or today_rec.get("sleep_hours") is None:
             return None, {"data_insufficient": True}
         hours = float(today_rec["sleep_hours"])
-        score = min(100.0, (hours / 8.0) * 100.0)
-        return round(score, 1), {"sleep_hours": hours}
+        from user_profile import load_user_profile
+        sleep_goal = float(load_user_profile().get("sleep_goal_hours") or 8.0)
+        score = min(100.0, (hours / sleep_goal) * 100.0)
+        return round(score, 1), {"sleep_hours": hours, "sleep_goal": sleep_goal}
     except Exception as e:
         logger.exception("_score_sleep_duration failed: %s", e)
         return None, {"data_insufficient": True}

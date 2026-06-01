@@ -21,7 +21,14 @@ from datetime import date as date_cls, timedelta
 from typing import Optional
 
 
-def compute_hrv_analysis(rows: list[dict], target_date: str) -> dict:
+_HRV_ZONES: dict[str, tuple[int, int]] = {
+    "conservative": (115, 85),   # zones plus larges — moins d'alertes
+    "standard":     (110, 90),   # défaut actuel
+    "aggressive":   (120, 80),   # zones plus étroites — plus sensible
+}
+
+
+def compute_hrv_analysis(rows: list[dict], target_date: str, sensitivity: str = "standard") -> dict:
     """
     Analyse HRV complète pour une date cible.
 
@@ -97,9 +104,10 @@ def compute_hrv_analysis(rows: list[dict], target_date: str) -> dict:
 
     if today_rmssd is not None and baseline_available and hrv_7d_avg:
         hrv_score = round(today_rmssd / hrv_7d_avg * 100, 1)
-        if hrv_score >= 110:
+        green_min, orange_min = _HRV_ZONES.get(sensitivity, _HRV_ZONES["standard"])
+        if hrv_score >= green_min:
             hrv_zone = "green"
-        elif hrv_score >= 90:
+        elif hrv_score >= orange_min:
             hrv_zone = "orange"
         else:
             hrv_zone = "red"

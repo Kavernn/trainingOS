@@ -78,6 +78,15 @@ extension APIService {
         _ = try await offlinePost(endpoint: "/api/update_profile", payload: body)
     }
 
+    func updateProfileSettings(sleepGoalHours: Double? = nil, hrvSensitivity: String? = nil) async throws {
+        var body: [String: Any] = [:]
+        if let v = sleepGoalHours { body["sleep_goal_hours"] = v }
+        if let v = hrvSensitivity { body["hrv_sensitivity"]  = v }
+        guard !body.isEmpty else { return }
+        _ = try await offlinePost(endpoint: "/api/update_profile", payload: body)
+        CacheService.shared.clear(for: "readiness")
+    }
+
     // MARK: - Weights
     func fetchWeights() async throws -> [String: WeightData] {
         let url = try buildURL(path: "/api/weights")

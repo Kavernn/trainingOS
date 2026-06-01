@@ -63,10 +63,14 @@ def api_profile_stats():
 @profile_bp.route("/api/update_profile", methods=["POST"])
 def api_update_profile():
     from user_profile import load_user_profile, save_user_profile
+    payload  = request.get_json(silent=True) or {}
     existing = load_user_profile()
-    existing.update({k: v for k, v in (request.get_json(silent=True) or {}).items() if v is not None})
+    existing.update({k: v for k, v in payload.items() if v is not None})
     ok = save_user_profile(existing)
     if ok:
+        if "sleep_goal_hours" in payload or "hrv_sensitivity" in payload:
+            import readiness as _r
+            _r._CACHE.clear()
         return jsonify({"success": True})
     return jsonify({"success": False, "error": "Erreur sauvegarde Supabase"}), 500
 

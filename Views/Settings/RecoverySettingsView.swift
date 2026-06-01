@@ -85,6 +85,7 @@ struct RecoverySettingsView: View {
                     ForEach(sensitivityOptions, id: \.id) { option in
                         Button {
                             hrvSensitivity = option.id
+                            Task { try? await APIService.shared.updateProfileSettings(hrvSensitivity: option.id) }
                         } label: {
                             HStack(spacing: 12) {
                                 settingsIcon(
@@ -122,6 +123,9 @@ struct RecoverySettingsView: View {
         .navigationTitle("Récupération & Sommeil")
         .navigationBarTitleDisplayMode(.large)
         .onAppear { loadStoredTimes() }
+        .onChange(of: sleepGoalHours) { _, newValue in
+            Task { try? await APIService.shared.updateProfileSettings(sleepGoalHours: newValue) }
+        }
     }
 
     @ViewBuilder
