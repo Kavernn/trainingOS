@@ -32,7 +32,7 @@ struct HistoriqueView: View {
     @State private var hasMore = false
     @State private var currentOffset = 0
     private let pageSize = 20
-    @State private var selectedTab = 0
+    @AppStorage("historique_selectedTab") private var selectedTab = 0
     @State private var expandedIDs: Set<String> = []
     @State private var editTarget: HistoriqueMuscu? = nil
     @State private var editHIITTarget: HIITEntry? = nil

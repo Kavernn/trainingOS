@@ -48,14 +48,17 @@ struct ChatPanel<Placeholder: View, ChipsView: View>: View {
                 .frame(maxHeight: .infinity)
                 .scrollDismissesKeyboard(.interactively)
                 .onAppear {
-                    // Jump to bottom immediately — no animation on initial render
                     if let last = messages.last {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
                 }
                 .onChange(of: messages.count) {
-                    guard userHasInteracted, let last = messages.last else { return }
-                    withAnimation(.easeOut(duration: 0.25)) {
+                    guard let last = messages.last else { return }
+                    if userHasInteracted {
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
+                    } else {
                         proxy.scrollTo(last.id, anchor: .bottom)
                     }
                 }

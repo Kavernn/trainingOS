@@ -1059,13 +1059,13 @@ struct WeightChartView: View {
             // Labels dates X
             if entries.count >= 2 {
                 HStack {
-                    Text(shortDate(entries.first!.date))
+                    Text(entries.first.map { shortDate($0.date) } ?? "")
                         .font(.system(size: 9)).foregroundColor(.gray)
                     Spacer()
                     Text("\(entries.count) entrées")
                         .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
                     Spacer()
-                    Text(shortDate(entries.last!.date))
+                    Text(entries.last.map { shortDate($0.date) } ?? "")
                         .font(.system(size: 9)).foregroundColor(.gray)
                 }
             }

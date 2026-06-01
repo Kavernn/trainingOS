@@ -400,7 +400,8 @@ struct WeightHistoryEntry: Codable {
 
 // MARK: - HIIT
 struct HIITEntry: Codable, Identifiable {
-    var id: String { (date ?? "") + (sessionType ?? "") }
+    private let _uuid = UUID()
+    var id: String { _uuid.uuidString }
     let date: String?
     let sessionType: String?
     let rounds: Int?

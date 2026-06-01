@@ -42,7 +42,7 @@ struct ReadinessStripView: View {
                     .foregroundColor(accent)
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text("READINESS")
+                Text("RÉCUPÉRATION")
                     .font(.system(size: 9, weight: .bold)).tracking(2)
                     .foregroundColor(.gray)
                 Text(label)
@@ -169,7 +169,7 @@ struct RecoverySnapshotView: View {
             }
             if let hrv = recovery.hrv {
                 let zoneColor = hrvAnalysis?.zoneColor ?? .green
-                let arrow     = hrvAnalysis != nil ? " \(hrvAnalysis!.trendArrow)" : ""
+                let arrow     = hrvAnalysis.map { " \($0.trendArrow)" } ?? ""
                 SnapMetric(
                     icon:  "waveform.path.ecg",
                     value: "\(Int(hrv))ms\(arrow)",

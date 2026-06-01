@@ -1195,6 +1195,24 @@ struct NoProgramEmptyState: View {
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
+
+                Button {
+                    NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "brain.head.profile")
+                            .font(.system(size: 14))
+                        Text("Demander au Coach")
+                            .font(.system(size: 15, weight: .medium))
+                    }
+                    .foregroundColor(.purple)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.purple.opacity(0.1))
+                    .cornerRadius(14)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.purple.opacity(0.25), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 40)

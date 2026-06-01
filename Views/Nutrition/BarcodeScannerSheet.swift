@@ -46,6 +46,16 @@ struct BarcodeScannerSheet: View {
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 32)
+                            Button("Ouvrir les Réglages") {
+                                if let url = URL(string: UIApplication.openSettingsURLString) {
+                                    UIApplication.shared.open(url)
+                                }
+                            }
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 24).padding(.vertical, 10)
+                            .background(Color.orange.opacity(0.12))
+                            .cornerRadius(12)
                         }
                     }
                 } else {

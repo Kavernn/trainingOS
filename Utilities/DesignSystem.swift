@@ -51,11 +51,12 @@ extension View {
 // MARK: - Spring Button Style
 struct SpringButtonStyle: ButtonStyle {
     var scale: CGFloat = 0.97
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? scale : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? scale : 1.0)
+            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 
@@ -63,14 +64,19 @@ struct SpringButtonStyle: ButtonStyle {
 struct AppearModifier: ViewModifier {
     let delay: Double
     @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
             .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : 10)
+            .offset(y: appeared || reduceMotion ? 0 : 10)
             .onAppear {
-                withAnimation(.spring(response: 0.42, dampingFraction: 0.82).delay(delay)) {
+                if reduceMotion {
                     appeared = true
+                } else {
+                    withAnimation(.spring(response: 0.42, dampingFraction: 0.82).delay(delay)) {
+                        appeared = true
+                    }
                 }
             }
     }
@@ -86,14 +92,19 @@ extension View {
 struct HotAppearModifier: ViewModifier {
     let delay: Double
     @State private var appeared = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content
             .opacity(appeared ? 1 : 0)
-            .scaleEffect(appeared ? 1 : 0.88)
+            .scaleEffect(appeared || reduceMotion ? 1 : 0.88)
             .onAppear {
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.60).delay(delay)) {
+                if reduceMotion {
                     appeared = true
+                } else {
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.60).delay(delay)) {
+                        appeared = true
+                    }
                 }
             }
     }

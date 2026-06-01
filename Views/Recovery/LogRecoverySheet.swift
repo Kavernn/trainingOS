@@ -149,7 +149,15 @@ struct LogRecoverySheet: View {
                                 Text("ACTIVITÉ QUOTIDIENNE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                                 HStack(spacing: 12) {
                                     RecoveryField(label: "PAS", placeholder: "8500", text: $stepsStr, keyboardType: .numberPad)
-                                    RecoveryField(label: "HRV (ms)", placeholder: "45", text: $hrvStr)
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        RecoveryField(label: "HRV (ms)", placeholder: "45", text: $hrvStr)
+                                        if let hrv = Double(hrvStr.replacingOccurrences(of: ",", with: ".")),
+                                           !hrvStr.isEmpty, (hrv < 20 || hrv > 200) {
+                                            Text("Valeur inhabituelle (20–200 ms)")
+                                                .font(.system(size: 9, weight: .semibold))
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
                                 }
                                 HStack(spacing: 12) {
                                     RecoveryField(label: "ÉNERGIE ACTIVE (kcal)", placeholder: "350", text: $activeEnergyStr, keyboardType: .numberPad)

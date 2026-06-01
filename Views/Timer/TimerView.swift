@@ -199,6 +199,7 @@ struct TimerView: View {
             }
         }
         .background(AmbientBackground(color: phaseColor))
+        .onAppear { syncFromBackground() }
         .onDisappear { persistState() }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background {

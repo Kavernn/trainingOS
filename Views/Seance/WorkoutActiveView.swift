@@ -1339,8 +1339,8 @@ struct WorkoutSeanceView: View {
             }
         }
         // W-D11 — abandon session alert
-        .alert("Abandonner la séance ?", isPresented: $showAbandonAlert) {
-            Button("Abandonner", role: .destructive) {
+        .alert("Quitter la séance ?", isPresented: $showAbandonAlert) {
+            Button("Quitter sans sauvegarder", role: .destructive) {
                 vm.logResults.removeAll()
                 vm.isResuming = false
                 if let date = vm.seanceData?.todayDate {
@@ -1349,7 +1349,12 @@ struct WorkoutSeanceView: View {
             }
             Button("Continuer", role: .cancel) {}
         } message: {
-            Text("Toutes les données non soumises seront perdues.")
+            let logged = vm.logResults.count
+            if logged > 0 {
+                Text("Tes \(logged) exercice\(logged > 1 ? "s" : "") loggé\(logged > 1 ? "s" : "") seront perdus. Cette action est irréversible.")
+            } else {
+                Text("La séance n'a pas encore commencé. Aucune donnée ne sera perdue.")
+            }
         }
         .sheet(item: $addTarget) { (sn: SeanceName) in
             AddExerciseSheet(seance: sn.id, inventory: inventory, inventorySchemes: [:]) { ex, scheme in

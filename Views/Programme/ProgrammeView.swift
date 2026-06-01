@@ -37,6 +37,8 @@ struct ProgrammeView: View {
         var prog = fullProgram[seance] ?? [:]
         for (ex, scheme) in pasted { prog[ex] = scheme }
         fullProgram[seance] = prog
+        clipboardData = "{}"
+        clipboardName = ""
         Task {
             for (ex, scheme) in pasted {
                 await addExercise(seance: seance, exercise: ex, scheme: scheme)

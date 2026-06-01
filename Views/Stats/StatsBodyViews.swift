@@ -28,11 +28,11 @@ struct MeasurementsTrendView: View {
                             Circle().fill(color).frame(width: 6, height: 6)
                             Text(label).font(.system(size: 11, weight: .medium)).foregroundColor(.white)
                             Spacer()
-                            let diff = vals.last!.1 - vals.first!.1
+                            let diff = (vals.last?.1 ?? 0) - (vals.first?.1 ?? 0)
                             Text(String(format: "%+.1f cm", diff))
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(diff <= 0 ? .green : .red)
-                            Text(String(format: "%.0f", vals.last!.1))
+                            Text(String(format: "%.0f", vals.last?.1 ?? 0))
                                 .font(.system(size: 13, weight: .black)).foregroundColor(color)
                         }
                         MiniLineChart(values: vals.map(\.1), color: color)
