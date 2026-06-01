@@ -50,6 +50,13 @@ def _duration_color(h: float) -> str:
     return "blue"
 
 
+def _sleep_date(bedtime: str) -> str:
+    """Date du coucher : si bedtime ≥ 12:00, le sommeil appartient à la nuit précédente."""
+    bh = int(bedtime.split(":")[0])
+    today = date_cls.fromisoformat(_today_local())
+    return (today - timedelta(days=1)).isoformat() if bh >= 12 else today.isoformat()
+
+
 # ── Insights ──────────────────────────────────────────────────────────────────
 
 def _insights(hours: float, quality: int, history: list) -> list[str]:
@@ -91,7 +98,7 @@ def save_sleep_entry(
     quality: int,
     notes: str | None = None,
 ) -> dict:
-    today    = _today_local()
+    today    = _sleep_date(bedtime)
     duration = _calc_duration(bedtime, wake_time)
     history  = _get_all_records()[:6]
 
@@ -196,11 +203,12 @@ def get_history(limit: int = 20, offset: int = 0) -> dict:
 
 
 def get_today() -> dict | None:
-    today    = _today_local()
-    recovery = db.get_recovery_logs(limit=7) or []
-    entry    = next(
+    today     = _today_local()
+    yesterday = (date_cls.fromisoformat(today) - timedelta(days=1)).isoformat()
+    recovery  = db.get_recovery_logs(limit=7) or []
+    entry = next(
         (r for r in recovery
-         if r.get("date") == today and r.get("sleep_hours") is not None),
+         if r.get("date") in (today, yesterday) and r.get("sleep_hours") is not None),
         None,
     )
     return _recovery_to_sleep(entry) if entry else None
