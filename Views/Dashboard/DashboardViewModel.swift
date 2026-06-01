@@ -42,6 +42,7 @@ final class DashboardViewModel: ObservableObject {
     @Published var hrvAnalysis: HRVAnalysis? = nil
     @Published var yesterdayNutrition: NutritionDayHistory?
     @Published var cardioToday: CardioEntry? = nil
+    @Published var streakData: StreakResponse? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -261,6 +262,7 @@ final class DashboardViewModel: ObservableObject {
                     }
                 }
                 group.addTask { @MainActor in self.readinessData = try? await APIService.shared.fetchReadiness() }
+                group.addTask { @MainActor in self.streakData = try? await APIService.shared.fetchStreaks(date: today) }
                 group.addTask { @MainActor in
                     let season = try? await APIService.shared.getActiveSeason()
                     self.activeSeason = season
@@ -328,17 +330,9 @@ final class DashboardViewModel: ObservableObject {
         }
     }
 
-    // D-B1: Whether readiness score comes from local computation (fallback)
-    // Used by D-D14 to show "Calculé localement" indicator
-    var readinessIsLocal: Bool {
-        guard let s = smartDay?.recoveryScore, s > 0 else { return true }
-        return false
-    }
+    var readinessIsLocal: Bool { false }
 
-    var readinessScore: Int? {
-        guard let s = smartDay?.recoveryScore, s > 0 else { return nil }
-        return min(100, Int((s / 10.0) * 100))
-    }
+    var readinessScore: Int? { readinessData?.score }
 
     // MARK: - Critical Alert System
 
@@ -378,7 +372,7 @@ final class DashboardViewModel: ObservableObject {
         let low = dash.today.lowercased()
         let isRestDay = low.contains("repos") || low.contains("rest") || low.contains("recovery")
         if !isRestDay, !dash.today.isEmpty, !dash.alreadyLoggedToday {
-            let streak = computeCurrentStreak(sessions: dash.sessions, todayStr: dash.todayDate)
+            let streak = streakData?.currentStreak ?? 0
             if streak > 2 {
                 return CriticalSignal(
                     message: "Séance prévue aujourd'hui — ton streak de \(streak) jours est en jeu.",
@@ -389,19 +383,6 @@ final class DashboardViewModel: ObservableObject {
             }
         }
         return nil
-    }
-
-    private func computeCurrentStreak(sessions: [String: SessionEntry], todayStr: String) -> Int {
-        guard let today = DateFormatter.isoDate.date(from: todayStr) else { return 0 }
-        var count = 0
-        var date = Calendar.current.date(byAdding: .day, value: -1, to: today) ?? today
-        for _ in 0..<60 {
-            let key = DateFormatter.isoDate.string(from: date)
-            guard sessions[key] != nil else { break }
-            count += 1
-            date = Calendar.current.date(byAdding: .day, value: -1, to: date) ?? date
-        }
-        return count
     }
 
     private func computeMacroHint() -> MacroNutritionHint? {

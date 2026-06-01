@@ -73,6 +73,85 @@ def api_stats_data():
     })
 
 
+@analytics_stats_bp.route("/api/stats/streaks")
+def api_stats_streaks():
+    """
+    Source de vérité unique pour le streak.
+    Même logique que dashboard : sessions completed, rpe, exercices loggués, HIIT.
+    """
+    import db as _db
+    from utils import load_hiit_log
+    from datetime import date as _date, timedelta as _td, datetime as _dtt
+
+    date_param = request.args.get("date", "").strip()
+    try:
+        _dtt.strptime(date_param, "%Y-%m-%d")
+        today_str = date_param
+    except (ValueError, Exception):
+        today_str = _today_mtl()
+
+    today_date = _date.fromisoformat(today_str)
+
+    all_sessions = _db.get_workout_sessions(limit=730)
+    session_dates = set()
+    for s in all_sessions:
+        d = s.get("date")
+        if not d:
+            continue
+        if s.get("completed") or s.get("rpe") is not None:
+            session_dates.add(d)
+
+    for h in load_hiit_log():
+        d = h.get("date")
+        if d:
+            session_dates.add(d)
+
+    # Today: include if exercise logs exist even without rpe/completed
+    today_exos = _db.get_session_exercise_logs(today_str)
+    today_logged = today_str in session_dates or bool(today_exos)
+    if today_logged:
+        session_dates.add(today_str)
+
+    # Current streak (grace period si pas encore entraîné aujourd'hui)
+    current_streak = 0
+    d = today_date if today_logged else today_date - _td(days=1)
+    for _ in range(730):
+        if d.isoformat() in session_dates:
+            current_streak += 1
+            d -= _td(days=1)
+        else:
+            break
+
+    # Best streak
+    sorted_dates = sorted(_date.fromisoformat(ds) for ds in session_dates)
+    best_streak = current_streak
+    if len(sorted_dates) > 1:
+        cur = 1
+        for i in range(1, len(sorted_dates)):
+            if (sorted_dates[i] - sorted_dates[i - 1]).days == 1:
+                cur += 1
+                if cur > best_streak:
+                    best_streak = cur
+            else:
+                cur = 1
+
+    # streak_at_risk : pas entraîné + après 18h locale
+    streak_at_risk = False
+    if not today_logged and current_streak > 0:
+        try:
+            from zoneinfo import ZoneInfo
+            streak_at_risk = _dtt.now(ZoneInfo("America/Montreal")).hour >= 18
+        except Exception:
+            pass
+
+    return jsonify({
+        "current_streak": current_streak,
+        "best_streak":    best_streak,
+        "today_logged":   today_logged,
+        "streak_at_risk": streak_at_risk,
+    })
+
+
 @analytics_stats_bp.route("/api/stats_wellness")
 def api_stats_wellness():
     """Wellness correlations and mental health data for the Stats Bien-être tab."""

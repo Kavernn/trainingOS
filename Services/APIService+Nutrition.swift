@@ -37,6 +37,7 @@ extension APIService {
         if let mt = mealType { payload["meal_type"] = mt }
         if let d  = date     { payload["date"] = d }
         _ = try await offlinePost(endpoint: "/api/nutrition/add", payload: payload)
+        CacheInvalidation.nutritionLogged.invalidate()
         BehaviorTracker.shared.record(.nutritionLog)
         UNUserNotificationCenter.current()
             .removePendingNotificationRequests(withIdentifiers: ["nutrition.daily.reminder"])

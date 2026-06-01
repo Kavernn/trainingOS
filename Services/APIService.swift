@@ -64,6 +64,22 @@ class APIService: ObservableObject {
         return e
     }()
 
+    // MARK: - Local date helpers (P1.4 — date toujours envoyée par l'iOS, jamais calculée côté serveur)
+    static var todayLocalString: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone.current
+        return fmt.string(from: Date())
+    }
+
+    static var yesterdayLocalString: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone.current
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        return fmt.string(from: yesterday)
+    }
+
     private let logger = Logger(subsystem: "TrainingOS", category: "api")
     private var consecutiveDashboardFailures = 0
     private init() {}

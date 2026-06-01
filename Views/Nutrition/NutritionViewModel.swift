@@ -8,8 +8,6 @@ final class NutritionViewModel: ObservableObject {
     @Published var entries: [NutritionEntry] = []
     @Published var totals: NutritionTotals? = nil
     @Published var history: [NutritionDayHistory] = []
-    @Published var effectiveCalories: Double? = nil
-    @Published var effectiveGlucides: Double? = nil
     @Published var todayType: String? = nil
     @Published var todaySession: String? = nil
     @Published var isLoading = true
@@ -28,12 +26,10 @@ final class NutritionViewModel: ObservableObject {
             let (data, _) = try await URLSession.authed.data(for: req)
             let decoded   = try JSONDecoder().decode(NutritionDataResponse.self, from: data)
             settings          = decoded.settings
-            totals            = decoded.totals
-            entries           = decoded.entries
-            history           = decoded.history
-            effectiveCalories = decoded.effectiveCalories
-            effectiveGlucides = decoded.effectiveGlucides
-            todayType         = decoded.todayType
+            totals    = decoded.totals
+            entries   = decoded.entries
+            history   = decoded.history
+            todayType = decoded.todayType
             todaySession      = decoded.todaySession
             networkError = nil
         } catch {
@@ -58,6 +54,7 @@ final class NutritionViewModel: ObservableObject {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = try? JSONSerialization.data(withJSONObject: ["id": eid])
         _ = try? await URLSession.authed.data(for: req)
+        CacheInvalidation.nutritionLogged.invalidate()
         await loadData(silent: true)
     }
 }

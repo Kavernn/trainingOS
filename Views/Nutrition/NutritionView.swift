@@ -17,13 +17,7 @@ struct NutritionView: View {
     @State private var pendingDeleteIndex: Int? = nil
     @State private var pendingDeleteTimer: Task<Void, Never>? = nil
     @State private var showUndoBanner = false
-    private var effectiveSettings: NutritionSettings? {
-        guard let s = vm.settings else { return nil }
-        let eff     = vm.effectiveCalories ?? s.calories
-        let effGluc = vm.effectiveGlucides ?? s.glucides
-        return NutritionSettings(calories: eff, proteines: s.proteines,
-                                 glucides: effGluc, lipides: s.lipides)
-    }
+    private var effectiveSettings: NutritionSettings? { vm.settings }
 
     var body: some View {
         NavigationStack {
@@ -94,8 +88,8 @@ struct NutritionView: View {
                                 DayTypeBadge(
                                     type: dayType,
                                     session: vm.todaySession,
-                                    effectiveCal: vm.effectiveCalories,
-                                    effectiveGluc: vm.effectiveGlucides
+                                    effectiveCal: vm.settings?.dayTypeTargets?.target(for: dayType)?.calories,
+                                    effectiveGluc: vm.settings?.dayTypeTargets?.target(for: dayType)?.glucides
                                 )
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.1)

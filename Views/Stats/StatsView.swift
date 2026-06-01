@@ -191,10 +191,10 @@ struct StatsView: View {
                 guard let date = e.date else { continue }
                 let vol: Double
                 if let ev = e.exerciseVolume, ev > 0 {
-                    vol = UnitSettings.shared.display(ev)
+                    vol = ev
                 } else {
                     guard let w = e.weight, let r = e.reps else { continue }
-                    vol = UnitSettings.shared.display(w * totalReps(r))
+                    vol = w * totalReps(r)
                 }
                 vols[isoWeekKey(date), default: 0] += vol
             }
@@ -272,9 +272,9 @@ struct StatsView: View {
         return weights.values.flatMap { $0.history ?? [] }.filter {
             guard let d = $0.date else { return false }; return d >= mon && d <= sun
         }.compactMap { e -> Double? in
-            if let v = e.exerciseVolume, v > 0 { return v }
+            if let v = e.exerciseVolume, v > 0 { return UnitSettings.shared.display(v) }
             guard let w = e.weight, let r = e.reps else { return nil }
-            return w * totalReps(r)
+            return UnitSettings.shared.display(w * totalReps(r))
         }.reduce(0, +)
     }
     var lastWeekVolume: Double {
@@ -282,9 +282,9 @@ struct StatsView: View {
         return weights.values.flatMap { $0.history ?? [] }.filter {
             guard let d = $0.date else { return false }; return d >= mon && d <= sun
         }.compactMap { e -> Double? in
-            if let v = e.exerciseVolume, v > 0 { return v }
+            if let v = e.exerciseVolume, v > 0 { return UnitSettings.shared.display(v) }
             guard let w = e.weight, let r = e.reps else { return nil }
-            return w * totalReps(r)
+            return UnitSettings.shared.display(w * totalReps(r))
         }.reduce(0, +)
     }
     var thisWeekAvgRPE: Double {

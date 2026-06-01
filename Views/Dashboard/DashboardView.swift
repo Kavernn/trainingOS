@@ -234,7 +234,7 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.22)
 
                                 // 13 — Streak
-                                DailyStreakCard(sessions: dash.sessions)
+                                DailyStreakCard(sessions: dash.sessions, streakData: vm.streakData)
                                     .appearAnimation(delay: 0.24)
 
                                 // 14 — LSS micro-widget

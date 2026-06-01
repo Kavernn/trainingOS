@@ -108,15 +108,23 @@ struct NutritionDataResponse: Decodable {
     var history: [NutritionDayHistory]
     var todayType: String?
     var todaySession: String?
-    var effectiveCalories: Double?
-    var effectiveGlucides: Double?
 
     enum CodingKeys: String, CodingKey {
         case settings, totals, entries, history
-        case todayType        = "today_type"
-        case todaySession     = "today_session"
-        case effectiveCalories = "effective_calories"
-        case effectiveGlucides = "effective_glucides"
+        case todayType    = "today_type"
+        case todaySession = "today_session"
+    }
+}
+
+extension DayTypeTargets {
+    func target(for type: String?) -> DayTarget? {
+        switch type?.lowercased() {
+        case "heavy":    return heavy
+        case "moderate": return moderate
+        case "light":    return light
+        case "rest":     return rest
+        default:         return nil
+        }
     }
 }
 

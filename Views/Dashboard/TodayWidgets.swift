@@ -4,17 +4,19 @@ import SwiftUI
 
 struct DailyStreakCard: View {
     let sessions: [String: SessionEntry]
+    var streakData: StreakResponse? = nil
     @State private var prevStreak = 0
     @State private var milestoneScale: CGFloat = 1.0
 
     private static let milestones: Set<Int> = [3, 7, 14, 21, 30, 50, 100]
 
     private var streaks: (current: Int, best: Int) {
+        if let s = streakData { return (s.currentStreak, s.bestStreak) }
+        // Fallback: calcul local (données serveur non disponibles)
         let fmt = DateFormatter.isoDate
         let todayStr = fmt.string(from: Date())
         guard let todayMidnight = fmt.date(from: todayStr) else { return (0, 0) }
         let base = todayMidnight.timeIntervalSince1970
-
         var current = 0
         for i in 0..<365 {
             let key = fmt.string(from: Date(timeIntervalSince1970: base - Double(i) * 86400.0))
@@ -22,12 +24,10 @@ struct DailyStreakCard: View {
             else if i == 0 { continue }
             else { break }
         }
-
         let sortedEpochs = sessions.keys
             .compactMap { fmt.date(from: $0)?.timeIntervalSince1970 }
             .sorted()
-        var best = current
-        var run = 1
+        var best = current; var run = 1
         for i in 1..<sortedEpochs.count {
             if (sortedEpochs[i] - sortedEpochs[i - 1]) / 86400.0 < 1.5 { run += 1; best = max(best, run) }
             else { run = 1 }

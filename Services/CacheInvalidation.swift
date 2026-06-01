@@ -58,6 +58,7 @@ enum CacheInvalidation {
     case oathUpdated
     case patternsPinMutated
     case plateauDismissed
+    case nutritionLogged       // add / delete / edit (entries + dashboard + score)
     case cardioLogged
     case energyLogged
     case foodCatalogUpdated
@@ -68,11 +69,11 @@ enum CacheInvalidation {
     var keys: [String] {
         switch self {
         case .exerciseLogged(let isSecond, let isBonus):
-            var k = ["dashboard", "stats_data", "phoenix_score"]
+            var k = ["dashboard", "stats_data", "phoenix_score", "streak_data"]
             if !isBonus { k.append(isSecond ? "seance_soir_data" : "seance_data") }
             return k
         case .sessionLogged(let isSecond, let isBonus):
-            var k = ["dashboard", "historique_data", "stats_data", "phoenix_score"]
+            var k = ["dashboard", "historique_data", "stats_data", "phoenix_score", "streak_data"]
             if !isBonus { k.append(isSecond ? "seance_soir_data" : "seance_data") }
             return k
         case .sessionMutated:
@@ -141,6 +142,8 @@ enum CacheInvalidation {
             return ["patterns_daily"]
         case .plateauDismissed:
             return ["plateau_alerts"]
+        case .nutritionLogged:
+            return ["nutrition_data", "dashboard", "phoenix_score"]
         case .cardioLogged:
             return ["cardio_history", "stats_cardio"]
         case .energyLogged:
@@ -154,7 +157,8 @@ enum CacheInvalidation {
 
     var prefixesToClear: [String] {
         switch self {
-        case .pssSubmitted: return ["life_stress_trend"]
+        case .pssSubmitted:   return ["life_stress_trend"]
+        case .nutritionLogged: return ["life_stress_trend"]
         default: return []
         }
     }

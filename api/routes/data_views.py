@@ -13,7 +13,7 @@ def api_dashboard():
     from goals import load_goals
     from planner import (load_program, get_today, get_today_date, get_week_schedule,
                          get_suggested_weights_for_today)
-    from nutrition import (load_settings as load_nutrition_settings, get_today_totals)
+    from nutrition import (load_settings as load_nutrition_settings)
     from blocks import get_strength_exercises
     from utils import get_current_week, load_hiit_log
     import db as _db
@@ -27,7 +27,6 @@ def api_dashboard():
     goals        = load_goals()
     full_program = load_program()
     hiit_log     = load_hiit_log()
-    nutrition_totals = get_today_totals()
     today_str    = get_today()
     _client_date = request.args.get("date", "").strip()
     try:
@@ -37,6 +36,15 @@ def api_dashboard():
         today_date = get_today_date()
     schedule     = get_week_schedule()
     suggestions  = get_suggested_weights_for_today(weights, full_program)
+
+    # Nutrition totals avec date locale iOS (pas _today_mtl() serveur)
+    _nutr_entries = _db.get_nutrition_entries(today_date)
+    nutrition_totals = {
+        "calories":  round(sum(e.get("calories", 0) for e in _nutr_entries)),
+        "proteines": round(sum(e.get("proteines", 0) for e in _nutr_entries), 1),
+        "glucides":  round(sum(e.get("glucides",  0) for e in _nutr_entries), 1),
+        "lipides":   round(sum(e.get("lipides",   0) for e in _nutr_entries), 1),
+    }
 
     _today_session = _db.get_workout_session(today_date)
     # Séance terminée si : completed=True OU rpe set OU au moins 1 exercice loggué

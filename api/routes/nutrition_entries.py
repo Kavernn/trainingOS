@@ -146,33 +146,60 @@ def api_nutrition_adaptive_check():
     return jsonify({"available": True, "current_target_kcal": cal, **result})
 
 
+@nutrition_bp.route("/api/nutrition")
+def api_nutrition_day():
+    """Source de vérité unique pour les totaux du jour. Date locale passée par iOS."""
+    import db as _db
+    from datetime import datetime as _dt
+    date_param = request.args.get("date", "").strip()
+    try:
+        _dt.strptime(date_param, "%Y-%m-%d")
+        date = date_param
+    except (ValueError, Exception):
+        from utils import _today_mtl
+        date = _today_mtl()
+    entries = _db.get_nutrition_entries(date)
+    return jsonify({
+        "date":          date,
+        "calories":      round(sum(e.get("calories", 0) for e in entries)),
+        "proteines":     round(sum(e.get("proteines", 0) for e in entries), 1),
+        "glucides":      round(sum(e.get("glucides",  0) for e in entries), 1),
+        "lipides":       round(sum(e.get("lipides",   0) for e in entries), 1),
+        "entries_count": len(entries),
+    })
+
+
 @nutrition_bp.route("/api/nutrition_data")
 def api_nutrition_data():
     from nutrition import (load_settings as load_nutrition_settings,
-                           get_today_entries, get_today_totals, get_recent_days,
-                           _get_day_intensity)
+                           get_recent_days, _get_day_intensity)
+    import db as _db
+    from datetime import datetime as _dt
+    date_param = request.args.get("date", "").strip()
+    try:
+        _dt.strptime(date_param, "%Y-%m-%d")
+        today = date_param
+    except (ValueError, Exception):
+        from utils import _today_mtl
+        today = _today_mtl()
     settings = load_nutrition_settings()
-    entries  = get_today_entries()
-    totals   = get_today_totals()
-    days     = min(int(request.args.get("days", 7)), 90)
-    history  = get_recent_days(days)
-
+    entries  = _db.get_nutrition_entries(today)
+    totals   = {
+        "calories":  round(sum(e.get("calories", 0) for e in entries)),
+        "proteines": round(sum(e.get("proteines", 0) for e in entries), 1),
+        "glucides":  round(sum(e.get("glucides",  0) for e in entries), 1),
+        "lipides":   round(sum(e.get("lipides",   0) for e in entries), 1),
+    }
+    days    = min(int(request.args.get("days", 7)), 90)
+    history = get_recent_days(days)
     intensity, today_session = _get_day_intensity()
-    dtt         = settings.get("day_type_targets", {})
-    type_target = dtt.get(intensity, {})
-
-    effective_calories = type_target.get("calories") or settings.get("limite_calories", 2400) or 2400
-    effective_glucides = type_target.get("glucides")  or settings.get("glucides", 235) or 235
-
     return jsonify({
-        "settings":           settings,
-        "entries":            entries,
-        "totals":             totals,
-        "history":            history,
-        "today_type":         intensity,
-        "today_session":      today_session,
-        "effective_calories": effective_calories,
-        "effective_glucides": effective_glucides,
+        "settings":      settings,
+        "entries":       entries,
+        "totals":        totals,
+        "history":       history,
+        "today_type":    intensity,
+        "today_session": today_session,
     })
 
 
