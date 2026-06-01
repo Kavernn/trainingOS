@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CC44D44C781C46D3A5237760 /* APIService+Coach.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8A59EA175A4A018DA8F7AC /* APIService+Coach.swift */; };
 		0027D22BC1EDEE5DE11B54C0 /* APIService+BodyBudget.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9E6AAF315054167C4627AE /* APIService+BodyBudget.swift */; };
 		068A26746FD34970A1D410BF /* DashboardBriefCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7A23D014C2343FCB6EC09DF /* DashboardBriefCards.swift */; };
 		06A75775DE3F7E6F442B218A /* BodyCompService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32F1EC5F94087F4D7DE3F244 /* BodyCompService.swift */; };
@@ -32,6 +33,9 @@
 		IA0003IA0003IA0003IA0003 /* NarrativeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0003IR0003IR0003IR0003 /* NarrativeCard.swift */; };
 		IA0004IA0004IA0004IA0004 /* NutritionPerfInsightCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0004IR0004IR0004IR0004 /* NutritionPerfInsightCard.swift */; };
 		IA0005IA0005IA0005IA0005 /* CoachGreetingHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0005IR0005IR0005IR0005 /* CoachGreetingHeader.swift */; };
+		98F2B4FCDA654951AFC6B525 /* InsightPrincipalCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCEBA1D5B9BA47DD98CD46E2 /* InsightPrincipalCard.swift */; };
+		A3B4C5D6E7F8A9B0C1D2E3F5 /* PostSeanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C5D6E7F8A9B0C1D2E3F4A6 /* PostSeanceCard.swift */; };
+		C5D6E7F8A9B0C1D2E3F4A5B7 /* ProgressionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6E7F8A9B0C1D2E3F4A5B6C8 /* ProgressionCard.swift */; };
 		IA0006IA0006IA0006IA0006 /* CoachMissionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0006IR0006IR0006IR0006 /* CoachMissionCard.swift */; };
 		IA0007IA0007IA0007IA0007 /* WeekMomentumStrip.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0007IR0007IR0007IR0007 /* WeekMomentumStrip.swift */; };
 		IA0008IA0008IA0008IA0008 /* TodayMetricsRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = IR0008IR0008IR0008IR0008 /* TodayMetricsRow.swift */; };
@@ -65,6 +69,7 @@
 		3F784A7AB03C48179FBF0EFF /* GraveyardModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 106008F1BB4042C0803D076D /* GraveyardModels.swift */; };
 		44C9676C9DEC490EA46497D2 /* FoodCatalogStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34D99C0DF3AB4F7ABC77DFE0 /* FoodCatalogStore.swift */; };
 		474875470ECCEB1C8D964FBF /* WorkoutDNAView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DEE916D1EEF10097CDC8A40 /* WorkoutDNAView.swift */; };
+		007B73D0E06243669AC645D8 /* CoachInsightModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 621800FD5B1E4C5CA2A93753 /* CoachInsightModels.swift */; };
 		4E4D1EF9E3D356C3043C4E99 /* BodyBudgetModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F922AFAAF1C2226DC78C22E /* BodyBudgetModels.swift */; };
 		4EFCF4438370ABAB574089F4 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 358C75220B7439B325975456 /* AppState.swift */; };
 		5125E2D689384BED810C9598 /* PhoenixCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FB0319AE30B4059B3096D9B /* PhoenixCard.swift */; };
@@ -198,6 +203,7 @@
 		EE5500062F5D98BA002AE470 /* UserDefaultsSyncQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE5500052F5D98BA002AE470 /* UserDefaultsSyncQueue.swift */; };
 		EE8C19D26FF84056B62B4BD3 /* APIService+Graveyard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28FC68105F9D4BDE956144F3 /* APIService+Graveyard.swift */; };
 		F2EA55F129F3462CBACE25FF /* CoachMemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10156216B74AA995ACEE02 /* CoachMemoryView.swift */; };
+		CF49E6FEF95E455D9F84D443 /* CoachBriefCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */; };
 		F3A1C0AC417B1DAB71004002 /* CoachTipCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */; };
 		F5642E3B1AD84FAA245BCEB0 /* WellnessModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 552F808C866A877BFC051570 /* WellnessModels.swift */; };
 		FBCACC3302AC10C5231E0521 /* GoalsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76F5880EE01F89F628060F5D /* GoalsModels.swift */; };
@@ -302,6 +308,9 @@
 		IR0003IR0003IR0003IR0003 /* NarrativeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NarrativeCard.swift; sourceTree = "<group>"; };
 		IR0004IR0004IR0004IR0004 /* NutritionPerfInsightCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerfInsightCard.swift; sourceTree = "<group>"; };
 		IR0005IR0005IR0005IR0005 /* CoachGreetingHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachGreetingHeader.swift; sourceTree = "<group>"; };
+		FCEBA1D5B9BA47DD98CD46E2 /* InsightPrincipalCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightPrincipalCard.swift; sourceTree = "<group>"; };
+		B4C5D6E7F8A9B0C1D2E3F4A6 /* PostSeanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostSeanceCard.swift; sourceTree = "<group>"; };
+		D6E7F8A9B0C1D2E3F4A5B6C8 /* ProgressionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionCard.swift; sourceTree = "<group>"; };
 		IR0006IR0006IR0006IR0006 /* CoachMissionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachMissionCard.swift; sourceTree = "<group>"; };
 		IR0007IR0007IR0007IR0007 /* WeekMomentumStrip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekMomentumStrip.swift; sourceTree = "<group>"; };
 		IR0008IR0008IR0008IR0008 /* TodayMetricsRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayMetricsRow.swift; sourceTree = "<group>"; };
@@ -340,6 +349,7 @@
 		3EF11A8481CB4909A6965C19 /* DashboardNutritionCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardNutritionCards.swift; sourceTree = "<group>"; };
 		3FB0319AE30B4059B3096D9B /* PhoenixCard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PhoenixCard.swift; sourceTree = "<group>"; };
 		4BD5FB27DA5D308C889BDBF9 /* ReadinessModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ReadinessModels.swift; sourceTree = "<group>"; };
+		621800FD5B1E4C5CA2A93753 /* CoachInsightModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CoachInsightModels.swift; sourceTree = "<group>"; };
 		4F922AFAAF1C2226DC78C22E /* BodyBudgetModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BodyBudgetModels.swift; sourceTree = "<group>"; };
 		51D25C3758A0A6DEB7E93A6C /* APIService+TimeCapsule.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+TimeCapsule.swift"; sourceTree = "<group>"; };
 		552F808C866A877BFC051570 /* WellnessModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WellnessModels.swift; sourceTree = "<group>"; };
@@ -425,6 +435,7 @@
 		C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
 		C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveBannerCard.swift; sourceTree = "<group>"; };
 		CC3300012F5D98BA002AE472 /* PSSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PSSView.swift; sourceTree = "<group>"; };
+		DC8A59EA175A4A018DA8F7AC /* APIService+Coach.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+Coach.swift"; sourceTree = "<group>"; };
 		CD9E6AAF315054167C4627AE /* APIService+BodyBudget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+BodyBudget.swift"; sourceTree = "<group>"; };
 		CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChecklistCardView.swift; sourceTree = "<group>"; };
 		D0FE1CA8525F46319027AD6D /* AlertService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertService.swift; sourceTree = "<group>"; };
@@ -470,6 +481,7 @@
 		EE5500032F5D98BA002AE470 /* SyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncManager.swift; sourceTree = "<group>"; };
 		EE5500052F5D98BA002AE470 /* UserDefaultsSyncQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDefaultsSyncQueue.swift; sourceTree = "<group>"; };
 		F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InfoButton.swift; sourceTree = "<group>"; };
+		919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachBriefCard.swift; sourceTree = "<group>"; };
 		F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachTipCard.swift; sourceTree = "<group>"; };
 		F4D4DE4EE839463B0D4AB746 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioActiveView.swift; sourceTree = "<group>"; };
@@ -731,6 +743,9 @@
 				IR0003IR0003IR0003IR0003 /* NarrativeCard.swift */,
 				IR0004IR0004IR0004IR0004 /* NutritionPerfInsightCard.swift */,
 				IR0005IR0005IR0005IR0005 /* CoachGreetingHeader.swift */,
+				FCEBA1D5B9BA47DD98CD46E2 /* InsightPrincipalCard.swift */,
+				B4C5D6E7F8A9B0C1D2E3F4A6 /* PostSeanceCard.swift */,
+				D6E7F8A9B0C1D2E3F4A5B6C8 /* ProgressionCard.swift */,
 				IR0006IR0006IR0006IR0006 /* CoachMissionCard.swift */,
 				IR0007IR0007IR0007IR0007 /* WeekMomentumStrip.swift */,
 				IR0008IR0008IR0008IR0008 /* TodayMetricsRow.swift */,
@@ -831,6 +846,7 @@
 				E4ED42684DBB3A6043774AC0 /* AnalyticsModels.swift */,
 				ENMOD001ENMOD001ENMOD001 /* EnergyModels.swift */,
 				EDD35C9A164F89962D3E6E18 /* ProfileModels.swift */,
+				621800FD5B1E4C5CA2A93753 /* CoachInsightModels.swift */,
 				4F922AFAAF1C2226DC78C22E /* BodyBudgetModels.swift */,
 				E163D5411790B6DA5108E310 /* PatternModels.swift */,
 				4BD5FB27DA5D308C889BDBF9 /* ReadinessModels.swift */,
@@ -882,6 +898,7 @@
 				EE5500032F5D98BA002AE470 /* SyncManager.swift */,
 				EE5500052F5D98BA002AE470 /* UserDefaultsSyncQueue.swift */,
 				358C75220B7439B325975456 /* AppState.swift */,
+				DC8A59EA175A4A018DA8F7AC /* APIService+Coach.swift */,
 				CD9E6AAF315054167C4627AE /* APIService+BodyBudget.swift */,
 				55B033EEBE81776A77969C32 /* APIService+Patterns.swift */,
 				8130286D3B05F35EC783FDF9 /* APIService+Readiness.swift */,
@@ -929,6 +946,7 @@
 				CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */,
 				D68B8535D55F4B109509F146 /* MorningRevealView.swift */,
 				C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */,
+				919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */,
 				F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */,
 				F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */,
 				A8115703CA371513172F372F /* DashboardViewModel.swift */,
@@ -1355,6 +1373,7 @@
 				329ACD1942044D42B9EE63F3 /* AlertService.swift in Sources */,
 				15AFE1BFA7B8487CBEECB98C /* ProactiveAlert.swift in Sources */,
 				E3BB78033EEA4FB1AE6D7812 /* ProactiveBannerCard.swift in Sources */,
+				CF49E6FEF95E455D9F84D443 /* CoachBriefCard.swift in Sources */,
 				F3A1C0AC417B1DAB71004002 /* CoachTipCard.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* InfoButton.swift in Sources */,
 				AA00200A2F5D98BA002AE470 /* InventaireView.swift in Sources */,
@@ -1364,6 +1383,9 @@
 				IA0003IA0003IA0003IA0003 /* NarrativeCard.swift in Sources */,
 				IA0004IA0004IA0004IA0004 /* NutritionPerfInsightCard.swift in Sources */,
 				IA0005IA0005IA0005IA0005 /* CoachGreetingHeader.swift in Sources */,
+				98F2B4FCDA654951AFC6B525 /* InsightPrincipalCard.swift in Sources */,
+				A3B4C5D6E7F8A9B0C1D2E3F5 /* PostSeanceCard.swift in Sources */,
+				C5D6E7F8A9B0C1D2E3F4A5B7 /* ProgressionCard.swift in Sources */,
 				IA0006IA0006IA0006IA0006 /* CoachMissionCard.swift in Sources */,
 				IA0007IA0007IA0007IA0007 /* WeekMomentumStrip.swift in Sources */,
 				IA0008IA0008IA0008IA0008 /* TodayMetricsRow.swift in Sources */,
@@ -1438,9 +1460,11 @@
 				536A301CA097593473B475D5 /* DashboardViewModel.swift in Sources */,
 				0886AB2185354BBDA38FD7C4 /* NutritionViewModel.swift in Sources */,
 				4EFCF4438370ABAB574089F4 /* AppState.swift in Sources */,
+				007B73D0E06243669AC645D8 /* CoachInsightModels.swift in Sources */,
 				4E4D1EF9E3D356C3043C4E99 /* BodyBudgetModels.swift in Sources */,
 				7ACF294B2ADCEC68F9444BAC /* PatternModels.swift in Sources */,
 				1D462FB9E69CF0CEDDBF854D /* ReadinessModels.swift in Sources */,
+				CC44D44C781C46D3A5237760 /* APIService+Coach.swift in Sources */,
 				0027D22BC1EDEE5DE11B54C0 /* APIService+BodyBudget.swift in Sources */,
 				3051B1AF2D2C0AFF6C7D1FAD /* APIService+Patterns.swift in Sources */,
 				5A44338B0F2FFA0E8ED715D2 /* APIService+Readiness.swift in Sources */,

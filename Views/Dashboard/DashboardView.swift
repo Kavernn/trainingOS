@@ -20,8 +20,6 @@ struct DashboardView: View {
     @AppStorage("sleepPromptDismissedDate") private var sleepPromptDismissedDate = ""
     @State private var actionErrorMessage: String? = nil
     @State private var showMorningReveal = false
-    // D-D4: show MorningReveal again without triggering hideForToday
-    @State private var showMorningRevealReview = false
     // D-D6: sleep dismiss confirmation
     @State private var showSleepDismissConfirm = false
     @State private var showNutritionAddSheet = false
@@ -135,35 +133,19 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.07)
                                 }
 
-                                // 6 — Morning brief / coaching
+                                // 6 — Coach brief card
                                 if let brief = vm.morningBrief {
-                                    Button {
-                                        showMorningRevealReview = true
-                                    } label: {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "sunrise.fill")
-                                                .font(.system(size: 11))
-                                                .foregroundColor(.orange)
-                                            Text("Relire le briefing")
-                                                .font(.system(size: 12, weight: .medium))
-                                                .foregroundColor(.gray)
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 8)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .fullScreenCover(isPresented: $showMorningRevealReview) {
-                                        MorningRevealView(morningBrief: brief) {
-                                            showMorningRevealReview = false
-                                        }
-                                    }
+                                    CoachBriefCard(
+                                        brief: brief,
+                                        sessionCompletedToday: dash.alreadyLoggedToday
+                                    )
                                     .appearAnimation(delay: 0.09)
                                 } else if vm.morningBriefFailed {
                                     HStack(spacing: 8) {
                                         Image(systemName: "brain.head.profile")
                                             .font(.system(size: 11))
                                             .foregroundColor(.gray.opacity(0.45))
-                                        Text("Coaching non disponible pour l'instant")
+                                        Text("Coaching non disponible")
                                             .font(.system(size: 12))
                                             .foregroundColor(.gray.opacity(0.55))
                                         Spacer()

@@ -37,10 +37,10 @@ struct IntelligenceView: View {
     @State private var weeklyReportData: WeeklyReport?          = nil
     @State private var showWeeklyReport                         = false
     @State private var isLoadingWeeklyReport                    = false
-    @AppStorage("coach_brief_date")    private var briefDate:    String = ""
-    @AppStorage("coach_brief_text")    private var briefText:    String = ""
-    @AppStorage("coach_brief_session") private var briefSession: String = ""
-    @State private var isBriefLoading = false
+    @State private var dailyInsight: DailyInsight? = nil
+    @State private var isLoadingInsight = false
+    @State private var postSessionData: PostSessionData? = nil
+    @AppStorage("post_session_logged_at") private var postSessionLoggedAt: String = ""
     @State private var cardioData: [CardioEntry] = []
     @State private var mesocycleInfo: MesocycleInfo? = nil
     @State private var mentalData: MentalHealthSummary? = nil
@@ -56,11 +56,30 @@ struct IntelligenceView: View {
     // Pattern engine
     @State private var patternData: PatternResponse? = nil
     @State private var isLoadingPatterns = false
+    @State private var expandedBilan: Set<String> = []
 
     // Tab-switch callback injected from ContentView
     var onOpenSession: (() -> Void)? = nil
 
     private var todayRecovery: RecoveryEntry? { recoveryData.first }
+
+    private var shouldShowPostSeanceCard: Bool {
+        guard let loggedAt = ISO8601DateFormatter().date(from: postSessionLoggedAt) else { return false }
+        return Date().timeIntervalSince(loggedAt) < 7200
+    }
+
+    // Bilan hero stats (last 7 days)
+    private var bilanRecentSessions: [SessionEntry] {
+        let cutoff = DateFormatter.isoDate.string(from: Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 7 * 86400))
+        return sessionsData.filter { $0.key >= cutoff }.map { $0.value }
+    }
+    private var bilanSessionCount: Int { bilanRecentSessions.count }
+    private var bilanAvgRpe: Double? {
+        let vals = bilanRecentSessions.compactMap { $0.rpe }.filter { $0 > 0 }
+        return vals.isEmpty ? nil : vals.reduce(0, +) / Double(vals.count)
+    }
+    private var bilanRestDays: Int { max(0, 7 - bilanSessionCount) }
+    private var bilanTotalVolume: Double { bilanRecentSessions.compactMap { $0.sessionVolume }.reduce(0, +) }
 
     // MARK: - Section Navigation
 
@@ -88,30 +107,93 @@ struct IntelligenceView: View {
                 Color.appBg.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Hero: mission card only
+                    // Header: greeting + context + optional CTA
                     if let dash = api.dashboard {
-                        CoachMissionCard(
-                            dash: dash,
-                            briefText: briefText,
-                            isBriefLoading: isBriefLoading,
-                            onOpenSession: onOpenSession,
-                            onRefreshBrief: { Task { await regenerateBrief() } },
-                            onAskMore: { q in
-                                withAnimation(.easeInOut(duration: 0.2)) { selectedSection = .chat }
-                                sendQuery(q)
+                        VStack(alignment: .leading, spacing: 10) {
+                            CoachGreetingHeader(dash: dash)
+                            CoachContextSummary(
+                                lssData: lssData,
+                                dashboard: api.dashboard,
+                                nutritionHistory: nutritionHistory
+                            )
+                            if !dash.alreadyLoggedToday {
+                                Button(action: { onOpenSession?() }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "bolt.fill")
+                                            .font(.system(size: 12, weight: .semibold))
+                                        Text("Commencer la séance")
+                                            .font(.system(size: 14, weight: .semibold))
+                                    }
+                                    .foregroundColor(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(Color.orange)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                }
+                                .buttonStyle(ScaleButtonStyle())
                             }
-                        )
+                        }
                         .padding(.horizontal, 16)
                         .padding(.top, 12)
                         .padding(.bottom, 8)
                     } else {
-                        SkeletonBar(height: 160, radius: 20)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 12)
-                            .padding(.bottom, 8)
+                        VStack(spacing: 8) {
+                            SkeletonBar(height: 36, radius: 8)
+                            SkeletonBar(height: 60, radius: 10)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
                     }
 
-                    // Section pills
+                    // Insight principal du jour
+                    if let insight = dailyInsight, !insight.isEmpty {
+                        InsightPrincipalCard(
+                            insight: insight,
+                            onNavigateToProgramme: {
+                                withAnimation(.easeInOut(duration: 0.2)) { selectedSection = .programme }
+                            }
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 4)
+                    } else if isLoadingInsight {
+                        SkeletonBar(height: 90, radius: 14)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 4)
+                    }
+
+                    // Post-séance feedback (visible 2h après la séance)
+                    if shouldShowPostSeanceCard, let psd = postSessionData {
+                        PostSeanceCard(data: psd)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 4)
+                    }
+
+                    // Progression — top 3 lifts by objective
+                    if !weightsData.isEmpty {
+                        ProgressionCard(
+                            weightsData: weightsData,
+                            goal: api.dashboard?.profile.goal
+                        )
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 4)
+                    }
+
+                    // Section content
+                    if selectedSection == .chat {
+                        chatSectionView
+                    } else if selectedSection == .patterns {
+                        ScrollView(showsIndicators: false) { patternsSectionView }
+                    } else if selectedSection == .programme {
+                        ScrollView(showsIndicators: false) { programmeSectionView }
+                    } else if selectedSection == .bilan {
+                        ScrollView(showsIndicators: false) { bilanSectionView }
+                    } else {
+                        ScrollView(showsIndicators: false) { memoireSectionView }
+                    }
+
+                    // Section pills — bottom nav bar
+                    Divider().background(Color.white.opacity(0.08))
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(CoachSection.allCases, id: \.self) { section in
@@ -149,19 +231,7 @@ struct IntelligenceView: View {
                         .padding(.horizontal, 16)
                     }
                     .padding(.vertical, 8)
-
-                    // Section content
-                    if selectedSection == .chat {
-                        chatSectionView
-                    } else if selectedSection == .patterns {
-                        ScrollView(showsIndicators: false) { patternsSectionView }
-                    } else if selectedSection == .programme {
-                        ScrollView(showsIndicators: false) { programmeSectionView }
-                    } else if selectedSection == .bilan {
-                        ScrollView(showsIndicators: false) { bilanSectionView }
-                    } else {
-                        ScrollView(showsIndicators: false) { memoireSectionView }
-                    }
+                    .background(Color.appBg)
                 }
             }
             .navigationTitle("")
@@ -174,11 +244,21 @@ struct IntelligenceView: View {
                 Task { generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram() }
                 await loadContextData()
                 await MainActor.run { purgeStaleMemoryEntries() }
-                await loadMorningBrief()
+                Task { await loadDailyInsight() }
+                // Post-séance: if session already logged, ensure timestamp is set for today
+                if api.dashboard?.alreadyLoggedToday == true {
+                    let today = DateFormatter.isoDate.string(from: Date())
+                    if String(postSessionLoggedAt.prefix(10)) != today {
+                        postSessionLoggedAt = ISO8601DateFormatter().string(from: Date())
+                    }
+                    if shouldShowPostSeanceCard { Task { await loadPostSession() } }
+                }
             }
-            .onChange(of: api.dashboard?.today) { _, newSession in
-                guard newSession != nil else { return }
-                Task { await loadMorningBrief() }
+            .onChange(of: api.dashboard?.alreadyLoggedToday) { oldVal, newVal in
+                if newVal == true && oldVal != true {
+                    postSessionLoggedAt = ISO8601DateFormatter().string(from: Date())
+                    Task { await loadPostSession() }
+                }
             }
             .onChange(of: messages) {
                 let toSave = messages.filter { !$0.content.hasPrefix("Erreur:") }
@@ -206,14 +286,6 @@ struct IntelligenceView: View {
                         }
                         .foregroundColor(.purple)
                     }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button { Task { await regenerateBrief() } } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 14))
-                            .foregroundColor(isBriefLoading ? .purple.opacity(0.5) : .purple)
-                    }
-                    .disabled(isBriefLoading)
                 }
             }
             .fullScreenCover(isPresented: $showProgramPreview) {
@@ -570,27 +642,67 @@ struct IntelligenceView: View {
 
     @ViewBuilder
     private var bilanSectionView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if isLoadingNarrative {
-                SkeletonBar(height: 100, radius: 12).padding(.horizontal, 16)
-            } else if let text = narrative {
-                NarrativeCard(text: text, onDismiss: { narrative = nil })
-                    .padding(.horizontal, 16)
-            } else {
-                Button { loadNarrative() } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "text.quote").font(.system(size: 14))
-                        Text("Récit de la semaine").font(.system(size: 14, weight: .medium))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(Color.teal.opacity(0.12))
-                    .foregroundColor(.teal)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
+        VStack(alignment: .leading, spacing: 12) {
+
+            // NIVEAU 1 — Hero résumé 7 jours
+            bilanHeroCard
                 .padding(.horizontal, 16)
+
+            // NIVEAU 2 — Signaux (chips)
+            bilanSignauxStrip
+
+            Divider()
+                .background(Color.white.opacity(0.08))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 4)
+
+            // NIVEAU 3a — Récit IA (accordion)
+            bilanAccordionRow(id: "recit", icon: "text.quote", label: "Récit IA", accent: .teal) {
+                if isLoadingNarrative {
+                    SkeletonBar(height: 80, radius: 12).padding(.horizontal, 16).padding(.bottom, 4)
+                } else if let text = narrative {
+                    NarrativeCard(text: text, onDismiss: { narrative = nil }).padding(.horizontal, 16).padding(.bottom, 4)
+                } else {
+                    Text("Aucun récit généré pour cette semaine.")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(white: 0.45))
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                }
             }
 
+            // NIVEAU 3b — Analyses (accordion)
+            bilanAccordionRow(id: "analyses", icon: "chart.dots.scatter", label: "Analyses", accent: .purple) {
+                if let dash = api.dashboard {
+                    SmartInsightsSection(
+                        dash: dash, weightsData: weightsData, sessionsData: sessionsData,
+                        recovery: todayRecovery, recoveryLog: recoveryData,
+                        nutritionHistory: nutritionHistory
+                    )
+                    .padding(.horizontal, 16)
+                }
+                if let risk = overtrainingRisk {
+                    OvertrainingRiskCard(risk: risk).padding(.horizontal, 16)
+                }
+                if let meso = mesocycleStatus {
+                    MesocycleStatusCard(status: meso).padding(.horizontal, 16)
+                }
+                if let pain = painJournal, !pain.byExercise.isEmpty {
+                    PainJournalCard(data: pain).padding(.horizontal, 16)
+                }
+                if let oneRM = oneRMData, !oneRM.exercises.isEmpty {
+                    OneRMProgrammingCard(data: oneRM).padding(.horizontal, 16)
+                }
+                if overtrainingRisk == nil && mesocycleStatus == nil {
+                    Text("Chargement des analyses…")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(white: 0.45))
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                }
+            }
+
+            // Bilan complet — accès direct au rapport
             Button { openWeeklyReport() } label: {
                 HStack(spacing: 10) {
                     if isLoadingWeeklyReport {
@@ -612,48 +724,165 @@ struct IntelligenceView: View {
             }
             .padding(.horizontal, 16)
             .disabled(isLoadingWeeklyReport)
-
-            if let dash = api.dashboard {
-                SmartInsightsSection(
-                    dash: dash,
-                    weightsData: weightsData,
-                    sessionsData: sessionsData,
-                    recovery: todayRecovery,
-                    recoveryLog: recoveryData,
-                    nutritionHistory: nutritionHistory
-                )
-                .padding(.horizontal, 16)
-            }
-
-            // Overtraining risk
-            if let risk = overtrainingRisk {
-                OvertrainingRiskCard(risk: risk)
-                    .padding(.horizontal, 16)
-            }
-
-            // Mesocycle status
-            if let meso = mesocycleStatus {
-                MesocycleStatusCard(status: meso)
-                    .padding(.horizontal, 16)
-            }
-
-            // Pain journal preview
-            if let pain = painJournal, !pain.byExercise.isEmpty {
-                PainJournalCard(data: pain)
-                    .padding(.horizontal, 16)
-            }
-
-            // 1RM Programming table
-            if let oneRM = oneRMData, !oneRM.exercises.isEmpty {
-                OneRMProgrammingCard(data: oneRM)
-                    .padding(.horizontal, 16)
-            }
         }
         .padding(.top, 8)
         .padding(.bottom, 28)
         .onAppear {
             if narrative == nil && !isLoadingNarrative { loadNarrative() }
             if overtrainingRisk == nil { Task { await loadIntelligenceFeatures() } }
+        }
+    }
+
+    @ViewBuilder
+    private var bilanHeroCard: some View {
+        let sessionCount = bilanSessionCount
+        let restDays = bilanRestDays
+        let avgRpe = bilanAvgRpe
+        let totalVol = bilanTotalVolume
+        VStack(alignment: .leading, spacing: 10) {
+            Text("SEMAINE EN COURS")
+                .font(.system(size: 10, weight: .black))
+                .tracking(1.2)
+                .foregroundColor(Color(white: 0.45))
+            HStack(spacing: 0) {
+                bilanStatCell(value: "\(sessionCount)", label: "séances")
+                Divider().frame(height: 36).background(Color.white.opacity(0.1))
+                bilanStatCell(value: restDays == 0 ? "—" : "\(restDays)", label: "repos")
+                if let rpe = avgRpe {
+                    Divider().frame(height: 36).background(Color.white.opacity(0.1))
+                    bilanStatCell(value: String(format: "%.1f", rpe), label: "RPE moy")
+                }
+                if totalVol > 0 {
+                    Divider().frame(height: 36).background(Color.white.opacity(0.1))
+                    bilanStatCell(value: "\(Int(totalVol / 1000))k", label: "lbs vol")
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.04))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    @ViewBuilder
+    private func bilanStatCell(value: String, label: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 22, weight: .bold))
+                .foregroundColor(.white)
+            Text(label)
+                .font(.system(size: 11))
+                .foregroundColor(Color(white: 0.45))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var bilanSignauxStrip: some View {
+        let acwr = acwrData
+        let risk = overtrainingRisk
+        let meso = mesocycleStatus
+        if acwr != nil || risk != nil || meso != nil {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    if let a = acwr {
+                        bilanSignalChip(
+                            icon: "figure.run",
+                            label: "ACWR \(String(format: "%.2f", a.ratio))",
+                            color: acwrZoneColor(a.zone.color)
+                        )
+                    }
+                    if let r = risk {
+                        let label = r.level == "low" ? "Charge OK" : r.level == "moderate" ? "Surcharge mod." : "Surcharge élevée"
+                        let color: Color = r.level == "low" ? .green : r.level == "moderate" ? .orange : .red
+                        bilanSignalChip(
+                            icon: r.level == "low" ? "checkmark.circle" : "exclamationmark.triangle",
+                            label: label, color: color
+                        )
+                    }
+                    if let m = meso {
+                        bilanSignalChip(
+                            icon: m.icon.isEmpty ? "calendar" : m.icon,
+                            label: "S\(m.weekInCycle) — \(m.phaseLabel)",
+                            color: .purple
+                        )
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func bilanSignalChip(icon: String, label: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+        }
+        .foregroundColor(color)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(color.opacity(0.12))
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(color.opacity(0.3), lineWidth: 1))
+    }
+
+    @ViewBuilder
+    private func bilanAccordionRow<C: View>(
+        id: String, icon: String, label: String, accent: Color,
+        @ViewBuilder content: () -> C
+    ) -> some View {
+        let isExpanded = expandedBilan.contains(id)
+        VStack(spacing: 0) {
+            Button {
+                let expanding = !expandedBilan.contains(id)
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if expandedBilan.contains(id) { expandedBilan.remove(id) }
+                    else { expandedBilan.insert(id) }
+                }
+                if expanding && id == "recit" && narrative == nil && !isLoadingNarrative {
+                    loadNarrative()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(accent)
+                        .frame(width: 20)
+                    Text(label)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(white: 0.4))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    content()
+                }
+                .padding(.bottom, 12)
+                .transition(.opacity)
+            }
+        }
+        .background(Color.white.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
+    }
+
+    private func acwrZoneColor(_ colorStr: String) -> Color {
+        switch colorStr {
+        case "green":  return .green
+        case "orange": return .orange
+        case "red":    return .red
+        default:       return .gray
         }
     }
 
@@ -811,6 +1040,24 @@ struct IntelligenceView: View {
             case recoveryLog = "recovery_log"
             case muscleStats = "muscle_stats"
         }
+    }
+
+    private func loadDailyInsight() async {
+        await MainActor.run { isLoadingInsight = true }
+        do {
+            let insight = try await APIService.shared.fetchDailyInsight()
+            await MainActor.run { dailyInsight = insight; isLoadingInsight = false }
+        } catch {
+            await MainActor.run { isLoadingInsight = false }
+        }
+    }
+
+    private func loadPostSession() async {
+        guard shouldShowPostSeanceCard else { return }
+        do {
+            let data = try await APIService.shared.fetchPostSession()
+            await MainActor.run { postSessionData = data }
+        } catch { }
     }
 
     private func loadContextData() async {
@@ -1061,52 +1308,6 @@ struct IntelligenceView: View {
             // Reset cooldown so analysis re-runs with corrected data on next load
             UserDefaults.standard.removeObject(forKey: "coach_memory_last_analysis")
         }
-    }
-
-    private func loadMorningBrief() async {
-        let today        = DateFormatter.isoDate.string(from: Date())
-        let currentSession = api.dashboard?.today ?? ""
-        guard !(briefDate == today && briefSession == currentSession && !briefText.isEmpty) else { return }
-
-        let context = buildContext()
-        guard context != "no data" else { return }
-
-        await MainActor.run { isBriefLoading = true }
-        do {
-            let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
-            var req = URLRequest(url: url)
-            req.httpMethod = "POST"
-            req.timeoutInterval = 60
-            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            req.httpBody = try JSONSerialization.data(withJSONObject: [
-                "context": context,
-                "messages": [[
-                    "role": "user",
-                    "content": "Brief du matin. 3 phrases max. Dis-moi : (1) ce que je fais aujourd'hui et pourquoi compte tenu de ma récup, (2) un point clé sur ma progression récente, (3) une chose concrète à surveiller aujourd'hui. Sois direct, personnalisé, pas de formule de politesse."
-                ]]
-            ])
-            let (data, _) = try await URLSession.authed.data(for: req)
-            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let reply = json["response"] as? String {
-                await MainActor.run {
-                    briefText    = reply
-                    briefDate    = today
-                    briefSession = currentSession
-                    isBriefLoading = false
-                }
-            } else {
-                await MainActor.run { isBriefLoading = false }
-            }
-        } catch {
-            await MainActor.run { isBriefLoading = false }
-        }
-    }
-
-    private func regenerateBrief() async {
-        briefDate    = ""
-        briefText    = ""
-        briefSession = ""
-        await loadMorningBrief()
     }
 
     private func sendQuery(_ query: String) {
