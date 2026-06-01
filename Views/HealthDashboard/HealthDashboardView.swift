@@ -163,16 +163,8 @@ struct RecoveryScoreRing: View {
 
     var body: some View {
         HStack(spacing: 20) {
-            ZStack {
-                Circle()
-                    .stroke(scoreColor.opacity(0.15), lineWidth: 12)
-                    .frame(width: 100, height: 100)
-                Circle()
-                    .trim(from: 0, to: CGFloat(score / 10))
-                    .stroke(scoreColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: 100, height: 100)
-                    .animation(.easeOut(duration: 0.8), value: score)
+            ProgressRing(progress: score / 10, color: scoreColor, size: 100, lineWidth: 12,
+                         backgroundColor: scoreColor.opacity(0.15), animation: .easeOut(duration: 0.8)) {
                 VStack(spacing: 2) {
                     if let s = summary.recoveryScore {
                         Text(String(format: "%.1f", s))
@@ -269,25 +261,25 @@ struct HealthKPIGrid: View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             if let steps = summary.steps {
                 let delta = yesterday?.steps.map { steps - $0 }
-                HealthKPICard(value: "\(steps)", label: "Pas", color: .green,
-                              delta: delta.map { deltaInt($0, invertGood: false) })
+                StatCard(value: "\(steps)", label: "Pas", color: .green,
+                         delta: delta.map { deltaInt($0, invertGood: false) })
             }
             if let sleep = summary.sleepDuration {
                 let delta = yesterday?.sleepDuration.map { sleep - $0 }
-                HealthKPICard(value: String(format: "%.1fh", sleep), label: "Sommeil", color: .blue,
-                              delta: delta.map { deltaDouble($0, unit: "h", invertGood: false) })
+                StatCard(value: String(format: "%.1fh", sleep), label: "Sommeil", color: .blue,
+                         delta: delta.map { deltaDouble($0, unit: "h", invertGood: false) })
             }
             if let hr = effectiveHR {
                 let delta = hrIsLive ? nil : yesterday?.restingHeartRate.map { hr - $0 }
-                HealthKPICard(value: String(format: "%.0f bpm", hr),
-                              label: hrIsLive ? "FC repos ◆ live" : "FC repos", color: .red,
-                              delta: delta.map { deltaDouble($0, unit: "", invertGood: true) })
+                StatCard(value: String(format: "%.0f bpm", hr),
+                         label: hrIsLive ? "FC repos ◆ live" : "FC repos", color: .red,
+                         delta: delta.map { deltaDouble($0, unit: "", invertGood: true) })
             }
             if let hrv = effectiveHRV {
                 let delta = hrvIsLive ? nil : yesterday?.hrv.map { hrv - $0 }
-                HealthKPICard(value: String(format: "%.0f ms", hrv),
-                              label: hrvIsLive ? "HRV ◆ live" : "HRV", color: .cyan,
-                              delta: delta.map { deltaDouble($0, unit: " ms", invertGood: false) })
+                StatCard(value: String(format: "%.0f ms", hrv),
+                         label: hrvIsLive ? "HRV ◆ live" : "HRV", color: .cyan,
+                         delta: delta.map { deltaDouble($0, unit: " ms", invertGood: false) })
             }
         }
     }
@@ -302,30 +294,6 @@ struct HealthKPIGrid: View {
         let isGood = invertGood ? val < 0 : val >= 0
         let sign = val >= 0 ? "↑+" : "↓"
         return ("\(sign)\(String(format: "%.1f", val))\(unit)", isGood ? .green : .red)
-    }
-}
-
-struct HealthKPICard: View {
-    let value: String
-    let label: String
-    let color: Color
-    let delta: (String, Color)?
-
-    var body: some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.system(size: 20, weight: .black)).foregroundColor(color)
-                .contentTransition(.numericText()).minimumScaleFactor(0.6).lineLimit(1)
-            if let (str, col) = delta {
-                Text(str)
-                    .font(.system(size: 10, weight: .semibold)).foregroundColor(col)
-            }
-            Text(label)
-                .font(.system(size: 9, weight: .medium)).tracking(1).foregroundColor(.gray).lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .glassCard(color: color, intensity: 0.05).cornerRadius(12)
     }
 }
 

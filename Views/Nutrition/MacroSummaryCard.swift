@@ -29,18 +29,12 @@ struct MacroSummaryCard: View {
                 if let target = settings?.calories, target > 0 {
                     let pct = min((totals?.calories ?? 0) / target, 1.0)
                     let over = (totals?.calories ?? 0) > target
-                    ZStack {
-                        Circle().stroke(Color(hex: "191926"), lineWidth: 8)
-                        Circle()
-                            .trim(from: 0, to: pct)
-                            .stroke(over ? Color.red : Color.orange, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
+                    ProgressRing(progress: pct, color: over ? .red : .orange,
+                                 size: 60, lineWidth: 8, animation: .easeOut) {
                         Text("\(Int(pct * 100))%")
                             .font(.system(size: 13, weight: .bold))
                             .foregroundColor(over ? .red : .orange)
                     }
-                    .frame(width: 60, height: 60)
-                    .animation(.easeOut, value: pct)
                 }
             }
 

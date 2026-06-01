@@ -65,30 +65,37 @@ struct DashboardCardioCard: View {
             // Metrics row
             HStack(spacing: 0) {
                 if let dur = entry.durationMin {
-                    CardioMetricChip(
+                    MetricCell(
+                        title: "Durée",
                         value: dur >= 60
                             ? String(format: "%dh%02d", Int(dur) / 60, Int(dur) % 60)
                             : String(format: "%.0f min", dur),
-                        label: "Durée",
-                        color: accentColor
+                        tint: accentColor,
+                        size: .medium
                     )
+                    .frame(minWidth: 56)
                 }
                 if let dist = entry.distanceKm, dist > 0 {
-                    CardioMetricChip(
+                    MetricCell(
+                        title: "Distance",
                         value: String(format: "%.2f km", dist),
-                        label: "Distance",
-                        color: accentColor
+                        tint: accentColor,
+                        size: .medium
                     )
+                    .frame(minWidth: 56)
                 }
                 if let pace = entry.avgPace {
-                    CardioMetricChip(value: pace + "/km", label: "Allure", color: .white.opacity(0.7))
+                    MetricCell(title: "Allure", value: pace + "/km", tint: .white.opacity(0.7), size: .medium)
+                        .frame(minWidth: 56)
                 }
                 if let hr = entry.avgHr, hr > 0 {
-                    CardioMetricChip(
+                    MetricCell(
+                        title: "FC moy",
                         value: String(format: "%.0f bpm", hr),
-                        label: "FC moy",
-                        color: .red.opacity(0.8)
+                        tint: .red.opacity(0.8),
+                        size: .medium
                     )
+                    .frame(minWidth: 56)
                 }
                 Spacer()
             }
@@ -113,23 +120,3 @@ struct DashboardCardioCard: View {
     }
 }
 
-// MARK: - Chip métrique
-
-private struct CardioMetricChip: View {
-    let value: String
-    let label: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(color)
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundColor(.gray)
-        }
-        .frame(minWidth: 56)
-        .padding(.vertical, 2)
-    }
-}

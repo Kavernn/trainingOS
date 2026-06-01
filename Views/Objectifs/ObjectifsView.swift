@@ -747,16 +747,8 @@ struct EditGoalSheet: View {
                     }
                     .padding(.horizontal, 20)
 
-                    Button(action: save) {
-                        Text("Sauvegarder")
-                            .font(.system(size: 15, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.orange)
-                            .foregroundColor(.white)
-                            .cornerRadius(14)
-                    }
-                    .padding(.horizontal, 20)
+                    PrimaryButton(title: "Sauvegarder", action: save)
+                        .padding(.horizontal, 20)
 
                     Spacer()
                 }

@@ -255,15 +255,7 @@ struct LogRecoverySheet: View {
                         }
 
                         // Bouton Logger — toujours visible
-                        Button(action: save) {
-                            Group {
-                                if isSaving { ProgressView().tint(.white) }
-                                else { Text("Logger").font(.system(size: 16, weight: .semibold)).foregroundColor(.white) }
-                            }
-                        }
-                        .frame(maxWidth: .infinity).padding(.vertical, 16)
-                        .background(Color.orange).cornerRadius(14)
-                        .buttonStyle(SpringButtonStyle())
+                        PrimaryButton(title: "Logger", isLoading: isSaving, action: save)
 
                         // Lien mode complet — seulement en mode rapide
                         if !showFullMode {

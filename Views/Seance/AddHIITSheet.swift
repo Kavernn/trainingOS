@@ -159,17 +159,14 @@ struct AddHIITSheet: View {
                                 .background(Color(hex: "1c1c2e")).cornerRadius(10)
                         }
 
-                        Button(action: submit) {
-                            HStack {
-                                if isLogging { ProgressView().tint(.white) }
-                                else { Image(systemName: "bolt.fill") }
-                                Text("Enregistrer HIIT").font(.system(size: 15, weight: .semibold))
-                            }
-                            .frame(maxWidth: .infinity).padding(.vertical, 14)
-                            .background(isLogging || !isHIITValid ? Color.red.opacity(0.4) : Color.red)
-                            .foregroundColor(.white).cornerRadius(14)
-                        }
-                        .disabled(isLogging || !isHIITValid)
+                        PrimaryButton(
+                            title: "Enregistrer HIIT",
+                            icon: "bolt.fill",
+                            style: .destructive,
+                            isLoading: isLogging,
+                            isDisabled: !isHIITValid,
+                            action: submit
+                        )
                         .padding(.bottom, 24)
                     }
                     .padding(.horizontal, 16).padding(.top, 16)

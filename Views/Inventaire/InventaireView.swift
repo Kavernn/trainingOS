@@ -168,11 +168,11 @@ struct InventaireView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(types, id: \.self) { t in
-                    FilterChip(label: typeLabel(t), selected: selectedType == t, color: typeColor(t)) {
+                    ChipButton(label: typeLabel(t), isSelected: selectedType == t, color: typeColor(t), size: .small) {
                         selectedType = t
                     }
                 }
-                FilterChip(label: "⭐ En programme", selected: filterProgram, color: .orange) {
+                ChipButton(label: "⭐ En programme", isSelected: filterProgram, color: .orange, size: .small) {
                     filterProgram.toggle()
                 }
             }
@@ -185,7 +185,7 @@ struct InventaireView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(categories, id: \.self) { c in
-                    FilterChip(label: catLabel(c), selected: selectedCategory == c, color: catColor(c)) {
+                    ChipButton(label: catLabel(c), isSelected: selectedCategory == c, color: catColor(c), size: .small) {
                         selectedCategory = c
                     }
                 }
@@ -207,12 +207,9 @@ struct InventaireView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "magnifyingglass").font(.system(size: 40)).foregroundColor(.gray)
-            Text("Aucun exercice trouvé").foregroundColor(.gray)
-        }
-        .padding(.top, 40)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        EmptyStateView(icon: "magnifyingglass", title: "Aucun exercice trouvé", compact: true)
+            .padding(.top, 40)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var itemList: some View {
@@ -997,27 +994,6 @@ private struct InventaireSkeletonView: View {
     }
 }
 
-// MARK: - Filter Chip
-
-struct FilterChip: View {
-    let label: String
-    let selected: Bool
-    let color: Color
-    let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(.system(size: 12, weight: .semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(selected ? color.opacity(0.2) : Color(hex: "191926"))
-                .foregroundColor(selected ? color : .gray)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(selected ? color.opacity(0.5) : Color.clear, lineWidth: 1))
-        }
-    }
-}
-
 // MARK: - Exercise Media Sheet
 
 struct ExerciseMediaSheet: View {
@@ -1120,12 +1096,8 @@ struct ExerciseMediaSheet: View {
                         }
 
                         if gifUrl == nil && muscles.isEmpty {
-                            VStack(spacing: 12) {
-                                Image(systemName: "photo.slash").font(.system(size: 36)).foregroundColor(.gray.opacity(0.4))
-                                Text("Aucun média disponible pour cet exercice.")
-                                    .font(.system(size: 13)).foregroundColor(.gray).multilineTextAlignment(.center)
-                            }
-                            .padding(.top, 40)
+                            EmptyStateView(icon: "photo.slash", title: "Aucun média disponible pour cet exercice.", compact: true)
+                                .padding(.top, 40)
                         }
                     }
                     .padding(.vertical, 16)

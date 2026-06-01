@@ -71,14 +71,8 @@ struct NotesView: View {
                             .padding(.horizontal, 16)
 
                             if displayedSessions.isEmpty {
-                                VStack(spacing: 12) {
-                                    Image(systemName: "note.text")
-                                        .font(.system(size: 40))
-                                        .foregroundColor(.gray)
-                                    Text("Aucune séance")
-                                        .foregroundColor(.gray)
-                                }
-                                .padding(.top, 40)
+                                EmptyStateView(icon: "note.text", title: "Aucune séance", compact: true)
+                                    .padding(.top, 40)
                             } else {
                                 ForEach(displayedSessions) { session in
                                     NoteCard(session: session)

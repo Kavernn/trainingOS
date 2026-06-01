@@ -18,10 +18,7 @@ struct HIITHistoriqueView: View {
                 if isLoading {
                     ProgressView().tint(.orange)
                 } else if hiitLog.isEmpty {
-                    VStack(spacing: 16) {
-                        Image(systemName: "figure.run").font(.system(size: 48)).foregroundColor(.gray)
-                        Text("Aucune session HIIT").foregroundColor(.gray)
-                    }
+                    EmptyStateView(icon: "figure.run", title: "Aucune session HIIT", compact: true)
                 } else {
                     ScrollView {
                         VStack(spacing: 12) {

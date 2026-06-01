@@ -54,9 +54,9 @@ struct HistoriqueView: View {
                     VStack(spacing: 0) {
                         // Tabs
                         HStack(spacing: 8) {
-                            TabChip(title: "🏋️ Muscu (\(muscuSessions.count))", selected: selectedTab == 0) { selectedTab = 0 }
-                            TabChip(title: "⚡ HIIT (\(hiitSessions.count))", selected: selectedTab == 1) { selectedTab = 1 }
-                            TabChip(title: "📅 Timeline", selected: selectedTab == 2) { selectedTab = 2 }
+                            ChipButton(label: "🏋️ Muscu (\(muscuSessions.count))", isSelected: selectedTab == 0, color: .orange) { selectedTab = 0 }
+                            ChipButton(label: "⚡ HIIT (\(hiitSessions.count))", isSelected: selectedTab == 1, color: .orange) { selectedTab = 1 }
+                            ChipButton(label: "📅 Timeline", isSelected: selectedTab == 2, color: .orange) { selectedTab = 2 }
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
@@ -724,24 +724,6 @@ struct LabelValue: View {
             Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-struct TabChip: View {
-    let title: String
-    let selected: Bool
-    let action: () -> Void
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 13, weight: .bold))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
-                .background(selected ? Color.orange.opacity(0.2) : Color(hex: "191926"))
-                .foregroundColor(selected ? .orange : .gray)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(selected ? Color.orange.opacity(0.5) : Color.clear, lineWidth: 1))
-        }
     }
 }
 
