@@ -485,3 +485,8 @@ def delete_cardio_log(date: str, type_: str) -> bool:
                 return False
         db_core.logger.error("delete_cardio_log error: %s", e)
         return False
+
+
+def get_readiness_history(days: int = 28) -> list:
+    """Return historical readiness scores. No persistence table yet — always cold-start."""
+    return []

@@ -182,7 +182,7 @@ def get_war_room_config() -> Optional[dict]:
         return None
 
     def _do():
-        resp = db_core._client.table("war_room_config").select("id, war_start_date, substance_label, integration_phoenix, integration_readiness, integration_ai_coach, victory_streak").eq("id", 1).limit(1).execute()
+        resp = db_core._client.table("war_room_config").select("id, war_start_date, substance_label, integration_phoenix, integration_readiness, integration_ai_coach").eq("id", 1).limit(1).execute()
         return resp.data[0] if resp.data else None
 
     try:
