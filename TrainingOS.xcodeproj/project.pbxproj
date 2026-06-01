@@ -258,6 +258,12 @@
 		WR010001AA00300B2F5DAAAA /* WarRoomSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */; };
 		WTHR002WTHR002WTHR002002 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTHR001WTHR001WTHR001001 /* WeatherService.swift */; };
 		ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ER001000ER001000ER001000 /* EnergyRecoveryView.swift */; };
+		STNA0001STNA0001STNA0001 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0001STNR0001STNR0001 /* SettingsView.swift */; };
+		STNA0002STNA0002STNA0002 /* TrainingSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */; };
+		STNA0003STNA0003STNA0003 /* RecoverySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0003STNR0003STNR0003 /* RecoverySettingsView.swift */; };
+		STNA0004STNA0004STNA0004 /* CardioSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0004STNR0004STNR0004 /* CardioSettingsView.swift */; };
+		STNA0005STNA0005STNA0005 /* DisplaySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0005STNR0005STNR0005 /* DisplaySettingsView.swift */; };
+		STNA0006STNA0006STNA0006 /* HealthDataSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = STNR0006STNR0006STNR0006 /* HealthDataSettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -534,6 +540,12 @@
 		WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomSettingsView.swift; sourceTree = "<group>"; };
 		WTHR001WTHR001WTHR001001 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
 		ER001000ER001000ER001000 /* EnergyRecoveryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyRecoveryView.swift; sourceTree = "<group>"; };
+		STNR0001STNR0001STNR0001 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingSettingsView.swift; sourceTree = "<group>"; };
+		STNR0003STNR0003STNR0003 /* RecoverySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoverySettingsView.swift; sourceTree = "<group>"; };
+		STNR0004STNR0004STNR0004 /* CardioSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSettingsView.swift; sourceTree = "<group>"; };
+		STNR0005STNR0005STNR0005 /* DisplaySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplaySettingsView.swift; sourceTree = "<group>"; };
+		STNR0006STNR0006STNR0006 /* HealthDataSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDataSettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -1046,6 +1058,7 @@
 				OA000000AA00300B2F5DCCCC /* Oath */,
 				SE000000AA00300B2F5DDDDD /* Seasons */,
 				GF000000AA00300B2F5DEEEE /* GymFinder */,
+				STNG0000STNG0000STNG0000 /* Settings */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1147,6 +1160,19 @@
 				SP006000AA00300B2F5DBBBB /* SpiritJournalView.swift */,
 			);
 			path = Spirit;
+			sourceTree = "<group>";
+		};
+		STNG0000STNG0000STNG0000 /* Settings */ = {
+			isa = PBXGroup;
+			children = (
+				STNR0001STNR0001STNR0001 /* SettingsView.swift */,
+				STNR0002STNR0002STNR0002 /* TrainingSettingsView.swift */,
+				STNR0003STNR0003STNR0003 /* RecoverySettingsView.swift */,
+				STNR0004STNR0004STNR0004 /* CardioSettingsView.swift */,
+				STNR0005STNR0005STNR0005 /* DisplaySettingsView.swift */,
+				STNR0006STNR0006STNR0006 /* HealthDataSettingsView.swift */,
+			);
+			path = Settings;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1528,6 +1554,12 @@
 				GF004001AA00300B2F5DEEEE /* GymFinderView.swift in Sources */,
 				GF005001AA00300B2F5DEEEE /* GymFinderViewModel.swift in Sources */,
 				ER001001ER001001ER001001 /* EnergyRecoveryView.swift in Sources */,
+				STNA0001STNA0001STNA0001 /* SettingsView.swift in Sources */,
+				STNA0002STNA0002STNA0002 /* TrainingSettingsView.swift in Sources */,
+				STNA0003STNA0003STNA0003 /* RecoverySettingsView.swift in Sources */,
+				STNA0004STNA0004STNA0004 /* CardioSettingsView.swift in Sources */,
+				STNA0005STNA0005STNA0005 /* DisplaySettingsView.swift in Sources */,
+				STNA0006STNA0006STNA0006 /* HealthDataSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

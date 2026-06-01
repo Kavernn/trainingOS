@@ -157,9 +157,14 @@ final class ExerciseViewModel: ObservableObject {
 
     var warmupSets: [(pct: Int, weight: Double)] {
         guard currentWeight > 0 else { return [] }
-        return [(40, round(currentWeight * 0.4 / 2.5) * 2.5),
-                (60, round(currentWeight * 0.6 / 2.5) * 2.5),
-                (80, round(currentWeight * 0.8 / 2.5) * 2.5)]
+        let ud = UserDefaults.standard
+        let p1 = ud.object(forKey: "warmup_pct_1") as? Int ?? 40
+        let p2 = ud.object(forKey: "warmup_pct_2") as? Int ?? 60
+        let p3 = ud.object(forKey: "warmup_pct_3") as? Int ?? 80
+        let round2_5: (Double) -> Double = { round($0 / 2.5) * 2.5 }
+        return [(p1, round2_5(currentWeight * Double(p1) / 100)),
+                (p2, round2_5(currentWeight * Double(p2) / 100)),
+                (p3, round2_5(currentWeight * Double(p3) / 100))]
     }
 
     var inputHint: Double {

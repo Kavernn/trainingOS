@@ -88,6 +88,7 @@ struct RecoveryScoreChart: View {
 // MARK: - Recovery Composite Score View
 struct RecoveryCompositeScoreView: View {
     let log: [RecoveryEntry]
+    @AppStorage("steps_daily_goal") private var stepsGoal: Int = 10000
 
     private enum ComponentStatus { case green, yellow, red }
 
@@ -97,7 +98,7 @@ struct RecoveryCompositeScoreView: View {
         if let sq = r.sleepQuality { components.append((sq / 10.0, 0.20)) }
         if let s  = r.soreness     { components.append(((11.0 - s) / 10.0, 0.20)) }
         if let h  = r.hrv          { components.append((min(h / 80.0, 1.0), 0.20)) }
-        if let st = r.steps.map(Double.init) { components.append((min(st / 8000.0, 1.0), 0.10)) }
+        if let st = r.steps.map(Double.init) { components.append((min(st / Double(stepsGoal), 1.0), 0.10)) }
         guard !components.isEmpty else { return nil }
         let totalWeight = components.map(\.1).reduce(0, +)
         let weightedSum = components.map { $0.0 * $0.1 }.reduce(0, +)

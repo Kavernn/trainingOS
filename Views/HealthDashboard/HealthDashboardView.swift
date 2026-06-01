@@ -847,6 +847,7 @@ struct HealthDayDetailSheet: View {
     let day: DailyHealthSummary
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var units = UnitSettings.shared
+    @AppStorage("steps_daily_goal") private var stepsGoal: Int = 10000
 
     var body: some View {
         NavigationStack {
@@ -864,7 +865,7 @@ struct HealthDayDetailSheet: View {
                 Section("Activité") {
                     if let steps = day.steps {
                         DetailMetricRow(icon: "figure.walk", color: .green, label: "Pas",
-                                        value: "\(steps)" + (steps >= 10000 ? " ✓" : ""))
+                                        value: "\(steps)" + (steps >= stepsGoal ? " ✓" : ""))
                     }
                     if let active = day.activeMinutes {
                         DetailMetricRow(icon: "timer", color: .orange, label: "Minutes actives",

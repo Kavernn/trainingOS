@@ -31,9 +31,13 @@ struct ExerciseCard: View {
     @StateObject private var evm: ExerciseViewModel
     @ObservedObject private var units = UnitSettings.shared
     @ObservedObject private var restTimer = RestTimerManager.shared
-    @AppStorage("exo_notes_data") private var exoNotesData: String = "{}"
-    @AppStorage("auto_start_rest_timer") private var autoStartTimer = false
-    @AppStorage("show_rir_column") private var showRIRColumn = false
+    @AppStorage("exo_notes_data")          private var exoNotesData: String = "{}"
+    @AppStorage("auto_start_rest_timer")   private var autoStartTimer = false
+    @AppStorage("show_rir_column")         private var showRIRColumn = false
+    @AppStorage("increment_upper_kg")      private var incrementUpperKg: Double = 1.25
+    @AppStorage("increment_lower_kg")      private var incrementLowerKg: Double = 2.5
+    @AppStorage("increment_upper_lbs")     private var incrementUpperLbs: Double = 2.5
+    @AppStorage("increment_lower_lbs")     private var incrementLowerLbs: Double = 5.0
     @State private var confirmSkip = false
     @State private var confirmSwapAfterLog = false
     @State private var showAdvanced = false
@@ -108,8 +112,8 @@ struct ExerciseCard: View {
 
     private var weightIncrement: Double {
         let isLower = ["squat", "hinge"].contains(movementPattern.lowercased())
-        if units.isKg { return isLower ? 2.5 : 1.25 }
-        return isLower ? 5.0 : 2.5
+        if units.isKg { return isLower ? incrementLowerKg : incrementUpperKg }
+        return isLower ? incrementLowerLbs : incrementUpperLbs
     }
 
     private var alreadyLogged: Bool { evm.isLogged || logResult != nil || evm.isSkipped }

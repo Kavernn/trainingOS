@@ -1,0 +1,63 @@
+import SwiftUI
+
+struct SettingsView: View {
+    var body: some View {
+        ZStack {
+            AmbientBackground(color: .purple)
+
+            List {
+                Section("Identité") {
+                    MoreRow(icon: "person.fill", color: .purple,
+                            title: "Mon profil",
+                            subtitle: "Nom, âge, objectif, photo") { ProfileView() }
+                }
+                .listRowBackground(glassRowBG(.purple))
+                .listRowSeparatorTint(Color.white.opacity(0.06))
+
+                Section("Entraînement") {
+                    MoreRow(icon: "dumbbell.fill", color: .orange,
+                            title: "Entraînement",
+                            subtitle: "Incréments, échauffement, RIR, timer") { TrainingSettingsView() }
+                    MoreRow(icon: "fork.knife", color: .green,
+                            title: "Nutrition",
+                            subtitle: "Cibles calories, macros, fenêtre") { NutritionView() }
+                    MoreRow(icon: "figure.run", color: .teal,
+                            title: "Cardio",
+                            subtitle: "FC max, objectif hebdo") { CardioSettingsView() }
+                }
+                .listRowBackground(glassRowBG(.orange))
+                .listRowSeparatorTint(Color.white.opacity(0.06))
+
+                Section("Récupération") {
+                    MoreRow(icon: "bed.double.fill", color: .indigo,
+                            title: "Récupération & Sommeil",
+                            subtitle: "Objectif sommeil, HRV, horaires") { RecoverySettingsView() }
+                }
+                .listRowBackground(glassRowBG(.indigo))
+                .listRowSeparatorTint(Color.white.opacity(0.06))
+
+                Section("Préférences") {
+                    MoreRow(icon: "bell.badge.fill", color: .red,
+                            title: "Notifications",
+                            subtitle: "Rappels, horaires, toggles") { NotificationCenterView() }
+                    MoreRow(icon: "slider.horizontal.3", color: .cyan,
+                            title: "Affichage & Unités",
+                            subtitle: "kg/lbs, objectif de pas, thème") { DisplaySettingsView() }
+                    MoreRow(icon: "heart.text.square.fill", color: .pink,
+                            title: "Données & Santé",
+                            subtitle: "HealthKit, export") { HealthDataSettingsView() }
+                }
+                .listRowBackground(glassRowBG(.cyan))
+                .listRowSeparatorTint(Color.white.opacity(0.06))
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+        }
+        .navigationTitle("Paramètres")
+        .navigationBarTitleDisplayMode(.large)
+    }
+
+    private func glassRowBG(_ color: Color) -> some View {
+        Color.appCard
+    }
+}
