@@ -72,11 +72,12 @@ def register_routes(app):
             if already:
                 continue
 
+            raw_duration = w.get("duration_min")
             entry = {
                 "date":         target_date,
                 "type":         workout_type,
                 "source":       "healthkit",
-                "duration_min": w.get("duration_min"),
+                "duration_min": int(raw_duration) if raw_duration is not None else None,
                 "distance_km":  w.get("distance_km"),
                 "avg_hr":       w.get("avg_hr"),
                 "avg_pace":     w.get("avg_pace"),

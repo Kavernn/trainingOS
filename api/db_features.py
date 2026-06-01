@@ -182,8 +182,8 @@ def get_war_room_config() -> Optional[dict]:
         return None
 
     def _do():
-        resp = db_core._client.table("war_room_config").select("id, war_start_date, substance_label, integration_phoenix, integration_readiness, integration_ai_coach, victory_streak").eq("id", 1).maybe_single().execute()
-        return resp.data
+        resp = db_core._client.table("war_room_config").select("id, war_start_date, substance_label, integration_phoenix, integration_readiness, integration_ai_coach, victory_streak").eq("id", 1).limit(1).execute()
+        return resp.data[0] if resp.data else None
 
     try:
         return _do()
@@ -812,7 +812,7 @@ def get_active_season() -> Optional[dict]:
     def _do():
         resp = (
             db_core._client.table("seasons")
-            .select("id, number, status, started_at, ended_at, generated_title, custom_title, dominant_arc, personal_note, ritual_completion_rate")
+            .select("id, number, status, started_at, ended_at, generated_title, custom_title, dominant_arc, personal_note")
             .eq("status", "active")
             .order("created_at", desc=True)
             .limit(1)
@@ -840,7 +840,7 @@ def get_all_seasons() -> List[dict]:
     def _do():
         resp = (
             db_core._client.table("seasons")
-            .select("id, number, status, started_at, ended_at, generated_title, custom_title, dominant_arc, personal_note, ritual_completion_rate")
+            .select("id, number, status, started_at, ended_at, generated_title, custom_title, dominant_arc, personal_note")
             .order("number", desc=True)
             .execute()
         )
@@ -866,7 +866,7 @@ def get_season_by_id(season_id: str) -> Optional[dict]:
     def _do():
         resp = (
             db_core._client.table("seasons")
-            .select("id, number, status, started_at, ended_at, generated_title, custom_title, dominant_arc, personal_note, ritual_completion_rate")
+            .select("id, number, status, started_at, ended_at, generated_title, custom_title, dominant_arc, personal_note")
             .eq("id", season_id)
             .maybe_single()
             .execute()

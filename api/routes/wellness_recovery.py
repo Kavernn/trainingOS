@@ -15,10 +15,12 @@ def api_cardio_data():
 def api_log_cardio():
     import db as _db
     data = request.get_json(silent=True) or {}
+    raw_dur = data.get("duration_min")
+    raw_pace_s = data.get("pace_avg_seconds")
     entry = {
         "date":             data.get("date", _today_mtl()),
         "type":             data.get("type", "course"),
-        "duration_min":     data.get("duration_min"),
+        "duration_min":     int(raw_dur) if raw_dur is not None else None,
         "distance_km":      data.get("distance_km"),
         "avg_pace":         data.get("avg_pace"),
         "avg_hr":           data.get("avg_hr"),
@@ -28,7 +30,7 @@ def api_log_cardio():
         "notes":            data.get("notes", ""),
         "start_time":       data.get("start_time"),
         "end_time":         data.get("end_time"),
-        "pace_avg_seconds": data.get("pace_avg_seconds"),
+        "pace_avg_seconds": int(raw_pace_s) if raw_pace_s is not None else None,
         "gps_points":       data.get("gps_points"),
         "route_encoded":    data.get("route_encoded"),
         "coach_note":       data.get("coach_note"),

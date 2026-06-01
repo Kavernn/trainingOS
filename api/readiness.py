@@ -415,7 +415,10 @@ def _score_muscle_recovery() -> tuple[float, dict, dict]:
             info = ex_info.get(ex_name) or {}
             if (info.get("category") or "other").lower() != cat:
                 continue
-            total += int(entries[0].get("sets") or entries[0].get("nb_sets") or 0)
+            sets_val = entries[0].get("sets") or entries[0].get("nb_sets") or 0
+            if isinstance(sets_val, list):
+                sets_val = len(sets_val)
+            total += int(sets_val)
         return total
 
     exp_mult = _get_experience_mult()
