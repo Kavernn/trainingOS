@@ -110,7 +110,27 @@ struct IntelligenceView: View {
                     // Header: greeting + context + optional CTA
                     if let dash = api.dashboard {
                         VStack(alignment: .leading, spacing: 10) {
-                            CoachGreetingHeader(dash: dash)
+                            HStack(alignment: .top) {
+                                CoachGreetingHeader(dash: dash)
+                                Spacer()
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.2)) { selectedSection = .memoire }
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "brain.head.profile")
+                                            .font(.system(size: 13, weight: .semibold))
+                                        if !memoryStore.entries.isEmpty {
+                                            Text("\(memoryStore.entries.count)")
+                                                .font(.system(size: 10, weight: .bold))
+                                                .foregroundColor(.purple)
+                                                .padding(.horizontal, 5).padding(.vertical, 2)
+                                                .background(Color.purple.opacity(0.15))
+                                                .clipShape(Capsule())
+                                        }
+                                    }
+                                    .foregroundColor(.purple)
+                                }
+                            }
                             CoachContextSummary(
                                 lssData: lssData,
                                 dashboard: api.dashboard,
@@ -173,7 +193,10 @@ struct IntelligenceView: View {
                         }
                     }
 
-                    // Section pills — bottom nav bar
+                }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
                     Divider().background(Color.white.opacity(0.08))
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -246,27 +269,6 @@ struct IntelligenceView: View {
                 if let data = try? JSONEncoder().encode(Array(toSave.suffix(50))),
                    let str = String(data: data, encoding: .utf8) {
                     historyData = str
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) { selectedSection = .memoire }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "brain.head.profile")
-                                .font(.system(size: 13, weight: .semibold))
-                            if !memoryStore.entries.isEmpty {
-                                Text("\(memoryStore.entries.count)")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.purple)
-                                    .padding(.horizontal, 5).padding(.vertical, 2)
-                                    .background(Color.purple.opacity(0.15))
-                                    .clipShape(Capsule())
-                            }
-                        }
-                        .foregroundColor(.purple)
-                    }
                 }
             }
             .fullScreenCover(isPresented: $showProgramPreview) {
