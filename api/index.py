@@ -118,6 +118,7 @@ from routes.seasons      import seasons_bp
 from routes.gym_finder   import gym_finder_bp
 from routes.cardio_metrics import cardio_metrics_bp
 from routes.energy_daily  import energy_daily_bp
+from routes.body_budget   import body_budget_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -162,6 +163,7 @@ app.register_blueprint(seasons_bp)
 app.register_blueprint(gym_finder_bp)
 app.register_blueprint(cardio_metrics_bp)
 app.register_blueprint(energy_daily_bp)
+app.register_blueprint(body_budget_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────
