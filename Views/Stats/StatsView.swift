@@ -56,15 +56,15 @@ enum StatsPeriod: String, CaseIterable {
     case all    = "Tout"
 
     var cutoff: String? {
-        let days: Int?
+        let cal = Calendar.current
+        let months: Int
         switch self {
-        case .month1: days = 30
-        case .month3: days = 90
-        case .month6: days = 180
-        case .all:    days = nil
+        case .month1: months = -1
+        case .month3: months = -3
+        case .month6: months = -6
+        case .all:    return nil
         }
-        guard let d = days else { return nil }
-        let date = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - Double(d) * 86400.0)
+        let date = cal.date(byAdding: .month, value: months, to: Date()) ?? Date()
         return DateFormatter.isoDate.string(from: date)
     }
 }
@@ -135,7 +135,7 @@ struct StatsView: View {
     }
 
     var avgRPE30: Double {
-        let cutoff = Date(timeIntervalSince1970: Date().timeIntervalSince1970 - 30 * 86400.0)
+        let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
         let cutStr = DateFormatter.isoDate.string(from: cutoff)
         let rpes = sessions.compactMap { date, e -> Double? in
             date >= cutStr ? e.rpe : nil
@@ -319,15 +319,16 @@ struct StatsView: View {
     // ── Smart Insights ────────────────────────────────────────────────
     var smartInsights: [(icon: String, text: String, color: Color)] {
         var insights: [(String, String, Color)] = []
-        let now = Date().timeIntervalSince1970
+        let cal   = Calendar.current
+        let w4ago = cal.date(byAdding: .weekOfYear, value: -4, to: Date()) ?? Date()
+        let w8ago = cal.date(byAdding: .weekOfYear, value: -8, to: Date()) ?? Date()
         let last4 = sessions.filter {
             guard let d = DateFormatter.isoDate.date(from: $0.key) else { return false }
-            return now - d.timeIntervalSince1970 < 28 * 86400
+            return d >= w4ago
         }.count
         let prev4 = sessions.filter {
             guard let d = DateFormatter.isoDate.date(from: $0.key) else { return false }
-            let delta = now - d.timeIntervalSince1970
-            return delta >= 28 * 86400 && delta < 56 * 86400
+            return d >= w8ago && d < w4ago
         }.count
         if prev4 > 0 {
             let pct = Int(round(Double(last4 - prev4) / Double(prev4) * 100))
