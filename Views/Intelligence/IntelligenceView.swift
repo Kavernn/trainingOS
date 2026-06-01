@@ -298,6 +298,7 @@ struct IntelligenceView: View {
             }
         }
     }
+    }
 
     // MARK: - Section Views
 
