@@ -343,8 +343,8 @@ extension StatsView {
     @ViewBuilder var bienetreTab: some View {
 
         // 1. HRV en tête (actionnable immédiatement)
-        if let hrv = hrvBaseline, hrv.baseline != nil {
-            HRVBaselineCard(data: hrv, analysis: hrvAnalysis)
+        if let hrv = hrvAnalysis, hrv.hrv30dAvg != nil {
+            HRVBaselineCard(data: hrv)
                 .padding(.horizontal, 16)
         }
 

@@ -74,12 +74,22 @@ def compute_hrv_analysis(rows: list[dict], target_date: str) -> dict:
     hrv_7d_avg  = round(sum(vals_7d)  / len(vals_7d),  1) if vals_7d  else None
     hrv_30d_avg = round(sum(vals_30d) / len(vals_30d), 1) if vals_30d else None
 
-    # ── Coefficient de variation (30j) — stabilité du signal ─────────────────
-    hrv_cv: Optional[float] = None
-    if len(vals_30d) >= 7 and hrv_30d_avg and hrv_30d_avg > 0:
+    # ── SD 30j, CV, flag_rest, deviation ────────────────────────────────────
+    sd_30d: Optional[float] = None
+    if len(vals_30d) >= 2 and hrv_30d_avg and hrv_30d_avg > 0:
         variance = sum((v - hrv_30d_avg) ** 2 for v in vals_30d) / len(vals_30d)
         sd_30d   = math.sqrt(variance)
-        hrv_cv   = round(sd_30d / hrv_30d_avg * 100, 1)
+    hrv_cv: Optional[float] = None
+    if sd_30d is not None and len(vals_30d) >= 7 and hrv_30d_avg:
+        hrv_cv = round(sd_30d / hrv_30d_avg * 100, 1)
+    flag_rest = bool(
+        today_rmssd is not None and hrv_30d_avg is not None and sd_30d is not None
+        and today_rmssd < hrv_30d_avg - sd_30d
+    )
+    deviation = (
+        round(today_rmssd - hrv_30d_avg, 1)
+        if today_rmssd is not None and hrv_30d_avg is not None else None
+    )
 
     # ── Score normalisé et zone ───────────────────────────────────────────────
     hrv_score: Optional[float] = None
@@ -191,4 +201,7 @@ def compute_hrv_analysis(rows: list[dict], target_date: str) -> dict:
         "baseline_available":  baseline_available,
         "data_points_7d":      len(vals_7d),
         "data_points_30d":     len(vals_30d),
+        "sd_30d":              round(sd_30d, 1) if sd_30d is not None else None,
+        "flag_rest":           flag_rest,
+        "deviation":           deviation,
     }

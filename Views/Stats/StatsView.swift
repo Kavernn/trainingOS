@@ -107,7 +107,6 @@ struct StatsView: View {
     @State var rirByExercise:      [RIREntry]                  = []
     @State var pushPullRatio:      WeeklyReportPushPull?       = nil
     @State var sorenessThreshold:  SorenessThreshold?          = nil
-    @State var hrvBaseline:        HRVBaseline?                = nil
     @State var hrvAnalysis:        HRVAnalysis?                = nil
 
     // ── New stats data ────────────────────────────────────────────────────
@@ -670,13 +669,6 @@ struct StatsView: View {
                let (d, _) = try? await URLSession.authed.data(from: url),
                let r = try? JSONDecoder().decode(SorenessThreshold.self, from: d) {
                 await MainActor.run { sorenessThreshold = r }
-            }
-        }
-        Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/hrv_baseline"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(HRVBaseline.self, from: d) {
-                await MainActor.run { hrvBaseline = r }
             }
         }
         Task {

@@ -662,6 +662,7 @@ struct HRVAnalysis: Codable {
     let baselineAvailable:  Bool
     let dataPoints7d:       Int
     let dataPoints30d:      Int
+    let sd30d:              Double?
 
     enum CodingKeys: String, CodingKey {
         case todayRmssd         = "today_rmssd"
@@ -678,6 +679,7 @@ struct HRVAnalysis: Codable {
         case baselineAvailable  = "baseline_available"
         case dataPoints7d       = "data_points_7d"
         case dataPoints30d      = "data_points_30d"
+        case sd30d              = "sd_30d"
     }
 
     var zoneColor: Color {
@@ -703,6 +705,15 @@ struct HRVAnalysis: Codable {
         case "down": return .red
         default:     return .gray
         }
+    }
+
+    var flagRest: Bool {
+        guard let today = todayRmssd, let avg = hrv30dAvg, let sd = sd30d else { return false }
+        return today < avg - sd
+    }
+    var deviationFrom30d: Double? {
+        guard let today = todayRmssd, let avg = hrv30dAvg else { return nil }
+        return round((today - avg) * 10) / 10
     }
 }
 

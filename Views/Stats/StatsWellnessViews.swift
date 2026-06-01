@@ -496,10 +496,11 @@ struct PSSHistoryView: View {
 // MARK: - HRV Baseline Card
 
 struct HRVBaselineCard: View {
-    let data:     HRVBaseline
-    var analysis: HRVAnalysis? = nil
+    let data: HRVAnalysis
 
-    private var accentColor: Color { analysis?.zoneColor ?? (data.flagRest ? .red : .cyan) }
+    private var accentColor: Color {
+        data.hrvZone != nil ? data.zoneColor : (data.flagRest ? .red : .cyan)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -511,8 +512,8 @@ struct HRVBaselineCard: View {
                 Text("BASELINE HRV PERSONNALISÉE")
                     .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
-                if let a = analysis, a.streakAlert {
-                    Text("⚠️ FATIGUE \(a.consecutiveLowDays)J")
+                if data.streakAlert {
+                    Text("⚠️ FATIGUE \(data.consecutiveLowDays)J")
                         .font(.system(size: 10, weight: .black)).foregroundColor(.red)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(Color.red.opacity(0.12)).clipShape(Capsule())
@@ -526,41 +527,38 @@ struct HRVBaselineCard: View {
 
             // ── Métriques ─────────────────────────────────────────────────────
             HStack(spacing: 16) {
-                if let today = data.todayHrv {
+                if let today = data.todayRmssd {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("AUJOURD'HUI").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                         HStack(spacing: 3) {
                             Text(String(format: "%.0f ms", today))
                                 .font(.system(size: 18, weight: .black)).foregroundColor(accentColor)
-                            if let a = analysis {
-                                Text(a.trendArrow).font(.system(size: 13, weight: .bold)).foregroundColor(a.trendColor)
-                            }
+                            Text(data.trendArrow).font(.system(size: 13, weight: .bold)).foregroundColor(data.trendColor)
                         }
                     }
                 }
-                if let avg7 = analysis?.hrv7dAvg {
+                if let avg7 = data.hrv7dAvg {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("MOY. 7J").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.0f ms", avg7))
                             .font(.system(size: 18, weight: .black)).foregroundColor(.white.opacity(0.8))
                     }
                 }
-                if let baseline = data.baseline {
+                if let baseline = data.hrv30dAvg {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("BASELINE 28J").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text("BASELINE 30J").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.0f ms", baseline))
                             .font(.system(size: 18, weight: .black)).foregroundColor(.cyan)
                     }
                 }
-                if let cv = analysis?.hrvCv {
+                if let cv = data.hrvCv {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("CV 30J").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.0f%%", cv))
                             .font(.system(size: 18, weight: .black))
                             .foregroundColor(cv < 10 ? .green : cv < 20 ? .orange : .red)
                     }
-                }
-                if let sd = data.sd, analysis?.hrvCv == nil {
+                } else if let sd = data.sd30d {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("±SD").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
                         Text(String(format: "%.0f ms", sd))
@@ -571,7 +569,7 @@ struct HRVBaselineCard: View {
             }
 
             // ── Score normalisé ───────────────────────────────────────────────
-            if let a = analysis, let score = a.hrvScore, a.baselineAvailable {
+            if let score = data.hrvScore, data.baselineAvailable {
                 HStack(spacing: 6) {
                     Text(String(format: "%.0f%%", score))
                         .font(.system(size: 22, weight: .black)).foregroundColor(accentColor)
@@ -581,21 +579,17 @@ struct HRVBaselineCard: View {
             }
 
             // ── Message contextuel ────────────────────────────────────────────
-            if let msg = analysis?.contextualMessage {
+            if let msg = data.contextualMessage {
                 Text(msg)
                     .font(.system(size: 12))
-                    .foregroundColor(analysis?.hrvZone == "red" ? .red.opacity(0.9) : .gray)
+                    .foregroundColor(data.hrvZone == "red" ? .red.opacity(0.9) : .gray)
                     .fixedSize(horizontal: false, vertical: true)
-            } else if let msg = data.message {
-                Text(msg)
-                    .font(.system(size: 12)).foregroundColor(.red.opacity(0.9))
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if let dev = data.deviation {
-                Text(dev >= 0 ? String(format: "+%.0f ms vs baseline 28j", dev) : String(format: "%.0f ms vs baseline 28j", dev))
+            } else if let dev = data.deviationFrom30d {
+                Text(dev >= 0 ? String(format: "+%.0f ms vs baseline 30j", dev) : String(format: "%.0f ms vs baseline 30j", dev))
                     .font(.system(size: 11)).foregroundColor(dev >= 0 ? .green : .orange)
             }
 
-            Text("\(data.dataPoints) jours (baseline 28j) · \(analysis?.dataPoints30d ?? 0) jours au total")
+            Text("\(data.dataPoints30d) jours de données (30j)")
                 .font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
         }
         .padding(14)
