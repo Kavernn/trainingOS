@@ -400,8 +400,7 @@ struct WeightHistoryEntry: Codable {
 
 // MARK: - HIIT
 struct HIITEntry: Codable, Identifiable {
-    private let _uuid = UUID()
-    var id: String { _uuid.uuidString }
+    let id: String
     let date: String?
     let sessionType: String?
     let rounds: Int?
@@ -410,11 +409,34 @@ struct HIITEntry: Codable, Identifiable {
     let rpe: Double?
     let notes: String?
 
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        date        = try c.decodeIfPresent(String.self,  forKey: .date)
+        sessionType = try c.decodeIfPresent(String.self,  forKey: .sessionType)
+        rounds      = try c.decodeIfPresent(Int.self,     forKey: .rounds)
+        workTime    = try c.decodeIfPresent(Int.self,     forKey: .workTime)
+        restTime    = try c.decodeIfPresent(Int.self,     forKey: .restTime)
+        rpe         = try c.decodeIfPresent(Double.self,  forKey: .rpe)
+        notes       = try c.decodeIfPresent(String.self,  forKey: .notes)
+        id          = UUID().uuidString
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(date,        forKey: .date)
+        try c.encodeIfPresent(sessionType, forKey: .sessionType)
+        try c.encodeIfPresent(rounds,      forKey: .rounds)
+        try c.encodeIfPresent(workTime,    forKey: .workTime)
+        try c.encodeIfPresent(restTime,    forKey: .restTime)
+        try c.encodeIfPresent(rpe,         forKey: .rpe)
+        try c.encodeIfPresent(notes,       forKey: .notes)
+    }
+
     enum CodingKeys: String, CodingKey {
         case date, rounds, rpe, notes
         case sessionType = "session_type"
-        case workTime = "work_time"
-        case restTime = "rest_time"
+        case workTime    = "work_time"
+        case restTime    = "rest_time"
     }
 }
 
@@ -651,7 +673,7 @@ enum UnifiedCardioEntry: Identifiable {
 
 // MARK: - Cardio
 struct CardioEntry: Codable, Identifiable {
-    var id: String { (date ?? "") + (type ?? "") }
+    let id: String
     let date: String?
     let type: String?
     let durationMin: Double?
@@ -668,6 +690,45 @@ struct CardioEntry: Codable, Identifiable {
     let paceAvgSeconds: Int?
     let gpsPoints: [[String: Double]]?
     let routeEncoded: String?
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        date           = try c.decodeIfPresent(String.self,             forKey: .date)
+        type           = try c.decodeIfPresent(String.self,             forKey: .type)
+        durationMin    = try c.decodeIfPresent(Double.self,             forKey: .durationMin)
+        distanceKm     = try c.decodeIfPresent(Double.self,             forKey: .distanceKm)
+        avgPace        = try c.decodeIfPresent(String.self,             forKey: .avgPace)
+        avgHr          = try c.decodeIfPresent(Double.self,             forKey: .avgHr)
+        cadence        = try c.decodeIfPresent(Double.self,             forKey: .cadence)
+        calories       = try c.decodeIfPresent(Double.self,             forKey: .calories)
+        rpe            = try c.decodeIfPresent(Double.self,             forKey: .rpe)
+        notes          = try c.decodeIfPresent(String.self,             forKey: .notes)
+        startTime      = try c.decodeIfPresent(String.self,             forKey: .startTime)
+        endTime        = try c.decodeIfPresent(String.self,             forKey: .endTime)
+        paceAvgSeconds = try c.decodeIfPresent(Int.self,                forKey: .paceAvgSeconds)
+        gpsPoints      = try c.decodeIfPresent([[String: Double]].self, forKey: .gpsPoints)
+        routeEncoded   = try c.decodeIfPresent(String.self,             forKey: .routeEncoded)
+        id             = UUID().uuidString
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(date,           forKey: .date)
+        try c.encodeIfPresent(type,           forKey: .type)
+        try c.encodeIfPresent(durationMin,    forKey: .durationMin)
+        try c.encodeIfPresent(distanceKm,     forKey: .distanceKm)
+        try c.encodeIfPresent(avgPace,        forKey: .avgPace)
+        try c.encodeIfPresent(avgHr,          forKey: .avgHr)
+        try c.encodeIfPresent(cadence,        forKey: .cadence)
+        try c.encodeIfPresent(calories,       forKey: .calories)
+        try c.encodeIfPresent(rpe,            forKey: .rpe)
+        try c.encodeIfPresent(notes,          forKey: .notes)
+        try c.encodeIfPresent(startTime,      forKey: .startTime)
+        try c.encodeIfPresent(endTime,        forKey: .endTime)
+        try c.encodeIfPresent(paceAvgSeconds, forKey: .paceAvgSeconds)
+        try c.encodeIfPresent(gpsPoints,      forKey: .gpsPoints)
+        try c.encodeIfPresent(routeEncoded,   forKey: .routeEncoded)
+    }
 
     enum CodingKeys: String, CodingKey {
         case date, type, rpe, notes, cadence, calories
