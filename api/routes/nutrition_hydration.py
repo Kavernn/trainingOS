@@ -19,6 +19,9 @@ def api_hydration():
 
     if request.method == "GET":
         profile    = _db.get_profile() or {}
+        latest_bw  = _db.get_body_weight_logs(limit=1)
+        if latest_bw:
+            profile["weight"] = latest_bw[0].get("weight") or profile.get("weight")
         weight_lbs = float(profile.get("weight") or 0)
         weight_kg  = weight_lbs * 0.453592 if weight_lbs else 75.0
         base_ml    = round(weight_kg * 35)

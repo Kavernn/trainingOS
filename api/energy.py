@@ -179,6 +179,9 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
 
     # ── Profil ────────────────────────────────────────────────────────────────
     profile    = db.get_profile() or {}
+    latest_bw  = db.get_body_weight_logs(limit=1)
+    if latest_bw:
+        profile["weight"] = latest_bw[0].get("weight") or profile.get("weight")
     weight_lbs = profile.get("weight")
     height_cm  = float(profile.get("height") or 0) or None
     age        = int(profile.get("age") or 0) or None

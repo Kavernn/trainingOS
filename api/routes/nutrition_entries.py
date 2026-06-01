@@ -94,6 +94,9 @@ def api_nutrition_tdee():
     from nutrition import save_settings as save_nutrition_settings
 
     profile = _db.get_profile() or {}
+    latest_bw = _db.get_body_weight_logs(limit=1)
+    if latest_bw:
+        profile["weight"] = latest_bw[0].get("weight") or profile.get("weight")
     tdee_data = compute_tdee(profile)
     if not tdee_data:
         return jsonify({"error": "Profil incomplet — renseigne poids, taille et âge."}), 422
