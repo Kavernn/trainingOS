@@ -827,26 +827,6 @@ struct ProfileView: View {
                         detail: profile?.goal.flatMap { $0.isEmpty ? nil : $0 },
                         action: { showEdit = true })
             settingsDivider
-            settingsRow(icon: "scalemass.fill",      color: .orange,  label: "Unités",         detail: "lbs",  action: nil)
-            settingsDivider
-            settingsRow(icon: "bell.fill",           color: .blue,    label: "Notifications",  detail: nil,    action: nil)
-            settingsDivider
-            // Notifications — central control
-            NavigationLink(destination: NotificationCenterView()) {
-                HStack(spacing: 12) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 7).fill(Color.purple.opacity(0.18)).frame(width: 30, height: 30)
-                        Image(systemName: "bell.badge.fill").font(.system(size: 13, weight: .semibold)).foregroundColor(.purple)
-                    }
-                    Text("Notifications")
-                        .font(.system(size: 15)).foregroundColor(.white)
-                    Spacer()
-                    Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray.opacity(0.4))
-                }
-                .padding(.horizontal, 14).padding(.vertical, 14)
-            }
-            .buttonStyle(.plain)
-            settingsDivider
             settingsRow(icon: "waveform.path.ecg", color: .cyan, label: "Revoir l'intro HRV", detail: nil, action: {
                 hrvOnboardingDone = false
                 showHRVOnboarding = true
@@ -860,10 +840,6 @@ struct ProfileView: View {
                 graveyardRow
             }
             .buttonStyle(PlainButtonStyle())
-            settingsDivider
-            settingsRow(icon: "person.crop.circle",  color: .purple,  label: "Compte",         detail: nil,    action: {
-                showEdit = true
-            })
         }
         .background(Color.appCard)
         .cornerRadius(16)

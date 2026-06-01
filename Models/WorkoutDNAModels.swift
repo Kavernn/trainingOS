@@ -8,14 +8,16 @@ struct WorkoutDNAResponse: Codable {
     let consistency: DNAConsistency
     let recovery: DNARecovery
     let signatureLifts: [DNASignatureLift]
+    let muscleDominants: [DNAMuscleDominant]?
     let dnaSeed: String
     let computedAt: String
 
     enum CodingKeys: String, CodingKey {
         case period, archetype, ppl, intensity, consistency, recovery
-        case signatureLifts = "signature_lifts"
-        case dnaSeed        = "dna_seed"
-        case computedAt     = "computed_at"
+        case signatureLifts  = "signature_lifts"
+        case muscleDominants = "muscle_dominants"
+        case dnaSeed         = "dna_seed"
+        case computedAt      = "computed_at"
     }
 }
 
@@ -101,6 +103,12 @@ struct DNARecovery: Codable {
         case avgRestDays     = "avg_rest_days"
         case optimalRestDays = "optimal_rest_days"
     }
+}
+
+struct DNAMuscleDominant: Codable {
+    let muscle: String
+    let sets: Int
+    let pct: Int
 }
 
 struct DNASignatureLift: Codable, Identifiable {

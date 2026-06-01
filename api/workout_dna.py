@@ -50,8 +50,8 @@ def _classify_ppl(category: str) -> str:
     return "other"
 
 
-def _compute_ppl(history: dict, ex_info: dict) -> dict:
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat()
+def _compute_ppl(history: dict, ex_info: dict, period_days: int = 90) -> dict:
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
     counts = {"push": 0, "pull": 0, "legs": 0, "core": 0, "other": 0}
 
     for name, entries in history.items():
@@ -96,8 +96,8 @@ def _compute_ppl(history: dict, ex_info: dict) -> dict:
 
 # ── 2. Intensity Profile ──────────────────────────────────────────────────────
 
-def _compute_intensity(history: dict, ex_info: dict) -> dict:
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat()
+def _compute_intensity(history: dict, ex_info: dict, period_days: int = 90) -> dict:
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
     zone_counts = {"strength": 0, "power": 0, "hypertrophy": 0, "endurance": 0, "conditioning": 0}
     compound_sets = isolation_sets = 0
     weighted: list[float] = []
@@ -105,6 +105,8 @@ def _compute_intensity(history: dict, ex_info: dict) -> dict:
     for name, entries in history.items():
         profile    = (ex_info.get(name, {}).get("load_profile") or "").lower()
         load_score = _LOAD_SCORE.get(profile, 50)
+        if not profile:
+            logger.warning("load_profile manquant pour '%s', fallback 50", name)
         is_compound = "compound" in profile
         w_factor    = 1.3 if is_compound else 0.85
 
@@ -113,6 +115,7 @@ def _compute_intensity(history: dict, ex_info: dict) -> dict:
                 continue
             default_reps = int(str(e.get("reps") or "8").split(",")[0].strip() or 8)
             sets_list    = e.get("sets")
+            rpe          = e.get("rpe")
 
             iter_reps: list[int] = []
             if isinstance(sets_list, list):
@@ -123,7 +126,11 @@ def _compute_intensity(history: dict, ex_info: dict) -> dict:
                 iter_reps = [default_reps]
 
             for r in iter_reps:
-                score = (_rep_score(r) * 0.6 + load_score * 0.4) * w_factor
+                if rpe and isinstance(rpe, (int, float)) and 1 <= rpe <= 10:
+                    rpe_score = (rpe / 10) * 100
+                    score = (_rep_score(r) * 0.50 + load_score * 0.30 + rpe_score * 0.20) * w_factor
+                else:
+                    score = (_rep_score(r) * 0.60 + load_score * 0.40) * w_factor
                 weighted.append(score)
                 if is_compound: compound_sets += 1
                 else:           isolation_sets += 1
@@ -160,10 +167,10 @@ def _compute_intensity(history: dict, ex_info: dict) -> dict:
 
 # ── 3. Consistency ────────────────────────────────────────────────────────────
 
-def _compute_consistency() -> dict:
+def _compute_consistency(period_days: int = 90) -> dict:
     if db._client is None:
         return {}
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
     try:
         resp  = db._client.table("workout_sessions").select("date").gte("date", cutoff).order("date").execute()
         rows  = resp.data or []
@@ -208,7 +215,7 @@ def _compute_consistency() -> dict:
     prev = None
     for d_str in dates:
         d = date_cls.fromisoformat(d_str)
-        run = run + 1 if (prev and (d - prev).days <= 2) else 1
+        run = run + 1 if (prev and (d - prev).days <= 1) else 1
         longest = max(longest, run)
         prev = d
 
@@ -234,10 +241,10 @@ def _compute_consistency() -> dict:
 
 # ── 4. Recovery Profile ───────────────────────────────────────────────────────
 
-def _compute_recovery(intensity_score: int) -> dict:
+def _compute_recovery(intensity_score: int, period_days: int = 90) -> dict:
     if db._client is None:
         return {}
-    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat()
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
     try:
         resp  = db._client.table("workout_sessions").select("date").gte("date", cutoff).order("date").execute()
         dates = sorted(set(r["date"] for r in (resp.data or []) if r.get("date")))
@@ -298,7 +305,7 @@ def _compute_signature_lifts(history: dict) -> list:
             if d >= cutoff_30:
                 recency += 1
 
-        if pr_weight == 0 or len(session_dates) < 3:
+        if pr_weight == 0 or len(session_dates) < 2:
             continue
 
         prog = round((pr_weight - first_weight) / first_weight * 100, 1) \
@@ -320,6 +327,29 @@ def _compute_signature_lifts(history: dict) -> list:
     for r in ranked:
         del r["_score"]
     return ranked
+
+
+# ── 6. Muscle Dominants ───────────────────────────────────────────────────────
+
+def _compute_muscle_dominants(history: dict, ex_info: dict, period_days: int = 90) -> list:
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
+    muscle_sets: dict[str, int] = {}
+
+    for name, entries in history.items():
+        muscles = ex_info.get(name, {}).get("muscles") or []
+        if not muscles:
+            continue
+        for e in entries:
+            if (e.get("date") or "") < cutoff:
+                continue
+            sets_list = e.get("sets")
+            n_sets = len(sets_list) if isinstance(sets_list, list) else 1
+            for muscle in muscles:
+                muscle_sets[muscle] = muscle_sets.get(muscle, 0) + n_sets
+
+    total  = sum(muscle_sets.values()) or 1
+    ranked = sorted(muscle_sets.items(), key=lambda x: x[1], reverse=True)[:6]
+    return [{"muscle": m, "sets": s, "pct": round(s / total * 100)} for m, s in ranked]
 
 
 # ── Archetype ─────────────────────────────────────────────────────────────────
@@ -355,9 +385,10 @@ def _dna_seed(ppl: dict, intensity: dict, consistency: dict, recovery: dict) -> 
 
 # ── Public ────────────────────────────────────────────────────────────────────
 
-def compute() -> dict:
-    now_ts = datetime.now(timezone.utc).timestamp()
-    cached = _CACHE.get("dna")
+def compute(period_days: int = 90) -> dict:
+    now_ts    = datetime.now(timezone.utc).timestamp()
+    cache_key = f"dna_{period_days}"
+    cached    = _CACHE.get(cache_key)
     if cached and (now_ts - cached["ts"]) < _CACHE_TTL:
         return cached["data"]
 
@@ -365,27 +396,29 @@ def compute() -> dict:
         history  = db.get_all_exercise_history()
         ex_info  = db.get_exercises_info_bulk(list(history.keys()))
 
-        ppl         = _compute_ppl(history, ex_info)
-        intensity   = _compute_intensity(history, ex_info)
-        consistency = _compute_consistency()
-        recovery    = _compute_recovery(intensity.get("score", 50))
-        lifts       = _compute_signature_lifts(history)
-        arch        = _archetype(ppl, intensity, consistency)
-        seed        = _dna_seed(ppl, intensity, consistency, recovery)
+        ppl              = _compute_ppl(history, ex_info, period_days)
+        intensity        = _compute_intensity(history, ex_info, period_days)
+        consistency      = _compute_consistency(period_days)
+        recovery         = _compute_recovery(intensity.get("score", 50), period_days)
+        lifts            = _compute_signature_lifts(history)
+        muscle_dominants = _compute_muscle_dominants(history, ex_info, period_days)
+        arch             = _archetype(ppl, intensity, consistency)
+        seed             = _dna_seed(ppl, intensity, consistency, recovery)
 
         result = {
-            "period":          {"from": (date_cls.fromisoformat(_today_mtl()) - timedelta(days=90)).isoformat(),
-                                "to":   date_cls.fromisoformat(_today_mtl()).isoformat()},
-            "archetype":       arch,
-            "ppl":             ppl,
-            "intensity":       intensity,
-            "consistency":     consistency,
-            "recovery":        recovery,
-            "signature_lifts": lifts,
-            "dna_seed":        seed,
-            "computed_at":     datetime.now(timezone.utc).isoformat(),
+            "period":            {"from": (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat(),
+                                  "to":   date_cls.fromisoformat(_today_mtl()).isoformat()},
+            "archetype":         arch,
+            "ppl":               ppl,
+            "intensity":         intensity,
+            "consistency":       consistency,
+            "recovery":          recovery,
+            "signature_lifts":   lifts,
+            "muscle_dominants":  muscle_dominants,
+            "dna_seed":          seed,
+            "computed_at":       datetime.now(timezone.utc).isoformat(),
         }
-        _CACHE["dna"] = {"data": result, "ts": now_ts}
+        _CACHE[cache_key] = {"data": result, "ts": now_ts}
         return result
 
     except Exception as e:

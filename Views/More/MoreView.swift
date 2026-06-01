@@ -3,8 +3,6 @@ import SwiftUI
 struct MoreView: View {
     @ObservedObject private var api      = APIService.shared
     @ObservedObject private var appState = AppState.shared
-    @AppStorage("auto_start_rest_timer") private var autoStartTimer = false
-    @AppStorage("show_rir_column") private var showRIRColumn = false
     @State private var phoenixStreak: Int = 0
     @State private var showRitual = false
     @State private var showNutritionDirect = false
@@ -78,18 +76,11 @@ struct MoreView: View {
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
                     Section("Réglages") {
+                        MoreRow(icon: "gearshape.fill",   color: .purple, title: "Paramètres",
+                                subtitle: "Entraînement, nutrition, récupération…") { SettingsView() }
                         MoreRow(icon: "person.fill",      color: .purple, title: "Profil")        { ProfileView() }
-                        MoreRow(icon: "bell.badge.fill",  color: .purple, title: "Notifications", subtitle: "Gérer tous les rappels") { NotificationCenterView() }
-                        Toggle(isOn: $autoStartTimer) {
-                            Label("Timer automatique entre les sets", systemImage: "timer")
-                        }
-                        .tint(.orange)
-                        Toggle(isOn: $showRIRColumn) {
-                            Label("Afficher la colonne RIR", systemImage: "gauge.medium")
-                        }
-                        .tint(.orange)
-                        MoreRow(icon: "shippingbox.fill", color: .gray, title: "Inventaire") { InventaireView() }
-                        MoreRow(icon: "note.text",        color: .blue, title: "Notes")      { NotesView() }
+                        MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Inventaire")    { InventaireView() }
+                        MoreRow(icon: "note.text",        color: .blue,   title: "Notes")         { NotesView() }
                     }
                     .listRowBackground(glassRowBG(.gray))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
@@ -99,15 +90,6 @@ struct MoreView: View {
             }
             .navigationTitle("Plus")
             .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: SettingsView()) {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white.opacity(0.8))
-                    }
-                }
-            }
             .task {
                 phoenixStreak = (try? await APIService.shared.fetchPhoenixStats())?.phoenixStreak ?? 0
             }

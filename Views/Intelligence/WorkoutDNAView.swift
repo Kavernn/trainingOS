@@ -35,6 +35,7 @@ struct WorkoutDNASection: View {
     @State private var dna: WorkoutDNAResponse? = nil
     @State private var isLoading = false
     @State private var showDetail = false
+    @State private var loadError = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -67,6 +68,12 @@ struct WorkoutDNASection: View {
                 DNASkeleton()
             } else if let d = dna {
                 DNACompactCard(dna: d) { showDetail = true }
+            } else if loadError {
+                DNAErrorState {
+                    loadError = false
+                    dna = nil
+                    Task { await load() }
+                }
             } else {
                 DNAEmptyState { Task { await load() } }
             }
@@ -80,7 +87,11 @@ struct WorkoutDNASection: View {
     private func load() async {
         guard dna == nil else { return }
         isLoading = true
-        dna       = try? await APIService.shared.fetchWorkoutDNA()
+        do {
+            dna = try await APIService.shared.fetchWorkoutDNA()
+        } catch {
+            loadError = true
+        }
         isLoading = false
     }
 }
@@ -243,38 +254,63 @@ struct DNAHelixCanvas: View {
 struct WorkoutDNADetailSheet: View {
     let dna: WorkoutDNAResponse
     @Environment(\.dismiss) private var dismiss
-    @State private var showShare = false
-    @State private var appear   = false
+    @State private var showShare      = false
+    @State private var appear         = false
+    @State private var selectedPeriod = 90
+    @State private var detailDNA: WorkoutDNAResponse
+    @State private var isReloading    = false
 
-    private var accent: Color { archetypeAccent(dna.archetype.key) }
+    init(dna: WorkoutDNAResponse) {
+        self.dna = dna
+        self._detailDNA = State(initialValue: dna)
+    }
+
+    private var d: WorkoutDNAResponse { detailDNA }
+    private var accent: Color { archetypeAccent(d.archetype.key) }
 
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 20) {
 
+                    // ── Period picker ─────────────────────────────────────
+                    Picker("Période", selection: $selectedPeriod) {
+                        Text("30j").tag(30)
+                        Text("90j").tag(90)
+                        Text("180j").tag(180)
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 4)
+                    .disabled(isReloading)
+                    .opacity(appear ? 1 : 0)
+                    .animation(.easeOut(duration: 0.35), value: appear)
+
                     // ── Hero: helix + archetype ───────────────────────────
                     ZStack(alignment: .bottom) {
-                        DNAHelixCanvas(dna: dna, height: 220)
+                        DNAHelixCanvas(dna: d, height: 220)
                             .frame(maxWidth: .infinity)
                             .opacity(appear ? 1 : 0)
                             .animation(.easeIn(duration: 0.8), value: appear)
                             .accessibilityHidden(true)
 
-                        // Gradient fade over helix bottom
                         LinearGradient(colors: [.clear, Color.appBg], startPoint: .top, endPoint: .bottom)
                             .frame(height: 80)
 
                         VStack(spacing: 4) {
-                            Text(dna.archetype.label)
-                                .font(.system(size: 28, weight: .black, design: .rounded))
-                                .foregroundColor(.white)
-                                .minimumScaleFactor(0.8)
-                            Text(dna.archetype.tagline)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(accent)
-                                .italic()
-                                .minimumScaleFactor(0.8)
+                            if isReloading {
+                                ProgressView().tint(accent).padding(.bottom, 8)
+                            } else {
+                                Text(d.archetype.label)
+                                    .font(.system(size: 28, weight: .black, design: .rounded))
+                                    .foregroundColor(.white)
+                                    .minimumScaleFactor(0.8)
+                                Text(d.archetype.tagline)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(accent)
+                                    .italic()
+                                    .minimumScaleFactor(0.8)
+                            }
                         }
                         .padding(.bottom, 8)
                         .opacity(appear ? 1 : 0)
@@ -284,16 +320,16 @@ struct WorkoutDNADetailSheet: View {
                     // ── PPL Balance ───────────────────────────────────────
                     DNASectionCard(title: "RÉPARTITION", accent: accent) {
                         VStack(spacing: 10) {
-                            PPLBalanceChart(ppl: dna.ppl, accent: accent)
+                            PPLBalanceChart(ppl: d.ppl, accent: accent)
                             HStack {
-                                Image(systemName: dna.ppl.balanceScore >= 70 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                                    .foregroundColor(dna.ppl.balanceScore >= 70 ? .green : .orange)
+                                Image(systemName: d.ppl.balanceScore >= 70 ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                                    .foregroundColor(d.ppl.balanceScore >= 70 ? .green : .orange)
                                     .font(.system(size: 13))
-                                Text(dna.ppl.verdict)
+                                Text(d.ppl.verdict)
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(.white.opacity(0.85))
                                 Spacer()
-                                Text("Score \(dna.ppl.balanceScore)/100")
+                                Text("Score \(d.ppl.balanceScore)/100")
                                     .font(.system(size: 11))
                                     .foregroundColor(.gray)
                             }
@@ -305,18 +341,18 @@ struct WorkoutDNADetailSheet: View {
                     // ── Intensity ─────────────────────────────────────────
                     DNASectionCard(title: "PROFIL D'INTENSITÉ", accent: accent) {
                         VStack(spacing: 12) {
-                            IntensitySlider(score: dna.intensity.score)
+                            IntensitySlider(score: d.intensity.score)
                             HStack {
-                                IntensityZonePill(label: "Force", pct: dna.intensity.forcePct, color: Color(red: 0.31, green: 0.43, blue: 0.97))
-                                IntensityZonePill(label: "Hypertrophie", pct: dna.intensity.hypertrophyPct, color: Color(red: 0.66, green: 0.33, blue: 0.97))
-                                IntensityZonePill(label: "Endurance", pct: dna.intensity.endurancePct, color: Color(red: 0.20, green: 0.70, blue: 0.98))
+                                IntensityZonePill(label: "Force", pct: d.intensity.forcePct, color: Color(red: 0.31, green: 0.43, blue: 0.97))
+                                IntensityZonePill(label: "Hypertrophie", pct: d.intensity.hypertrophyPct, color: Color(red: 0.66, green: 0.33, blue: 0.97))
+                                IntensityZonePill(label: "Endurance", pct: d.intensity.endurancePct, color: Color(red: 0.20, green: 0.70, blue: 0.98))
                             }
                             HStack {
-                                Text(dna.intensity.label)
+                                Text(d.intensity.label)
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(.white)
                                 Spacer()
-                                Text("Compound \(dna.intensity.compoundPct)%")
+                                Text("Compound \(d.intensity.compoundPct)%")
                                     .font(.system(size: 11))
                                     .foregroundColor(.gray)
                             }
@@ -325,64 +361,95 @@ struct WorkoutDNADetailSheet: View {
                     .opacity(appear ? 1 : 0)
                     .animation(.easeOut(duration: 0.5).delay(0.25), value: appear)
 
+                    // ── Muscle Dominants ──────────────────────────────────
+                    if let muscles = d.muscleDominants, !muscles.isEmpty {
+                        DNASectionCard(title: "MUSCLES DOMINANTS", accent: accent) {
+                            VStack(spacing: 7) {
+                                ForEach(muscles, id: \.muscle) { m in
+                                    HStack(spacing: 10) {
+                                        Text(m.muscle.capitalized)
+                                            .font(.system(size: 12, weight: .semibold))
+                                            .foregroundColor(.gray)
+                                            .frame(width: 80, alignment: .leading)
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule().fill(Color.white.opacity(0.06))
+                                                Capsule()
+                                                    .fill(accent)
+                                                    .frame(width: geo.size.width * CGFloat(m.pct) / 100)
+                                            }
+                                        }
+                                        .frame(height: 8)
+                                        Text("\(m.pct)%")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(accent)
+                                            .frame(width: 32, alignment: .trailing)
+                                    }
+                                }
+                            }
+                        }
+                        .opacity(appear ? 1 : 0)
+                        .animation(.easeOut(duration: 0.5).delay(0.32), value: appear)
+                    }
+
                     // ── Consistency ───────────────────────────────────────
                     DNASectionCard(title: "CONSTANCE", accent: accent) {
                         VStack(spacing: 12) {
-                            ConsistencyGrid(counts: dna.consistency.weeklyCounts, accent: accent)
+                            ConsistencyGrid(counts: d.consistency.weeklyCounts, accent: accent)
                             HStack(spacing: 16) {
-                                ConsistencyStat(label: "par semaine",  value: String(format: "%.1f", dna.consistency.sessionsPerWeek))
-                                ConsistencyStat(label: "streak actuel", value: "\(dna.consistency.currentStreak)j")
-                                ConsistencyStat(label: "record",        value: "\(dna.consistency.longestStreak)j")
+                                ConsistencyStat(label: "par semaine",   value: String(format: "%.1f", d.consistency.sessionsPerWeek))
+                                ConsistencyStat(label: "streak actuel", value: "\(d.consistency.currentStreak)j")
+                                ConsistencyStat(label: "record",        value: "\(d.consistency.longestStreak)j")
                             }
                             HStack {
-                                Text(dna.consistency.archetype)
+                                Text(d.consistency.archetype)
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundColor(accent)
                                 Spacer()
-                                Text("\(dna.consistency.activeWeeksPct)% semaines actives")
+                                Text("\(d.consistency.activeWeeksPct)% semaines actives")
                                     .font(.system(size: 11))
                                     .foregroundColor(.gray)
                             }
                         }
                     }
                     .opacity(appear ? 1 : 0)
-                    .animation(.easeOut(duration: 0.5).delay(0.35), value: appear)
+                    .animation(.easeOut(duration: 0.5).delay(0.40), value: appear)
 
                     // ── Recovery ──────────────────────────────────────────
                     DNASectionCard(title: "RÉCUPÉRATION", accent: accent) {
                         VStack(spacing: 10) {
-                            RecoveryIndicator(recovery: dna.recovery)
+                            RecoveryIndicator(recovery: d.recovery)
                             HStack {
-                                Image(systemName: dna.recovery.verdict == "Optimal" ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                                    .foregroundColor(dna.recovery.verdict == "Optimal" ? .green : .orange)
+                                Image(systemName: d.recovery.verdict == "Optimal" ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                                    .foregroundColor(d.recovery.verdict == "Optimal" ? .green : .orange)
                                     .font(.system(size: 13))
-                                Text(dna.recovery.verdict)
+                                Text(d.recovery.verdict)
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(.white.opacity(0.85))
                                 Spacer()
-                                Text("Optimal: \(String(format: "%.1f", dna.recovery.optimalRestDays))j")
+                                Text("Optimal: \(String(format: "%.1f", d.recovery.optimalRestDays))j")
                                     .font(.system(size: 11))
                                     .foregroundColor(.gray)
                             }
                         }
                     }
                     .opacity(appear ? 1 : 0)
-                    .animation(.easeOut(duration: 0.5).delay(0.45), value: appear)
+                    .animation(.easeOut(duration: 0.5).delay(0.50), value: appear)
 
                     // ── Signature Lifts ───────────────────────────────────
-                    if !dna.signatureLifts.isEmpty {
+                    if !d.signatureLifts.isEmpty {
                         DNASectionCard(title: "SIGNATURE LIFTS", accent: accent) {
                             VStack(spacing: 0) {
-                                ForEach(dna.signatureLifts.indices, id: \.self) { i in
-                                    SignatureLiftRow(lift: dna.signatureLifts[i], rank: i + 1, accent: accent)
-                                    if i < dna.signatureLifts.count - 1 {
+                                ForEach(d.signatureLifts.indices, id: \.self) { i in
+                                    SignatureLiftRow(lift: d.signatureLifts[i], rank: i + 1, accent: accent)
+                                    if i < d.signatureLifts.count - 1 {
                                         Divider().background(Color.white.opacity(0.05)).padding(.horizontal, 4)
                                     }
                                 }
                             }
                         }
                         .opacity(appear ? 1 : 0)
-                        .animation(.easeOut(duration: 0.5).delay(0.55), value: appear)
+                        .animation(.easeOut(duration: 0.5).delay(0.60), value: appear)
                     }
 
                     // ── Share CTA ─────────────────────────────────────────
@@ -402,7 +469,7 @@ struct WorkoutDNADetailSheet: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 32)
                     .opacity(appear ? 1 : 0)
-                    .animation(.easeIn(duration: 0.4).delay(0.65), value: appear)
+                    .animation(.easeIn(duration: 0.4).delay(0.70), value: appear)
                 }
             }
             .background(Color.appBg.ignoresSafeArea())
@@ -417,7 +484,18 @@ struct WorkoutDNADetailSheet: View {
             }
         }
         .onAppear { withAnimation { appear = true } }
-        .sheet(isPresented: $showShare) { WorkoutDNAShareSheet(dna: dna) }
+        .onChange(of: selectedPeriod) { _, period in
+            Task { await reloadForPeriod(period) }
+        }
+        .sheet(isPresented: $showShare) { WorkoutDNAShareSheet(dna: d) }
+    }
+
+    private func reloadForPeriod(_ period: Int) async {
+        isReloading = true
+        if let newDNA = try? await APIService.shared.fetchWorkoutDNA(period: period) {
+            detailDNA = newDNA
+        }
+        isReloading = false
     }
 }
 
@@ -853,6 +931,25 @@ private struct DNAEmptyState: View {
                 .font(.system(size: 13, weight: .medium)).foregroundColor(.gray)
             Button(action: onLoad) {
                 Text("Générer mon DNA")
+                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    .background(Color.white.opacity(0.08)).cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 20).padding(.horizontal, 16)
+    }
+}
+
+private struct DNAErrorState: View {
+    let onRetry: () -> Void
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle").font(.system(size: 26)).foregroundColor(.orange.opacity(0.7))
+            Text("Erreur de chargement")
+                .font(.system(size: 13, weight: .medium)).foregroundColor(.gray)
+            Button(action: onRetry) {
+                Text("Réessayer")
                     .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.white.opacity(0.08)).cornerRadius(8)
