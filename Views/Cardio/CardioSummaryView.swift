@@ -463,13 +463,15 @@ private struct StaticRouteMapView: View {
 
         let lats = coords.map(\.latitude)
         let lngs = coords.map(\.longitude)
+        guard let latMin = lats.min(), let latMax = lats.max(),
+              let lngMin = lngs.min(), let lngMax = lngs.max() else { return }
         let center = CLLocationCoordinate2D(
-            latitude:  (lats.min()! + lats.max()!) / 2,
-            longitude: (lngs.min()! + lngs.max()!) / 2
+            latitude:  (latMin + latMax) / 2,
+            longitude: (lngMin + lngMax) / 2
         )
         let span = MKCoordinateSpan(
-            latitudeDelta:  max((lats.max()! - lats.min()!) * 1.5, 0.002),
-            longitudeDelta: max((lngs.max()! - lngs.min()!) * 1.5, 0.002)
+            latitudeDelta:  max((latMax - latMin) * 1.5, 0.002),
+            longitudeDelta: max((lngMax - lngMin) * 1.5, 0.002)
         )
 
         let options = MKMapSnapshotter.Options()

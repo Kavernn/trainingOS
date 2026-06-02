@@ -421,13 +421,14 @@ enum CoachMemoryAnalyzer {
 
             guard points.count >= 3 else { continue }
 
-            let firstDate = points.first!.date
-            let lastDate = points.last!.date
+            guard let firstPoint = points.first, let lastPoint = points.last else { continue }
+            let firstDate = firstPoint.date
+            let lastDate  = lastPoint.date
 
             let days = lastDate.timeIntervalSince(firstDate) / 86400
             guard days >= 14 else { continue }
 
-            let gain = points.last!.weight - points.first!.weight
+            let gain = lastPoint.weight - firstPoint.weight
             let lbsPerWeek = gain / (days / 7)
 
             velocities.append(
@@ -528,10 +529,10 @@ enum CoachMemoryAnalyzer {
             let weights3 = recent.map { $0.weight }
             let reps3    = recent.map { $0.reps }
 
-            let weightFlat = weights3.max()! - weights3.min()! < 0.01
+            let weightFlat = (weights3.max() ?? 0) - (weights3.min() ?? 0) < 0.01
             // Reps stable ou en baisse = vrai plateau; reps en hausse = progression (double progression)
             let repsProgressing = reps3[0] > reps3[2]  // index 0 = le plus récent
-            let repsFlat = !repsProgressing && (reps3.max()! - reps3.min()! <= 1)
+            let repsFlat = !repsProgressing && ((reps3.max() ?? 0) - (reps3.min() ?? 0) <= 1)
 
             if weightFlat && repsFlat {
                 plateaus.append(
