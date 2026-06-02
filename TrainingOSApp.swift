@@ -156,10 +156,12 @@ struct TrainingOSApp: App {
     }
 
     var body: some Scene {
-        if let container = modelContainer {
-            WindowGroup { rootView }.modelContainer(container)
-        } else {
-            WindowGroup { rootView }
+        WindowGroup {
+            if let container = modelContainer {
+                rootView.modelContainer(container)
+            } else {
+                rootView
+            }
         }
     }
 }
