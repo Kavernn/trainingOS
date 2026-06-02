@@ -27,10 +27,10 @@ def api_log_hiit():
         "date":               today,
         "week":               week,
         "session_type":       session_type,
-        "rounds_planifies":   data.get("rounds", 0),
-        "rounds_completes":   data.get("rounds", 0),
-        "vitesse_max":        data.get("speed"),
-        "vitesse_croisiere":  data.get("vitesse_croisiere"),
+        "rounds_planned":     data.get("rounds", 0),
+        "rounds_completed":   data.get("rounds", 0),
+        "speed_max":          data.get("speed"),
+        "speed_cruise":       data.get("vitesse_croisiere"),
         "rpe":                data.get("rpe"),
         "feeling":            data.get("feeling", "—"),
         "comment":            data.get("comment", "")
@@ -83,7 +83,7 @@ def api_hiit_edit():
 
         patch = {}
         if "rpe"     in data: patch["rpe"]              = data["rpe"]
-        if "rounds"  in data: patch["rounds_completes"] = data["rounds"]
+        if "rounds"  in data: patch["rounds_completed"] = data["rounds"]
         if "notes"   in data: patch["comment"]          = data["notes"]
         if "feeling" in data: patch["feeling"]          = data["feeling"]
 
