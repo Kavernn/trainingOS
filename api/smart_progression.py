@@ -349,6 +349,9 @@ def _suggest_for_exercise(
             "fatigue_warning": False,
         }
 
+    if not default_scheme:
+        return None
+
     target_sets, rep_min, top_reps = _parse_scheme_full(default_scheme)
     if top_reps == 0:
         return None
