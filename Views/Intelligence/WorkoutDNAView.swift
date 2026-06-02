@@ -40,20 +40,29 @@ struct WorkoutDNASection: View {
     @State private var showShare       = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header row
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "waveform.path.ecg")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(dna.map { archetypeAccent($0.archetype.key) } ?? .gray)
-                    Text("WORKOUT DNA")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(Color(white: 0.40))
-                        .tracking(0.8)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 0) {
+                if isLoading {
+                    DNASkeleton().padding(.top, 40)
+                } else if let d = dna {
+                    WorkoutDNAInlineContent(dna: d, isReloading: isReloading, onShare: { showShare = true })
+                } else if loadError {
+                    DNAErrorState {
+                        loadError = false
+                        dna = nil
+                        Task { await load() }
+                    }
+                } else {
+                    DNAEmptyState { Task { await load() } }
                 }
-                Spacer()
-                if dna != nil {
+            }
+        }
+        .background(Color.appBg.ignoresSafeArea())
+        .navigationTitle("Workout DNA")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if dna != nil {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Picker("Période", selection: $selectedPeriod) {
                         Text("30j").tag(30)
                         Text("90j").tag(90)
@@ -63,23 +72,6 @@ struct WorkoutDNASection: View {
                     .frame(width: 130)
                     .disabled(isReloading)
                 }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 10)
-
-            if isLoading {
-                DNASkeleton()
-            } else if let d = dna {
-                WorkoutDNAInlineContent(dna: d, isReloading: isReloading, onShare: { showShare = true })
-            } else if loadError {
-                DNAErrorState {
-                    loadError = false
-                    dna = nil
-                    Task { await load() }
-                }
-            } else {
-                DNAEmptyState { Task { await load() } }
             }
         }
         .task { await load() }
