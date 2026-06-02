@@ -248,10 +248,19 @@ def upsert_recovery_log(data: dict) -> bool:
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return False
 
+    # Coerce SMALLINT/INT fields — HealthKit sends floats (e.g. 59.977 bpm)
+    _INT_FIELDS = ("resting_hr", "hr_morning", "hr_post_workout", "hr_evening",
+                   "steps", "sleep_quality", "soreness", "fatigue_perceived", "energy_pre")
+    payload = dict(data)
+    for field in _INT_FIELDS:
+        v = payload.get(field)
+        if v is not None:
+            payload[field] = int(round(float(v))) if v else None
+
     def _do() -> bool:
         resp = (
             db_core._client.table("recovery_logs")
-            .upsert(data, on_conflict="date")
+            .upsert(payload, on_conflict="date")
             .execute()
         )
         return bool(resp.data)
