@@ -140,11 +140,11 @@ private struct WorkoutDNAInlineContent: View {
     private var heroSection: some View {
         ZStack(alignment: .bottom) {
             DNAHelixCanvas(dna: dna, height: 160)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 160, maxHeight: 160)
                 .accessibilityHidden(true)
 
             LinearGradient(colors: [.clear, Color.appBg], startPoint: .top, endPoint: .bottom)
-                .frame(height: 60)
+                .frame(maxWidth: .infinity, maxHeight: 60)
 
             VStack(spacing: 4) {
                 if isReloading {
@@ -163,6 +163,7 @@ private struct WorkoutDNAInlineContent: View {
             }
             .padding(.bottom, 8)
         }
+        .frame(maxWidth: .infinity, minHeight: 160)
     }
 
     private var scorePillsSection: some View {
@@ -351,6 +352,7 @@ struct DNAHelixCanvas: View {
 
     var body: some View {
         Canvas { context, size in
+            guard size.width > 0, size.height > 0 else { return }
             let leftColor  = pplDominantColor(dna.ppl)
             let rightColor = intensityColor(dna.intensity.score)
             let spw        = max(1.0, dna.consistency.sessionsPerWeek)
