@@ -371,45 +371,46 @@ struct RecoveryView: View {
             columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
             spacing: 10
         ) {
-            RecoveryDayCell(icon: "moon.zzz.fill",
-                            value: entry?.sleepHours.map { String(format: "%.1fh", $0) } ?? "—",
-                            label: "Sommeil", color: .blue, isHK: true)
-            RecoveryDayCell(icon: "star.fill",
-                            value: entry?.sleepQuality.map { String(format: "%.1f/10", $0) } ?? "—",
-                            label: "Qualité sommeil", color: .purple, isHK: false)
-            RecoveryDayCell(icon: "heart.fill",
-                            value: entry?.restingHr.map { String(format: "%.0f bpm", $0) } ?? "—",
-                            label: "FC repos", color: .red, isHK: true)
-
-            RecoveryDayCell(icon: "waveform.path.ecg",
-                            value: entry?.hrv.map { String(format: "%.0f ms", $0) } ?? "—",
-                            label: "HRV", color: hrvAnalysis?.zoneColor ?? .green, isHK: true)
-            RecoveryDayCell(icon: "figure.walk",
-                            value: stepsStr,
-                            label: "Pas", color: .teal, isHK: true)
-            RecoveryDayCell(icon: "flame.fill",
-                            value: entry?.activeEnergy.map { String(format: "%.0f kcal", $0) } ?? "—",
-                            label: "Énergie active", color: .orange, isHK: true)
-
-            RecoveryDayCell(icon: "sunrise.fill",
-                            value: entry?.hrMorning.map { String(format: "%.0f bpm", $0) } ?? "—",
-                            label: "FC matin", color: .cyan, isHK: true)
-            RecoveryDayCell(icon: "dumbbell.fill",
-                            value: entry?.hrPostWorkout.map { String(format: "%.0f bpm", $0) } ?? "—",
-                            label: "FC post séance", color: Color(red: 1, green: 0.42, blue: 0.12), isHK: true)
-            RecoveryDayCell(icon: "moon.fill",
-                            value: entry?.hrEvening.map { String(format: "%.0f bpm", $0) } ?? "—",
-                            label: "FC soir", color: .indigo, isHK: true)
-
-            RecoveryDayCell(icon: "bolt.fill",
-                            value: entry?.soreness.map { String(format: "%.1f/10", $0) } ?? "—",
-                            label: "Courbatures", color: .yellow, isHK: false)
-            RecoveryDayCell(icon: "battery.25percent",
-                            value: entry?.fatigue.map { String(format: "%.1f/10", $0) } ?? "—",
-                            label: "Fatigue", color: .red, isHK: false)
-            RecoveryDayCell(icon: "bolt.circle.fill",
-                            value: entry?.energyPre.map { String(format: "%.1f/10", $0) } ?? "—",
-                            label: "Énergie pré", color: .mint, isHK: false)
+            Group {
+                RecoveryDayCell(icon: "moon.zzz.fill",
+                                value: entry?.sleepHours.map { String(format: "%.1fh", $0) } ?? "—",
+                                label: "Sommeil", color: .blue, isHK: true)
+                RecoveryDayCell(icon: "star.fill",
+                                value: entry?.sleepQuality.map { String(format: "%.1f/10", $0) } ?? "—",
+                                label: "Qualité sommeil", color: .purple, isHK: false)
+                RecoveryDayCell(icon: "heart.fill",
+                                value: entry?.restingHr.map { String(format: "%.0f bpm", $0) } ?? "—",
+                                label: "FC repos", color: .red, isHK: true)
+                RecoveryDayCell(icon: "waveform.path.ecg",
+                                value: entry?.hrv.map { String(format: "%.0f ms", $0) } ?? "—",
+                                label: "HRV", color: hrvAnalysis?.zoneColor ?? .green, isHK: true)
+                RecoveryDayCell(icon: "figure.walk",
+                                value: stepsStr,
+                                label: "Pas", color: .teal, isHK: true)
+                RecoveryDayCell(icon: "flame.fill",
+                                value: entry?.activeEnergy.map { String(format: "%.0f kcal", $0) } ?? "—",
+                                label: "Énergie active", color: .orange, isHK: true)
+            }
+            Group {
+                RecoveryDayCell(icon: "sunrise.fill",
+                                value: entry?.hrMorning.map { String(format: "%.0f bpm", $0) } ?? "—",
+                                label: "FC matin", color: .cyan, isHK: true)
+                RecoveryDayCell(icon: "dumbbell.fill",
+                                value: entry?.hrPostWorkout.map { String(format: "%.0f bpm", $0) } ?? "—",
+                                label: "FC post séance", color: Color(red: 1, green: 0.42, blue: 0.12), isHK: true)
+                RecoveryDayCell(icon: "moon.fill",
+                                value: entry?.hrEvening.map { String(format: "%.0f bpm", $0) } ?? "—",
+                                label: "FC soir", color: .indigo, isHK: true)
+                RecoveryDayCell(icon: "bolt.fill",
+                                value: entry?.soreness.map { String(format: "%.1f/10", $0) } ?? "—",
+                                label: "Courbatures", color: .yellow, isHK: false)
+                RecoveryDayCell(icon: "battery.25percent",
+                                value: entry?.fatigue.map { String(format: "%.1f/10", $0) } ?? "—",
+                                label: "Fatigue", color: .red, isHK: false)
+                RecoveryDayCell(icon: "bolt.circle.fill",
+                                value: entry?.energyPre.map { String(format: "%.1f/10", $0) } ?? "—",
+                                label: "Énergie pré", color: .mint, isHK: false)
+            }
         }
     }
 
