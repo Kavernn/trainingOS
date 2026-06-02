@@ -3,6 +3,8 @@ import OSLog
 
 private let logger = Logger(subsystem: "TrainingOS", category: "Recovery")
 
+private enum RecoveryViewTab { case today, history }
+
 private struct RecoveryStats {
     var avgSleep: Double = 0
     var avgSleepQuality: Double = 0
@@ -42,6 +44,48 @@ private struct RecoveryStats {
     }
 }
 
+// MARK: - RecoveryDayCell
+
+private struct RecoveryDayCell: View {
+    let icon: String
+    let value: String
+    let label: String
+    let color: Color
+    let isHK: Bool
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(value == "—" ? .gray.opacity(0.5) : color)
+                if isHK && value == "—" {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 7))
+                        .foregroundColor(.red.opacity(0.65))
+                        .offset(x: 7, y: -3)
+                }
+            }
+            Text(value)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
+                .foregroundColor(value == "—" ? .gray.opacity(0.5) : .white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+            Text(label)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundColor(.gray)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 4)
+        .glassCard()
+    }
+}
+
+// MARK: - RecoveryView
+
 struct RecoveryView: View {
     var onOpenSession: (() -> Void)? = nil
 
@@ -62,11 +106,38 @@ struct RecoveryView: View {
     @AppStorage("hrv_onboarding_done") private var hrvOnboardingDone = false
     @State private var showHRVOnboarding = false
 
+    // Tab + HK sync
+    @State private var activeTab: RecoveryViewTab = .today
+    @State private var isSyncingHK = false
+    @State private var syncSuccess = false
+    @AppStorage("last_hk_sync_recovery") private var lastHKSyncTimestamp: Double = 0
+
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
     private static let isoFmt: DateFormatter = {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
     }()
+
+    private static let dayFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_CA")
+        f.dateFormat = "EEEE d MMMM"
+        return f
+    }()
+
+    private var formattedToday: String {
+        Self.dayFmt.string(from: Date()).capitalized
+    }
+
+    private var lastSyncLabel: String {
+        guard lastHKSyncTimestamp > 0 else { return "Jamais synchronisé" }
+        let date = Date(timeIntervalSince1970: lastHKSyncTimestamp)
+        let mins = Int(-date.timeIntervalSinceNow / 60)
+        if mins < 1 { return "Synced à l'instant" }
+        if mins < 60 { return "Synced il y a \(mins) min" }
+        let f = DateFormatter(); f.dateFormat = "HH:mm"
+        return "Synced à \(f.string(from: date))"
+    }
 
     private var entriesMissingHK: [RecoveryEntry] {
         let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
@@ -82,7 +153,11 @@ struct RecoveryView: View {
         log.contains { $0.date == todayStr }
     }
 
-    // KPIs — delegates to cached stats (computed once per loadData, not per render)
+    private var todayEntry: RecoveryEntry? {
+        log.first(where: { $0.date == todayStr })
+    }
+
+    // KPIs — cached per loadData
     var avgSleep: Double         { stats.avgSleep }
     var avgSleepQuality: Double  { stats.avgSleepQuality }
     var avgRestHR: Double        { stats.avgRestHR }
@@ -107,234 +182,14 @@ struct RecoveryView: View {
                 if isLoading {
                     AppLoadingView()
                 } else {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 16) {
-
-                            // Banners HealthKit — priorité : backfill > watch sync, jamais les deux
-                            #if !targetEnvironment(macCatalyst)
-                            if !entriesMissingHK.isEmpty && !backfillDone {
-                                HStack(spacing: 10) {
-                                    Image(systemName: "heart.text.square.fill")
-                                        .font(.system(size: 13)).foregroundColor(.red)
-                                    Text("\(entriesMissingHK.count) entrée\(entriesMissingHK.count > 1 ? "s" : "") sans FC/HRV")
-                                        .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
-                                        .lineLimit(1)
-                                    Spacer()
-                                    Button { Task { await backfillFromHealthKit() } } label: {
-                                        if isBackfilling {
-                                            ProgressView().tint(.red).scaleEffect(0.65)
-                                        } else {
-                                            Text("Sync")
-                                                .font(.system(size: 11, weight: .semibold)).foregroundColor(.red)
-                                        }
-                                    }
-                                    .disabled(isBackfilling)
-                                }
-                                .padding(.horizontal, 12).padding(.vertical, 8)
-                                .background(Color.red.opacity(0.07))
-                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.14), lineWidth: 1))
-                                .cornerRadius(10)
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0)
-                            } else {
-                                WatchSyncBannerView(sync: watchSync) {
-                                    Task {
-                                        await watchSync.requestAuthorizationAndSync()
-                                        await loadData()
-                                    }
-                                }
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0)
-                            }
-                            #endif
-
-                            // Banner lien récupération → performance
-                            RecoveryPerformanceBanner(
-                                dashboard: api.dashboard,
-                                hrvAnalysis: hrvAnalysis,
-                                recoveryScore: dailySummary?.recoveryScore,
-                                onTap: onOpenSession
-                            )
-                            .padding(.horizontal, 16)
-                            .appearAnimation(delay: 0.02)
-
-                            // Readiness card — composite score, dominant dès l'ouverture
-                            if let today = log.first(where: { $0.date == todayStr }) {
-                                ReadinessCard(entry: today, backendScore: dailySummary?.recoveryScore,
-                                              hrv7dBaseline: hrvAnalysis?.hrv7dAvg)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.04)
-                            }
-
-                            // KPI grid — récupération
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                                KPICard(value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
-                                        label: "Sommeil moy.", color: .blue,
-                                        subtitle: countSleep > 0 ? "sur \(countSleep) logs" : nil)
-                                KPICard(value: avgSleepQuality > 0 ? String(format: "%.1f/10", avgSleepQuality) : "—",
-                                        label: "Qualité moy.", color: .purple,
-                                        subtitle: countSleepQuality > 0 ? "sur \(countSleepQuality) logs" : nil)
-                                KPICard(value: avgRestHR > 0 ? String(format: "%.0f bpm", avgRestHR) : "—",
-                                        label: "FC repos moy.", color: .red,
-                                        subtitle: countRestHR > 0 ? "sur \(countRestHR) logs" : nil)
-                                KPICard(value: avgSteps > 0 ? String(format: "%.0f", avgSteps) : "—",
-                                        label: "Pas moy./jour", color: .green,
-                                        subtitle: countSteps > 0 ? "sur \(countSteps) logs" : nil)
-                                KPICard(value: avgActiveEnergy > 0 ? String(format: "%.0f kcal", avgActiveEnergy) : "—",
-                                        label: "Énergie active", color: .orange,
-                                        subtitle: countActiveEnergy > 0 ? "sur \(countActiveEnergy) logs" : nil)
-                                KPICard(
-                                    value: avgHRV > 0 ? String(format: "%.0f ms", avgHRV) : "—",
-                                    label: "HRV moy.",
-                                    color: hrvAnalysis?.zoneColor ?? .green,
-                                    subtitle: countHRV > 0 ? "sur \(countHRV) logs" : nil
-                                )
-                            }
-                            .padding(.horizontal, 16)
-                            .appearAnimation(delay: 0.05)
-
-                            // KPI — Fatigue perçue moyenne
-                            if avgFatigue > 0 {
-                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                                    KPICard(value: String(format: "%.1f/10", avgFatigue),
-                                            label: "Fatigue moy.", color: avgFatigue >= 7 ? .red : (avgFatigue >= 4 ? .orange : .green))
-                                }
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.055)
-                            }
-
-                            // KPI grid — FC journalière
-                            if avgHRMorning > 0 || avgHRPostWorkout > 0 || avgHREvening > 0 {
-                                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                                    KPICard(value: avgHRMorning > 0 ? String(format: "%.0f bpm", avgHRMorning) : "—",
-                                            label: "FC matin moy.", color: .cyan)
-                                    KPICard(value: avgHRPostWorkout > 0 ? String(format: "%.0f bpm", avgHRPostWorkout) : "—",
-                                            label: "FC post séance", color: .orange)
-                                    KPICard(value: avgHREvening > 0 ? String(format: "%.0f bpm", avgHREvening) : "—",
-                                            label: "FC soir moy.", color: .blue)
-                                }
-                                .padding(.horizontal, 16)
-                                .appearAnimation(delay: 0.06)
-                            }
-
-                            // HRV Analysis card — score normalisé personnel
-                            if let hrv = hrvAnalysis, hrv.baselineAvailable || hrv.todayRmssd != nil {
-                                HRVAnalysisCard(analysis: hrv)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.07)
-                            }
-
-                            // HRV baseline en construction (< 7 jours)
-                            if let hrv = hrvAnalysis, hrv.dataPoints7d < 7 {
-                                HRVBaselineProgressView(dataPoints: hrv.dataPoints7d)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.075)
-                            }
-
-                            // Contextual tips HRV — un seul affiché, le plus prioritaire
-                            if let hrv = hrvAnalysis {
-                                if hrv.streakAlert {
-                                    HRVContextualTipView(
-                                        tipId: "streak_alert",
-                                        icon: "exclamationmark.triangle.fill",
-                                        message: "Ton HRV est sous ta baseline depuis \(hrv.consecutiveLowDays) jours consécutifs. Priorité à la récupération — réduis le volume cette semaine.",
-                                        accentColor: .orange
-                                    )
-                                    .padding(.horizontal, 16)
-                                } else if hrv.hrvCv ?? 0 > 20 {
-                                    HRVContextualTipView(
-                                        tipId: "high_cv",
-                                        icon: "waveform.path.ecg",
-                                        message: "Ton HRV est très variable (\(Int(hrv.hrvCv ?? 0))% CV). C'est normal au début — continue à mesurer chaque matin pour stabiliser ta baseline."
-                                    )
-                                    .padding(.horizontal, 16)
-                                }
-                            }
-
-                            // HRV chart
-                            let hrvEntries = Array(log.prefix(14).reversed())
-                            if hrvEntries.filter({ $0.hrv != nil }).count >= 2 {
-                                HRVChart(entries: hrvEntries,
-                                         baseline: hrvAnalysis?.hrv7dAvg,
-                                         zoneColor: hrvAnalysis?.zoneColor ?? .green)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.1)
-                            }
-
-                            // RHR chart
-                            if hrvEntries.filter({ $0.restingHr != nil }).count >= 2 {
-                                RHRChart(entries: hrvEntries)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.12)
-                            }
-
-                            // HR moments chart
-                            if hrvEntries.filter({ $0.hrMorning != nil || $0.hrPostWorkout != nil || $0.hrEvening != nil }).count >= 2 {
-                                HRMomentsChart(entries: hrvEntries)
-                                    .padding(.horizontal, 16)
-                                    .appearAnimation(delay: 0.13)
-                            }
-
-                            // Sleep chart
-                            if log.filter({ $0.sleepHours != nil }).count >= 2 {
-                                SleepChart(entries: Array(log.prefix(10).reversed()))
-                                    .padding(.horizontal, 16)
-                            } else {
-                                EmptyChartPlaceholder(message: "Logge au moins 2 nuits pour voir l'évolution du sommeil")
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // Steps chart
-                            if log.filter({ $0.steps != nil }).count >= 2 {
-                                StepsChart(entries: Array(log.prefix(10).reversed()))
-                                    .padding(.horizontal, 16)
-                            } else {
-                                EmptyChartPlaceholder(message: "Logge au moins 2 jours de pas pour voir la tendance")
-                                    .padding(.horizontal, 16)
-                            }
-
-                            // History
-                            if log.isEmpty {
-                                RecoveryEmptyState(onAddTap: { showSheet = true })
-                            } else {
-                                VStack(alignment: .leading, spacing: 0) {
-                                    Text("HISTORIQUE")
-                                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
-                                        .padding(.horizontal, 16)
-                                        .padding(.bottom, 8)
-                                    ForEach(Array(log.enumerated()), id: \.1.id) { i, entry in
-                                        RecoveryRow(
-                                            entry: entry,
-                                            onEdit: { editTarget = entry },
-                                            onDelete: {
-                                                Task {
-                                                    do {
-                                                        try await APIService.shared.deleteRecovery(date: entry.date ?? "")
-                                                        await MainActor.run { toast = ToastMessage(message: "Entrée supprimée", style: .success) }
-                                                    } catch {
-                                                        await MainActor.run { apiError = "Erreur réseau — réessaie" }
-                                                    }
-                                                    await loadData()
-                                                }
-                                            }
-                                        )
-                                        .padding(.horizontal, 16)
-                                        if i < log.count - 1 {
-                                            Rectangle()
-                                                .fill(Color.white.opacity(0.06))
-                                                .frame(height: 0.5)
-                                                .padding(.horizontal, 24)
-                                        }
-                                    }
-                                }
-                            }
-
-                            Spacer(minLength: 32)
+                    VStack(spacing: 0) {
+                        pillBar
+                        if activeTab == .today {
+                            todayScrollView
+                        } else {
+                            historyScrollView
                         }
-                        .padding(.vertical, 16)
-                        .padding(.bottom, contentBottomPadding)
                     }
-                    .refreshable { await loadData() }
                 }
             }
             .navigationTitle("Récupération")
@@ -350,8 +205,8 @@ struct RecoveryView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 FAB(icon: alreadyLoggedToday ? "pencil" : "plus") {
-                    if alreadyLoggedToday, let todayEntry = log.first(where: { $0.date == todayStr }) {
-                        editTarget = todayEntry
+                    if alreadyLoggedToday, let entry = todayEntry {
+                        editTarget = entry
                     } else {
                         showSheet = true
                     }
@@ -371,10 +226,401 @@ struct RecoveryView: View {
             Button("OK", role: .cancel) {}
         } message: { Text(apiError ?? "") }
         .toast($toast)
+        .sensoryFeedback(.success, trigger: syncSuccess)
         .onChange(of: watchSync.lastSyncCompleted) { _, _ in
             Task { await loadData() }
         }
     }
+
+    // MARK: - Pill Bar
+
+    private var pillBar: some View {
+        HStack(spacing: 0) {
+            pillButton(title: "Aujourd'hui", icon: "sun.max.fill", tab: .today)
+            pillButton(title: "Historique", icon: "chart.line.uptrend.xyaxis", tab: .history)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.appBg.opacity(0.85))
+    }
+
+    private func pillButton(title: String, icon: String, tab: RecoveryViewTab) -> some View {
+        Button { withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { activeTab = tab } } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon).font(.system(size: 12, weight: .semibold))
+                Text(title).font(.system(size: 13, weight: .semibold))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(activeTab == tab ? Color.orange : Color.clear)
+            .foregroundColor(activeTab == tab ? .white : .gray)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Today Tab
+
+    private var todayScrollView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 16) {
+                todayHeader
+                    .padding(.horizontal, 16)
+
+                RecoveryPerformanceBanner(
+                    dashboard: api.dashboard,
+                    hrvAnalysis: hrvAnalysis,
+                    recoveryScore: dailySummary?.recoveryScore,
+                    onTap: onOpenSession
+                )
+                .padding(.horizontal, 16)
+                .appearAnimation(delay: 0.02)
+
+                if let entry = todayEntry {
+                    ReadinessCard(entry: entry, backendScore: dailySummary?.recoveryScore,
+                                  hrv7dBaseline: hrvAnalysis?.hrv7dAvg)
+                        .padding(.horizontal, 16)
+                        .appearAnimation(delay: 0.04)
+                }
+
+                metricGrid
+                    .padding(.horizontal, 16)
+                    .appearAnimation(delay: 0.06)
+
+                Button {
+                    if alreadyLoggedToday, let entry = todayEntry {
+                        editTarget = entry
+                    } else {
+                        showSheet = true
+                    }
+                } label: {
+                    Label(
+                        alreadyLoggedToday ? "Modifier la saisie manuelle" : "Compléter manuellement",
+                        systemImage: alreadyLoggedToday ? "pencil" : "plus.circle"
+                    )
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.orange)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .glassCard()
+                }
+                .buttonStyle(SpringButtonStyle())
+                .padding(.horizontal, 16)
+                .appearAnimation(delay: 0.08)
+
+                Spacer(minLength: 32)
+            }
+            .padding(.vertical, 16)
+            .padding(.bottom, contentBottomPadding)
+        }
+        .refreshable {
+            await loadData()
+        }
+    }
+
+    private var todayHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(formattedToday)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.gray)
+                    Text(lastSyncLabel)
+                        .font(.system(size: 11))
+                        .foregroundColor(.gray.opacity(0.65))
+                }
+                Spacer()
+                #if !targetEnvironment(macCatalyst)
+                Button {
+                    Task { await syncHealthKitNow() }
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 13, weight: .semibold))
+                            .rotationEffect(.degrees(isSyncingHK ? 360 : 0))
+                            .animation(
+                                isSyncingHK
+                                    ? .linear(duration: 0.8).repeatForever(autoreverses: false)
+                                    : .default,
+                                value: isSyncingHK
+                            )
+                        Text("Actualiser")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .foregroundColor(isSyncingHK ? .gray : .orange)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .glassCard()
+                }
+                .buttonStyle(SpringButtonStyle())
+                .disabled(isSyncingHK)
+                #endif
+            }
+        }
+        .appearAnimation(delay: 0)
+    }
+
+    private var metricGrid: some View {
+        let entry = todayEntry
+        let stepsStr: String = {
+            guard let s = entry?.steps else { return "—" }
+            let n = NSNumber(value: s)
+            return NumberFormatter.localizedString(from: n, number: .decimal)
+        }()
+        return LazyVGrid(
+            columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
+            spacing: 10
+        ) {
+            RecoveryDayCell(icon: "moon.zzz.fill",
+                            value: entry?.sleepHours.map { String(format: "%.1fh", $0) } ?? "—",
+                            label: "Sommeil", color: .blue, isHK: true)
+            RecoveryDayCell(icon: "star.fill",
+                            value: entry?.sleepQuality.map { String(format: "%.1f/10", $0) } ?? "—",
+                            label: "Qualité sommeil", color: .purple, isHK: false)
+            RecoveryDayCell(icon: "heart.fill",
+                            value: entry?.restingHr.map { String(format: "%.0f bpm", $0) } ?? "—",
+                            label: "FC repos", color: .red, isHK: true)
+
+            RecoveryDayCell(icon: "waveform.path.ecg",
+                            value: entry?.hrv.map { String(format: "%.0f ms", $0) } ?? "—",
+                            label: "HRV", color: hrvAnalysis?.zoneColor ?? .green, isHK: true)
+            RecoveryDayCell(icon: "figure.walk",
+                            value: stepsStr,
+                            label: "Pas", color: .teal, isHK: true)
+            RecoveryDayCell(icon: "flame.fill",
+                            value: entry?.activeEnergy.map { String(format: "%.0f kcal", $0) } ?? "—",
+                            label: "Énergie active", color: .orange, isHK: true)
+
+            RecoveryDayCell(icon: "sunrise.fill",
+                            value: entry?.hrMorning.map { String(format: "%.0f bpm", $0) } ?? "—",
+                            label: "FC matin", color: .cyan, isHK: true)
+            RecoveryDayCell(icon: "dumbbell.fill",
+                            value: entry?.hrPostWorkout.map { String(format: "%.0f bpm", $0) } ?? "—",
+                            label: "FC post séance", color: Color(red: 1, green: 0.42, blue: 0.12), isHK: true)
+            RecoveryDayCell(icon: "moon.fill",
+                            value: entry?.hrEvening.map { String(format: "%.0f bpm", $0) } ?? "—",
+                            label: "FC soir", color: .indigo, isHK: true)
+
+            RecoveryDayCell(icon: "bolt.fill",
+                            value: entry?.soreness.map { String(format: "%.1f/10", $0) } ?? "—",
+                            label: "Courbatures", color: .yellow, isHK: false)
+            RecoveryDayCell(icon: "battery.25percent",
+                            value: entry?.fatigue.map { String(format: "%.1f/10", $0) } ?? "—",
+                            label: "Fatigue", color: .red, isHK: false)
+            RecoveryDayCell(icon: "bolt.circle.fill",
+                            value: entry?.energyPre.map { String(format: "%.1f/10", $0) } ?? "—",
+                            label: "Énergie pré", color: .mint, isHK: false)
+        }
+    }
+
+    // MARK: - History Tab
+
+    private var historyScrollView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 16) {
+
+                // Backfill banner
+                #if !targetEnvironment(macCatalyst)
+                if !entriesMissingHK.isEmpty && !backfillDone {
+                    HStack(spacing: 10) {
+                        Image(systemName: "heart.text.square.fill")
+                            .font(.system(size: 13)).foregroundColor(.red)
+                        Text("\(entriesMissingHK.count) entrée\(entriesMissingHK.count > 1 ? "s" : "") sans FC/HRV")
+                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                            .lineLimit(1)
+                        Spacer()
+                        Button { Task { await backfillFromHealthKit() } } label: {
+                            if isBackfilling {
+                                ProgressView().tint(.red).scaleEffect(0.65)
+                            } else {
+                                Text("Sync")
+                                    .font(.system(size: 11, weight: .semibold)).foregroundColor(.red)
+                            }
+                        }
+                        .disabled(isBackfilling)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 8)
+                    .background(Color.red.opacity(0.07))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.red.opacity(0.14), lineWidth: 1))
+                    .cornerRadius(10)
+                    .padding(.horizontal, 16)
+                    .appearAnimation(delay: 0)
+                } else {
+                    WatchSyncBannerView(sync: watchSync) {
+                        Task {
+                            await watchSync.requestAuthorizationAndSync()
+                            await loadData()
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .appearAnimation(delay: 0)
+                }
+                #endif
+
+                // KPI grid — récupération
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                    KPICard(value: avgSleep > 0 ? String(format: "%.1fh", avgSleep) : "—",
+                            label: "Sommeil moy.", color: .blue,
+                            subtitle: countSleep > 0 ? "sur \(countSleep) logs" : nil)
+                    KPICard(value: avgSleepQuality > 0 ? String(format: "%.1f/10", avgSleepQuality) : "—",
+                            label: "Qualité moy.", color: .purple,
+                            subtitle: countSleepQuality > 0 ? "sur \(countSleepQuality) logs" : nil)
+                    KPICard(value: avgRestHR > 0 ? String(format: "%.0f bpm", avgRestHR) : "—",
+                            label: "FC repos moy.", color: .red,
+                            subtitle: countRestHR > 0 ? "sur \(countRestHR) logs" : nil)
+                    KPICard(value: avgSteps > 0 ? String(format: "%.0f", avgSteps) : "—",
+                            label: "Pas moy./jour", color: .green,
+                            subtitle: countSteps > 0 ? "sur \(countSteps) logs" : nil)
+                    KPICard(value: avgActiveEnergy > 0 ? String(format: "%.0f kcal", avgActiveEnergy) : "—",
+                            label: "Énergie active", color: .orange,
+                            subtitle: countActiveEnergy > 0 ? "sur \(countActiveEnergy) logs" : nil)
+                    KPICard(
+                        value: avgHRV > 0 ? String(format: "%.0f ms", avgHRV) : "—",
+                        label: "HRV moy.",
+                        color: hrvAnalysis?.zoneColor ?? .green,
+                        subtitle: countHRV > 0 ? "sur \(countHRV) logs" : nil
+                    )
+                }
+                .padding(.horizontal, 16)
+                .appearAnimation(delay: 0.02)
+
+                if avgFatigue > 0 {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        KPICard(value: String(format: "%.1f/10", avgFatigue),
+                                label: "Fatigue moy.", color: avgFatigue >= 7 ? .red : (avgFatigue >= 4 ? .orange : .green))
+                    }
+                    .padding(.horizontal, 16)
+                    .appearAnimation(delay: 0.025)
+                }
+
+                if avgHRMorning > 0 || avgHRPostWorkout > 0 || avgHREvening > 0 {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                        KPICard(value: avgHRMorning > 0 ? String(format: "%.0f bpm", avgHRMorning) : "—",
+                                label: "FC matin moy.", color: .cyan)
+                        KPICard(value: avgHRPostWorkout > 0 ? String(format: "%.0f bpm", avgHRPostWorkout) : "—",
+                                label: "FC post séance", color: .orange)
+                        KPICard(value: avgHREvening > 0 ? String(format: "%.0f bpm", avgHREvening) : "—",
+                                label: "FC soir moy.", color: .blue)
+                    }
+                    .padding(.horizontal, 16)
+                    .appearAnimation(delay: 0.03)
+                }
+
+                // HRV Analysis card
+                if let hrv = hrvAnalysis, hrv.baselineAvailable || hrv.todayRmssd != nil {
+                    HRVAnalysisCard(analysis: hrv)
+                        .padding(.horizontal, 16)
+                        .appearAnimation(delay: 0.04)
+                }
+
+                if let hrv = hrvAnalysis, hrv.dataPoints7d < 7 {
+                    HRVBaselineProgressView(dataPoints: hrv.dataPoints7d)
+                        .padding(.horizontal, 16)
+                        .appearAnimation(delay: 0.045)
+                }
+
+                if let hrv = hrvAnalysis {
+                    if hrv.streakAlert {
+                        HRVContextualTipView(
+                            tipId: "streak_alert",
+                            icon: "exclamationmark.triangle.fill",
+                            message: "Ton HRV est sous ta baseline depuis \(hrv.consecutiveLowDays) jours consécutifs. Priorité à la récupération — réduis le volume cette semaine.",
+                            accentColor: .orange
+                        )
+                        .padding(.horizontal, 16)
+                    } else if hrv.hrvCv ?? 0 > 20 {
+                        HRVContextualTipView(
+                            tipId: "high_cv",
+                            icon: "waveform.path.ecg",
+                            message: "Ton HRV est très variable (\(Int(hrv.hrvCv ?? 0))% CV). C'est normal au début — continue à mesurer chaque matin pour stabiliser ta baseline."
+                        )
+                        .padding(.horizontal, 16)
+                    }
+                }
+
+                // Charts
+                let hrvEntries = Array(log.prefix(14).reversed())
+                if hrvEntries.filter({ $0.hrv != nil }).count >= 2 {
+                    HRVChart(entries: hrvEntries,
+                             baseline: hrvAnalysis?.hrv7dAvg,
+                             zoneColor: hrvAnalysis?.zoneColor ?? .green)
+                        .padding(.horizontal, 16)
+                        .appearAnimation(delay: 0.05)
+                }
+
+                if hrvEntries.filter({ $0.restingHr != nil }).count >= 2 {
+                    RHRChart(entries: hrvEntries)
+                        .padding(.horizontal, 16)
+                        .appearAnimation(delay: 0.06)
+                }
+
+                if hrvEntries.filter({ $0.hrMorning != nil || $0.hrPostWorkout != nil || $0.hrEvening != nil }).count >= 2 {
+                    HRMomentsChart(entries: hrvEntries)
+                        .padding(.horizontal, 16)
+                        .appearAnimation(delay: 0.07)
+                }
+
+                if log.filter({ $0.sleepHours != nil }).count >= 2 {
+                    SleepChart(entries: Array(log.prefix(10).reversed()))
+                        .padding(.horizontal, 16)
+                } else {
+                    EmptyChartPlaceholder(message: "Logge au moins 2 nuits pour voir l'évolution du sommeil")
+                        .padding(.horizontal, 16)
+                }
+
+                if log.filter({ $0.steps != nil }).count >= 2 {
+                    StepsChart(entries: Array(log.prefix(10).reversed()))
+                        .padding(.horizontal, 16)
+                } else {
+                    EmptyChartPlaceholder(message: "Logge au moins 2 jours de pas pour voir la tendance")
+                        .padding(.horizontal, 16)
+                }
+
+                // History list
+                if log.isEmpty {
+                    RecoveryEmptyState(onAddTap: { showSheet = true })
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("HISTORIQUE")
+                            .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 8)
+                        ForEach(Array(log.enumerated()), id: \.1.id) { i, entry in
+                            RecoveryRow(
+                                entry: entry,
+                                onEdit: { editTarget = entry },
+                                onDelete: {
+                                    Task {
+                                        do {
+                                            try await APIService.shared.deleteRecovery(date: entry.date ?? "")
+                                            await MainActor.run { toast = ToastMessage(message: "Entrée supprimée", style: .success) }
+                                        } catch {
+                                            await MainActor.run { apiError = "Erreur réseau — réessaie" }
+                                        }
+                                        await loadData()
+                                    }
+                                }
+                            )
+                            .padding(.horizontal, 16)
+                            if i < log.count - 1 {
+                                Rectangle()
+                                    .fill(Color.white.opacity(0.06))
+                                    .frame(height: 0.5)
+                                    .padding(.horizontal, 24)
+                            }
+                        }
+                    }
+                }
+
+                Spacer(minLength: 32)
+            }
+            .padding(.vertical, 16)
+            .padding(.bottom, contentBottomPadding)
+        }
+        .refreshable { await loadData() }
+    }
+
+    // MARK: - Data
 
     private func loadData() async {
         isLoading = true
@@ -386,8 +632,22 @@ struct RecoveryView: View {
         await MainActor.run {
             hrvAnalysis  = analysis
             dailySummary = summary
+            isLoading    = false
         }
-        isLoading = false
+    }
+
+    #if !targetEnvironment(macCatalyst)
+    private func syncHealthKitNow() async {
+        let hk = HealthKitService.shared
+        let authorized = await hk.requestAuthorization()
+        guard authorized else { return }
+        isSyncingHK = true
+        let snapshot = await hk.fetchTodayHealthSnapshot()
+        _ = try? await APIService.shared.syncHealthKitToday(snapshot: snapshot)
+        await loadData()
+        lastHKSyncTimestamp = Date().timeIntervalSince1970
+        isSyncingHK = false
+        syncSuccess.toggle()
     }
 
     private func backfillFromHealthKit() async {
@@ -432,7 +692,7 @@ struct RecoveryView: View {
 
         await loadData()
         await MainActor.run {
-            isBackfilling   = false
+            isBackfilling    = false
             backfillDoneDate = todayStr
             if updated > 0 {
                 toast = ToastMessage(
@@ -444,4 +704,5 @@ struct RecoveryView: View {
             }
         }
     }
+    #endif
 }

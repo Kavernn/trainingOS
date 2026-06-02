@@ -36,6 +36,33 @@ extension APIService {
         CacheInvalidation.recoveryLogged.invalidate()
     }
 
+    /// Envoie le snapshot HealthKit du jour à /api/healthkit_sync.
+    /// Règle merge : manual > HK — ne jamais écraser une valeur manuelle.
+    /// Retourne l'entrée après merge ou nil si rien à syncer / offline.
+    func syncHealthKitToday(snapshot: WearableSnapshot) async throws -> RecoveryEntry? {
+        var body: [String: Any] = [:]
+        if let v = snapshot.sleepHours    { body["sleep_hours"]        = v }
+        if let v = snapshot.restingHr     { body["resting_hr"]         = v }
+        if let v = snapshot.hrv           { body["hrv"]                = v }
+        if let v = snapshot.steps         { body["steps"]              = v }
+        if let v = snapshot.activeEnergy  { body["active_energy"]      = v }
+        if let v = snapshot.hrMorning     { body["hr_morning"]         = v }
+        if let v = snapshot.hrPostWorkout { body["hr_post_workout"]    = v }
+        if let v = snapshot.hrEvening     { body["hr_evening"]         = v }
+        guard !body.isEmpty else { return nil }
+        guard let data = try await offlinePost(endpoint: "/api/healthkit_sync", payload: body) else {
+            return nil
+        }
+        CacheInvalidation.recoveryLogged.invalidate()
+        struct Resp: Codable {
+            let ok: Bool
+            let entry: RecoveryEntry?
+            let msg: String?
+        }
+        let resp = try? APIService.decoder.decode(Resp.self, from: data)
+        return resp?.ok == true ? resp?.entry : nil
+    }
+
     func deleteRecovery(date: String) async throws {
         _ = try await offlinePost(endpoint: "/api/delete_recovery", payload: ["date": date])
     }
