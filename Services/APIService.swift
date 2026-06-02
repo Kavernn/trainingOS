@@ -76,7 +76,7 @@ class APIService: ObservableObject {
         let fmt = DateFormatter()
         fmt.dateFormat = "yyyy-MM-dd"
         fmt.timeZone = TimeZone.current
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
         return fmt.string(from: yesterday)
     }
 

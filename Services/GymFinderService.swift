@@ -30,9 +30,12 @@ final class GymFinderService {
     static let shared = GymFinderService()
     private init() {}
 
-    private let overpassURL = URL(string: "https://overpass-api.de/api/interpreter")!
+    private let overpassURLString = "https://overpass-api.de/api/interpreter"
 
     func searchGyms(near location: CLLocation, radiusMeters: Int) async throws -> [Gym] {
+        guard let overpassURL = URL(string: overpassURLString) else {
+            throw URLError(.badURL)
+        }
         let lat = location.coordinate.latitude
         let lon = location.coordinate.longitude
 

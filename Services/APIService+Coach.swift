@@ -10,8 +10,8 @@ extension APIService {
     func fetchPostSession(date: String? = nil) async throws -> PostSessionData {
         let today = DateFormatter.isoDate.string(from: Date())
         let key = "post_session_\(date ?? today)"
-        let path = date != nil ? "/api/coach/post_session?date=\(date!)" : "/api/coach/post_session"
-        let url = try buildURL(path: path)
+        let items: [URLQueryItem] = date.map { [URLQueryItem(name: "date", value: $0)] } ?? []
+        let url = try buildURL(path: "/api/coach/post_session", queryItems: items)
         let data = try await fetchWithCache(url: url, key: key)
         return try APIService.decoder.decode(PostSessionData.self, from: data)
     }

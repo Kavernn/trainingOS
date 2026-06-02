@@ -8,9 +8,8 @@ extension APIService {
     }
 
     func fetchStreaks(date: String? = nil) async throws -> StreakResponse {
-        var comps = URLComponents(string: "\(baseURL)/api/stats/streaks")!
-        if let d = date { comps.queryItems = [URLQueryItem(name: "date", value: d)] }
-        let url  = comps.url!
+        let items: [URLQueryItem] = date.map { [URLQueryItem(name: "date", value: $0)] } ?? []
+        let url  = try buildURL(path: "/api/stats/streaks", queryItems: items)
         let data = try await fetchWithCache(url: url, key: "streak_data")
         return try APIService.decoder.decode(StreakResponse.self, from: data)
     }

@@ -9,7 +9,7 @@ extension APIService {
     func fetchNutritionData() async throws -> (settings: NutritionSettings?,
                                                entries: [NutritionEntry],
                                                totals: NutritionTotals?) {
-        let url = URL(string: "\(baseURL)/api/nutrition_data")!
+        let url = try buildURL(path: "/api/nutrition_data")
         let data = try await fetchWithCache(url: url, key: "nutrition_data")
         struct NutrResponse: Codable {
             let settings: NutritionSettings?
@@ -21,7 +21,7 @@ extension APIService {
     }
 
     func fetchNutritionHistory() async throws -> [NutritionDayHistory] {
-        let url = URL(string: "\(baseURL)/api/nutrition_data")!
+        let url = try buildURL(path: "/api/nutrition_data")
         let data = try await fetchWithCache(url: url, key: "nutrition_data")
         return try APIService.decoder.decode(NutritionDataResponse.self, from: data).history
     }
@@ -44,7 +44,7 @@ extension APIService {
     }
 
     func scanNutritionLabel(imageBase64: String, quantity: Double, unit: String) async throws -> ScanResult {
-        let url = URL(string: "\(baseURL)/api/nutrition/scan-label")!
+        let url = try buildURL(path: "/api/nutrition/scan-label")
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")

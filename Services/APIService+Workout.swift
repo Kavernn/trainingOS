@@ -12,9 +12,8 @@ extension APIService {
     }
 
     func fetchSeanceData(sessionName: String) async throws -> SeanceData {
-        var comps = URLComponents(string: "\(baseURL)/api/seance_data")!
-        comps.queryItems = [URLQueryItem(name: "session_name", value: sessionName)]
-        guard let url = comps.url else { throw URLError(.badURL) }
+        let url = try buildURL(path: "/api/seance_data",
+                               queryItems: [URLQueryItem(name: "session_name", value: sessionName)])
         let (data, _) = try await URLSession.authed.data(from: url)
         return try APIService.decoder.decode(SeanceData.self, from: data)
     }
