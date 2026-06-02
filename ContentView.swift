@@ -325,7 +325,7 @@ private struct MacContentView: View {
         case .cardio:          CardioView()
         case .recovery:        RecoveryView()
         case .pss:             PSSView()
-        case .mentalHealth:    MentalHealthView()
+        case .mentalHealth:    MentalAmeView()
         case .notes:           NotesView()
         case .inventaire:      InventaireView()
         case .profil:          ProfileView()

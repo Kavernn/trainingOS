@@ -38,8 +38,6 @@ struct MoreView: View {
                         }
                         MoreRow(icon: "fork.knife",      color: .orange, title: "Nutrition")    { NutritionView() }
                         MoreRow(icon: "bolt.heart.fill", color: .orange, title: "Énergie & Récupération") { EnergyRecoveryView() }
-                        MoreRow(icon: "wind",            color: Color.moonlight.opacity(0.7),
-                                title: "The Void", subtitle: "Respiration, méditation & journal") { SpiritView() }
                     }
                     .listRowBackground(glassRowBG(Color(hex: "FF2D20")))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
@@ -58,8 +56,8 @@ struct MoreView: View {
                         MoreRow(icon: "heart.text.square.fill", color: .cyan,   title: "Tableau santé")         { HealthDashboardView() }
                         MoreRow(icon: "scalemass.fill",         color: .green,  title: "Composition")           { BodyCompView() }
                         MoreRow(icon: "figure.run",             color: .teal,   title: "Cardio")                { CardioView() }
-                        MoreRow(icon: "brain.head.profile",    color: .purple, title: "Charge mentale (PSS)")  { PSSView() }
-                        MoreRow(icon: "face.smiling.fill",     color: .mint,   title: "Santé Mentale")         { MentalHealthView() }
+                        MoreRow(icon: "brain.fill",            color: .teal,   title: "Mental & Âme",
+                                subtitle: "Mesures · Pratique · The Void")                { MentalAmeView() }
                     }
                     .listRowBackground(glassRowBG(.green))
                     .listRowSeparatorTint(Color.white.opacity(0.06))

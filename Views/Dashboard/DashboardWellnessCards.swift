@@ -538,7 +538,7 @@ struct LSSMiniCard: View {
         guard let lss = today else { return AnyView(EmptyView()) }
 
         return AnyView(
-            NavigationLink(destination: MentalHealthView()) {
+            NavigationLink(destination: MentalAmeView()) {
                 HStack(spacing: 12) {
                     ZStack {
                         Circle()
