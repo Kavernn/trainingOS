@@ -729,6 +729,10 @@ struct CardioHistoryDetailSheet: View {
         if let notes = e.notes, !notes.isEmpty {
             detailSection(title: "NOTES", content: notes)
         }
+
+        if let note = e.coachNote, !note.isEmpty {
+            detailSection(title: "CONSEIL COACH", content: note)
+        }
     }
 
     @ViewBuilder

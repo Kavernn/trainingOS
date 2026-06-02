@@ -622,24 +622,6 @@ struct MacroValues: Codable {
     let fat:      Double
 }
 
-// MARK: - HRV Baseline
-struct HRVBaseline: Codable {
-    let baseline:   Double?
-    let sd:         Double?
-    let todayHrv:   Double?
-    let deviation:  Double?
-    let flagRest:   Bool
-    let dataPoints: Int
-    let message:    String?
-
-    enum CodingKeys: String, CodingKey {
-        case baseline, sd, deviation, message
-        case todayHrv   = "today_hrv"
-        case flagRest   = "flag_rest"
-        case dataPoints = "data_points"
-    }
-}
-
 // MARK: - HRV Analysis (professional-grade)
 struct HRVDataPoint: Codable, Identifiable {
     let date: String

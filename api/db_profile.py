@@ -152,7 +152,7 @@ def get_nutrition_entries(date: str) -> List[dict]:
     def _do() -> List[dict]:
         resp = (
             db_core._client.table("nutrition_entries")
-            .select("*")
+            .select("id,date,nom,calories,proteines,glucides,lipides,heure")
             .eq("date", date)
             .order("heure")
             .execute()

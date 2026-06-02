@@ -94,8 +94,8 @@ def _score_hrv() -> tuple[float | None, dict]:
         return round(float(score), 1), {
             "hrv_score": round(float(score), 1),
             "zone":      analysis.get("hrv_zone"),
-            "today_hrv": analysis.get("today_hrv"),
-            "baseline":  analysis.get("baseline_7j"),
+            "today_hrv": analysis.get("today_rmssd"),
+            "baseline":  analysis.get("hrv_7d_avg"),
         }
     except Exception as e:
         logger.exception("_score_hrv failed: %s", e)

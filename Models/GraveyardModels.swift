@@ -1,6 +1,13 @@
 import Foundation
 import SwiftUI
 
+struct GraveyardCount: Codable {
+    let totalCount: Int
+    enum CodingKeys: String, CodingKey {
+        case totalCount = "total_count"
+    }
+}
+
 struct GraveyardResponse: Codable {
     let tombstones: [Tombstone]
     let totalCount: Int

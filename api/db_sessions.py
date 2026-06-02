@@ -17,7 +17,7 @@ def get_workout_sessions(limit: int = 100, offset: int = 0) -> List[dict]:
     def _do() -> List[dict]:
         resp = (
             db_core._client.table("workout_sessions")
-            .select("*")
+            .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
             .order("date", desc=True)
             .range(offset, offset + limit - 1)
             .execute()
@@ -122,7 +122,7 @@ def get_workout_session(date: str) -> Optional[dict]:
     def _do() -> Optional[dict]:
         resp = (
             db_core._client.table("workout_sessions")
-            .select("*")
+            .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
             .eq("date", date)
             .eq("session_type", "morning")
             .limit(1)
@@ -159,7 +159,7 @@ def get_workout_session_second(date: str) -> Optional[dict]:
     def _do() -> Optional[dict]:
         resp = (
             db_core._client.table("workout_sessions")
-            .select("*")
+            .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
             .eq("date", date)
             .eq("is_second", True)
             .single()
@@ -196,7 +196,7 @@ def get_workout_session_bonus(date: str) -> Optional[dict]:
     def _do() -> Optional[dict]:
         resp = (
             db_core._client.table("workout_sessions")
-            .select("*")
+            .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
             .eq("date", date)
             .eq("session_type", "bonus")
             .limit(1)
@@ -865,7 +865,7 @@ def get_previous_session_by_name(current_date: str, session_name: str) -> Option
     def _do() -> Optional[dict]:
         resp = (
             db_core._client.table("workout_sessions")
-            .select("*")
+            .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
             .eq("session_name", session_name)
             .lt("date", current_date)
             .order("date", desc=True)
@@ -895,7 +895,7 @@ def get_workout_session_by_type(date: str, session_type: str) -> Optional[dict]:
     def _do() -> Optional[dict]:
         resp = (
             db_core._client.table("workout_sessions")
-            .select("*")
+            .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
             .eq("date", date)
             .eq("session_type", session_type)
             .limit(1)
@@ -1081,7 +1081,7 @@ def get_previous_session_of_type(current_date: str, session_type: str) -> Option
     def _do() -> Optional[dict]:
         resp = (
             db_core._client.table("workout_sessions")
-            .select("*")
+            .select("id,date,rpe,comment,duration_min,energy_pre,session_name,is_second,session_type,completed,logged_at")
             .eq("session_type", session_type)
             .lt("date", current_date)
             .order("date", desc=True)

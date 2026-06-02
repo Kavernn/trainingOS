@@ -9,14 +9,12 @@ struct ReadinessResponse: Codable {
     let modules: ReadinessModules
     let muscleRecovery: [String: MuscleGroupRecovery]
     let todaySession: String?
-    let computedAt: String
 
     enum CodingKeys: String, CodingKey {
         case score, verdict, why, adjustment, modules
         case progressionModifier = "progression_modifier"
         case muscleRecovery      = "muscle_recovery"
         case todaySession        = "today_session"
-        case computedAt          = "computed_at"
     }
 }
 

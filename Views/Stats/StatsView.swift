@@ -532,15 +532,13 @@ struct StatsView: View {
 
     func recalcKPIs() {
         let fmt = DateFormatter.isoDate
-        let base = Date().timeIntervalSince1970
 
         // Streak now comes from server (P1.2); cachedCurrentStreak/bestStreak kept as fallback only
 
-        let epochDays = (Int(base) + TimeZone.current.secondsFromGMT()) / 86400
-        let weekday = ((epochDays + 4) % 7) + 1
-        let daysSinceMonday = (weekday + 5) % 7
-        // Calendar.current handles DST transitions correctly (not raw 86400s arithmetic)
-        let mondayDate = Calendar.current.date(byAdding: .day, value: -daysSinceMonday, to: Date()) ?? Date()
+        var iso = Calendar(identifier: .iso8601)
+        iso.timeZone = TimeZone.current
+        let daysSinceMonday = (iso.component(.weekday, from: Date()) + 5) % 7
+        let mondayDate = iso.date(byAdding: .day, value: -daysSinceMonday, to: Date()) ?? Date()
         let mondayStr = fmt.string(from: mondayDate)
         // Unique source de vérité : exercise history, identique à weeklyVolumeChart.
         cachedWeeklyVolume = weights.values.flatMap { $0.history ?? [] }.compactMap { e -> Double? in
@@ -658,9 +656,7 @@ struct StatsView: View {
 
         // Load push:pull ratio + soreness threshold
         Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/weekly_report"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(WeeklyReport.self, from: d),
+            if let r = try? await APIService.shared.fetchWeeklyReport(),
                let ppr = r.pushPullRatio {
                 await MainActor.run { pushPullRatio = ppr }
             }
@@ -699,10 +695,10 @@ struct StatsView: View {
             }
         }
         Task {
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/graveyard"),
+            if let url = URL(string: "\(APIService.shared.baseURL)/api/graveyard?count_only=true"),
                let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(GraveyardResponse.self, from: d) {
-                await MainActor.run { graveyardCount = r.tombstones.count }
+               let r = try? JSONDecoder().decode(GraveyardCount.self, from: d) {
+                await MainActor.run { graveyardCount = r.totalCount }
             }
         }
         Task {

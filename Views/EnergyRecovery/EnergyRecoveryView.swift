@@ -74,7 +74,7 @@ struct EnergyRecoveryView: View {
         let e       = try? await APIService.shared.fetchEnergyDaily()
         let h       = try? await APIService.shared.fetchEnergyHistory()
         let rec     = try? await APIService.shared.fetchRecoveryData()
-        let sum     = try? await APIService.shared.fetchDailySummary()
+        let readiness = try? await APIService.shared.fetchReadiness()
         let hrv     = try? await APIService.shared.fetchHRVAnalysis()
         let sleepPg = try? await APIService.shared.fetchSleepHistory(limit: 10)
         let sstats  = try? await APIService.shared.fetchSleepStats()
@@ -82,7 +82,7 @@ struct EnergyRecoveryView: View {
             energy       = e
             history      = h ?? []
             recoveryLog  = rec ?? []
-            dailySummary = sum
+            dailySummary = readiness.map { DailySummary(recoveryScore: Double($0.score) / 10.0) }
             hrvAnalysis  = hrv
             sleepHistory = sleepPg?.items ?? []
             sleepStats   = sstats

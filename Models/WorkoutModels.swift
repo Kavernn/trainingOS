@@ -704,7 +704,7 @@ struct CardioEntry: Codable, Identifiable {
     let endTime: String?
     let paceAvgSeconds: Int?
     let gpsPoints: [[String: Double]]?
-    let routeEncoded: String?
+    let coachNote: String?
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -722,7 +722,7 @@ struct CardioEntry: Codable, Identifiable {
         endTime        = try c.decodeIfPresent(String.self,             forKey: .endTime)
         paceAvgSeconds = try c.decodeIfPresent(Int.self,                forKey: .paceAvgSeconds)
         gpsPoints      = try c.decodeIfPresent([[String: Double]].self, forKey: .gpsPoints)
-        routeEncoded   = try c.decodeIfPresent(String.self,             forKey: .routeEncoded)
+        coachNote      = try c.decodeIfPresent(String.self,             forKey: .coachNote)
         id             = UUID().uuidString
     }
 
@@ -742,7 +742,7 @@ struct CardioEntry: Codable, Identifiable {
         try c.encodeIfPresent(endTime,        forKey: .endTime)
         try c.encodeIfPresent(paceAvgSeconds, forKey: .paceAvgSeconds)
         try c.encodeIfPresent(gpsPoints,      forKey: .gpsPoints)
-        try c.encodeIfPresent(routeEncoded,   forKey: .routeEncoded)
+        try c.encodeIfPresent(coachNote,      forKey: .coachNote)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -755,7 +755,7 @@ struct CardioEntry: Codable, Identifiable {
         case endTime         = "end_time"
         case paceAvgSeconds  = "pace_avg_seconds"
         case gpsPoints       = "gps_points"
-        case routeEncoded    = "route_encoded"
+        case coachNote       = "coach_note"
     }
 }
 

@@ -123,7 +123,7 @@ def get_hiit_logs(limit: int = 100) -> List[dict]:
     def _do() -> List[dict]:
         resp = (
             db_core._client.table("hiit_logs")
-            .select("*")
+            .select("id,date,session_type,rounds,work_time,rest_time,rpe,notes")
             .order("date", desc=True)
             .order("logged_at", desc=True)
             .limit(limit)

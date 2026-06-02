@@ -102,7 +102,7 @@ struct RecoveryView: View {
     @AppStorage("hk_backfill_done_date") private var backfillDoneDate = ""
     @State private var stats = RecoveryStats(log: [])
     @State private var hrvAnalysis: HRVAnalysis? = nil
-    @State private var dailySummary: DailySummary? = nil
+    @State private var readinessData: ReadinessResponse? = nil
     @AppStorage("hrv_onboarding_done") private var hrvOnboardingDone = false
     @State private var showHRVOnboarding = false
 
@@ -270,14 +270,14 @@ struct RecoveryView: View {
                 RecoveryPerformanceBanner(
                     dashboard: api.dashboard,
                     hrvAnalysis: hrvAnalysis,
-                    recoveryScore: dailySummary?.recoveryScore,
+                    recoveryScore: readinessData?.score.map { Double($0) / 10.0 },
                     onTap: onOpenSession
                 )
                 .padding(.horizontal, 16)
                 .appearAnimation(delay: 0.02)
 
                 if let entry = todayEntry {
-                    ReadinessCard(entry: entry, backendScore: dailySummary?.recoveryScore,
+                    ReadinessCard(entry: entry, backendScore: readinessData?.score.map { Double($0) / 10.0 },
                                   hrv7dBaseline: hrvAnalysis?.hrv7dAvg)
                         .padding(.horizontal, 16)
                         .appearAnimation(delay: 0.04)
@@ -628,12 +628,12 @@ struct RecoveryView: View {
         log = (try? await APIService.shared.fetchRecoveryData()) ?? []
         stats = RecoveryStats(log: log)
         // sequential — async let LIFO crash on iOS 26 beta
-        let analysis = try? await APIService.shared.fetchHRVAnalysis()
-        let summary  = try? await APIService.shared.fetchDailySummary()
+        let analysis  = try? await APIService.shared.fetchHRVAnalysis()
+        let readiness = try? await APIService.shared.fetchReadiness()
         await MainActor.run {
-            hrvAnalysis  = analysis
-            dailySummary = summary
-            isLoading    = false
+            hrvAnalysis   = analysis
+            readinessData = readiness
+            isLoading     = false
         }
     }
 
