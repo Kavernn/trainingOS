@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import UserNotifications
 import AppIntents
+import OSLog
 
 // MARK: - E10: App Shortcuts — Morning Ritual quick access
 
