@@ -121,7 +121,7 @@ struct CardioSummaryView: View {
                 }
             }
         }
-        .onAppear { Task { await loadRecovery() } }
+        .onAppear { if readiness == nil { Task { await loadRecovery() } } }
         .confirmationDialog("Abandonner la séance ?", isPresented: $showCancelConfirm, titleVisibility: .visible) {
             Button("Abandonner sans sauvegarder", role: .destructive) {
                 CardioSessionManager.shared.cancel()

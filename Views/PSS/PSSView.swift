@@ -144,7 +144,6 @@ struct PSSView: View {
             }
             // P-D2: re-evaluate isDue on every appear (not just initial load)
             .onAppear { Task { await loadData() } }
-        .task { await loadData() }
     }
 
 

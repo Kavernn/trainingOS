@@ -1428,6 +1428,7 @@ struct WorkoutSeanceView: View {
             if UserDefaults.standard.bool(forKey: "ghostDismissed_\(data.today)") {
                 showGhost = false
             }
+            guard inventory.isEmpty else { return }
             Task {
                 await loadInventory()
                 await loadReadiness()
