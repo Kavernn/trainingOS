@@ -24,6 +24,8 @@ final class SyncManager: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private let logger = Logger(subsystem: "TrainingOS", category: "sync")
 
+    private enum SendResult { case success, retryable, discarded(Int) }
+
     init() {}
 
     // MARK: - Setup
@@ -47,12 +49,16 @@ final class SyncManager: ObservableObject {
 
     // MARK: - Enqueue
 
-    /// Persist a mutation for later delivery.
+    /// Persist a mutation for later delivery. Triggers an immediate flush if already online
+    /// (covers momentary flakiness where network state never changed).
     func enqueue(endpoint: String, method: String = "POST", payload: [String: Any]) {
         let mutation = PendingMutation(endpoint: endpoint, method: method, payload: payload)
         queue.append(mutation)
         pendingCount += 1
         showOfflineToast()
+        if isOnlineProvider() {
+            Task { await flushQueue() }
+        }
     }
 
     private func showOfflineToast() {
@@ -72,6 +78,14 @@ final class SyncManager: ObservableObject {
         }
     }
 
+    private func showDiscardedToast(code: Int) {
+        offlineToast = "⚠️ Séance rejetée par le serveur (\(code)) — non sauvegardée."
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            self?.offlineToast = nil
+        }
+    }
+
     // MARK: - Flush
 
     /// Send all pending mutations in FIFO order. Safe to call multiple times.
@@ -83,6 +97,20 @@ final class SyncManager: ObservableObject {
         defer { isSyncing = false }
 
         let cap = maxRetries
+
+        // Zombie purge runs first — even when nothing else is pending.
+        // Without this, zombies would never be cleaned up if they are the only items in the queue
+        // (the guard below would short-circuit before reaching the old purge block).
+        let zombies = queue.load().filter { !$0.isSynced && $0.retryCount >= cap }
+        if !zombies.isEmpty {
+            zombies.forEach {
+                logger.warning("Dropping zombie mutation — \($0.method, privacy: .public) \($0.endpoint, privacy: .public) (retries: \($0.retryCount))")
+            }
+            queue.removeAll { !$0.isSynced && $0.retryCount >= cap }
+            zombieDropCount += zombies.count
+            showZombieToast(count: zombies.count)
+        }
+
         let now = Date()
         var pending = queue.load().filter {
             !$0.isSynced && $0.retryCount < cap && ($0.nextRetryAt.map { $0 <= now } ?? true)
@@ -98,16 +126,22 @@ final class SyncManager: ObservableObject {
         var syncedSessionMutation = false
 
         for var mutation in pending {
-            let success = await send(mutation: mutation)
-            if success {
+            switch await send(mutation: mutation) {
+            case .success:
                 mutation.isSynced   = true
                 mutation.retryCount = 0
                 if sessionEndpoints.contains(mutation.endpoint) { syncedSessionMutation = true }
-            } else {
+            case .retryable:
                 mutation.retryCount += 1
                 // Exponential backoff: 2m, 4m, 8m, 16m, 32m
                 let delaySeconds = min(pow(2.0, Double(mutation.retryCount)) * 120, 32 * 60)
                 mutation.nextRetryAt = Date().addingTimeInterval(delaySeconds)
+            case .discarded(let code):
+                logger.warning("Discarding non-recoverable mutation — \(mutation.method, privacy: .public) \(mutation.endpoint, privacy: .public) status \(code)")
+                mutation.isSynced = true
+                if sessionEndpoints.contains(mutation.endpoint) {
+                    showDiscardedToast(code: code)
+                }
             }
             queue.update(mutation)
         }
@@ -121,24 +155,13 @@ final class SyncManager: ObservableObject {
         let cutoff = Date().addingTimeInterval(-7 * 86_400)
         queue.removeAll { $0.isSynced && $0.createdAt < cutoff }
 
-        // Purge zombie mutations (exhausted retries)
-        let zombies = queue.load().filter { !$0.isSynced && $0.retryCount >= cap }
-        if !zombies.isEmpty {
-            zombies.forEach {
-                logger.warning("Dropping zombie mutation — \($0.method, privacy: .public) \($0.endpoint, privacy: .public) (retries: \($0.retryCount))")
-            }
-            queue.removeAll { !$0.isSynced && $0.retryCount >= cap }
-            zombieDropCount += zombies.count
-            showZombieToast(count: zombies.count)
-        }
-
         refreshPendingCount()
     }
 
     // MARK: - Private
 
-    private func send(mutation: PendingMutation) async -> Bool {
-        guard let url = URL(string: baseURL + mutation.endpoint) else { return false }
+    private func send(mutation: PendingMutation) async -> SendResult {
+        guard let url = URL(string: baseURL + mutation.endpoint) else { return .discarded(0) }
         var req = URLRequest(url: url)
         req.httpMethod      = mutation.method
         req.httpBody        = mutation.method == "DELETE" ? nil : mutation.payloadData
@@ -150,12 +173,11 @@ final class SyncManager: ObservableObject {
             let (_, response) = try await URLSession.authed.data(for: req)
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             if (400...499).contains(code) && code != 429 {
-                logger.warning("Discarding non-recoverable mutation — \(mutation.method, privacy: .public) \(mutation.endpoint, privacy: .public) status \(code)")
-                return true
+                return .discarded(code)
             }
-            return (200...299).contains(code) || code == 409
+            return (200...299).contains(code) || code == 409 ? .success : .retryable
         } catch {
-            return false
+            return .retryable
         }
     }
 
