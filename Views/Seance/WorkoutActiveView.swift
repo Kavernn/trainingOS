@@ -116,6 +116,7 @@ struct WorkoutSeanceView: View {
 
     // Warmup guidance banner — shown pre-session, dismissable
     @State private var showWarmupBanner = true
+    @State private var recentAdHocExercises: [String] = []
 
     /// Moyenne des RPE par exercice loggés — fallback 7 si aucun
     private var computedSessionRPE: Double {
@@ -129,20 +130,6 @@ struct WorkoutSeanceView: View {
     }
     private var progressTotal: Int { exerciseRenderItems.count }
     private var progressComplete: Bool { progressTotal > 0 && progressDone >= progressTotal }
-
-    private var recentAdHocExercises: [String] {
-        let programExercises = Set(data.fullProgram.values.flatMap { $0.keys })
-        let calendar = Calendar.current
-        guard let cutoffDate = calendar.date(byAdding: .day, value: -30, to: Date()) else { return [] }
-        let fmt = DateFormatter()
-        fmt.dateFormat = "yyyy-MM-dd"
-        let cutoffStr = fmt.string(from: cutoffDate)
-        return data.weights
-            .filter { name, wd in !programExercises.contains(name) && (wd.lastLogged ?? "") >= cutoffStr }
-            .sorted { a, b in (a.value.lastLogged ?? "") > (b.value.lastLogged ?? "") }
-            .prefix(5)
-            .map(\.key)
-    }
 
     private func preloadAIAnalysis() {
         guard !isPreloadingAI, preloadedAIAnalysis == nil, !vm.logResults.isEmpty else { return }
@@ -1444,6 +1431,20 @@ struct WorkoutSeanceView: View {
             Task {
                 await loadInventory()
                 await loadReadiness()
+                let weights = data.weights
+                let programExercises = Set(data.fullProgram.values.flatMap { $0.keys })
+                if let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: Date()) {
+                    let fmt = DateFormatter()
+                    fmt.dateFormat = "yyyy-MM-dd"
+                    let cutoffStr = fmt.string(from: cutoff)
+                    recentAdHocExercises = await Task.detached(priority: .utility) {
+                        weights
+                            .filter { name, wd in !programExercises.contains(name) && (wd.lastLogged ?? "") >= cutoffStr }
+                            .sorted { a, b in (a.value.lastLogged ?? "") > (b.value.lastLogged ?? "") }
+                            .prefix(5)
+                            .map(\.key)
+                    }.value
+                }
                 await MainActor.run {
                     guard expandedExercises.isEmpty else { return }
                     let logged = Set(vm.logResults.keys)

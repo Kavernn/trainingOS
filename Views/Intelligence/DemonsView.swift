@@ -3,12 +3,13 @@ import SwiftUI
 struct DemonsView: View {
     let demons: [RitualDemon]
     @State private var localDemons: [RitualDemon]
+    @State private var cachedThemes: [(String, Int)] = []
     @State private var killingDate: String? = nil
     @Environment(\.dismiss) private var dismiss
 
     init(demons: [RitualDemon]) {
         self.demons = demons
-        self._localDemons = State(initialValue: demons)
+        self._localDemons = State(initialValue: demons.sorted { $0.carryCount > $1.carryCount })
     }
 
     var body: some View {
@@ -29,6 +30,12 @@ struct DemonsView: View {
                         .font(.system(size: 14))
                         .foregroundColor(Color(white: 0.4))
                 }
+            }
+            .task(id: localDemons.count) {
+                let demons = localDemons
+                cachedThemes = await Task.detached(priority: .utility) {
+                    DemonsView.computeThemes(demons)
+                }.value
             }
         }
     }
@@ -52,8 +59,7 @@ struct DemonsView: View {
         }
     }
 
-    // F5: keyword frequency across all demon intentions
-    private var recurringThemes: [(String, Int)] {
+    private static func computeThemes(_ demons: [RitualDemon]) -> [(String, Int)] {
         let stopWords: Set<String> = ["je", "tu", "il", "elle", "nous", "vous", "ils", "elles",
             "le", "la", "les", "un", "une", "des", "du", "de", "et", "ou", "à", "au",
             "en", "sur", "par", "pour", "dans", "avec", "sans", "que", "qui", "ne", "pas",
@@ -62,7 +68,7 @@ struct DemonsView: View {
             "in", "is", "it", "and", "or", "for", "with", "not", "no", "be", "do", "at",
             "aujourd", "hui", "vais", "fais", "ferai", "dois", "veux", "moi", "ça", "c"]
         var freq: [String: Int] = [:]
-        for demon in localDemons {
+        for demon in demons {
             let words = demon.intention
                 .lowercased()
                 .components(separatedBy: .whitespacesAndNewlines)
@@ -88,7 +94,7 @@ struct DemonsView: View {
                     .padding(.top, 8)
 
                 // F5: Pattern recognition section
-                if !recurringThemes.isEmpty {
+                if !cachedThemes.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("THÈMES RÉCURRENTS")
                             .font(.system(size: 10, weight: .bold))
@@ -97,7 +103,7 @@ struct DemonsView: View {
                             .padding(.leading, 16)
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 8) {
-                                ForEach(recurringThemes, id: \.0) { word, count in
+                                ForEach(cachedThemes, id: \.0) { word, count in
                                     HStack(spacing: 4) {
                                         Text(word)
                                             .font(.system(size: 12, weight: .medium))
@@ -119,7 +125,7 @@ struct DemonsView: View {
                     .padding(.vertical, 4)
                 }
 
-                ForEach(localDemons.sorted(by: { $0.carryCount > $1.carryCount })) { demon in
+                ForEach(localDemons) { demon in
                     DemonCard(demon: demon, isKilling: killingDate == demon.date) {
                         killDemon(demon)
                     }

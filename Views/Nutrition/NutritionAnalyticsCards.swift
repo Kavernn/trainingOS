@@ -175,7 +175,10 @@ struct NutritionPatternsCard: View {
         history.isEmpty ? 0 : history.reduce(0) { $0 + $1.proteines } / Double(history.count)
     }
 
-    private var bestStreak: Int {
+    @State private var bestStreak: Int = 0
+    @State private var weekdayAverages: [(label: String, avgCal: Double)] = []
+
+    private static func computeBestStreak(_ history: [NutritionDayHistory], protTarget: Double, calTarget: Double) -> Int {
         var best = 0, current = 0
         for day in history.sorted(by: { $0.date < $1.date }) {
             let ok = day.proteines >= protTarget * 0.9 && day.calories <= calTarget * 1.1
@@ -185,7 +188,7 @@ struct NutritionPatternsCard: View {
         return best
     }
 
-    private var weekdayAverages: [(label: String, avgCal: Double)] {
+    private static func computeWeekdayAverages(_ history: [NutritionDayHistory]) -> [(label: String, avgCal: Double)] {
         guard history.count >= 21 else { return [] }
         let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
         let names = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
@@ -196,7 +199,7 @@ struct NutritionPatternsCard: View {
             let wd = ((epochDays + 4) % 7 + 1) - 1
             groups[wd, default: []].append(day.calories)
         }
-        let reordered = [1,2,3,4,5,6,0] // Mon→Sun
+        let reordered = [1,2,3,4,5,6,0]
         return reordered.compactMap { idx in
             guard let vals = groups[idx], !vals.isEmpty else { return nil }
             return (label: names[idx], avgCal: vals.reduce(0, +) / Double(vals.count))
@@ -276,6 +279,17 @@ struct NutritionPatternsCard: View {
         .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
+        .task(id: history.count) {
+            let h = history
+            let pt = protTarget
+            let ct = calTarget
+            bestStreak = await Task.detached(priority: .utility) {
+                NutritionPatternsCard.computeBestStreak(h, protTarget: pt, calTarget: ct)
+            }.value
+            weekdayAverages = await Task.detached(priority: .utility) {
+                NutritionPatternsCard.computeWeekdayAverages(h)
+            }.value
+        }
     }
 }
 
