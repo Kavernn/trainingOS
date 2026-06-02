@@ -41,7 +41,7 @@ final class CacheService {
         "programme_data":     24 * 3600,
         // Health
         "recovery_data":      3600,
-        "cardio_data":        10 * 60,
+        "cardio_data":        30 * 60,
         "acwr":               60 * 60,
         // Streak — invalidated on session logged
         "streak_data":        5 * 60,

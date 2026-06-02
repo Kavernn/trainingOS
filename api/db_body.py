@@ -417,7 +417,7 @@ def get_cardio_logs(limit: int = 100) -> List[dict]:
     def _do() -> List[dict]:
         resp = (
             db_core._client.table("cardio_logs")
-            .select("*")
+            .select("id, date, type, duration_min, distance_km, avg_hr, avg_pace, calories, cadence, notes, source, rpe, logged_at, start_time, end_time, pace_avg_seconds, coach_note")
             .order("date", desc=True)
             .limit(limit)
             .execute()

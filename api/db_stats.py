@@ -49,14 +49,15 @@ def get_weekly_tonnage(weeks: int = 8) -> list[dict]:
         return []
 
 
-def get_pattern_volume(days: int = 28) -> dict:
+def get_pattern_volume(days: int = 28, weights: dict | None = None) -> dict:
     """Return volume (lbs×reps) per movement pattern for the last N days."""
     try:
         from weights import load_weights
         from inventory import load_inventory
         from datetime import date as _date, timedelta
         cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
-        weights = load_weights()
+        if weights is None:
+            weights = load_weights()
         inventory = load_inventory() or {}
         pattern_vol: dict[str, float] = {}
         for name, data in weights.items():
@@ -127,14 +128,15 @@ def get_programme_compliance(weeks: int = 8) -> list[dict]:
         return []
 
 
-def get_one_rm_trend(days: int = 84) -> dict:
+def get_one_rm_trend(days: int = 84, weights: dict | None = None) -> dict:
     """Return estimated 1RM trend per compound exercise (push/pull/hinge/squat patterns)."""
     try:
         from weights import load_weights
         from inventory import load_inventory
         from datetime import date as _date, timedelta
         cutoff = (_date.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
-        weights = load_weights()
+        if weights is None:
+            weights = load_weights()
         inventory = load_inventory() or {}
         compound_patterns = {"squat", "hinge", "push", "pull"}
         result: dict[str, list[dict]] = {}
