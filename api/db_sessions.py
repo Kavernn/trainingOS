@@ -1133,9 +1133,9 @@ def get_exercise_info(exercise_name: str) -> Optional[dict]:
 
 
 def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
-    """Batch fetch exercise info (category, load_profile, default_scheme) for multiple exercises.
+    """Batch fetch exercise info for multiple exercises.
 
-    Returns: {exercise_name: {category, load_profile, default_scheme}}
+    Returns: {exercise_name: {category, load_profile, default_scheme, muscles}}
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return {}
@@ -1146,7 +1146,7 @@ def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
     def _do() -> dict[str, dict]:
         resp = (
             db_core._client.table("exercises")
-            .select("name, category, load_profile, default_scheme")
+            .select("name, category, load_profile, default_scheme, muscles")
             .in_("name", names)
             .is_("deleted_at", "null")
             .execute()
