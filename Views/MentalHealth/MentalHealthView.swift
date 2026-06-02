@@ -170,54 +170,60 @@ private struct SignalDuJourHeader: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 0) {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("ÉQUILIBRE")
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
                     .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
                     .tracking(2)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(lss.map { "\($0.score)" } ?? "—")
-                        .font(.system(size: 22, weight: .bold, design: .monospaced))
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundStyle(lssColor)
                     if lss != nil {
                         Text("/ 100")
-                            .font(.system(size: 10, weight: .light))
+                            .font(.system(size: 9, weight: .light))
                             .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
                     }
                 }
                 Text(lssLabel)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(lssColor.opacity(0.8))
+                Text("Sommeil · HRV · Fatigue")
+                    .font(.system(size: 8, weight: .light))
+                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.2) : Color.white.opacity(0.25))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Rectangle()
                 .fill(isVoid ? Color.moonlight.opacity(0.08) : Color.white.opacity(0.1))
                 .frame(width: 0.5)
-                .padding(.vertical, 8)
+                .padding(.vertical, 6)
 
-            VStack(alignment: .trailing, spacing: 3) {
+            VStack(alignment: .trailing, spacing: 2) {
                 Text("HUMEUR")
                     .font(.system(size: 9, weight: .medium, design: .monospaced))
                     .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
                     .tracking(2)
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(todayMood.map { "\($0.score)" } ?? "—")
-                        .font(.system(size: 22, weight: .bold, design: .monospaced))
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundStyle(moodColor)
                     if todayMood != nil {
                         Text("/ 10")
-                            .font(.system(size: 10, weight: .light))
+                            .font(.system(size: 9, weight: .light))
                             .foregroundStyle(isVoid ? Color.moonlight.opacity(0.3) : Color.white.opacity(0.4))
                     }
                 }
                 Text(todayMood != nil ? "Aujourd'hui" : "Non loggé")
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(todayMood != nil ? moodColor.opacity(0.8) : Color.gray.opacity(0.5))
+                Text("Humeur subjective /10")
+                    .font(.system(size: 8, weight: .light))
+                    .foregroundStyle(isVoid ? Color.moonlight.opacity(0.2) : Color.white.opacity(0.25))
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .padding(14)
+        .padding(10)
         .background {
             RoundedRectangle(cornerRadius: 14)
                 .fill(isVoid ? Color.moonlight.opacity(0.04) : Color.white.opacity(0.05))
