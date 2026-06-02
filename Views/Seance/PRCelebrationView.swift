@@ -243,7 +243,7 @@ struct ConfettiView: View {
                     ConfettiPiece(
                         x: CGFloat.random(in: 0...geo.size.width),
                         y: CGFloat.random(in: -20...geo.size.height * 0.4),
-                        color: colors.randomElement()!,
+                        color: colors.randomElement() ?? .orange,
                         angle: Double.random(in: 0...360),
                         size: CGFloat.random(in: 6...12)
                     )

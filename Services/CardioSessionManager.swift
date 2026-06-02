@@ -204,7 +204,8 @@ final class CardioSessionManager: NSObject, ObservableObject {
             guard let self else { return }
             self.elapsedSeconds = self.pausedElapsed + Int(Date().timeIntervalSince(base))
         }
-        RunLoop.main.add(timer!, forMode: .common)
+        guard let t = timer else { return }
+        RunLoop.main.add(t, forMode: .common)
     }
 
     // MARK: - Max Pace

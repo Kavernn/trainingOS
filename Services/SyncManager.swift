@@ -85,7 +85,7 @@ final class SyncManager: ObservableObject {
         let cap = maxRetries
         let now = Date()
         var pending = queue.load().filter {
-            !$0.isSynced && $0.retryCount < cap && ($0.nextRetryAt == nil || $0.nextRetryAt! <= now)
+            !$0.isSynced && $0.retryCount < cap && ($0.nextRetryAt.map { $0 <= now } ?? true)
         }
         pending.sort { $0.createdAt < $1.createdAt }
 

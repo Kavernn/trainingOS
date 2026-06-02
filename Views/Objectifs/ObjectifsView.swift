@@ -399,7 +399,7 @@ struct AddGoalSheet: View {
     @State private var goalWeight = ""
 
     // health mode
-    @State private var smartType  = SmartGoalOption.allCases.first!
+    @State private var smartType  = SmartGoalOption.allCases.first ?? .bodyFat
     @State private var targetStr  = ""
 
     private enum GoalFocus: Hashable { case exercise, goalWeight, target }
