@@ -37,6 +37,105 @@ private final class P3State: @unchecked Sendable {
     var warRoomEnabled = false
 }
 
+// MARK: - PhoenixScoreDeltaTracker
+
+struct PhoenixScoreDeltaTracker {
+    func update(score: PhoenixScore, today: String) -> Double? {
+        let storedDate = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
+        if storedDate != today {
+            let oldValue = UserDefaults.standard.double(forKey: "phoenix.score.value")
+            let oldDate  = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
+            if !oldDate.isEmpty {
+                UserDefaults.standard.set(oldValue, forKey: "phoenix.score.prev_value")
+                UserDefaults.standard.set(oldDate,  forKey: "phoenix.score.prev_date")
+            }
+            UserDefaults.standard.set(Double(score.score), forKey: "phoenix.score.value")
+            UserDefaults.standard.set(today, forKey: "phoenix.score.date")
+        }
+        let prevDate = UserDefaults.standard.string(forKey: "phoenix.score.prev_date") ?? ""
+        guard !prevDate.isEmpty else { return nil }
+        return Double(score.score) - UserDefaults.standard.double(forKey: "phoenix.score.prev_value")
+    }
+}
+
+// MARK: - DashboardSignalEngine
+
+struct DashboardSignalEngine {
+    func criticalSignal(
+        dash: DashboardData,
+        deload: DeloadReport?,
+        readinessScore: Int?,
+        hrvAnalysis: HRVAnalysis?,
+        streakData: StreakResponse?
+    ) -> CriticalSignal? {
+        if let report = deload, report.fatigueLevel == 2 {
+            return CriticalSignal(
+                message: "Fatigue accumulée détectée — un deload s'impose cette semaine.",
+                actionLabel: "Voir le plan deload",
+                destination: .deload,
+                icon: "bolt.fill"
+            )
+        }
+        if let score = readinessScore, score < 40 {
+            return CriticalSignal(
+                message: "Récupération à \(score)/100 — réduis le volume de ta séance aujourd'hui.",
+                actionLabel: "Voir récupération",
+                destination: .recovery,
+                icon: "heart.fill"
+            )
+        }
+        if let analysis = hrvAnalysis,
+           let rmssd = analysis.todayRmssd,
+           let baseline = analysis.hrv30dAvg,
+           baseline > 0, rmssd < baseline * 0.80 {
+            let pct = Int(((baseline - rmssd) / baseline) * 100)
+            return CriticalSignal(
+                message: "HRV \(pct)% sous ta baseline — priorise la récupération aujourd'hui.",
+                actionLabel: "Voir HRV",
+                destination: .hrv,
+                icon: "heart.fill"
+            )
+        }
+        let low = dash.today.lowercased()
+        let isRestDay = low.contains("repos") || low.contains("rest") || low.contains("recovery")
+        if !isRestDay, !dash.today.isEmpty, !dash.alreadyLoggedToday {
+            let streak = streakData?.currentStreak ?? 0
+            if streak > 2 {
+                return CriticalSignal(
+                    message: "Séance prévue aujourd'hui — ton streak de \(streak) jours est en jeu.",
+                    actionLabel: "Commencer la séance",
+                    destination: .workout,
+                    icon: "flame.fill"
+                )
+            }
+        }
+        return nil
+    }
+
+    func computeMacroHint(
+        dailyPattern: PatternEntry?,
+        yesterdayNutrition: NutritionDayHistory?
+    ) -> MacroNutritionHint? {
+        guard let pattern = dailyPattern,
+              pattern.family == "C",
+              let t = pattern.macroThreshold,
+              let yesterday = yesterdayNutrition else { return nil }
+        let v: Double
+        let label: String
+        switch t.macro {
+        case "proteines":
+            guard yesterday.proteines > 0 else { return nil }
+            v = yesterday.proteines; label = "protéines"
+        case "calories":
+            guard yesterday.calories > 0 else { return nil }
+            v = yesterday.calories; label = "calories"
+        default:
+            return nil
+        }
+        return MacroNutritionHint(isAbove: v >= t.value, macro: label, value: v, threshold: t.value, unit: t.unit)
+    }
+}
+
 // MARK: - Critical Alert Types
 
 enum DashboardAlertDestination {
@@ -211,24 +310,8 @@ final class DashboardViewModel: ObservableObject {
             group.addTask { @MainActor in
                 do {
                     let score = try await APIService.shared.fetchPhoenixScore()
-                    p2.phoenixScore = score
-                    // Day-over-day delta: rotate stored score once per calendar day
-                    let storedDate = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
-                    if storedDate != today {
-                        let oldValue = UserDefaults.standard.double(forKey: "phoenix.score.value")
-                        let oldDate  = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
-                        if !oldDate.isEmpty {
-                            UserDefaults.standard.set(oldValue, forKey: "phoenix.score.prev_value")
-                            UserDefaults.standard.set(oldDate,  forKey: "phoenix.score.prev_date")
-                        }
-                        UserDefaults.standard.set(Double(score.score), forKey: "phoenix.score.value")
-                        UserDefaults.standard.set(today, forKey: "phoenix.score.date")
-                    }
-                    let prevDate = UserDefaults.standard.string(forKey: "phoenix.score.prev_date") ?? ""
-                    if !prevDate.isEmpty {
-                        let prevValue = UserDefaults.standard.double(forKey: "phoenix.score.prev_value")
-                        p2.phoenixDayDelta = Double(score.score) - prevValue
-                    }
+                    p2.phoenixScore    = score
+                    p2.phoenixDayDelta = PhoenixScoreDeltaTracker().update(score: score, today: today)
                     NotificationService.notifyPhoenixStateChange(
                         newState: score.state,
                         newLabel: score.phoenixState.label
@@ -399,71 +482,13 @@ final class DashboardViewModel: ObservableObject {
     // MARK: - Critical Alert System
 
     func criticalSignal(dash: DashboardData) -> CriticalSignal? {
-        // 1. Deload critique — priorité maximale
-        if let report = deload, report.fatigueLevel == 2 {
-            return CriticalSignal(
-                message: "Fatigue accumulée détectée — un deload s'impose cette semaine.",
-                actionLabel: "Voir le plan deload",
-                destination: .deload,
-                icon: "bolt.fill"
-            )
-        }
-        // 2. Score récupération critique
-        if let score = readinessScore, score < 40 {
-            return CriticalSignal(
-                message: "Récupération à \(score)/100 — réduis le volume de ta séance aujourd'hui.",
-                actionLabel: "Voir récupération",
-                destination: .recovery,
-                icon: "heart.fill"
-            )
-        }
-        // 3. HRV > 20% sous la baseline 30j
-        if let analysis = hrvAnalysis,
-           let rmssd = analysis.todayRmssd,
-           let baseline = analysis.hrv30dAvg,
-           baseline > 0, rmssd < baseline * 0.80 {
-            let pct = Int(((baseline - rmssd) / baseline) * 100)
-            return CriticalSignal(
-                message: "HRV \(pct)% sous ta baseline — priorise la récupération aujourd'hui.",
-                actionLabel: "Voir HRV",
-                destination: .hrv,
-                icon: "heart.fill"
-            )
-        }
-        // 4. Streak en danger
-        let low = dash.today.lowercased()
-        let isRestDay = low.contains("repos") || low.contains("rest") || low.contains("recovery")
-        if !isRestDay, !dash.today.isEmpty, !dash.alreadyLoggedToday {
-            let streak = streakData?.currentStreak ?? 0
-            if streak > 2 {
-                return CriticalSignal(
-                    message: "Séance prévue aujourd'hui — ton streak de \(streak) jours est en jeu.",
-                    actionLabel: "Commencer la séance",
-                    destination: .workout,
-                    icon: "flame.fill"
-                )
-            }
-        }
-        return nil
+        DashboardSignalEngine().criticalSignal(
+            dash: dash, deload: deload, readinessScore: readinessScore,
+            hrvAnalysis: hrvAnalysis, streakData: streakData
+        )
     }
 
     private func computeMacroHint() -> MacroNutritionHint? {
-        guard let pattern = dailyPattern,
-              pattern.family == "C",
-              let t = pattern.macroThreshold,
-              let yesterday = yesterdayNutrition else { return nil }
-        let v: Double
-        let label: String
-        switch t.macro {
-        case "proteines":
-            guard yesterday.proteines > 0 else { return nil }
-            v = yesterday.proteines; label = "protéines"
-        case "calories":
-            guard yesterday.calories > 0 else { return nil }
-            v = yesterday.calories; label = "calories"
-        default:
-            return nil
-        }
-        return MacroNutritionHint(isAbove: v >= t.value, macro: label, value: v, threshold: t.value, unit: t.unit)
+        DashboardSignalEngine().computeMacroHint(dailyPattern: dailyPattern, yesterdayNutrition: yesterdayNutrition)
     }
 }

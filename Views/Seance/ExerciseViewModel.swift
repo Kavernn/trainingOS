@@ -44,6 +44,107 @@ private struct DraftSet: Codable {
     var rpe: Double? = nil
 }
 
+// MARK: - ExerciseDraftPersistence
+
+private struct ExerciseDraftPersistence {
+    let exerciseName: String
+    private var key: String { "exo_draft_\(exerciseName)" }
+
+    @discardableResult
+    func save(_ drafts: [DraftSet]) -> Bool {
+        guard let data = try? APIService.encoder.encode(drafts) else { return false }
+        UserDefaults.standard.set(data, forKey: key)
+        return true
+    }
+
+    func load() -> [DraftSet]? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        return try? APIService.decoder.decode([DraftSet].self, from: data)
+    }
+
+    func clear() { UserDefaults.standard.removeObject(forKey: key) }
+}
+
+// MARK: - ExerciseCalculator
+
+enum ExerciseCalculator {
+
+    static func setsCount(scheme: String, prescription: ExercisePrescription?) -> Int {
+        if let p = prescription { return max(1, min(p.sets, 12)) }
+        let s = scheme.lowercased()
+        if let x = s.firstIndex(of: "x") {
+            let before = String(s[s.startIndex..<x])
+            if let n = Int(before) { return max(1, min(n, 12)) }
+        }
+        return 3
+    }
+
+    static func exerciseRPE(sets: [SetInput]) -> Double {
+        guard !sets.isEmpty else { return 7.0 }
+        let avgRIR = Int((Double(sets.map(\.rir).reduce(0, +)) / Double(sets.count)).rounded())
+        return RPEHelper.rirToRPE(min(avgRIR, 4))
+    }
+
+    static func totalWeight(for input: Double, equipmentType: String) -> Double {
+        switch equipmentType {
+        case "bodyweight":               return input
+        case "barbell":                  return input * 2 + 45
+        case "dumbbell", "cable_double": return input * 2
+        default:                         return input
+        }
+    }
+
+    static func inputHint(currentWeight: Double, equipmentType: String) -> Double {
+        guard currentWeight > 0 else { return 0 }
+        switch equipmentType {
+        case "barbell":                  return max(0, (currentWeight - 45) / 2)
+        case "dumbbell", "cable_double": return currentWeight / 2
+        case "bodyweight":               return 0
+        default:                         return currentWeight
+        }
+    }
+
+    static func warmupSets(currentWeight: Double) -> [(pct: Int, weight: Double)] {
+        guard currentWeight > 0 else { return [] }
+        let ud = UserDefaults.standard
+        let p1 = ud.object(forKey: "warmup_pct_1") as? Int ?? 40
+        let p2 = ud.object(forKey: "warmup_pct_2") as? Int ?? 60
+        let p3 = ud.object(forKey: "warmup_pct_3") as? Int ?? 80
+        let round2_5: (Double) -> Double = { round($0 / 2.5) * 2.5 }
+        return [(p1, round2_5(currentWeight * Double(p1) / 100)),
+                (p2, round2_5(currentWeight * Double(p2) / 100)),
+                (p3, round2_5(currentWeight * Double(p3) / 100))]
+    }
+
+    static func perSetHint(for index: Int, weightData: WeightData?, equipmentType: String) -> String {
+        let units = UnitSettings.shared
+        let hint = inputHint(currentWeight: weightData?.currentWeight ?? 0, equipmentType: equipmentType)
+        if let lastSets = weightData?.history?.first?.sets, index < lastSets.count {
+            let w = lastSets[index].weight
+            let perSide: Double
+            switch equipmentType {
+            case "barbell":                  perSide = w > 45 ? (w - 45) / 2 : 0
+            case "dumbbell", "cable_double": perSide = w / 2
+            case "bodyweight":               return "0.0"
+            default:                         perSide = w
+            }
+            if perSide > 0 { return units.inputStr(perSide) }
+        }
+        return hint > 0 ? units.inputStr(hint) : "0.0"
+    }
+
+    static func formatDuration(_ secs: Int) -> String {
+        guard secs >= 60 else { return "\(secs)s" }
+        let m = secs / 60; let s = secs % 60
+        return s > 0 ? "\(m)m\(s)s" : "\(m)m"
+    }
+
+    static func repsStr(sets: [SetInput], isTimeBased: Bool) -> String {
+        if isTimeBased { return sets.map { String($0.duration) }.joined(separator: ",") }
+        return sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
+    }
+}
+
 // MARK: - ExerciseViewModel
 
 @MainActor
@@ -67,11 +168,7 @@ final class ExerciseViewModel: ObservableObject {
     @Published var showHistory = false
     @Published var logStatus: LogStatus? = nil
     // Auto-calculé depuis le RIR moyen des sets (ne plus modifier manuellement)
-    var exerciseRPE: Double {
-        guard !sets.isEmpty else { return 7.0 }
-        let avgRIR = Int((Double(sets.map(\.rir).reduce(0, +)) / Double(sets.count)).rounded())
-        return RPEHelper.rirToRPE(min(avgRIR, 4))
-    }
+    var exerciseRPE: Double { ExerciseCalculator.exerciseRPE(sets: sets) }
     @Published var painZone: String = ""
     @Published var setBySetMode: Bool = false
     @Published var currentSetIndex: Int = 0
@@ -118,15 +215,7 @@ final class ExerciseViewModel: ObservableObject {
     var currentWeight: Double { weightData?.currentWeight ?? 0 }
     var lastReps: String { weightData?.lastReps ?? "—" }
 
-    var setsCount: Int {
-        if let p = prescription { return max(1, min(p.sets, 12)) }
-        let s = scheme.lowercased()
-        if let x = s.firstIndex(of: "x") {
-            let before = String(s[s.startIndex..<x])
-            if let n = Int(before) { return max(1, min(n, 12)) }
-        }
-        return 3
-    }
+    var setsCount: Int { ExerciseCalculator.setsCount(scheme: scheme, prescription: prescription) }
 
     var avgWeight: Double? {
         var sum = 0.0; var count = 0
@@ -147,89 +236,35 @@ final class ExerciseViewModel: ObservableObject {
         }
     }
 
-    var repsStr: String {
-        if isTimeBased { return sets.map { String($0.duration) }.joined(separator: ",") }
-        return sets.compactMap { $0.reps.isEmpty ? nil : $0.reps }.joined(separator: ",")
-    }
+    var repsStr: String { ExerciseCalculator.repsStr(sets: sets, isTimeBased: isTimeBased) }
 
     var lastRepsParts: [String] { lastReps.split(separator: ",").map(String.init) }
 
-    var warmupSets: [(pct: Int, weight: Double)] {
-        guard currentWeight > 0 else { return [] }
-        let ud = UserDefaults.standard
-        let p1 = ud.object(forKey: "warmup_pct_1") as? Int ?? 40
-        let p2 = ud.object(forKey: "warmup_pct_2") as? Int ?? 60
-        let p3 = ud.object(forKey: "warmup_pct_3") as? Int ?? 80
-        let round2_5: (Double) -> Double = { round($0 / 2.5) * 2.5 }
-        return [(p1, round2_5(currentWeight * Double(p1) / 100)),
-                (p2, round2_5(currentWeight * Double(p2) / 100)),
-                (p3, round2_5(currentWeight * Double(p3) / 100))]
-    }
+    var warmupSets: [(pct: Int, weight: Double)] { ExerciseCalculator.warmupSets(currentWeight: currentWeight) }
 
-    var inputHint: Double {
-        guard currentWeight > 0 else { return 0 }
-        switch equipmentType {
-        case "barbell":                  return max(0, (currentWeight - 45) / 2)
-        case "dumbbell", "cable_double": return currentWeight / 2
-        case "bodyweight":               return 0
-        default:                         return currentWeight
-        }
-    }
+    var inputHint: Double { ExerciseCalculator.inputHint(currentWeight: currentWeight, equipmentType: equipmentType) }
 
     // MARK: - Draft persistence
 
-    private var draftKey: String { "exo_draft_\(name)" }
+    private var draftStore: ExerciseDraftPersistence { ExerciseDraftPersistence(exerciseName: name) }
 
     private func saveDraft() {
         let draft = sets.map { DraftSet(weight: $0.weight, reps: $0.reps, rir: $0.rir, duration: $0.duration, rpe: $0.rpe) }
-        if let data = try? APIService.encoder.encode(draft) {
-            UserDefaults.standard.set(data, forKey: draftKey)
-            draftSavedAt = Date()
-        }
+        if draftStore.save(draft) { draftSavedAt = Date() }
     }
 
-    private func loadDraft() -> [DraftSet]? {
-        guard let data = UserDefaults.standard.data(forKey: draftKey) else { return nil }
-        return try? APIService.decoder.decode([DraftSet].self, from: data)
-    }
+    private func loadDraft() -> [DraftSet]? { draftStore.load() }
 
     func clearDraft() {
-        UserDefaults.standard.removeObject(forKey: draftKey)
+        draftStore.clear()
         sessionNote = ""
     }
 
     // MARK: - Methods
 
-    func totalWeight(for input: Double) -> Double {
-        switch equipmentType {
-        case "bodyweight":               return input
-        case "barbell":                  return input * 2 + 45
-        case "dumbbell", "cable_double": return input * 2
-        default:                         return input
-        }
-    }
-
-    func perSetHint(for index: Int) -> String {
-        let units = UnitSettings.shared
-        if let lastSets = weightData?.history?.first?.sets, index < lastSets.count {
-            let w = lastSets[index].weight
-            let perSide: Double
-            switch equipmentType {
-            case "barbell":                  perSide = w > 45 ? (w - 45) / 2 : 0
-            case "dumbbell", "cable_double": perSide = w / 2
-            case "bodyweight":               return "0.0"
-            default:                         perSide = w
-            }
-            if perSide > 0 { return units.inputStr(perSide) }
-        }
-        return inputHint > 0 ? units.inputStr(inputHint) : "0.0"
-    }
-
-    func formatDuration(_ secs: Int) -> String {
-        guard secs >= 60 else { return "\(secs)s" }
-        let m = secs / 60; let s = secs % 60
-        return s > 0 ? "\(m)m\(s)s" : "\(m)m"
-    }
+    func totalWeight(for input: Double) -> Double { ExerciseCalculator.totalWeight(for: input, equipmentType: equipmentType) }
+    func perSetHint(for index: Int) -> String { ExerciseCalculator.perSetHint(for: index, weightData: weightData, equipmentType: equipmentType) }
+    func formatDuration(_ secs: Int) -> String { ExerciseCalculator.formatDuration(secs) }
 
     func initializeSets() {
         guard sets.isEmpty else { return }
