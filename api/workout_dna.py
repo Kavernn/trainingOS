@@ -37,7 +37,7 @@ _LOAD_SCORE = {
 
 # ── 1. PPL Balance ────────────────────────────────────────────────────────────
 
-def _classify_ppl(category: str) -> str:
+def _classify_ppl(category: str, name: str = "") -> str:
     cat = category.lower()
     if any(k in cat for k in ("chest", "pec", "shoulder", "delt", "tricep", "push")):
         return "push"
@@ -47,6 +47,14 @@ def _classify_ppl(category: str) -> str:
         return "legs"
     if any(k in cat for k in ("core", "abs", "oblique")):
         return "core"
+    # Name-based fallback for "strength" category (39 exercises classified as "other")
+    n = name.lower()
+    if any(k in n for k in ("press", "fly", "pec", "dip", "push", "chest", "shoulder", "delt", "tricep", "lateral raise")):
+        return "push"
+    if any(k in n for k in ("row", "pull", "chin", "deadlift", "rdl", "shrug", "curl", "lat", "rear delt")):
+        return "pull"
+    if any(k in n for k in ("squat", "lunge", "leg", "calf", "glute", "hip thrust", "nordic", "hamstring", "split squat")):
+        return "legs"
     return "other"
 
 
@@ -56,7 +64,7 @@ def _compute_ppl(history: dict, ex_info: dict, period_days: int = 90) -> dict:
 
     for name, entries in history.items():
         cat   = (ex_info.get(name, {}).get("category") or "")
-        group = _classify_ppl(cat)
+        group = _classify_ppl(cat, name)
         for e in entries:
             if (e.get("date") or "") < cutoff:
                 continue
@@ -66,16 +74,16 @@ def _compute_ppl(history: dict, ex_info: dict, period_days: int = 90) -> dict:
     total     = sum(counts.values()) or 1
     ppl_total = (counts["push"] + counts["pull"] + counts["legs"]) or 1
 
-    push_pct  = round(counts["push"]  / total * 100)
-    pull_pct  = round(counts["pull"]  / total * 100)
-    legs_pct  = round(counts["legs"]  / total * 100)
-    core_pct  = round(counts["core"]  / total * 100)
-    other_pct = max(0, 100 - push_pct - pull_pct - legs_pct - core_pct)
-
+    # PPL-normalized (sum to 100% among push/pull/legs — what the chart displays)
     push_n = round(counts["push"] / ppl_total * 100)
     pull_n = round(counts["pull"] / ppl_total * 100)
-    legs_n = round(counts["legs"] / ppl_total * 100)
-    dev    = (abs(push_n - 33) + abs(pull_n - 33) + abs(legs_n - 33)) / 3
+    legs_n = max(0, 100 - push_n - pull_n)  # avoid rounding drift
+
+    # All-sets ratios (informational: core + other breakdown)
+    core_pct  = round(counts["core"]  / total * 100)
+    other_pct = round(counts["other"] / total * 100)
+
+    dev           = (abs(push_n - 33) + abs(pull_n - 33) + abs(legs_n - 33)) / 3
     balance_score = max(0, round(100 - dev * 2))
 
     verdict = "Équilibré"
@@ -84,9 +92,9 @@ def _compute_ppl(history: dict, ex_info: dict, period_days: int = 90) -> dict:
     elif legs_n < 20:          verdict = "Jambes négligées"
 
     return {
-        "push_pct":      push_pct,
-        "pull_pct":      pull_pct,
-        "legs_pct":      legs_pct,
+        "push_pct":      push_n,
+        "pull_pct":      pull_n,
+        "legs_pct":      legs_n,
         "core_pct":      core_pct,
         "other_pct":     other_pct,
         "balance_score": balance_score,
