@@ -74,57 +74,92 @@ struct TrainingOSApp: App {
     @State private var hkSetupDone = false
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
 
-    private let modelContainer: ModelContainer = {
+    private static let swiftDataLog = Logger(subsystem: "TrainingOS", category: "SwiftData")
+
+    // Optional so the app never crashes if SwiftData is broken at the OS level.
+    // Views using @Query will see empty results rather than crashing.
+    private let modelContainer: ModelContainer? = {
         // SyncManager uses UserDefaults — no SwiftData needed for the offline queue.
         // BodyCompEntry still uses SwiftData for local history (iOS < 26 only;
         // iOS 26 beta SwiftData @Model ObjC registration corrupts the nano-malloc heap).
         if #available(iOS 26, *) {
             let empty = Schema([])
             let cfg   = ModelConfiguration(schema: empty, isStoredInMemoryOnly: true)
-            return (try? ModelContainer(for: empty, configurations: cfg))
-                ?? { fatalError("Cannot create empty ModelContainer") }()
+            do {
+                return try ModelContainer(for: empty, configurations: cfg)
+            } catch {
+                swiftDataLog.critical("iOS 26 empty ModelContainer failed: \(error) — retrying without configuration")
+                do {
+                    return try ModelContainer(for: Schema([]))
+                } catch let e2 {
+                    swiftDataLog.critical("SwiftData unavailable on iOS 26: \(e2)")
+                    return nil
+                }
+            }
         }
 
         let schema     = Schema([BodyCompEntry.self])
-        let memConfig  = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
         let diskConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        return (try? ModelContainer(for: schema, configurations: diskConfig))
-            ?? (try? ModelContainer(for: schema, configurations: memConfig))
-            ?? { fatalError("Impossible de créer un ModelContainer") }()
+        let memConfig  = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+
+        do {
+            return try ModelContainer(for: schema, configurations: diskConfig)
+        } catch {
+            swiftDataLog.error("SwiftData disk init failed: \(error)")
+        }
+
+        do {
+            return try ModelContainer(for: schema, configurations: memConfig)
+        } catch {
+            swiftDataLog.critical("SwiftData in-memory init failed: \(error) — BodyComp data unavailable, trying empty container")
+        }
+
+        do {
+            return try ModelContainer(for: Schema([]))
+        } catch let e {
+            swiftDataLog.critical("SwiftData completely unavailable: \(e)")
+            return nil
+        }
     }()
 
-    var body: some Scene {
-        WindowGroup {
-            Group {
-                if ProcessInfo.processInfo.environment["UITEST_MODE"] == "1" {
-                    ContentView()
-                } else if showSplash {
-                    SplashView { showSplash = false }
-                } else if !onboardingCompleted {
-                    OnboardingView { onboardingCompleted = true }
-                } else {
-                    ContentView()
-                }
-            }
-            .environmentObject(appState)
-            .onAppear {
-                CacheService.invalidateIfVersionChanged()
-                SyncManager.shared.setup()
-                UNUserNotificationCenter.current().delegate = AppNotificationDelegate.shared
-                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-                    if granted { NotificationService.scheduleAll() }
-                }
-                Task {
-                    await appState.loadProfile()
-                    await CoachMemoryStore.shared.syncFromServer()
-                    guard !hkSetupDone else { return }
-                    hkSetupDone = true
-                    await HealthKitService.shared.requestAuthorization()
-                    await WatchSyncService.shared.syncIfNeeded()
-                    await WatchSyncService.shared.enableBackgroundDelivery()
-                }
+    @ViewBuilder
+    private var rootView: some View {
+        Group {
+            if ProcessInfo.processInfo.environment["UITEST_MODE"] == "1" {
+                ContentView()
+            } else if showSplash {
+                SplashView { showSplash = false }
+            } else if !onboardingCompleted {
+                OnboardingView { onboardingCompleted = true }
+            } else {
+                ContentView()
             }
         }
-        .modelContainer(modelContainer)
+        .environmentObject(appState)
+        .onAppear {
+            CacheService.invalidateIfVersionChanged()
+            SyncManager.shared.setup()
+            UNUserNotificationCenter.current().delegate = AppNotificationDelegate.shared
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
+                if granted { NotificationService.scheduleAll() }
+            }
+            Task {
+                await appState.loadProfile()
+                await CoachMemoryStore.shared.syncFromServer()
+                guard !hkSetupDone else { return }
+                hkSetupDone = true
+                await HealthKitService.shared.requestAuthorization()
+                await WatchSyncService.shared.syncIfNeeded()
+                await WatchSyncService.shared.enableBackgroundDelivery()
+            }
+        }
+    }
+
+    var body: some Scene {
+        if let container = modelContainer {
+            WindowGroup { rootView }.modelContainer(container)
+        } else {
+            WindowGroup { rootView }
+        }
     }
 }
