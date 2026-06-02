@@ -336,18 +336,6 @@ struct IntelligenceView: View {
     @ViewBuilder
     private var chatSectionView: some View {
         VStack(spacing: 0) {
-            if messages.isEmpty {
-                CoachContextSummary(
-                    lssData: lssData,
-                    dashboard: api.dashboard,
-                    nutritionHistory: nutritionHistory
-                )
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 4)
-                .transition(.opacity)
-            }
-
             ChatPanel(
                 messages: $messages,
                 input: $input,
