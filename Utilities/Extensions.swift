@@ -7,6 +7,16 @@ enum APIConfig {
     // apiKey est défini dans Utilities/APIConfig.swift (gitignored — ne jamais commiter)
 }
 
+// MARK: - Safe Calendar Operations
+extension Calendar {
+    func safeDateByAdding(_ component: Calendar.Component, value: Int, to date: Date) -> Date {
+        return self.date(byAdding: component, value: value, to: date) ?? date
+    }
+    func safeDate(bySettingHour hour: Int, minute: Int, second: Int, of date: Date) -> Date {
+        return self.date(bySettingHour: hour, minute: minute, second: second, of: date) ?? date
+    }
+}
+
 // MARK: - Keyboard dismiss
 
 extension View {
@@ -159,11 +169,11 @@ extension Date {
     // Returns (monday, sunday) as "YYYY-MM-DD", weeksAgo weeks back
     func isoWeekBounds(weeksAgo: Int = 0) -> (String, String) {
         let cal = Calendar(identifier: .iso8601)
-        let target = cal.date(byAdding: .weekOfYear, value: -weeksAgo, to: self)!
+        let target = cal.safeDateByAdding(.weekOfYear, value: -weeksAgo, to: self)
         var comps = cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: target)
         comps.weekday = 2
-        let monday = cal.date(from: comps)!
-        let sunday = cal.date(byAdding: .day, value: 6, to: monday)!
+        let monday = cal.date(from: comps) ?? self
+        let sunday = cal.safeDateByAdding(.day, value: 6, to: monday)
         return (DateFormatter.isoDate.string(from: monday), DateFormatter.isoDate.string(from: sunday))
     }
 }

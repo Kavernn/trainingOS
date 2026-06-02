@@ -493,7 +493,7 @@ enum NotificationService {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
             guard settings.authorizationStatus == .authorized else { return }
             for (day, id, title, body) in milestones {
-                let fireDate = Calendar.current.date(byAdding: .day, value: day - 1, to: start)!
+                let fireDate = Calendar.current.safeDateByAdding(.day, value: day - 1, to: start)
                 guard fireDate > Date() else { continue }
                 center.removePendingNotificationRequests(withIdentifiers: [id])
                 let content = UNMutableNotificationContent()

@@ -39,7 +39,7 @@ struct NutritionSettingsSheet: View {
         _endTime      = State(initialValue: {
             guard let t = settings?.nutritionEndTime,
                   let d = NutritionSettingsSheet.hmmFormatter.date(from: t) else {
-                return Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: Date())!
+                return Calendar.current.safeDate(bySettingHour: 21, minute: 0, second: 0, of: Date())
             }
             return d
         }())

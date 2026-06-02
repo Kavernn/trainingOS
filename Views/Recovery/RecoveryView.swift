@@ -140,7 +140,7 @@ struct RecoveryView: View {
     }
 
     private var entriesMissingHK: [RecoveryEntry] {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        let cutoff = Calendar.current.safeDateByAdding(.day, value: -7, to: Date())
         return log.filter {
             guard let d = $0.date, let date = Self.isoFmt.date(from: d) else { return false }
             return date >= cutoff && ($0.restingHr == nil || $0.hrv == nil)
@@ -270,14 +270,14 @@ struct RecoveryView: View {
                 RecoveryPerformanceBanner(
                     dashboard: api.dashboard,
                     hrvAnalysis: hrvAnalysis,
-                    recoveryScore: readinessData?.score.map { Double($0) / 10.0 },
+                    recoveryScore: readinessData.map { Double($0.score) / 10.0 },
                     onTap: onOpenSession
                 )
                 .padding(.horizontal, 16)
                 .appearAnimation(delay: 0.02)
 
                 if let entry = todayEntry {
-                    ReadinessCard(entry: entry, backendScore: readinessData?.score.map { Double($0) / 10.0 },
+                    ReadinessCard(entry: entry, backendScore: readinessData.map { Double($0.score) / 10.0 },
                                   hrv7dBaseline: hrvAnalysis?.hrv7dAvg)
                         .padding(.horizontal, 16)
                         .appearAnimation(delay: 0.04)

@@ -82,7 +82,7 @@ class HealthKitService: ObservableObject {
         guard let type = HKQuantityType.quantityType(forIdentifier: .stepCount) else { return nil }
 
         let start = cal.startOfDay(for: date)
-        let end   = cal.date(byAdding: .day, value: 1, to: start)!
+        let end   = cal.safeDateByAdding(.day, value: 1, to: start)
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
         return await withCheckedContinuation { cont in
             let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .cumulativeSum) { _, stats, _ in
@@ -99,8 +99,8 @@ class HealthKitService: ObservableObject {
     func fetchRestingHR(for date: Date) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .restingHeartRate) else { return nil }
 
-        let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -1, to: date)!)
-        let end   = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: date))!
+        let start = cal.startOfDay(for: cal.safeDateByAdding(.day, value: -1, to: date))
+        let end   = cal.safeDateByAdding(.day, value: 1, to: cal.startOfDay(for: date))
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
         return await withCheckedContinuation { cont in
             let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .discreteAverage) { _, stats, _ in
@@ -129,8 +129,8 @@ class HealthKitService: ObservableObject {
     func fetchSleep(for date: Date) async -> Double? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
 
-        let start = cal.date(byAdding: .hour, value: -6, to: cal.startOfDay(for: date))!
-        let end   = cal.date(byAdding: .hour, value: 12, to: cal.startOfDay(for: date))!
+        let start = cal.safeDateByAdding(.hour, value: -6, to: cal.startOfDay(for: date))
+        let end   = cal.safeDateByAdding(.hour, value: 12, to: cal.startOfDay(for: date))
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
         let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         return await withCheckedContinuation { cont in
@@ -154,7 +154,7 @@ class HealthKitService: ObservableObject {
     func fetchLastNightSleepWindow() async -> SleepWindow? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
         let now   = Date()
-        let start = cal.date(byAdding: .hour, value: -18, to: now)!
+        let start = cal.safeDateByAdding(.hour, value: -18, to: now)
         let pred  = HKQuery.predicateForSamples(withStart: start, end: now)
         let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         return await withCheckedContinuation { cont in
@@ -207,7 +207,7 @@ class HealthKitService: ObservableObject {
 
         // Fallback: overnight window (20:00 previous day – 10:00 target day)
         // Covers watches worn during sleep without pre-wake measurements
-        let prevDay     = cal.date(byAdding: .day, value: -1, to: date)!
+        let prevDay     = cal.safeDateByAdding(.day, value: -1, to: date)
         guard let nightStart = cal.date(bySettingHour: 20, minute: 0, second: 0, of: prevDay) else { return nil }
         let nightPred   = HKQuery.predicateForSamples(withStart: nightStart, end: morningEnd)
         return await withCheckedContinuation { cont in
@@ -259,8 +259,8 @@ class HealthKitService: ObservableObject {
     /// Average HR 06:00–09:00 (repos matinal).
     func fetchMorningHR(for date: Date) async -> Double? {
 
-        let start = cal.date(bySettingHour: 6, minute: 0, second: 0, of: date)!
-        let end   = cal.date(bySettingHour: 9, minute: 0, second: 0, of: date)!
+        let start = cal.safeDate(bySettingHour: 6, minute: 0, second: 0, of: date)
+        let end   = cal.safeDate(bySettingHour: 9, minute: 0, second: 0, of: date)
         return await fetchAvgHR(start: start, end: end)
     }
 
@@ -268,7 +268,7 @@ class HealthKitService: ObservableObject {
     func fetchPostWorkoutHR(for date: Date) async -> Double? {
 
         let dayStart = cal.startOfDay(for: date)
-        let dayEnd   = cal.date(byAdding: .day, value: 1, to: dayStart)!
+        let dayEnd   = cal.safeDateByAdding(.day, value: 1, to: dayStart)
         let workouts: [HKWorkout] = await withCheckedContinuation { cont in
             let pred = HKQuery.predicateForSamples(withStart: dayStart, end: dayEnd)
             let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
@@ -286,8 +286,8 @@ class HealthKitService: ObservableObject {
     /// Average HR 21:00–23:00 (repos vespéral).
     func fetchEveningHR(for date: Date) async -> Double? {
 
-        let start = cal.date(bySettingHour: 21, minute: 0, second: 0, of: date)!
-        let end   = cal.date(bySettingHour: 23, minute: 0, second: 0, of: date)!
+        let start = cal.safeDate(bySettingHour: 21, minute: 0, second: 0, of: date)
+        let end   = cal.safeDate(bySettingHour: 23, minute: 0, second: 0, of: date)
         return await fetchAvgHR(start: start, end: end)
     }
 
@@ -317,7 +317,7 @@ class HealthKitService: ObservableObject {
         guard let type = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) else { return nil }
 
         let start = cal.startOfDay(for: date)
-        let end   = cal.date(byAdding: .day, value: 1, to: start)!
+        let end   = cal.safeDateByAdding(.day, value: 1, to: start)
         let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
         return await withCheckedContinuation { cont in
             let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .cumulativeSum) { _, stats, _ in
@@ -329,7 +329,7 @@ class HealthKitService: ObservableObject {
 
     // MARK: - All Workouts (last N days, all activity types)
     func fetchAllWorkouts(days: Int = 1) async -> [HKWorkout] {
-        let start = cal.date(byAdding: .day, value: -days, to: Date())!
+        let start = cal.safeDateByAdding(.day, value: -days, to: Date())
         let pred  = HKQuery.predicateForSamples(withStart: start, end: Date())
         let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
         return await withCheckedContinuation { cont in
@@ -429,7 +429,7 @@ class HealthKitService: ObservableObject {
     func fetchLastNightSleepStages() async -> SleepStages? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
         let now   = Date()
-        let start = cal.date(byAdding: .hour, value: -18, to: now)!
+        let start = cal.safeDateByAdding(.hour, value: -18, to: now)
         let pred  = HKQuery.predicateForSamples(withStart: start, end: now)
         let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
         return await withCheckedContinuation { cont in
