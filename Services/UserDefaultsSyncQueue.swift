@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let syncQueueLogger = Logger(subsystem: "TrainingOS", category: "sync_queue")
 
 /// UserDefaults-backed queue for offline mutations.
 /// Replaces SwiftData so SyncManager works on all iOS versions.
@@ -41,6 +44,10 @@ final class UserDefaultsSyncQueue {
     }
 
     private func persist(_ mutations: [PendingMutation]) {
-        defaults.set(try? JSONEncoder().encode(mutations), forKey: Self.key)
+        do {
+            defaults.set(try JSONEncoder().encode(mutations), forKey: Self.key)
+        } catch {
+            syncQueueLogger.error("SyncQueue persist failed: \(error)")
+        }
     }
 }

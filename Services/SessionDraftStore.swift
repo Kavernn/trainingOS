@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let draftLogger = Logger(subsystem: "TrainingOS", category: "session_draft")
 
 struct PersistedSet: Codable {
     let weight: Double
@@ -28,8 +31,12 @@ enum SessionDraftStore {
     }
 
     static func save(date: String, sessionType: String = "morning", values: [PersistedExerciseLogResult]) {
-        guard let data = try? APIService.encoder.encode(values) else { return }
-        UserDefaults.standard.set(data, forKey: key(date: date, sessionType: sessionType))
+        do {
+            let data = try APIService.encoder.encode(values)
+            UserDefaults.standard.set(data, forKey: key(date: date, sessionType: sessionType))
+        } catch {
+            draftLogger.error("SessionDraftStore save failed [\(sessionType)/\(date)]: \(error)")
+        }
     }
 
     static func load(date: String, sessionType: String = "morning") -> [PersistedExerciseLogResult] {

@@ -169,7 +169,11 @@ extension APIService {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = body
         req.timeoutInterval = 15
-        _ = try? await URLSession.authed.data(for: req)
+        do {
+            _ = try await URLSession.authed.data(for: req)
+        } catch {
+            nutritionLogger.warning("saveFoodCatalog failed: \(error)")
+        }
         CacheInvalidation.foodCatalogUpdated.invalidate()
     }
 

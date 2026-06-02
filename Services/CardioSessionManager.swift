@@ -1,6 +1,7 @@
 import Foundation
 import CoreLocation
 import Combine
+import OSLog
 
 // MARK: - GPS Point
 
@@ -38,6 +39,7 @@ struct CompletedCardioSession {
 final class CardioSessionManager: NSObject, ObservableObject {
 
     static let shared = CardioSessionManager()
+    private let logger = Logger(subsystem: "TrainingOS", category: "cardio_session")
 
     // Published state
     @Published var sessionState: CardioSessionState = .idle
@@ -235,14 +237,18 @@ final class CardioSessionManager: NSObject, ObservableObject {
         ud.set(selectedType,      forKey: UDKey.sessionType)
         ud.set(sessionState.rawValue, forKey: UDKey.state)
 
-        if let encoded = try? JSONEncoder().encode(accumulatedGPSPoints) {
-            ud.set(encoded, forKey: UDKey.gpsPoints)
+        do {
+            ud.set(try JSONEncoder().encode(accumulatedGPSPoints), forKey: UDKey.gpsPoints)
+        } catch {
+            logger.error("CardioSession GPS persist failed: \(error)")
         }
     }
 
     private func persistGPSPoints() {
-        if let encoded = try? JSONEncoder().encode(accumulatedGPSPoints) {
-            UserDefaults.standard.set(encoded, forKey: UDKey.gpsPoints)
+        do {
+            UserDefaults.standard.set(try JSONEncoder().encode(accumulatedGPSPoints), forKey: UDKey.gpsPoints)
+        } catch {
+            logger.error("CardioSession GPS points persist failed: \(error)")
         }
     }
 

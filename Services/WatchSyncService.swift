@@ -1,8 +1,11 @@
 import Foundation
 import Combine
+import OSLog
 #if os(iOS)
 import HealthKit
 #endif
+
+private let watchLogger = Logger(subsystem: "TrainingOS", category: "watch_sync")
 
 /// Orchestrates automatic Apple Watch → Supabase synchronisation.
 ///
@@ -136,7 +139,11 @@ class WatchSyncService: ObservableObject {
         for snap in snapshots {
             guard snap.steps != nil || snap.sleepHours != nil
                || snap.restingHr != nil || snap.hrv != nil else { continue }
-            try? await APIService.shared.syncWearableData(snap)
+            do {
+                try await APIService.shared.syncWearableData(snap)
+            } catch {
+                watchLogger.warning("WatchSync backfill failed for \(snap.date): \(error)")
+            }
         }
     }
 

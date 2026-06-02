@@ -185,7 +185,11 @@ extension APIService {
                     req.httpBody = try? JSONSerialization.data(withJSONObject: [
                         "action": "create_seance", "jour": name, "program_id": pid
                     ])
-                    _ = try? await URLSession.authed.data(for: req)
+                    do {
+                        _ = try await URLSession.authed.data(for: req)
+                    } catch {
+                        workoutLogger.warning("create_seance failed [\(name)]: \(error)")
+                    }
                 }
             }
         }
@@ -203,7 +207,11 @@ extension APIService {
                             "action": "add", "jour": dayName,
                             "exercise": exName, "scheme": scheme, "program_id": pid
                         ])
-                        _ = try? await URLSession.authed.data(for: req)
+                        do {
+                            _ = try await URLSession.authed.data(for: req)
+                        } catch {
+                            workoutLogger.warning("add_exercise failed [\(exName)/\(dayName)]: \(error)")
+                        }
                     }
                 }
             }
@@ -214,7 +222,11 @@ extension APIService {
             schedReq.httpMethod = "POST"
             schedReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
             schedReq.httpBody = try JSONSerialization.data(withJSONObject: ["schedule": content.schedule])
-            _ = try? await URLSession.authed.data(for: schedReq)
+            do {
+                _ = try await URLSession.authed.data(for: schedReq)
+            } catch {
+                workoutLogger.warning("morning_schedule update failed: \(error)")
+            }
         }
 
         var approveReq = URLRequest(url: try buildURL(path: "/api/ai/generated_program/approve"))
@@ -224,7 +236,11 @@ extension APIService {
             "id": gp.id,
             "programme_id": programmeId
         ])
-        _ = try? await URLSession.authed.data(for: approveReq)
+        do {
+            _ = try await URLSession.authed.data(for: approveReq)
+        } catch {
+            workoutLogger.warning("programme approve failed: \(error)")
+        }
 
         CacheInvalidation.programmeApproved.invalidate()
         return programmeId

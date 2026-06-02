@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import OSLog
 
 // MARK: - Shared types (cross-platform)
 struct SleepWindow {
@@ -22,6 +23,7 @@ import HealthKit
 class HealthKitService: ObservableObject {
     static let shared = HealthKitService()
     private let store = HKHealthStore()
+    private let logger = Logger(subsystem: "TrainingOS", category: "healthkit")
     private let cal: Calendar = {
         var c = Calendar(identifier: .gregorian)
         c.timeZone = TimeZone.current
@@ -414,7 +416,11 @@ class HealthKitService: ObservableObject {
         ]
         for id in ids {
             guard let type = HKQuantityType.quantityType(forIdentifier: id) else { continue }
-            try? await store.enableBackgroundDelivery(for: type, frequency: .hourly)
+            do {
+                try await store.enableBackgroundDelivery(for: type, frequency: .hourly)
+            } catch {
+                logger.warning("HealthKit background delivery \(id.rawValue): \(error)")
+            }
             let pred = HKQuery.predicateForSamples(withStart: Date(), end: nil)
             let q = HKObserverQuery(sampleType: type, predicate: pred) { _, completion, _ in
                 onChange()
@@ -475,7 +481,11 @@ class HealthKitService: ObservableObject {
             totalDistance: totalDistance,
             metadata: nil
         )
-        try? await store.save(workout)
+        do {
+            try await store.save(workout)
+        } catch {
+            logger.error("HealthKit workout save failed: \(error)")
+        }
     }
 
     // MARK: - Workout → CardioEntry

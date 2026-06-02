@@ -57,18 +57,18 @@ final class SyncManager: ObservableObject {
 
     private func showOfflineToast() {
         offlineToast = "Enregistré — sera synchronisé quand le réseau sera disponible"
-        Task {
+        Task { [weak self] in
             try? await Task.sleep(nanoseconds: 3_500_000_000)
-            offlineToast = nil
+            self?.offlineToast = nil
         }
     }
 
     private func showZombieToast(count: Int) {
         let n = count == 1 ? "1 action" : "\(count) actions"
         offlineToast = "⚠️ \(n) non synchronisée(s) après \(maxRetries) tentatives — supprimée(s)."
-        Task {
+        Task { [weak self] in
             try? await Task.sleep(nanoseconds: 5_000_000_000)
-            offlineToast = nil
+            self?.offlineToast = nil
         }
     }
 

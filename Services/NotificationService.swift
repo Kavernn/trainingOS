@@ -669,7 +669,7 @@ final class RestTimerManager: ObservableObject {
         if let name = exerciseName { self.exerciseName = name }
         UserDefaults.standard.set(secs, forKey: Self.presetKey)
         scheduleNotification(seconds: secs)
-        timerTask = Task { await runLoop() }
+        timerTask = Task { [weak self] in await self?.runLoop() }
     }
 
     /// Resume a paused timer without changing duration.
@@ -677,7 +677,7 @@ final class RestTimerManager: ObservableObject {
         guard !isRunning, remaining > 0 else { return }
         isRunning = true
         scheduleNotification(seconds: remaining)
-        timerTask = Task { await runLoop() }
+        timerTask = Task { [weak self] in await self?.runLoop() }
     }
 
     func stop() {
