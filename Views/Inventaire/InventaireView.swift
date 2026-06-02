@@ -238,7 +238,9 @@ struct InventaireView: View {
 
     private func loadData() async {
         isLoading = true
-        let url = URL(string: "\(kBaseURL)/api/inventaire_data")!
+        guard let url = URL(string: "\(kBaseURL)/api/inventaire_data") else {
+            await MainActor.run { isLoading = false }; return
+        }
         if let (data, _) = try? await URLSession.authed.data(from: url),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let inv  = json["inventory"] as? [String: [String: Any]] {

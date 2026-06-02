@@ -484,7 +484,7 @@ struct FinishSessionSheet: View {
         // W-B4 — 10-second timeout; show "Analyse indisponible" instead of infinite spinner
         let apiTask = Task {
             do {
-                let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
+                guard let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach") else { return }
                 var req = URLRequest(url: url)
                 req.httpMethod = "POST"
                 req.setValue("application/json", forHTTPHeaderField: "Content-Type")

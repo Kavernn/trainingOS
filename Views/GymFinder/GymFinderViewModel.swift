@@ -168,7 +168,8 @@ final class GymFinderViewModel: NSObject, ObservableObject {
 
     func submitContribution(_ payload: GymContributionPayload) async {
         guard let body = try? JSONEncoder().encode(payload) else { return }
-        var req = URLRequest(url: URL(string: "\(APIConfig.base)/api/gyms/contribute")!)
+        guard let url = URL(string: "\(APIConfig.base)/api/gyms/contribute") else { return }
+        var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.httpBody = body

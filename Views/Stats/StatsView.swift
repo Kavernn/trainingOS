@@ -618,7 +618,8 @@ struct StatsView: View {
         }
 
         // 2. Fetch fresh data — parallel with ACWR
-        var req = URLRequest(url: URL(string: "\(APIService.shared.baseURL)/api/stats_data")!)
+        guard let statsURL = URL(string: "\(APIService.shared.baseURL)/api/stats_data") else { return }
+        var req = URLRequest(url: statsURL)
         req.timeoutInterval = 15
         if let (data, _) = try? await URLSession.authed.data(for: req),
            let decoded = try? JSONDecoder().decode(StatsAPIResponse.self, from: data) {
@@ -632,7 +633,8 @@ struct StatsView: View {
         acwr = try? await APIService.shared.fetchACWR()
 
         // Fetch wellness data (Bien-être tab)
-        var wellnessReq = URLRequest(url: URL(string: "\(APIService.shared.baseURL)/api/stats_wellness")!)
+        guard let wellnessURL = URL(string: "\(APIService.shared.baseURL)/api/stats_wellness") else { return }
+        var wellnessReq = URLRequest(url: wellnessURL)
         wellnessReq.timeoutInterval = 20
         if let cachedW = CacheService.shared.load(for: "stats_wellness"),
            let decodedW = try? JSONDecoder().decode(WellnessAPIResponse.self, from: cachedW) {

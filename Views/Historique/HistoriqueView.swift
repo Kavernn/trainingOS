@@ -201,7 +201,8 @@ struct HistoriqueView: View {
         isLoading = true
         var urlStr = "\(APIConfig.base)/api/historique_data?limit=\(pageSize)&offset=0"
         if let m = monthFilter { urlStr += "&month=\(m)" }
-        var req = URLRequest(url: URL(string: urlStr)!)
+        guard let url = URL(string: urlStr) else { isLoading = false; return }
+        var req = URLRequest(url: url)
         req.timeoutInterval = 15
         if let (data, _) = try? await URLSession.authed.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
@@ -220,7 +221,8 @@ struct HistoriqueView: View {
         let newOffset = currentOffset + pageSize
         var urlStr = "\(APIConfig.base)/api/historique_data?limit=\(pageSize)&offset=\(newOffset)"
         if let m = monthFilter { urlStr += "&month=\(m)" }
-        var req = URLRequest(url: URL(string: urlStr)!)
+        guard let url = URL(string: urlStr) else { isLoadingMore = false; return }
+        var req = URLRequest(url: url)
         req.timeoutInterval = 15
         if let (data, _) = try? await URLSession.authed.data(for: req),
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {

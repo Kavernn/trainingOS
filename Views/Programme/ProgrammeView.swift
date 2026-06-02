@@ -723,7 +723,7 @@ struct ProgrammeView: View {
         var urlStr = "\(kBaseURL)/api/programme_data"
         let pid = programId ?? (selectedProgramId.isEmpty ? nil : selectedProgramId)
         if let pid = pid { urlStr += "?program_id=\(pid)" }
-        let url = URL(string: urlStr)!
+        guard let url = URL(string: urlStr) else { await MainActor.run { isLoading = false }; return }
         // Affichage immédiat depuis cache
         if let cached = CacheService.shared.load(for: "programme_data"),
            let json = try? JSONSerialization.jsonObject(with: cached) as? [String: Any] {
@@ -737,11 +737,13 @@ struct ProgrammeView: View {
         } else {
             await MainActor.run { isLoading = false }
         }
-        if let (eData, _) = try? await URLSession.authed.data(from: URL(string: "\(kBaseURL)/api/evening_schedule")!),
+        if let eURL = URL(string: "\(kBaseURL)/api/evening_schedule"),
+           let (eData, _) = try? await URLSession.authed.data(from: eURL),
            let eJson = try? JSONSerialization.jsonObject(with: eData) as? [String: String] {
             await MainActor.run { eveningSchedule = eJson }
         }
-        if let (wData, _) = try? await URLSession.authed.data(from: URL(string: "\(kBaseURL)/api/seance_data")!),
+        if let wURL = URL(string: "\(kBaseURL)/api/seance_data"),
+           let (wData, _) = try? await URLSession.authed.data(from: wURL),
            let wJson = try? JSONSerialization.jsonObject(with: wData) as? [String: Any],
            let weights = wJson["weights"] as? [String: [String: Any]] {
             await MainActor.run {

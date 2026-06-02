@@ -1344,7 +1344,7 @@ struct IntelligenceView: View {
 
         Task {
             do {
-                let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach")!
+                guard let url = URL(string: "\(APIService.shared.baseURL)/api/ai/coach") else { return }
                 var req = URLRequest(url: url)
                 req.httpMethod = "POST"
                 req.timeoutInterval = 60
@@ -1458,7 +1458,7 @@ struct IntelligenceView: View {
                 return
             }
             do {
-                let url = URL(string: "\(APIService.shared.baseURL)/api/ai/propose")!
+                guard let url = URL(string: "\(APIService.shared.baseURL)/api/ai/propose") else { return }
                 var req = URLRequest(url: url)
                 req.httpMethod = "POST"
                 req.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -83,7 +83,9 @@ struct EditNutritionSheet: View {
         if let v = Double(proteines.replacingOccurrences(of: ",", with: ".")) { body["proteines"] = v }
         if let v = Double(glucides.replacingOccurrences(of: ",", with: "."))  { body["glucides"]  = v }
         if let v = Double(lipides.replacingOccurrences(of: ",", with: "."))   { body["lipides"]   = v }
-        let url = URL(string: "\(APIConfig.base)/api/nutrition/edit")!
+        guard let url = URL(string: "\(APIConfig.base)/api/nutrition/edit") else {
+            isSaving = false; return
+        }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")

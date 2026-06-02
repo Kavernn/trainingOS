@@ -1000,7 +1000,9 @@ struct ProfileView: View {
             return
         }
         do {
-            let url = URL(string: "\(APIConfig.base)/api/update_profile_photo")!
+            guard let url = URL(string: "\(APIConfig.base)/api/update_profile_photo") else {
+                photoError = "URL invalide"; isUploadingPhoto = false; return
+            }
             var req = URLRequest(url: url)
             req.httpMethod = "POST"
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
