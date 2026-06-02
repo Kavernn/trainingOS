@@ -640,22 +640,17 @@ final class RestTimerManager: ObservableObject {
     private init() {}
 
     @Published var totalSeconds  = 120
-    @Published var remaining     = 120
     @Published var isRunning     = false
     @Published var isVisible     = false
     @Published var exerciseName: String? = nil
 
+    /// Non-published — views compute remaining via TimelineView using startDate
+    private(set) var remaining: Int = 120
+    /// Set when timer is running; nil when paused/stopped. Non-published — views read via TimelineView.
+    private(set) var startDate: Date?
+
     private var timerTask: Task<Void, Never>?
     private var beepPlayer: AVAudioPlayer?
-
-    var progress: Double {
-        totalSeconds > 0 ? min(1.0, Double(remaining) / Double(totalSeconds)) : 0
-    }
-    var timerColor: Color {
-        if progress > 0.5  { return .green }
-        if progress > 0.25 { return .yellow }
-        return .red
-    }
 
     /// Start (or restart) the timer. Always replaces any running timer, always auto-starts.
     func start(seconds: Int, exerciseName: String? = nil) {
@@ -664,6 +659,7 @@ final class RestTimerManager: ObservableObject {
         let secs        = max(10, seconds)
         totalSeconds    = secs
         remaining       = secs
+        startDate       = Date()
         isRunning       = true
         isVisible       = true
         if let name = exerciseName { self.exerciseName = name }
@@ -675,6 +671,7 @@ final class RestTimerManager: ObservableObject {
     /// Resume a paused timer without changing duration.
     func resume() {
         guard !isRunning, remaining > 0 else { return }
+        startDate = Date().addingTimeInterval(-Double(totalSeconds - remaining))
         isRunning = true
         scheduleNotification(seconds: remaining)
         timerTask = Task { [weak self] in await self?.runLoop() }
@@ -682,6 +679,7 @@ final class RestTimerManager: ObservableObject {
 
     func stop() {
         isRunning = false
+        startDate = nil
         timerTask?.cancel(); timerTask = nil
         cancelNotification()
     }
@@ -702,6 +700,7 @@ final class RestTimerManager: ObservableObject {
         remaining = max(10, remaining + delta)
         if isRunning {
             totalSeconds = max(totalSeconds, remaining)
+            startDate = Date().addingTimeInterval(-Double(totalSeconds - remaining))
             cancelNotification()
             scheduleNotification(seconds: remaining)
         } else {

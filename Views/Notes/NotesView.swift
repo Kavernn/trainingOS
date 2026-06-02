@@ -2,6 +2,7 @@ import SwiftUI
 
 struct NotesView: View {
     @ObservedObject private var api = APIService.shared
+    @ObservedObject private var loadingState = APILoadingState.shared
     @State private var showOnlyWithNotes = false
 
     private var allSessions: [HistoriqueSession] {
@@ -42,7 +43,7 @@ struct NotesView: View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
-                if api.isLoading {
+                if loadingState.isLoading {
                     ProgressView().tint(.orange)
                 } else {
                     ScrollView {

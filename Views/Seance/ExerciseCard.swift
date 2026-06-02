@@ -348,7 +348,7 @@ struct ExerciseCard: View {
                         }
                     }
                     if evm.repCountMode && isActive {
-                        Text(evm.currentRepCount > 0 ? "\(evm.currentRepCount)" : "—")
+                        Text("—")
                             .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.purple)
                             .multilineTextAlignment(.center)
@@ -435,92 +435,13 @@ struct ExerciseCard: View {
                 .padding(.top, 2)
             }
             if evm.repCountMode {
-                repCounterSection
+                RepCounterSection(evm: evm, doLog: doLog)
             } else if evm.setBySetMode {
                 Text("Set \(evm.currentSetIndex + 1)/\(evm.sets.count) — appuie ✓ après chaque set")
                     .font(.system(size: 11)).foregroundColor(.orange.opacity(0.7))
                     .padding(.top, 2)
             }
         }
-    }
-
-    @ViewBuilder private var repCounterSection: some View {
-        VStack(spacing: 16) {
-            Divider().background(Color.purple.opacity(0.2)).padding(.top, 4)
-
-            Text("SET \(evm.currentSetIndex + 1) / \(evm.sets.count)")
-                .font(.system(size: 11, weight: .bold)).tracking(2)
-                .foregroundColor(.purple.opacity(0.7))
-
-            Text("\(evm.currentRepCount)")
-                .font(.system(size: 80, weight: .black, design: .rounded))
-                .foregroundColor(.purple)
-                .contentTransition(.numericText())
-                .animation(.spring(response: 0.2, dampingFraction: 0.6), value: evm.currentRepCount)
-                .frame(minWidth: 100)
-
-            HStack(spacing: 36) {
-                Button {
-                    evm.decrementRep()
-                    triggerImpact(style: .light)
-                } label: {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundColor(.gray.opacity(0.45))
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    evm.tapRep()
-                    triggerImpact(style: .medium)
-                } label: {
-                    ZStack {
-                        Circle().fill(Color.purple.opacity(0.12)).frame(width: 112, height: 112)
-                        Circle().stroke(Color.purple.opacity(0.35), lineWidth: 2).frame(width: 112, height: 112)
-                        VStack(spacing: 4) {
-                            Image(systemName: "hand.tap.fill").font(.system(size: 24))
-                            Text("REP").font(.system(size: 14, weight: .black))
-                        }
-                        .foregroundColor(.purple)
-                    }
-                }
-                .buttonStyle(SpringButtonStyle(scale: 0.92))
-
-                Button {
-                    evm.currentRepCount = 0
-                    triggerImpact(style: .light)
-                } label: {
-                    Image(systemName: "arrow.counterclockwise.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundColor(.gray.opacity(0.45))
-                }
-                .buttonStyle(.plain)
-            }
-
-            let isLastSet = evm.currentSetIndex == evm.sets.count - 1
-            Button {
-                let allDone = evm.confirmCurrentSet()
-                triggerImpact(style: .medium)
-                if allDone { doLog() }
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: isLastSet ? "checkmark.circle.fill" : "arrow.right.circle.fill")
-                        .font(.system(size: 18))
-                    Text(isLastSet ? "Logger l'exercice" : "Set terminé →")
-                        .font(.system(size: 15, weight: .bold))
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 13)
-                .background(evm.currentRepCount > 0
-                    ? (isLastSet ? Color.orange : Color.purple)
-                    : Color.gray.opacity(0.1))
-                .foregroundColor(evm.currentRepCount > 0 ? .white : .gray)
-                .cornerRadius(12)
-            }
-            .disabled(evm.currentRepCount == 0)
-            .buttonStyle(SpringButtonStyle())
-        }
-        .padding(.top, 4)
     }
 
     @ViewBuilder private func timeSetRows() -> some View {
@@ -715,13 +636,17 @@ struct ExerciseCard: View {
             HStack(spacing: 8) {
                 noteIconButton
                 if restTimer.isRunning, restTimer.exerciseName == name {
-                    HStack(spacing: 4) {
-                        Image(systemName: "timer").font(.system(size: 10)).foregroundColor(.cyan)
-                        Text(evm.formatDuration(restTimer.remaining))
-                            .font(.system(size: 11, weight: .bold)).foregroundColor(.cyan)
+                    TimelineView(.periodic(from: restTimer.startDate ?? .now, by: 1)) { ctx in
+                        let elapsed = max(0, ctx.date.timeIntervalSince(restTimer.startDate ?? .now))
+                        let remaining = max(0, restTimer.totalSeconds - Int(elapsed))
+                        HStack(spacing: 4) {
+                            Image(systemName: "timer").font(.system(size: 10)).foregroundColor(.cyan)
+                            Text(evm.formatDuration(remaining))
+                                .font(.system(size: 11, weight: .bold)).foregroundColor(.cyan)
+                        }
+                        .padding(.horizontal, 7).padding(.vertical, 4)
+                        .background(Color.cyan.opacity(0.1)).clipShape(Capsule())
                     }
-                    .padding(.horizontal, 7).padding(.vertical, 4)
-                    .background(Color.cyan.opacity(0.1)).clipShape(Capsule())
                 }
                 VStack(alignment: .trailing, spacing: 2) {
                     if isTimeBased {
@@ -873,7 +798,6 @@ struct ExerciseCard: View {
                             evm.repCountMode = true
                             evm.setBySetMode = true
                             evm.currentSetIndex = 0
-                            evm.currentRepCount = 0
                         }
                     }
                 } label: {
@@ -1420,5 +1344,93 @@ struct ExerciseCard: View {
             return units.display(current)
         }
         return 0
+    }
+}
+
+// MARK: - Rep Counter Section (isolated so only this view re-renders on each tap)
+
+private struct RepCounterSection: View {
+    @ObservedObject var evm: ExerciseViewModel
+    let doLog: () -> Void
+
+    @State private var count: Int = 0
+
+    var body: some View {
+        let isLastSet = evm.currentSetIndex == evm.sets.count - 1
+        VStack(spacing: 16) {
+            Divider().background(Color.purple.opacity(0.2)).padding(.top, 4)
+
+            Text("SET \(evm.currentSetIndex + 1) / \(evm.sets.count)")
+                .font(.system(size: 11, weight: .bold)).tracking(2)
+                .foregroundColor(.purple.opacity(0.7))
+
+            Text("\(count)")
+                .font(.system(size: 80, weight: .black, design: .rounded))
+                .foregroundColor(.purple)
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.2, dampingFraction: 0.6), value: count)
+                .frame(minWidth: 100)
+
+            HStack(spacing: 36) {
+                Button {
+                    count = max(0, count - 1)
+                    triggerImpact(style: .light)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(.gray.opacity(0.45))
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    count += 1
+                    triggerImpact(style: .medium)
+                } label: {
+                    ZStack {
+                        Circle().fill(Color.purple.opacity(0.12)).frame(width: 112, height: 112)
+                        Circle().stroke(Color.purple.opacity(0.35), lineWidth: 2).frame(width: 112, height: 112)
+                        VStack(spacing: 4) {
+                            Image(systemName: "hand.tap.fill").font(.system(size: 24))
+                            Text("REP").font(.system(size: 14, weight: .black))
+                        }
+                        .foregroundColor(.purple)
+                    }
+                }
+                .buttonStyle(SpringButtonStyle(scale: 0.92))
+
+                Button {
+                    count = 0
+                    triggerImpact(style: .light)
+                } label: {
+                    Image(systemName: "arrow.counterclockwise.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(.gray.opacity(0.45))
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button {
+                let allDone = evm.confirmSet(reps: count)
+                count = 0
+                triggerImpact(style: .medium)
+                if allDone { doLog() }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: isLastSet ? "checkmark.circle.fill" : "arrow.right.circle.fill")
+                        .font(.system(size: 18))
+                    Text(isLastSet ? "Logger l'exercice" : "Set terminé →")
+                        .font(.system(size: 15, weight: .bold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(count > 0 ? (isLastSet ? Color.orange : Color.purple) : Color.gray.opacity(0.1))
+                .foregroundColor(count > 0 ? .white : .gray)
+                .cornerRadius(12)
+            }
+            .disabled(count == 0)
+            .buttonStyle(SpringButtonStyle())
+        }
+        .padding(.top, 4)
+        .onChange(of: evm.currentSetIndex) { _ in count = 0 }
     }
 }

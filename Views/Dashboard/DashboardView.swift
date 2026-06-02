@@ -9,6 +9,7 @@ struct DashboardView: View {
     @StateObject private var weatherVM = WeatherViewModel()
     @StateObject private var nhlService = NHLService()
     @ObservedObject private var api = APIService.shared
+    @ObservedObject private var loadingState = APILoadingState.shared
     @ObservedObject private var alertService = AlertService.shared
     @State private var showMoodSheet = false
     @State private var showChecklist = false
@@ -41,17 +42,17 @@ struct DashboardView: View {
         NavigationStack {
             ZStack {
                 AmbientBackground(color: todayAccentColor)
-                if api.isLoading && api.dashboard == nil {
+                if loadingState.isLoading && api.dashboard == nil {
                     VStack(spacing: 0) {
                         DashboardSkeletonView()
                         // D-B2: show retry button alongside slow-load message
-                        if api.isSlow {
+                        if loadingState.isSlow {
                             VStack(spacing: 10) {
                                 Text("Connexion lente. Attends ou relance.")
                                     .font(.system(size: 13))
                                     .foregroundColor(.gray)
                                 Button {
-                                    api.isLoading = false
+                                    APILoadingState.shared.isLoading = false
                                     Task { await vm.loadAll() }
                                 } label: {
                                     Text("Relancer")
@@ -331,7 +332,7 @@ struct DashboardView: View {
                         }
                         .background(Color.appBg.opacity(0.96).ignoresSafeArea(edges: .bottom))
                     }
-                } else if let err = api.error {
+                } else if let err = loadingState.error {
                     VStack(spacing: 16) {
                         Image(systemName: "wifi.exclamationmark")
                             .font(.system(size: 48)).foregroundColor(.gray)
@@ -406,7 +407,7 @@ struct DashboardView: View {
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 BehaviorTracker.shared.record(.appOpen)
-                if !api.isLoading, Date().timeIntervalSince(lastRefresh) > 300 {
+                if !loadingState.isLoading, Date().timeIntervalSince(lastRefresh) > 300 {
                     Task { await vm.loadAll(); await nhlService.fetchIfNeeded(); lastRefresh = Date(); checkAndShowMorningReveal() }
                 }
             }

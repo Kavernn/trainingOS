@@ -76,7 +76,6 @@ final class ExerciseViewModel: ObservableObject {
     @Published var setBySetMode: Bool = false
     @Published var currentSetIndex: Int = 0
     @Published var repCountMode: Bool = false
-    @Published var currentRepCount: Int = 0
     @Published var showWarmup: Bool = false
     @Published var isLogged = false
     @Published var isEditing = false
@@ -263,16 +262,10 @@ final class ExerciseViewModel: ObservableObject {
         }
     }
 
-    func tapRep() { currentRepCount += 1 }
-    func decrementRep() { currentRepCount = max(0, currentRepCount - 1) }
-
-    /// Confirme le set courant en rep-counter mode. Retourne true si c'était le dernier set (→ caller doit auto-logger).
-    func confirmCurrentSet() -> Bool {
+    /// Confirme le set courant avec le compte local de la RepCounterSection. Retourne true si c'était le dernier set.
+    func confirmSet(reps: Int) -> Bool {
         guard setBySetMode, currentSetIndex < sets.count else { return false }
-        if currentRepCount > 0 {
-            sets[currentSetIndex].reps = String(currentRepCount)
-        }
-        currentRepCount = 0
+        if reps > 0 { sets[currentSetIndex].reps = String(reps) }
         if currentSetIndex < sets.count - 1 {
             currentSetIndex += 1
             return false
@@ -372,7 +365,7 @@ class SeanceViewModel: ObservableObject {
     func load() async {
         if seanceData == nil,
            let cached = cacheService.load(for: "seance_data"),
-           let decoded = try? JSONDecoder().decode(SeanceData.self, from: cached) {
+           let decoded = try? APIService.decoder.decode(SeanceData.self, from: cached) {
             seanceData = decoded
             restoreLogResults(from: decoded)
         }
@@ -507,12 +500,14 @@ class SeanceViewModel: ObservableObject {
                 SessionDraftStore.clear(date: date, sessionType: draftSessionType)
             }
             commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
+            await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
             showSuccess = true
         } else {
             if let date = seanceData?.todayDate {
                 SessionDraftStore.clear(date: date, sessionType: draftSessionType)
             }
             BehaviorTracker.shared.record(.sessionEnd)
+            await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
             showSuccess = true
         }
     }

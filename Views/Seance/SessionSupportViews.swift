@@ -1168,26 +1168,33 @@ struct RestTimerBadge: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 4) {
-                Image(systemName: "timer")
-                    .font(.system(size: 14, weight: .semibold))
-                Group {
-                    if timer.isRunning {
-                        Text(formatTime(timer.remaining))
-                            .font(.system(size: 12, weight: .bold))
-                            .monospacedDigit()
-                    } else if let r = restSeconds {
-                        Text(r < 60 ? "\(r)s" : "\(r / 60):\(String(format: "%02d", r % 60))")
-                            .font(.system(size: 12, weight: .bold))
-                            .monospacedDigit()
+            TimelineView(.periodic(from: timer.startDate ?? .now, by: 1)) { ctx in
+                let elapsed = timer.isRunning ? max(0, ctx.date.timeIntervalSince(timer.startDate ?? .now)) : 0
+                let remaining = max(0, timer.totalSeconds - Int(elapsed))
+                let progress = timer.totalSeconds > 0 ? Double(remaining) / Double(timer.totalSeconds) : 0
+                let timerColor: Color = progress > 0.5 ? .green : (progress > 0.25 ? .yellow : .red)
+
+                HStack(spacing: 4) {
+                    Image(systemName: "timer")
+                        .font(.system(size: 14, weight: .semibold))
+                    Group {
+                        if timer.isRunning {
+                            Text(formatTime(remaining))
+                                .font(.system(size: 12, weight: .bold))
+                                .monospacedDigit()
+                        } else if let r = restSeconds {
+                            Text(r < 60 ? "\(r)s" : "\(r / 60):\(String(format: "%02d", r % 60))")
+                                .font(.system(size: 12, weight: .bold))
+                                .monospacedDigit()
+                        }
                     }
                 }
+                .foregroundColor(timer.isRunning ? timerColor : .cyan)
+                .padding(.horizontal, 8).padding(.vertical, 5)
+                .background((timer.isRunning ? timerColor : Color.cyan).opacity(0.12))
+                .cornerRadius(8)
+                .animation(.easeInOut(duration: 0.2), value: timer.isRunning)
             }
-            .foregroundColor(timer.isRunning ? timer.timerColor : .cyan)
-            .padding(.horizontal, 8).padding(.vertical, 5)
-            .background((timer.isRunning ? timer.timerColor : Color.cyan).opacity(0.12))
-            .cornerRadius(8)
-            .animation(.easeInOut(duration: 0.2), value: timer.isRunning)
         }
     }
 

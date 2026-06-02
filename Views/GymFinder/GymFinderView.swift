@@ -219,7 +219,6 @@ struct GymFinderView: View {
                 let radius = vm.filters.radiusKm
                 vm.filters = GymFilters()
                 vm.filters.radiusKm = radius
-                vm.applyFilters()
             }
             .foregroundColor(.orange)
             .font(.system(size: 14, weight: .medium))

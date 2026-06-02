@@ -26,13 +26,11 @@ struct GymFiltersView: View {
                         let radius = vm.filters.radiusKm
                         vm.filters = GymFilters()
                         vm.filters.radiusKm = radius
-                        vm.applyFilters()
                     }
                     .foregroundColor(.white.opacity(0.5))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Appliquer") {
-                        vm.applyFilters()
                         dismiss()
                     }
                     .fontWeight(.semibold)

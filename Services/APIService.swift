@@ -39,15 +39,24 @@ enum APIError: LocalizedError {
 //  MENTAL       APIService+Mental.swift
 //  SLEEP        APIService+Sleep.swift
 // ─────────────────────────────────────────────────────────────────────────────
+
+/// Loading state separated from data so views that only read dashboard
+/// don't re-render when isLoading/isSlow/error toggle during fetchDashboard.
+@MainActor
+final class APILoadingState: ObservableObject {
+    static let shared = APILoadingState()
+    private init() {}
+    @Published var isLoading = false
+    @Published var isSlow = false
+    @Published var error: String?
+}
+
 class APIService: ObservableObject {
     static let shared = APIService()
 
     let baseURL = APIConfig.base
 
     @Published var dashboard: DashboardData?
-    @Published var isLoading = false
-    @Published var isSlow = false
-    @Published var error: String?
     /// Optimistic flag — set immediately when logSession is called (online OR offline queued).
     /// Prevents "Commencer la séance" from reappearing while the fresh dashboard is loading.
     @Published var sessionLoggedToday = false
@@ -182,10 +191,17 @@ class APIService: ObservableObject {
             }
         }
 
-        await MainActor.run { isLoading = true; isSlow = false; error = nil }
+        await MainActor.run {
+            APILoadingState.shared.isLoading = true
+            APILoadingState.shared.isSlow = false
+            APILoadingState.shared.error = nil
+        }
         guard let url = try? buildURL(path: "/api/dashboard",
                                       queryItems: [URLQueryItem(name: "date", value: DateFormatter.isoDate.string(from: Date()))]) else {
-            await MainActor.run { isLoading = false; error = "URL invalide — /api/dashboard" }
+            await MainActor.run {
+                APILoadingState.shared.isLoading = false
+                APILoadingState.shared.error = "URL invalide — /api/dashboard"
+            }
             return
         }
         var req = URLRequest(url: url)
@@ -193,7 +209,7 @@ class APIService: ObservableObject {
         let slowTask = Task {
             try? await Task.sleep(nanoseconds: 5_000_000_000)
             if !Task.isCancelled {
-                await MainActor.run { self.isSlow = true }
+                await MainActor.run { APILoadingState.shared.isSlow = true }
             }
         }
         do {
@@ -207,11 +223,11 @@ class APIService: ObservableObject {
                 data = cached
             }
             slowTask.cancel()
-            await MainActor.run { self.isSlow = false }
+            await MainActor.run { APILoadingState.shared.isSlow = false }
             let decoded = try APIService.decoder.decode(DashboardData.self, from: data)
             await MainActor.run {
                 self.dashboard = decoded
-                self.isLoading = false
+                APILoadingState.shared.isLoading = false
                 if decoded.alreadyLoggedToday { self.sessionLoggedToday = true }
                 else { self.sessionLoggedToday = false }
                 self.consecutiveDashboardFailures = 0
@@ -222,18 +238,18 @@ class APIService: ObservableObject {
             let _ = decodingError  // keep for logging
             logger.error("❌ Dashboard decoding error: \(decodingError, privacy: .public)")
             await MainActor.run {
-                if self.dashboard == nil { self.error = "Données incompatibles — mise à jour requise" }
-                self.isLoading = false
-                self.isSlow = false
+                if self.dashboard == nil { APILoadingState.shared.error = "Données incompatibles — mise à jour requise" }
+                APILoadingState.shared.isLoading = false
+                APILoadingState.shared.isSlow = false
                 self.consecutiveDashboardFailures += 1
                 if self.consecutiveDashboardFailures >= 3 { self.revertOptimisticFlagFromStaleCache() }
             }
         } catch {
             slowTask.cancel()
             await MainActor.run {
-                if self.dashboard == nil { self.error = error.localizedDescription }
-                self.isLoading = false
-                self.isSlow = false
+                if self.dashboard == nil { APILoadingState.shared.error = error.localizedDescription }
+                APILoadingState.shared.isLoading = false
+                APILoadingState.shared.isSlow = false
                 self.consecutiveDashboardFailures += 1
                 if self.consecutiveDashboardFailures >= 3 { self.revertOptimisticFlagFromStaleCache() }
             }

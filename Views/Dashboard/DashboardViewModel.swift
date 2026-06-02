@@ -2,6 +2,41 @@ import SwiftUI
 import Combine
 import OSLog
 
+// MARK: - Phase accumulators (no @Published → no re-renders during task group)
+
+private final class P2State: @unchecked Sendable {
+    var deload: DeloadReport? = nil
+    var moodDue: MoodDueStatus? = nil
+    var morningBrief: MorningBriefData? = nil
+    var morningBriefFailed = false
+    var eveningSession: SeanceSoirData? = nil
+    var todaySleepLogged = false
+    var todayRecovery: RecoveryEntry? = nil
+    var hrvAnalysis: HRVAnalysis? = nil
+    var yesterdayNutrition: NutritionDayHistory? = nil
+    var sleepStages: SleepStages? = nil
+    var sleepWindow: SleepWindow? = nil
+    var phoenixScore: PhoenixScore? = nil
+    var phoenixDayDelta: Double? = nil
+    var dailyPattern: PatternEntry? = nil
+    var ritualToday: RitualToday? = nil
+    var bodyBudget: BodyBudgetResponse? = nil
+    var cardioToday: CardioEntry? = nil
+    var criticalFailures = 0
+}
+
+private final class P3State: @unchecked Sendable {
+    var insights: [InsightEntry] = []
+    var lssTrend: [LifeStressScore] = []
+    var coachTip: CoachTip? = nil
+    var smartDay: SmartDayRecommendation? = nil
+    var weeklyReport: WeeklyReport? = nil
+    var readinessData: ReadinessResponse? = nil
+    var streakData: StreakResponse? = nil
+    var activeSeason: Season? = nil
+    var warRoomEnabled = false
+}
+
 // MARK: - Critical Alert Types
 
 enum DashboardAlertDestination {
@@ -85,8 +120,8 @@ final class DashboardViewModel: ObservableObject {
             try? await Task.sleep(nanoseconds: 15_000_000_000)
             guard !Task.isCancelled, let self else { return }
             if APIService.shared.dashboard == nil {
-                APIService.shared.isLoading = false
-                APIService.shared.error = "Connexion trop lente — tire vers le bas pour réessayer"
+                APILoadingState.shared.isLoading = false
+                APILoadingState.shared.error = "Connexion trop lente — tire vers le bas pour réessayer"
             }
         }
 
@@ -107,31 +142,29 @@ final class DashboardViewModel: ObservableObject {
             return DateFormatter.isoDate.string(from: Calendar.current.date(byAdding: .day, value: -1, to: base) ?? base)
         }()
 
-        // Phase 2: all independent secondary calls in parallel.
+        // Phase 2: accumulate into P2State (no @Published → no re-renders while tasks run).
         // withTaskGroup is safe on iOS 26 beta (async let parallel has LIFO crash).
-        // @MainActor in each task: properties are MainActor-isolated.
-        // Network awaits still suspend and yield the actor, so fetches run concurrently.
-        // Tasks return 1 only for CRITICAL calls — banner shown when criticalFailures >= 1.
-        var criticalFailures = 0
+        // After the group all assignments happen synchronously → SwiftUI coalesces into 1 render.
+        let p2 = P2State()
         await withTaskGroup(of: Int.self) { group in
             group.addTask { @MainActor in
-                do { self.deload = try await APIService.shared.fetchDeloadData(); return 0 }
+                do { p2.deload = try await APIService.shared.fetchDeloadData(); return 0 }
                 catch { self.logger.error("fetchDeload: \(error, privacy: .public)"); return 0 }
             }
             group.addTask { @MainActor in
-                do { self.moodDue = try await APIService.shared.checkMoodDue(); return 0 }
+                do { p2.moodDue = try await APIService.shared.checkMoodDue(); return 0 }
                 catch { self.logger.error("checkMoodDue: \(error, privacy: .public)"); return 0 }
             }
             group.addTask { @MainActor in
-                do { self.morningBrief = try await APIService.shared.fetchMorningBrief(); return 0 }
+                do { p2.morningBrief = try await APIService.shared.fetchMorningBrief(); return 0 }
                 catch {
                     self.logger.error("fetchMorningBrief: \(error, privacy: .public)")
-                    self.morningBriefFailed = true
+                    p2.morningBriefFailed = true
                     return 0
                 }
             }
             group.addTask { @MainActor in
-                do { self.eveningSession = try await APIService.shared.fetchSeanceSoirData(); return 0 }
+                do { p2.eveningSession = try await APIService.shared.fetchSeanceSoirData(); return 0 }
                 catch { self.logger.error("fetchSeanceSoir: \(error, privacy: .public)"); return 0 }
             }
             // CRITICAL: drives the readiness score displayed on the dashboard
@@ -139,8 +172,8 @@ final class DashboardViewModel: ObservableObject {
                 do {
                     let log = try await APIService.shared.fetchRecoveryData()
                     let entry = log.first(where: { $0.date == today })
-                    self.todaySleepLogged = entry?.sleepHours != nil
-                    self.todayRecovery    = entry
+                    p2.todaySleepLogged = entry?.sleepHours != nil
+                    p2.todayRecovery    = entry
                     return 0
                 } catch {
                     self.logger.error("fetchRecovery: \(error, privacy: .public)")
@@ -150,8 +183,7 @@ final class DashboardViewModel: ObservableObject {
             group.addTask { @MainActor in
                 do {
                     // sequential — async let LIFO crash on iOS 26 beta
-                    let analysis = try await APIService.shared.fetchHRVAnalysis()
-                    self.hrvAnalysis = analysis
+                    p2.hrvAnalysis = try await APIService.shared.fetchHRVAnalysis()
                     return 0
                 } catch {
                     self.logger.error("fetchHRVAnalysis: \(error, privacy: .public)")
@@ -160,16 +192,16 @@ final class DashboardViewModel: ObservableObject {
             }
             group.addTask { @MainActor [yesterdayStr] in
                 if let history = try? await APIService.shared.fetchNutritionHistory() {
-                    self.yesterdayNutrition = history.first(where: { $0.date == yesterdayStr })
+                    p2.yesterdayNutrition = history.first(where: { $0.date == yesterdayStr })
                 }
                 return 0
             }
             group.addTask { @MainActor in
-                self.sleepStages = await HealthKitService.shared.fetchLastNightSleepStages()
+                p2.sleepStages = await HealthKitService.shared.fetchLastNightSleepStages()
                 return 0
             }
             group.addTask { @MainActor in
-                self.sleepWindow = await HealthKitService.shared.fetchLastNightSleepWindow()
+                p2.sleepWindow = await HealthKitService.shared.fetchLastNightSleepWindow()
                 return 0
             }
             group.addTask { @MainActor in
@@ -179,9 +211,9 @@ final class DashboardViewModel: ObservableObject {
             group.addTask { @MainActor in
                 do {
                     let score = try await APIService.shared.fetchPhoenixScore()
-                    self.phoenixScore = score
+                    p2.phoenixScore = score
                     // Day-over-day delta: rotate stored score once per calendar day
-                    let storedDate  = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
+                    let storedDate = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
                     if storedDate != today {
                         let oldValue = UserDefaults.standard.double(forKey: "phoenix.score.value")
                         let oldDate  = UserDefaults.standard.string(forKey: "phoenix.score.date") ?? ""
@@ -195,7 +227,7 @@ final class DashboardViewModel: ObservableObject {
                     let prevDate = UserDefaults.standard.string(forKey: "phoenix.score.prev_date") ?? ""
                     if !prevDate.isEmpty {
                         let prevValue = UserDefaults.standard.double(forKey: "phoenix.score.prev_value")
-                        self.phoenixDayDelta = Double(score.score) - prevValue
+                        p2.phoenixDayDelta = Double(score.score) - prevValue
                     }
                     NotificationService.notifyPhoenixStateChange(
                         newState: score.state,
@@ -210,7 +242,7 @@ final class DashboardViewModel: ObservableObject {
             group.addTask { @MainActor in
                 do {
                     let resp = try await APIService.shared.fetchPatterns()
-                    self.dailyPattern = resp.daily
+                    p2.dailyPattern = resp.daily
                     return 0
                 } catch {
                     self.logger.error("fetchPatterns: \(error, privacy: .public)")
@@ -219,11 +251,12 @@ final class DashboardViewModel: ObservableObject {
             }
             group.addTask { @MainActor in
                 do {
-                    self.ritualToday = try await APIService.shared.fetchRitualToday()
-                    AppState.shared.ritualTodayNotDone = !(self.ritualToday?.morningDone ?? true)
+                    let ritual = try await APIService.shared.fetchRitualToday()
+                    p2.ritualToday = ritual
+                    AppState.shared.ritualTodayNotDone = !ritual.morningDone
                     // B4: schedule demon haunting notification if chronic pattern detected
-                    if let demons = self.ritualToday?.demons {
-                        NotificationService.scheduleRitualDemonHaunting(demons: demons)
+                    if !ritual.demons.isEmpty {
+                        NotificationService.scheduleRitualDemonHaunting(demons: ritual.demons)
                     }
                     return 0
                 } catch {
@@ -232,40 +265,59 @@ final class DashboardViewModel: ObservableObject {
                 }
             }
             group.addTask { @MainActor in
-                self.bodyBudget = try? await APIService.shared.fetchBodyBudget()
+                p2.bodyBudget = try? await APIService.shared.fetchBodyBudget()
                 return 0
             }
             group.addTask { @MainActor in
                 let all = (try? await APIService.shared.fetchCardioData()) ?? []
-                self.cardioToday = all.first(where: { $0.date == today })
+                p2.cardioToday = all.first(where: { $0.date == today })
                 return 0
             }
-            for await failures in group { criticalFailures += failures }
+            for await failures in group { p2.criticalFailures += failures }
         }
 
-        if criticalFailures >= 1 { partialLoadWarning = true }
+        // Phase 2 batch-publish — all synchronous, coalesced by SwiftUI into 1 re-render
+        deload            = p2.deload
+        moodDue           = p2.moodDue
+        morningBrief      = p2.morningBrief
+        morningBriefFailed = p2.morningBriefFailed
+        eveningSession    = p2.eveningSession
+        todaySleepLogged  = p2.todaySleepLogged
+        todayRecovery     = p2.todayRecovery
+        hrvAnalysis       = p2.hrvAnalysis
+        yesterdayNutrition = p2.yesterdayNutrition
+        sleepStages       = p2.sleepStages
+        sleepWindow       = p2.sleepWindow
+        phoenixScore      = p2.phoenixScore
+        phoenixDayDelta   = p2.phoenixDayDelta
+        dailyPattern      = p2.dailyPattern
+        ritualToday       = p2.ritualToday
+        bodyBudget        = p2.bodyBudget
+        cardioToday       = p2.cardioToday
+        if p2.criticalFailures >= 1 { partialLoadWarning = true }
 
         // Propagate macro nutrition hint to session coaching view
         AppState.shared.macroSessionHint = computeMacroHint()
 
         // Analytics — once per calendar day
         if analyticsLoadedDate != today {
+            let p3 = P3State()
             await withTaskGroup(of: Void.self) { group in
-                group.addTask { @MainActor in self.insights     = (try? await APIService.shared.fetchInsights()) ?? [] }
-                group.addTask { @MainActor in self.lssTrend     = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? [] }
-                group.addTask { @MainActor in self.coachTip     = try? await APIService.shared.fetchDailyCoachTip() }
-                group.addTask { @MainActor in self.smartDay     = try? await APIService.shared.fetchSmartDay() }
+                group.addTask { @MainActor in p3.insights  = (try? await APIService.shared.fetchInsights()) ?? [] }
+                group.addTask { @MainActor in p3.lssTrend  = (try? await APIService.shared.fetchLifeStressTrend(days: 7)) ?? [] }
+                group.addTask { @MainActor in p3.coachTip  = try? await APIService.shared.fetchDailyCoachTip() }
+                group.addTask { @MainActor in p3.smartDay  = try? await APIService.shared.fetchSmartDay() }
                 group.addTask { @MainActor in
                     if let report = try? await APIService.shared.fetchWeeklyReport() {
-                        self.weeklyReport = report
+                        p3.weeklyReport = report
                         NotificationService.scheduleWeeklyRecapWithData(report: report, tracker: BehaviorTracker.shared)
                     }
                 }
-                group.addTask { @MainActor in self.readinessData = try? await APIService.shared.fetchReadiness() }
-                group.addTask { @MainActor in self.streakData = try? await APIService.shared.fetchStreaks(date: today) }
+                group.addTask { @MainActor in p3.readinessData = try? await APIService.shared.fetchReadiness() }
+                group.addTask { @MainActor in p3.streakData = try? await APIService.shared.fetchStreaks(date: today) }
                 group.addTask { @MainActor in
                     let season = try? await APIService.shared.getActiveSeason()
-                    self.activeSeason = season
+                    p3.activeSeason = season
                     if let s = season {
                         NotificationService.scheduleSeasonMilestones(
                             seasonStartISO: s.startedAt,
@@ -276,7 +328,7 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in
                     if let config = try? await APIService.shared.getWarRoomConfig() {
                         let enabled = config.warStartDate != nil
-                        self.warRoomEnabled = enabled
+                        p3.warRoomEnabled = enabled
                         UserDefaults.standard.set(enabled, forKey: "warRoomEnabled")
                         NotificationService.scheduleWarRoomDailyCheckin(isEnabled: enabled)
                     }
@@ -304,6 +356,16 @@ final class DashboardViewModel: ObservableObject {
                     }
                 }
             }
+            // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
+            insights      = p3.insights
+            lssTrend      = p3.lssTrend
+            coachTip      = p3.coachTip
+            smartDay      = p3.smartDay
+            weeklyReport  = p3.weeklyReport
+            readinessData = p3.readinessData
+            streakData    = p3.streakData
+            activeSeason  = p3.activeSeason
+            warRoomEnabled = p3.warRoomEnabled
             analyticsLoadedDate = today
         }
     }

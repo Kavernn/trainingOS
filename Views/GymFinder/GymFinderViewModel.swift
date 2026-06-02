@@ -6,7 +6,6 @@ import Combine
 @MainActor
 final class GymFinderViewModel: NSObject, ObservableObject {
     @Published var gyms: [Gym] = []
-    @Published var filteredGyms: [Gym] = []
     @Published var isLoading = false
     @Published var error: String?
     @Published var locationDenied = false
@@ -18,6 +17,26 @@ final class GymFinderViewModel: NSObject, ObservableObject {
     @Published var cameraPosition: MapCameraPosition = .automatic
     @Published var workoutEquipmentSuggestion: [EquipmentKey] = []
     @Published var selectedEquipmentProfile: EquipmentProfile?
+
+    var filteredGyms: [Gym] {
+        var result = gyms
+        if !filters.selectedTypes.isEmpty {
+            result = result.filter { filters.selectedTypes.contains($0.gymType) }
+        }
+        if filters.openNow {
+            result = result.filter { $0.isOpenNow == true }
+        }
+        if filters.dropInOnly {
+            result = result.filter { $0.crowdsource?.dropInPrice != nil }
+        }
+        if !filters.requiredEquipment.isEmpty {
+            result = result.filter { gym in
+                guard let eq = gym.crowdsource?.equipment else { return false }
+                return filters.requiredEquipment.allSatisfy { eq.contains($0.rawValue) }
+            }
+        }
+        return result
+    }
 
     private let locationManager = CLLocationManager()
     private let service = GymFinderService.shared
@@ -75,7 +94,6 @@ final class GymFinderViewModel: NSObject, ObservableObject {
             await fetchCrowdsource(for: &results)
             gyms = results
             saveCache(results)
-            applyFilters()
             withAnimation {
                 cameraPosition = .region(MKCoordinateRegion(
                     center: location.coordinate,
@@ -90,28 +108,6 @@ final class GymFinderViewModel: NSObject, ObservableObject {
         }
 
         isLoading = false
-    }
-
-    func applyFilters() {
-        var result = gyms
-
-        if !filters.selectedTypes.isEmpty {
-            result = result.filter { filters.selectedTypes.contains($0.gymType) }
-        }
-        if filters.openNow {
-            result = result.filter { $0.isOpenNow == true }
-        }
-        if filters.dropInOnly {
-            result = result.filter { $0.crowdsource?.dropInPrice != nil }
-        }
-        if !filters.requiredEquipment.isEmpty {
-            result = result.filter { gym in
-                guard let eq = gym.crowdsource?.equipment else { return false }
-                return filters.requiredEquipment.allSatisfy { eq.contains($0.rawValue) }
-            }
-        }
-
-        filteredGyms = result
     }
 
     func changeRadius(_ km: Int) {
@@ -142,7 +138,6 @@ final class GymFinderViewModel: NSObject, ObservableObject {
 
     func applyWorkoutFilter() {
         filters.requiredEquipment = Set(workoutEquipmentSuggestion)
-        applyFilters()
     }
 
     // MARK: - Crowdsource
@@ -159,7 +154,7 @@ final class GymFinderViewModel: NSObject, ObservableObject {
         req.timeoutInterval = 10
 
         guard let (data, _) = try? await URLSession.authed.data(for: req),
-              let decoded = try? JSONDecoder().decode([String: GymCrowdsource].self, from: data) else { return }
+              let decoded = try? APIService.decoder.decode([String: GymCrowdsource].self, from: data) else { return }
 
         for i in gyms.indices {
             gyms[i].crowdsource = decoded[gyms[i].id]
@@ -255,7 +250,6 @@ final class GymFinderViewModel: NSObject, ObservableObject {
               let cached = try? JSONDecoder().decode([Gym].self, from: data),
               !cached.isEmpty else { return }
         gyms = cached
-        filteredGyms = cached
     }
 }
 
