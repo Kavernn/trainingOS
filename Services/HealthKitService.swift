@@ -488,6 +488,24 @@ class HealthKitService: ObservableObject {
         }
     }
 
+    func saveStrengthWorkout(startDate: Date, endDate: Date) async {
+        guard HKHealthStore.isHealthDataAvailable() else { return }
+        let workout = HKWorkout(
+            activityType: .traditionalStrengthTraining,
+            start: startDate,
+            end: endDate,
+            duration: endDate.timeIntervalSince(startDate),
+            totalEnergyBurned: nil,
+            totalDistance: nil,
+            metadata: nil
+        )
+        do {
+            try await store.save(workout)
+        } catch {
+            logger.error("HealthKit strength workout save failed: \(error)")
+        }
+    }
+
     // MARK: - Workout → CardioEntry
     func workoutToCardioEntry(_ w: HKWorkout) -> (type: String, durationMin: Double, distanceKm: Double?, calories: Double?, avgHr: Double?) {
         let type: String

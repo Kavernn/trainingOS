@@ -480,14 +480,14 @@ struct NutritionCorrelationsCard: View {
         .task {
             guard let url = URL(string: "\(APIConfig.base)/api/nutrition/correlations"),
                   let (raw, _) = try? await URLSession.authed.data(from: url),
-                  let decoded  = try? JSONDecoder().decode(NutritionCorrelations.self, from: raw)
+                  let decoded  = try? APIService.decoder.decode(NutritionCorrelations.self, from: raw)
             else { isLoading = false; return }
             data = decoded
             isLoading = false
             // Load timing analysis in parallel
             if let tUrl = URL(string: "\(APIService.shared.baseURL)/api/nutrition_timing"),
                let (tRaw, _) = try? await URLSession.authed.data(from: tUrl),
-               let tDecoded = try? JSONDecoder().decode(NutritionTimingData.self, from: tRaw) {
+               let tDecoded = try? APIService.decoder.decode(NutritionTimingData.self, from: tRaw) {
                 timingData = tDecoded
             }
         }

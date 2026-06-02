@@ -277,7 +277,7 @@ struct NutritionView: View {
             showSettingsBanner = vm.settings == nil
             if let url = URL(string: "\(APIService.shared.baseURL)/api/macro_gap"),
                let (d, _) = try? await URLSession.authed.data(from: url),
-               let gap = try? JSONDecoder().decode(MacroGap.self, from: d) {
+               let gap = try? APIService.decoder.decode(MacroGap.self, from: d) {
                 macroGap = gap
             }
         }

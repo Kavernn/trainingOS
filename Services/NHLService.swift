@@ -120,7 +120,7 @@ final class NHLService: ObservableObject {
         guard let url = URL(string: "https://api-web.nhle.com/v1/club-schedule/MTL/month/now") else { return }
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            let schedule = try JSONDecoder().decode(NHLMonthSchedule.self, from: data)
+            let schedule = try APIService.decoder.decode(NHLMonthSchedule.self, from: data)
             let (liveId, lastId) = process(schedule.games ?? [])
 
             if let (id, isMTLHome) = liveId, let g = liveGame {
@@ -190,7 +190,7 @@ final class NHLService: ObservableObject {
     private func fetchBoxscore(gameId: Int, isMTLHome: Bool) async -> HabsGameStats? {
         guard let url = URL(string: "https://api-web.nhle.com/v1/gamecenter/\(gameId)/boxscore") else { return nil }
         guard let (data, _) = try? await URLSession.shared.data(from: url),
-              let box = try? JSONDecoder().decode(NHLBoxscore.self, from: data) else { return nil }
+              let box = try? APIService.decoder.decode(NHLBoxscore.self, from: data) else { return nil }
 
         let habsTeam   = isMTLHome ? box.homeTeam : box.awayTeam
         let oppTeam    = isMTLHome ? box.awayTeam : box.homeTeam

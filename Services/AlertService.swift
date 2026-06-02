@@ -41,7 +41,7 @@ final class AlertService: ObservableObject {
         guard let url = URL(string: "\(baseURL)/api/proactive_alerts") else { return }
         do {
             let (data, _) = try await URLSession.authed.data(from: url)
-            let response = try JSONDecoder().decode(ProactiveAlertsResponse.self, from: data)
+            let response = try APIService.decoder.decode(ProactiveAlertsResponse.self, from: data)
             alerts = response.alerts
             scheduleNotificationIfNeeded()
         } catch {

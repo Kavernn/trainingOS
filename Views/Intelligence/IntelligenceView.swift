@@ -1076,7 +1076,7 @@ struct IntelligenceView: View {
     private func loadContextData() async {
         // 1. Prefer stats_data cache (already warm if StatsView was visited)
         if let cached  = CacheService.shared.load(for: "stats_data"),
-           let decoded = try? JSONDecoder().decode(StatsSnapshot.self, from: cached) {
+           let decoded = try? APIService.decoder.decode(StatsSnapshot.self, from: cached) {
             await MainActor.run {
                 recoveryData    = decoded.recoveryLog
                 weightsData     = decoded.weights
@@ -1510,28 +1510,28 @@ struct IntelligenceView: View {
             group.addTask {
                 guard let url = URL(string: "\(base)/api/overtraining_risk"),
                       let (d, _) = try? await URLSession.authed.data(from: url),
-                      let r = try? JSONDecoder().decode(OvertrainingRisk.self, from: d)
+                      let r = try? APIService.decoder.decode(OvertrainingRisk.self, from: d)
                 else { return }
                 await MainActor.run { self.overtrainingRisk = r }
             }
             group.addTask {
                 guard let url = URL(string: "\(base)/api/mesocycle_status"),
                       let (d, _) = try? await URLSession.authed.data(from: url),
-                      let r = try? JSONDecoder().decode(MesocycleStatus.self, from: d)
+                      let r = try? APIService.decoder.decode(MesocycleStatus.self, from: d)
                 else { return }
                 await MainActor.run { self.mesocycleStatus = r }
             }
             group.addTask {
                 guard let url = URL(string: "\(base)/api/pain_journal"),
                       let (d, _) = try? await URLSession.authed.data(from: url),
-                      let r = try? JSONDecoder().decode(PainJournalResponse.self, from: d)
+                      let r = try? APIService.decoder.decode(PainJournalResponse.self, from: d)
                 else { return }
                 await MainActor.run { self.painJournal = r }
             }
             group.addTask {
                 guard let url = URL(string: "\(base)/api/one_rm_programming"),
                       let (d, _) = try? await URLSession.authed.data(from: url),
-                      let r = try? JSONDecoder().decode(OneRMResponse.self, from: d)
+                      let r = try? APIService.decoder.decode(OneRMResponse.self, from: d)
                 else { return }
                 await MainActor.run { self.oneRMData = r }
             }
@@ -1542,7 +1542,7 @@ struct IntelligenceView: View {
         guard !isLoadingWeeklyReport else { return }
         let cacheKey = "weekly_report_\(currentWeekKey)"
         if let cached = CacheService.shared.load(for: cacheKey),
-           let r = try? JSONDecoder().decode(WeeklyReport.self, from: cached) {
+           let r = try? APIService.decoder.decode(WeeklyReport.self, from: cached) {
             weeklyReportData = r
             showWeeklyReport = true
             return

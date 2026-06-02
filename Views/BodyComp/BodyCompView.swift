@@ -212,7 +212,7 @@ struct BodyCompView: View {
         Task {
             guard let url = URL(string: "\(APIService.shared.baseURL)/api/body_projection"),
                   let (data, _) = try? await URLSession.authed.data(from: url),
-                  let proj = try? JSONDecoder().decode(BodyProjectionData.self, from: data)
+                  let proj = try? APIService.decoder.decode(BodyProjectionData.self, from: data)
             else { return }
             await MainActor.run { projection = proj }
         }

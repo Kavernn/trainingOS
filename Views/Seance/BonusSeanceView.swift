@@ -40,6 +40,7 @@ class BonusSeanceViewModel: SeanceViewModel {
         if !failedExercises.isEmpty {
             commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
         }
+        await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
         showSuccess = true
     }
 }

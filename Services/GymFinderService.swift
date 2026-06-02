@@ -59,7 +59,7 @@ final class GymFinderService {
         request.httpBody = "data=\(encoded)".data(using: .utf8)
 
         let (data, _) = try await URLSession.shared.data(for: request)
-        let response = try JSONDecoder().decode(OverpassResponse.self, from: data)
+        let response = try APIService.decoder.decode(OverpassResponse.self, from: data)
 
         var seen = Set<String>()
         var gyms: [Gym] = []

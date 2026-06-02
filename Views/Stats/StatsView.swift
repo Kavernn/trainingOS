@@ -612,7 +612,7 @@ struct StatsView: View {
 
         // 1. Show cached data immediately (no spinner if cache exists)
         if let cached = CacheService.shared.load(for: "stats_data"),
-           let decoded = try? JSONDecoder().decode(StatsAPIResponse.self, from: cached) {
+           let decoded = try? APIService.decoder.decode(StatsAPIResponse.self, from: cached) {
             applyStats(decoded)
             isLoading = false
         }
@@ -622,7 +622,7 @@ struct StatsView: View {
         var req = URLRequest(url: statsURL)
         req.timeoutInterval = 15
         if let (data, _) = try? await URLSession.authed.data(for: req),
-           let decoded = try? JSONDecoder().decode(StatsAPIResponse.self, from: data) {
+           let decoded = try? APIService.decoder.decode(StatsAPIResponse.self, from: data) {
             CacheService.shared.save(data, for: "stats_data")
             applyStats(decoded)
         } else if weights.isEmpty {
@@ -637,11 +637,11 @@ struct StatsView: View {
         var wellnessReq = URLRequest(url: wellnessURL)
         wellnessReq.timeoutInterval = 20
         if let cachedW = CacheService.shared.load(for: "stats_wellness"),
-           let decodedW = try? JSONDecoder().decode(WellnessAPIResponse.self, from: cachedW) {
+           let decodedW = try? APIService.decoder.decode(WellnessAPIResponse.self, from: cachedW) {
             applyWellness(decodedW)
         }
         if let (wData, _) = try? await URLSession.authed.data(for: wellnessReq),
-           let decodedW = try? JSONDecoder().decode(WellnessAPIResponse.self, from: wData) {
+           let decodedW = try? APIService.decoder.decode(WellnessAPIResponse.self, from: wData) {
             CacheService.shared.save(wData, for: "stats_wellness")
             applyWellness(decodedW)
         }
@@ -666,7 +666,7 @@ struct StatsView: View {
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/soreness_threshold"),
                let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(SorenessThreshold.self, from: d) {
+               let r = try? APIService.decoder.decode(SorenessThreshold.self, from: d) {
                 await MainActor.run { sorenessThreshold = r }
             }
         }
@@ -678,42 +678,42 @@ struct StatsView: View {
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/adherence"),
                let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(AdherenceData.self, from: d) {
+               let r = try? APIService.decoder.decode(AdherenceData.self, from: d) {
                 await MainActor.run { adherenceData = r }
             }
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/seasons/comparison"),
                let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(SeasonComparisonData.self, from: d) {
+               let r = try? APIService.decoder.decode(SeasonComparisonData.self, from: d) {
                 await MainActor.run { seasonComparison = r }
             }
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/war_room/summary"),
                let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(WarRoomSummaryStats.self, from: d) {
+               let r = try? APIService.decoder.decode(WarRoomSummaryStats.self, from: d) {
                 await MainActor.run { warRoomStats = r }
             }
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/graveyard?count_only=true"),
                let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(GraveyardCount.self, from: d) {
+               let r = try? APIService.decoder.decode(GraveyardCount.self, from: d) {
                 await MainActor.run { graveyardCount = r.totalCount }
             }
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/deload_status"),
                let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(DeloadStatusData.self, from: d) {
+               let r = try? APIService.decoder.decode(DeloadStatusData.self, from: d) {
                 await MainActor.run { deloadStatus = r }
             }
         }
         Task {
             if let url = URL(string: "\(APIService.shared.baseURL)/api/stats/intensity"),
                let (d, _) = try? await URLSession.authed.data(from: url),
-               let r = try? JSONDecoder().decode(IntensityData.self, from: d) {
+               let r = try? APIService.decoder.decode(IntensityData.self, from: d) {
                 await MainActor.run { intensityData = r }
             }
         }

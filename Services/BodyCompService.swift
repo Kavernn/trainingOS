@@ -160,7 +160,7 @@ final class BodyCompService: ObservableObject {
                     case legacyWeightPending = "legacy_weight_pending"
                 }
             }
-            let r = try JSONDecoder().decode(ProfilRaw.self, from: data)
+            let r = try APIService.decoder.decode(ProfilRaw.self, from: data)
             let sorted = r.bodyWeight.sorted { $0.date < $1.date }
             history              = sorted
             latest               = sorted.last

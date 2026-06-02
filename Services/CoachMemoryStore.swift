@@ -133,7 +133,7 @@ final class CoachMemoryStore: ObservableObject {
     func syncFromServer() async {
         do {
             let raw = try await APIService.shared.fetchCoachMemory()
-            let decoder = JSONDecoder()
+            let decoder = APIService.decoder
             let serverEntries = try raw.compactMap { dict -> CoachMemoryEntry? in
                 let d = try JSONSerialization.data(withJSONObject: dict)
                 return try? decoder.decode(CoachMemoryEntry.self, from: d)

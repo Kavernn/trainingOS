@@ -11,7 +11,7 @@ class SeanceSoirViewModel: SeanceViewModel {
         // Show cached data immediately
         if seanceData == nil,
            let cached = cacheService.load(for: "seance_soir_data"),
-           let decoded = try? JSONDecoder().decode(SeanceSoirData.self, from: cached),
+           let decoded = try? APIService.decoder.decode(SeanceSoirData.self, from: cached),
            let converted = decoded.asSeanceData() {
             seanceData = converted
             restoreLogResults(from: converted)
@@ -67,6 +67,7 @@ class SeanceSoirViewModel: SeanceViewModel {
         if !failedExercises.isEmpty {
             commitWarning = "\(logResults.count - failedExercises.count) / \(logResults.count) exercices enregistrés. Non sauvegardés : \(failedExercises.joined(separator: ", "))"
         }
+        await HealthKitService.shared.saveStrengthWorkout(startDate: sessionStart, endDate: Date())
         showSuccess = true
     }
 }

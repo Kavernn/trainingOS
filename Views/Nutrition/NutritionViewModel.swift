@@ -26,7 +26,7 @@ final class NutritionViewModel: ObservableObject {
         req.timeoutInterval = 15
         do {
             let (data, _) = try await URLSession.authed.data(for: req)
-            let decoded   = try JSONDecoder().decode(NutritionDataResponse.self, from: data)
+            let decoded   = try APIService.decoder.decode(NutritionDataResponse.self, from: data)
             settings          = decoded.settings
             totals    = decoded.totals
             entries   = decoded.entries
@@ -41,7 +41,7 @@ final class NutritionViewModel: ObservableObject {
         isLoading = false
         if let qUrl = URL(string: "\(APIConfig.base)/api/nutrition/quality"),
            let (qData, _) = try? await URLSession.authed.data(for: URLRequest(url: qUrl)),
-           let q = try? JSONDecoder().decode(NutritionQualityResponse.self, from: qData) {
+           let q = try? APIService.decoder.decode(NutritionQualityResponse.self, from: qData) {
             qualityScore      = q.noData ? nil : q.score
             qualityIsTooEarly = q.isTooEarly
             qualityNoData     = q.noData

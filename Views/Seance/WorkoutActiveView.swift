@@ -288,7 +288,7 @@ struct WorkoutSeanceView: View {
             return
         }
         guard let cached  = CacheService.shared.load(for: "stats_data"),
-              let snap    = try? JSONDecoder().decode(GhostSnapshot.self, from: cached)
+              let snap    = try? APIService.decoder.decode(GhostSnapshot.self, from: cached)
         else { return }
         let currentExos = Set(localProgram.keys.map { $0.lowercased() })
         guard !currentExos.isEmpty else { return }
@@ -1518,7 +1518,7 @@ struct WorkoutSeanceView: View {
     private func loadReadiness() async {
         guard let url = URL(string: "\(APIService.shared.baseURL)/api/readiness") else { return }
         guard let (data, _) = try? await URLSession.authed.data(from: url),
-              let r = try? JSONDecoder().decode(ReadinessScore.self, from: data) else { return }
+              let r = try? APIService.decoder.decode(ReadinessScore.self, from: data) else { return }
         await MainActor.run { readiness = r }
     }
 
