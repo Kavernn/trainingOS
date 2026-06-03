@@ -57,7 +57,7 @@ private struct RecoveryDayCell: View {
         VStack(spacing: 6) {
             ZStack(alignment: .topTrailing) {
                 Image(systemName: icon)
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.appHeadline.weight(.medium))
                     .foregroundColor(value == "—" ? .gray.opacity(0.5) : color)
                 if isHK && value == "—" {
                     Image(systemName: "heart.fill")
@@ -72,7 +72,7 @@ private struct RecoveryDayCell: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.65)
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.appMicro.weight(.medium))
                 .foregroundColor(.gray)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
@@ -111,6 +111,8 @@ struct RecoveryView: View {
     @State private var isSyncingHK = false
     @State private var syncSuccess = false
     @AppStorage("last_hk_sync_recovery") private var lastHKSyncTimestamp: Double = 0
+    @State private var hkSpO2: Double? = nil
+    @State private var hkWristTemp: Double? = nil
 
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
@@ -218,6 +220,8 @@ struct RecoveryView: View {
         .task {
             await watchSync.syncIfNeeded()
             await loadData()
+            hkSpO2      = await HealthKitService.shared.fetchLatestSpO2()
+            hkWristTemp = await HealthKitService.shared.fetchLatestWristTemperature()
             if !hrvOnboardingDone {
                 showHRVOnboarding = true
             }
@@ -247,8 +251,8 @@ struct RecoveryView: View {
     private func pillButton(title: String, icon: String, tab: RecoveryViewTab) -> some View {
         Button { withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { activeTab = tab } } label: {
             HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 12, weight: .semibold))
-                Text(title).font(.system(size: 13, weight: .semibold))
+                Image(systemName: icon).font(.appCaption.weight(.semibold))
+                Text(title).font(.appLabel.weight(.semibold))
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
@@ -298,7 +302,7 @@ struct RecoveryView: View {
                         alreadyLoggedToday ? "Modifier la saisie manuelle" : "Compléter manuellement",
                         systemImage: alreadyLoggedToday ? "pencil" : "plus.circle"
                     )
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.orange)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -323,10 +327,10 @@ struct RecoveryView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(formattedToday)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(.gray)
                     Text(lastSyncLabel)
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.65))
                 }
                 Spacer()
@@ -336,7 +340,7 @@ struct RecoveryView: View {
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .rotationEffect(.degrees(isSyncingHK ? 360 : 0))
                             .animation(
                                 isSyncingHK
@@ -345,7 +349,7 @@ struct RecoveryView: View {
                                 value: isSyncingHK
                             )
                         Text("Actualiser")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                     }
                     .foregroundColor(isSyncingHK ? .gray : .orange)
                     .padding(.horizontal, 12)
@@ -410,6 +414,12 @@ struct RecoveryView: View {
                 RecoveryDayCell(icon: "bolt.circle.fill",
                                 value: entry?.energyPre.map { String(format: "%.1f/10", $0) } ?? "—",
                                 label: "Énergie pré", color: .mint, isHK: false)
+                RecoveryDayCell(icon: "lungs.fill",
+                                value: hkSpO2.map { String(format: "%.0f%%", $0) } ?? "—",
+                                label: "SpO2", color: .blue, isHK: true)
+                RecoveryDayCell(icon: "thermometer.medium",
+                                value: hkWristTemp.map { String(format: "%@%.1f°C", $0 >= 0 ? "+" : "", $0) } ?? "—",
+                                label: "Temp. poignet", color: .mint, isHK: true)
             }
         }
     }
@@ -425,9 +435,9 @@ struct RecoveryView: View {
                 if !entriesMissingHK.isEmpty && !backfillDone {
                     HStack(spacing: 10) {
                         Image(systemName: "heart.text.square.fill")
-                            .font(.system(size: 13)).foregroundColor(.red)
+                            .font(.appLabel).foregroundColor(.red)
                         Text("\(entriesMissingHK.count) entrée\(entriesMissingHK.count > 1 ? "s" : "") sans FC/HRV")
-                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.white)
                             .lineLimit(1)
                         Spacer()
                         Button { Task { await backfillFromHealthKit() } } label: {
@@ -435,7 +445,7 @@ struct RecoveryView: View {
                                 ProgressView().tint(.red).scaleEffect(0.65)
                             } else {
                                 Text("Sync")
-                                    .font(.system(size: 11, weight: .semibold)).foregroundColor(.red)
+                                    .font(.appCaption.weight(.semibold)).foregroundColor(.red)
                             }
                         }
                         .disabled(isBackfilling)
@@ -583,7 +593,7 @@ struct RecoveryView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("HISTORIQUE")
-                            .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                             .padding(.horizontal, 16)
                             .padding(.bottom, 8)
                         ForEach(Array(log.enumerated()), id: \.1.id) { i, entry in

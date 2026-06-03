@@ -16,6 +16,12 @@ struct SleepStages {
     var totalHours: Double { deepHours + remHours + coreHours }
 }
 
+struct RunningFormMetrics {
+    let strideLengthM: Double?
+    let verticalOscillationCm: Double?
+    let groundContactTimeMs: Double?
+}
+
 #if os(iOS)
 import HealthKit
 
@@ -42,9 +48,18 @@ class HealthKitService: ObservableObject {
             .bodyMass,
             .bodyFatPercentage,
             .activeEnergyBurned,
+            .vo2Max,
+            .oxygenSaturation,
+            .appleSleepingWristTemperature,
+            .runningStrideLength,
+            .runningVerticalOscillation,
+            .runningGroundContactTime,
         ]
         for id in ids {
             if let t = HKQuantityType.quantityType(forIdentifier: id) { types.insert(t) }
+        }
+        if #available(iOS 17, *) {
+            if let t = HKQuantityType.quantityType(forIdentifier: .physicalEffort) { types.insert(t) }
         }
         if let sleep   = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) { types.insert(sleep) }
         if let workout = HKObjectType.workoutType() as HKObjectType? { types.insert(workout) }
@@ -230,6 +245,46 @@ class HealthKitService: ObservableObject {
     func fetchLatestBodyFat() async -> Double? {
         guard let v = await fetchLatestQuantity(.bodyFatPercentage, unit: .percent()) else { return nil }
         return v * 100.0
+    }
+
+    // MARK: - VO2 Max (Apple Watch, mL/kg/min)
+    func fetchLatestVO2Max() async -> Double? {
+        let unit = HKUnit.literUnit(with: .milli)
+                    .unitDivided(by: HKUnit.gramUnit(with: .kilo)
+                    .unitMultiplied(by: HKUnit(from: "min")))
+        return await fetchLatestQuantity(.vo2Max, unit: unit)
+    }
+
+    // MARK: - SpO2 (Oxygen Saturation, returns 0–100)
+    func fetchLatestSpO2() async -> Double? {
+        guard let v = await fetchLatestQuantity(.oxygenSaturation, unit: .percent()) else { return nil }
+        return v * 100.0
+    }
+
+    // MARK: - Wrist Temperature (deviation from baseline in °C, available after sleep)
+    func fetchLatestWristTemperature() async -> Double? {
+        return await fetchLatestQuantity(.appleSleepingWristTemperature, unit: .degreeCelsius())
+    }
+
+    // MARK: - Running Form (Series 11 — stride, oscillation, contact time)
+    // Sequential awaits — no async let due to iOS 26 beta LIFO crash
+    func fetchRunningForm(start: Date, end: Date) async -> RunningFormMetrics? {
+        let pred = HKQuery.predicateForSamples(withStart: start, end: end)
+        let s = await fetchAvgStatistic(.runningStrideLength,        pred: pred, unit: .meter())
+        let o = await fetchAvgStatistic(.runningVerticalOscillation, pred: pred, unit: .meterUnit(with: .centi))
+        let c = await fetchAvgStatistic(.runningGroundContactTime,   pred: pred, unit: .secondUnit(with: .milli))
+        guard s != nil || o != nil || c != nil else { return nil }
+        return RunningFormMetrics(strideLengthM: s, verticalOscillationCm: o, groundContactTimeMs: c)
+    }
+
+    private func fetchAvgStatistic(_ id: HKQuantityTypeIdentifier, pred: NSPredicate, unit: HKUnit) async -> Double? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return nil }
+        return await withCheckedContinuation { cont in
+            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .discreteAverage) { _, stats, _ in
+                cont.resume(returning: stats?.averageQuantity()?.doubleValue(for: unit))
+            }
+            store.execute(q)
+        }
     }
 
     // MARK: - Generic latest quantity helper
@@ -554,6 +609,10 @@ class HealthKitService: ObservableObject {
     func fetchEveningHR(for date: Date) async -> Double? { nil }
     func fetchLatestBodyWeight() async -> Double? { nil }
     func fetchLatestBodyFat() async -> Double? { nil }
+    func fetchLatestVO2Max() async -> Double? { nil }
+    func fetchLatestSpO2() async -> Double? { nil }
+    func fetchLatestWristTemperature() async -> Double? { nil }
+    func fetchRunningForm(start: Date, end: Date) async -> RunningFormMetrics? { nil }
     func fetchTodayActiveEnergy() async -> Double? { nil }
     func fetchAllWorkouts(days: Int = 1) async -> [Any] { [] }
     func fetchTodayHealthSnapshot() async -> WearableSnapshot {

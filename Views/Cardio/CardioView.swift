@@ -300,13 +300,14 @@ struct ActiveSessionBanner: View {
 // MARK: - Guides Section
 struct CardioGuidesSection: View {
     let metrics: CardioMetrics
+    @State private var hkVO2Max: Double? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("INTELLIGENCE CARDIO")
                 .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
 
-            // VO2max
+            // VO2max estimé (Jack Daniels)
             CardioMetricCard(
                 icon: "lungs.fill",
                 color: vo2maxColor,
@@ -316,6 +317,19 @@ struct CardioGuidesSection: View {
                 guide: metrics.guides?.vo2max ?? "",
                 methodology: "Formule Jack Daniels VDOT depuis pace + distance réels. Moyenne des estimations sur 30 jours (min. 3 sessions). Types pris en compte : course, tempo, endurance, léger. Catégories : < 36 Faible · 36-43 Moyen · 43-50 Bon · 50-56 Excellent · 56+ Élite."
             )
+
+            // VO2 max Apple Watch (si disponible — mesure directe)
+            if let v = hkVO2Max {
+                CardioMetricCard(
+                    icon: "lungs",
+                    color: .mint,
+                    title: "VO2 max (Apple Watch)",
+                    value: String(format: "%.1f mL/kg/min", v),
+                    badge: vo2CategoryLabel(v),
+                    guide: "VO2 max mesuré par l'Apple Watch pendant les séances de course en plein air. Disponible après plusieurs sessions avec GPS.",
+                    methodology: "Apple Watch croise FC et vitesse GPS pour estimer le VO2 max. Mis à jour automatiquement via HealthKit."
+                )
+            }
 
             // ACWR Cardio
             if let acwr = metrics.acwrCardio {
@@ -357,6 +371,17 @@ struct CardioGuidesSection: View {
                 )
             }
         }
+        .task {
+            hkVO2Max = await HealthKitService.shared.fetchLatestVO2Max()
+        }
+    }
+
+    private func vo2CategoryLabel(_ v: Double) -> String? {
+        if v >= 56 { return "Élite" }
+        if v >= 50 { return "Excellent" }
+        if v >= 43 { return "Bon" }
+        if v >= 36 { return "Moyen" }
+        return "Faible"
     }
 
     var vo2maxColor: Color {
