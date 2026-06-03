@@ -98,7 +98,7 @@ struct CardioView: View {
                             } else {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("HISTORIQUE")
-                                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                         .padding(.horizontal, 16)
                                     ForEach(history) { entry in
                                         UnifiedHistoryRow(entry: entry, onDelete: {
@@ -123,8 +123,8 @@ struct CardioView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button { showActiveSession = true } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "location.fill").font(.system(size: 13))
-                            Text("GPS").font(.system(size: 13, weight: .medium))
+                            Image(systemName: "location.fill").font(.appLabel.weight(.regular))
+                            Text("GPS").font(.appLabel)
                         }
                         .foregroundColor(sessionManager.sessionState != .idle ? .red : .teal)
                     }
@@ -135,9 +135,9 @@ struct CardioView: View {
                             if isImportingHK {
                                 ProgressView().tint(.orange).scaleEffect(0.7)
                             } else {
-                                Image(systemName: "heart.text.square").font(.system(size: 14))
+                                Image(systemName: "heart.text.square").font(.appLabel.weight(.regular))
                             }
-                            Text("Santé").font(.system(size: 13, weight: .medium))
+                            Text("Santé").font(.appLabel)
                         }
                         .foregroundColor(.orange)
                     }
@@ -242,10 +242,10 @@ struct CardioHeaderSection: View {
         VStack(spacing: 10) {
             Button(action: onStart) {
                 HStack(spacing: 10) {
-                    Image(systemName: "play.circle.fill").font(.system(size: 20))
-                    Text("Démarrer une session GPS").font(.system(size: 15, weight: .semibold))
+                    Image(systemName: "play.circle.fill").font(.appTitle.weight(.regular))
+                    Text("Démarrer une session GPS").font(.appBody.weight(.semibold))
                     Spacer()
-                    Image(systemName: "chevron.right").font(.system(size: 13))
+                    Image(systemName: "chevron.right").font(.appLabel.weight(.regular))
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 18).padding(.vertical, 14)
@@ -257,17 +257,17 @@ struct CardioHeaderSection: View {
             HStack(spacing: 16) {
                 if let last = lastSession {
                     HStack(spacing: 4) {
-                        Image(systemName: "clock").font(.system(size: 11)).foregroundColor(.gray)
+                        Image(systemName: "clock").font(.appCaption).foregroundColor(.gray)
                         Text("Dernière : \(last.type?.capitalized ?? "—")\(last.distanceKm.map { String(format: " %.1f km", $0) } ?? "")")
-                            .font(.system(size: 12)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 Spacer()
                 if monthDistanceKm > 0 {
                     HStack(spacing: 4) {
-                        Image(systemName: "calendar").font(.system(size: 11)).foregroundColor(.teal.opacity(0.7))
+                        Image(systemName: "calendar").font(.appCaption).foregroundColor(.teal.opacity(0.7))
                         Text(String(format: "%.1f km ce mois", monthDistanceKm))
-                            .font(.system(size: 12, weight: .medium)).foregroundColor(.teal.opacity(0.8))
+                            .font(.appCaption.weight(.medium)).foregroundColor(.teal.opacity(0.8))
                     }
                 }
             }
@@ -284,9 +284,9 @@ struct ActiveSessionBanner: View {
             HStack(spacing: 10) {
                 Circle().fill(Color.red).frame(width: 8, height: 8)
                 Text("Session en cours — Tap pour reprendre")
-                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                 Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray)
+                Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
             }
             .padding(.horizontal, 14).padding(.vertical, 10)
             .background(Color.black.opacity(0.6))
@@ -304,7 +304,7 @@ struct CardioGuidesSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("INTELLIGENCE CARDIO")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             // VO2max
             CardioMetricCard(
@@ -402,26 +402,26 @@ struct CardioMetricCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: icon).font(.system(size: 14)).foregroundColor(color)
+                Image(systemName: icon).font(.appLabel.weight(.regular)).foregroundColor(color)
                 Text(title.uppercased())
-                    .font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
                 Spacer()
                 if let b = badge {
                     Text(b)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(color.opacity(0.15))
                         .foregroundColor(color)
                         .cornerRadius(6)
                 }
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 10)).foregroundColor(.gray.opacity(0.5))
+                    .font(.appCaption).foregroundColor(.gray.opacity(0.5))
             }
             Text(value)
                 .font(.system(size: 26, weight: .bold)).foregroundColor(.white)
             if !guide.isEmpty {
                 Text(guide)
-                    .font(.system(size: 12)).foregroundColor(.secondary)
+                    .font(.appCaption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -460,10 +460,10 @@ struct CardioMetricDetailSheet: View {
                         // Header avec valeur
                         VStack(alignment: .leading, spacing: 6) {
                             HStack(spacing: 8) {
-                                Image(systemName: icon).font(.system(size: 18)).foregroundColor(color)
+                                Image(systemName: icon).font(.appHeadline.weight(.regular)).foregroundColor(color)
                                 if let b = badge {
                                     Text(b)
-                                        .font(.system(size: 11, weight: .semibold))
+                                        .font(.appCaption.weight(.semibold))
                                         .padding(.horizontal, 10).padding(.vertical, 4)
                                         .background(color.opacity(0.15)).foregroundColor(color).cornerRadius(8)
                                 }
@@ -501,11 +501,11 @@ struct CardioMetricDetailSheet: View {
     func metricSection(title: String, icon: String, iconColor: Color, content: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 11)).foregroundColor(iconColor)
-                Text(title).font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                Image(systemName: icon).font(.appCaption).foregroundColor(iconColor)
+                Text(title).font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
             }
             Text(content)
-                .font(.system(size: 14)).foregroundColor(.white).lineSpacing(3)
+                .font(.appLabel.weight(.regular)).foregroundColor(.white).lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -544,27 +544,27 @@ struct FCZonesSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: "heart.fill").font(.system(size: 14)).foregroundColor(.pink)
+                Image(systemName: "heart.fill").font(.appLabel.weight(.regular)).foregroundColor(.pink)
                 Text("ZONES FC — FCmax \(zones.maxHr) bpm")
-                    .font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
                 Spacer()
                 Text(hrSourceLabel)
-                    .font(.system(size: 9)).foregroundColor(.secondary)
-                Image(systemName: "chevron.right").font(.system(size: 10)).foregroundColor(.gray.opacity(0.5))
+                    .font(.appMicro).foregroundColor(.secondary)
+                Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray.opacity(0.5))
             }
             VStack(spacing: 4) {
                 ForEach(zoneRanges, id: \.0) { name, color, range in
                     HStack {
                         Circle().fill(color).frame(width: 6, height: 6)
-                        Text(name).font(.system(size: 11)).foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                        Text(name).font(.appCaption).foregroundColor(.gray).frame(width: 80, alignment: .leading)
                         Spacer()
-                        Text(range).font(.system(size: 11, weight: .medium)).foregroundColor(.white)
+                        Text(range).font(.appCaption.weight(.medium)).foregroundColor(.white)
                     }
                 }
             }
             if !guide.isEmpty {
                 Text(guide)
-                    .font(.system(size: 12)).foregroundColor(.secondary)
+                    .font(.appCaption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -603,23 +603,23 @@ struct PaceZonesCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: "speedometer").font(.system(size: 14)).foregroundColor(.blue)
+                Image(systemName: "speedometer").font(.appLabel.weight(.regular)).foregroundColor(.blue)
                 Text("PACE ZONES")
-                    .font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
             }
             VStack(spacing: 4) {
                 ForEach(rows, id: \.0) { name, color, range in
                     HStack {
                         Circle().fill(color).frame(width: 6, height: 6)
-                        Text(name).font(.system(size: 11)).foregroundColor(.gray).frame(width: 70, alignment: .leading)
+                        Text(name).font(.appCaption).foregroundColor(.gray).frame(width: 70, alignment: .leading)
                         Spacer()
-                        Text(range + " /km").font(.system(size: 11, weight: .medium)).foregroundColor(.white)
+                        Text(range + " /km").font(.appCaption.weight(.medium)).foregroundColor(.white)
                     }
                 }
             }
             if !guide.isEmpty {
                 Text(guide)
-                    .font(.system(size: 12)).foregroundColor(.secondary)
+                    .font(.appCaption).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -694,11 +694,11 @@ struct CardioHistoryDetailSheet: View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12).fill(cardioColor(e.type).opacity(0.15)).frame(width: 52, height: 52)
-                Image(systemName: cardioIcon(e.type)).font(.system(size: 22)).foregroundColor(cardioColor(e.type))
+                Image(systemName: cardioIcon(e.type)).font(.appTitle.weight(.regular)).foregroundColor(cardioColor(e.type))
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(e.type?.capitalized ?? "Séance").font(.system(size: 18, weight: .bold)).foregroundColor(.white)
-                Text(e.date ?? "—").font(.system(size: 13)).foregroundColor(.gray)
+                Text(e.type?.capitalized ?? "Séance").font(.appHeadline.weight(.bold)).foregroundColor(.white)
+                Text(e.date ?? "—").font(.appLabel.weight(.regular)).foregroundColor(.gray)
             }
             Spacer()
         }
@@ -718,9 +718,9 @@ struct CardioHistoryDetailSheet: View {
         // GPS indicator
         if e.gpsPoints?.isEmpty == false {
             HStack(spacing: 8) {
-                Image(systemName: "location.fill").foregroundColor(.teal).font(.system(size: 13))
+                Image(systemName: "location.fill").foregroundColor(.teal).font(.appLabel.weight(.regular))
                 Text("Session GPS enregistrée — \(e.gpsPoints?.count ?? 0) points")
-                    .font(.system(size: 13)).foregroundColor(.secondary)
+                    .font(.appLabel.weight(.regular)).foregroundColor(.secondary)
             }
             .padding(12).background(Color.appCard).cornerRadius(10)
         }
@@ -741,11 +741,11 @@ struct CardioHistoryDetailSheet: View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12).fill(Color.red.opacity(0.15)).frame(width: 52, height: 52)
-                Text("HIIT").font(.system(size: 10, weight: .black)).foregroundColor(.red)
+                Text("HIIT").font(.appCaption.weight(.black)).foregroundColor(.red)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(e.sessionType ?? "HIIT").font(.system(size: 18, weight: .bold)).foregroundColor(.white)
-                Text(e.date ?? "—").font(.system(size: 13)).foregroundColor(.gray)
+                Text(e.sessionType ?? "HIIT").font(.appHeadline.weight(.bold)).foregroundColor(.white)
+                Text(e.date ?? "—").font(.appLabel.weight(.regular)).foregroundColor(.gray)
             }
             Spacer()
         }
@@ -766,8 +766,8 @@ struct CardioHistoryDetailSheet: View {
     @ViewBuilder
     func detailSection(title: String, content: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
-            Text(content).font(.system(size: 14)).foregroundColor(.white)
+            Text(title).font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
+            Text(content).font(.appLabel.weight(.regular)).foregroundColor(.white)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -799,8 +799,8 @@ struct DetailKPI: View {
     let color: Color
     var body: some View {
         VStack(spacing: 4) {
-            Text(value).font(.system(size: 20, weight: .bold)).foregroundColor(color)
-            Text(label).font(.system(size: 10, weight: .medium)).foregroundColor(.gray)
+            Text(value).font(.appTitle).foregroundColor(color)
+            Text(label).font(.appCaption.weight(.medium)).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -822,15 +822,15 @@ struct HIITHistoryRow: View {
                     .fill(Color.red.opacity(0.15))
                     .frame(width: 42, height: 42)
                 Text("HIIT")
-                    .font(.system(size: 9, weight: .black))
+                    .font(.appMicro.weight(.black))
                     .foregroundColor(.red)
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(entry.sessionType ?? "HIIT")
-                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                 Text(entry.date ?? "")
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                 hiitDetails
             }
 
@@ -839,7 +839,7 @@ struct HIITHistoryRow: View {
             VStack(alignment: .trailing, spacing: 6) {
                 if let rpe = entry.rpe {
                     Text(String(format: "RPE %.1f", rpe))
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(Color.red.opacity(0.12))
                         .foregroundColor(.red)
@@ -849,7 +849,7 @@ struct HIITHistoryRow: View {
 
             Button { confirmDelete = true } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .frame(width: 30, height: 30)
                     .background(Color.red.opacity(0.1))
                     .foregroundColor(.red.opacity(0.8))
@@ -876,11 +876,11 @@ struct HIITHistoryRow: View {
         ].compactMap { $0 }
         if !parts.isEmpty {
             Text(parts.joined(separator: " · "))
-                .font(.system(size: 11)).foregroundColor(.secondary)
+                .font(.appCaption).foregroundColor(.secondary)
         }
         if let notes = entry.notes, !notes.isEmpty {
             Text(notes)
-                .font(.system(size: 11)).foregroundColor(.secondary)
+                .font(.appCaption).foregroundColor(.secondary)
                 .italic()
                 .lineLimit(1)
         }
@@ -920,19 +920,19 @@ struct HRZonesCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("ZONES CARDIO")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Button("FCmax \(maxHR)") {
                     maxHRStr = "\(maxHR)"
                     showMaxHRInput = true
                 }
-                .font(.system(size: 11)).foregroundColor(.teal)
+                .font(.appCaption).foregroundColor(.teal)
             }
             VStack(spacing: 5) {
                 ForEach(zones.indices, id: \.self) { i in
                     HStack(spacing: 8) {
                         Text(zones[i].name)
-                            .font(.system(size: 11)).foregroundColor(.gray).frame(width: 80, alignment: .leading)
+                            .font(.appCaption).foregroundColor(.gray).frame(width: 80, alignment: .leading)
                         GeometryReader { geo in
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(zones[i].color.opacity(0.3))
@@ -945,7 +945,7 @@ struct HRZonesCard: View {
                         }
                         .frame(height: 14)
                         Text("\(Int(Double(counts[i]) / Double(total) * 100))%")
-                            .font(.system(size: 10, weight: .bold)).foregroundColor(zones[i].color)
+                            .font(.appCaption.weight(.bold)).foregroundColor(zones[i].color)
                             .frame(width: 32, alignment: .trailing)
                     }
                 }
@@ -968,12 +968,12 @@ struct CardioProgressionCard: View {
     let msg: String
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: "arrow.up.circle.fill").font(.system(size: 20)).foregroundColor(.teal)
+            Image(systemName: "arrow.up.circle.fill").font(.appTitle.weight(.regular)).foregroundColor(.teal)
             VStack(alignment: .leading, spacing: 2) {
                 Text("PROGRESSION — \(type.uppercased())")
-                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                 Text(msg)
-                    .font(.system(size: 13)).foregroundColor(.white)
+                    .font(.appLabel.weight(.regular)).foregroundColor(.white)
             }
             Spacer()
         }
@@ -996,15 +996,15 @@ struct CardioRow: View {
                     .fill(typeColor.opacity(0.15))
                     .frame(width: 42, height: 42)
                 Image(systemName: typeIcon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.appHeadline)
                     .foregroundColor(typeColor)
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(typeLabel)
-                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                 Text(entry.date ?? "")
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
             }
 
             Spacer()
@@ -1012,33 +1012,33 @@ struct CardioRow: View {
             VStack(alignment: .trailing, spacing: 3) {
                 if let d = entry.distanceKm {
                     Text(String(format: "%.2f km", d))
-                        .font(.system(size: 14, weight: .bold)).foregroundColor(.teal)
+                        .font(.appLabel.weight(.bold)).foregroundColor(.teal)
                 }
                 HStack(spacing: 6) {
                     if let dur = entry.durationMin {
                         Label(String(format: "%.0f min", dur), systemImage: "clock")
-                            .font(.system(size: 11)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                     }
                     if let pace = entry.avgPace {
                         Label(pace + "/km", systemImage: "speedometer")
-                            .font(.system(size: 11)).foregroundColor(.blue)
+                            .font(.appCaption).foregroundColor(.blue)
                     }
                 }
                 HStack(spacing: 6) {
                     if let cad = entry.cadence {
                         Label(String(format: "%.0f spm", cad), systemImage: "metronome")
-                            .font(.system(size: 11)).foregroundColor(.orange)
+                            .font(.appCaption).foregroundColor(.orange)
                     }
                     if let cal = entry.calories {
                         Label(String(format: "%.0f kcal", cal), systemImage: "flame.fill")
-                            .font(.system(size: 11)).foregroundColor(.red)
+                            .font(.appCaption).foregroundColor(.red)
                     }
                 }
             }
 
             Button { confirmDelete = true } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .frame(width: 30, height: 30)
                     .background(Color.red.opacity(0.1))
                     .foregroundColor(.red.opacity(0.8))
@@ -1088,7 +1088,7 @@ struct CardioDistanceChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("DISTANCE — DERNIÈRES SÉANCES")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(Array(entries.enumerated()), id: \.0) { i, e in
                     let dist = e.distanceKm ?? 0
@@ -1143,13 +1143,13 @@ struct LogCardioSheet: View {
                 ScrollView {
                     VStack(spacing: 18) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("TYPE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            Text("TYPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     ForEach(types, id: \.self) { t in
                                         Button(action: { selectedType = t }) {
                                             Text(t.capitalized)
-                                                .font(.system(size: 13, weight: .medium))
+                                                .font(.appLabel)
                                                 .padding(.horizontal, 14).padding(.vertical, 8)
                                                 .background(selectedType == t ? Color.teal : Color(hex: "191926"))
                                                 .foregroundColor(selectedType == t ? .white : .gray)
@@ -1170,16 +1170,16 @@ struct LogCardioSheet: View {
 
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text("RPE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("RPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                 Spacer()
                                 Text(String(format: "%.0f / 10", rpeValue))
-                                    .font(.system(size: 13, weight: .bold)).foregroundColor(.orange)
+                                    .font(.appLabel.weight(.bold)).foregroundColor(.orange)
                             }
                             Slider(value: $rpeValue, in: 1...10, step: 0.5).tint(.orange)
                         }
 
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            Text("NOTES").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                             TextField("Commentaire...", text: $notes, axis: .vertical)
                                 .lineLimit(3, reservesSpace: true)
                                 .foregroundColor(.white)
@@ -1191,7 +1191,7 @@ struct LogCardioSheet: View {
                         Button(action: save) {
                             Group {
                                 if isSaving { ProgressView().tint(.white) }
-                                else { Text("Enregistrer").font(.system(size: 15, weight: .semibold)).foregroundColor(.white) }
+                                else { Text("Enregistrer").font(.appBody.weight(.semibold)).foregroundColor(.white) }
                             }
                         }
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
@@ -1249,7 +1249,7 @@ struct CardioField: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+            Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
             TextField(placeholder, text: $text)
                 .keyboardType(keyboardType)
                 .foregroundColor(.white)

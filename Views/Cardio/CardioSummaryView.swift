@@ -144,7 +144,7 @@ struct CardioSummaryView: View {
                 .font(.system(size: 26, weight: .bold))
                 .foregroundColor(.white)
             Text(sessionDateStr)
-                .font(.system(size: 14))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.white.opacity(0.5))
         }
     }
@@ -180,7 +180,7 @@ struct CardioSummaryView: View {
                 Image(systemName: "location.slash.fill")
                     .foregroundColor(.orange)
                 Text("Aucun point GPS — GPS non autorisé ou signal absent")
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.orange)
             }
             .padding(.horizontal, 16)
@@ -193,7 +193,7 @@ struct CardioSummaryView: View {
         if !splits.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 Text("SPLITS")
-                    .font(.system(size: 11, weight: .bold)).tracking(1.5)
+                    .font(.appCaption.weight(.bold)).tracking(1.5)
                     .foregroundColor(.white.opacity(0.4))
                     .padding(.horizontal, 16)
 
@@ -215,7 +215,7 @@ struct CardioSummaryView: View {
 
         return HStack {
             Text("Km \(split.km)")
-                .font(.system(size: 14, weight: .medium))
+                .font(.appLabel)
                 .foregroundColor(.white.opacity(0.7))
             Spacer()
             Text(splitPace)
@@ -233,7 +233,7 @@ struct CardioSummaryView: View {
         if hkAvgHR != nil || hkCalories != nil {
             VStack(alignment: .leading, spacing: 10) {
                 Text("DONNÉES SANTÉ")
-                    .font(.system(size: 11, weight: .bold)).tracking(1.5)
+                    .font(.appCaption.weight(.bold)).tracking(1.5)
                     .foregroundColor(.white.opacity(0.4))
                     .padding(.horizontal, 16)
 
@@ -256,7 +256,7 @@ struct CardioSummaryView: View {
         if isLoadingRecovery {
             HStack(spacing: 12) {
                 Image(systemName: "brain.head.profile")
-                    .font(.system(size: 20))
+                    .font(.appTitle.weight(.regular))
                     .foregroundColor(.teal.opacity(0.5))
                 VStack(alignment: .leading, spacing: 6) {
                     RoundedRectangle(cornerRadius: 4).fill(Color.white.opacity(0.1)).frame(height: 11)
@@ -272,20 +272,20 @@ struct CardioSummaryView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
                     Image(systemName: "brain.head.profile")
-                        .font(.system(size: 15))
+                        .font(.appBody)
                         .foregroundColor(.teal)
                     Text("CONSEIL COACH")
-                        .font(.system(size: 11, weight: .bold)).tracking(1.5)
+                        .font(.appCaption.weight(.bold)).tracking(1.5)
                         .foregroundColor(.teal)
                     Spacer()
                     if note.isPersonalized {
                         Text("Basé sur tes données")
-                            .font(.system(size: 10))
+                            .font(.appCaption)
                             .foregroundColor(.white.opacity(0.35))
                     }
                 }
                 Text(note.message)
-                    .font(.system(size: 14))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.white.opacity(0.85))
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -305,7 +305,7 @@ struct CardioSummaryView: View {
         VStack(spacing: 12) {
             if let err = saveError {
                 Text(err)
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.red)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
@@ -321,7 +321,7 @@ struct CardioSummaryView: View {
                         Image(systemName: "checkmark")
                     }
                     Text(isSaving ? "Sauvegarde…" : "Sauvegarder")
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.appHeadline.weight(.bold))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
@@ -334,7 +334,7 @@ struct CardioSummaryView: View {
 
             Button { showCancelConfirm = true } label: {
                 Text("Annuler — ne pas sauvegarder")
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .foregroundColor(.white.opacity(0.4))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -710,10 +710,10 @@ private struct SummaryMetric: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(label)
-                .font(.system(size: 10, weight: .bold)).tracking(1.5)
+                .font(.appCaption.weight(.bold)).tracking(1.5)
                 .foregroundColor(.white.opacity(0.4))
             Text(value)
-                .font(.system(size: 22, weight: .bold))
+                .font(.appTitle)
                 .foregroundColor(color)
                 .minimumScaleFactor(0.7)
         }

@@ -36,7 +36,7 @@ struct CardioTypeSelectionSheet: View {
                 .padding(.bottom, 20)
 
             Text("Type d'effort")
-                .font(.system(size: 22, weight: .bold))
+                .font(.appTitle)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 24)
@@ -64,7 +64,7 @@ struct CardioTypeSelectionSheet: View {
                 HStack(spacing: 10) {
                     Image(systemName: "play.fill")
                     Text("Démarrer")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.appHeadline.weight(.bold))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 18)
@@ -97,11 +97,11 @@ private struct CardioTypeCard: View {
                     .frame(height: 34)
 
                 Text(type.label)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
 
                 Text(type.description)
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(isSelected ? 0.7 : 0.4))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
@@ -150,7 +150,7 @@ struct CardioActiveView: View {
                     HStack {
                         Button(action: { dismiss() }) {
                             Image(systemName: "xmark")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.appBody.weight(.semibold))
                                 .foregroundColor(.white)
                                 .padding(10)
                                 .background(.ultraThinMaterial)
@@ -194,7 +194,7 @@ private struct CardioIdleView: View {
 
             VStack(spacing: 16) {
                 Text("Nouvelle séance")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.appTitle)
                     .foregroundColor(.white)
                     .padding(.top, 20)
 
@@ -204,7 +204,7 @@ private struct CardioIdleView: View {
                             Image(systemName: "location.slash.fill")
                                 .foregroundColor(.orange)
                             Text("GPS non autorisé — le tracé ne sera pas enregistré")
-                                .font(.system(size: 13))
+                                .font(.appLabel.weight(.regular))
                                 .foregroundColor(.orange)
                         }
                         Button("Ouvrir Réglages") {
@@ -212,7 +212,7 @@ private struct CardioIdleView: View {
                                 UIApplication.shared.open(url)
                             }
                         }
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.teal)
                     }
                     .padding(.horizontal, 16)
@@ -224,7 +224,7 @@ private struct CardioIdleView: View {
                     HStack {
                         Image(systemName: "play.fill")
                         Text("Démarrer")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.appHeadline.weight(.bold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
@@ -284,9 +284,9 @@ private struct ActiveLayout: View {
                 Button(action: { dismiss() }) {
                     HStack(spacing: 6) {
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                         Text("Réduire")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                     }
                     .foregroundColor(.white.opacity(0.6))
                     .padding(.horizontal, 12)
@@ -325,7 +325,7 @@ private struct ActiveLayout: View {
                     HStack {
                         Image(systemName: session.sessionState == .active ? "pause.fill" : "play.fill")
                         Text(session.sessionState == .active ? "Pause" : "Reprendre")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -341,7 +341,7 @@ private struct ActiveLayout: View {
                     HStack {
                         Image(systemName: "stop.fill")
                         Text("Terminer")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -402,7 +402,7 @@ private struct MetricsBlock: View {
 
             if session.sessionState == .paused {
                 Text("EN PAUSE")
-                    .font(.system(size: 11, weight: .bold)).tracking(2)
+                    .font(.appCaption.weight(.bold)).tracking(2)
                     .foregroundColor(.orange)
                     .padding(.top, 4)
             }
@@ -419,9 +419,9 @@ private struct MetricsBlock: View {
         if session.maxPaceSecondsPerKm > 0 {
             HStack(spacing: 5) {
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                 Text("Max : \(session.maxPaceString)")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
             }
             .foregroundColor(.yellow.opacity(0.9))
             .padding(.horizontal, 14)
@@ -484,7 +484,7 @@ private struct MetricsBlock: View {
 
     private func tertiaryText(_ value: String, opacity: Double = 0.6) -> some View {
         Text(value)
-            .font(.system(size: 20, weight: .medium))
+            .font(.appTitle.weight(.medium))
             .foregroundColor(.white.opacity(opacity))
     }
 }
