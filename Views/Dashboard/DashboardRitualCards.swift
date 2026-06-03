@@ -15,23 +15,23 @@ struct EveningRitualEntryCard: View {
                         .fill(Color(hex: "1a0a0a"))
                         .frame(width: 36, height: 36)
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(Color(hex: "E8441A"))
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("FERME TA JOURNÉE")
-                        .font(.system(size: 9, weight: .black))
+                        .font(.appMicro.weight(.black))
                         .foregroundColor(Color(hex: "E8441A").opacity(0.8))
                         .tracking(0.5)
                     if let intention = ritual.intention, !intention.isEmpty {
                         Text("« \(intention) »")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(.white.opacity(0.75))
                             .lineLimit(1)
                     } else {
                         Text("Tu avais posé une intention ce matin.")
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(.white.opacity(0.6))
                     }
                 }
@@ -39,7 +39,7 @@ struct EveningRitualEntryCard: View {
                 Spacer()
 
                 Text("BURNED / SURVIVED")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.appMicro.weight(.bold))
                     .foregroundColor(Color(hex: "E8441A"))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -74,15 +74,15 @@ struct BreathworkNudgeCard: View {
         if dismissedDate != todayStr {
             HStack(spacing: 10) {
                 Image(systemName: "wind")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.teal)
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Stress élevé détecté")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.white.opacity(0.85))
                     Text("5 min de cohérence cardiaque maintenant.")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.55))
                 }
 
@@ -90,7 +90,7 @@ struct BreathworkNudgeCard: View {
 
                 Button { dismissedDate = todayStr } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                         .padding(6)
                 }
@@ -130,7 +130,7 @@ struct QuickWarRoomTriggerSheet: View {
                     // Context picker
                     VStack(alignment: .leading, spacing: 10) {
                         Text("CONTEXTE")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .foregroundColor(.gray)
                             .tracking(0.8)
 
@@ -140,7 +140,7 @@ struct QuickWarRoomTriggerSheet: View {
                                     withAnimation(.spring(response: 0.25)) { selectedContext = ctx }
                                 } label: {
                                     Text(ctx.label)
-                                        .font(.system(size: 12, weight: selectedContext == ctx ? .bold : .regular))
+                                        .font(.appCaption.weight(selectedContext == ctx ? .bold : .regular))
                                         .foregroundColor(selectedContext == ctx ? .black : .white.opacity(0.7))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 9)
@@ -156,7 +156,7 @@ struct QuickWarRoomTriggerSheet: View {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("INTENSITÉ")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .foregroundColor(.gray)
                                 .tracking(0.8)
                             Spacer()
@@ -172,10 +172,10 @@ struct QuickWarRoomTriggerSheet: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("J'ai cédé")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.white)
                             Text("Cochez si vous avez succombé à la tentation.")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                         }
                         Spacer()
@@ -214,7 +214,7 @@ struct QuickWarRoomTriggerSheet: View {
                             } else {
                                 Image(systemName: "bolt.fill")
                                 Text("Logger la tentation")
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.appBody.weight(.bold))
                             }
                         }
                         .foregroundColor(.white)
@@ -233,7 +233,7 @@ struct QuickWarRoomTriggerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Annuler") { dismiss() }
-                        .font(.system(size: 14))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.gray)
                 }
             }
@@ -258,22 +258,22 @@ struct MorningRitualEntryCard: View {
                     .fill(Color.orange.opacity(0.12))
                     .frame(width: 36, height: 36)
                 Image(systemName: dragOffset > 20 ? "arrow.right.circle.fill" : "sunrise.fill")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundColor(.orange)
                     .animation(.easeInOut(duration: 0.15), value: dragOffset > 20)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("RITUEL DU MATIN")
-                    .font(.system(size: 9, weight: .black))
+                    .font(.appMicro.weight(.black))
                     .foregroundColor(.orange.opacity(0.8))
                     .tracking(0.5)
                 Text("Pose ton intention avant de commencer.")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.6))
             }
             Spacer()
             Text("COMMENCER")
-                .font(.system(size: 9, weight: .bold))
+                .font(.appMicro.weight(.bold))
                 .foregroundColor(.orange)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
@@ -320,22 +320,22 @@ struct DemonDashboardBanner: View {
                         .fill(Color(white: 0.08))
                         .frame(width: 36, height: 36)
                     Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(Color(white: 0.4))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("DÉMON · \(demon.carryCount) NUITS")
-                        .font(.system(size: 9, weight: .black))
+                        .font(.appMicro.weight(.black))
                         .foregroundColor(Color(white: 0.3))
                         .tracking(0.5)
                     Text("«\(demon.intention)»")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(Color(white: 0.55))
                         .lineLimit(1)
                 }
                 Spacer()
                 Image(systemName: "flame.fill")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(Color(hex: "FF2D20").opacity(0.5))
             }
             .padding(13)
@@ -367,22 +367,22 @@ struct SeasonMidpointCard: View {
                         .fill(Color.purple.opacity(0.12))
                         .frame(width: 36, height: 36)
                     Image(systemName: "flag.2.crossed.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.purple)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("MI-SAISON \(seasonNumber)")
-                        .font(.system(size: 9, weight: .black))
+                        .font(.appMicro.weight(.black))
                         .foregroundColor(.purple.opacity(0.8))
                         .tracking(0.5)
                     Text("La saison se gagne ou se perd dans les 45 prochains jours.")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.7))
                         .lineLimit(2)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.purple.opacity(0.6))
             }
             .padding(13)
@@ -415,7 +415,7 @@ struct QuickBattleSheet: View {
                 Color.appBg.ignoresSafeArea()
                 VStack(spacing: 28) {
                     Text("Comment s'est terminée la journée ?")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                         .padding(.top, 8)
@@ -437,7 +437,7 @@ struct QuickBattleSheet: View {
 
                     if saved {
                         Label("Enregistré", systemImage: "checkmark")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                             .foregroundColor(.green)
                     }
 
@@ -450,7 +450,7 @@ struct QuickBattleSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Annuler") { dismiss() }
-                        .font(.system(size: 14))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.gray)
                 }
             }
@@ -482,7 +482,7 @@ struct QuickBattleSheet: View {
                     .font(.system(size: 32))
                     .foregroundColor(color)
                 Text(label)
-                    .font(.system(size: 12, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .foregroundColor(color)
                     .tracking(0.5)
             }

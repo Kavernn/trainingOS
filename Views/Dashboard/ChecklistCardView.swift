@@ -131,12 +131,12 @@ struct ChecklistCardView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("AVANT LE COMBAT")
-                    .font(.system(size: 10, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .tracking(2)
                     .foregroundColor(.forge)
                 if minimized {
                     Text(progressSummary)
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                         .transition(.opacity)
                 }
@@ -153,7 +153,7 @@ struct ChecklistCardView: View {
                     }
                 } label: {
                     Text("En route.")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.appLabel.weight(.bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
@@ -172,7 +172,7 @@ struct ChecklistCardView: View {
                 }
             } label: {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.gray)
                     .rotationEffect(.degrees(minimized ? 0 : 180))
                     .animation(.easeInOut(duration: 0.25), value: minimized)
@@ -211,7 +211,7 @@ struct ChecklistCardView: View {
     private var completionMessage: some View {
         HStack(spacing: 12) {
             Text("Tout coché. Lance-toi.")
-                .font(.system(size: 14, weight: .bold))
+                .font(.appLabel.weight(.bold))
                 .foregroundColor(.green)
             Spacer()
             if showUndoComplete {
@@ -220,7 +220,7 @@ struct ChecklistCardView: View {
                     pendingHideTask = nil
                     withAnimation { showComplete = false; showUndoComplete = false }
                 }
-                .font(.system(size: 12, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(.forge)
                 .buttonStyle(.plain)
             }
@@ -268,7 +268,7 @@ struct ChecklistCardView: View {
                 .buttonStyle(.plain)
 
                 Text(item.label)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.appBody.weight(.medium))
                     .foregroundColor(checked ? .white.opacity(0.3) : .white.opacity(0.85))
                     .strikethrough(checked, color: .white.opacity(0.2))
                 Spacer()
@@ -280,7 +280,7 @@ struct ChecklistCardView: View {
                     }
                 } label: {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.gray)
                         .rotationEffect(.degrees(gymExpanded ? 180 : 0))
                         .animation(.easeInOut(duration: 0.22), value: gymExpanded)

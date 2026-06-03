@@ -29,10 +29,10 @@ struct NutritionSummaryView: View {
                         .animation(.easeOut(duration: 0.6), value: pct)
                     VStack(spacing: 0) {
                         Text("\(Int(protCurrent))")
-                            .font(.system(size: 16, weight: .black))
+                            .font(.appBody.weight(.black))
                             .foregroundColor(.white)
                         Text("g")
-                            .font(.system(size: 9))
+                            .font(.appMicro)
                             .foregroundColor(.gray)
                     }
                 }
@@ -42,11 +42,11 @@ struct NutritionSummaryView: View {
                     // Statut protéines
                     if protCurrent >= protTarget {
                         Label("Objectif atteint", systemImage: "checkmark.circle.fill")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.green)
                     } else {
                         Text("Encore \(Int(protTarget - protCurrent))g de prot")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.blue)
                     }
 
@@ -67,10 +67,10 @@ struct NutritionSummaryView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Text("Calories")
-                            .font(.system(size: 10)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                         Spacer()
                         Text("\(Int(calCurrent)) / \(Int(calTarget)) kcal")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(overTarget ? .red : .orange)
                     }
                     GeometryReader { geo in
@@ -100,11 +100,11 @@ struct NutriBadge: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 16, weight: .black))
+                .font(.appBody.weight(.black))
                 .foregroundColor(color)
                 .contentTransition(.numericText())
             Text(unit)
-                .font(.system(size: 9, weight: .medium))
+                .font(.appMicro.weight(.medium))
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
@@ -130,14 +130,14 @@ struct NutritionStripView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "fork.knife")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.orange)
                 Text("NUTRITION")
-                    .font(.system(size: 9, weight: .bold)).tracking(2)
+                    .font(.appMicro.weight(.bold)).tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
                 Text("\(Int(calCurrent))\(calTarget > 0 ? " / \(Int(calTarget))" : "") kcal")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(overCal ? .red : .orange)
             }
 
@@ -185,7 +185,7 @@ struct DataGapSection: View {
         if gaps.contains(true) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("À COMPLÉTER")
-                    .font(.system(size: 10, weight: .bold)).tracking(2)
+                    .font(.appCaption.weight(.bold)).tracking(2)
                     .foregroundColor(.gray)
                     .padding(.leading, 2)
 
@@ -253,20 +253,20 @@ struct DataGapCard: View {
                     .fill(color.opacity(0.15))
                     .frame(width: 40, height: 40)
                 Image(systemName: icon)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.appHeadline)
                     .foregroundColor(color)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Text(subtitle)
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
             Spacer()
             Image(systemName: "plus.circle.fill")
-                .font(.system(size: 20))
+                .font(.appTitle.weight(.regular))
                 .foregroundColor(color.opacity(0.6))
         }
         .padding(12)
@@ -311,18 +311,18 @@ struct MacroInsightCard: View {
             Button(action: onTap) {
                 HStack(spacing: 10) {
                     Image(systemName: above ? "fork.knife" : "exclamationmark.circle.fill")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(above ? .green : .orange)
                         .frame(width: 22)
                     VStack(alignment: .leading, spacing: 2) {
                         if above {
                             Text("Bonne nutrition hier — conditions optimales")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                         } else {
                             Text("Hier : \(Int(v))\(t.unit) \(macroLabel) — sous ton seuil optimal (\(Int(t.value))\(t.unit))")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.85)
@@ -330,13 +330,13 @@ struct MacroInsightCard: View {
                         Text(above
                              ? "Macros à la hauteur · seuil \(Int(t.value))\(t.unit)"
                              : "Performance potentiellement réduite aujourd'hui")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                             .lineLimit(1)
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(.gray.opacity(0.4))
                 }
                 .padding(.horizontal, 14)

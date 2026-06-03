@@ -12,13 +12,13 @@ struct ReadinessBadge: View {
                     .fill(verdictColor(r.verdict))
                     .frame(width: 7, height: 7)
                 Text("\(r.verdictLabel) · \(r.score)")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(verdictColor(r.verdict))
                 Text("—")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                 Text(r.why)
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.70))
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -70,7 +70,7 @@ struct ReadinessSheet: View {
                                     .foregroundColor(verdictColor)
                                 if let session = readiness.todaySession, !session.isEmpty {
                                     Text(session)
-                                        .font(.system(size: 13))
+                                        .font(.appLabel.weight(.regular))
                                         .foregroundColor(.gray)
                                 }
                             }
@@ -78,7 +78,7 @@ struct ReadinessSheet: View {
                         }
 
                         Text(readiness.why)
-                            .font(.system(size: 14))
+                            .font(.appLabel.weight(.regular))
                             .foregroundColor(.white.opacity(0.80))
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -91,11 +91,11 @@ struct ReadinessSheet: View {
                     if let adj = readiness.adjustment {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "lightbulb.fill")
-                                .font(.system(size: 13))
+                                .font(.appLabel.weight(.regular))
                                 .foregroundColor(.orange)
                                 .padding(.top, 1)
                             Text(adj)
-                                .font(.system(size: 13, weight: .medium))
+                                .font(.appLabel)
                                 .foregroundColor(.white.opacity(0.85))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -144,7 +144,7 @@ struct ReadinessSheet: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill")
                                 Text(primaryCTALabel)
-                                    .font(.system(size: 15, weight: .bold))
+                                    .font(.appBody.weight(.bold))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -160,7 +160,7 @@ struct ReadinessSheet: View {
                                 onProceed()
                             } label: {
                                 Text("Commencer quand même")
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.appLabel)
                                     .foregroundColor(.gray)
                             }
                             .buttonStyle(.plain)
@@ -169,9 +169,9 @@ struct ReadinessSheet: View {
                         Button { showGymFinder = true } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "mappin.and.ellipse")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.appLabel.weight(.semibold))
                                 Text("Trouver un gym à proximité")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.appLabel)
                             }
                             .foregroundColor(.white.opacity(0.55))
                             .frame(maxWidth: .infinity)
@@ -196,7 +196,7 @@ struct ReadinessSheet: View {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundColor(.gray)
-                            .font(.system(size: 20))
+                            .font(.appTitle.weight(.regular))
                     }
                     .accessibilityLabel("Fermer")
                 }
@@ -298,10 +298,10 @@ private struct ModuleRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(mod.label)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Text(mod.detail)
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                     .lineLimit(1)
             }
@@ -334,7 +334,7 @@ private struct MuscleRow: View {
                 .frame(width: 8, height: 8)
 
             Text(rec.label)
-                .font(.system(size: 13, weight: .medium))
+                .font(.appLabel)
                 .foregroundColor(.white)
                 .frame(width: 130, alignment: .leading)
 
@@ -351,11 +351,11 @@ private struct MuscleRow: View {
             Group {
                 if rec.hoursRemaining > 0 {
                     Text("\(rec.hoursRemaining)h")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 } else {
                     Text("Prêt")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.green)
                 }
             }
@@ -381,7 +381,7 @@ private struct SectionHeader: View {
     init(_ title: String) { self.title = title }
     var body: some View {
         Text(title)
-            .font(.system(size: 10, weight: .bold))
+            .font(.appCaption.weight(.bold))
             .foregroundColor(Color(white: 0.40))
             .tracking(0.8)
             .padding(.horizontal, 16)

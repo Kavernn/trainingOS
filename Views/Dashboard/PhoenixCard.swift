@@ -67,10 +67,10 @@ struct PhoenixCard: View {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 2) {
                     Text(score.isFoundation ? "PHOENIX SCORE" : state.label.uppercased())
-                        .font(.system(size: 9, weight: .black)).tracking(3)
+                        .font(.appMicro.weight(.black)).tracking(3)
                         .foregroundColor(state.scoreColor.opacity(0.65))
                     Text("Ta transformation · semaine en cours")
-                        .font(.system(size: 9, weight: .regular))
+                        .font(.appMicro)
                         .foregroundColor(.white.opacity(0.28))
                 }
                 .frame(maxWidth: .infinity)
@@ -81,11 +81,11 @@ struct PhoenixCard: View {
             if score.isFoundation {
                 VStack(spacing: 6) {
                     Text("Commence une séance pour activer ton score")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white.opacity(0.55))
                         .multilineTextAlignment(.center)
                     Text("Il apparaît après ta première semaine d'activité")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.28))
                         .multilineTextAlignment(.center)
                 }
@@ -96,7 +96,7 @@ struct PhoenixCard: View {
                 let scoreStr = String(format: "%.1f", score.score)
                 HStack(alignment: .lastTextBaseline, spacing: 2) {
                     Text(sign)
-                        .font(.system(size: 18, weight: .black))
+                        .font(.appHeadline.weight(.black))
                         .foregroundColor(state.scoreColor.opacity(0.8))
                     Text(scoreStr)
                         .font(.system(size: 50, weight: .black, design: .rounded))
@@ -109,15 +109,15 @@ struct PhoenixCard: View {
                     let dColor: Color = delta >= 0 ? .green : Color(hex: "FF5555")
                     HStack(spacing: 3) {
                         Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.appMicro.weight(.bold))
                         Text("\(dSign)\(String(format: "%.1f", delta)) vs hier")
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                     }
                     .foregroundColor(dColor.opacity(0.85))
                 }
                 if let hint = priorityGuidance {
                     Text(hint)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.45))
                         .multilineTextAlignment(.center)
                         .lineLimit(1)
@@ -209,7 +209,7 @@ struct PhoenixAxisPill: View {
             }
             if let g = guidance {
                 Text(g)
-                    .font(.system(size: 9, weight: .regular))
+                    .font(.appMicro)
                     .foregroundColor(.white.opacity(0.40))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)

@@ -45,9 +45,9 @@ struct LSSSparklineRow: View {
             let d = delta
             HStack(spacing: 3) {
                 Image(systemName: d >= 3 ? "arrow.up.right" : d <= -3 ? "arrow.down.right" : "arrow.right")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.appMicro.weight(.bold))
                 Text("\(d >= 0 ? "+" : "")\(String(format: "%.0f", d)) pts vs moy 7j")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
             }
             .foregroundColor(d >= 5 ? .green : d <= -5 ? .orange : .gray)
 
@@ -108,14 +108,14 @@ struct LSSComponentsRow: View {
         return AnyView(
             VStack(alignment: .leading, spacing: 6) {
                 Text("DÉTAIL LSS")
-                    .font(.system(size: 9, weight: .bold)).tracking(2)
+                    .font(.appMicro.weight(.bold)).tracking(2)
                     .foregroundColor(.gray)
                 HStack(spacing: 6) {
                     ForEach(available, id: \.0) { icon, label, value in
                         if let v = value {
                             VStack(spacing: 4) {
                                 Image(systemName: icon)
-                                    .font(.system(size: 9))
+                                    .font(.appMicro)
                                     .foregroundColor(scoreColor(v))
                                 GeometryReader { geo in
                                     ZStack(alignment: .bottom) {
@@ -171,12 +171,12 @@ struct PeakPredictionCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 10, weight: .bold)).foregroundColor(.purple)
+                    .font(.appCaption.weight(.bold)).foregroundColor(.purple)
                 Text("PRÉVISION 7 JOURS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("base LSS \(String(format: "%.0f", prediction.baseline))")
-                    .font(.system(size: 10)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                 CardInfoButton(title: "Prévision 7 jours", entries: InfoEntry.predictionEntries)
             }
 
@@ -193,11 +193,11 @@ struct PeakPredictionCard: View {
                                     .frame(width: 36, height: 36)
                             }
                             Text("\(Int(day.predictedLss))")
-                                .font(.system(size: 11, weight: day.isPeak ? .black : .semibold))
+                                .font(.appCaption.weight(day.isPeak ? .black : .semibold))
                                 .foregroundColor(day.isPeak ? .orange : levelColor(day.level))
                         }
                         Text(dayLabel(day.date))
-                            .font(.system(size: 10, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(day.isPeak ? .orange : .gray)
                         if day.isPeak {
                             Image(systemName: "star.fill")
@@ -213,14 +213,14 @@ struct PeakPredictionCard: View {
                 NavigationLink(destination: StatsView()) {
                     HStack(spacing: 6) {
                         Image(systemName: "star.fill")
-                            .font(.system(size: 10))
+                            .font(.appCaption)
                             .foregroundColor(.orange)
                         Text("Jour optimal : \(dayLabel(peakDay.date)) — Voir les stats")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.orange)
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                     .padding(.horizontal, 10).padding(.vertical, 8)
@@ -243,14 +243,14 @@ struct DeloadChipView: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "flame.fill")
-                .font(.system(size: 12))
+                .font(.appCaption)
                 .foregroundColor(.orange)
             Text("Fatigue accumulée détectée — score \(report.fatigueScore)/100")
-                .font(.system(size: 13, weight: .medium))
+                .font(.appLabel)
                 .foregroundColor(.white)
             Spacer()
             Text("Niv. \(report.fatigueLevel)")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(.orange)
             CardInfoButton(title: "Fatigue & déload", entries: InfoEntry.deloadEntries)
         }
@@ -271,20 +271,20 @@ struct MoodCardView: View {
                 ZStack {
                     Circle().fill(Color.yellow.opacity(0.15)).frame(width: 40, height: 40)
                     Image(systemName: "face.smiling.fill")
-                        .font(.system(size: 18))
+                        .font(.appHeadline.weight(.regular))
                         .foregroundColor(.yellow)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ÉTAT INTERNE")
-                        .font(.system(size: 9, weight: .bold)).tracking(2)
+                        .font(.appMicro.weight(.bold)).tracking(2)
                         .foregroundColor(.gray)
                     Text("Aujourd'hui — où tu en es ?")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.gray)
             }
             .padding(14)
@@ -331,17 +331,17 @@ struct SleepPromptCard: View {
             // Header
             HStack(spacing: 8) {
                 Image(systemName: "moon.zzz.fill")
-                    .font(.system(size: 16))
+                    .font(.appBody)
                     .foregroundColor(.blue)
                 Text("Ton sommeil cette nuit")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundColor(.white)
                 Spacer()
                 Button {
                     onDone() // dismiss without saving
                 } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.appCaption.weight(.bold))
                         .foregroundColor(.gray)
                         .padding(6)
                         .background(Color.white.opacity(0.07))
@@ -352,7 +352,7 @@ struct SleepPromptCard: View {
 
             if hkImported {
                 Label("Horaires détectés depuis Santé", systemImage: "heart.fill")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.red.opacity(0.8))
             }
 
@@ -360,7 +360,7 @@ struct SleepPromptCard: View {
             HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("COUCHÉ")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.appMicro.weight(.bold))
                         .tracking(1)
                         .foregroundColor(.gray)
                     DatePicker("", selection: $bedtime, displayedComponents: .hourAndMinute)
@@ -369,7 +369,7 @@ struct SleepPromptCard: View {
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     Text("LEVÉ")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.appMicro.weight(.bold))
                         .tracking(1)
                         .foregroundColor(.gray)
                     DatePicker("", selection: $wakeTime, displayedComponents: .hourAndMinute)
@@ -383,7 +383,7 @@ struct SleepPromptCard: View {
                         .font(.system(size: 22, weight: .black, design: .rounded))
                         .foregroundColor(durationColor)
                     Text("durée")
-                        .font(.system(size: 9))
+                        .font(.appMicro)
                         .foregroundColor(.gray)
                 }
             }
@@ -397,7 +397,7 @@ struct SleepPromptCard: View {
                         ProgressView().tint(.white).scaleEffect(0.8)
                     } else {
                         Text("Enregistrer")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(.white)
                     }
                 }
@@ -412,7 +412,7 @@ struct SleepPromptCard: View {
             // Fix #16: explain why save is disabled
             if durationHours <= 0 || durationHours > 16 {
                 Text("Durée invalide — ajuste l'heure de coucher ou de réveil")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.orange.opacity(0.85))
                     .frame(maxWidth: .infinity, alignment: .center)
             }
@@ -492,15 +492,15 @@ struct DashboardInsightsCard: View {
                             .fill(color(for: insight.level).opacity(0.15))
                             .frame(width: 34, height: 34)
                         Image(systemName: insight.icon)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(color(for: insight.level))
                     }
                     VStack(alignment: .leading, spacing: 3) {
                         Text(insight.title)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(.white)
                         Text(insight.message)
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -550,19 +550,19 @@ struct LSSMiniCard: View {
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text("STRESS DE VIE")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.appMicro.weight(.bold))
                             .tracking(2)
                             .foregroundColor(.gray)
                         HStack(spacing: 6) {
                             Text("\(Int(lss.score))/100")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.appLabel.weight(.bold))
                                 .foregroundColor(color)
                             if let d = delta {
                                 HStack(spacing: 2) {
                                     Image(systemName: d >= 3 ? "arrow.up.right" : d <= -3 ? "arrow.down.right" : "arrow.right")
-                                        .font(.system(size: 9, weight: .bold))
+                                        .font(.appMicro.weight(.bold))
                                     Text("\(d >= 0 ? "+" : "")\(Int(d))")
-                                        .font(.system(size: 10))
+                                        .font(.appCaption)
                                 }
                                 .foregroundColor(d >= 3 ? .green : d <= -3 ? .orange : .gray)
                             }
@@ -570,7 +570,7 @@ struct LSSMiniCard: View {
                     }
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.gray.opacity(0.5))
                 }
                 .padding(.horizontal, 14)

@@ -8,11 +8,11 @@ struct WeeklyReportTeaser: View {
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: "chart.bar.doc.horizontal")
-                .font(.system(size: 18, weight: .bold))
+                .font(.appHeadline.weight(.bold))
                 .foregroundColor(.purple)
             VStack(alignment: .leading, spacing: 2) {
                 Text("RAPPORT DE LA SEMAINE")
-                    .font(.system(size: 10, weight: .bold)).tracking(1.5)
+                    .font(.appCaption.weight(.bold)).tracking(1.5)
                     .foregroundColor(.gray)
                 HStack(spacing: 16) {
                     Label("\(report.sessionCount) séances", systemImage: "flame.fill")
@@ -25,12 +25,12 @@ struct WeeklyReportTeaser: View {
                             .foregroundColor(.orange)
                     }
                 }
-                .font(.system(size: 12, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(.white.opacity(0.85))
             }
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.system(size: 12)).foregroundColor(.gray)
+                .font(.appCaption).foregroundColor(.gray)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
@@ -66,10 +66,10 @@ struct WeeklyReportView: View {
                     // Header
                     VStack(spacing: 4) {
                         Text("RAPPORT SEMAINE")
-                            .font(.system(size: 11, weight: .bold)).tracking(2)
+                            .font(.appCaption.weight(.bold)).tracking(2)
                             .foregroundColor(.gray)
                         Text("\(report.weekStart) → \(report.weekEnd)")
-                            .font(.system(size: 13)).foregroundColor(.white.opacity(0.5))
+                            .font(.appLabel.weight(.regular)).foregroundColor(.white.opacity(0.5))
                     }
                     .padding(.top, 8)
 
@@ -109,17 +109,17 @@ struct WeeklyReportView: View {
                                     .frame(width: 70, height: 70)
                                     .rotationEffect(.degrees(-90))
                                 VStack(spacing: 0) {
-                                    Text("\(score)").font(.system(size: 20, weight: .black)).foregroundColor(.white)
-                                    Text("/100").font(.system(size: 9)).foregroundColor(.gray)
+                                    Text("\(score)").font(.appTitle.weight(.black)).foregroundColor(.white)
+                                    Text("/100").font(.appMicro).foregroundColor(.gray)
                                 }
                             }
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("SCORE SEMAINE").font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                                Text("SCORE SEMAINE").font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
                                 Text(score >= 75 ? "Excellente semaine" : score >= 50 ? "Bonne semaine" : "Semaine à améliorer")
-                                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                                 if let rpe = report.avgRpe {
                                     Text("RPE moy. \(String(format: "%.1f", rpe))/10")
-                                        .font(.system(size: 12)).foregroundColor(.gray)
+                                        .font(.appCaption).foregroundColor(.gray)
                                 }
                             }
                             Spacer()
@@ -133,8 +133,8 @@ struct WeeklyReportView: View {
                         HStack(spacing: 10) {
                             Image(systemName: "star.fill").foregroundColor(.yellow)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("EXERCICE PHARE").font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
-                                Text(top).font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                                Text("EXERCICE PHARE").font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.gray)
+                                Text(top).font(.appLabel.weight(.bold)).foregroundColor(.white)
                             }
                             Spacer()
                         }
@@ -147,11 +147,11 @@ struct WeeklyReportView: View {
                     if !report.prs.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Label("RECORDS PERSONNELS", systemImage: "trophy.fill")
-                                .font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.yellow)
+                                .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.yellow)
                             ForEach(report.prs, id: \.self) { exo in
                                 HStack(spacing: 8) {
-                                    Image(systemName: "star.fill").font(.system(size: 10)).foregroundColor(.yellow.opacity(0.8))
-                                    Text(exo).font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+                                    Image(systemName: "star.fill").font(.appCaption).foregroundColor(.yellow.opacity(0.8))
+                                    Text(exo).font(.appLabel).foregroundColor(.white)
                                     Spacer()
                                 }
                             }
@@ -165,12 +165,12 @@ struct WeeklyReportView: View {
                     if !report.focusNextWeek.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Label("FOCUS SEMAINE PROCHAINE", systemImage: "target")
-                                .font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.purple)
+                                .font(.appMicro.weight(.bold)).tracking(1.5).foregroundColor(.purple)
                             ForEach(Array(report.focusNextWeek.enumerated()), id: \.offset) { _, tip in
                                 HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "arrow.right.circle.fill")
-                                        .font(.system(size: 11)).foregroundColor(.purple)
-                                    Text(tip).font(.system(size: 13)).foregroundColor(.white.opacity(0.85))
+                                        .font(.appCaption).foregroundColor(.purple)
+                                    Text(tip).font(.appLabel.weight(.regular)).foregroundColor(.white.opacity(0.85))
                                         .fixedSize(horizontal: false, vertical: true)
                                     Spacer()
                                 }
@@ -183,7 +183,7 @@ struct WeeklyReportView: View {
 
                     ShareLink(item: shareText) {
                         Label("Partager ce rapport", systemImage: "square.and.arrow.up")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -208,12 +208,12 @@ struct WeeklyKPI: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Image(systemName: icon).font(.system(size: 18)).foregroundColor(color)
+            Image(systemName: icon).font(.appHeadline.weight(.regular)).foregroundColor(color)
             Text(value)
-                .font(.system(size: 18, weight: .black)).foregroundColor(color)
+                .font(.appHeadline.weight(.black)).foregroundColor(color)
                 .minimumScaleFactor(0.7).lineLimit(1)
             Text(label)
-                .font(.system(size: 9, weight: .medium)).tracking(1).foregroundColor(.gray)
+                .font(.appMicro.weight(.medium)).tracking(1).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
@@ -254,10 +254,10 @@ struct QuickLogChip: View {
         Button(action: action) {
             HStack(spacing: 6) {
                 Image(systemName: done ? "checkmark.circle.fill" : icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(done ? .green : color)
                 Text(label)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(done ? Color.gray : .white)
             }
             .padding(.horizontal, 12).padding(.vertical, 8)
@@ -305,24 +305,24 @@ struct ActivityRingCard: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("OBJECTIF PAS")
-                    .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                    .font(.appMicro.weight(.bold)).tracking(1.5)
                     .foregroundColor(.gray)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text("\(steps.formatted())")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                     Text("/ \(goal.formatted()) pas")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
                 let remaining = max(0, goal - steps)
                 if remaining > 0 {
                     Text("encore \(remaining.formatted()) pas")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 } else {
                     Label("Objectif atteint", systemImage: "checkmark.circle.fill")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(.green)
                 }
             }
@@ -370,20 +370,20 @@ struct OptimalWindowCard: View {
             ZStack {
                 Circle().fill(Color.cyan.opacity(0.12)).frame(width: 36, height: 36)
                 Image(systemName: "clock.badge.checkmark.fill")
-                    .font(.system(size: 16))
+                    .font(.appBody)
                     .foregroundColor(.cyan)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text("FENÊTRE OPTIMALE")
-                    .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                    .font(.appMicro.weight(.bold)).tracking(1.5)
                     .foregroundColor(.gray)
                 HStack(spacing: 4) {
                     Text("\(timeFormatter.string(from: windowStart))–\(timeFormatter.string(from: windowEnd))")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.white)
                     if isWindowNow {
                         Text("• MAINTENANT")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .foregroundColor(.cyan)
                     }
                 }

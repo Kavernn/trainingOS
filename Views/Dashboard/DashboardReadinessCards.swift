@@ -10,14 +10,14 @@ struct SleepStagingBar: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: "moon.zzz.fill")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.blue)
                 Text("PHASES DE SOMMEIL")
-                    .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                    .font(.appMicro.weight(.bold)).tracking(1.5)
                     .foregroundColor(.gray)
                 Spacer()
                 Text(String(format: "%.1fh total", stages.totalHours))
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.appCaption.weight(.medium))
                     .foregroundColor(.gray)
             }
 
@@ -61,10 +61,10 @@ struct StageLegendItem: View {
         HStack(spacing: 5) {
             Circle().fill(color).frame(width: 7, height: 7)
             Text(label)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.gray)
             Text(String(format: "%.0fmin", hours * 60))
-                .font(.system(size: 11, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(.white)
         }
     }
@@ -116,7 +116,7 @@ struct ReadinessScoreCard: View {
                         .foregroundColor(.white)
                         .contentTransition(.numericText())
                     Text("/ 100")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(.gray)
                 }
             }
@@ -126,10 +126,10 @@ struct ReadinessScoreCard: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("CONDITION DU JOUR")
-                            .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                            .font(.appMicro.weight(.bold)).tracking(1.5)
                             .foregroundColor(.gray)
                         Text(scoreLabel)
-                            .font(.system(size: 22, weight: .bold))
+                            .font(.appTitle)
                             .foregroundColor(scoreColor)
                     }
                     Spacer(minLength: 4)
@@ -165,14 +165,14 @@ struct ReadinessMetricRow: View {
     var body: some View {
         HStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(.appCaption)
                 .foregroundColor(.gray)
                 .frame(width: 14)
             Text(label)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.gray)
             Text(value)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(.white)
         }
     }

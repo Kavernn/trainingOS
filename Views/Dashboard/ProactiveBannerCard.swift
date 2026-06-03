@@ -24,16 +24,16 @@ struct ProactiveBannerCard: View {
                     .fill(accentColor.opacity(0.15))
                     .frame(width: 36, height: 36)
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(accentColor)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(alert.title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Text(alert.message)
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.75))
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -41,7 +41,7 @@ struct ProactiveBannerCard: View {
 
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.gray.opacity(0.7))
                     .padding(8)
                     .contentShape(Rectangle())

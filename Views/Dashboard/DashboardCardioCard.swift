@@ -35,22 +35,22 @@ struct DashboardCardioCard: View {
                         .fill(accentColor.opacity(0.15))
                         .frame(width: 36, height: 36)
                     Image(systemName: icon)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(accentColor)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("CARDIO")
-                        .font(.system(size: 9, weight: .bold)).tracking(2)
+                        .font(.appMicro.weight(.bold)).tracking(2)
                         .foregroundColor(.gray.opacity(0.7))
                     Text(typeLabel)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.appHeadline.weight(.bold))
                         .foregroundColor(accentColor)
                 }
                 Spacer()
                 HStack(spacing: 4) {
                     PulsingDot(color: accentColor)
                     Text("Complété")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(accentColor)
                 }
             }
@@ -106,10 +106,10 @@ struct DashboardCardioCard: View {
             if let points = entry.gpsPoints, !points.isEmpty {
                 HStack(spacing: 5) {
                     Image(systemName: "location.fill")
-                        .font(.system(size: 9))
+                        .font(.appMicro)
                         .foregroundColor(accentColor.opacity(0.7))
                     Text("Tracé GPS — \(points.count) points")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
                 .padding(.horizontal, 16)

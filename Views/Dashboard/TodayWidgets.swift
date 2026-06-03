@@ -42,35 +42,35 @@ struct DailyStreakCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(cur > 0 ? "🔥" : "💪")
-                        .font(.system(size: 20))
+                        .font(.appTitle.weight(.regular))
                         .scaleEffect(milestoneScale)
                     Text("\(cur)")
                         .font(.system(size: 34, weight: .black, design: .rounded))
                         .foregroundColor(cur > 0 ? .forge : .white)
                         .contentTransition(.numericText())
                     Text("jour\(cur != 1 ? "s" : "")")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.gray)
                         .padding(.bottom, 3)
                 }
                 if cur == 0 {
                     Text("Jour 0. La machine est à l'arrêt.")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 } else if cur >= best && best > 0 {
                     Text("Record actif — \(cur) jour\(cur != 1 ? "s" : ""). Tu réécris l'histoire.")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.forge)
                         .transition(.scale.combined(with: .opacity))
                 } else {
                     let gap = best - cur
                     if gap <= 5 {
                         Text("\(gap) jour\(gap != 1 ? "s" : "") du record. Écrase-le.")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(.forge.opacity(0.75))
                     } else {
                         Text("jours sans faiblir")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                 }
@@ -82,7 +82,7 @@ struct DailyStreakCard: View {
                     .foregroundColor(cur >= best && best > 0 ? .forge.opacity(0.6) : .white.opacity(0.35))
                     .contentTransition(.numericText())
                 Text(cur >= best && best > 0 ? "pulvérisé" : "à détruire")
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.gray.opacity(0.5))
             }
         }
@@ -140,7 +140,7 @@ struct HabsWidget: View {
             HStack(spacing: 8) {
                 CHMonogram(size: 22)
                 Text("Canadiens de Montréal")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.white.opacity(0.65))
                 Spacer()
                 if service.isLoading {
@@ -185,14 +185,14 @@ struct HabsWidget: View {
             // D-D11: show retry button instead of dead-end text
             HStack(spacing: 8) {
                 Text("Données indisponibles")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.gray.opacity(0.6))
                 Spacer()
                 Button {
                     Task { await service.fetch() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(.gray)
                 }
                 .buttonStyle(.plain)
@@ -215,14 +215,14 @@ struct HabsWidget: View {
                         HStack(spacing: 4) {
                             Circle().fill(Color.red).frame(width: 5, height: 5)
                             Text([period, time].compactMap { $0 }.joined(separator: " · "))
-                                .font(.system(size: 10))
+                                .font(.appCaption)
                                 .foregroundColor(.red.opacity(0.9))
                         }
                     }
                 }
                 Spacer()
                 Text(game.opponent)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.appLabel.weight(.bold))
                     .foregroundColor(.white.opacity(0.45))
             }
             if let stats = game.stats {
@@ -240,9 +240,9 @@ struct HabsWidget: View {
                     if let won = game.habsWon {
                         HStack(spacing: 3) {
                             Image(systemName: won ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                             Text(won ? "Victoire · \(game.opponent)" : "Défaite · \(game.opponent)")
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.appCaption.weight(.medium))
                         }
                         .foregroundColor(won ? .green : Color(red: 0.85, green: 0.3, blue: 0.3))
                     }
@@ -269,7 +269,7 @@ struct HabsWidget: View {
     private func statCol(label: String, value: String) -> some View {
         VStack(spacing: 2) {
             Text(label)
-                .font(.system(size: 9))
+                .font(.appMicro)
                 .foregroundColor(.white.opacity(0.35))
             Text(value)
                 .font(.system(size: 10, weight: .semibold, design: .monospaced))
@@ -280,14 +280,14 @@ struct HabsWidget: View {
     private func nextGameBadge(_ game: HabsGame) -> some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text("Prochain")
-                .font(.system(size: 9))
+                .font(.appMicro)
                 .foregroundColor(.gray.opacity(0.55))
             Text("vs \(game.opponent)")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(.white.opacity(0.75))
             if case .upcoming(let label) = game.status {
                 Text(label)
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
         }
@@ -298,14 +298,14 @@ struct HabsWidget: View {
             CHMonogram(size: 30)
             VStack(alignment: .leading, spacing: 3) {
                 Text("Prochain match")
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                 Text("vs \(game.opponent)")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.appHeadline.weight(.bold))
                     .foregroundColor(.white)
                 if case .upcoming(let label) = game.status {
                     Text(label)
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
             }
@@ -319,7 +319,7 @@ struct HabsWidget: View {
                 .font(.system(size: 24, weight: .black, design: .rounded))
                 .foregroundColor(.white)
             Text("–")
-                .font(.system(size: 16, weight: .light))
+                .font(.appBody.weight(.light))
                 .foregroundColor(.gray)
             Text("\(game.oppScore ?? 0)")
                 .font(.system(size: 24, weight: .black, design: .rounded))
@@ -337,21 +337,21 @@ struct QuoteOfDayView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("❝")
-                    .font(.system(size: 20))
+                    .font(.appTitle.weight(.regular))
                     .foregroundColor(.orange.opacity(0.55))
                 Spacer()
                 Text("SIGNAL DU JOUR")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.appMicro.weight(.bold))
                     .tracking(1.5)
                     .foregroundColor(.gray.opacity(0.45))
             }
             Text(quote.text)
-                .font(.system(size: 15, weight: .medium))
+                .font(.appBody.weight(.medium))
                 .foregroundColor(.white)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
             Text("— \(quote.author)  ·  \(quote.context)")
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.gray)
         }
         .padding(.horizontal, 16)
@@ -387,21 +387,21 @@ struct GoalReminderView: View {
                         .fill(Color.orange.opacity(0.12))
                         .frame(width: 36, height: 36)
                     Image(systemName: "target")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.orange)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Cible")
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(.gray)
                     Text(goal)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.gray.opacity(0.5))
             }
             .padding(.horizontal, 14)
@@ -528,7 +528,7 @@ private struct MetricChip: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(color)
                 if isAttention {
                     Circle()
@@ -542,12 +542,12 @@ private struct MetricChip: View {
                     .foregroundColor(.white)
                 if !unit.isEmpty {
                     Text(unit)
-                        .font(.system(size: 10, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(.gray)
                 }
             }
             Text(label)
-                .font(.system(size: 10))
+                .font(.appCaption)
                 .foregroundColor(.gray.opacity(0.8))
                 .lineLimit(1)
         }
@@ -592,17 +592,17 @@ struct XPChipView: View {
                 ZStack {
                     Circle().fill(Color.yellow.opacity(0.18)).frame(width: 36, height: 36)
                     Image(systemName: "star.fill")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.yellow)
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 4) {
                         Text("Niveau \(level) · \(levelTitle)")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.appLabel.weight(.bold))
                             .foregroundColor(.white)
                         Spacer()
                         Text("\(xpInLevel) / 1500 XP")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.white.opacity(0.45))
                     }
                     GeometryReader { geo in
@@ -615,7 +615,7 @@ struct XPChipView: View {
                     .frame(height: 5)
                 }
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.yellow.opacity(0.4))
             }
             .padding(.horizontal, 14)

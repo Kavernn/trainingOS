@@ -38,15 +38,15 @@ struct ReadinessStripView: View {
             ZStack {
                 Circle().fill(accent.opacity(0.15)).frame(width: 36, height: 36)
                 Image(systemName: icon)
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .foregroundColor(accent)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text("RÉCUPÉRATION")
-                    .font(.system(size: 9, weight: .bold)).tracking(2)
+                    .font(.appMicro.weight(.bold)).tracking(2)
                     .foregroundColor(.gray)
                 Text(label)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(accent)
             }
             Spacer()
@@ -55,7 +55,7 @@ struct ReadinessStripView: View {
                     if let hrv = rec.hrv {
                         VStack(spacing: 0) {
                             Text("\(Int(hrv))")
-                                .font(.system(size: 14, weight: .black))
+                                .font(.appLabel.weight(.black))
                                 .foregroundColor(.green)
                             Text("HRV")
                                 .font(.system(size: 8)).foregroundColor(.gray)
@@ -64,7 +64,7 @@ struct ReadinessStripView: View {
                     if let rhr = rec.restingHr {
                         VStack(spacing: 0) {
                             Text("\(Int(rhr))")
-                                .font(.system(size: 14, weight: .black))
+                                .font(.appLabel.weight(.black))
                                 .foregroundColor(.red.opacity(0.85))
                             Text("FC")
                                 .font(.system(size: 8)).foregroundColor(.gray)
@@ -73,7 +73,7 @@ struct ReadinessStripView: View {
                     if let sleep = rec.sleepHours {
                         VStack(spacing: 0) {
                             Text(String(format: "%.1fh", sleep))
-                                .font(.system(size: 14, weight: .black))
+                                .font(.appLabel.weight(.black))
                                 .foregroundColor(.blue)
                             Text("Sommeil")
                                 .font(.system(size: 8)).foregroundColor(.gray)
@@ -128,11 +128,11 @@ struct WeekProgressStripView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "calendar.badge.checkmark")
-                .font(.system(size: 14))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.cyan)
             VStack(alignment: .leading, spacing: 4) {
                 Text("\(weekSessions) / \(weekTarget) séances cette semaine")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
@@ -197,14 +197,14 @@ struct SnapMetric: View {
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 12))
+                .font(.appCaption)
                 .foregroundColor(color)
             Text(value)
-                .font(.system(size: 15, weight: .black))
+                .font(.appBody.weight(.black))
                 .foregroundColor(.white)
                 .contentTransition(.numericText())
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.appMicro.weight(.medium))
                 .tracking(0.3)
                 .foregroundColor(.gray)
         }
@@ -222,18 +222,18 @@ struct MorningBriefCompactView: View {
             ZStack {
                 Circle().fill(Color.green.opacity(0.15)).frame(width: 30, height: 30)
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.green)
             }
             Text("Brief du matin")
-                .font(.system(size: 9, weight: .bold)).tracking(2)
+                .font(.appMicro.weight(.bold)).tracking(2)
                 .foregroundColor(.gray)
             Text("Terrain favorable. Attaque.")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(.green)
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(.gray.opacity(0.5))
         }
         .padding(.horizontal, 14)
@@ -267,23 +267,23 @@ struct SmartDayBannerView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.system(size: 16, weight: .bold))
+                .font(.appBody.weight(.bold))
                 .foregroundColor(accentColor)
                 .frame(width: 28)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(recommendation.cta)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.appLabel.weight(.bold))
                     .foregroundColor(accentColor)
                 Text(recommendation.reason)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.appCaption.weight(.medium))
                     .foregroundColor(.white.opacity(0.65))
                     .lineLimit(2)
             }
             Spacer()
             if let session = recommendation.suggestedSession {
                 Text(session)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(accentColor.opacity(0.8))
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
@@ -306,7 +306,7 @@ struct GreatDayCard: View {
                 .fill(Color.green)
                 .frame(width: 8, height: 8)
             Text("Récupération optimale — séance complète")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(.green)
             Spacer()
         }
@@ -348,15 +348,15 @@ struct MorningBriefCardView: View {
                 ZStack {
                     Circle().fill(accentColor.opacity(0.15)).frame(width: 32, height: 32)
                     Image(systemName: iconName)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(accentColor)
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     Text("COACH DU MATIN")
-                        .font(.system(size: 9, weight: .bold)).tracking(2)
+                        .font(.appMicro.weight(.bold)).tracking(2)
                         .foregroundColor(.gray)
                     Text(data.sessionToday)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(accentColor)
                 }
                 Spacer()
@@ -364,10 +364,10 @@ struct MorningBriefCardView: View {
                 if let lss = data.lss {
                     VStack(alignment: .trailing, spacing: 1) {
                         Text("\(Int(lss))")
-                            .font(.system(size: 20, weight: .black))
+                            .font(.appTitle.weight(.black))
                             .foregroundColor(accentColor)
                         Text("LSS")
-                            .font(.system(size: 9, weight: .bold)).tracking(1)
+                            .font(.appMicro.weight(.bold)).tracking(1)
                             .foregroundColor(.gray)
                     }
                 }
@@ -380,7 +380,7 @@ struct MorningBriefCardView: View {
 
             // Message
             Text(data.message)
-                .font(.system(size: 14))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.white)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -391,9 +391,9 @@ struct MorningBriefCardView: View {
                     ForEach(activeFlags, id: \.label) { chip in
                         HStack(spacing: 4) {
                             Image(systemName: chip.icon)
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.appMicro.weight(.bold))
                             Text(chip.label)
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                         }
                         .foregroundColor(chip.color)
                         .padding(.horizontal, 8).padding(.vertical, 4)
@@ -407,13 +407,13 @@ struct MorningBriefCardView: View {
             // F4: Phoenix ritual context
             if let streak = data.phoenixStreak, streak > 0 {
                 HStack(spacing: 6) {
-                    Image(systemName: "flame.fill").font(.system(size: 10)).foregroundColor(Color(hex: "FF2D20"))
+                    Image(systemName: "flame.fill").font(.appCaption).foregroundColor(Color(hex: "FF2D20"))
                     Text("Streak Phoenix \(streak)j")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(Color(hex: "FF2D20").opacity(0.85))
                     if let rate = data.ritualRate7d {
                         Text("· \(Int(rate * 100))% rituel 7j")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                 }
@@ -429,11 +429,11 @@ struct MorningBriefCardView: View {
                     ForEach(data.adjustments, id: \.self) { adj in
                         HStack(alignment: .top, spacing: 7) {
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.appMicro.weight(.bold))
                                 .foregroundColor(accentColor.opacity(0.7))
                                 .padding(.top, 2)
                             Text(adj)
-                                .font(.system(size: 12))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                         }
                     }
@@ -456,16 +456,16 @@ struct MorningBriefCardView: View {
                let last = DateFormatter.isoDate.date(from: lastDate) {
                 let hours = Int(Date().timeIntervalSince(last) / 3600)
                 HStack(spacing: 5) {
-                    Image(systemName: "clock").font(.system(size: 10)).foregroundColor(.gray)
+                    Image(systemName: "clock").font(.appCaption).foregroundColor(.gray)
                     Text("Dernière séance il y a \(hours)h")
-                        .font(.system(size: 11)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 }
             }
             if hour >= 20 {
                 HStack(spacing: 5) {
-                    Image(systemName: "moon.stars.fill").font(.system(size: 10)).foregroundColor(.blue)
+                    Image(systemName: "moon.stars.fill").font(.appCaption).foregroundColor(.blue)
                     Text("Séance tardive. Le sommeil qui suit compte double.")
-                        .font(.system(size: 11)).foregroundColor(.blue.opacity(0.8))
+                        .font(.appCaption).foregroundColor(.blue.opacity(0.8))
                 }
             }
 
@@ -473,14 +473,14 @@ struct MorningBriefCardView: View {
             if data.dataCoverage < 0.6 {
                 HStack(spacing: 5) {
                     Image(systemName: "exclamationmark.circle")
-                        .font(.system(size: 10))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                     Text("Vision réduite — \(Int(data.dataCoverage * 100))% des données disponibles.")
-                        .font(.system(size: 10))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                     NavigationLink(destination: RecoveryView()) {
                         Text("Compléter →")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.blue)
                     }
                 }
@@ -491,10 +491,10 @@ struct MorningBriefCardView: View {
             NavigationLink { PSSView() } label: {
                 HStack {
                     Text("Voir le détail Stress")
-                        .font(.system(size: 12, weight: .medium)).foregroundColor(.gray)
+                        .font(.appCaption.weight(.medium)).foregroundColor(.gray)
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10)).foregroundColor(.gray.opacity(0.5))
+                        .font(.appCaption).foregroundColor(.gray.opacity(0.5))
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
             }

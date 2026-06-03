@@ -55,14 +55,14 @@ struct TodayCardView: View {
                 ZStack {
                     Circle().fill(todayColor.opacity(0.15)).frame(width: 36, height: 36)
                     Image(systemName: isLoggedToday ? "checkmark" : todayIcon)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(isLoggedToday ? .green : todayColor)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("AUJOURD'HUI")
-                        .font(.system(size: 9, weight: .bold)).tracking(2).foregroundColor(.gray.opacity(0.7))
+                        .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray.opacity(0.7))
                     Text(dash.today)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.appHeadline.weight(.bold))
                         .foregroundColor(isLoggedToday ? .green : todayColor)
                 }
                 Spacer()
@@ -71,10 +71,10 @@ struct TodayCardView: View {
                         if showGreatDayBadge {
                             HStack(spacing: 4) {
                                 Image(systemName: "star.fill")
-                                    .font(.system(size: 9))
+                                    .font(.appMicro)
                                     .foregroundColor(.orange)
                                 Text("Parfait")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .foregroundColor(.orange)
                             }
                             .padding(.horizontal, 8).padding(.vertical, 4)
@@ -83,12 +83,12 @@ struct TodayCardView: View {
                         } else {
                             PulsingDot(color: .green)
                             Text("Complété")
-                                .font(.system(size: 12, weight: .semibold)).foregroundColor(.green)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.green)
                         }
                     }
                 } else if !exercises.isEmpty {
                     Text("\(exercises.count) exos")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.gray)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(Color.white.opacity(0.06))
@@ -109,7 +109,7 @@ struct TodayCardView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "plus.circle")
                         Text("Faire une séance bonus")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -129,14 +129,14 @@ struct TodayCardView: View {
                         ForEach(Array(exercises.prefix(5).enumerated()), id: \.offset) { idx, item in
                             HStack(spacing: 10) {
                                 Text("\(idx + 1)")
-                                    .font(.system(size: 11, weight: .black))
+                                    .font(.appCaption.weight(.black))
                                     .foregroundColor(todayColor.opacity(0.5))
                                     .frame(width: 16)
                                 Text(item.0)
-                                    .font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+                                    .font(.appLabel).foregroundColor(.white)
                                 Spacer()
                                 Text(item.1)
-                                    .font(.system(size: 12)).foregroundColor(.gray)
+                                    .font(.appCaption).foregroundColor(.gray)
                             }
                             .padding(.horizontal, 16).padding(.vertical, 7)
                             if idx < exercises.prefix(5).count - 1 {
@@ -147,7 +147,7 @@ struct TodayCardView: View {
                         }
                         if exercises.count > 5 {
                             Text("+ \(exercises.count - 5) exercices")
-                                .font(.system(size: 11)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                                 .padding(.horizontal, 16).padding(.bottom, 8)
                         }
                     }
@@ -165,7 +165,7 @@ struct TodayCardView: View {
                         HStack(spacing: 8) {
                             Image(systemName: hasPartialLogs ? "play.fill" : "plus.circle.fill")
                             Text(hasPartialLogs ? "Continuer la séance" : "Faire une séance")
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.appBody.weight(.bold))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
@@ -192,7 +192,7 @@ struct TodayCardView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
                                     Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
-                                        .font(.system(size: 15, weight: .bold))
+                                        .font(.appBody.weight(.bold))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -211,7 +211,7 @@ struct TodayCardView: View {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
                                     Text(hasPartialLogs ? "Continuer la séance" : "Commencer la séance")
-                                        .font(.system(size: 15, weight: .bold))
+                                        .font(.appBody.weight(.bold))
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
@@ -273,10 +273,10 @@ struct TodaySessionRecap: View {
             if let exos = session.exos, !exos.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("EXERCICES")
-                        .font(.system(size: 9, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                     FlowRow(items: exos.prefix(6).map { $0 }) { ex in
                         Text(ex)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(color)
                             .padding(.horizontal, 8).padding(.vertical, 3)
                             .background(color.opacity(0.1))
@@ -284,7 +284,7 @@ struct TodaySessionRecap: View {
                     }
                     if exos.count > 6 {
                         Text("+ \(exos.count - 6) autres")
-                            .font(.system(size: 10)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                     }
                 }
             }
@@ -293,9 +293,9 @@ struct TodaySessionRecap: View {
             if let comment = session.comment, !comment.isEmpty {
                 HStack(alignment: .top, spacing: 6) {
                     Image(systemName: "quote.bubble.fill")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                     Text(comment)
-                        .font(.system(size: 12)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                         .lineLimit(2)
                 }
             }
@@ -315,10 +315,10 @@ struct RecapMetric: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 18, weight: .black))
+                .font(.appHeadline.weight(.black))
                 .foregroundColor(color)
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.appMicro.weight(.medium))
                 .foregroundColor(.gray)
         }
         .frame(minWidth: 60)
@@ -410,16 +410,16 @@ struct HeatmapView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     SectionLabel(title: "ASSIDUITÉ")
                     Text("Jours d'entraînement complétés")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("\(activeDays)")
-                        .font(.system(size: 20, weight: .black))
+                        .font(.appTitle.weight(.black))
                         .foregroundColor(.orange)
                     Text("sur 30 jours")
-                        .font(.system(size: 10))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
             }
@@ -448,10 +448,10 @@ struct HeatmapView: View {
             VStack(alignment: .leading, spacing: 5) {
                 HStack {
                     Text("Assiduité")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                     Spacer()
                     Text("\(Int(pct * 100))%")
-                        .font(.system(size: 10, weight: .bold)).foregroundColor(.orange)
+                        .font(.appCaption.weight(.bold)).foregroundColor(.orange)
                 }
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
@@ -470,18 +470,18 @@ struct HeatmapView: View {
                     RoundedRectangle(cornerRadius: 2).fill(Color.orange)
                         .frame(width: 12, height: 12)
                     Text("Entraînement")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 }
                 HStack(spacing: 5) {
                     RoundedRectangle(cornerRadius: 2)
                         .stroke(Color.white.opacity(0.5), lineWidth: 1.5)
                         .frame(width: 12, height: 12)
                     Text("Aujourd'hui")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 }
                 Spacer()
                 Text("← passé   présent →")
-                    .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.5))
             }
         }
         .padding(16)
@@ -527,7 +527,7 @@ struct WeekGridView: View {
 
                     VStack(spacing: 5) {
                         Text(days[i])
-                            .font(.system(size: 10, weight: today ? .bold : .medium))
+                            .font(.appCaption.weight(today ? .bold : .medium))
                             .foregroundColor(today ? .white : .gray)
 
                         ZStack {
@@ -540,11 +540,11 @@ struct WeekGridView: View {
 
                             if done {
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.appMicro.weight(.bold))
                                     .foregroundColor(.white)
                             } else {
                                 Text(seanceShort(seance))
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .foregroundColor(seanceColor(seance))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.5)
@@ -629,14 +629,14 @@ struct SoirCardView: View {
                 ZStack {
                     Circle().fill(sessionColor.opacity(0.15)).frame(width: 36, height: 36)
                     Image(systemName: data.alreadyLogged ? "checkmark" : sessionIcon)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(data.alreadyLogged ? .green : sessionColor)
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     Text("CE SOIR")
-                        .font(.system(size: 9, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                     Text(sessionName)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(data.alreadyLogged ? .green : sessionColor)
                 }
                 Spacer()
@@ -644,7 +644,7 @@ struct SoirCardView: View {
                     HStack(spacing: 5) {
                         PulsingDot(color: .green)
                         Text("Complété")
-                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.green)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.green)
                     }
                 }
             }
@@ -658,16 +658,16 @@ struct SoirCardView: View {
                         HStack {
                             Circle().fill(sessionColor.opacity(0.25)).frame(width: 5, height: 5)
                             Text(ex)
-                                .font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+                                .font(.appLabel).foregroundColor(.white)
                             Spacer()
                             Text(sets)
-                                .font(.system(size: 12)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                         }
                         .padding(.horizontal, 16).padding(.vertical, 7)
                     }
                     if exercises.count > 5 {
                         Text("+ \(exercises.count - 5) exercices")
-                            .font(.system(size: 11)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                             .padding(.horizontal, 16).padding(.bottom, 8)
                     }
                 }
@@ -678,7 +678,7 @@ struct SoirCardView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "moon.fill")
                         Text("Commencer la séance du soir")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.appBody.weight(.bold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -724,18 +724,18 @@ struct CriticalAlertCard: View {
     private var cardContent: some View {
         HStack(spacing: 12) {
             Image(systemName: signal.icon)
-                .font(.system(size: 16, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundColor(.red)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(signal.message)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.appLabel)
                     .foregroundColor(.white.opacity(0.92))
                     .fixedSize(horizontal: false, vertical: true)
                 Button(action: onAction) {
                     Text(signal.actionLabel)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(Color.red.opacity(0.85))
                         .underline()
                 }
@@ -745,7 +745,7 @@ struct CriticalAlertCard: View {
             Spacer()
 
             Image(systemName: "chevron.left")
-                .font(.system(size: 10, weight: .medium))
+                .font(.appCaption.weight(.medium))
                 .foregroundColor(.red.opacity(0.4))
         }
         .padding(.horizontal, 14)

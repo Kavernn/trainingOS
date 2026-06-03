@@ -49,14 +49,14 @@ struct DashboardView: View {
                         if loadingState.isSlow {
                             VStack(spacing: 10) {
                                 Text("Connexion lente. Attends ou relance.")
-                                    .font(.system(size: 13))
+                                    .font(.appLabel).fontWeight(.regular)
                                     .foregroundColor(.gray)
                                 Button {
                                     APILoadingState.shared.isLoading = false
                                     Task { await vm.loadAll() }
                                 } label: {
                                     Text("Relancer")
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.appLabel).fontWeight(.semibold)
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 20).padding(.vertical, 9)
                                         .background(Color.orange)
@@ -76,16 +76,16 @@ struct DashboardView: View {
                                     HStack(spacing: 10) {
                                         Image(systemName: "exclamationmark.triangle.fill")
                                             .foregroundColor(.orange)
-                                            .font(.system(size: 13))
+                                            .font(.appLabel)
                                         Text("Certaines données n'ont pas pu être chargées")
-                                            .font(.system(size: 12))
+                                            .font(.appCaption)
                                             .foregroundColor(.white.opacity(0.8))
                                         Spacer()
                                         Button {
                                             Task { await vm.loadAll() }
                                         } label: {
                                             Image(systemName: "arrow.clockwise")
-                                                .font(.system(size: 13, weight: .semibold))
+                                                .font(.appLabel).fontWeight(.semibold)
                                                 .foregroundColor(.orange)
                                         }
                                         .buttonStyle(.plain)
@@ -144,17 +144,17 @@ struct DashboardView: View {
                                 } else if vm.morningBriefFailed {
                                     HStack(spacing: 8) {
                                         Image(systemName: "brain.head.profile")
-                                            .font(.system(size: 11))
+                                            .font(.appCaption)
                                             .foregroundColor(.gray.opacity(0.45))
                                         Text("Coaching non disponible")
-                                            .font(.system(size: 12))
+                                            .font(.appCaption)
                                             .foregroundColor(.gray.opacity(0.55))
                                         Spacer()
                                         Button {
                                             Task { await vm.refreshMorningBrief() }
                                         } label: {
                                             Image(systemName: "arrow.clockwise")
-                                                .font(.system(size: 11))
+                                                .font(.appCaption)
                                                 .foregroundColor(.gray.opacity(0.45))
                                         }
                                         .buttonStyle(.plain)
@@ -342,7 +342,7 @@ struct DashboardView: View {
                             Task { await api.fetchDashboard() }
                         } label: {
                             Text("Réessayer")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.appBody).fontWeight(.semibold)
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 28).padding(.vertical, 12)
                                 .background(Color.orange).cornerRadius(22)
@@ -361,9 +361,9 @@ struct DashboardView: View {
                             Button { showQuickBattle = true } label: {
                                 HStack(spacing: 5) {
                                     Image(systemName: "flag.fill")
-                                        .font(.system(size: 11, weight: .bold))
+                                        .font(.appCaption).fontWeight(.bold)
                                     Text("Résultat")
-                                        .font(.system(size: 12, weight: .semibold))
+                                        .font(.appCaption).fontWeight(.semibold)
                                 }
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 14)
@@ -379,9 +379,9 @@ struct DashboardView: View {
                             Button { showQuickTrigger = true } label: {
                                 HStack(spacing: 6) {
                                     Image(systemName: "bolt.fill")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.appCaption).fontWeight(.bold)
                                     Text("Tentation")
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.appLabel).fontWeight(.semibold)
                                 }
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 16)

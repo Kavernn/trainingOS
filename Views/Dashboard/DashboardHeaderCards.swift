@@ -99,11 +99,11 @@ struct FatigueScoreGauge: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text("Score de fatigue")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.5))
                 Spacer()
                 Text("\(score)/100 — \(label)")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(gaugeColor)
             }
             GeometryReader { geo in
@@ -205,7 +205,7 @@ struct GreetingHeaderView: View {
                         .font(.system(size: 26, weight: .bold))
                         .foregroundColor(.white)
                     Text(formattedDate)
-                        .font(.system(size: 13))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.gray)
                 }
 
@@ -218,7 +218,7 @@ struct GreetingHeaderView: View {
                             showChecklist = true
                         } label: {
                             Image(systemName: "checklist")
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(.orange)
                                 .padding(8)
                                 .background(Color.orange.opacity(0.12))
@@ -227,7 +227,7 @@ struct GreetingHeaderView: View {
                         .buttonStyle(.plain)
 
                         Text("Sem. \(dash.week)")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .tracking(1)
                             .foregroundColor(.gray)
                             .padding(.horizontal, 10)
@@ -246,10 +246,10 @@ struct GreetingHeaderView: View {
             HStack(spacing: 10) {
                 HStack(spacing: 5) {
                     Image(systemName: todayIcon)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(todayColor)
                     Text(dash.today)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.appCaption.weight(.bold))
                         .foregroundColor(todayColor)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 5)
@@ -262,10 +262,10 @@ struct GreetingHeaderView: View {
                 if weekSessions > 0 {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 10))
+                            .font(.appCaption)
                             .foregroundColor(.green.opacity(0.7))
                         Text("\(weekSessions) séance\(weekSessions != 1 ? "s" : "") cette sem.")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(.gray)
                     }
                 }

@@ -43,7 +43,7 @@ private struct BodyBudgetContent: View {
                             .foregroundColor(scoreColor(budget.score))
                             .contentTransition(.numericText())
                         Text("/ 100")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.appLabel)
                             .foregroundColor(.gray)
                             .padding(.bottom, 3)
                         Spacer()
@@ -51,7 +51,7 @@ private struct BodyBudgetContent: View {
                     }
                     HStack(spacing: 4) {
                         Text("Body Budget")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.gray)
                             .tracking(0.5)
                             .textCase(.uppercase)
@@ -61,7 +61,7 @@ private struct BodyBudgetContent: View {
             }
 
             Text(budget.insight)
-                .font(.system(size: 13))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.white.opacity(0.75))
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -120,7 +120,7 @@ private struct PillarCell: View {
                 .foregroundColor(color)
                 .contentTransition(.numericText())
             Text(label)
-                .font(.system(size: 10))
+                .font(.appCaption)
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
@@ -150,9 +150,9 @@ private struct TrendChip: View {
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 9, weight: .bold))
+                .font(.appMicro.weight(.bold))
             Text(trend == "stable" ? "stable" : trend == "up" ? "hausse" : "baisse")
-                .font(.system(size: 10, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
         }
         .foregroundColor(color)
         .padding(.horizontal, 7)

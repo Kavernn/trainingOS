@@ -30,24 +30,24 @@ struct CoachTipCard: View {
                     .fill(accent.opacity(0.18))
                     .frame(width: 40, height: 40)
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundColor(accent)
             }
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 6) {
                     Text("Coach du jour")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(accent)
                         .textCase(.uppercase)
                         .tracking(1)
                     Spacer()
                 }
                 Text(tip.title)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.appLabel.weight(.bold))
                     .foregroundColor(.white)
                 Text(tip.body)
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.white.opacity(0.75))
                     .fixedSize(horizontal: false, vertical: true)
                     .lineSpacing(2)

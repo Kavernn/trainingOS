@@ -23,24 +23,24 @@ struct CoachBriefCard: View {
                         .fill(Color.orange.opacity(0.18))
                         .frame(width: 40, height: 40)
                     Image(systemName: "brain.head.profile")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.orange)
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Text(contextLabel)
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.orange)
                             .textCase(.uppercase)
                             .tracking(1)
                         Spacer()
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(.white.opacity(0.35))
                     }
                     Text(brief.message)
-                        .font(.system(size: 13))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.white.opacity(0.85))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)

@@ -15,7 +15,7 @@ struct CardInfoButton: View {
     var body: some View {
         Button { showSheet = true } label: {
             Image(systemName: "info.circle")
-                .font(.system(size: 13, weight: .medium))
+                .font(.appLabel)
                 .foregroundColor(.gray.opacity(0.5))
         }
         .buttonStyle(.plain)
@@ -39,10 +39,10 @@ struct InfoSheetView: View {
                         ForEach(entries, id: \.term) { entry in
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(entry.term)
-                                    .font(.system(size: 13, weight: .bold))
+                                    .font(.appLabel.weight(.bold))
                                     .foregroundColor(.orange)
                                 Text(entry.definition)
-                                    .font(.system(size: 14))
+                                    .font(.appLabel.weight(.regular))
                                     .foregroundColor(.white.opacity(0.85))
                                     .fixedSize(horizontal: false, vertical: true)
                             }

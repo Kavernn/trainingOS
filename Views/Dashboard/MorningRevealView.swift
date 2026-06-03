@@ -73,7 +73,7 @@ struct MorningRevealView: View {
                             .tint(.white.opacity(0.4))
                             .scaleEffect(1.1)
                         Text("Lecture du terrain...")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(.appLabel)
                             .foregroundColor(.white.opacity(0.35))
                     }
                     .transition(.opacity)
@@ -109,7 +109,7 @@ struct MorningRevealView: View {
                         // Title + message
                         VStack(spacing: 10) {
                             Text(title.uppercased())
-                                .font(.system(size: 11, weight: .black))
+                                .font(.appCaption.weight(.black))
                                 .tracking(3)
                                 .foregroundColor(accentColor.opacity(0.75))
 
@@ -118,7 +118,7 @@ struct MorningRevealView: View {
                                 .foregroundColor(.white)
 
                             Text(morningBrief.message)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.appLabel)
                                 .foregroundColor(.white.opacity(0.6))
                                 .multilineTextAlignment(.center)
                                 .lineSpacing(3)
@@ -158,7 +158,7 @@ struct MorningRevealView: View {
                 if showButton {
                     Button(action: onDismiss) {
                         Text("Partir au combat")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.appBody.weight(.bold))
                             .foregroundColor(Color.appBg)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)
@@ -249,13 +249,13 @@ private struct RevealComponentChip: View {
     var body: some View {
         VStack(spacing: 5) {
             Image(systemName: icon)
-                .font(.system(size: 15))
+                .font(.appBody)
                 .foregroundColor(color)
             Text(qualityLabel)
-                .font(.system(size: 10, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(.white)
             Text(label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.appMicro.weight(.medium))
                 .foregroundColor(.white.opacity(0.45))
         }
         .frame(maxWidth: .infinity)
@@ -273,8 +273,8 @@ private struct RevealFlagChip: View {
 
     var body: some View {
         HStack(spacing: 5) {
-            Image(systemName: icon).font(.system(size: 10))
-            Text(text).font(.system(size: 10, weight: .semibold))
+            Image(systemName: icon).font(.appCaption)
+            Text(text).font(.appCaption.weight(.semibold))
         }
         .foregroundColor(color)
         .padding(.horizontal, 10)
