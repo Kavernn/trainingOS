@@ -265,8 +265,8 @@ struct HealthKPIGrid: View {
                 let delta = yesterday?.steps.map { steps - $0 }
                 let goalPct = stepsGoal > 0 ? "\(min(100, steps * 100 / stepsGoal))%" : nil
                 StatCard(value: "\(steps)", label: "Pas", color: .green,
-                         delta: delta.map { deltaInt($0, invertGood: false) },
-                         subtitle: goalPct.map { steps >= stepsGoal ? "✓ objectif" : "\($0) de l'objectif" })
+                         subtitle: goalPct.map { steps >= stepsGoal ? "✓ objectif" : "\($0) de l'objectif" },
+                         delta: delta.map { deltaInt($0, invertGood: false) })
             }
             if let sleep = summary.sleepDuration {
                 let delta = yesterday?.sleepDuration.map { sleep - $0 }
