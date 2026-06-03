@@ -59,11 +59,11 @@ struct PrimaryButton: View {
                 HStack(spacing: 8) {
                     if let icon {
                         Image(systemName: icon)
-                            .font(.system(size: iconFontSize, weight: .semibold))
+                            .font(buttonFont)
                     }
                     if !title.isEmpty {
                         Text(title)
-                            .font(.system(size: titleFontSize, weight: .semibold))
+                            .font(buttonFont)
                     }
                 }
             }
@@ -125,19 +125,11 @@ struct PrimaryButton: View {
         }
     }
 
-    private var titleFontSize: CGFloat {
+    private var buttonFont: Font {
         switch size {
-        case .large:  return 16
-        case .medium: return 15
-        case .small:  return 13
-        }
-    }
-
-    private var iconFontSize: CGFloat {
-        switch size {
-        case .large:  return 16
-        case .medium: return 15
-        case .small:  return 13
+        case .large:  return .appBody.weight(.semibold)
+        case .medium: return .appBody.weight(.semibold)
+        case .small:  return .appLabel.weight(.semibold)
         }
     }
 

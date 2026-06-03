@@ -65,7 +65,7 @@ struct EmptyStateView: View {
                 .foregroundColor(.secondary.opacity(0.7))
 
             Text(title)
-                .font(.system(size: 13))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }

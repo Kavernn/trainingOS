@@ -144,6 +144,7 @@ struct TrainingOSApp: App {
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
                 if granted { NotificationService.scheduleAll() }
             }
+            _ = WatchConnectivityManager.shared  // active WCSession au lancement
             Task {
                 await appState.loadProfile()
                 await CoachMemoryStore.shared.syncFromServer()

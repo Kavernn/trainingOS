@@ -43,11 +43,11 @@ struct NutritionView: View {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                         .foregroundColor(.yellow)
                                     Text("Cibles nutritionnelles non définies — l'app calcule dans le vide.")
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(.appLabel)
                                         .foregroundColor(.white)
                                     Spacer()
                                     Button("Définir les cibles") { showSettings = true }
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.appLabel).fontWeight(.semibold)
                                         .foregroundColor(.orange)
                                 }
                                 .padding(.horizontal, 14)
@@ -138,7 +138,7 @@ struct NutritionView: View {
                                             withAnimation { historyPeriod = p }
                                             Task { await vm.loadData(days: p, silent: true) }
                                         }
-                                        .font(.system(size: 12, weight: .semibold))
+                                        .font(.appCaption).fontWeight(.semibold)
                                         .padding(.horizontal, 10).padding(.vertical, 5)
                                         .background(bg)
                                         .foregroundColor(fg)
@@ -243,7 +243,7 @@ struct NutritionView: View {
                     HStack(spacing: 12) {
                         Image(systemName: "trash").foregroundColor(.red)
                         Text("Supprimé.")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                             .foregroundColor(.white)
                         Spacer()
                         Button("Restaurer") {
@@ -257,7 +257,7 @@ struct NutritionView: View {
                             pendingDeleteIndex = nil
                             withAnimation { showUndoBanner = false }
                         }
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(.orange)
                     }
                     .padding(.horizontal, 16)

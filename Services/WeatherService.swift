@@ -145,17 +145,17 @@ struct WeatherChipView: View {
                 // — Ligne actuelle —
                 HStack(spacing: 10) {
                     Image(systemName: vm.conditionSymbol)
-                        .font(.system(size: 22, weight: .medium))
+                        .font(.appTitle.weight(.medium))
                         .symbolRenderingMode(.multicolor)
                         .frame(width: 30)
 
                     VStack(alignment: .leading, spacing: 1) {
                         Text(String(format: "%.0f°", temp))
-                            .font(.system(size: 22, weight: .black))
+                            .font(.appTitle.weight(.black))
                             .foregroundColor(.white)
                         if !vm.cityName.isEmpty {
                             Text(vm.cityName)
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                         }
                     }
@@ -166,18 +166,18 @@ struct WeatherChipView: View {
                         VStack(alignment: .trailing, spacing: 2) {
                             HStack(spacing: 3) {
                                 Image(systemName: "arrow.up")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.appMicro.weight(.bold))
                                     .foregroundColor(.orange.opacity(0.8))
                                 Text(String(format: "%.0f°", hi))
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.appLabel.weight(.semibold))
                                     .foregroundColor(.white.opacity(0.85))
                             }
                             HStack(spacing: 3) {
                                 Image(systemName: "arrow.down")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.appMicro.weight(.bold))
                                     .foregroundColor(.cyan.opacity(0.8))
                                 Text(String(format: "%.0f°", lo))
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.appLabel.weight(.semibold))
                                     .foregroundColor(.white.opacity(0.55))
                             }
                         }
@@ -206,10 +206,10 @@ struct WeatherChipView: View {
         } else if vm.locationDenied {
             HStack(spacing: 8) {
                 Image(systemName: "location.slash.fill")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(.gray)
                 Text("Météo · Activer la localisation dans Réglages")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                 Spacer()
             }
@@ -236,20 +236,20 @@ private struct DayColumn: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(dayLabel)
-                .font(.system(size: 10, weight: isToday ? .bold : .regular))
+                .font(.appMicro.weight(isToday ? .bold : .regular))
                 .foregroundColor(isToday ? .orange : .gray.opacity(0.6))
 
             Image(systemName: day.symbol)
-                .font(.system(size: 14))
+                .font(.appLabel.weight(.regular))
                 .symbolRenderingMode(.multicolor)
                 .frame(height: 16)
 
             Text(String(format: "%.0f°", day.maxTemp))
-                .font(.system(size: 11, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(isToday ? .white : .white.opacity(0.75))
 
             Text(String(format: "%.0f°", day.minTemp))
-                .font(.system(size: 10))
+                .font(.appMicro)
                 .foregroundColor(.white.opacity(0.35))
         }
     }

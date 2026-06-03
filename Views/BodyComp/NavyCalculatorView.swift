@@ -30,7 +30,7 @@ struct NavyCalculatorView: View {
                     BodyCompHistoryView()
                 } label: {
                     Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.green)
                 }
             }
@@ -87,19 +87,19 @@ struct NavyCalculatorView: View {
     private var correctionBanner: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 16))
+                .font(.appBody)
                 .foregroundColor(.yellow)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Formule corrigée")
-                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                 Text("Le calcul du % de gras est plus précis. L'ancienne formule surestimait de quelques points — ton nouveau chiffre est plus fiable.")
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
             Button { bannerSeen = true } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(.gray)
             }
         }
@@ -117,9 +117,9 @@ struct NavyCalculatorView: View {
                 .font(.system(size: 40))
                 .foregroundColor(.gray.opacity(0.5))
             Text("Aucune entrée de poids")
-                .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                .font(.appBody.weight(.semibold)).foregroundColor(.white)
             Text("Commence par enregistrer ton poids dans Body Comp.")
-                .font(.system(size: 13)).foregroundColor(.gray)
+                .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                 .multilineTextAlignment(.center)
         }
         .padding(28)
@@ -136,9 +136,9 @@ struct NavyCalculatorView: View {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
                 .font(.system(size: 36)).foregroundColor(.orange.opacity(0.7))
             Text("Sexe non renseigné")
-                .font(.system(size: 15, weight: .semibold)).foregroundColor(.white)
+                .font(.appBody.weight(.semibold)).foregroundColor(.white)
             Text("La formule Navy est différente pour l'homme et la femme. Indique ton sexe dans ton profil pour un calcul précis.")
-                .font(.system(size: 13)).foregroundColor(.gray)
+                .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                 .multilineTextAlignment(.center)
         }
         .padding(24)
@@ -155,15 +155,15 @@ struct NavyCalculatorView: View {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle.fill").foregroundColor(.orange)
                 Text("Données manquantes")
-                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
             }
             Text("Pour calculer le % de gras, enregistre aussi :")
-                .font(.system(size: 13)).foregroundColor(.gray)
+                .font(.appLabel.weight(.regular)).foregroundColor(.gray)
             ForEach(bodyComp.navyMissingFields(isMale: isMale), id: \.self) { field in
                 HStack(spacing: 8) {
                     Circle().fill(Color.orange).frame(width: 6, height: 6)
                     Text(field.capitalized)
-                        .font(.system(size: 13)).foregroundColor(.white)
+                        .font(.appLabel.weight(.regular)).foregroundColor(.white)
                 }
             }
 
@@ -172,9 +172,9 @@ struct NavyCalculatorView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "pencil")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                     Text("Compléter mes mesures")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                 }
                 .foregroundColor(.orange)
                 .padding(.top, 4)
@@ -192,17 +192,17 @@ struct NavyCalculatorView: View {
     private var heightPickerCard: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("TAILLE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 .padding(.bottom, 14)
 
             HStack(spacing: 0) {
                 Text("HAUTEUR")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 6) {
                     Button { heightCm = max(140, heightCm - 1) } label: {
                         Image(systemName: "minus")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.appLabel.weight(.bold))
                             .frame(width: 34, height: 34)
                             .background(Color.white.opacity(0.07))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -211,14 +211,14 @@ struct NavyCalculatorView: View {
                     .buttonStyle(SpringButtonStyle(scale: 0.93))
 
                     Text(String(format: "%.0f cm", heightCm))
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(.white)
                         .frame(minWidth: 70)
                         .multilineTextAlignment(.center)
 
                     Button { heightCm = min(220, heightCm + 1) } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.appLabel.weight(.bold))
                             .frame(width: 34, height: 34)
                             .background(Color.white.opacity(0.07))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -259,9 +259,9 @@ struct NavyCalculatorView: View {
     private func measureChip(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
             Text(value)
-                .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                .font(.appLabel.weight(.bold)).foregroundColor(.white)
         }
     }
 
@@ -286,16 +286,16 @@ struct NavyCalculatorView: View {
     private func resultCard(label: String, value: String, color: Color, subtitle: String? = nil) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
-                .font(.system(size: 9, weight: .black)).tracking(1)
+                .font(.appMicro.weight(.black)).tracking(1)
                 .foregroundColor(color.opacity(0.75))
             Text(value)
-                .font(.system(size: 17, weight: .black))
+                .font(.appHeadline.weight(.black))
                 .foregroundColor(.white)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
             if let sub = subtitle {
                 Text(sub)
-                    .font(.system(size: 9))
+                    .font(.appMicro)
                     .foregroundColor(.gray.opacity(0.55))
             }
         }
@@ -311,7 +311,7 @@ struct NavyCalculatorView: View {
         let weight = bodyComp.latest?.weight ?? 1
         return VStack(alignment: .leading, spacing: 8) {
             Text("COMPOSITION")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             GeometryReader { geo in
                 let leanFrac = CGFloat(res.leanMassLbs / weight)
@@ -330,12 +330,12 @@ struct NavyCalculatorView: View {
             HStack {
                 HStack(spacing: 6) {
                     Circle().fill(Color.green).frame(width: 7, height: 7)
-                    Text("Masse maigre").font(.system(size: 11)).foregroundColor(.gray)
+                    Text("Masse maigre").font(.appCaption).foregroundColor(.gray)
                 }
                 Spacer()
                 HStack(spacing: 6) {
                     Circle().fill(Color.orange).frame(width: 7, height: 7)
-                    Text("Masse grasse").font(.system(size: 11)).foregroundColor(.gray)
+                    Text("Masse grasse").font(.appCaption).foregroundColor(.gray)
                 }
             }
         }
@@ -351,14 +351,14 @@ struct NavyCalculatorView: View {
         let (label, color) = res.category(isMale: isMale)
         return HStack(spacing: 10) {
             Image(systemName: "person.fill")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(color)
             Text("Catégorie : \(label)")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.appLabel.weight(.semibold))
                 .foregroundColor(.white)
             Spacer()
             Text(String(format: "%.1f%%", res.pct))
-                .font(.system(size: 14, weight: .black))
+                .font(.appLabel.weight(.black))
                 .foregroundColor(color)
         }
         .padding(.horizontal, 16).padding(.vertical, 14)
@@ -378,7 +378,7 @@ struct NavyCalculatorView: View {
             HStack(spacing: 8) {
                 Image(systemName: "clock").foregroundColor(color)
                 Text(label)
-                    .font(.system(size: 12)).foregroundColor(color)
+                    .font(.appCaption).foregroundColor(color)
                 Spacer()
             }
             .padding(.horizontal, 20)

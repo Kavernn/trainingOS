@@ -1,5 +1,32 @@
 import SwiftUI
 
+// MARK: - Type Scale
+// 7 niveaux — remplace 40 tailles ad-hoc
+// Mapping : voir docs/typography_migration.md
+
+extension Font {
+    /// 34pt bold rounded — métriques principales (Phoenix, readiness, chrono)
+    static let appHero = Font.system(size: 34, weight: .bold, design: .rounded)
+
+    /// 22pt bold rounded — titres de sections, headers de cards
+    static let appTitle = Font.system(size: 22, weight: .bold, design: .rounded)
+
+    /// 17pt semibold — noms d'exercices, titres de vues
+    static let appHeadline = Font.system(size: 17, weight: .semibold, design: .default)
+
+    /// 15pt regular — corps de texte, descriptions
+    static let appBody = Font.system(size: 15, weight: .regular, design: .default)
+
+    /// 13pt medium — labels de métriques, sous-titres
+    static let appLabel = Font.system(size: 13, weight: .medium, design: .default)
+
+    /// 11pt regular — timestamps, metadata, notes secondaires
+    static let appCaption = Font.system(size: 11, weight: .regular, design: .default)
+
+    /// 9pt regular — badges, tags, indicateurs très discrets
+    static let appMicro = Font.system(size: 9, weight: .regular, design: .default)
+}
+
 // MARK: - Card Modifiers
 struct GlassCard: ViewModifier {
     var color: Color = .white   // kept for call-site compatibility, unused

@@ -17,11 +17,11 @@ struct SessionPickerSheet: View {
                 VStack(spacing: 0) {
                     VStack(spacing: 6) {
                         Text("Changer de séance")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.appHeadline).fontWeight(.bold)
                             .foregroundColor(.white)
                             .padding(.top, 20)
                         Text("Séance active aujourd'hui")
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                     .padding(.bottom, 16)
@@ -37,10 +37,10 @@ struct SessionPickerSheet: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
-                                        .font(.system(size: 17))
+                                        .font(.appHeadline)
                                         .foregroundColor(isActive ? .orange : .gray.opacity(0.4))
                                     Text(session)
-                                        .font(.system(size: 15, weight: isActive ? .semibold : .regular))
+                                        .font(.appBody).fontWeight(isActive ? .semibold : .regular)
                                         .foregroundColor(isActive ? .white : .white.opacity(0.75))
                                     Spacer()
                                 }
@@ -96,10 +96,10 @@ struct WorkoutSummarySheet: View {
                                     .foregroundColor(.orange)
                                     .padding(.top, 28)
                                 Text("\(unloggedExercises.count) exercice\(unloggedExercises.count > 1 ? "s" : "") non loggué\(unloggedExercises.count > 1 ? "s" : "")")
-                                    .font(.system(size: 20, weight: .bold))
+                                    .font(.appTitle)
                                     .foregroundColor(.white)
                                 Text("Ces exercices ne seront pas enregistrés.\nVeux-tu continuer quand même ?")
-                                    .font(.system(size: 14))
+                                    .font(.appLabel)
                                     .foregroundColor(.gray)
                                     .multilineTextAlignment(.center)
                             }
@@ -110,10 +110,10 @@ struct WorkoutSummarySheet: View {
                                 ForEach(unloggedExercises, id: \.self) { name in
                                     HStack(spacing: 12) {
                                         Image(systemName: "minus.circle")
-                                            .font(.system(size: 16))
+                                            .font(.appBody)
                                             .foregroundColor(.orange.opacity(0.6))
                                         Text(name)
-                                            .font(.system(size: 15))
+                                            .font(.appBody)
                                             .foregroundColor(.white.opacity(0.75))
                                         Spacer()
                                     }
@@ -138,7 +138,7 @@ struct WorkoutSummarySheet: View {
                             dismiss()
                         }) {
                             Text("Terminer quand même")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.appBody).fontWeight(.bold)
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
                                 .background(Color.orange)
                                 .foregroundColor(.white)
@@ -146,7 +146,7 @@ struct WorkoutSummarySheet: View {
                         }
                         .padding(.horizontal, 20)
                         Button("Retourner à la séance") { dismiss() }
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.appBody).fontWeight(.medium)
                             .foregroundColor(.orange)
                             .padding(.bottom, 20)
                     }
@@ -196,20 +196,20 @@ struct FinishSessionSheet: View {
                     VStack(spacing: 16) {
                         VStack(spacing: 8) {
                             Image(systemName: "checkmark.circle.fill").font(.system(size: 56)).foregroundColor(.orange)
-                            Text("Terminer la séance").font(.system(size: 22, weight: .bold)).foregroundColor(.white)
-                            Text("\(loggedCount) / \(exercises.count) exercices loggés").font(.system(size: 14)).foregroundColor(.gray)
+                            Text("Terminer la séance").font(.appTitle).foregroundColor(.white)
+                            Text("\(loggedCount) / \(exercises.count) exercices loggés").font(.appLabel).foregroundColor(.gray)
                         }.padding(.top, 20)
 
                         // Durée auto-calculée
                         HStack(spacing: 12) {
                             Image(systemName: "clock.fill")
-                                .font(.system(size: 20))
+                                .font(.appTitle)
                                 .foregroundColor(.cyan)
                                 .frame(width: 28)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("DURÉE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("DURÉE").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 Text("\(Int(elapsedMin)) min")
-                                    .font(.system(size: 22, weight: .black))
+                                    .font(.appTitle).fontWeight(.black)
                                     .foregroundColor(.white)
                             }
                             Spacer()
@@ -220,10 +220,10 @@ struct FinishSessionSheet: View {
                         VStack(alignment: .leading, spacing: 0) {
                             HStack {
                                 Text("EXERCICES")
-                                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                    .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 Spacer()
                                 Text("\(loggedCount)/\(exercises.count)")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.appCaption).fontWeight(.bold)
                                     .foregroundColor(loggedCount == exercises.count ? .green : .orange)
                             }
                             .padding(.horizontal, 16).padding(.bottom, 6)
@@ -231,15 +231,15 @@ struct FinishSessionSheet: View {
                                 let result = logResults[name]
                                 HStack(spacing: 10) {
                                     Image(systemName: result != nil ? "checkmark.circle.fill" : "minus.circle")
-                                        .font(.system(size: 13))
+                                        .font(.appLabel)
                                         .foregroundColor(result != nil ? .green : .orange.opacity(0.6))
                                     Text(name)
-                                        .font(.system(size: 13))
+                                        .font(.appLabel)
                                         .foregroundColor(result != nil ? .white : .gray)
                                     Spacer()
                                     if let r = result {
                                         Text("\(UnitSettings.shared.format(r.weight)) · \(r.reps)")
-                                            .font(.system(size: 12))
+                                            .font(.appCaption)
                                             .foregroundColor(.gray)
                                     }
                                 }
@@ -253,26 +253,26 @@ struct FinishSessionSheet: View {
 
                         // Effort global — saisie via RIR tiles
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("EFFORT GLOBAL").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            Text("EFFORT GLOBAL").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                             Text("Combien de reps aurais-tu pu faire en plus ?")
-                                .font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.75))
+                                .font(.appLabel).foregroundColor(.white.opacity(0.75))
                             let selectedRIR = Binding<Int>(
                                 get: { RPEHelper.rirFromRPE(rpe) },
                                 set: { rpe = RPEHelper.rirToRPE($0) }
                             )
                             RPEHelper.RIRTiles(rir: selectedRIR, showLabels: true)
                             Text("RPE estimé : \(String(format: "%.1f", 10.0 - Double(RPEHelper.rirFromRPE(rpe))))")
-                                .font(.system(size: 12))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                             Text(RPEHelper.feedback(for: rpe))
-                                .font(.system(size: 12))
+                                .font(.appCaption)
                                 .foregroundColor(RPEHelper.color(for: rpe))
                                 .fixedSize(horizontal: false, vertical: true)
                             if let hint = RPEHelper.progressionHint(for: rpe) {
                                 HStack(spacing: 5) {
                                     Image(systemName: "arrow.up.forward.circle")
-                                        .font(.system(size: 11)).foregroundColor(.cyan.opacity(0.7))
-                                    Text(hint).font(.system(size: 11)).foregroundColor(.cyan.opacity(0.7))
+                                        .font(.appCaption).foregroundColor(.cyan.opacity(0.7))
+                                    Text(hint).font(.appCaption).foregroundColor(.cyan.opacity(0.7))
                                 }
                             }
                         }
@@ -281,17 +281,17 @@ struct FinishSessionSheet: View {
                         // Énergie — affichage inline si déjà saisie pendant la séance
                         if let pre = preEnergy {
                             HStack(spacing: 10) {
-                                Text("ÉNERGIE AVANT").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("ÉNERGIE AVANT").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 Spacer()
                                 HStack(spacing: 3) {
                                     ForEach(1...5, id: \.self) { i in
                                         Image(systemName: i <= pre ? "bolt.fill" : "bolt")
-                                            .font(.system(size: 16))
+                                            .font(.appBody)
                                             .foregroundColor(i <= pre ? energyColor(pre) : .gray.opacity(0.25))
                                     }
                                 }
                                 Text(energyLabel(pre))
-                                    .font(.system(size: 13, weight: .bold))
+                                    .font(.appLabel).fontWeight(.bold)
                                     .foregroundColor(energyColor(pre))
                             }
                             .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 20)
@@ -302,9 +302,9 @@ struct FinishSessionSheet: View {
                         Button(action: { withAnimation(.easeInOut(duration: 0.2)) { showExtras.toggle() } }) {
                             HStack(spacing: 6) {
                                 Image(systemName: showExtras ? "chevron.up" : "chevron.down")
-                                    .font(.system(size: 10, weight: .semibold))
+                                    .font(.appMicro).fontWeight(.semibold)
                                 Text(showExtras ? "Masquer les options" : extrasLabel)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(.appCaption).fontWeight(.medium)
                                 Spacer()
                             }
                             .foregroundColor(.gray.opacity(0.6))
@@ -317,10 +317,10 @@ struct FinishSessionSheet: View {
                             if preEnergy == nil {
                                 VStack(alignment: .leading, spacing: 10) {
                                     HStack {
-                                        Text("ÉNERGIE AVANT LA SÉANCE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        Text("ÉNERGIE AVANT LA SÉANCE").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                         Spacer()
                                         Text(energyLabel(energyPre))
-                                            .font(.system(size: 13, weight: .bold))
+                                            .font(.appLabel).fontWeight(.bold)
                                             .foregroundColor(energyColor(energyPre))
                                     }
                                     HStack(spacing: 8) {
@@ -328,9 +328,9 @@ struct FinishSessionSheet: View {
                                             Button(action: { energyPre = i }) {
                                                 VStack(spacing: 4) {
                                                     Image(systemName: i <= energyPre ? "bolt.fill" : "bolt")
-                                                        .font(.system(size: 20))
+                                                        .font(.appTitle)
                                                         .foregroundColor(i <= energyPre ? energyColor(energyPre) : .gray.opacity(0.3))
-                                                    Text("\(i)").font(.system(size: 9)).foregroundColor(.gray)
+                                                    Text("\(i)").font(.appMicro).foregroundColor(.gray)
                                                 }
                                             }
                                             .frame(maxWidth: .infinity)
@@ -342,7 +342,7 @@ struct FinishSessionSheet: View {
 
                             // Notes
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("NOTES").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("NOTES").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 TextField("Commentaire optionnel...", text: $comment, axis: .vertical)
                                     .foregroundColor(.white).tint(.orange)
                                     .lineLimit(3, reservesSpace: true)
@@ -359,10 +359,10 @@ struct FinishSessionSheet: View {
                                         if isLoadingAI {
                                             ProgressView().tint(.purple).scaleEffect(0.7)
                                         } else {
-                                            Image(systemName: "brain.head.profile").font(.system(size: 13))
+                                            Image(systemName: "brain.head.profile").font(.appLabel)
                                         }
                                         Text(isLoadingAI ? "Analyse en cours…" : aiAnalysis == nil ? "Analyse IA post-séance" : "Relancer l'analyse")
-                                            .font(.system(size: 13, weight: .medium))
+                                            .font(.appLabel)
                                     }
                                     .frame(maxWidth: .infinity).padding(.vertical, 10)
                                     .background(Color.purple.opacity(0.12))
@@ -373,13 +373,13 @@ struct FinishSessionSheet: View {
 
                                 if aiError {
                                     Text("Analyse IA indisponible — réessaie")
-                                        .font(.system(size: 12))
+                                        .font(.appCaption)
                                         .foregroundColor(.red.opacity(0.8))
                                 }
 
                                 if let analysis = aiAnalysis {
                                     Text(analysis)
-                                        .font(.system(size: 13)).foregroundColor(.white.opacity(0.85))
+                                        .font(.appLabel).foregroundColor(.white.opacity(0.85))
                                         .padding(12).background(Color.purple.opacity(0.08))
                                         .cornerRadius(10)
                                 }
@@ -396,7 +396,7 @@ struct FinishSessionSheet: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "checkmark.circle")
                                     Text("Soumettre \(loggedCount) exercice\(loggedCount > 1 ? "s" : "") seulement")
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(.appLabel).fontWeight(.semibold)
                                 }
                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
                                 .background(Color.orange.opacity(0.15))
@@ -412,7 +412,7 @@ struct FinishSessionSheet: View {
                             showConfirmSubmit = true
                         }) {
                             Text(loggedCount == exercises.count ? "Enregistrer la séance" : "Enregistrer quand même tout")
-                                .font(.system(size: 16, weight: .bold)).frame(maxWidth: .infinity).padding(.vertical, 14)
+                                .font(.appBody).fontWeight(.bold).frame(maxWidth: .infinity).padding(.vertical, 14)
                                 .background(Color.orange).foregroundColor(.white).cornerRadius(14)
                         }
                         .padding(.horizontal, 20).padding(.bottom, 8)
@@ -420,14 +420,14 @@ struct FinishSessionSheet: View {
                         NavigationLink(destination: GraveyardView()) {
                             HStack(spacing: 8) {
                                 Image(systemName: "cross.fill")
-                                    .font(.system(size: 12))
+                                    .font(.appCaption)
                                     .foregroundColor(Color(hex: "8B6AFF"))
                                 Text("Voir le Graveyard")
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.appLabel)
                                     .foregroundColor(Color(hex: "8B6AFF"))
                                 Spacer()
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                                     .foregroundColor(Color(hex: "8B6AFF").opacity(0.5))
                             }
                             .padding(.horizontal, 16).padding(.vertical, 10)
@@ -574,12 +574,12 @@ struct SessionRecapSheet: View {
                                     .opacity(animateHeader ? 1.0 : 0.0)
                             }
                             Text("Séance complète !")
-                                .font(.system(size: 24, weight: .black))
+                                .font(.appTitle).fontWeight(.black)
                                 .foregroundColor(.white)
                                 .opacity(animateHeader ? 1.0 : 0.0)
                                 .offset(y: animateHeader ? 0 : 10)
                             Text(snapshot.sessionName)
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel).fontWeight(.semibold)
                                 .foregroundColor(.orange)
                                 .padding(.horizontal, 14).padding(.vertical, 5)
                                 .background(Color.orange.opacity(0.1))
@@ -609,7 +609,7 @@ struct SessionRecapSheet: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("VOLUME TOTAL")
-                                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                        .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                     Text(UnitSettings.shared.format(totalVolume))
                                         .font(.system(size: 28, weight: .black)).foregroundColor(.white)
                                         .contentTransition(.numericText())
@@ -627,32 +627,32 @@ struct SessionRecapSheet: View {
                         // Exercise list
                         VStack(alignment: .leading, spacing: 0) {
                             Text("EXERCICES")
-                                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 .padding(.horizontal, 16).padding(.bottom, 8)
                             ForEach(Array(snapshot.exercises.enumerated()), id: \.0) { idx, name in
                                 let r = snapshot.logResults[name]
                                 HStack(spacing: 10) {
                                     Image(systemName: r != nil ? "checkmark.circle.fill" : "minus.circle")
-                                        .font(.system(size: 14))
+                                        .font(.appLabel)
                                         .foregroundColor(r != nil ? .green : .orange.opacity(0.5))
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(name)
-                                            .font(.system(size: 13, weight: r != nil ? .semibold : .regular))
+                                            .font(.appLabel).fontWeight(r != nil ? .semibold : .regular)
                                             .foregroundColor(r != nil ? .white : .gray)
                                         if let r, !r.reps.isEmpty {
                                             Text(r.reps)
-                                                .font(.system(size: 11))
+                                                .font(.appCaption)
                                                 .foregroundColor(.gray)
                                         }
                                     }
                                     Spacer()
                                     if let r {
                                         Text(UnitSettings.shared.format(r.weight))
-                                            .font(.system(size: 13, weight: .bold))
+                                            .font(.appLabel).fontWeight(.bold)
                                             .foregroundColor(.orange)
                                     } else {
                                         Text("Ignoré")
-                                            .font(.system(size: 11))
+                                            .font(.appCaption)
                                             .foregroundColor(.gray.opacity(0.5))
                                     }
                                 }
@@ -668,26 +668,26 @@ struct SessionRecapSheet: View {
                         // RPE + Energy
                         HStack(spacing: 10) {
                             VStack(spacing: 6) {
-                                Text("RPE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("RPE").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 Text(String(format: "%.1f", snapshot.rpe))
                                     .font(.system(size: 26, weight: .black))
                                     .foregroundColor(rpeColor(snapshot.rpe))
-                                Text("/10").font(.system(size: 11)).foregroundColor(.gray)
+                                Text("/10").font(.appCaption).foregroundColor(.gray)
                             }
                             .frame(maxWidth: .infinity).padding(16)
                             .background(Color.appCard).cornerRadius(14)
 
                             VStack(spacing: 6) {
-                                Text("ÉNERGIE AVANT").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("ÉNERGIE AVANT").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                                 HStack(spacing: 3) {
                                     ForEach(1...5, id: \.self) { i in
                                         Image(systemName: i <= snapshot.energyPre ? "bolt.fill" : "bolt")
-                                            .font(.system(size: 14))
+                                            .font(.appLabel)
                                             .foregroundColor(i <= snapshot.energyPre ? energyColor(snapshot.energyPre) : .gray.opacity(0.25))
                                     }
                                 }
                                 Text(energyLabel(snapshot.energyPre))
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption).fontWeight(.semibold)
                                     .foregroundColor(energyColor(snapshot.energyPre))
                             }
                             .frame(maxWidth: .infinity).padding(16)
@@ -699,11 +699,11 @@ struct SessionRecapSheet: View {
                         if !snapshot.comment.trimmingCharacters(in: .whitespaces).isEmpty {
                             HStack(alignment: .top, spacing: 10) {
                                 Image(systemName: "note.text")
-                                    .font(.system(size: 15))
+                                    .font(.appBody)
                                     .foregroundColor(.gray)
                                     .padding(.top, 1)
                                 Text(snapshot.comment)
-                                    .font(.system(size: 14))
+                                    .font(.appLabel)
                                     .foregroundColor(.white.opacity(0.85))
                                     .multilineTextAlignment(.leading)
                                 Spacer()
@@ -715,7 +715,7 @@ struct SessionRecapSheet: View {
 
                         Button(action: { dismiss() }) {
                             Text("Continuer")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.appBody).fontWeight(.bold)
                                 .frame(maxWidth: .infinity).padding(.vertical, 14)
                                 .background(Color.orange).foregroundColor(.white).cornerRadius(14)
                         }
@@ -738,11 +738,11 @@ struct SessionRecapSheet: View {
     private func statPill(_ value: String, label: String, color: Color) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 20, weight: .black))
+                .font(.appTitle).fontWeight(.black)
                 .foregroundColor(.white)
                 .contentTransition(.numericText())
             Text(label)
-                .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                .font(.appMicro).fontWeight(.bold).tracking(1.5)
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 14)
@@ -782,10 +782,10 @@ struct EnergyPreWorkoutSheet: View {
         VStack(spacing: 24) {
             VStack(spacing: 6) {
                 Text("Avant de commencer")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.appTitle)
                     .foregroundColor(.white)
                 Text("Comment te sens-tu aujourd'hui ?")
-                    .font(.system(size: 14))
+                    .font(.appLabel)
                     .foregroundColor(.gray)
             }
             .padding(.top, 16)
@@ -805,14 +805,14 @@ struct EnergyPreWorkoutSheet: View {
             }
 
             Text(energyLabel(energy))
-                .font(.system(size: 17, weight: .bold))
+                .font(.appHeadline).fontWeight(.bold)
                 .foregroundColor(energyColor(energy))
 
             Button("C'est parti ! 💪") {
                 onConfirm()
                 dismiss()
             }
-            .font(.system(size: 16, weight: .bold))
+            .font(.appBody).fontWeight(.bold)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background(Color.orange)
@@ -860,7 +860,7 @@ struct HIITSeanceView: View {
             VStack(spacing: 16) {
                 VStack(spacing: 12) {
                     Image(systemName: "figure.run").font(.system(size: 48)).foregroundColor(.red)
-                    Text(sessionType).font(.system(size: 24, weight: .black)).foregroundColor(.white)
+                    Text(sessionType).font(.appTitle).fontWeight(.black).foregroundColor(.white)
                 }.padding(.top, 20)
 
                 VStack(spacing: 12) {
@@ -871,16 +871,16 @@ struct HIITSeanceView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
-                        Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        Text("RPE").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                         Spacer()
-                        Text("\(rpe, specifier: "%.1f")").font(.system(size: 20, weight: .black)).foregroundColor(.orange)
+                        Text("\(rpe, specifier: "%.1f")").font(.appTitle).fontWeight(.black).foregroundColor(.orange)
                     }
                     Slider(value: $rpe, in: 1...10, step: 0.5).tint(.orange)
                 }
                 .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Text("NOTES").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                     TextField("Notes optionnelles...", text: $notes, axis: .vertical)
                         .foregroundColor(.white).lineLimit(3, reservesSpace: true)
                 }
@@ -888,7 +888,7 @@ struct HIITSeanceView: View {
 
                 Button(action: logHIIT) {
                     Text("Enregistrer HIIT")
-                        .font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .font(.appBody).fontWeight(.semibold).frame(maxWidth: .infinity).padding(.vertical, 14)
                         .background(Color.red).foregroundColor(.white).cornerRadius(14)
                 }
                 .padding(.horizontal, 16).padding(.bottom, 24)
@@ -934,21 +934,21 @@ struct CoachingChip: View {
         } else if applied {
             HStack(spacing: 6) {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 12)).foregroundColor(.green)
+                    .font(.appCaption).foregroundColor(.green)
                 Text("Appliqué")
-                    .font(.system(size: 12, weight: .medium)).foregroundColor(.green)
+                    .font(.appCaption).fontWeight(.medium).foregroundColor(.green)
             }
             .padding(.horizontal, 10).padding(.vertical, 5)
             .background(Color.green.opacity(0.1)).cornerRadius(8)
         } else if suggestion.suggestionType == "maintain" {
             HStack(spacing: 6) {
                 Image(systemName: "equal.circle")
-                    .font(.system(size: 12)).foregroundColor(.gray.opacity(0.7))
+                    .font(.appCaption).foregroundColor(.gray.opacity(0.7))
                 Text("Pas de changement recommandé")
-                    .font(.system(size: 12, weight: .medium)).foregroundColor(.gray.opacity(0.8))
+                    .font(.appCaption).fontWeight(.medium).foregroundColor(.gray.opacity(0.8))
                 Spacer()
                 Button("OK") { ignored = true }
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
             }
             .padding(.horizontal, 10).padding(.vertical, 6)
             .background(Color.gray.opacity(0.06))
@@ -957,17 +957,17 @@ struct CoachingChip: View {
         } else {
             HStack(spacing: 8) {
                 Image(systemName: typeIcon)
-                    .font(.system(size: 12)).foregroundColor(typeColor)
+                    .font(.appCaption).foregroundColor(typeColor)
                 if let w = suggestion.suggestedWeight {
                     Text(w.fmtLbs())
-                        .font(.system(size: 13, weight: .black)).foregroundColor(typeColor)
+                        .font(.appLabel).fontWeight(.black).foregroundColor(typeColor)
                 }
                 Text(suggestion.reason)
-                    .font(.system(size: 11)).foregroundColor(.white.opacity(0.65))
+                    .font(.appCaption).foregroundColor(.white.opacity(0.65))
                     .lineLimit(1)
                 Spacer()
                 Button("Ignorer") { ignored = true }
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                 if let w = suggestion.suggestedWeight {
                     Button("Appliquer") {
                         triggerImpact(style: .light)
@@ -984,7 +984,7 @@ struct CoachingChip: View {
                             }
                         }
                     }
-                    .font(.system(size: 11, weight: .semibold)).foregroundColor(typeColor)
+                    .font(.appCaption).fontWeight(.semibold).foregroundColor(typeColor)
                 }
             }
             .padding(.horizontal, 10).padding(.vertical, 6)
@@ -1038,7 +1038,7 @@ struct SpecialSeanceView: View {
             VStack(spacing: 20) {
                 VStack(spacing: 12) {
                     Image(systemName: icon).font(.system(size: 48)).foregroundColor(color)
-                    Text(sessionType).font(.system(size: 24, weight: .black)).foregroundColor(.white)
+                    Text(sessionType).font(.appTitle).fontWeight(.black).foregroundColor(.white)
                 }.padding(.top, 24)
                 .onAppear {
                     if alreadyLoggedToday {
@@ -1050,7 +1050,7 @@ struct SpecialSeanceView: View {
                     HStack(spacing: 10) {
                         Image(systemName: "checkmark.circle.fill").foregroundColor(color)
                         Text("Séance déjà enregistrée aujourd'hui")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.appLabel).fontWeight(.semibold)
                             .foregroundColor(color)
                     }
                     .frame(maxWidth: .infinity)
@@ -1061,16 +1061,16 @@ struct SpecialSeanceView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            Text("RPE").font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                             Spacer()
-                            Text("\(rpe, specifier: "%.1f")").font(.system(size: 20, weight: .black)).foregroundColor(color)
+                            Text("\(rpe, specifier: "%.1f")").font(.appTitle).fontWeight(.black).foregroundColor(color)
                         }
                         Slider(value: $rpe, in: 1...10, step: 0.5).tint(color)
                     }
                     .padding(16).background(Color.appCard).cornerRadius(14).padding(.horizontal, 16)
 
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("NOTES").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        Text("NOTES").font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                         TextField("Comment c'était ?", text: $comment, axis: .vertical)
                             .foregroundColor(.white).tint(.orange)
                             .lineLimit(3, reservesSpace: true)
@@ -1082,7 +1082,7 @@ struct SpecialSeanceView: View {
 
                     Button(action: logSession) {
                         Text("Enregistrer \(sessionType)")
-                            .font(.system(size: 15, weight: .semibold)).frame(maxWidth: .infinity).padding(.vertical, 14)
+                            .font(.appBody).fontWeight(.semibold).frame(maxWidth: .infinity).padding(.vertical, 14)
                             .background(color).foregroundColor(.white).cornerRadius(14)
                     }
                     .padding(.horizontal, 16).padding(.bottom, 24)
@@ -1141,13 +1141,13 @@ struct StepperRow: View {
 
     var body: some View {
         HStack {
-            Text(title).font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+            Text(title).font(.appCaption).fontWeight(.bold).tracking(2).foregroundColor(.gray)
             Spacer()
             HStack(spacing: 12) {
                 Button(action: { if value - step >= range.lowerBound { value -= step } }) {
                     Image(systemName: "minus.circle.fill").font(.system(size: 28)).foregroundColor(.gray)
                 }
-                Text("\(value)").font(.system(size: 20, weight: .black)).foregroundColor(.white).frame(width: 50, alignment: .center)
+                Text("\(value)").font(.appTitle).fontWeight(.black).foregroundColor(.white).frame(width: 50, alignment: .center)
                 Button(action: { if value + step <= range.upperBound { value += step } }) {
                     Image(systemName: "plus.circle.fill").font(.system(size: 28)).foregroundColor(.orange)
                 }
@@ -1176,15 +1176,15 @@ struct RestTimerBadge: View {
 
                 HStack(spacing: 4) {
                     Image(systemName: "timer")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel).fontWeight(.semibold)
                     Group {
                         if timer.isRunning {
                             Text(formatTime(remaining))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.appCaption).fontWeight(.bold)
                                 .monospacedDigit()
                         } else if let r = restSeconds {
                             Text(r < 60 ? "\(r)s" : "\(r / 60):\(String(format: "%02d", r % 60))")
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.appCaption).fontWeight(.bold)
                                 .monospacedDigit()
                         }
                     }

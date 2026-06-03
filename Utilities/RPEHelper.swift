@@ -116,7 +116,7 @@ enum RPEHelper {
                         if showLabels {
                             VStack(spacing: 3) {
                                 Text(opt.shortLabel)
-                                    .font(.system(size: 15, weight: .black))
+                                    .font(.appBody.weight(.black))
                                     .foregroundColor(selected ? .black : .white)
                                 Text(opt.label)
                                     .font(.system(size: 8, weight: .medium))
@@ -130,7 +130,7 @@ enum RPEHelper {
                             .cornerRadius(10)
                         } else {
                             Text(opt.shortLabel)
-                                .font(.system(size: 10, weight: .black))
+                                .font(.appMicro.weight(.black))
                                 .foregroundColor(selected ? .black : .gray.opacity(0.5))
                                 .frame(maxWidth: .infinity, minHeight: 32)
                                 .background(selected ? opt.color : Color(hex: "191926"))

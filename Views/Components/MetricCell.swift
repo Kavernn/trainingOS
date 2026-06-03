@@ -57,7 +57,7 @@ struct MetricCell: View {
             HStack(spacing: 3) {
                 if let icon {
                     Image(systemName: icon)
-                        .font(.system(size: iconSize, weight: .semibold))
+                        .font(iconFont)
                         .foregroundColor(isEmpty ? .gray.opacity(0.3) : iconColor)
                 }
                 Text(displayValue)
@@ -74,12 +74,12 @@ struct MetricCell: View {
 
             HStack(spacing: 3) {
                 Text(title)
-                    .font(.system(size: labelSize, weight: .medium))
+                    .font(labelFont)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                 if let unit, !isEmpty {
                     Text(unit)
-                        .font(.system(size: labelSize - 1, weight: .regular))
+                        .font(unitFont)
                         .foregroundColor(.secondary.opacity(0.6))
                 }
             }
@@ -144,15 +144,15 @@ struct MetricCell: View {
         switch t {
         case .up:
             Image(systemName: "arrow.up")
-                .font(.system(size: iconSize - 1, weight: .bold))
+                .font(trendFont)
                 .foregroundColor(.green)
         case .down:
             Image(systemName: "arrow.down")
-                .font(.system(size: iconSize - 1, weight: .bold))
+                .font(trendFont)
                 .foregroundColor(.red)
         case .flat:
             Image(systemName: "arrow.right")
-                .font(.system(size: iconSize - 1, weight: .bold))
+                .font(trendFont)
                 .foregroundColor(.secondary)
         }
     }
@@ -190,6 +190,38 @@ struct MetricCell: View {
         case .small:  return 9
         case .medium: return 11
         case .large:  return 13
+        }
+    }
+
+    private var iconFont: Font {
+        switch size {
+        case .small:  return .appMicro.weight(.semibold)
+        case .medium: return .appCaption.weight(.semibold)
+        case .large:  return .appLabel.weight(.semibold)
+        }
+    }
+
+    private var labelFont: Font {
+        switch size {
+        case .small:  return .appMicro.weight(.medium)
+        case .medium: return .appCaption.weight(.medium)
+        case .large:  return .appCaption.weight(.medium)
+        }
+    }
+
+    private var unitFont: Font {
+        switch size {
+        case .small:  return .appMicro
+        case .medium: return .appMicro
+        case .large:  return .appCaption
+        }
+    }
+
+    private var trendFont: Font {
+        switch size {
+        case .small:  return .appMicro.weight(.bold)
+        case .medium: return .appCaption.weight(.bold)
+        case .large:  return .appCaption.weight(.bold)
         }
     }
 }

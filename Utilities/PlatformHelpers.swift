@@ -100,10 +100,10 @@ private struct ActionFeedbackModifier: ViewModifier {
                 if let fb = manager.current, !fb.message.isEmpty {
                     HStack(spacing: 10) {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                             .foregroundColor(.orange)
                         Text(fb.message)
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(.white)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)

@@ -145,7 +145,8 @@ private struct EnergyTabContent: View {
             }
 
             if history.count >= 2 {
-                EnergyChartSection(history: history)
+                EnergyChartSection(history: history,
+                                   targetBalance: energy?.targetBalance)
             }
         }
         .padding(.horizontal, 16)
@@ -407,7 +408,25 @@ private struct EnergyErrorCard: View {
 
 private struct EnergyChartSection: View {
     let history: [EnergyHistoryDay]
+    var targetBalance: String? = nil
     @State private var selectedDay: EnergyHistoryDay?
+
+    private func targetMidpoint(_ s: String?) -> Int? {
+        guard let s = s else { return nil }
+        if s.contains("±") { return 0 }
+        var nums: [Int] = []
+        var cur = ""
+        var sign = 1
+        for ch in s {
+            if ch == "+" { sign = 1; cur = "" }
+            else if ch == "-" { sign = -1; cur = "" }
+            else if ch.isNumber { cur.append(ch) }
+            else if !cur.isEmpty, let n = Int(cur) { nums.append(n * sign); cur = "" }
+        }
+        if !cur.isEmpty, let n = Int(cur) { nums.append(n * sign) }
+        guard !nums.isEmpty else { return nil }
+        return nums.reduce(0, +) / nums.count
+    }
 
     private var yDomain: ClosedRange<Int> {
         let allVals = history.flatMap { day -> [Int] in
@@ -429,8 +448,11 @@ private struct EnergyChartSection: View {
                     .foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 12) {
-                    legendDot(color: .blue,  label: "TDEE")
-                    legendDot(color: .green, label: "Apports")
+                    legendDot(color: .blue,   label: "TDEE")
+                    legendDot(color: .green,  label: "Apports")
+                    if targetBalance != nil {
+                        legendDot(color: .yellow, label: "Cible")
+                    }
                 }
             }
 
@@ -488,6 +510,20 @@ private struct EnergyChartSection: View {
                     )
                     .foregroundStyle(Color.green)
                     .symbolSize(20)
+                }
+
+                // Ligne cible (objectif nutritionnel)
+                let avgTDEE = history.reduce(0) { $0 + $1.tdee } / history.count
+                if let mid = targetMidpoint(targetBalance) {
+                    let target = avgTDEE + mid
+                    RuleMark(y: .value("Cible", target))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 3]))
+                        .foregroundStyle(Color.yellow.opacity(0.5))
+                        .annotation(position: .top, alignment: .trailing) {
+                            Text("Cible \(target) kcal")
+                                .font(.system(size: 8))
+                                .foregroundColor(.yellow.opacity(0.7))
+                        }
                 }
 
                 // Sélection interactive
@@ -824,8 +860,8 @@ private struct Recovery14dChart: View {
         var components: [(v: Double, w: Double)] = []
         if let h = e.hrv       { components.append((min(100, max(0, (h - 20) / 60 * 100)), 2.0)) }
         if let r = e.restingHr { components.append((max(0, min(100, (80 - r) / 35 * 100)), 1.5)) }
-        if let f = e.fatigue   { components.append((max(0, (11 - f) / 10 * 100), 2.0)) }
-        if let s = e.soreness  { components.append((max(0, (11 - s) / 10 * 100), 1.0)) }
+        if let f = e.fatigue   { components.append((max(0, (10 - f) / 10 * 100), 2.0)) }
+        if let s = e.soreness  { components.append((max(0, (10 - s) / 10 * 100), 1.0)) }
         guard !components.isEmpty else { return nil }
         let tw = components.reduce(0) { $0 + $1.w }
         return components.reduce(0) { $0 + $1.v * $1.w } / tw
@@ -1233,15 +1269,26 @@ private struct DynamicSuggestionsSection: View {
         let readiness     = summary?.recoveryScore.map { $0 * 10 } ?? hrv?.hrvScore
         let hrvZone       = hrv?.hrvZone ?? ""
 
+        let tooEarly = energy?.isTooEarly == true
+
         // ── Alertes prioritaires (rouge) ───────────────────────────────────
-        if balance < -700 {
+        if let r = readiness, r < 40 {
+            list.append(Suggestion(
+                icon: "moon.zzz.fill", color: .red,
+                title: "Récupération critique",
+                detail: "Score de récupération très bas — journée de repos total recommandée.",
+                priority: 2
+            ))
+        }
+
+        if !tooEarly && balance <= -700 {
             list.append(Suggestion(
                 icon: "exclamationmark.triangle.fill", color: .red,
                 title: "Déficit sévère",
                 detail: "Ton bilan est inférieur à -700 kcal — risque de perte musculaire. Augmente tes apports.",
                 priority: 1
             ))
-        } else if balanceStatus == "deficit_aggressive" {
+        } else if !tooEarly && balanceStatus == "deficit_aggressive" {
             list.append(Suggestion(
                 icon: "flame.fill", color: .red,
                 title: "Déficit agressif",
@@ -1271,7 +1318,7 @@ private struct DynamicSuggestionsSection: View {
         }
 
         // ── Surplus trop élevé (orange) ────────────────────────────────────
-        if balanceStatus == "surplus_high" {
+        if !tooEarly && balanceStatus == "surplus_high" {
             list.append(Suggestion(
                 icon: "arrow.up.circle.fill", color: .orange,
                 title: "Surplus trop élevé",
@@ -1281,7 +1328,7 @@ private struct DynamicSuggestionsSection: View {
         }
 
         // ── Informations (bleu) ────────────────────────────────────────────
-        if intake == 0 && !(energy?.isError ?? true) {
+        if !tooEarly && intake == 0 && !(energy?.isError ?? true) {
             list.append(Suggestion(
                 icon: "fork.knife", color: .blue,
                 title: "Nutrition non enregistrée",

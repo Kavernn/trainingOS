@@ -102,8 +102,8 @@ private struct iOSContentView: View {
     @ViewBuilder private var offlineBanner: some View {
         if !network.isOnline {
             HStack(spacing: 6) {
-                Image(systemName: "wifi.slash").font(.system(size: 11, weight: .semibold))
-                Text("Hors-ligne — données en cache").font(.system(size: 12, weight: .medium))
+                Image(systemName: "wifi.slash").font(.appCaption.weight(.semibold))
+                Text("Hors-ligne — données en cache").font(.appCaption.weight(.medium))
             }
             .foregroundColor(.white)
             .padding(.horizontal, 14)
@@ -124,8 +124,8 @@ private struct iOSContentView: View {
     @ViewBuilder private var offlineToast: some View {
         if let msg = sync.offlineToast {
             HStack(spacing: 8) {
-                Image(systemName: "arrow.triangle.2.circlepath").font(.system(size: 13, weight: .semibold))
-                Text(msg).font(.system(size: 13, weight: .medium)).multilineTextAlignment(.leading)
+                Image(systemName: "arrow.triangle.2.circlepath").font(.appLabel.weight(.semibold))
+                Text(msg).font(.appLabel).multilineTextAlignment(.leading)
             }
             .foregroundColor(.white)
             .padding(.horizontal, 16)
@@ -257,7 +257,7 @@ private struct MacContentView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(macSections, id: \.title) { section in
                         Text(section.title.uppercased())
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.appMicro.weight(.semibold))
                             .tracking(1.5)
                             .foregroundColor(.gray)
                             .padding(.horizontal, 16)
@@ -268,11 +268,11 @@ private struct MacContentView: View {
                             Button { selected = page } label: {
                                 HStack(spacing: 10) {
                                     Image(systemName: page.icon)
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(.appLabel)
                                         .foregroundColor(selected == page ? page.color : .gray)
                                         .frame(width: 20)
                                     Text(page.label)
-                                        .font(.system(size: 14, weight: selected == page ? .semibold : .regular))
+                                        .font(.appLabel.weight(selected == page ? .semibold : .regular))
                                         .foregroundColor(selected == page ? .white : Color(white: 0.75))
                                     Spacer()
                                 }
@@ -294,8 +294,8 @@ private struct MacContentView: View {
                 .overlay(alignment: .top) {
                     if !network.isOnline {
                         HStack(spacing: 6) {
-                            Image(systemName: "wifi.slash").font(.system(size: 12, weight: .semibold))
-                            Text("Hors-ligne — données en cache").font(.system(size: 12, weight: .medium))
+                            Image(systemName: "wifi.slash").font(.appCaption.weight(.semibold))
+                            Text("Hors-ligne — données en cache").font(.appCaption.weight(.medium))
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

@@ -121,7 +121,7 @@ struct ProfileView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Modifier") { showEdit = true }
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(.orange)
                 }
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -130,7 +130,7 @@ struct ProfileView: View {
                             ProgressView().scaleEffect(0.75).tint(.gray)
                         } else {
                             Image(systemName: "square.and.arrow.up")
-                                .font(.system(size: 14)).foregroundColor(.gray)
+                                .font(.appLabel).foregroundColor(.gray)
                         }
                     }
                     .disabled(isExporting)
@@ -204,7 +204,7 @@ struct ProfileView: View {
                             ProgressView().tint(.white).scaleEffect(0.6)
                         } else {
                             Image(systemName: "camera.fill")
-                                .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                                .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
                         }
                     }
                 }
@@ -212,12 +212,12 @@ struct ProfileView: View {
             .padding(.bottom, 2)
 
             Text(profile?.name ?? "Athlète")
-                .font(.system(size: 24, weight: .bold))
+                .font(.appTitle)
                 .foregroundColor(.white)
 
             if !memberSinceText.isEmpty {
                 Text(memberSinceText)
-                    .font(.system(size: 13))
+                    .font(.appLabel).fontWeight(.regular)
                     .foregroundColor(.gray.opacity(0.8))
             }
 
@@ -232,9 +232,9 @@ struct ProfileView: View {
                 let accent = dnaArchetypeAccent(dna.archetype.key)
                 HStack(spacing: 5) {
                     Image(systemName: "waveform.path.ecg")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.appMicro).fontWeight(.bold)
                     Text(dna.archetype.label.uppercased())
-                        .font(.system(size: 11, weight: .bold)).tracking(0.5)
+                        .font(.appCaption).fontWeight(.bold).tracking(0.5)
                 }
                 .foregroundColor(accent)
                 .padding(.horizontal, 10).padding(.vertical, 5)
@@ -245,9 +245,9 @@ struct ProfileView: View {
                 let state = px.phoenixState
                 HStack(spacing: 4) {
                     Image(systemName: "flame.fill")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.appMicro).fontWeight(.bold)
                     Text(state.label.uppercased())
-                        .font(.system(size: 11, weight: .bold)).tracking(0.5)
+                        .font(.appCaption).fontWeight(.bold).tracking(0.5)
                 }
                 .foregroundColor(state.scoreColor)
                 .padding(.horizontal, 10).padding(.vertical, 5)
@@ -256,7 +256,7 @@ struct ProfileView: View {
             }
             if let goal = profile?.goal, !goal.isEmpty {
                 Text(goal)
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                     .padding(.horizontal, 10).padding(.vertical, 5)
                     .background(Color.white.opacity(0.07))
                     .clipShape(Capsule())
@@ -318,10 +318,10 @@ struct ProfileView: View {
         return VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("PHOENIX SCORE")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Image(systemName: "flame.fill")
-                    .font(.system(size: 13)).foregroundColor(color.opacity(0.7))
+                    .font(.appLabel).foregroundColor(color.opacity(0.7))
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 10) {
@@ -331,14 +331,14 @@ struct ProfileView: View {
                     .shadow(color: color.opacity(state.glowOpacity), radius: state.glowRadius)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(state.label.uppercased())
-                        .font(.system(size: 12, weight: .bold)).tracking(1)
+                        .font(.appCaption).fontWeight(.bold).tracking(1)
                         .foregroundColor(color)
                     if delta7d != 0 {
                         HStack(spacing: 3) {
                             Image(systemName: delta7d >= 0 ? "arrow.up" : "arrow.down")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.appMicro).fontWeight(.bold)
                             Text(String(format: "%.1f cette semaine", abs(delta7d)))
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                         }
                         .foregroundColor(delta7d >= 0 ? .green : .red)
                     }
@@ -366,21 +366,21 @@ struct ProfileView: View {
     private func phoenixAxisChip(icon: String, label: String, delta: Double, color: Color) -> some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.appCaption).fontWeight(.semibold)
                 .foregroundColor(color.opacity(0.8))
             if delta != 0 {
                 HStack(spacing: 2) {
                     Image(systemName: delta >= 0 ? "arrow.up" : "arrow.down")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.appMicro).fontWeight(.bold)
                     Text(String(format: "%.1f", abs(delta)))
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.appMicro).fontWeight(.semibold)
                 }
                 .foregroundColor(delta >= 0 ? .green : .red)
             } else {
-                Text("—").font(.system(size: 10)).foregroundColor(.gray.opacity(0.4))
+                Text("—").font(.appMicro).foregroundColor(.gray.opacity(0.4))
             }
             Text(label)
-                .font(.system(size: 8, weight: .bold)).tracking(0.5)
+                .font(.appMicro).fontWeight(.bold).tracking(0.5)
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
@@ -434,10 +434,10 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Text("BODY COMP")
-                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                     Spacer()
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12)).foregroundColor(.gray.opacity(0.5))
+                        .font(.appCaption).foregroundColor(.gray.opacity(0.5))
                 }
 
                 if let latest {
@@ -451,7 +451,7 @@ struct ProfileView: View {
                             .padding(.leading, 14)
                     }
                     Text("Données du \(formattedShortDate(latest.date))")
-                        .font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                        .font(.appCaption).foregroundColor(.gray.opacity(0.6))
                 } else {
                     bodyCompEmptyState
                 }
@@ -467,17 +467,17 @@ struct ProfileView: View {
     private func bodyCompWeightCol(latest: BodyWeightEntry, delta: Double?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(String(format: "%.1f lbs", latest.weight))
-                .font(.system(size: 22, weight: .black)).foregroundColor(.white)
+                .font(.appTitle).fontWeight(.black).foregroundColor(.white)
             if let d = delta {
                 HStack(spacing: 3) {
                     Image(systemName: d > 0 ? "arrow.up" : "arrow.down")
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.appMicro).fontWeight(.bold)
                     Text(String(format: "%.1f lbs", abs(d)))
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption).fontWeight(.semibold)
                 }
                 .foregroundColor(d <= 0 ? .green : .orange)
             }
-            Text("POIDS").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+            Text("POIDS").font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -489,15 +489,15 @@ struct ProfileView: View {
         let pctStr   = navyResult.map { String(format: "%.1f%%", $0.pct) } ?? "—"
         return VStack(alignment: .leading, spacing: 4) {
             Text(pctStr)
-                .font(.system(size: 22, weight: .black))
+                .font(.appTitle).fontWeight(.black)
                 .foregroundColor(navyResult != nil ? catColor : .white.opacity(0.3))
             if navyResult != nil {
                 Text(catLabel)
-                    .font(.system(size: 11, weight: .semibold)).foregroundColor(catColor.opacity(0.8))
+                    .font(.appCaption).fontWeight(.semibold).foregroundColor(catColor.opacity(0.8))
             } else {
-                Text("Incomplet").font(.system(size: 10)).foregroundColor(.orange.opacity(0.7))
+                Text("Incomplet").font(.appMicro).foregroundColor(.orange.opacity(0.7))
             }
-            Text("% MG NAVY").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+            Text("% MG NAVY").font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 14)
@@ -509,9 +509,9 @@ struct ProfileView: View {
                 .font(.system(size: 28)).foregroundColor(.gray.opacity(0.4))
             VStack(alignment: .leading, spacing: 4) {
                 Text("Aucune donnée de poids")
-                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.white.opacity(0.6))
+                    .font(.appLabel).fontWeight(.semibold).foregroundColor(.white.opacity(0.6))
                 Button("Ajouter maintenant") { showAddWeight = true }
-                    .font(.system(size: 12, weight: .semibold)).foregroundColor(.orange)
+                    .font(.appCaption).fontWeight(.semibold).foregroundColor(.orange)
             }
         }
     }
@@ -542,7 +542,7 @@ struct ProfileView: View {
                 ctx.fill(fill, with: .color(.orange.opacity(0.12)))
             }
         } else {
-            Text("—").font(.system(size: 11)).foregroundColor(.gray.opacity(0.4))
+            Text("—").font(.appCaption).foregroundColor(.gray.opacity(0.4))
                 .frame(maxWidth: .infinity, alignment: .center)
         }
     }
@@ -555,10 +555,10 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     Text("LIMITES DÉTRUITES")
-                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                     Spacer()
                     Image(systemName: "trophy.fill")
-                        .font(.system(size: 12)).foregroundColor(.yellow.opacity(0.8))
+                        .font(.appCaption).foregroundColor(.yellow.opacity(0.8))
                 }
                 .padding(.bottom, 12)
 
@@ -582,22 +582,22 @@ struct ProfileView: View {
         return HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(lift.name)
-                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                    .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
                     .lineLimit(1)
                 Text("Détruite le \(dateLabel)")
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text(String(format: "%.0f lbs × %d", prLbs, lift.prReps))
-                    .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                    .font(.appLabel).fontWeight(.bold).foregroundColor(.white)
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% — ancienne limite")
-                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.green)
+                        .font(.appCaption).fontWeight(.semibold).foregroundColor(.green)
                 }
             }
             Image(systemName: "chevron.right")
-                .font(.system(size: 11)).foregroundColor(.gray.opacity(0.4))
+                .font(.appCaption).foregroundColor(.gray.opacity(0.4))
         }
         .padding(.vertical, 6)
     }
@@ -627,7 +627,7 @@ struct ProfileView: View {
     private func trendCard(title: String, chart: AnyView, trendLabel: String, trendPositive: Bool?, isEmpty: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .font(.system(size: 9, weight: .bold)).tracking(1.5).foregroundColor(.gray)
+                .font(.appMicro).fontWeight(.bold).tracking(1.5).foregroundColor(.gray)
 
             if isEmpty {
                 RoundedRectangle(cornerRadius: 6)
@@ -635,7 +635,7 @@ struct ProfileView: View {
                     .frame(height: 44)
                     .overlay(
                         Text("Pas assez de données")
-                            .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                            .font(.appMicro).foregroundColor(.gray.opacity(0.5))
                     )
             } else {
                 chart
@@ -644,7 +644,7 @@ struct ProfileView: View {
             if !trendLabel.isEmpty {
                 let trendColor: Color = trendPositive == nil ? .gray : (trendPositive! ? .green : .red)
                 Text(trendLabel)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.appMicro).fontWeight(.semibold)
                     .foregroundColor(trendColor)
             }
         }
@@ -724,12 +724,12 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Label("MON SERMENT", systemImage: "shield.fill")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                     .labelStyle(.titleAndIcon)
                 Spacer()
                 if !oathUnlocked {
                     Image(systemName: "lock.fill")
-                        .font(.system(size: 11)).foregroundColor(.gray.opacity(0.5))
+                        .font(.appCaption).foregroundColor(.gray.opacity(0.5))
                 }
             }
             .padding(.bottom, 12)
@@ -737,7 +737,7 @@ struct ProfileView: View {
             if let oath {
                 if oathUnlocked {
                     Text(oath.text)
-                        .font(.system(size: 14, weight: .regular))
+                        .font(.appLabel).fontWeight(.regular)
                         .foregroundColor(.white.opacity(0.85))
                         .lineSpacing(5)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -746,9 +746,9 @@ struct ProfileView: View {
                     if warRoomEnabled && warRoomVictoryStreak > 0 {
                         HStack(spacing: 6) {
                             Image(systemName: "flame.fill").foregroundColor(.orange)
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                             Text("War Room — \(warRoomVictoryStreak)j de victoires consécutives")
-                                .font(.system(size: 12, weight: .semibold)).foregroundColor(.orange)
+                                .font(.appCaption).fontWeight(.semibold).foregroundColor(.orange)
                         }
                         .padding(.top, 10)
                     }
@@ -758,11 +758,11 @@ struct ProfileView: View {
                         Button(action: authenticateOath) {
                             HStack(spacing: 6) {
                                 Image(systemName: "faceid")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.appLabel).fontWeight(.semibold)
                                 Text("Tenir mon serment")
-                                    .font(.system(size: 13, weight: .semibold))
+                                    .font(.appLabel).fontWeight(.semibold)
                                 Image(systemName: "chevron.right")
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                             }
                             .foregroundColor(.orange)
                         }
@@ -772,13 +772,13 @@ struct ProfileView: View {
             } else {
                 HStack(spacing: 10) {
                     Image(systemName: "shield")
-                        .font(.system(size: 22)).foregroundColor(.gray.opacity(0.35))
+                        .font(.appTitle).foregroundColor(.gray.opacity(0.35))
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Tu n'as pas encore prononcé ton serment.")
-                            .font(.system(size: 13)).foregroundColor(.white.opacity(0.5))
+                            .font(.appLabel).fontWeight(.regular).foregroundColor(.white.opacity(0.5))
                         NavigationLink(destination: OathGateView()) {
                             Text("Écrire mon serment →")
-                                .font(.system(size: 12, weight: .semibold)).foregroundColor(.orange)
+                                .font(.appCaption).fontWeight(.semibold).foregroundColor(.orange)
                         }
                     }
                 }
@@ -796,11 +796,11 @@ struct ProfileView: View {
         let words = text.split(separator: " ")
         let preview = words.prefix(12).joined(separator: " ")
         return Text(preview.isEmpty ? "···" : preview + " ···")
-            .font(.system(size: 14))
+            .font(.appLabel).fontWeight(.regular)
             .foregroundColor(.clear)
             .overlay(
                 Text(preview.isEmpty ? "···" : preview + " ···")
-                    .font(.system(size: 14))
+                    .font(.appLabel).fontWeight(.regular)
                     .foregroundColor(.white.opacity(0.15))
                     .blur(radius: 5)
             )
@@ -853,15 +853,15 @@ struct ProfileView: View {
                     .fill(Color(hex: "2A1800"))
                     .frame(width: 30, height: 30)
                 Image(systemName: "cross.case.fill")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(Color(hex: "FF6600"))
             }
             Text("Graveyard")
-                .font(.system(size: 15))
+                .font(.appBody)
                 .foregroundColor(.white)
             Spacer()
             Image(systemName: "chevron.right")
-                .font(.system(size: 12))
+                .font(.appCaption)
                 .foregroundColor(.gray.opacity(0.4))
         }
         .padding(.horizontal, 14).padding(.vertical, 14)
@@ -878,16 +878,16 @@ struct ProfileView: View {
                     .fill(color.opacity(0.18))
                     .frame(width: 30, height: 30)
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(color)
             }
-            Text(label).font(.system(size: 15)).foregroundColor(.white)
+            Text(label).font(.appBody).foregroundColor(.white)
             Spacer()
             if let detail {
-                Text(detail).font(.system(size: 13)).foregroundColor(.gray)
+                Text(detail).font(.appLabel).fontWeight(.regular).foregroundColor(.gray)
             }
             Image(systemName: "chevron.right")
-                .font(.system(size: 12)).foregroundColor(.gray.opacity(0.4))
+                .font(.appCaption).foregroundColor(.gray.opacity(0.4))
         }
         .padding(.horizontal, 14).padding(.vertical, 14)
 
@@ -904,15 +904,15 @@ struct ProfileView: View {
         Button(action: { showEdit = true }) {
             HStack(spacing: 12) {
                 Image(systemName: "person.crop.circle.badge.exclamationmark.fill")
-                    .font(.system(size: 22)).foregroundColor(.orange)
+                    .font(.appTitle).foregroundColor(.orange)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Profil incomplet — l'IA travaille à l'aveugle.")
-                        .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                        .font(.appLabel).fontWeight(.semibold).foregroundColor(.white)
                     Text("Taille et âge nécessaires pour calibrer les recommandations.")
-                        .font(.system(size: 12)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 }
                 Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 12)).foregroundColor(.gray)
+                Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
             }
             .padding(14)
             .background(Color.orange.opacity(0.12))
@@ -1032,11 +1032,11 @@ struct ProfileStatSquare: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(color.opacity(hasData ? 1 : 0.35))
                 if isRecord {
                     Image(systemName: "trophy.fill")
-                        .font(.system(size: 10)).foregroundColor(.yellow)
+                        .font(.appMicro).foregroundColor(.yellow)
                 }
             }
             Text(value)
@@ -1045,11 +1045,11 @@ struct ProfileStatSquare: View {
                 .lineLimit(1).minimumScaleFactor(0.6)
             if let sub = subtitle {
                 Text(sub)
-                    .font(.system(size: 10))
+                    .font(.appMicro)
                     .foregroundColor(.gray.opacity(0.6))
             }
             Text(label)
-                .font(.system(size: 9, weight: .bold)).tracking(1.5)
+                .font(.appMicro).fontWeight(.bold).tracking(1.5)
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1070,9 +1070,9 @@ struct ProfileSnapshotPill: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Image(systemName: icon).font(.system(size: 16)).foregroundColor(color)
-            Text(value).font(.system(size: 18, weight: .bold)).foregroundColor(.white)
-            Text(label).font(.system(size: 10)).foregroundColor(.gray)
+            Image(systemName: icon).font(.appBody).foregroundColor(color)
+            Text(value).font(.appHeadline).fontWeight(.bold).foregroundColor(.white)
+            Text(label).font(.appMicro).foregroundColor(.gray)
         }
         .frame(width: 76).padding(.vertical, 14)
         .background(Color.appCard).cornerRadius(14)
@@ -1087,9 +1087,9 @@ struct ProfileStatCard: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            Image(systemName: icon).font(.system(size: 20)).foregroundColor(color)
-            Text(value).font(.system(size: 18, weight: .bold)).foregroundColor(.white)
-            Text(label).font(.system(size: 11)).foregroundColor(.gray)
+            Image(systemName: icon).font(.appTitle).foregroundColor(color)
+            Text(value).font(.appHeadline).fontWeight(.bold).foregroundColor(.white)
+            Text(label).font(.appCaption).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 16)
         .background(Color.appCard).cornerRadius(14)
@@ -1104,10 +1104,10 @@ struct GoalProgressRow: View {
     var body: some View {
         VStack(spacing: 6) {
             HStack {
-                Text(exercise).font(.system(size: 13)).foregroundColor(.white)
+                Text(exercise).font(.appLabel).fontWeight(.regular).foregroundColor(.white)
                 Spacer()
                 Text("\(units.format(progress.current)) / \(units.format(progress.goal))")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(progress.achieved ? .green : .gray)
             }
             GeometryReader { geo in

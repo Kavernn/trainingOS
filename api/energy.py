@@ -13,7 +13,7 @@ from typing import Optional
 
 import db
 from tdee import compute_bmr, _LBS_TO_KG
-from utils import _today_mtl
+from utils import _today_mtl, get_nutrition_time_context
 
 _OBJECTIVE_LABELS = {
     "bulk":    "hypertrophie",
@@ -35,9 +35,9 @@ _TARGET_BALANCE = {
 def _met_lifting(rpe: int) -> float:
     """MET musculation selon RPE (ACSM Compendium)."""
     if rpe <= 4: return 3.5
-    if rpe <= 6: return 4.5
-    if rpe <= 8: return 5.5
-    return 6.5
+    if rpe <= 6: return 5.0
+    if rpe <= 8: return 6.5
+    return 8.0
 
 
 def _met_cardio(ctype: str, duration_min: int,
@@ -148,7 +148,7 @@ def _neat_from_steps(steps: Optional[int], weight_kg: float) -> Optional[int]:
 # ── Balance status ────────────────────────────────────────────────────────────
 
 def _balance_status(balance: int, goal: str) -> str:
-    if balance < -700:
+    if balance <= -700:
         return "deficit_severe"
 
     if goal == "cut":
@@ -175,7 +175,8 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
     Calcule le bilan énergétique complet pour une date (défaut = aujourd'hui MTL).
     Retourne le payload JSON pour /api/energy/daily.
     """
-    today = date or _today_mtl()
+    today        = date or _today_mtl()
+    is_too_early = get_nutrition_time_context(today)["is_too_early"]
 
     # ── Profil ────────────────────────────────────────────────────────────────
     profile    = db.get_profile() or {}
@@ -243,6 +244,7 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
         "intake":         intake,
         "balance":        balance,
         "balance_status": balance_status,
+        "is_too_early":   is_too_early,
         "objective":      objective,
         "target_balance": target_balance,
         "breakdown": {
@@ -267,6 +269,10 @@ def compute_energy_history(days: int = 7) -> list[dict]:
 
     today   = _today_mtl()
     profile = db.get_profile() or {}
+
+    latest_bw = db.get_body_weight_logs(limit=1)
+    if latest_bw:
+        profile["weight"] = latest_bw[0].get("weight") or profile.get("weight")
 
     weight_lbs = profile.get("weight")
     height_cm  = float(profile.get("height") or 0) or None

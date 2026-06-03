@@ -103,7 +103,7 @@ struct BodyCompView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: NavyCalculatorView()) {
                         Image(systemName: "ruler.fill")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                             .foregroundColor(.teal)
                     }
                 }
@@ -124,7 +124,7 @@ struct BodyCompView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("POIDS ACTUEL")
-                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                     if let w = latest?.weight {
                         Text(String(format: "%.1f lbs", w))
                             .font(.system(size: 44, weight: .black))
@@ -138,19 +138,19 @@ struct BodyCompView: View {
                 Spacer()
                 VStack(alignment: .trailing, spacing: 6) {
                     Text(tendance)
-                        .font(.system(size: 15, weight: .bold)).foregroundColor(tendanceColor)
+                        .font(.appBody.weight(.bold)).foregroundColor(tendanceColor)
                     if bodyWeight.count > 1 {
                         let diff = (latest?.weight ?? 0) - bodyWeight[1].weight
                         VStack(alignment: .trailing, spacing: 2) {
                             HStack(spacing: 4) {
                                 Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                 Text("\(diff >= 0 ? "+" : "")\(String(format: "%.1f lbs", diff))")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                             }
                             .foregroundColor(diff >= 0 ? .orange.opacity(0.8) : .green.opacity(0.8))
                             Text("vs hier")
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                                 .foregroundColor(.gray.opacity(0.5))
                         }
                     }
@@ -177,7 +177,7 @@ struct BodyCompView: View {
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("HISTORIQUE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 .padding(.horizontal, 16)
             ForEach(bodyWeight.prefix(30)) { entry in
                 BodyWeightRow(
@@ -228,10 +228,10 @@ struct CompChip: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
-                .font(.system(size: 9, weight: .black)).tracking(1)
+                .font(.appMicro.weight(.black)).tracking(1)
                 .foregroundColor(color.opacity(0.7))
             Text(value)
-                .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                .font(.appBody.weight(.bold)).foregroundColor(.white)
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -256,7 +256,7 @@ struct CompositionChartCard: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("COMPOSITION")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 12) {
                     LegendDot(color: .green, label: "Masse maigre")
@@ -323,10 +323,10 @@ struct CompositionChartCard: View {
                 HStack {
                     Spacer()
                     Text("Maigre \(String(format: "%.1f lbs", last.weight * (1 - bf/100)))")
-                        .font(.system(size: 12, weight: .semibold)).foregroundColor(.green)
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.green)
                     Text("·").foregroundColor(.gray)
                     Text("Gras \(String(format: "%.1f lbs", last.weight * bf/100))")
-                        .font(.system(size: 12, weight: .semibold)).foregroundColor(.blue)
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.blue)
                     Spacer()
                 }
             }
@@ -342,7 +342,7 @@ struct LegendDot: View {
     var body: some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 7, height: 7)
-            Text(label).font(.system(size: 10)).foregroundColor(.gray)
+            Text(label).font(.appCaption).foregroundColor(.gray)
         }
     }
 }
@@ -366,10 +366,10 @@ struct WHRCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("RATIO TAILLE / HANCHES")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text(statusLabel)
-                    .font(.system(size: 12, weight: .bold)).foregroundColor(statusColor)
+                    .font(.appCaption.weight(.bold)).foregroundColor(statusColor)
                     .padding(.horizontal, 10).padding(.vertical, 4)
                     .background(statusColor.opacity(0.12)).clipShape(Capsule())
             }
@@ -377,7 +377,7 @@ struct WHRCard: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(String(format: "%.2f", ratio))
                     .font(.system(size: 40, weight: .black)).foregroundColor(statusColor)
-                Text("WHR").font(.system(size: 13, weight: .semibold)).foregroundColor(.gray)
+                Text("WHR").font(.appLabel.weight(.semibold)).foregroundColor(.gray)
             }
 
             // Jauge colorée
@@ -403,7 +403,7 @@ struct WHRCard: View {
             .frame(height: 18)
 
             Text("Référence \(isMale ? "H" : "F") : < \(String(format: "%.2f", thresholds.good)) optimal · < \(String(format: "%.2f", thresholds.ok)) acceptable")
-                .font(.system(size: 11)).foregroundColor(.gray)
+                .font(.appCaption).foregroundColor(.gray)
         }
         .padding(16)
         .background(Color.appCard)
@@ -457,10 +457,10 @@ struct MeasurementsCard: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("MENSURATIONS cm")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 if !periodLabel.isEmpty {
-                    Text(periodLabel).font(.system(size: 11)).foregroundColor(.gray)
+                    Text(periodLabel).font(.appCaption).foregroundColor(.gray)
                 }
             }
 
@@ -468,17 +468,17 @@ struct MeasurementsCard: View {
                 VStack(spacing: 7) {
                     HStack {
                         Image(systemName: item.icon)
-                            .font(.system(size: 11)).foregroundColor(item.color).frame(width: 20)
+                            .font(.appCaption).foregroundColor(item.color).frame(width: 20)
                         Text(item.label)
-                            .font(.system(size: 13, weight: .medium)).foregroundColor(.white)
+                            .font(.appLabel).foregroundColor(.white)
                         Spacer()
                         if let d = item.delta, abs(d) >= 0.5 {
                             Text("\(d >= 0 ? "+" : "")\(d, specifier: "%.0f")")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(d <= 0 ? .green : .orange)
                         }
                         Text("\(item.current, specifier: "%.0f")")
-                            .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                            .font(.appBody.weight(.bold)).foregroundColor(.white)
                     }
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
@@ -560,20 +560,20 @@ struct ComparisonTableCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 // Header
                 HStack {
-                    Text("ÉVOLUTION").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    Text("ÉVOLUTION").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                     Spacer()
                 }
                 // Column labels
                 HStack {
                     Text("").frame(maxWidth: .infinity, alignment: .leading)
                     Text(monthLabel(o.date))
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.gray)
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.gray)
                         .frame(width: 68, alignment: .center)
                     Text(monthLabel(n.date))
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.white)
                         .frame(width: 68, alignment: .center)
                     Text("Δ")
-                        .font(.system(size: 10, weight: .semibold)).foregroundColor(.gray)
+                        .font(.appCaption.weight(.semibold)).foregroundColor(.gray)
                         .frame(width: 52, alignment: .trailing)
                 }
                 Divider().background(Color.white.opacity(0.08))
@@ -581,13 +581,13 @@ struct ComparisonTableCard: View {
                 ForEach(rows) { row in
                     HStack {
                         Text(row.label)
-                            .font(.system(size: 12, weight: .medium)).foregroundColor(.white)
+                            .font(.appCaption.weight(.medium)).foregroundColor(.white)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Text(row.old ?? "—")
-                            .font(.system(size: 12)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                             .frame(width: 68, alignment: .center)
                         Text(row.new ?? "—")
-                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.white)
                             .frame(width: 68, alignment: .center)
                         Group {
                             if let d = row.delta, abs(d) >= 0.05 {
@@ -598,7 +598,7 @@ struct ComparisonTableCard: View {
                                 Text("=").foregroundColor(.gray)
                             }
                         }
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .frame(width: 52, alignment: .trailing)
                     }
                     Divider().background(Color.white.opacity(0.05))
@@ -622,28 +622,28 @@ struct BodyWeightRow: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.date)
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.gray)
                 if let bf = entry.bodyFat {
                     Text("\(bf, specifier: "%.1f")% gras")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.blue)
                 }
                 if let wc = entry.waistCm {
                     Text("Tour: \(wc, specifier: "%.0f") cm")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.purple)
                 }
             }
             Spacer()
             Text(String(format: "%.1f lbs", entry.weight))
-                .font(.system(size: 15, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundColor(.white)
 
             // Edit button
             Button(action: onEdit) {
                 Image(systemName: "pencil")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .frame(width: 32, height: 32)
                     .background(Color.orange.opacity(0.12))
                     .foregroundColor(.orange)
@@ -654,7 +654,7 @@ struct BodyWeightRow: View {
             // Delete button
             Button { confirmDelete = true } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .frame(width: 32, height: 32)
                     .background(Color.red.opacity(0.1))
                     .foregroundColor(.red.opacity(0.8))
@@ -713,10 +713,10 @@ struct BodyWeightSheet: View {
                                         ProgressView().tint(.white).scaleEffect(0.8)
                                     } else {
                                         Image(systemName: "heart.text.square.fill")
-                                            .font(.system(size: 15))
+                                            .font(.appBody)
                                     }
                                     Text(isLoadingHK ? "Lecture Health..." : "Remplir depuis Apple Santé")
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .font(.appLabel.weight(.semibold))
                                 }
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
@@ -732,21 +732,21 @@ struct BodyWeightSheet: View {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("POIDS (LBS)")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .tracking(2)
                                     .foregroundColor(.gray)
                                 TextField("0.0", text: $weightStr)
                                     .keyboardType(.decimalPad)
                                     .focused($bodyFocus, equals: .weight)
                                     .foregroundColor(.white)
-                                    .font(.system(size: 22, weight: .bold))
+                                    .font(.appTitle)
                                     .padding(12)
                                     .background(Color(hex: "191926"))
                                     .cornerRadius(10)
                             }
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("% GRAS")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .tracking(2)
                                     .foregroundColor(.gray)
                                 let fatInvalid = !bodyFatStr.isEmpty && {
@@ -757,7 +757,7 @@ struct BodyWeightSheet: View {
                                     .keyboardType(.decimalPad)
                                     .focused($bodyFocus, equals: .bodyFat)
                                     .foregroundColor(fatInvalid ? .red : .white)
-                                    .font(.system(size: 22, weight: .bold))
+                                    .font(.appTitle)
                                     .padding(12)
                                     .background(Color(hex: "191926"))
                                     .cornerRadius(10)
@@ -767,7 +767,7 @@ struct BodyWeightSheet: View {
                                     )
                                 if fatInvalid {
                                     Text("Valeur entre 3% et 60%")
-                                        .font(.system(size: 11)).foregroundColor(.red.opacity(0.8))
+                                        .font(.appCaption).foregroundColor(.red.opacity(0.8))
                                 }
                             }
                         }
@@ -775,7 +775,7 @@ struct BodyWeightSheet: View {
                         // Mensurations — section collapsible visuellement
                         VStack(alignment: .leading, spacing: 10) {
                             Text("MENSURATIONS cm — optionnel")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .tracking(2)
                                 .foregroundColor(.gray)
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
@@ -800,7 +800,7 @@ struct BodyWeightSheet: View {
                     HStack(spacing: 8) {
                         if isSaving { ProgressView().tint(.white).scaleEffect(0.85) }
                         Text(isEdit ? "Enregistrer les modifications" : "Enregistrer")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                             .foregroundColor(.white)
                     }
                 }
@@ -824,10 +824,10 @@ struct BodyWeightSheet: View {
                     Spacer()
                     if bodyFocus == .weight {
                         Button("% Gras →") { bodyFocus = .bodyFat }
-                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                            .font(.appBody.weight(.semibold)).foregroundColor(.orange)
                     } else {
                         Button("Ok") { bodyFocus = nil }
-                            .font(.system(size: 15, weight: .semibold)).foregroundColor(.orange)
+                            .font(.appBody.weight(.semibold)).foregroundColor(.orange)
                     }
                 }
             }
@@ -917,7 +917,7 @@ struct MesureField: View {
     @Binding var text: String
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+            Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
             TextField(placeholder, text: $text)
                 .keyboardType(.decimalPad).foregroundColor(.white)
                 .padding(10).background(Color(hex: "191926")).cornerRadius(8)
@@ -954,7 +954,7 @@ struct WeightChartView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("POIDS CORPOREL")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.appCaption.weight(.bold))
                         .tracking(2)
                         .foregroundColor(.gray)
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
@@ -962,7 +962,7 @@ struct WeightChartView: View {
                             .font(.system(size: 28, weight: .black))
                             .foregroundColor(.white)
                         Text(unit)
-                            .font(.system(size: 13))
+                            .font(.appLabel.weight(.regular))
                             .foregroundColor(.gray)
                     }
                 }
@@ -971,19 +971,19 @@ struct WeightChartView: View {
                 if entries.count >= 2 {
                     VStack(alignment: .trailing, spacing: 2) {
                         Text("SUR LA PÉRIODE")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.appMicro.weight(.bold))
                             .tracking(1)
                             .foregroundColor(.gray)
                         HStack(spacing: 3) {
                             Image(systemName: delta < -0.2 ? "arrow.down" : delta > 0.2 ? "arrow.up" : "minus")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                             Text(String(format: "%+.1f %@", delta, unit))
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.appLabel.weight(.bold))
                         }
                         .foregroundColor(deltaColor)
                         if let bf = entries.last?.bodyFat {
                             Text(String(format: "%.1f%% BF", bf))
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                         }
                     }
@@ -1060,13 +1060,13 @@ struct WeightChartView: View {
             if entries.count >= 2 {
                 HStack {
                     Text(entries.first.map { shortDate($0.date) } ?? "")
-                        .font(.system(size: 9)).foregroundColor(.gray)
+                        .font(.appMicro).foregroundColor(.gray)
                     Spacer()
                     Text("\(entries.count) entrées")
-                        .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.5))
                     Spacer()
                     Text(entries.last.map { shortDate($0.date) } ?? "")
-                        .font(.system(size: 9)).foregroundColor(.gray)
+                        .font(.appMicro).foregroundColor(.gray)
                 }
             }
         }
@@ -1096,7 +1096,7 @@ struct BodyProjectionCard: View {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .foregroundColor(.cyan)
                 Text("PROJECTIONS OBJECTIFS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             }
 
             ForEach(projection.projections) { proj in
@@ -1104,41 +1104,41 @@ struct BodyProjectionCard: View {
                     HStack {
                         let isBodyFat = proj.goalType == "body_fat"
                         Text(isBodyFat ? "Masse grasse" : "Masse maigre")
-                            .font(.system(size: 13, weight: .semibold)).foregroundColor(.white)
+                            .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                         Spacer()
                         if let date = proj.projectedDate {
                             Text(formatDate(date))
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .foregroundColor(.cyan)
                         } else {
                             Text("Tendance insuffisante")
-                                .font(.system(size: 11)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                         }
                     }
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("ACTUEL")
-                                .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                             let unit = proj.goalType == "body_fat" ? "%" : " lbs"
                             Text(String(format: "%.1f\(unit)", proj.current))
-                                .font(.system(size: 15, weight: .black)).foregroundColor(.white)
+                                .font(.appBody.weight(.black)).foregroundColor(.white)
                         }
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 10)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("OBJECTIF")
-                                .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                             let unit = proj.goalType == "body_fat" ? "%" : " lbs"
                             Text(String(format: "%.1f\(unit)", proj.target))
-                                .font(.system(size: 15, weight: .black)).foregroundColor(.cyan)
+                                .font(.appBody.weight(.black)).foregroundColor(.cyan)
                         }
                         Spacer()
                         if let r2 = proj.r2 {
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text("FIABILITÉ")
-                                    .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                                    .font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                                 Text(String(format: "%.0f%%", r2 * 100))
-                                    .font(.system(size: 13, weight: .bold))
+                                    .font(.appLabel.weight(.bold))
                                     .foregroundColor(r2 >= 0.7 ? .green : r2 >= 0.4 ? .yellow : .orange)
                             }
                         }
@@ -1146,7 +1146,7 @@ struct BodyProjectionCard: View {
                     let rate = proj.slopePerWeek
                     let rateStr = rate < 0 ? String(format: "%.2f/sem", rate) : String(format: "+%.2f/sem", rate)
                     Text("Tendance : \(rateStr)")
-                        .font(.system(size: 10)).foregroundColor(.gray.opacity(0.7))
+                        .font(.appCaption).foregroundColor(.gray.opacity(0.7))
                 }
                 .padding(12)
                 .background(Color.white.opacity(0.04))

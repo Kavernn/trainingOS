@@ -36,7 +36,7 @@ struct BodyCompHistoryView: View {
     private var chartCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("% MASSE GRASSE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
 
             let sorted = entries.sorted { $0.date < $1.date }
             let correctionDate = Calendar.current.date(
@@ -78,7 +78,7 @@ struct BodyCompHistoryView: View {
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 3]))
                         .annotation(position: .top, alignment: .leading) {
                             Text("Correction formule")
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                                 .foregroundColor(.yellow.opacity(0.75))
                         }
                 }
@@ -90,7 +90,7 @@ struct BodyCompHistoryView: View {
                     AxisValueLabel {
                         if let v = value.as(Double.self) {
                             Text(String(format: "%.0f%%", v))
-                                .font(.system(size: 10)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                         }
                     }
                 }
@@ -102,7 +102,7 @@ struct BodyCompHistoryView: View {
                     AxisValueLabel {
                         if let d = value.as(Date.self) {
                             Text(d, format: .dateTime.month(.abbreviated).day())
-                                .font(.system(size: 10)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                         }
                     }
                 }
@@ -120,7 +120,7 @@ struct BodyCompHistoryView: View {
     private var historyList: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("ENTRÉES")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 .padding(.horizontal, 16)
 
             ForEach(entries) { entry in
@@ -134,24 +134,24 @@ struct BodyCompHistoryView: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.date, style: .date)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Text(entry.date, style: .time)
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(String(format: "%.1f%%", entry.bodyFatPct))
-                        .font(.system(size: 15, weight: .black))
+                        .font(.appBody.weight(.black))
                         .foregroundColor(.blue)
                 }
                 HStack(spacing: 10) {
                     Label(String(format: "%.1f", entry.fatMassLbs), systemImage: "")
-                        .font(.system(size: 11)).foregroundColor(.orange)
+                        .font(.appCaption).foregroundColor(.orange)
                     Label(String(format: "%.1f lbs", entry.leanMassLbs), systemImage: "")
-                        .font(.system(size: 11)).foregroundColor(.green)
+                        .font(.appCaption).foregroundColor(.green)
                 }
             }
         }
@@ -175,10 +175,10 @@ struct BodyCompHistoryView: View {
                 .font(.system(size: 48))
                 .foregroundColor(.green.opacity(0.5))
             Text("Aucune mesure enregistrée")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundColor(.gray)
             Text("Utilise le calculateur pour enregistrer ta première composition corporelle.")
-                .font(.system(size: 13))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.gray.opacity(0.7))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)

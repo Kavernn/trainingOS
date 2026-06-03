@@ -321,6 +321,182 @@
 
 ## ✅ Déjà résolu récemment
 
+---
+
+## 🔤 Migration typographie — tokens design system
+
+> Remplacer tous les `.font(.system(size:))` par les 7 tokens (`appHero/appTitle/appHeadline/appBody/appLabel/appCaption/appMicro`).
+> Règles dans `DesignSystem.swift`. Exceptions : <9pt KEEP, 25-31pt KEEP, 35pt+ KEEP, `.design: .rounded` KEEP, `.design: .serif` KEEP.
+> Workflow : un dossier à la fois, approbation visuelle entre chaque.
+
+**Fichiers déjà migrés ✅**
+- [x] ContentView.swift
+- [x] Services/WeatherService.swift
+- [x] Utilities/PlatformHelpers.swift
+- [x] Utilities/RPEHelper.swift
+- [x] Views/Components/EmptyStateView.swift
+- [x] Views/Components/MetricCell.swift
+- [x] Views/Components/PrimaryButton.swift
+- [x] Views/Dashboard/DashboardView.swift
+- [x] Views/Nutrition/NutritionView.swift
+- [x] Views/Onboarding/OnboardingView.swift
+- [x] Views/Profile/ProfileView.swift
+- [x] Views/Recovery/RecoveryView.swift
+- [x] Views/Seance/WorkoutActiveView.swift
+
+**Fichiers restants par dossier**
+
+- [x] Views/BodyComp/BodyCompHistoryView.swift
+- [x] Views/BodyComp/BodyCompView.swift
+- [x] Views/BodyComp/NavyCalculatorView.swift
+- [x] Views/Cardio/CardioActiveView.swift
+- [x] Views/Cardio/CardioSummaryView.swift
+- [x] Views/Cardio/CardioView.swift
+- [ ] Views/Dashboard/BodyBudgetView.swift
+- [ ] Views/Dashboard/ChecklistCardView.swift
+- [ ] Views/Dashboard/CoachBriefCard.swift
+- [ ] Views/Dashboard/CoachTipCard.swift
+- [ ] Views/Dashboard/DashboardBriefCards.swift
+- [ ] Views/Dashboard/DashboardCardioCard.swift
+- [ ] Views/Dashboard/DashboardHeaderCards.swift
+- [ ] Views/Dashboard/DashboardNutritionCards.swift
+- [ ] Views/Dashboard/DashboardReadinessCards.swift
+- [ ] Views/Dashboard/DashboardRitualCards.swift
+- [ ] Views/Dashboard/DashboardTodayCards.swift
+- [ ] Views/Dashboard/DashboardWeeklyCards.swift
+- [ ] Views/Dashboard/DashboardWellnessCards.swift
+- [ ] Views/Dashboard/InfoButton.swift
+- [ ] Views/Dashboard/MorningRevealView.swift
+- [ ] Views/Dashboard/PhoenixCard.swift
+- [ ] Views/Dashboard/ProactiveBannerCard.swift
+- [ ] Views/Dashboard/ReadinessView.swift
+- [ ] Views/Dashboard/TodayWidgets.swift
+- [ ] Views/EnergyRecovery/EnergyRecoveryView.swift
+- [ ] Views/GymFinder/GymContributeView.swift
+- [ ] Views/GymFinder/GymDetailView.swift
+- [ ] Views/GymFinder/GymFiltersView.swift
+- [ ] Views/GymFinder/GymFinderView.swift
+- [ ] Views/HealthDashboard/HealthDashboardView.swift
+- [ ] Views/HIIT/HIITHistoriqueView.swift
+- [ ] Views/Historique/HistoriqueView.swift
+- [ ] Views/Intelligence/ArsenalView.swift
+- [ ] Views/Intelligence/BattleCounterView.swift
+- [ ] Views/Intelligence/ChatComponents.swift
+- [ ] Views/Intelligence/ChatPanel.swift
+- [ ] Views/Intelligence/CoachContextSummary.swift
+- [ ] Views/Intelligence/CoachGreetingHeader.swift
+- [ ] Views/Intelligence/CoachMemoryView.swift
+- [ ] Views/Intelligence/CoachMissionCard.swift
+- [ ] Views/Intelligence/DemonsView.swift
+- [ ] Views/Intelligence/GraveyardView.swift
+- [ ] Views/Intelligence/InsightPrincipalCard.swift
+- [ ] Views/Intelligence/InsightsCard.swift
+- [ ] Views/Intelligence/IntelligenceAnalyticsCards.swift
+- [ ] Views/Intelligence/IntelligenceView.swift
+- [ ] Views/Intelligence/NarrativeCard.swift
+- [ ] Views/Intelligence/NutritionPerfInsightCard.swift
+- [ ] Views/Intelligence/PatternCardView.swift
+- [ ] Views/Intelligence/PatternReportView.swift
+- [ ] Views/Intelligence/PlateauViews.swift
+- [ ] Views/Intelligence/PostSeanceCard.swift
+- [ ] Views/Intelligence/ProgramPreviewSheet.swift
+- [ ] Views/Intelligence/ProgressionCard.swift
+- [ ] Views/Intelligence/ProposalsCard.swift
+- [ ] Views/Intelligence/QuestionChipsView.swift
+- [ ] Views/Intelligence/RitualEveningView.swift
+- [ ] Views/Intelligence/RitualMorningView.swift
+- [ ] Views/Intelligence/RitualView.swift
+- [ ] Views/Intelligence/SmartInsightsSection.swift
+- [ ] Views/Intelligence/TimeCapsuleViews.swift
+- [ ] Views/Intelligence/TodayMetricsRow.swift
+- [ ] Views/Intelligence/TopicExplorer.swift
+- [ ] Views/Intelligence/TriggerLogView.swift
+- [ ] Views/Intelligence/WarMapView.swift
+- [ ] Views/Intelligence/WarRoomGateView.swift
+- [ ] Views/Intelligence/WarRoomView.swift
+- [ ] Views/Intelligence/WeekMomentumStrip.swift
+- [ ] Views/Intelligence/WorkoutDNAView.swift
+- [ ] Views/Inventaire/InventaireView.swift
+- [ ] Views/MentalHealth/BreathworkView.swift
+- [ ] Views/MentalHealth/JournalView.swift
+- [ ] Views/MentalHealth/MentalHealthDashboardView.swift
+- [ ] Views/MentalHealth/MentalHealthView.swift
+- [ ] Views/MentalHealth/MoodTrackerView.swift
+- [ ] Views/More/MoreView.swift
+- [ ] Views/Notes/NotesView.swift
+- [ ] Views/Nutrition/AddNutritionSheet.swift
+- [ ] Views/Nutrition/BarcodeScannerSheet.swift
+- [ ] Views/Nutrition/DayTypeBadge.swift
+- [ ] Views/Nutrition/FoodCatalogView.swift
+- [ ] Views/Nutrition/MacroSummaryCard.swift
+- [ ] Views/Nutrition/MealTemplateSheets.swift
+- [ ] Views/Nutrition/NutritionActionMessage.swift
+- [ ] Views/Nutrition/NutritionAnalyticsCards.swift
+- [ ] Views/Nutrition/NutritionCharts.swift
+- [ ] Views/Nutrition/NutritionEntryViews.swift
+- [ ] Views/Nutrition/NutritionSettingsSheet.swift
+- [ ] Views/Nutrition/ProteinProgressCard.swift
+- [ ] Views/Nutrition/ScanLabelSheet.swift
+- [ ] Views/Oath/OathView.swift
+- [ ] Views/Oath/OathWriteView.swift
+- [ ] Views/Objectifs/ObjectifsView.swift
+- [ ] Views/Profile/NotificationCenterView.swift
+- [ ] Views/Programme/ProgrammeView.swift
+- [ ] Views/PSS/PSSView.swift
+- [ ] Views/Recovery/HRVAnalysisCard.swift
+- [ ] Views/Recovery/LogRecoverySheet.swift
+- [ ] Views/Recovery/ReadinessCard.swift
+- [ ] Views/Recovery/RecoveryCharts.swift
+- [ ] Views/Recovery/RecoveryPerformanceBanner.swift
+- [ ] Views/Recovery/RecoveryRow.swift
+- [ ] Views/Recovery/WatchSyncBannerView.swift
+- [ ] Views/Seance/AddCardioSheet.swift
+- [ ] Views/Seance/AddHIITSheet.swift
+- [ ] Views/Seance/BonusSeanceView.swift
+- [ ] Views/Seance/CreateVariantSheet.swift
+- [ ] Views/Seance/ExerciseCard.swift
+- [ ] Views/Seance/ExerciseSwapSheet.swift
+- [ ] Views/Seance/FloatingRestTimerCard.swift
+- [ ] Views/Seance/GhostBanner.swift
+- [ ] Views/Seance/HoldToLogButton.swift
+- [ ] Views/Seance/MidWorkoutAdvisorCard.swift
+- [ ] Views/Seance/PlateCalculatorSheet.swift
+- [ ] Views/Seance/PRCelebrationView.swift
+- [ ] Views/Seance/ProgressionSuggestionsSheet.swift
+- [ ] Views/Seance/SeanceSoirView.swift
+- [ ] Views/Seance/SeanceView.swift
+- [ ] Views/Seance/SessionChips.swift
+- [ ] Views/Seance/SessionSupportViews.swift
+- [ ] Views/Seance/SessionTimerView.swift
+- [ ] Views/Seance/StepperInput.swift
+- [ ] Views/Seance/WarmupGuidanceBanner.swift
+- [ ] Views/Seasons/SeasonCloseView.swift
+- [ ] Views/Seasons/SeasonReportView.swift
+- [ ] Views/Seasons/SeasonStartView.swift
+- [ ] Views/Seasons/SeasonView.swift
+- [ ] Views/Settings/CardioSettingsView.swift
+- [ ] Views/Settings/DisplaySettingsView.swift
+- [ ] Views/Settings/HealthDataSettingsView.swift
+- [ ] Views/Settings/RecoverySettingsView.swift
+- [ ] Views/Settings/TrainingSettingsView.swift
+- [ ] Views/Sleep/SleepView.swift
+- [ ] Views/Spirit/SpiritBreathworkView.swift
+- [ ] Views/Spirit/SpiritJournalView.swift
+- [ ] Views/Spirit/SpiritMeditationView.swift
+- [ ] Views/Spirit/SpiritView.swift
+- [ ] Views/SplashView.swift
+- [ ] Views/Stats/StatsBodyViews.swift
+- [ ] Views/Stats/StatsComponents.swift
+- [ ] Views/Stats/StatsNutritionViews.swift
+- [ ] Views/Stats/StatsTrainingViews.swift
+- [ ] Views/Stats/StatsView.swift
+- [ ] Views/Stats/StatsView+Tabs.swift
+- [ ] Views/Stats/StatsWellnessViews.swift
+- [ ] Views/Timer/TimerView.swift
+- [ ] Views/XP/XPView.swift
+
+---
+
 - [x] Dashboard 16 UX fixes : reorder TodayCard, skeleton loading, NavigationLinks, font WeekGrid, DeloadChip level 1, MoodCard, HeatmapView retiré, GreatDayCard badge intégré, PeakPrediction CTA, sleep prompt label, RecoverySnapshot indigo (2026-03-29)
 - [x] Progressive overload — RIR capture, RPE gradué, détection chute de performance, trend 4 semaines (2026-03-26)
 - [x] StatsView 5 onglets, period picker, smart insights (2026-03-26)

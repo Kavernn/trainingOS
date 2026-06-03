@@ -19,17 +19,17 @@ struct TimeCapsuleSection: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "capsule.fill")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.appCaption).fontWeight(.bold)
                         .foregroundColor(capsuleGoldDim)
                     Text("TIME CAPSULE")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.appMicro).fontWeight(.bold)
                         .foregroundColor(Color(white: 0.40))
                         .tracking(0.8)
                 }
                 Spacer()
                 Button { showCreate = true } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.appBody).fontWeight(.medium)
                         .foregroundColor(capsuleGoldDim)
                         .frame(width: 30, height: 30)
                 }
@@ -94,20 +94,20 @@ struct CapsuleLockedCard: View {
                     .fill(capsuleGoldDim.opacity(0.08))
                     .frame(width: 44, height: 44)
                 Image(systemName: "capsule.fill")
-                    .font(.system(size: 18))
+                    .font(.appHeadline)
                     .foregroundColor(capsuleGoldDim.opacity(0.55))
                 Image(systemName: "lock.fill")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.appMicro).fontWeight(.bold)
                     .foregroundColor(capsuleGoldDim)
                     .offset(x: 12, y: 12)
             }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(capsule.formattedCreatedDate)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(.white.opacity(0.85))
                 Text(capsule.message != nil ? "Message inclus" : "Capsule scellée")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
 
@@ -115,10 +115,10 @@ struct CapsuleLockedCard: View {
 
             VStack(alignment: .trailing, spacing: 2) {
                 Text("\(capsule.daysUntilUnlock)")
-                    .font(.system(size: 22, weight: .black, design: .rounded))
+                    .font(.appTitle).fontWeight(.black)
                     .foregroundColor(capsuleGoldDim)
                 Text("jours")
-                    .font(.system(size: 10))
+                    .font(.appMicro)
                     .foregroundColor(.gray)
             }
         }
@@ -149,24 +149,24 @@ struct CapsuleUnlockedCard: View {
                                              startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: 44, height: 44)
                     Image(systemName: "capsule.fill")
-                        .font(.system(size: 18))
+                        .font(.appHeadline)
                         .foregroundColor(.black)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("OUVRE-MOI")
-                        .font(.system(size: 10, weight: .black))
+                        .font(.appMicro).fontWeight(.black)
                         .foregroundColor(capsuleGoldBright)
                         .tracking(1.2)
                     Text("Capsule du \(capsule.formattedCreatedDate)")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(.white.opacity(0.85))
                 }
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption).fontWeight(.semibold)
                     .foregroundColor(capsuleGoldDim)
             }
             .padding(14)
@@ -199,15 +199,15 @@ private struct CapsuleEmptyState: View {
                 .font(.system(size: 28))
                 .foregroundColor(capsuleGoldDim.opacity(0.35))
             Text("Capture cet instant")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.appLabel).fontWeight(.semibold)
                 .foregroundColor(.white.opacity(0.65))
             Text("Scelle tes stats d'aujourd'hui et découvre ta progression dans 1, 3 ou 6 mois.")
-                .font(.system(size: 12))
+                .font(.appCaption)
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
             Button(action: onCreate) {
                 Text("Créer ma première capsule")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel).fontWeight(.semibold)
                     .foregroundColor(.black)
                     .padding(.horizontal, 20)
                     .padding(.vertical, 10)
@@ -288,10 +288,10 @@ struct TimeCapsuleCreateView: View {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Voici qui tu es aujourd'hui")
-                        .font(.system(size: 22, weight: .black, design: .rounded))
+                        .font(.appTitle).fontWeight(.black)
                         .foregroundColor(.white)
                     Text("Ces stats seront figées dans ta capsule.")
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(.gray)
                 }
 
@@ -305,14 +305,14 @@ struct TimeCapsuleCreateView: View {
                 } else if snapFailed {
                     VStack(spacing: 12) {
                         Text("Impossible de charger le snapshot.")
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
                         Button {
                             Task { await loadSnapshot() }
                         } label: {
                             Text("Réessayer")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel).fontWeight(.semibold)
                                 .foregroundColor(capsuleGoldDim)
                         }
                         .buttonStyle(.plain)
@@ -338,17 +338,17 @@ struct TimeCapsuleCreateView: View {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Écris à ton futur toi")
-                        .font(.system(size: 22, weight: .black, design: .rounded))
+                        .font(.appTitle).fontWeight(.black)
                         .foregroundColor(.white)
                     Text("Optionnel. 280 caractères max.")
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(.gray)
                 }
 
                 TextEditor(text: $message)
                     .scrollContentBackground(.hidden)
                     .foregroundColor(.white)
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .padding(14)
                     .frame(minHeight: 150)
                     .background(
@@ -361,7 +361,7 @@ struct TimeCapsuleCreateView: View {
                         if message.isEmpty {
                             Text("Dans 3 mois je veux bench 225...")
                                 .foregroundColor(.gray.opacity(0.45))
-                                .font(.system(size: 15))
+                                .font(.appBody)
                                 .padding(.top, 22)
                                 .padding(.leading, 18)
                                 .allowsHitTesting(false)
@@ -374,7 +374,7 @@ struct TimeCapsuleCreateView: View {
                 HStack {
                     Spacer()
                     Text("\(message.count)/280")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
 
@@ -382,7 +382,7 @@ struct TimeCapsuleCreateView: View {
                     GoldCTAButton(title: "Ajouter") { step = 3 }
                     Button { message = ""; step = 3 } label: {
                         Text("Passer")
-                            .font(.system(size: 13))
+                            .font(.appLabel)
                             .foregroundColor(.gray)
                     }
                     .buttonStyle(.plain)
@@ -400,10 +400,10 @@ struct TimeCapsuleCreateView: View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Quand l'ouvrir ?")
-                    .font(.system(size: 22, weight: .black, design: .rounded))
+                    .font(.appTitle).fontWeight(.black)
                     .foregroundColor(.white)
                 Text("Impossible de modifier après la création.")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(.gray)
             }
 
@@ -440,7 +440,7 @@ struct TimeCapsuleCreateView: View {
                                                     startPoint: .top, endPoint: .bottom))
                 if sealDone {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.appTitle)
                         .foregroundColor(capsuleGoldBright)
                         .offset(x: 30, y: -30)
                         .transition(.scale.combined(with: .opacity))
@@ -455,7 +455,7 @@ struct TimeCapsuleCreateView: View {
                     .foregroundColor(.white)
                 if sealDone {
                     Text("S'ouvre le \(unlockDateLabel)")
-                        .font(.system(size: 14))
+                        .font(.appLabel)
                         .foregroundColor(capsuleGoldDim)
                         .transition(.opacity)
                 }
@@ -466,7 +466,7 @@ struct TimeCapsuleCreateView: View {
             if sealDone {
                 Button { onCreated(); dismiss() } label: {
                     Text("Fermer")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.appBody).fontWeight(.medium)
                         .foregroundColor(.white.opacity(0.55))
                 }
                 .buttonStyle(.plain)
@@ -569,10 +569,10 @@ private struct DurationButton: View {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("\(months) mois")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appBody).fontWeight(.bold)
                         .foregroundColor(selected ? .black : .white)
                     Text("Ouvre le \(unlockDateLabel)")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(selected ? .black.opacity(0.55) : .gray)
                 }
                 Spacer()
@@ -611,11 +611,11 @@ private struct SnapshotPreviewCard: View {
             ForEach(rows.indices, id: \.self) { i in
                 HStack {
                     Text(rows[i].0)
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(.gray)
                     Spacer()
                     Text(rows[i].1)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(.white)
                 }
                 .padding(.horizontal, 16)
@@ -662,7 +662,7 @@ private struct GoldCTAButton: View {
                 if isLoading {
                     ProgressView().tint(.black).scaleEffect(0.85)
                 } else {
-                    Text(title).font(.system(size: 15, weight: .bold))
+                    Text(title).font(.appBody).fontWeight(.bold)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -724,16 +724,16 @@ struct TimeCapsuleRevealView: View {
         VStack(spacing: 14) {
             Spacer()
             Text(display.formattedCreatedDate.uppercased())
-                .font(.system(size: 12, weight: .semibold))
+                .font(.appCaption).fontWeight(.semibold)
                 .foregroundColor(capsuleGoldDim)
                 .tracking(3)
             Text("\(display.durationMonths) mois plus tard...")
-                .font(.system(size: 34, weight: .black, design: .rounded))
+                .font(.appHero).fontWeight(.black)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
             Spacer()
             Text("Touche pour continuer")
-                .font(.system(size: 12))
+                .font(.appCaption)
                 .foregroundColor(.gray.opacity(0.5))
                 .padding(.bottom, 48)
         }
@@ -755,7 +755,7 @@ struct TimeCapsuleRevealView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "envelope.open.fill").foregroundColor(capsuleGoldDim)
                         Text("TON MESSAGE")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.appCaption).fontWeight(.bold)
                             .foregroundColor(capsuleGoldDim)
                             .tracking(1.5)
                     }
@@ -773,7 +773,7 @@ struct TimeCapsuleRevealView: View {
                 Spacer()
                 Button { advance() } label: {
                     Text("Voir ma progression →")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(capsuleGoldDim)
                 }
                 .buttonStyle(.plain)
@@ -792,18 +792,18 @@ struct TimeCapsuleRevealView: View {
             VStack(spacing: 24) {
                 VStack(spacing: 4) {
                     Text("AVANT  ·  MAINTENANT")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.appCaption).fontWeight(.bold)
                         .foregroundColor(capsuleGoldDim)
                         .tracking(2)
                     Text("\(display.formattedCreatedDate)  →  Aujourd'hui")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
                 .padding(.top, 52)
 
                 if metrics.isEmpty {
                     Text("Pas encore assez de données pour comparer.")
-                        .font(.system(size: 13))
+                        .font(.appLabel)
                         .foregroundColor(.gray)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
@@ -824,7 +824,7 @@ struct TimeCapsuleRevealView: View {
 
                 Button { advance() } label: {
                     Text("Continuer →")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(capsuleGoldDim)
                 }
                 .buttonStyle(.plain)
@@ -851,7 +851,7 @@ struct TimeCapsuleRevealView: View {
         VStack(spacing: 0) {
             Spacer()
             Text(display.motivationalVerdict)
-                .font(.system(size: 32, weight: .black, design: .rounded))
+                .font(.appHero).fontWeight(.black)
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
@@ -860,7 +860,7 @@ struct TimeCapsuleRevealView: View {
             Spacer()
             Button { advance() } label: {
                 Text("Continuer →")
-                    .font(.system(size: 13))
+                    .font(.appLabel)
                     .foregroundColor(.gray)
             }
             .buttonStyle(.plain)
@@ -891,7 +891,7 @@ struct TimeCapsuleRevealView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "square.and.arrow.up")
                         Text("Partager mon avant/après")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.appBody).fontWeight(.bold)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -904,7 +904,7 @@ struct TimeCapsuleRevealView: View {
 
                 Button { onDismiss() } label: {
                     Text("Fermer")
-                        .font(.system(size: 14))
+                        .font(.appLabel)
                         .foregroundColor(.gray)
                 }
                 .buttonStyle(.plain)
@@ -945,26 +945,26 @@ private struct ComparisonRow: View {
     var body: some View {
         HStack(spacing: 0) {
             Text(metric.label)
-                .font(.system(size: 12))
+                .font(.appCaption)
                 .foregroundColor(.gray)
                 .frame(width: 100, alignment: .leading)
 
             Text(metric.before)
-                .font(.system(size: 12, weight: .medium))
+                .font(.appCaption).fontWeight(.medium)
                 .foregroundColor(.white.opacity(0.55))
                 .frame(maxWidth: .infinity, alignment: .center)
 
             Image(systemName: "arrow.right")
-                .font(.system(size: 9))
+                .font(.appMicro)
                 .foregroundColor(Color(white: 0.35))
 
             Text(metric.after)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.appCaption).fontWeight(.semibold)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity, alignment: .center)
 
             Text(metric.delta)
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption).fontWeight(.bold)
                 .foregroundColor(
                     metric.isNeutral
                         ? .gray
@@ -994,7 +994,7 @@ struct TimeCapsuleShareSheet: View {
         NavigationStack {
             VStack(spacing: 20) {
                 Text("Aperçu")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appBody).fontWeight(.semibold)
                     .foregroundColor(.white)
                     .padding(.top, 16)
 
@@ -1004,7 +1004,7 @@ struct TimeCapsuleShareSheet: View {
                     .shadow(color: capsuleGoldDim.opacity(0.25), radius: 20)
 
                 Text("PSS et données de santé mentale exclus du partage.")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
@@ -1019,7 +1019,7 @@ struct TimeCapsuleShareSheet: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "square.and.arrow.up")
-                        Text("Exporter").font(.system(size: 15, weight: .bold))
+                        Text("Exporter").font(.appBody).fontWeight(.bold)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -1067,7 +1067,7 @@ struct TimeCapsuleShareCard: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("TRAININGOS")
-                            .font(.system(size: 8, weight: .black))
+                            .font(.appMicro).fontWeight(.black)
                             .foregroundColor(capsuleGoldDim)
                             .tracking(2.5)
                         Text("TIME CAPSULE")
@@ -1077,12 +1077,12 @@ struct TimeCapsuleShareCard: View {
                     }
                     Spacer()
                     Image(systemName: "capsule.fill")
-                        .font(.system(size: 16))
+                        .font(.appBody)
                         .foregroundColor(capsuleGoldDim)
                 }
 
                 Text("\(capsule.formattedCreatedDate)  →  Aujourd'hui")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption).fontWeight(.semibold)
                     .foregroundColor(.white.opacity(0.8))
 
                 Rectangle().fill(capsuleGoldDim.opacity(0.35)).frame(height: 1)
@@ -1092,14 +1092,14 @@ struct TimeCapsuleShareCard: View {
                     ForEach(metrics) { m in
                         HStack {
                             Text(m.label)
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                                 .foregroundColor(.gray)
                             Spacer()
                             Text("\(m.before) → \(m.after)")
-                                .font(.system(size: 9, weight: .medium))
+                                .font(.appMicro).fontWeight(.medium)
                                 .foregroundColor(.white.opacity(0.75))
                             Text(m.delta)
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.appMicro).fontWeight(.bold)
                                 .foregroundColor(m.isNeutral ? .gray
                                     : m.deltaPositive ? .green
                                     : Color(red: 0.97, green: 0.50, blue: 0.50))

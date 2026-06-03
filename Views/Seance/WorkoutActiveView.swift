@@ -299,10 +299,10 @@ struct WorkoutSeanceView: View {
         VStack(spacing: 0) {
             HStack {
                 Text("VUE RÉSUMÉ")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("\(vm.logResults.count)/\(exercises.count)")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption).fontWeight(.bold)
                     .foregroundColor(vm.logResults.count == exercises.count ? .green : .orange)
             }
             .padding(.horizontal, 16).padding(.bottom, 8)
@@ -310,22 +310,22 @@ struct WorkoutSeanceView: View {
                 let r = vm.logResults[name]
                 HStack(spacing: 10) {
                     Image(systemName: r != nil ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 14))
+                        .font(.appLabel)
                         .foregroundColor(r != nil ? .green : .gray.opacity(0.3))
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(name).font(.system(size: 13, weight: r != nil ? .semibold : .regular))
+                        Text(name).font(.appLabel).fontWeight(r != nil ? .semibold : .regular)
                             .foregroundColor(r != nil ? .white : .gray)
-                        Text(scheme).font(.system(size: 10)).foregroundColor(.gray)
+                        Text(scheme).font(.appMicro).foregroundColor(.gray)
                     }
                     Spacer()
                     if let r = r {
                         VStack(alignment: .trailing, spacing: 1) {
                             Text(UnitSettings.shared.format(r.weight))
-                                .font(.system(size: 12, weight: .bold)).foregroundColor(.orange)
-                            Text(r.reps).font(.system(size: 10)).foregroundColor(.gray)
+                                .font(.appCaption).fontWeight(.bold).foregroundColor(.orange)
+                            Text(r.reps).font(.appMicro).foregroundColor(.gray)
                         }
                     } else {
-                        Text("—").font(.system(size: 12)).foregroundColor(.gray.opacity(0.3))
+                        Text("—").font(.appCaption).foregroundColor(.gray.opacity(0.3))
                     }
                 }
                 .padding(.horizontal, 16).padding(.vertical, 9)
@@ -349,7 +349,7 @@ struct WorkoutSeanceView: View {
                     HStack {
                         Image(systemName: "plus.circle.fill").foregroundColor(.orange)
                         Text("Ajouter un exercice")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                             .foregroundColor(.orange)
                     }
                     .padding(.horizontal, 16)
@@ -375,16 +375,16 @@ struct WorkoutSeanceView: View {
             if orderSaveError {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
-                    Text("Ordre non sauvegardé").font(.system(size: 12)).foregroundColor(.red)
+                    Text("Ordre non sauvegardé").font(.appCaption).foregroundColor(.red)
                     Spacer()
                     Button("Réessayer") {
                         orderSaveError = false
                         Task { await saveOrder(exerciseOrder) }
                     }
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption).fontWeight(.semibold)
                     .foregroundColor(.orange)
                     Button { orderSaveError = false } label: {
-                        Image(systemName: "xmark").font(.system(size: 11)).foregroundColor(.gray)
+                        Image(systemName: "xmark").font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -398,7 +398,7 @@ struct WorkoutSeanceView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "plus.circle.fill").foregroundColor(.orange.opacity(0.7))
                     Text("Ajouter un exercice")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel).fontWeight(.semibold)
                         .foregroundColor(.orange.opacity(0.7))
                 }
                 .frame(maxWidth: .infinity)
@@ -417,18 +417,18 @@ struct WorkoutSeanceView: View {
         HStack(spacing: 12) {
             Button { Task { await deleteExercise(name) } } label: {
                 Image(systemName: "minus.circle.fill")
-                    .font(.system(size: 22)).foregroundColor(.red)
+                    .font(.appTitle).foregroundColor(.red)
             }
             Button {
                 editTarget = ExerciseTarget(seance: data.today, exercise: name, scheme: scheme)
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(name).font(.system(size: 14)).foregroundColor(.white)
-                        Text(scheme).font(.system(size: 12)).foregroundColor(.gray)
+                        Text(name).font(.appLabel).fontWeight(.regular).foregroundColor(.white)
+                        Text(scheme).font(.appCaption).foregroundColor(.gray)
                     }
                     Spacer()
-                    Image(systemName: "pencil").font(.system(size: 13)).foregroundColor(.orange.opacity(0.7))
+                    Image(systemName: "pencil").font(.appLabel).foregroundColor(.orange.opacity(0.7))
                 }
             }
             .buttonStyle(.plain)
@@ -459,7 +459,7 @@ struct WorkoutSeanceView: View {
         HStack(spacing: 8) {
             Rectangle().fill(Color.white.opacity(0.06)).frame(height: 1)
             Text("À FAIRE")
-                .font(.system(size: 9, weight: .bold))
+                .font(.appMicro).fontWeight(.bold)
                 .tracking(2)
                 .foregroundColor(.gray.opacity(0.4))
                 .fixedSize()
@@ -533,21 +533,21 @@ struct WorkoutSeanceView: View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
                 Text(group)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption).fontWeight(.semibold)
                     .foregroundColor(.orange)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
                     .background(Color.orange.opacity(0.15))
                     .clipShape(Capsule())
                 Text("Superset")
-                    .font(.system(size: 11, weight: .medium))
+                    .font(.appCaption).fontWeight(.medium)
                     .foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 4) {
                     Image(systemName: "timer")
-                        .font(.system(size: 10))
+                        .font(.appMicro)
                     Text("120 s repos")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.appCaption).fontWeight(.medium)
                 }
                 .foregroundColor(.gray)
                 Button {
@@ -556,7 +556,7 @@ struct WorkoutSeanceView: View {
                     }
                 } label: {
                     Text("Dissocier")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8).padding(.vertical, 3)
                         .background(Color.secondary.opacity(0.12))
@@ -569,9 +569,9 @@ struct WorkoutSeanceView: View {
 
             HStack(spacing: 5) {
                 Image(systemName: "arrow.down.circle.fill")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                 Text("enchaîner")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption).fontWeight(.semibold)
             }
             .foregroundColor(.orange.opacity(0.8))
             .frame(maxWidth: .infinity, alignment: .center)
@@ -718,14 +718,14 @@ struct WorkoutSeanceView: View {
     @ViewBuilder private var optionalAddonsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("OPTIONNEL")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro).fontWeight(.bold).tracking(2).foregroundColor(.gray)
             HStack(spacing: 10) {
                 Button(action: { showAddCardio = true }) {
                     HStack(spacing: 6) {
                         Image(systemName: cardioCount > 0 ? "plus.circle.fill" : "figure.run")
-                            .font(.system(size: 14))
+                            .font(.appLabel)
                         Text(cardioCount > 0 ? "Cardio ×\(cardioCount) — Ajouter +" : "Ajouter Cardio")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel).fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
@@ -739,9 +739,9 @@ struct WorkoutSeanceView: View {
                 Button(action: { showAddHIIT = true }) {
                     HStack(spacing: 6) {
                         Image(systemName: hiitCount > 0 ? "plus.circle.fill" : "bolt.fill")
-                            .font(.system(size: 14))
+                            .font(.appLabel)
                         Text(hiitCount > 0 ? "HIIT ×\(hiitCount) — Ajouter +" : "Ajouter HIIT")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.appLabel).fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
@@ -793,11 +793,11 @@ struct WorkoutSeanceView: View {
                             } label: {
                                 HStack(spacing: 4) {
                                     Text(data.today.uppercased())
-                                        .font(.system(size: 13, weight: .black))
+                                        .font(.appLabel).fontWeight(.black)
                                         .tracking(3)
                                         .foregroundColor(.orange)
                                     Image(systemName: "chevron.down")
-                                        .font(.system(size: 9, weight: .bold))
+                                        .font(.appMicro).fontWeight(.bold)
                                         .foregroundColor(.orange.opacity(0.6))
                                 }
                             }
@@ -806,7 +806,7 @@ struct WorkoutSeanceView: View {
                                 MesocycleChip(info: meso)
                             } else {
                                 Text("Semaine \(data.week)")
-                                    .font(.system(size: 12))
+                                    .font(.appCaption)
                                     .foregroundColor(.gray)
                             }
                         }
@@ -818,7 +818,7 @@ struct WorkoutSeanceView: View {
                             withAnimation { showSummary.toggle() }
                         } label: {
                             Image(systemName: showSummary ? "list.bullet.rectangle.fill" : "list.bullet.rectangle")
-                                .font(.system(size: 20))
+                                .font(.appTitle)
                                 .foregroundColor(showSummary ? .cyan : .cyan.opacity(0.5))
                         }
                         .padding(.leading, 8)
@@ -826,7 +826,7 @@ struct WorkoutSeanceView: View {
                             withAnimation { isEditMode.toggle() }
                         } label: {
                             Image(systemName: isEditMode ? "checkmark.circle.fill" : "pencil.circle")
-                                .font(.system(size: 20))
+                                .font(.appTitle)
                                 .foregroundColor(isEditMode ? .green : .orange)
                         }
                         .padding(.leading, 8)
@@ -836,7 +836,7 @@ struct WorkoutSeanceView: View {
                                 showAbandonAlert = true
                             } label: {
                                 Image(systemName: "xmark.circle")
-                                    .font(.system(size: 20))
+                                    .font(.appTitle)
                                     .foregroundColor(.red.opacity(0.6))
                             }
                             .padding(.leading, 8)
@@ -848,12 +848,12 @@ struct WorkoutSeanceView: View {
                     let allDone = progressComplete
                     HStack(spacing: 6) {
                         Text(allDone ? "Tous les exercices loggés" : "\(done) / \(total) exercices")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption).fontWeight(.semibold)
                             .foregroundColor(allDone ? .green : .secondary)
                             .animation(.easeInOut(duration: 0.2), value: allDone)
                         if allDone {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.appMicro).fontWeight(.bold)
                                 .foregroundColor(.green)
                                 .transition(.scale.combined(with: .opacity))
                         }
@@ -885,12 +885,12 @@ struct WorkoutSeanceView: View {
                     if let hint = appState.macroSessionHint {
                         HStack(spacing: 6) {
                             Image(systemName: hint.isAbove ? "fork.knife" : "exclamationmark.circle")
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.appMicro).fontWeight(.medium)
                                 .foregroundColor(hint.isAbove ? .green : .orange)
                             Text(hint.isAbove
                                  ? "Bonne nutrition hier — conditions optimales"
                                  : "Nutrition de la veille sous ton seuil optimal (\(hint.macro))")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(hint.isAbove ? .green.opacity(0.85) : .orange.opacity(0.85))
                                 .lineLimit(1)
                             Spacer()
@@ -900,7 +900,7 @@ struct WorkoutSeanceView: View {
                     // Énergie inline — remplace la modal bloquante
                     HStack(spacing: 6) {
                         Text("ÉNERGIE")
-                            .font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                            .font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
                         ForEach(1...5, id: \.self) { val in
                             Button {
                                 withAnimation { energyPre = val }
@@ -912,7 +912,7 @@ struct WorkoutSeanceView: View {
                                 }
                             } label: {
                                 Image(systemName: val <= energyPre ? "bolt.fill" : "bolt")
-                                    .font(.system(size: 15))
+                                    .font(.appBody)
                                     .foregroundColor(val <= energyPre ? .yellow : .gray.opacity(0.25))
                             }
                             .buttonStyle(.plain)
@@ -920,18 +920,18 @@ struct WorkoutSeanceView: View {
                         // W-D8 — on resume, indicate that energy can be updated
                         if vm.isResuming && energyPreDate == data.todayDate && !energyConfirmed {
                             Text("Mise à jour ?")
-                                .font(.system(size: 9, weight: .medium))
+                                .font(.appMicro).fontWeight(.medium)
                                 .foregroundColor(.yellow.opacity(0.6))
                         }
                         Spacer()
                         if energyConfirmed {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 13))
+                                .font(.appLabel)
                                 .foregroundColor(.green)
                                 .transition(.scale.combined(with: .opacity))
                         } else if energyPreDate == data.todayDate {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 10)).foregroundColor(.green.opacity(0.6))
+                                .font(.appMicro).foregroundColor(.green.opacity(0.6))
                         }
                     }
                     .padding(.horizontal, 10).padding(.vertical, 7)
@@ -945,15 +945,15 @@ struct WorkoutSeanceView: View {
                 if vm.isResuming {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise.circle.fill")
-                            .font(.system(size: 15))
+                            .font(.appBody)
                             .foregroundColor(.cyan)
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Continuer la séance")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel).fontWeight(.semibold)
                                 .foregroundColor(.cyan)
                             // W-D2 — show how many exercises are already logged
                             Text("\(vm.logResults.count) exercice(s) déjà sauvegardé(s). Continue ou recommence depuis le début.")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -964,7 +964,7 @@ struct WorkoutSeanceView: View {
                                 vm.isResuming = false
                             }
                         }
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption).fontWeight(.semibold)
                         .foregroundColor(.red.opacity(0.8))
                         .padding(.horizontal, 8).padding(.vertical, 4)
                         .background(Color.red.opacity(0.1))
@@ -1029,13 +1029,13 @@ struct WorkoutSeanceView: View {
                 // Volume cumulé temps réel
                 HStack(spacing: 8) {
                     Image(systemName: "scalemass.fill")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(currentVolume > 0 ? .orange : .gray.opacity(0.4))
                     Text("Volume total")
-                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.gray)
+                        .font(.appCaption).fontWeight(.semibold).foregroundColor(.gray)
                     Spacer()
                     Text("\(Int(currentVolume)) \(UnitSettings.shared.label)")
-                        .font(.system(size: 14, weight: .black))
+                        .font(.appLabel).fontWeight(.black)
                         .foregroundColor(currentVolume > 0 ? .orange : .gray.opacity(0.4))
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -1050,10 +1050,10 @@ struct WorkoutSeanceView: View {
                 if let swap = lastSwap {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.left.arrow.right.circle.fill")
-                            .font(.system(size: 14))
+                            .font(.appLabel)
                             .foregroundColor(.orange)
                         Text("\(swap.old) → \(swap.new)")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption).fontWeight(.semibold)
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .truncationMode(.middle)
@@ -1064,10 +1064,10 @@ struct WorkoutSeanceView: View {
                                 lastSwap = nil
                             }
                         }
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption).fontWeight(.semibold)
                         .foregroundColor(.orange)
                         Button { withAnimation { lastSwap = nil } } label: {
-                            Image(systemName: "xmark").font(.system(size: 11)).foregroundColor(.gray)
+                            Image(systemName: "xmark").font(.appCaption).foregroundColor(.gray)
                         }
                     }
                     .padding(.horizontal, 12).padding(.vertical, 8)
@@ -1086,19 +1086,19 @@ struct WorkoutSeanceView: View {
                 if !vm.logResults.isEmpty {
                     HStack(spacing: 10) {
                         Image(systemName: "gauge.with.dots.needle.67percent")
-                            .font(.system(size: 14))
+                            .font(.appLabel)
                             .foregroundColor(RPEHelper.color(for: computedSessionRPE))
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Effort séance")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.appCaption).fontWeight(.semibold)
                                 .foregroundColor(.gray)
                             Text(RPEHelper.option(for: RPEHelper.rirFromRPE(computedSessionRPE)).label)
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(RPEHelper.color(for: computedSessionRPE))
                         }
                         Spacer()
                         Text("RPE \(String(format: "%.0f", computedSessionRPE))")
-                            .font(.system(size: 16, weight: .black))
+                            .font(.appBody).fontWeight(.black)
                             .foregroundColor(RPEHelper.color(for: computedSessionRPE))
                     }
                     .padding(.horizontal, 16).padding(.vertical, 12)
@@ -1146,7 +1146,7 @@ struct WorkoutSeanceView: View {
                 Divider().background(Color.white.opacity(0.08))
                 if !canFinish {
                     Text("Loggue au moins 1 exercice pour terminer")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.45))
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 8)
@@ -1167,7 +1167,7 @@ struct WorkoutSeanceView: View {
                             Image(systemName: completionGlow ? "flag.checkered" : "checkmark.circle.fill")
                         }
                         Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody).fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                     .background(!canFinish || vm.isFinishing ? Color(hex: "1a1a2e") : completionGlow ? Color.green : Color.orange)
@@ -1684,4 +1684,3 @@ struct WorkoutSeanceView: View {
         await vm.load()
     }
 }
-
