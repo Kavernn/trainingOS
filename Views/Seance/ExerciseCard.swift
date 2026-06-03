@@ -1663,12 +1663,20 @@ struct EnduranceTimerSection: View {
     private var udTarget:          String { "et_target_\(exerciseName)" }
     private var udSetIdx:          String { "et_setIdx_\(exerciseName)" }
     private var udPausedRemaining: String { "et_paused_\(exerciseName)" }
+    private var udLastDur:         String { "et_lastdur_\(exerciseName)" }
     private var notifId:           String { "et_notif_\(exerciseName)" }
 
     private func syncTarget() {
         guard currentSetIdx < sets.count else { return }
-        targetDur = sets[currentSetIdx].duration
-        remaining  = targetDur
+        let prescribed = sets[currentSetIdx].duration
+        if prescribed > 0 {
+            targetDur = prescribed
+        } else {
+            // Fall back to last completed duration for this exercise, then preset default
+            let saved = UserDefaults.standard.integer(forKey: udLastDur)
+            targetDur = saved > 0 ? saved : 60
+        }
+        remaining = targetDur
     }
 
     private func saveRunningState() {
@@ -1788,6 +1796,7 @@ struct EnduranceTimerSection: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { withAnimation { flashGreen = false } }
         clearTimerState()
         cancelNotification()
+        UserDefaults.standard.set(targetDur, forKey: udLastDur)
         onSetCompleted(currentSetIdx, targetDur)
         timerState = .finished
     }
