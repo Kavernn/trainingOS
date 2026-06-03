@@ -1,6 +1,7 @@
 import SwiftUI
 import Charts
 import AVFoundation
+import UserNotifications
 
 // MARK: - Exercise Card
 
@@ -1480,7 +1481,7 @@ struct EnduranceTimerSection: View {
             controls
         }
         .padding(.vertical, 4)
-        .onAppear { syncTarget() }
+        .onAppear { restoreOrSync() }
         .onDisappear { timerTask?.cancel(); timerTask = nil }
     }
 
@@ -1657,14 +1658,94 @@ struct EnduranceTimerSection: View {
 
     // MARK: Timer logic
 
+    // UserDefaults keys scoped per exercise
+    private var udStart:           String { "et_start_\(exerciseName)" }
+    private var udTarget:          String { "et_target_\(exerciseName)" }
+    private var udSetIdx:          String { "et_setIdx_\(exerciseName)" }
+    private var udPausedRemaining: String { "et_paused_\(exerciseName)" }
+    private var notifId:           String { "et_notif_\(exerciseName)" }
+
     private func syncTarget() {
         guard currentSetIdx < sets.count else { return }
         targetDur = sets[currentSetIdx].duration
         remaining  = targetDur
     }
 
+    private func saveRunningState() {
+        let ud = UserDefaults.standard
+        ud.set(Date(), forKey: udStart)
+        ud.set(targetDur, forKey: udTarget)
+        ud.set(currentSetIdx, forKey: udSetIdx)
+        ud.removeObject(forKey: udPausedRemaining)
+    }
+
+    private func savePausedState() {
+        let ud = UserDefaults.standard
+        ud.set(remaining, forKey: udPausedRemaining)
+        ud.set(targetDur, forKey: udTarget)
+        ud.set(currentSetIdx, forKey: udSetIdx)
+        ud.removeObject(forKey: udStart)
+    }
+
+    private func clearTimerState() {
+        let ud = UserDefaults.standard
+        [udStart, udTarget, udSetIdx, udPausedRemaining].forEach { ud.removeObject(forKey: $0) }
+    }
+
+    private func scheduleNotification(in seconds: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = exerciseName
+        content.body  = "Timer terminé — \(fmt(targetDur)) ✓"
+        content.sound = .default
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(max(1, seconds)), repeats: false)
+        let req = UNNotificationRequest(identifier: notifId, content: content, trigger: trigger)
+        UNUserNotificationCenter.current().add(req, withCompletionHandler: nil)
+    }
+
+    private func cancelNotification() {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [notifId])
+    }
+
+    private func restoreOrSync() {
+        let ud = UserDefaults.standard
+        // Paused state takes priority (remaining is explicit)
+        let pausedRem = ud.integer(forKey: udPausedRemaining)
+        if pausedRem > 0 {
+            currentSetIdx = ud.integer(forKey: udSetIdx)
+            targetDur     = ud.integer(forKey: udTarget)
+            remaining     = pausedRem
+            timerState    = .paused
+            return
+        }
+        // Running state: compute elapsed since start
+        guard let startDate = ud.object(forKey: udStart) as? Date else {
+            syncTarget(); return
+        }
+        let savedTarget = ud.integer(forKey: udTarget)
+        guard savedTarget > 0 else { syncTarget(); return }
+        currentSetIdx = ud.integer(forKey: udSetIdx)
+        targetDur = savedTarget
+        let elapsed = Int(Date().timeIntervalSince(startDate))
+        let rem = savedTarget - elapsed
+        if rem > 0 {
+            remaining  = rem
+            timerState = .running
+            timerTask  = Task { @MainActor in await runLoop() }
+        } else {
+            // Finished while in background — notification already fired
+            remaining = 0
+            clearTimerState()
+            onSetCompleted(currentSetIdx, savedTarget)
+            timerState = .finished
+            withAnimation { flashGreen = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { withAnimation { flashGreen = false } }
+        }
+    }
+
     private func startCountdown() {
         triggerImpact(style: .light)
+        saveRunningState()
+        scheduleNotification(in: targetDur + 3)   // +3 for countdown
         timerTask = Task { @MainActor in
             for i in stride(from: 3, through: 1, by: -1) {
                 guard !Task.isCancelled else { return }
@@ -1705,6 +1786,8 @@ struct EnduranceTimerSection: View {
         triggerNotificationFeedback(.success)
         withAnimation { flashGreen = true }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { withAnimation { flashGreen = false } }
+        clearTimerState()
+        cancelNotification()
         onSetCompleted(currentSetIdx, targetDur)
         timerState = .finished
     }
@@ -1712,18 +1795,24 @@ struct EnduranceTimerSection: View {
     private func pauseTimer() {
         timerTask?.cancel(); timerTask = nil
         triggerImpact(style: .light)
+        cancelNotification()
+        savePausedState()
         timerState = .paused
     }
 
     private func resumeTimer() {
         triggerImpact(style: .light)
         timerState = .running
+        saveRunningState()
+        scheduleNotification(in: remaining)
         timerTask = Task { @MainActor in await runLoop() }
     }
 
     private func stopTimer() {
         timerTask?.cancel(); timerTask = nil
         triggerImpact(style: .medium)
+        cancelNotification()
+        clearTimerState()
         remaining  = targetDur
         timerState = .idle
     }
