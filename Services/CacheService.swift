@@ -29,6 +29,7 @@ final class CacheService {
         return c
     }()
     private var memoryKeys = Set<String>()
+    private let keysLock   = NSLock()
 
     /// TTL in seconds per cache key (default: 3600s / 1h)
     private static let ttls: [String: TimeInterval] = [
@@ -96,7 +97,7 @@ final class CacheService {
 
     func save(_ data: Data, for key: String) {
         mem.setObject(data as NSData, forKey: key as NSString, cost: data.count)
-        memoryKeys.insert(key)
+        keysLock.withLock { memoryKeys.insert(key) }
         let now    = Date().timeIntervalSince1970
         let expiry = now + ttl(for: key)
         var file   = Data(capacity: Self.headerSize + data.count)
@@ -122,7 +123,7 @@ final class CacheService {
 
     func clear(for key: String) {
         mem.removeObject(forKey: key as NSString)
-        memoryKeys.remove(key)
+        keysLock.withLock { memoryKeys.remove(key) }
         try? FileManager.default.removeItem(at: fileURL(for: key))
     }
 
@@ -135,9 +136,11 @@ final class CacheService {
         for url in files where url.lastPathComponent.hasPrefix(safe) {
             try? FileManager.default.removeItem(at: url)
         }
-        for key in memoryKeys where key.hasPrefix(prefix) {
-            mem.removeObject(forKey: key as NSString)
-            memoryKeys.remove(key)
+        keysLock.withLock {
+            for key in memoryKeys where key.hasPrefix(prefix) {
+                mem.removeObject(forKey: key as NSString)
+            }
+            memoryKeys = memoryKeys.filter { !$0.hasPrefix(prefix) }
         }
     }
 
