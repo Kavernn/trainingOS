@@ -722,14 +722,18 @@ final class RestTimerManager: ObservableObject {
     }
 
     private func runLoop() async {
+        guard let sd = startDate else { return }
+        var lastSoundedRem = totalSeconds + 1   // anti-double-bip
         while !Task.isCancelled {
-            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            try? await Task.sleep(nanoseconds: 500_000_000)   // tick 0.5s
             guard !Task.isCancelled else { break }
-            guard remaining > 0 else { break }
-            remaining -= 1
-            if remaining <= 3 && remaining > 0 {
+            let rem = max(0, totalSeconds - Int(Date().timeIntervalSince(sd)))
+            remaining = rem
+            if rem <= 3 && rem > 0 && rem < lastSoundedRem {
+                lastSoundedRem = rem
                 playBeep(hz: 880); triggerImpact(style: .rigid)
-            } else if remaining == 0 {
+            }
+            if rem == 0 {
                 isRunning = false
                 cancelNotification()
                 playBeep(hz: 1200); triggerNotificationFeedback(.success)
