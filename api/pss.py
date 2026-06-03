@@ -284,7 +284,7 @@ def generate_insights(
 
 def _compute_streak(records: list, pss_type: str) -> int:
     """Compte les périodes consécutives avec au moins 1 entrée du même type."""
-    interval_days = _FULL_INTERVAL_DAYS + 4 if pss_type == "full" else _SHORT_INTERVAL_DAYS + 3
+    interval_days = _FULL_INTERVAL_DAYS if pss_type == "full" else _SHORT_INTERVAL_DAYS
     relevant = sorted(
         [r for r in records if r.get("type") == pss_type],
         key=lambda r: r.get("date", ""), reverse=True

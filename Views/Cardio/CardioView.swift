@@ -169,7 +169,7 @@ struct CardioView: View {
         isLoading = true
         cardioLog = (try? await APIService.shared.fetchCardioData()) ?? []
         hiitLog   = (try? await APIService.shared.fetchHIITData()) ?? []
-        metrics   = try? await APIService.shared.fetchCardioMetrics(maxHR: maxHR)
+        metrics   = try? await APIService.shared.fetchCardioMetrics(maxHR: max(100, min(220, maxHR)))
         isLoading = false
     }
 

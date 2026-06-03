@@ -18,8 +18,9 @@ _VO2MAX_TYPES = {"course", "tempo", "endurance", "leger"}
 # ─────────────────────────────────────────────────────────────
 
 def _pace_str(seconds_per_km: float) -> str:
-    m = int(seconds_per_km // 60)
-    s = int(seconds_per_km % 60)
+    total_s = int(round(seconds_per_km))
+    m = total_s // 60
+    s = total_s % 60
     return f"{m}:{s:02d}"
 
 

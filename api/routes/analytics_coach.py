@@ -293,8 +293,16 @@ def api_weekly_report():
     session_count = len(week_sessions)
 
     def _total_reps(reps_str: str) -> int:
-        parts = [p.strip() for p in str(reps_str).split(",") if p.strip().isdigit()]
-        return sum(int(p) for p in parts)
+        total = 0
+        for p in str(reps_str).split(","):
+            p = p.strip()
+            if p.isdigit():
+                total += int(p)
+            elif "-" in p:
+                bounds = p.split("-")
+                if len(bounds) == 2 and bounds[0].strip().isdigit() and bounds[1].strip().isdigit():
+                    total += (int(bounds[0].strip()) + int(bounds[1].strip())) // 2
+        return total
 
     def _avg_reps(reps_str: str) -> float:
         parts = [int(p.strip()) for p in str(reps_str).split(",") if p.strip().isdigit()]

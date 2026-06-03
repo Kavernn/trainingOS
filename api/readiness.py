@@ -223,7 +223,7 @@ def _score_subjective() -> tuple[float | None, dict]:
             score = (10.0 - float(fp)) * 10.0
             return round(min(100.0, max(0.0, score)), 1), {"signal": "fatigue_perceived", "value": float(fp)}
         soreness = today_rec.get("soreness")
-        if soreness is not None:
+        if soreness is not None and float(soreness) > 0:
             score = (10.0 - float(soreness)) * 10.0
             return round(min(100.0, max(0.0, score)), 1), {"signal": "soreness_fallback", "value": float(soreness)}
         return None, {"data_insufficient": True}

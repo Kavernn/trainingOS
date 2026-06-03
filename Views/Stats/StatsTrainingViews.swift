@@ -1008,7 +1008,7 @@ struct PatternVolumeView: View {
     private var pushPullBalance: Color {
         guard let push = data.push, let pull = data.pull, push > 0 else { return .gray }
         let r = pull / push
-        return r >= 0.8 && r <= 1.4 ? .green : .orange
+        return r >= 0.77 && r <= 1.3 ? .green : .orange
     }
 }
 

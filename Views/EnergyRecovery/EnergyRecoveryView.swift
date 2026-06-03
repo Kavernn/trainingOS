@@ -612,8 +612,7 @@ private struct RecoverySectionContent: View {
     private var readinessScore: Double? {
         if let s = summary?.recoveryScore { return s * 10 }  // backend 0-10 → 0-100
         if let h = hrv?.hrvScore          { return h }        // déjà 0-100
-        guard let e = today else          { return nil }
-        return computeReadiness(from: e)                       // déjà 0-100
+        return nil
     }
 
     var body: some View {
@@ -654,16 +653,6 @@ private struct RecoverySectionContent: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
-    private func computeReadiness(from e: RecoveryEntry) -> Double? {
-        var components: [(v: Double, w: Double)] = []
-        if let hrv = e.hrv       { components.append((min(100, max(0, (hrv - 20) / 60 * 100)), 2.0)) }
-        if let rhr = e.restingHr { components.append((max(0, min(100, (80 - rhr) / 35 * 100)), 1.5)) }
-        if let f   = e.fatigue   { components.append((max(0, (11 - f) / 10 * 100), 2.0)) }
-        if let s   = e.soreness  { components.append((max(0, (11 - s) / 10 * 100), 1.0)) }
-        guard !components.isEmpty else { return nil }
-        let tw = components.reduce(0) { $0 + $1.w }
-        return components.reduce(0) { $0 + $1.v * $1.w } / tw
-    }
 }
 
 // MARK: - Grille métriques du jour

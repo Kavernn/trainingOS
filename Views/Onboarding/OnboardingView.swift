@@ -10,12 +10,11 @@ struct OnboardingView: View {
     @State private var hkRequesting = false
     @State private var isKgSelected: Bool = Locale.current.usesMetricSystem
 
-    // Defaults — user updates later in Profile
-    private let sex      = "M"
-    private let age      = 25
-    private let weightKg = 75.0
-    private let height   = 175
-    private let level    = "Intermédiaire"
+    @State private var sexInput: String    = "M"
+    @State private var heightInput: Int    = 175
+    @State private var weightInput: Double = 75.0
+
+    private let level = "Intermédiaire"
 
     private let goalOptions: [(label: String, subtitle: String, value: String)] = [
         ("Prendre du muscle",   "Force & hypertrophie",      "Prise de masse"),
@@ -24,8 +23,12 @@ struct OnboardingView: View {
         ("Rester consistant",   "Habitudes durables",        "Maintien"),
     ]
 
-    private var isValid: Bool {
+    private var isNameValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var weightKg: Double {
+        isKgSelected ? weightInput : weightInput * 0.453592
     }
 
     var body: some View {
@@ -36,16 +39,17 @@ struct OnboardingView: View {
                 if step == 0 { splashStep.transition(.asymmetric(insertion: .opacity, removal: .opacity)) }
                 if step == 1 { goalStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
                 if step == 2 { nameStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
-                if step == 3 { unitsStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
-                if step == 4 { healthKitStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
+                if step == 3 { profileStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
+                if step == 4 { unitsStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
+                if step == 5 { healthKitStep.transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))) }
             }
             .animation(.easeInOut(duration: 0.3), value: step)
         }
         .overlay(alignment: .topTrailing) {
-            // Units step (3) is mandatory — no skip. HealthKit (4) has its own skip button.
-            if step < 3 {
+            // Units step (4) is mandatory — no skip. HealthKit (5) has its own skip button.
+            if step < 4 {
                 Button("Passer") { onComplete() }
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.appLabel)
                     .foregroundColor(Color(white: 0.4))
                     .padding(.trailing, 20)
                     .padding(.top, 56)
@@ -66,14 +70,14 @@ struct OnboardingView: View {
                     .lineSpacing(2)
 
                 Text("Un entraînement intelligent,\nadapté à ce que tu es aujourd'hui.")
-                    .font(.system(size: 16))
+                    .font(.appBody)
                     .foregroundColor(Color(white: 0.45))
                     .multilineTextAlignment(.center)
             }
             Spacer()
             Button { withAnimation { step = 1 } } label: {
                 Text("Commencer →")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.appHeadline).fontWeight(.bold)
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
@@ -96,7 +100,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, 80)
                 Text("Ton coach adapte tout à partir de là.")
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .foregroundColor(Color(white: 0.45))
             }
             .padding(.bottom, 44)
@@ -110,15 +114,15 @@ struct OnboardingView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(option.label)
-                                    .font(.system(size: 17, weight: .semibold))
+                                    .font(.appHeadline)
                                     .foregroundColor(.white)
                                 Text(option.subtitle)
-                                    .font(.system(size: 13))
+                                    .font(.appLabel).fontWeight(.regular)
                                     .foregroundColor(Color(white: 0.45))
                             }
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.appLabel).fontWeight(.semibold)
                                 .foregroundColor(Color(white: 0.25))
                         }
                         .padding(.horizontal, 20)
@@ -145,13 +149,13 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, 80)
                 Text("Ton coach va te parler par ton prénom.")
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .foregroundColor(Color(white: 0.45))
             }
             .padding(.bottom, 48)
 
             TextField("Ex: Vincent", text: $name)
-                .font(.system(size: 24, weight: .semibold))
+                .font(.appTitle).fontWeight(.semibold)
                 .foregroundColor(.white)
                 .tint(.orange)
                 .multilineTextAlignment(.center)
@@ -163,27 +167,117 @@ struct OnboardingView: View {
 
             Spacer()
 
-            Button(action: submit) {
-                HStack(spacing: 10) {
-                    if isSaving {
-                        ProgressView().tint(.black).scaleEffect(0.85)
-                    }
-                    Text(isSaving ? "Préparation…" : "Continuer →")
-                        .font(.system(size: 17, weight: .bold))
-                }
-                .foregroundColor(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 18)
-                .background(isValid ? Color.orange : Color(white: 0.18))
-                .cornerRadius(16)
+            Button { withAnimation { step = 3 } } label: {
+                Text("Continuer →")
+                    .font(.appHeadline).fontWeight(.bold)
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 18)
+                    .background(isNameValid ? Color.orange : Color(white: 0.18))
+                    .cornerRadius(16)
             }
-            .disabled(!isValid || isSaving)
+            .disabled(!isNameValid)
             .padding(.horizontal, 24)
             .padding(.bottom, 56)
         }
     }
 
-    // MARK: Step 3 — Units
+    // MARK: Step 3 — Profile
+
+    private var profileStep: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 10) {
+                Text("Ton profil\nphysique")
+                    .font(.system(size: 34, weight: .black))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 80)
+                Text("Pour calibrer tes calories, readiness\net recommandations de charge.")
+                    .font(.appBody)
+                    .foregroundColor(Color(white: 0.45))
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.bottom, 44)
+
+            VStack(spacing: 14) {
+                // Sex
+                HStack(spacing: 12) {
+                    profileToggleButton(label: "Homme", selected: sexInput == "M") { sexInput = "M" }
+                    profileToggleButton(label: "Femme",  selected: sexInput == "F") { sexInput = "F" }
+                }
+
+                // Height
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("TAILLE")
+                        .font(.system(size: 10, weight: .bold)).tracking(2)
+                        .foregroundColor(.gray)
+                    HStack {
+                        Text("\(heightInput) cm")
+                            .font(.system(size: 22, weight: .black))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Stepper("", value: $heightInput, in: 140...220)
+                            .labelsHidden()
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+                    .background(Color(white: 0.08)).cornerRadius(12)
+                }
+
+                // Weight
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("POIDS")
+                        .font(.system(size: 10, weight: .bold)).tracking(2)
+                        .foregroundColor(.gray)
+                    HStack {
+                        Text(String(format: "%.1f %@", weightInput, isKgSelected ? "kg" : "lbs"))
+                            .font(.system(size: 22, weight: .black))
+                            .foregroundColor(.white)
+                        Spacer()
+                        Stepper("", value: $weightInput, in: 30...300, step: 0.5)
+                            .labelsHidden()
+                    }
+                    .padding(.horizontal, 16).padding(.vertical, 14)
+                    .background(Color(white: 0.08)).cornerRadius(12)
+                }
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
+
+            Button(action: submit) {
+                HStack(spacing: 10) {
+                    if isSaving { ProgressView().tint(.black).scaleEffect(0.85) }
+                    Text(isSaving ? "Préparation…" : "Continuer →")
+                        .font(.appHeadline).fontWeight(.bold)
+                }
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 18)
+                .background(Color.orange)
+                .cornerRadius(16)
+            }
+            .disabled(isSaving)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 56)
+        }
+    }
+
+    private func profileToggleButton(label: String, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.appHeadline).fontWeight(.bold)
+                .foregroundColor(selected ? .black : .white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(selected ? Color.orange : Color(white: 0.1))
+                .cornerRadius(14)
+                .overlay(RoundedRectangle(cornerRadius: 14)
+                    .stroke(selected ? Color.orange : Color(white: 0.15), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Step 4 — Units
 
     private var unitsStep: some View {
         VStack(spacing: 0) {
@@ -194,7 +288,7 @@ struct OnboardingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, 80)
                 Text("Toutes tes charges seront affichées\ndans cette unité.")
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .foregroundColor(Color(white: 0.45))
                     .multilineTextAlignment(.center)
             }
@@ -204,12 +298,12 @@ struct OnboardingView: View {
                 unitButton(label: "KG", selected: isKgSelected) {
                     isKgSelected = true
                     UnitSettings.shared.isKg = true
-                    withAnimation { step = 4 }
+                    withAnimation { step = 5 }
                 }
                 unitButton(label: "LBS", selected: !isKgSelected) {
                     isKgSelected = false
                     UnitSettings.shared.isKg = false
-                    withAnimation { step = 4 }
+                    withAnimation { step = 5 }
                 }
             }
             .padding(.horizontal, 24)
@@ -253,7 +347,7 @@ struct OnboardingView: View {
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                     Text("Connecte Apple Santé pour importer\nautomatiquement ton sommeil, HRV\net tes calories brûlées.")
-                        .font(.system(size: 15))
+                        .font(.appBody)
                         .foregroundColor(Color(white: 0.45))
                         .multilineTextAlignment(.center)
                         .lineSpacing(3)
@@ -271,7 +365,7 @@ struct OnboardingView: View {
                     HStack(spacing: 8) {
                         if hkRequesting { ProgressView().tint(.black).scaleEffect(0.85) }
                         Text(hkRequesting ? "Connexion…" : "Connecter Apple Santé →")
-                            .font(.system(size: 17, weight: .bold))
+                            .font(.appHeadline).fontWeight(.bold)
                     }
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
@@ -282,7 +376,7 @@ struct OnboardingView: View {
                 .disabled(hkRequesting)
 
                 Button("Passer pour l'instant") { onComplete() }
-                    .font(.system(size: 15))
+                    .font(.appBody)
                     .foregroundColor(Color(white: 0.4))
                     .padding(.vertical, 8)
             }
@@ -294,25 +388,24 @@ struct OnboardingView: View {
     // MARK: Submit
 
     private func submit() {
-        guard isValid else { return }
         isSaving = true
         Task {
             do {
                 try await APIService.shared.updateProfile(
                     name:   name.trimmingCharacters(in: .whitespaces),
                     weight: weightKg,
-                    height: Double(height),
-                    age:    age,
+                    height: Double(heightInput),
+                    age:    25,
                     goal:   goal,
                     level:  level,
-                    sex:    sex
+                    sex:    sexInput
                 )
             } catch {
                 // Network failure: profile syncs later via SyncManager
             }
             await MainActor.run {
                 isSaving = false
-                withAnimation { step = 3 }
+                withAnimation { step = 4 }
             }
         }
     }
@@ -340,7 +433,7 @@ struct HRVOnboardingView: View {
                 HStack {
                     Spacer()
                     Button("Passer") { finish() }
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.appLabel)
                         .foregroundColor(.gray)
                         .padding(.horizontal, 24)
                         .padding(.top, 20)
@@ -376,9 +469,9 @@ struct HRVOnboardingView: View {
                     Button(action: advance) {
                         HStack(spacing: 8) {
                             Text(page < totalPages - 1 ? "Suivant" : "C'est parti")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.appBody).fontWeight(.bold)
                             Image(systemName: "arrow.right")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.appLabel).fontWeight(.bold)
                         }
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
@@ -403,7 +496,7 @@ struct HRVOnboardingView: View {
                 Text("C'est quoi le HRV ?")
                     .font(.system(size: 26, weight: .bold)).foregroundColor(.white).multilineTextAlignment(.center)
                 Text("La variabilité de ton rythme cardiaque révèle l'état réel de ton système nerveux — plus fiable que ton ressenti subjectif.")
-                    .font(.system(size: 16)).foregroundColor(.gray).multilineTextAlignment(.center).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
+                    .font(.appBody).foregroundColor(.gray).multilineTextAlignment(.center).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
             }
             HStack(spacing: 10) {
                 HRVFactChip(icon: "applewatch",                 text: "Apple Watch",    color: pageAccent)
@@ -423,7 +516,7 @@ struct HRVOnboardingView: View {
                 Text("Le protocole du matin")
                     .font(.system(size: 26, weight: .bold)).foregroundColor(.white).multilineTextAlignment(.center)
                 Text("Chaque matin, avant de te lever :")
-                    .font(.system(size: 15)).foregroundColor(.gray)
+                    .font(.appBody).foregroundColor(.gray)
             }
             VStack(alignment: .leading, spacing: 10) {
                 HRVProtocolStep(number: 1, icon: "sun.rise.fill",   text: "Réveille-toi naturellement",         color: pageAccent)
@@ -447,7 +540,7 @@ struct HRVOnboardingView: View {
                 Text("L'app fait le reste")
                     .font(.system(size: 26, weight: .bold)).foregroundColor(.white).multilineTextAlignment(.center)
                 Text("Ton Apple Watch collecte en arrière-plan pendant le sommeil. VinceSeven calcule ton score personnalisé chaque matin — rien d'autre à faire.")
-                    .font(.system(size: 16)).foregroundColor(.gray).multilineTextAlignment(.center).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
+                    .font(.appBody).foregroundColor(.gray).multilineTextAlignment(.center).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
             }
             VStack(spacing: 8) {
                 HRVAutoFeatureRow(icon: "circle.fill", color: .green,  text: "Score vert — séance à 100%")
@@ -485,8 +578,8 @@ private struct HRVFactChip: View {
     let icon: String; let text: String; let color: Color
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: icon).font(.system(size: 11)).foregroundColor(color)
-            Text(text).font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.85))
+            Image(systemName: icon).font(.appCaption).foregroundColor(color)
+            Text(text).font(.appCaption).fontWeight(.medium).foregroundColor(.white.opacity(0.85))
         }
         .padding(.horizontal, 12).padding(.vertical, 7)
         .background(Color.white.opacity(0.07)).cornerRadius(20)
@@ -499,9 +592,9 @@ private struct HRVProtocolStep: View {
         HStack(spacing: 14) {
             ZStack {
                 Circle().fill(color.opacity(0.15)).frame(width: 36, height: 36)
-                Image(systemName: icon).font(.system(size: 15)).foregroundColor(color)
+                Image(systemName: icon).font(.appBody).foregroundColor(color)
             }
-            Text(text).font(.system(size: 15)).foregroundColor(.white.opacity(0.9))
+            Text(text).font(.appBody).foregroundColor(.white.opacity(0.9))
             Spacer()
         }
     }
@@ -511,8 +604,8 @@ private struct HRVAutoFeatureRow: View {
     let icon: String; let color: Color; let text: String
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: icon).font(.system(size: 9)).foregroundColor(color)
-            Text(text).font(.system(size: 14)).foregroundColor(.white.opacity(0.8))
+            Image(systemName: icon).font(.appMicro).foregroundColor(color)
+            Text(text).font(.appLabel).fontWeight(.regular).foregroundColor(.white.opacity(0.8))
             Spacer()
         }
         .padding(.horizontal, 16).padding(.vertical, 10)

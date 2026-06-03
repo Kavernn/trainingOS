@@ -251,6 +251,8 @@ struct HealthKPIGrid: View {
     var hkRestingHR: Double? = nil
     var hkHRV: Double? = nil
 
+    @AppStorage("steps_daily_goal") private var stepsGoal: Int = 10000
+
     // Effective values: backend first, HealthKit as live fallback
     private var effectiveHR:  Double? { summary.restingHeartRate ?? hkRestingHR }
     private var effectiveHRV: Double? { summary.hrv ?? hkHRV }
@@ -261,8 +263,10 @@ struct HealthKPIGrid: View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
             if let steps = summary.steps {
                 let delta = yesterday?.steps.map { steps - $0 }
+                let goalPct = stepsGoal > 0 ? "\(min(100, steps * 100 / stepsGoal))%" : nil
                 StatCard(value: "\(steps)", label: "Pas", color: .green,
-                         delta: delta.map { deltaInt($0, invertGood: false) })
+                         delta: delta.map { deltaInt($0, invertGood: false) },
+                         subtitle: goalPct.map { steps >= stepsGoal ? "✓ objectif" : "\($0) de l'objectif" })
             }
             if let sleep = summary.sleepDuration {
                 let delta = yesterday?.sleepDuration.map { sleep - $0 }

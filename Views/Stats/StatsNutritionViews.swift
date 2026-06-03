@@ -124,8 +124,8 @@ struct ProteinComplianceView: View {
             let p = d.proteines ?? 0
             return DayStatus(
                 id: date, date: date, proteines: p,
-                hit: p >= protTarget,
-                partial: p >= protTarget * 0.75 && p < protTarget
+                hit: p >= protTarget * 0.9,
+                partial: p >= protTarget * 0.75 && p < protTarget * 0.9
             )
         }.sorted { $0.date < $1.date }
     }

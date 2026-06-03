@@ -34,7 +34,7 @@ struct SleepView: View {
                             SleepKPI(
                                 icon:  "star.fill",
                                 label: "Moy. qualité",
-                                value: s.avgQuality.map { String(format: "%.1f/5", $0) } ?? "—",
+                                value: s.avgQuality.map { String(format: "%.1f/10", $0) } ?? "—",
                                 color: .yellow
                             )
                             SleepKPI(
