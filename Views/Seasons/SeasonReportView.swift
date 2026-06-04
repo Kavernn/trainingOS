@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SeasonReportView: View {
     let report: SeasonReport
+    @ObservedObject private var units = UnitSettings.shared
     @State private var appeared = false
 
     var body: some View {
@@ -71,8 +72,8 @@ struct SeasonReportView: View {
     private var bodySection: some View {
         reportSection(label: "LE CORPS", delay: 0.3) {
             if let sw = report.startSnapshot?.weightLbs, let ew = report.endSnapshot?.weightLbs {
-                deltaRow("Poids", from: "\(Int(sw)) lbs", to: "\(Int(ew)) lbs",
-                         delta: ew - sw, unit: "lbs", lowerIsBetter: false)
+                deltaRow("Poids", from: units.format(sw, decimals: 0), to: units.format(ew, decimals: 0),
+                         delta: ew - sw, unit: units.label, lowerIsBetter: false)
             }
             if let sbf = report.startSnapshot?.bodyFatPct, let ebf = report.endSnapshot?.bodyFatPct {
                 deltaRow("Body fat", from: "\(String(format: "%.1f", sbf))%",
@@ -91,7 +92,7 @@ struct SeasonReportView: View {
                                 .font(.system(size: 12))
                                 .foregroundStyle(Color.secondary)
                             Spacer()
-                            Text("\(Int(pr.oldWeightLbs)) → \(Int(pr.newWeightLbs)) lbs")
+                            Text("\(units.format(pr.oldWeightLbs, decimals: 0)) → \(units.format(pr.newWeightLbs, decimals: 0))")
                                 .font(.system(size: 12, design: .monospaced))
                                 .foregroundStyle(Color.green)
                         }

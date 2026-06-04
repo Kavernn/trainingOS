@@ -399,7 +399,7 @@ extension StatsView {
         if sorenessScatter.count >= 5 {
             ScatterPlotView(
                 data: sorenessScatter,
-                xLabel: "Volume J-1 (lbs)",
+                xLabel: "Volume J-1 (\(units.label))",
                 yLabel: "Soreness J (1–10)",
                 title: "VOLUME → DOULEURS MUSCULAIRES",
                 color: .orange

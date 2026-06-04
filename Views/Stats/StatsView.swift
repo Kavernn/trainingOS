@@ -71,6 +71,7 @@ enum StatsPeriod: String, CaseIterable {
 
 // MARK: - Main View
 struct StatsView: View {
+    @ObservedObject private var units = UnitSettings.shared
     @State var weights:          [String: WeightData]    = [:]
     @State var sessions:         [String: SessionEntry]  = [:]
     @State var hiitLog:          [HIITEntry]             = []
