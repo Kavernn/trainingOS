@@ -4,6 +4,7 @@ import SwiftUI
 
 struct WeeklyReportTeaser: View {
     let report: WeeklyReport
+    @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         HStack(spacing: 14) {
@@ -21,7 +22,7 @@ struct WeeklyReportTeaser: View {
                             .foregroundColor(.yellow)
                     }
                     if report.totalVolumeLbs > 0 {
-                        Label("\(Int(report.totalVolumeLbs / 1000))k lbs", systemImage: "scalemass.fill")
+                        Label("\(_formatK(units.display(report.totalVolumeLbs))) \(units.label)", systemImage: "scalemass.fill")
                             .foregroundColor(.orange)
                     }
                 }
@@ -50,7 +51,7 @@ struct WeeklyReportView: View {
         lines.append("Séances : \(report.sessionCount)")
         if report.prCount > 0 { lines.append("🏆 Limites détruites : \(report.prCount)") }
         if report.totalVolumeLbs > 0 {
-            lines.append("Volume : \(Int(report.totalVolumeLbs / 1000))k lbs")
+            lines.append("Volume : \(_formatK(units.display(report.totalVolumeLbs))) \(units.label)")
         }
         if let r = report.avgRecoveryScore { lines.append("Récupération moy. : \(String(format: "%.1f", r))/10") }
         if let s = report.avgSleepHours   { lines.append("Sommeil moy. : \(String(format: "%.1f", s))h") }
@@ -78,7 +79,7 @@ struct WeeklyReportView: View {
                         WeeklyKPI(value: "\(report.sessionCount)", label: "Séances", icon: "flame.fill", color: .orange)
                         WeeklyKPI(value: "\(report.prCount)", label: "Limites détruites", icon: "trophy.fill", color: .yellow)
                         if report.totalVolumeLbs > 0 {
-                            WeeklyKPI(value: "\(Int(report.totalVolumeLbs / 1000))k", label: "Volume (lbs)", icon: "scalemass.fill", color: .cyan)
+                            WeeklyKPI(value: _formatK(units.display(report.totalVolumeLbs)), label: "Volume (\(units.label))", icon: "scalemass.fill", color: .cyan)
                         }
                         if let r = report.avgRecoveryScore {
                             WeeklyKPI(value: String(format: "%.1f/10", r), label: "Récup. moy.", icon: "heart.fill", color: .green)

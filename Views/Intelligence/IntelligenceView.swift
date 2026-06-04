@@ -15,7 +15,8 @@ struct IntelligenceView: View {
     @State private var correlations: CorrelationsData? = nil
     @State private var isLoadingCorrelations = false
     @State private var showInsights = false
-    @ObservedObject private var api = APIService.shared
+    @ObservedObject private var api   = APIService.shared
+    @ObservedObject private var units = UnitSettings.shared
     @State private var narrative:        String?                  = nil
     @State private var isLoadingNarrative = false
     @State private var recoveryData:    [RecoveryEntry]          = []
@@ -755,7 +756,7 @@ struct IntelligenceView: View {
                 }
                 if totalVol > 0 {
                     Divider().frame(height: 36).background(Color.white.opacity(0.1))
-                    bilanStatCell(value: "\(Int(totalVol / 1000))k", label: "lbs vol")
+                    bilanStatCell(value: _formatK(units.display(totalVol)), label: "\(units.label) vol")
                 }
             }
             .frame(maxWidth: .infinity)

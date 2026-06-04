@@ -603,6 +603,7 @@ struct HRVBaselineCard: View {
 
 struct SorenessThresholdCard: View {
     let data: SorenessThreshold
+    @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -636,7 +637,7 @@ struct SorenessThresholdCard: View {
                 if let thresh = data.thresholdVol {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("SEUIL").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                        Text(_formatK(thresh) + " lbs")
+                        Text(_formatK(units.display(thresh)) + " \(units.label)")
                             .font(.system(size: 15, weight: .black)).foregroundColor(.orange)
                     }
                 }

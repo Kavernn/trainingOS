@@ -1103,6 +1103,7 @@ struct DeloadStatusCard: View {
 // MARK: - Push/Pull Ratio Card
 struct PushPullRatioCard: View {
     let data: WeeklyReportPushPull
+    @ObservedObject private var units = UnitSettings.shared
 
     private var imbalanceColor: Color {
         guard let imb = data.imbalance else { return .green }
@@ -1152,7 +1153,7 @@ struct PushPullRatioCard: View {
                                 }
                             }
                             .frame(height: 8)
-                            Text(_formatK(vol) + " lbs")
+                            Text(_formatK(units.display(vol)) + " \(units.label)")
                                 .font(.system(size: 10)).foregroundColor(.gray)
                                 .frame(width: 60, alignment: .trailing)
                         }
