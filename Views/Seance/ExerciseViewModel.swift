@@ -445,11 +445,14 @@ class SeanceViewModel: ObservableObject {
                 painZone: pending.painZone
             )
         }
-        logResults = restored
-        if let restoredStart = SessionDraftStore.loadStartedAt(date: data.todayDate, sessionType: draftSessionType) {
-            sessionStart = restoredStart
+        // Restore sessionStart BEFORE assigning logResults — persistDraftIfNeeded() fires on
+        // didSet and would overwrite T0 with Date() if sessionStarted is still false at that point.
+        if let saved = SessionDraftStore.loadStartedAt(date: data.todayDate, sessionType: draftSessionType) {
+            sessionStart = saved
             sessionStarted = true
-        } else if !restored.isEmpty {
+        }
+        logResults = restored
+        if !sessionStarted && !restored.isEmpty {
             sessionStart = Date()
             sessionStarted = true
         }
