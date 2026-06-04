@@ -19,6 +19,7 @@ func dnaArchetypeAccent(_ key: String) -> Color {
 struct ProfileView: View {
     @ObservedObject private var api      = APIService.shared
     @ObservedObject private var bodyComp = BodyCompService.shared
+    @ObservedObject private var units    = UnitSettings.shared
 
     @State private var isLoading          = true
     @State private var showEdit           = false
@@ -74,10 +75,11 @@ struct ProfileView: View {
     }
 
     private var allTimeVolumeFormatted: String {
-        if allTimeVolumeLbs >= 1_000_000 {
-            return String(format: "%.1fM lbs", allTimeVolumeLbs / 1_000_000)
+        let displayVol = units.display(allTimeVolumeLbs)
+        if displayVol >= 1_000_000 {
+            return String(format: "%.1fM \(units.label)", displayVol / 1_000_000)
         }
-        return (NumberFormatter.spaceGrouped.string(from: NSNumber(value: allTimeVolumeLbs)) ?? "\(Int(allTimeVolumeLbs))") + " lbs"
+        return (NumberFormatter.spaceGrouped.string(from: NSNumber(value: Int(displayVol))) ?? "\(Int(displayVol))") + " \(units.label)"
     }
 
     private var volumeTrend: (pct: Double, positive: Bool)? {
@@ -466,13 +468,13 @@ struct ProfileView: View {
 
     private func bodyCompWeightCol(latest: BodyWeightEntry, delta: Double?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(String(format: "%.1f lbs", latest.weight))
+            Text(units.format(latest.weight))
                 .font(.appTitle).fontWeight(.black).foregroundColor(.white)
             if let d = delta {
                 HStack(spacing: 3) {
                     Image(systemName: d > 0 ? "arrow.up" : "arrow.down")
                         .font(.appMicro).fontWeight(.bold)
-                    Text(String(format: "%.1f lbs", abs(d)))
+                    Text(units.format(abs(d)))
                         .font(.appCaption).fontWeight(.semibold)
                 }
                 .foregroundColor(d <= 0 ? .green : .orange)
@@ -589,7 +591,7 @@ struct ProfileView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(String(format: "%.0f lbs × %d", prLbs, lift.prReps))
+                Text("\(units.format(prLbs, decimals: 0)) × \(lift.prReps)")
                     .font(.appLabel).fontWeight(.bold).foregroundColor(.white)
                 if lift.progressionPct > 0 {
                     Text("↑ \(Int(lift.progressionPct))% — ancienne limite")
@@ -1239,7 +1241,7 @@ struct EditProfileSheet: View {
                     .listRowBackground(Color.appCard).foregroundColor(.gray)
 
                     Section("Mesures") {
-                        LabeledContent("Poids (lbs)") {
+                        LabeledContent("Poids (\(units.label))") {
                             TextField("0.0", text: $weight).keyboardType(.decimalPad)
                                 .multilineTextAlignment(.trailing).foregroundColor(.white)
                         }
