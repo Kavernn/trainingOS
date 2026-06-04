@@ -126,12 +126,12 @@ struct BodyCompView: View {
                     Text("POIDS ACTUEL")
                         .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                     if let w = latest?.weight {
-                        Text(String(format: "%.1f lbs", w))
+                        Text(units.format(w))
                             .font(.system(size: 44, weight: .black))
                             .foregroundColor(.orange).glow(.orange)
                             .contentTransition(.numericText())
                     } else {
-                        Text("— lbs")
+                        Text("— \(units.label)")
                             .font(.system(size: 44, weight: .black)).foregroundColor(.gray)
                     }
                 }
@@ -145,7 +145,7 @@ struct BodyCompView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: diff >= 0 ? "arrow.up" : "arrow.down")
                                     .font(.appCaption.weight(.bold))
-                                Text("\(diff >= 0 ? "+" : "")\(String(format: "%.1f lbs", diff))")
+                                Text("\(diff >= 0 ? "+" : "")\(units.format(diff))")
                                     .font(.appCaption.weight(.semibold))
                             }
                             .foregroundColor(diff >= 0 ? .orange.opacity(0.8) : .green.opacity(0.8))
@@ -162,8 +162,8 @@ struct BodyCompView: View {
                 let lean = w * (1 - bf / 100)
                 let fat  = w * bf / 100
                 HStack(spacing: 8) {
-                    CompChip(label: "MASSE MAIGRE", value: String(format: "%.1f lbs", lean), color: .green)
-                    CompChip(label: "MASSE GRASSE", value: "\(String(format: "%.1f lbs", fat)) · \(String(format: "%.1f", bf))%", color: .blue)
+                    CompChip(label: "MASSE MAIGRE", value: units.format(lean), color: .green)
+                    CompChip(label: "MASSE GRASSE", value: "\(units.format(fat)) · \(String(format: "%.1f", bf))%", color: .blue)
                 }
             }
         }
@@ -322,10 +322,10 @@ struct CompositionChartCard: View {
             if let last = entries.last, let bf = last.bodyFat {
                 HStack {
                     Spacer()
-                    Text("Maigre \(String(format: "%.1f lbs", last.weight * (1 - bf/100)))")
+                    Text("Maigre \(units.format(last.weight * (1 - bf/100)))")
                         .font(.appCaption.weight(.semibold)).foregroundColor(.green)
                     Text("·").foregroundColor(.gray)
-                    Text("Gras \(String(format: "%.1f lbs", last.weight * bf/100))")
+                    Text("Gras \(units.format(last.weight * bf/100))")
                         .font(.appCaption.weight(.semibold)).foregroundColor(.blue)
                     Spacer()
                 }
@@ -616,6 +616,7 @@ struct BodyWeightRow: View {
     let entry: BodyWeightEntry
     let onEdit: () -> Void
     let onDelete: () -> Void
+    @ObservedObject private var units = UnitSettings.shared
     @State private var confirmDelete = false
 
     var body: some View {
@@ -636,7 +637,7 @@ struct BodyWeightRow: View {
                 }
             }
             Spacer()
-            Text(String(format: "%.1f lbs", entry.weight))
+            Text(units.format(entry.weight))
                 .font(.appBody.weight(.semibold))
                 .foregroundColor(.white)
 
@@ -928,14 +929,13 @@ struct MesureField: View {
 // MARK: - Chart
 struct WeightChartView: View {
     let entries: [BodyWeightEntry]
+    @ObservedObject private var units = UnitSettings.shared
 
     private var minW: Double { (entries.map(\.weight).min() ?? 0) - 0.5 }
     private var maxW: Double { (entries.map(\.weight).max() ?? 1) + 0.5 }
     private var current: Double { entries.last?.weight ?? 0 }
     private var first: Double   { entries.first?.weight ?? 0 }
     private var delta: Double   { current - first }
-    // Le poids corporel est stocké en lbs — affichage direct sans conversion
-    private let unit = "lbs"
 
     private var deltaColor: Color {
         if abs(delta) < 0.2 { return .gray }
@@ -958,10 +958,10 @@ struct WeightChartView: View {
                         .tracking(2)
                         .foregroundColor(.gray)
                     HStack(alignment: .lastTextBaseline, spacing: 4) {
-                        Text(String(format: "%.1f", current))
+                        Text(String(format: "%.1f", units.display(current)))
                             .font(.system(size: 28, weight: .black))
                             .foregroundColor(.white)
-                        Text(unit)
+                        Text(units.label)
                             .font(.appLabel.weight(.regular))
                             .foregroundColor(.gray)
                     }
@@ -977,7 +977,7 @@ struct WeightChartView: View {
                         HStack(spacing: 3) {
                             Image(systemName: delta < -0.2 ? "arrow.down" : delta > 0.2 ? "arrow.up" : "minus")
                                 .font(.appCaption.weight(.bold))
-                            Text(String(format: "%+.1f %@", delta, unit))
+                            Text(String(format: "%+.1f %@", units.display(delta), units.label))
                                 .font(.appLabel.weight(.bold))
                         }
                         .foregroundColor(deltaColor)
@@ -1006,7 +1006,7 @@ struct WeightChartView: View {
                             path.addLine(to: CGPoint(x: w, y: y))
                         }
                         .stroke(Color.white.opacity(0.06), lineWidth: 1)
-                        Text(String(format: "%.0f", val))
+                        Text(String(format: "%.0f", units.display(val)))
                             .font(.system(size: 8))
                             .foregroundColor(.gray.opacity(0.6))
                             .position(x: 16, y: y - 6)

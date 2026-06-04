@@ -4,6 +4,7 @@ import SwiftUI
 
 struct NavyCalculatorView: View {
     @ObservedObject private var bodyComp = BodyCompService.shared
+    @ObservedObject private var units = UnitSettings.shared
     @State private var heightCm: Double = 178
     @State private var showEditSheet = false
     @State private var isMale: Bool = true
@@ -242,7 +243,7 @@ struct NavyCalculatorView: View {
 
     private func measuresRow(_ e: BodyWeightEntry) -> some View {
         HStack(spacing: 16) {
-            measureChip(label: "POIDS", value: String(format: "%.1f lbs", e.weight))
+            measureChip(label: "POIDS", value: units.format(e.weight))
             if let w = e.waistCm {
                 measureChip(label: "TAILLE", value: String(format: "%.0f cm", w))
             }
@@ -274,10 +275,10 @@ struct NavyCalculatorView: View {
                        color: .blue,
                        subtitle: "±4% vs DEXA")
             resultCard(label: "MASSE GRASSE",
-                       value: String(format: "%.1f lbs", res.fatMassLbs),
+                       value: units.format(res.fatMassLbs),
                        color: .orange)
             resultCard(label: "MASSE MAIGRE",
-                       value: String(format: "%.1f lbs", res.leanMassLbs),
+                       value: units.format(res.leanMassLbs),
                        color: .green)
         }
         .padding(.horizontal, 16)

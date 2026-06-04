@@ -5,6 +5,7 @@ import Charts
 struct BodyCompHistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \BodyCompEntry.date, order: .reverse) private var entries: [BodyCompEntry]
+    @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         ZStack {
@@ -148,9 +149,9 @@ struct BodyCompHistoryView: View {
                         .foregroundColor(.blue)
                 }
                 HStack(spacing: 10) {
-                    Label(String(format: "%.1f", entry.fatMassLbs), systemImage: "")
+                    Label(units.format(entry.fatMassLbs), systemImage: "")
                         .font(.appCaption).foregroundColor(.orange)
-                    Label(String(format: "%.1f lbs", entry.leanMassLbs), systemImage: "")
+                    Label(units.format(entry.leanMassLbs), systemImage: "")
                         .font(.appCaption).foregroundColor(.green)
                 }
             }
