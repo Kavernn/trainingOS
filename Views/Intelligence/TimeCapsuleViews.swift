@@ -605,6 +605,7 @@ private struct DurationButton: View {
 
 private struct SnapshotPreviewCard: View {
     let snapshot: CapsuleSnapshot
+    @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -634,12 +635,12 @@ private struct SnapshotPreviewCard: View {
         var r: [(String, String)] = []
         for (key, pr) in snapshot.prs.sorted(by: { $0.key < $1.key }) {
             r.append((key.replacingOccurrences(of: "_", with: " ").capitalized,
-                      "\(Int(pr.weight)) kg × \(pr.reps)"))
+                      "\(units.format(pr.weight / 0.453592, decimals: 0)) × \(pr.reps)"))
         }
-        r.append(("Volume hebdo moy.", "\(Int(snapshot.weeklyVolumeAvgKg / 1000)) t"))
+        r.append(("Volume hebdo moy.", _formatK(units.display(snapshot.weeklyVolumeAvgKg / 0.453592)) + " \(units.label)"))
         r.append(("Séances ce mois",   "\(Int(snapshot.sessionsPerMonthAvg))"))
         if let bw = snapshot.bodyWeightKg {
-            r.append(("Poids", String(format: "%.1f kg", bw)))
+            r.append(("Poids", units.format(bw / 0.453592)))
         }
         if snapshot.macrosAvg.proteinG > 0 {
             r.append(("Protéines moy./j", "\(Int(snapshot.macrosAvg.proteinG)) g"))

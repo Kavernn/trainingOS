@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct TimeCapsuleListResponse: Codable {
     let capsules: [TimeCapsule]
@@ -118,29 +119,34 @@ extension TimeCapsule {
         let snap = snapshot
         var metrics: [CapsuleMetric] = []
 
-        // PRs
+        // PRs — backend values are in kg; convert to lbs for UnitSettings
+        let u = UnitSettings.shared
         for (key, prB) in snap.prs.sorted(by: { $0.key < $1.key }) {
             let label = key.replacingOccurrences(of: "_", with: " ").capitalized
             if let prA = cur.prs[key] {
-                let d = prA.weight - prB.weight
+                let bLbs = prB.weight / 0.453592
+                let aLbs = prA.weight / 0.453592
+                let dLbs = aLbs - bLbs
                 metrics.append(CapsuleMetric(
                     label: label,
-                    before: "\(Int(prB.weight)) kg",
-                    after:  "\(Int(prA.weight)) kg",
-                    delta:  d >= 0 ? "+\(Int(d)) kg" : "\(Int(d)) kg",
-                    deltaPositive: d >= 0,
+                    before: u.format(bLbs, decimals: 0),
+                    after:  u.format(aLbs, decimals: 0),
+                    delta:  dLbs >= 0 ? "+\(u.format(dLbs, decimals: 0))" : u.format(dLbs, decimals: 0),
+                    deltaPositive: dLbs >= 0,
                     isNeutral: false
                 ))
             }
         }
 
-        // Weekly volume
+        // Weekly volume — backend in kg; convert to lbs then display via UnitSettings
         let volD   = cur.weeklyVolumeAvgKg - snap.weeklyVolumeAvgKg
         let volPct = snap.weeklyVolumeAvgKg > 0 ? (volD / snap.weeklyVolumeAvgKg) * 100 : 0
+        let snapVolLbs = snap.weeklyVolumeAvgKg / 0.453592
+        let curVolLbs  = cur.weeklyVolumeAvgKg  / 0.453592
         metrics.append(CapsuleMetric(
             label:  "Volume hebdo",
-            before: "\(Int(snap.weeklyVolumeAvgKg / 1000)) t",
-            after:  "\(Int(cur.weeklyVolumeAvgKg / 1000)) t",
+            before: _formatK(u.display(snapVolLbs)) + " \(u.label)",
+            after:  _formatK(u.display(curVolLbs))  + " \(u.label)",
             delta:  volPct >= 0 ? "+\(Int(volPct))%" : "\(Int(volPct))%",
             deltaPositive: volD >= 0,
             isNeutral: false
@@ -157,14 +163,16 @@ extension TimeCapsule {
             isNeutral: false
         ))
 
-        // Body weight (neutral — no judgment)
+        // Body weight (neutral — no judgment) — backend in kg; convert to lbs for UnitSettings
         if let bwB = snap.bodyWeightKg, let bwA = cur.bodyWeightKg {
-            let d = bwA - bwB
+            let bLbs = bwB / 0.453592
+            let aLbs = bwA / 0.453592
+            let dLbs = aLbs - bLbs
             metrics.append(CapsuleMetric(
                 label:  "Poids",
-                before: String(format: "%.1f kg", bwB),
-                after:  String(format: "%.1f kg", bwA),
-                delta:  d >= 0 ? String(format: "+%.1f kg", d) : String(format: "%.1f kg", d),
+                before: u.format(bLbs),
+                after:  u.format(aLbs),
+                delta:  dLbs >= 0 ? "+\(u.format(dLbs))" : u.format(dLbs),
                 deltaPositive: false,
                 isNeutral: true
             ))
