@@ -47,7 +47,8 @@ struct EnergyRecoveryView: View {
                                     dailySummary: dailySummary,
                                     hrvAnalysis: hrvAnalysis,
                                     sleepHistory: sleepHistory,
-                                    sleepStats: sleepStats
+                                    sleepStats: sleepStats,
+                                    onRefresh: { await loadData() }
                                 )
                             }
                             Spacer(minLength: 100)
@@ -623,12 +624,14 @@ private struct RecoverySleepTabContent: View {
     let hrvAnalysis: HRVAnalysis?
     let sleepHistory: [SleepEntry]
     let sleepStats: SleepStats?
+    let onRefresh: () async -> Void
 
     var body: some View {
         VStack(spacing: 16) {
             RecoverySectionContent(log: recoveryLog,
                                    summary: dailySummary,
-                                   hrv: hrvAnalysis)
+                                   hrv: hrvAnalysis,
+                                   onRefresh: onRefresh)
             SleepSectionContent(history: sleepHistory, stats: sleepStats)
         }
         .padding(.horizontal, 16)
@@ -636,30 +639,84 @@ private struct RecoverySleepTabContent: View {
     }
 }
 
-// MARK: - Section Récupération (Étape 6)
+// MARK: - Section Récupération du jour
 
 private struct RecoverySectionContent: View {
     let log: [RecoveryEntry]
     let summary: DailySummary?
     let hrv: HRVAnalysis?
+    let onRefresh: () async -> Void
+
+    @AppStorage("last_hk_sync_energy") private var lastHKSyncTimestamp: Double = 0
+    @State private var isSyncingHK = false
+    @State private var showHistory = false
+    @State private var showLogSheet = false
 
     private var today: RecoveryEntry? { log.first }
 
     private var readinessScore: Double? {
-        if let s = summary?.recoveryScore { return s * 10 }  // backend 0-10 → 0-100
-        if let h = hrv?.hrvScore          { return h }        // déjà 0-100
+        if let s = summary?.recoveryScore { return s * 10 }
+        if let h = hrv?.hrvScore          { return h }
         return nil
     }
+
+    private var syncTimeLabel: String? {
+        guard lastHKSyncTimestamp > 0 else { return nil }
+        let d = Date(timeIntervalSince1970: lastHKSyncTimestamp)
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return "Sync \(f.string(from: d))"
+    }
+
+#if !targetEnvironment(macCatalyst)
+    private func syncNow() async {
+        let hk = HealthKitService.shared
+        let authorized = await hk.requestAuthorization()
+        guard authorized else { return }
+        isSyncingHK = true
+        let snapshot = await hk.fetchTodayHealthSnapshot()
+        _ = try? await APIService.shared.syncHealthKitToday(snapshot: snapshot)
+        await onRefresh()
+        lastHKSyncTimestamp = Date().timeIntervalSince1970
+        isSyncingHK = false
+    }
+#endif
 
     var body: some View {
         let score = readinessScore
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
+
+            // Header
+            HStack(alignment: .center) {
                 Text("RÉCUPÉRATION")
                     .font(.appCaption.weight(.black))
                     .tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
+#if !targetEnvironment(macCatalyst)
+                Button {
+                    Task { await syncNow() }
+                } label: {
+                    HStack(spacing: 4) {
+                        if isSyncingHK {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                                .scaleEffect(0.7)
+                                .tint(.orange)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.appCaption.weight(.semibold))
+                                .foregroundColor(.orange)
+                        }
+                        if let t = syncTimeLabel {
+                            Text(t)
+                                .font(.appMicro)
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+                .disabled(isSyncingHK)
+#endif
                 NavigationLink(destination: RecoveryView()) {
                     HStack(spacing: 4) {
                         Text("Voir plus")
@@ -670,25 +727,77 @@ private struct RecoverySectionContent: View {
                             .foregroundColor(.orange.opacity(0.7))
                     }
                 }
+                .padding(.leading, 8)
             }
 
+            // Métriques ou état vide
             if let e = today {
                 RecoveryMetricsGrid(entry: e, readiness: score, hrv: hrv)
             } else {
-                Text("Aucune donnée de récupération")
-                    .font(.appLabel.weight(.regular))
-                    .foregroundColor(.gray)
+                VStack(spacing: 8) {
+                    Text("Aucune donnée de récupération pour aujourd'hui")
+                        .font(.appLabel.weight(.regular))
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+#if !targetEnvironment(macCatalyst)
+                    Button {
+                        Task { await syncNow() }
+                    } label: {
+                        Label("Actualiser depuis HealthKit", systemImage: "arrow.clockwise")
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundColor(.orange)
+                    }
+                    .disabled(isSyncingHK)
+#endif
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
             }
 
-            if log.count >= 3 {
+            // Bouton compléter manuellement
+            Button {
+                showLogSheet = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "pencil.line")
+                        .font(.appCaption)
+                    Text("Compléter manuellement")
+                        .font(.appCaption.weight(.semibold))
+                }
+                .foregroundColor(.white.opacity(0.7))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(Color.white.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .sheet(isPresented: $showLogSheet) {
+                LogRecoverySheet(prefillEntry: today,
+                                 onSaved: { await onRefresh() })
+            }
+
+            // Accordéon historique
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) { showHistory.toggle() }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(showHistory ? "Masquer l'historique" : "Voir l'historique")
+                        .font(.appCaption.weight(.medium))
+                        .foregroundColor(.gray)
+                    Image(systemName: showHistory ? "chevron.up" : "chevron.down")
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(.gray.opacity(0.7))
+                }
+            }
+
+            if showHistory && log.count >= 3 {
                 Recovery14dChart(log: log)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(16)
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
-
 }
 
 // MARK: - Grille métriques du jour
@@ -827,6 +936,8 @@ private struct RecoveryMetricsGrid: View {
                 Text(value)
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(valueColor)
+                    .contentTransition(.numericText())
+                    .animation(.easeInOut(duration: 0.4), value: value)
                 if let sub = subtitle {
                     Text(sub)
                         .font(.appMicro)
