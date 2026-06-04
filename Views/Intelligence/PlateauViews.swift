@@ -352,7 +352,6 @@ struct PlateauDetailSheet: View {
         }
     }
 }
-
 // ── Deload Plan Sheet ─────────────────────────────────────────────────────────
 
 struct DeloadPlanSheet: View {
@@ -546,6 +545,7 @@ struct DeloadPlanSheet: View {
 private struct DeloadExerciseRow: View {
     let exercise: DeloadExercise
     let deloadType: String
+    @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
