@@ -56,15 +56,15 @@ struct GymDetailView: View {
                         .fill(Color.orange.opacity(0.15))
                         .frame(width: 50, height: 50)
                     Image(systemName: gym.gymType.icon)
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.appTitle.weight(.semibold))
                         .foregroundColor(.orange)
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(gym.name)
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.appTitle.weight(.bold))
                         .foregroundColor(.white)
                     Text(gym.gymType.label)
-                        .font(.system(size: 13))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.orange.opacity(0.8))
                 }
                 Spacer()
@@ -72,10 +72,10 @@ struct GymDetailView: View {
 
             HStack(spacing: 6) {
                 Image(systemName: "mappin.circle")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.35))
                 Text(gym.address)
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.white.opacity(0.55))
             }
 
@@ -83,7 +83,7 @@ struct GymDetailView: View {
                 Text(d < 1000
                      ? "\(Int(d)) m de ta position"
                      : String(format: "%.1f km de ta position", d / 1000))
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.orange)
             }
         }
@@ -98,10 +98,10 @@ struct GymDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: "clock.fill")
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.orange)
                 Text("Horaires")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Spacer()
                 if let open = gym.isOpenNow {
@@ -110,7 +110,7 @@ struct GymDetailView: View {
                             .fill(open ? Color.green : Color.red)
                             .frame(width: 6, height: 6)
                         Text(open ? "Ouvert" : "Fermé")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(open ? .green : .red)
                     }
                 }
@@ -122,12 +122,12 @@ struct GymDetailView: View {
                     .foregroundColor(.white.opacity(0.5))
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Appelle pour confirmer avant de te déplacer.")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.25))
                     .italic()
             } else {
                 Text("Horaires non disponibles — appelle pour confirmer.")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.35))
                     .italic()
             }
@@ -145,15 +145,15 @@ struct GymDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 13))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.green)
                     Text("Communauté — \(cs.contributionCount) contribution\(cs.contributionCount == 1 ? "" : "s")")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white)
                     Spacer()
                     if let price = cs.dropInPrice {
                         Text("Drop-in: \(String(format: "%.0f", price))$")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.orange)
                     }
                 }
@@ -164,10 +164,10 @@ struct GymDetailView: View {
                         ForEach(keys, id: \.rawValue) { eq in
                             HStack(spacing: 5) {
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 9, weight: .bold))
+                                    .font(.appMicro.weight(.bold))
                                     .foregroundColor(.green)
                                 Text(eq.label)
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.appCaption.weight(.medium))
                                     .foregroundColor(.white.opacity(0.8))
                                 Spacer()
                             }
@@ -190,7 +190,7 @@ struct GymDetailView: View {
 
                 if let last = cs.lastUpdated {
                     Text("Mis à jour \(last)")
-                        .font(.system(size: 10))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.25))
                 }
             }
@@ -203,7 +203,7 @@ struct GymDetailView: View {
     private func vibeRow(label: String, value: Int, low: String, high: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(.white.opacity(0.4))
             HStack(spacing: 3) {
                 ForEach(1...5, id: \.self) { i in
@@ -213,9 +213,9 @@ struct GymDetailView: View {
                 }
             }
             HStack {
-                Text(low).font(.system(size: 9)).foregroundColor(.white.opacity(0.25))
+                Text(low).font(.appMicro).foregroundColor(.white.opacity(0.25))
                 Spacer()
-                Text(high).font(.system(size: 9)).foregroundColor(.white.opacity(0.25))
+                Text(high).font(.appMicro).foregroundColor(.white.opacity(0.25))
             }
             .frame(width: 16 * 5 + 3 * 4)
         }
@@ -227,7 +227,7 @@ struct GymDetailView: View {
         VStack(spacing: 10) {
             Button { openDirections() } label: {
                 Label("Itinéraire", systemImage: "arrow.triangle.turn.up.right.circle.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -269,7 +269,7 @@ struct GymDetailView: View {
             if !vm.workoutEquipmentSuggestion.isEmpty {
                 Button { showAdapt = true } label: {
                     Label("Adapter mon workout pour ce gym", systemImage: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.orange)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 13)
@@ -285,7 +285,7 @@ struct GymDetailView: View {
     private func outlineButton(label: String, icon: String, tint: Color = .white, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(label, systemImage: icon)
-                .font(.system(size: 14, weight: .medium))
+                .font(.appLabel)
                 .foregroundColor(tint)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
@@ -339,7 +339,7 @@ struct AdaptWorkoutSheet: View {
     private var profilePicker: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("PROFIL D'ÉQUIPEMENT")
-                .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+                .font(.appCaption.weight(.bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -348,9 +348,9 @@ struct AdaptWorkoutSheet: View {
                         Button { vm.selectedEquipmentProfile = selected ? nil : preset } label: {
                             VStack(spacing: 4) {
                                 Image(systemName: preset.icon)
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.appBody.weight(.semibold))
                                 Text(preset.name)
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.appCaption.weight(.medium))
                                     .lineLimit(1)
                             }
                             .foregroundColor(selected ? .black : .white.opacity(0.65))
@@ -365,9 +365,9 @@ struct AdaptWorkoutSheet: View {
                         Button { vm.selectedEquipmentProfile = nil } label: {
                             VStack(spacing: 4) {
                                 Image(systemName: "checkmark.seal.fill")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.appBody.weight(.semibold))
                                 Text("Auto (communauté)")
-                                    .font(.system(size: 11, weight: .medium)).lineLimit(1)
+                                    .font(.appCaption.weight(.medium)).lineLimit(1)
                             }
                             .foregroundColor(autoSelected ? .black : .white.opacity(0.65))
                             .padding(.horizontal, 12).padding(.vertical, 9)
@@ -389,16 +389,16 @@ struct AdaptWorkoutSheet: View {
         let needed = vm.workoutEquipmentSuggestion
         return VStack(alignment: .leading, spacing: 10) {
             Text("ÉQUIPEMENT REQUIS")
-                .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+                .font(.appCaption.weight(.bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(needed, id: \.rawValue) { eq in
                     let ok = available.contains(eq)
                     HStack(spacing: 6) {
                         Image(systemName: ok ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .font(.system(size: 14)).foregroundColor(ok ? .green : .red)
+                            .font(.appLabel.weight(.regular)).foregroundColor(ok ? .green : .red)
                         Text(eq.label)
-                            .font(.system(size: 12, weight: .medium)).foregroundColor(.white.opacity(0.8))
+                            .font(.appCaption.weight(.medium)).foregroundColor(.white.opacity(0.8))
                         Spacer()
                     }
                     .padding(8)
@@ -409,7 +409,7 @@ struct AdaptWorkoutSheet: View {
 
             if available.isEmpty && gym.crowdsource == nil {
                 Text("Aucune donnée communauté pour ce gym — sélectionne un profil ci-dessus.")
-                    .font(.system(size: 11)).foregroundColor(.white.opacity(0.35)).italic()
+                    .font(.appCaption).foregroundColor(.white.opacity(0.35)).italic()
             }
         }
         .padding(14).background(Color.appCard).cornerRadius(14)
@@ -424,31 +424,31 @@ struct AdaptWorkoutSheet: View {
         if !subs.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 Text("SUBSTITUTIONS SUGGÉRÉES")
-                    .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
+                    .font(.appCaption.weight(.bold)).tracking(1.5).foregroundColor(.white.opacity(0.35))
 
                 ForEach(subs) { sub in
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Text(sub.originalEquipment)
-                                .font(.system(size: 11)).foregroundColor(.red.opacity(0.8))
+                                .font(.appCaption).foregroundColor(.red.opacity(0.8))
                                 .strikethrough()
                             Image(systemName: "arrow.right")
-                                .font(.system(size: 10)).foregroundColor(.white.opacity(0.3))
+                                .font(.appCaption).foregroundColor(.white.opacity(0.3))
                             Text(sub.substitute)
-                                .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+                                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
                             Spacer()
                             Text(sub.setsReps)
-                                .font(.system(size: 11, weight: .bold)).foregroundColor(.orange)
+                                .font(.appCaption.weight(.bold)).foregroundColor(.orange)
                         }
                         HStack(spacing: 4) {
                             Image(systemName: "dumbbell.fill")
-                                .font(.system(size: 9)).foregroundColor(.white.opacity(0.3))
+                                .font(.appMicro).foregroundColor(.white.opacity(0.3))
                             Text(sub.equipment)
-                                .font(.system(size: 11)).foregroundColor(.white.opacity(0.4))
+                                .font(.appCaption).foregroundColor(.white.opacity(0.4))
                         }
                         if let note = sub.note {
                             Text(note)
-                                .font(.system(size: 11)).foregroundColor(.white.opacity(0.35)).italic()
+                                .font(.appCaption).foregroundColor(.white.opacity(0.35)).italic()
                         }
                     }
                     .padding(10).background(Color.white.opacity(0.04)).cornerRadius(10)
@@ -465,9 +465,9 @@ struct AdaptWorkoutSheet: View {
         let missing = vm.workoutEquipmentSuggestion.filter { !available.contains($0) }
         return HStack(alignment: .top, spacing: 10) {
             Image(systemName: "flame.fill")
-                .font(.system(size: 14)).foregroundColor(.orange).padding(.top, 1)
+                .font(.appLabel.weight(.regular)).foregroundColor(.orange).padding(.top, 1)
             Text(WorkoutSubstitutionEngine.coachMessage(missing: missing))
-                .font(.system(size: 13, weight: .medium)).foregroundColor(.white.opacity(0.85))
+                .font(.appLabel).foregroundColor(.white.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)

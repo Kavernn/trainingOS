@@ -57,7 +57,7 @@ struct GymFiltersView: View {
             VStack(spacing: 0) {
                 Toggle(isOn: $vm.filters.openNow) {
                     Label("Ouvert maintenant", systemImage: "clock.fill")
-                        .font(.system(size: 14))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.white)
                 }
                 .tint(.orange)
@@ -67,7 +67,7 @@ struct GymFiltersView: View {
 
                 Toggle(isOn: $vm.filters.dropInOnly) {
                     Label("Drop-in confirmé seulement", systemImage: "dollarsign.circle.fill")
-                        .font(.system(size: 14))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.white)
                 }
                 .tint(.orange)
@@ -85,10 +85,10 @@ struct GymFiltersView: View {
                     } label: {
                         HStack(spacing: 7) {
                             Image(systemName: "wand.and.stars")
-                                .font(.system(size: 12))
+                                .font(.appCaption)
                                 .foregroundColor(.orange)
                             Text("Auto — workout du jour : \(vm.workoutEquipmentSuggestion.map(\.label).joined(separator: ", "))")
-                                .font(.system(size: 12))
+                                .font(.appCaption)
                                 .foregroundColor(.orange.opacity(0.9))
                                 .lineLimit(2)
                         }
@@ -119,9 +119,9 @@ struct GymFiltersView: View {
         } label: {
             VStack(spacing: 5) {
                 Image(systemName: type.icon)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                 Text(type.label)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.appCaption.weight(.medium))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -143,7 +143,7 @@ struct GymFiltersView: View {
             else        { vm.filters.requiredEquipment.insert(eq) }
         } label: {
             Text(eq.label)
-                .font(.system(size: 12, weight: .medium))
+                .font(.appCaption.weight(.medium))
                 .foregroundColor(selected ? .black : .white.opacity(0.6))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
@@ -161,7 +161,7 @@ struct GymFiltersView: View {
     private func filterCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title.uppercased())
-                .font(.system(size: 10, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .tracking(1.5)
                 .foregroundColor(.white.opacity(0.35))
             content()

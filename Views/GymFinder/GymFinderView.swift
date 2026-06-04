@@ -42,7 +42,7 @@ struct GymFinderView: View {
                                   : "line.3.horizontal.decrease.circle")
                             if vm.filters.isActive {
                                 Text("Actif")
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.appCaption.weight(.medium))
                             }
                         }
                         .foregroundColor(vm.filters.isActive ? .orange : .white)
@@ -93,7 +93,7 @@ struct GymFinderView: View {
             ForEach([1, 5, 10, 25], id: \.self) { km in
                 Button { vm.changeRadius(km) } label: {
                     Text("\(km) km")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(vm.filters.radiusKm == km ? .black : .white.opacity(0.7))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 7)
@@ -111,20 +111,20 @@ struct GymFinderView: View {
         Button { vm.applyWorkoutFilter() } label: {
             HStack(spacing: 10) {
                 Image(systemName: "figure.strengthtraining.traditional")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.orange)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Workout du jour détecté")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.white)
                     Text("Filtrer : \(vm.workoutEquipmentSuggestion.map(\.label).joined(separator: ", "))")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.5))
                         .lineLimit(1)
                 }
                 Spacer()
                 Text("Appliquer →")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.orange)
             }
             .padding(.horizontal, 16)
@@ -140,14 +140,14 @@ struct GymFinderView: View {
         HStack {
             if let err = vm.error {
                 Text(err)
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.red.opacity(0.8))
                     .lineLimit(1)
             } else {
                 Text(vm.isLoading
                      ? "Recherche…"
                      : "\(vm.filteredGyms.count) gym\(vm.filteredGyms.count == 1 ? "" : "s")")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white.opacity(0.5))
             }
             Spacer()
@@ -155,7 +155,7 @@ struct GymFinderView: View {
                 withAnimation(.spring(response: 0.4)) { listExpanded.toggle() }
             } label: {
                 Image(systemName: listExpanded ? "chevron.down" : "chevron.up")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.white.opacity(0.4))
             }
         }
@@ -195,10 +195,10 @@ struct GymFinderView: View {
                 .font(.system(size: 36))
                 .foregroundColor(.orange.opacity(0.5))
             Text("Aucun gym trouvé dans ce rayon")
-                .font(.system(size: 16, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundColor(.white.opacity(0.7))
             Text("Élargis le rayon ou continue le combat sans équipement.")
-                .font(.system(size: 13))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.white.opacity(0.35))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
@@ -213,7 +213,7 @@ struct GymFinderView: View {
                 .font(.system(size: 28))
                 .foregroundColor(.orange.opacity(0.5))
             Text("Aucun résultat avec ces filtres")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.appBody.weight(.semibold))
                 .foregroundColor(.white.opacity(0.7))
             Button("Réinitialiser les filtres") {
                 let radius = vm.filters.radiusKm
@@ -221,7 +221,7 @@ struct GymFinderView: View {
                 vm.filters.radiusKm = radius
             }
             .foregroundColor(.orange)
-            .font(.system(size: 14, weight: .medium))
+            .font(.appLabel)
         }
         .padding(.top, 30)
     }
@@ -234,10 +234,10 @@ struct GymFinderView: View {
                 .foregroundColor(.orange.opacity(0.7))
             VStack(spacing: 8) {
                 Text("Position requise")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.appTitle.weight(.bold))
                     .foregroundColor(.white)
                 Text("Gym Finder utilise ta position localement pour trouver les salles à proximité. Ta position n'est jamais envoyée à nos serveurs.")
-                    .font(.system(size: 14))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.white.opacity(0.45))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
@@ -248,7 +248,7 @@ struct GymFinderView: View {
                 }
             } label: {
                 Text("Autoriser dans Réglages")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -294,26 +294,26 @@ struct GymCard: View {
                     .fill(Color.orange.opacity(0.15))
                     .frame(width: 44, height: 44)
                 Image(systemName: gym.gymType.icon)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.appHeadline)
                     .foregroundColor(.orange)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(gym.name)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.white)
                         .lineLimit(1)
                     if isFavorite {
                         Image(systemName: "star.fill")
-                            .font(.system(size: 10))
+                            .font(.appCaption)
                             .foregroundColor(.orange)
                     }
                 }
 
                 HStack(spacing: 5) {
                     Text(gym.distanceFormatted)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(.white.opacity(0.45))
 
                     if let open = gym.isOpenNow {
@@ -321,20 +321,20 @@ struct GymCard: View {
                             .fill(open ? Color.green : Color.red)
                             .frame(width: 5, height: 5)
                         Text(open ? "Ouvert" : "Fermé")
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(open ? .green : .red.opacity(0.9))
                     }
 
                     Text("·")
                         .foregroundColor(.white.opacity(0.2))
                     Text(gym.gymType.label)
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.35))
                 }
 
                 if let price = gym.crowdsource?.dropInPrice {
                     Text("Drop-in: \(String(format: "%.0f", price))$")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(.orange.opacity(0.8))
                 }
             }
@@ -342,7 +342,7 @@ struct GymCard: View {
             Spacer()
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .medium))
+                .font(.appCaption.weight(.medium))
                 .foregroundColor(.white.opacity(0.2))
         }
         .padding(14)

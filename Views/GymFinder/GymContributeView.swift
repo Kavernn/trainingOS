@@ -41,7 +41,7 @@ struct GymContributeView: View {
         ScrollView {
             VStack(spacing: 14) {
                 Text("Tu aides tous les combattants qui passeront par \(gym.name).")
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.white.opacity(0.4))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 20)
@@ -52,7 +52,7 @@ struct GymContributeView: View {
                 vibeCard
 
                 Text("Contribution 100% anonyme. Aucun lien avec ton profil.")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.25))
                     .multilineTextAlignment(.center)
 
@@ -82,14 +82,14 @@ struct GymContributeView: View {
             HStack(spacing: 8) {
                 TextField("Ex: 15", text: $dropInPrice)
                     .keyboardType(.decimalPad)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.appTitle.weight(.bold))
                     .foregroundColor(.white)
                 Text("$")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.appTitle.weight(.bold))
                     .foregroundColor(.orange)
             }
             Text("Laisse vide si tu ne sais pas")
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.white.opacity(0.25))
         }
     }
@@ -105,10 +105,10 @@ struct GymContributeView: View {
                     } label: {
                         HStack(spacing: 6) {
                             Image(systemName: selected ? "checkmark.square.fill" : "square")
-                                .font(.system(size: 14))
+                                .font(.appLabel.weight(.regular))
                                 .foregroundColor(selected ? .green : .white.opacity(0.3))
                             Text(eq.label)
-                                .font(.system(size: 12))
+                                .font(.appCaption)
                                 .foregroundColor(selected ? .white : .white.opacity(0.45))
                             Spacer()
                         }
@@ -136,16 +136,16 @@ struct GymContributeView: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack {
                 Text(label)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.appLabel)
                     .foregroundColor(.white.opacity(0.7))
                 Spacer()
                 Text("\(value.wrappedValue)/5")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.orange)
             }
             HStack(spacing: 0) {
                 Text(low)
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.25))
                     .frame(width: 52, alignment: .leading)
                 HStack(spacing: 8) {
@@ -159,7 +159,7 @@ struct GymContributeView: View {
                     }
                 }
                 Text(high)
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.white.opacity(0.25))
                     .frame(width: 52, alignment: .trailing)
             }
@@ -198,13 +198,13 @@ struct GymContributeView: View {
                 .font(.system(size: 26, weight: .bold))
                 .foregroundColor(.white)
             Text("Ta contribution aide les autres à trouver où se battre.")
-                .font(.system(size: 14))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.white.opacity(0.45))
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             Button("Fermer") { dismiss() }
                 .foregroundColor(.orange)
-                .font(.system(size: 15, weight: .medium))
+                .font(.appBody.weight(.medium))
                 .padding(.top, 8)
             Spacer()
         }
@@ -216,7 +216,7 @@ struct GymContributeView: View {
     private func sectionCard<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title.uppercased())
-                .font(.system(size: 10, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .tracking(1.5)
                 .foregroundColor(.white.opacity(0.35))
             content()

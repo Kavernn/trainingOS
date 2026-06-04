@@ -112,7 +112,7 @@ private struct ERTabPicker: View {
             withAnimation(.easeInOut(duration: 0.2)) { activeTab = index }
         } label: {
             Text(title)
-                .font(.system(size: 13, weight: selected ? .bold : .medium))
+                .font(.appLabel.weight(selected ? .bold : .medium))
                 .foregroundColor(selected ? .white : .gray)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
@@ -185,16 +185,16 @@ struct EnergyHeaderCard: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(status)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.appHeadline.weight(.bold))
                         .foregroundColor(color)
                     if let obj = energy.objective {
                         Text("Objectif : \(obj.capitalized)")
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                     if let target = energy.targetBalance {
                         Text("Cible : \(target)")
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                 }
@@ -230,7 +230,7 @@ struct EnergyHeaderCard: View {
     private func energyKPI(label: String, value: String, unit: String, color: Color) -> some View {
         VStack(spacing: 3) {
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .tracking(0.5)
                 .foregroundColor(.gray)
             Text(value)
@@ -238,7 +238,7 @@ struct EnergyHeaderCard: View {
                 .foregroundColor(color)
             if !unit.isEmpty {
                 Text(unit)
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
         }
@@ -261,7 +261,7 @@ private struct EnergyBreakdownCard: View {
 
         VStack(alignment: .leading, spacing: 12) {
             Text("DÉPENSES DU JOUR")
-                .font(.system(size: 11, weight: .black))
+                .font(.appCaption.weight(.black))
                 .tracking(2)
                 .foregroundColor(.gray)
 
@@ -294,10 +294,10 @@ private struct EnergyBreakdownCard: View {
                 } else if energy.breakdown?.steps == nil {
                     HStack(spacing: 8) {
                         Image(systemName: "figure.walk")
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                         Text("Active Apple Watch pour calculer ton NEAT")
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                     .padding(.top, 2)
@@ -306,15 +306,15 @@ private struct EnergyBreakdownCard: View {
                 if let ae = activeEnergy, ae > 0 {
                     HStack(spacing: 8) {
                         Image(systemName: "applewatch")
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(isRestDay && ae > 800 ? .orange : .gray)
                         VStack(alignment: .leading, spacing: 1) {
                             Text("Dépense active (HealthKit)")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.appCaption.weight(.medium))
                                 .foregroundColor(.white.opacity(0.75))
                             if isRestDay && ae > 800 {
                                 Text("Activité élevée malgré le repos")
-                                    .font(.system(size: 10))
+                                    .font(.appCaption)
                                     .foregroundColor(.orange)
                             }
                         }
@@ -330,7 +330,7 @@ private struct EnergyBreakdownCard: View {
 
                 HStack {
                     Text("Total TDEE")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white)
                     Spacer()
                     Text("\(tdee) kcal")
@@ -352,10 +352,10 @@ private struct EnergyBreakdownCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(label)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white)
                     Text(subtitle)
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
                 Spacer()
@@ -386,10 +386,10 @@ private struct EnergyErrorCard: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "person.crop.circle.badge.exclamationmark")
-                .font(.system(size: 24))
+                .font(.appTitle.weight(.regular))
                 .foregroundColor(.orange)
             Text(message)
-                .font(.system(size: 13))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.white.opacity(0.8))
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -443,7 +443,7 @@ private struct EnergyChartSection: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("DÉPENSES VS APPORTS — 7J")
-                    .font(.system(size: 11, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
@@ -544,7 +544,7 @@ private struct EnergyChartSection: View {
                     AxisValueLabel {
                         if let v = val.as(Int.self) {
                             Text("\(v / 100 * 100)")
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                                 .foregroundColor(.gray)
                         }
                     }
@@ -553,7 +553,7 @@ private struct EnergyChartSection: View {
             .chartXAxis {
                 AxisMarks { val in
                     AxisValueLabel()
-                        .font(.system(size: 9))
+                        .font(.appMicro)
                         .foregroundStyle(Color.gray)
                 }
             }
@@ -586,26 +586,26 @@ private struct EnergyChartSection: View {
     private func legendDot(color: Color, label: String) -> some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 7, height: 7)
-            Text(label).font(.system(size: 10)).foregroundColor(.gray)
+            Text(label).font(.appCaption).foregroundColor(.gray)
         }
     }
 
     private func dayAnnotation(_ day: EnergyHistoryDay) -> some View {
         VStack(spacing: 2) {
             Text(day.date)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
                 .foregroundColor(.white)
             Text("TDEE \(day.tdee) kcal")
-                .font(.system(size: 9))
+                .font(.appMicro)
                 .foregroundColor(.blue)
             if let i = day.intake {
                 Text("Apports \(i) kcal")
-                    .font(.system(size: 9))
+                    .font(.appMicro)
                     .foregroundColor(.green)
             }
             if let b = day.balance {
                 Text(b >= 0 ? "+\(b) kcal" : "\(b) kcal")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.appMicro.weight(.bold))
                     .foregroundColor(b >= 0 ? .green : .red)
             }
         }
@@ -656,17 +656,17 @@ private struct RecoverySectionContent: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("RÉCUPÉRATION")
-                    .font(.system(size: 11, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
                 NavigationLink(destination: RecoveryView()) {
                     HStack(spacing: 4) {
                         Text("Voir plus")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(.orange)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.orange.opacity(0.7))
                     }
                 }
@@ -676,7 +676,7 @@ private struct RecoverySectionContent: View {
                 RecoveryMetricsGrid(entry: e, readiness: score, hrv: hrv)
             } else {
                 Text("Aucune donnée de récupération")
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.gray)
             }
 
@@ -745,20 +745,20 @@ private struct RecoveryMetricsGrid: View {
                             .foregroundColor(scoreColor)
                     } else {
                         Text("—")
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.appLabel.weight(.bold))
                             .foregroundColor(.gray)
                     }
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Readiness")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.gray)
                     Text(statusLabel)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.appLabel.weight(.bold))
                         .foregroundColor(scoreColor)
                     if let msg = hrv?.contextualMessage {
                         Text(msg)
-                            .font(.system(size: 10))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                             .lineLimit(2)
                     }
@@ -816,12 +816,12 @@ private struct RecoveryMetricsGrid: View {
                             subtitle: String? = nil) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(color)
                 .frame(width: 18)
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.appMicro.weight(.semibold))
                     .tracking(0.3)
                     .foregroundColor(.gray)
                 Text(value)
@@ -829,7 +829,7 @@ private struct RecoveryMetricsGrid: View {
                     .foregroundColor(valueColor)
                 if let sub = subtitle {
                     Text(sub)
-                        .font(.system(size: 9))
+                        .font(.appMicro)
                         .foregroundColor(.gray)
                         .lineLimit(1)
                 }
@@ -922,16 +922,16 @@ private struct Recovery14dChart: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("READINESS 14J")
-                    .font(.system(size: 10, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
                 HStack(spacing: 4) {
                     Image(systemName: trendIcon)
-                        .font(.system(size: 9, weight: .bold))
+                        .font(.appMicro.weight(.bold))
                         .foregroundColor(trendColor)
                     Text(trendLabel)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(trendColor)
                 }
                 .padding(.horizontal, 8)
@@ -973,7 +973,7 @@ private struct Recovery14dChart: View {
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 5)) {
                     AxisValueLabel()
-                        .font(.system(size: 9))
+                        .font(.appMicro)
                         .foregroundStyle(Color.gray)
                 }
             }
@@ -984,7 +984,7 @@ private struct Recovery14dChart: View {
                     AxisValueLabel {
                         if let v = val.as(Double.self) {
                             Text("\(Int(v))")
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                                 .foregroundColor(.gray)
                         }
                     }
@@ -1010,17 +1010,17 @@ private struct SleepSectionContent: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("SOMMEIL")
-                    .font(.system(size: 11, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
                 NavigationLink(destination: SleepView()) {
                     HStack(spacing: 4) {
                         Text("Voir plus")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.appCaption.weight(.medium))
                             .foregroundColor(.purple)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.purple.opacity(0.7))
                     }
                 }
@@ -1030,7 +1030,7 @@ private struct SleepSectionContent: View {
                 SleepTodayCard(entry: e)
             } else {
                 Text("Aucune donnée de sommeil")
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.gray)
             }
 
@@ -1067,7 +1067,7 @@ private struct SleepSectionContent: View {
                 .font(.system(size: 15, weight: .black, design: .rounded))
                 .foregroundColor(.white)
             Text(label)
-                .font(.system(size: 10, weight: .medium))
+                .font(.appCaption.weight(.medium))
                 .foregroundColor(.gray)
         }
     }
@@ -1110,13 +1110,13 @@ private struct SleepTodayCard: View {
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text("Cette nuit")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.gray)
                 Text(catLabel)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.appLabel.weight(.bold))
                     .foregroundColor(durColor)
                 Text(qualDisplay)
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
             Spacer()
@@ -1158,7 +1158,7 @@ private struct Sleep10dChart: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("DURÉE & QUALITÉ — 10J")
-                    .font(.system(size: 10, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .tracking(2)
                     .foregroundColor(.gray)
                 Spacer()
@@ -1213,7 +1213,7 @@ private struct Sleep10dChart: View {
                     AxisValueLabel {
                         if let v = val.as(Double.self) {
                             Text("\(Int(v))h")
-                                .font(.system(size: 9))
+                                .font(.appMicro)
                                 .foregroundColor(.gray)
                         }
                     }
@@ -1222,7 +1222,7 @@ private struct Sleep10dChart: View {
             .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 5)) {
                     AxisValueLabel()
-                        .font(.system(size: 9))
+                        .font(.appMicro)
                         .foregroundStyle(Color.gray)
                 }
             }
@@ -1233,7 +1233,7 @@ private struct Sleep10dChart: View {
     private func legendDot(color: Color, label: String) -> some View {
         HStack(spacing: 4) {
             Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+            Text(label).font(.appMicro).foregroundColor(.gray)
         }
     }
 }
@@ -1380,7 +1380,7 @@ private struct DynamicSuggestionsSection: View {
         if !items.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 Text("SUGGESTIONS")
-                    .font(.system(size: 11, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .tracking(2)
                     .foregroundColor(.gray)
                     .padding(.horizontal, 16)
@@ -1398,7 +1398,7 @@ private struct DynamicSuggestionsSection: View {
     private func suggestionRow(_ s: Suggestion) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: s.icon)
-                .font(.system(size: 16))
+                .font(.appBody)
                 .foregroundColor(s.color)
                 .frame(width: 32, height: 32)
                 .background(s.color.opacity(0.12))
@@ -1406,10 +1406,10 @@ private struct DynamicSuggestionsSection: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(s.title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Text(s.detail)
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                     .fixedSize(horizontal: false, vertical: true)
             }
