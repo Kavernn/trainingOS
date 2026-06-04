@@ -166,6 +166,7 @@ struct PainJournalCard: View {
 struct OneRMProgrammingCard: View {
     let data: OneRMResponse
     @State private var selected: String? = nil
+    @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -186,7 +187,7 @@ struct OneRMProgrammingCard: View {
                                     .font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
                                     .lineLimit(1)
                                 HStack(spacing: 4) {
-                                    Text(String(format: "1RM %.0f lbs", ex.estimated1rm))
+                                    Text("1RM \(units.format(ex.estimated1rm, decimals: 0))")
                                         .font(.system(size: 10)).foregroundColor(.purple)
                                     if let pct = ex.pctOf1rm {
                                         Text(String(format: "· %.0f%%", pct))
@@ -211,7 +212,7 @@ struct OneRMProgrammingCard: View {
                         VStack(spacing: 2) {
                             Text("\(entry.pct)%")
                                 .font(.system(size: 10, weight: .bold)).foregroundColor(.purple)
-                            Text(String(format: "%.0f lbs", entry.weight))
+                            Text(units.format(entry.weight, decimals: 0))
                                 .font(.system(size: 13, weight: .black)).foregroundColor(.white)
                         }
                         .padding(.vertical, 8)

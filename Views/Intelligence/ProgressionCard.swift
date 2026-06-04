@@ -3,6 +3,7 @@ import SwiftUI
 struct ProgressionCard: View {
     let weightsData: [String: WeightData]
     let goal: String?
+    @ObservedObject private var units = UnitSettings.shared
 
     private var isForce: Bool { goal?.lowercased().contains("force") == true }
     private var accent: Color { isForce ? .blue : .teal }
@@ -70,12 +71,12 @@ struct ProgressionCard: View {
                 .lineLimit(1)
             Spacer()
             if let delta = lift.delta, abs(delta) > 0.5 {
-                Text(delta > 0 ? "+\(Int(delta))lbs" : "\(Int(delta))lbs")
+                Text(delta > 0 ? "+\(units.format(delta, decimals: 0))" : units.format(delta, decimals: 0))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(delta > 0 ? .green : .orange)
                     .padding(.trailing, 6)
             }
-            Text("\(Int(lift.currentWeight)) lbs")
+            Text(units.format(lift.currentWeight, decimals: 0))
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.white)
         }

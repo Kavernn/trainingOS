@@ -107,6 +107,7 @@ struct PlateauSection: View {
 struct PlateauAlertRow: View {
     let alert: PlateauAlert
     let onTap: () -> Void
+    @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         let scoreText   = "\(alert.plateauScore)/100"
@@ -165,6 +166,7 @@ struct PlateauDetailSheet: View {
     @State private var showDeloadPlan = false
     @State private var isDismissing   = false
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
         NavigationView {
@@ -241,10 +243,10 @@ struct PlateauDetailSheet: View {
                     .font(.system(size: 12))
                     .foregroundColor(Color(white: 0.45))
                 Spacer()
-                Text("\(Int(alert.workingWeightLbs)) lbs × \(alert.workingReps) reps")
+                Text("\(units.format(alert.workingWeightLbs, decimals: 0)) × \(alert.workingReps) reps")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(.white)
-                Text("→ e1RM \(Int(latestE1rm)) lbs")
+                Text("→ e1RM \(units.format(latestE1rm, decimals: 0))")
                     .font(.system(size: 12))
                     .foregroundColor(Color(white: 0.45))
             }
@@ -562,8 +564,8 @@ private struct DeloadExerciseRow: View {
     }
 
     private var standardRow: some View {
-        let from = exercise.fromLbs.map { "\(Int($0)) lbs" } ?? "—"
-        let to   = exercise.toLbs.map   { "\(Int($0)) lbs" } ?? "—"
+        let from = exercise.fromLbs.map { units.format($0, decimals: 0) } ?? "—"
+        let to   = exercise.toLbs.map   { units.format($0, decimals: 0) } ?? "—"
         let sets = exercise.sets.map    { "\($0) sets" }     ?? ""
         let reps = exercise.reps.map    { "× \($0) reps" }   ?? ""
 
@@ -587,7 +589,7 @@ private struct DeloadExerciseRow: View {
     private var repRangeOptions: some View {
         VStack(alignment: .leading, spacing: 4) {
             if let force = exercise.forceOption {
-                let forceText = "\(Int(force.weightLbs)) lbs × \(force.reps) reps"
+                let forceText = "\(units.format(force.weightLbs, decimals: 0)) × \(force.reps) reps"
                 HStack(spacing: 6) {
                     Text("Option Force:")
                         .font(.system(size: 12))
@@ -598,7 +600,7 @@ private struct DeloadExerciseRow: View {
                 }
             }
             if let volume = exercise.volumeOption {
-                let volText = "\(Int(volume.weightLbs)) lbs × \(volume.reps) reps"
+                let volText = "\(units.format(volume.weightLbs, decimals: 0)) × \(volume.reps) reps"
                 HStack(spacing: 6) {
                     Text("Option Volume:")
                         .font(.system(size: 12))
