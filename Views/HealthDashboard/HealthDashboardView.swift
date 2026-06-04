@@ -33,14 +33,14 @@ struct HealthDashboardView: View {
                                 NavigationLink(destination: PSSView()) {
                                     HStack(spacing: 10) {
                                         Image(systemName: "brain.head.profile")
-                                            .font(.system(size: 14)).foregroundColor(.purple)
+                                            .font(.appLabel.weight(.regular)).foregroundColor(.purple)
                                         Text(msg)
-                                            .font(.system(size: 12, weight: .medium))
+                                            .font(.appCaption.weight(.medium))
                                             .foregroundColor(.white)
                                             .multilineTextAlignment(.leading)
                                         Spacer()
                                         Image(systemName: "chevron.right")
-                                            .font(.system(size: 11)).foregroundColor(.gray)
+                                            .font(.appCaption).foregroundColor(.gray)
                                     }
                                     .padding(12)
                                     .glassCard(color: .purple, intensity: 0.07)
@@ -175,23 +175,23 @@ struct RecoveryScoreRing: View {
                             .font(.system(size: 26, weight: .black))
                             .foregroundColor(.gray)
                     }
-                    Text("/ 10").font(.system(size: 10)).foregroundColor(.gray)
+                    Text("/ 10").font(.appCaption).foregroundColor(.gray)
                 }
             }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("SCORE DE RÉCUPÉRATION")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Text(scoreLabel)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.appHeadline.weight(.bold))
                     .foregroundColor(scoreColor)
                 Text(summary.date)
-                    .font(.system(size: 12)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
 
                 if let soreness = summary.soreness {
                     HStack(spacing: 4) {
-                        Image(systemName: "bolt.fill").font(.system(size: 10)).foregroundColor(.orange)
-                        Text("Courbatures : \(Int(soreness))/10").font(.system(size: 11)).foregroundColor(.gray)
+                        Image(systemName: "bolt.fill").font(.appCaption).foregroundColor(.orange)
+                        Text("Courbatures : \(Int(soreness))/10").font(.appCaption).foregroundColor(.gray)
                     }
                 }
             }
@@ -226,12 +226,12 @@ struct DataSourcesRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Text("SOURCES").font(.system(size: 9, weight: .bold)).tracking(2).foregroundColor(.gray)
+            Text("SOURCES").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
             ForEach(sources, id: \.self) { src in
                 let (icon, color) = sourceConfig(src)
                 HStack(spacing: 4) {
-                    Image(systemName: icon).font(.system(size: 10))
-                    Text(src.capitalized).font(.system(size: 10, weight: .medium))
+                    Image(systemName: icon).font(.appCaption)
+                    Text(src.capitalized).font(.appCaption.weight(.medium))
                 }
                 .foregroundColor(color)
                 .padding(.horizontal, 8).padding(.vertical, 4)
@@ -310,27 +310,27 @@ struct BodyMetricsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("COMPOSITION CORPORELLE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             HStack(spacing: 20) {
                 if let w = summary.bodyWeight {
                     VStack(spacing: 2) {
                         Text(units.format(w))
-                            .font(.system(size: 22, weight: .black)).foregroundColor(.orange)
-                        Text("Poids").font(.system(size: 10)).foregroundColor(.gray)
+                            .font(.appTitle.weight(.black)).foregroundColor(.orange)
+                        Text("Poids").font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 if let bf = summary.bodyFatPct {
                     VStack(spacing: 2) {
                         Text(String(format: "%.1f%%", bf))
-                            .font(.system(size: 22, weight: .black)).foregroundColor(.blue)
-                        Text("Masse grasse").font(.system(size: 10)).foregroundColor(.gray)
+                            .font(.appTitle.weight(.black)).foregroundColor(.blue)
+                        Text("Masse grasse").font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 if let wc = summary.waistCm {
                     VStack(spacing: 2) {
                         Text(String(format: "%.0f cm", wc))
-                            .font(.system(size: 22, weight: .black)).foregroundColor(.purple)
-                        Text("Tour taille").font(.system(size: 10)).foregroundColor(.gray)
+                            .font(.appTitle.weight(.black)).foregroundColor(.purple)
+                        Text("Tour taille").font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 Spacer()
@@ -348,9 +348,9 @@ struct CardioSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("CARDIO").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Text("CARDIO").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 if let t = summary.cardioType {
-                    Text(t.capitalized).font(.system(size: 10, weight: .medium))
+                    Text(t.capitalized).font(.appCaption.weight(.medium))
                         .foregroundColor(.teal).padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Color.teal.opacity(0.12)).cornerRadius(4)
                 }
@@ -382,20 +382,20 @@ struct TrainingSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("ENTRAÎNEMENT MUSCULAIRE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             HStack(spacing: 16) {
                 if let rpe = summary.trainingRpe {
                     VStack(spacing: 2) {
                         Text(String(format: "%.1f", rpe))
-                            .font(.system(size: 22, weight: .black)).foregroundColor(.orange)
-                        Text("RPE").font(.system(size: 10)).foregroundColor(.gray)
+                            .font(.appTitle.weight(.black)).foregroundColor(.orange)
+                        Text("RPE").font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 if let dur = summary.trainingDurationMin {
                     VStack(spacing: 2) {
                         Text(String(format: "%.0f min", dur))
-                            .font(.system(size: 22, weight: .black)).foregroundColor(.white)
-                        Text("Durée").font(.system(size: 10)).foregroundColor(.gray)
+                            .font(.appTitle.weight(.black)).foregroundColor(.white)
+                        Text("Durée").font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 if let e = summary.trainingEnergyPre {
@@ -403,18 +403,18 @@ struct TrainingSummaryCard: View {
                         HStack(spacing: 2) {
                             ForEach(1...5, id: \.self) { i in
                                 Image(systemName: i <= e ? "bolt.fill" : "bolt")
-                                    .font(.system(size: 12))
+                                    .font(.appCaption)
                                     .foregroundColor(i <= e ? .yellow : .gray.opacity(0.3))
                             }
                         }
-                        Text("Énergie").font(.system(size: 10)).foregroundColor(.gray)
+                        Text("Énergie").font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 Spacer()
             }
             if let exos = summary.trainingExercises, !exos.isEmpty {
                 Text(exos.prefix(4).joined(separator: " · "))
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                     .lineLimit(2)
             }
         }
@@ -430,10 +430,10 @@ struct NutritionSummaryHealthCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("NUTRITION").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Text("NUTRITION").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 if let m = summary.meals {
-                    Text("\(m) repas").font(.system(size: 11)).foregroundColor(.gray)
+                    Text("\(m) repas").font(.appCaption).foregroundColor(.gray)
                 }
             }
             HStack(spacing: 12) {
@@ -474,10 +474,10 @@ struct WeeklySleepChart: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("SOMMEIL — 7 DERNIERS JOURS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("Tap pour détails")
-                    .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.6))
             }
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
@@ -528,10 +528,10 @@ struct WeeklyStepsChart: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("PAS — 7 DERNIERS JOURS")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("Tap pour détails")
-                    .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.6))
             }
             HStack(alignment: .bottom, spacing: 6) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
@@ -572,8 +572,8 @@ struct MetricPill: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: icon).font(.system(size: 11)).foregroundColor(color)
-            Text(value).font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+            Image(systemName: icon).font(.appCaption).foregroundColor(color)
+            Text(value).font(.appCaption.weight(.semibold)).foregroundColor(.white)
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
         .background(color.opacity(0.1)).cornerRadius(8)
@@ -587,8 +587,8 @@ struct MacroChip: View {
 
     var body: some View {
         VStack(spacing: 2) {
-            Text(value).font(.system(size: 14, weight: .bold)).foregroundColor(color)
-            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+            Text(value).font(.appLabel.weight(.bold)).foregroundColor(color)
+            Text(label).font(.appMicro).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 6)
@@ -618,9 +618,9 @@ struct LifeStressCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("LIFE STRESS SCORE")
-                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                     Text(stressLabel)
-                        .font(.system(size: 16, weight: .bold)).foregroundColor(color)
+                        .font(.appBody.weight(.bold)).foregroundColor(color)
                 }
                 Spacer()
                 // Score ring
@@ -635,7 +635,7 @@ struct LifeStressCard: View {
                         .frame(width: 72, height: 72)
                         .animation(.easeOut(duration: 0.8), value: score.score)
                     Text(String(format: "%.0f", score.score))
-                        .font(.system(size: 20, weight: .black)).foregroundColor(color)
+                        .font(.appTitle.weight(.black)).foregroundColor(color)
                 }
             }
 
@@ -645,7 +645,7 @@ struct LifeStressCard: View {
                 HStack(spacing: 6) {
                     ForEach(activeFlags, id: \.0) { label, _ in
                         Text(label)
-                            .font(.system(size: 10, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.red)
                             .padding(.horizontal, 7).padding(.vertical, 3)
                             .background(Color.red.opacity(0.12))
@@ -660,9 +660,9 @@ struct LifeStressCard: View {
                     ForEach(score.recommendations, id: \.self) { rec in
                         HStack(alignment: .top, spacing: 6) {
                             Image(systemName: "lightbulb.fill")
-                                .font(.system(size: 11)).foregroundColor(.yellow)
+                                .font(.appCaption).foregroundColor(.yellow)
                             Text(rec)
-                                .font(.system(size: 12)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -678,9 +678,9 @@ struct LifeStressCard: View {
             if score.dataCoverage < 0.6 {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 10)).foregroundColor(.orange)
+                        .font(.appCaption).foregroundColor(.orange)
                     Text("Données partielles (\(Int(score.dataCoverage * 100))% de couverture)")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 }
             }
         }
@@ -719,7 +719,7 @@ struct LifeStressTrendChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("TENDANCE 7 JOURS")
-                .font(.system(size: 9, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
             HStack(alignment: .bottom, spacing: 4) {
                 ForEach(Array(data.enumerated()), id: \.0) { i, item in
                     let pct = item.1 / 100.0
@@ -778,19 +778,19 @@ struct DayStatusHeaderView: View {
                     VStack(spacing: 1) {
                         if let s = summary.recoveryScore {
                             Text(String(format: "%.1f", s))
-                                .font(.system(size: 22, weight: .black)).foregroundColor(recoveryColor)
+                                .font(.appTitle.weight(.black)).foregroundColor(recoveryColor)
                         } else {
-                            Text("—").font(.system(size: 22, weight: .black)).foregroundColor(.gray)
+                            Text("—").font(.appTitle.weight(.black)).foregroundColor(.gray)
                         }
-                        Text("/ 10").font(.system(size: 9)).foregroundColor(.gray)
+                        Text("/ 10").font(.appMicro).foregroundColor(.gray)
                     }
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("ÉTAT DU JOUR")
-                        .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                        .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                     Text(recoveryLabel)
-                        .font(.system(size: 20, weight: .bold)).foregroundColor(recoveryColor)
+                        .font(.appTitle.weight(.bold)).foregroundColor(recoveryColor)
 
                     // LSS — indicateur secondaire
                     if let lss = lifeStress {
@@ -798,20 +798,20 @@ struct DayStatusHeaderView: View {
                         let lssLabel: String = lss.score >= 80 ? "Récup. optimale" : lss.score >= 60 ? "Bonne forme" : lss.score >= 40 ? "Fatigue modérée" : "Surmenage"
                         HStack(spacing: 4) {
                             Text("Life Stress")
-                                .font(.system(size: 11)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                             Text(String(format: "%.0f", lss.score))
-                                .font(.system(size: 11, weight: .bold)).foregroundColor(lssColor)
-                            Text("·").font(.system(size: 11)).foregroundColor(.gray)
+                                .font(.appCaption.weight(.bold)).foregroundColor(lssColor)
+                            Text("·").font(.appCaption).foregroundColor(.gray)
                             Text(lssLabel)
-                                .font(.system(size: 11)).foregroundColor(lssColor)
+                                .font(.appCaption).foregroundColor(lssColor)
                         }
                     }
 
                     if let soreness = summary.soreness {
                         HStack(spacing: 4) {
-                            Image(systemName: "bolt.fill").font(.system(size: 10)).foregroundColor(.orange)
+                            Image(systemName: "bolt.fill").font(.appCaption).foregroundColor(.orange)
                             Text("Courbatures \(Int(soreness))/10")
-                                .font(.system(size: 11)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                         }
                     }
                 }
@@ -828,7 +828,7 @@ struct DayStatusHeaderView: View {
                     HStack(spacing: 6) {
                         ForEach(active, id: \.0) { label, _ in
                             Text(label)
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(.red)
                                 .padding(.horizontal, 7).padding(.vertical, 3)
                                 .background(Color.red.opacity(0.12))

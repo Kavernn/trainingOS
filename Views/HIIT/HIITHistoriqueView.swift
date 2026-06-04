@@ -70,16 +70,16 @@ struct HIITEntryCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry.sessionType ?? "HIIT")
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(.white)
                     Text(entry.date ?? "—")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
                 Spacer()
                 if let rpe = entry.rpe {
                     Text("RPE \(rpe, specifier: "%.1f")")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.red)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -91,24 +91,24 @@ struct HIITEntryCard: View {
             HStack(spacing: 16) {
                 if let rounds = entry.rounds {
                     Label("\(rounds) rounds", systemImage: "repeat")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                 }
                 if let w = entry.workTime {
                     Label("\(w)s work", systemImage: "bolt.fill")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.orange)
                 }
                 if let r = entry.restTime {
                     Label("\(r)s rest", systemImage: "zzz")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.green)
                 }
             }
 
             if let notes = entry.notes, !notes.isEmpty {
                 Text(notes)
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                     .italic()
             }

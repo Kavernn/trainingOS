@@ -64,7 +64,7 @@ struct SleepView: View {
                     if let first = history.first, !first.insights.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("INSIGHTS")
-                                .font(.system(size: 11, weight: .black))
+                                .font(.appCaption.weight(.black))
                                 .tracking(2)
                                 .foregroundColor(.gray)
                                 .padding(.horizontal, 20)
@@ -73,7 +73,7 @@ struct SleepView: View {
                                 ForEach(first.insights, id: \.self) { insight in
                                     HStack(alignment: .top, spacing: 10) {
                                         Text(insight)
-                                            .font(.system(size: 13))
+                                            .font(.appLabel.weight(.regular))
                                             .foregroundColor(.white.opacity(0.85))
                                     }
                                     .padding(12)
@@ -90,7 +90,7 @@ struct SleepView: View {
                     if !history.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("HISTORIQUE")
-                                .font(.system(size: 11, weight: .black))
+                                .font(.appCaption.weight(.black))
                                 .tracking(2)
                                 .foregroundColor(.gray)
                                 .padding(.horizontal, 20)
@@ -133,10 +133,10 @@ struct SleepView: View {
                                 .font(.system(size: 48))
                                 .foregroundColor(.orange.opacity(0.5))
                             Text("Aucune donnée de sommeil")
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.appHeadline)
                                 .foregroundColor(.white)
                             Text("Logger ta première nuit pour commencer à suivre ton sommeil.")
-                                .font(.system(size: 14))
+                                .font(.appLabel.weight(.regular))
                                 .foregroundColor(.gray)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 32)
@@ -238,13 +238,13 @@ private struct SleepKPI: View {
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.system(size: 20))
+                .font(.appTitle.weight(.regular))
                 .foregroundColor(color)
             Text(value)
                 .font(.system(size: 20, weight: .black, design: .rounded))
                 .foregroundColor(.white)
             Text(label)
-                .font(.system(size: 10, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .tracking(0.5)
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
@@ -275,18 +275,18 @@ private struct SleepTodayCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text("CETTE NUIT")
-                        .font(.system(size: 10, weight: .black))
+                        .font(.appCaption.weight(.black))
                         .tracking(2)
                         .foregroundColor(.gray)
                     Text("✓")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.appCaption.weight(.bold))
                         .foregroundColor(.green)
                 }
                 Text(String(format: "%.1fh", entry.durationHours))
                     .font(.system(size: 32, weight: .black, design: .rounded))
                     .foregroundColor(durationColor)
                 Text("\(entry.bedtime) → \(entry.wakeTime)")
-                    .font(.system(size: 13))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.gray)
             }
 
@@ -296,7 +296,7 @@ private struct SleepTodayCard: View {
                 Text(entry.qualityEmoji)
                     .font(.system(size: 30))
                 Text(entry.qualityLabel)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.appCaption.weight(.semibold))
                     .foregroundColor(.white.opacity(0.7))
                     .multilineTextAlignment(.center)
             }
@@ -319,7 +319,7 @@ private struct SleepBarChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("7 DERNIÈRES NUITS")
-                .font(.system(size: 11, weight: .black))
+                .font(.appCaption.weight(.black))
                 .tracking(2)
                 .foregroundColor(.gray)
 
@@ -342,14 +342,14 @@ private struct SleepBarChart: View {
                         .foregroundStyle(Color.white.opacity(0.08))
                     AxisValueLabel()
                         .foregroundStyle(Color.gray)
-                        .font(.system(size: 10))
+                        .font(.appCaption)
                 }
             }
             .chartXAxis {
                 AxisMarks { val in
                     AxisValueLabel()
                         .foregroundStyle(Color.gray)
-                        .font(.system(size: 10))
+                        .font(.appCaption)
                 }
             }
             .frame(height: 140)
@@ -392,14 +392,14 @@ private struct SleepHistoryRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Text(entry.qualityEmoji)
-                .font(.system(size: 24))
+                .font(.appTitle.weight(.regular))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(formattedDate(entry.date))
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Text("\(entry.bedtime) → \(entry.wakeTime)")
-                    .font(.system(size: 12))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
 
@@ -410,7 +410,7 @@ private struct SleepHistoryRow: View {
                     .font(.system(size: 16, weight: .black, design: .rounded))
                     .foregroundColor(durationColor)
                 Text(entry.qualityLabel)
-                    .font(.system(size: 10))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
             }
         }
@@ -466,9 +466,9 @@ struct SleepLogSheet: View {
                             HStack(spacing: 10) {
                                 Image(systemName: "heart.fill")
                                     .foregroundColor(.red)
-                                    .font(.system(size: 13))
+                                    .font(.appLabel.weight(.regular))
                                 Text("Horaires détectés via Santé — ajuste si besoin")
-                                    .font(.system(size: 13))
+                                    .font(.appLabel.weight(.regular))
                                     .foregroundColor(.white.opacity(0.8))
                             }
                             .listRowBackground(Color.red.opacity(0.08))
@@ -491,7 +491,7 @@ struct SleepLogSheet: View {
                                 .foregroundColor(.gray)
                             Spacer()
                             Text(String(format: "%.1fh", durClamped))
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.appBody.weight(.semibold))
                                 .foregroundColor(durationColor(durClamped))
                         }
                     }
@@ -499,7 +499,7 @@ struct SleepLogSheet: View {
                     Section("Qualité du sommeil") {
                         VStack(spacing: 12) {
                             Text("\(qualityEmojis[quality])  \(qualityLabels[quality])")
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.appTitle.weight(.semibold))
                                 .frame(maxWidth: .infinity, alignment: .center)
                                 .padding(.top, 4)
 
@@ -512,7 +512,7 @@ struct SleepLogSheet: View {
                                             Text(qualityEmojis[q])
                                                 .font(.system(size: 26))
                                             Text("\(q)")
-                                                .font(.system(size: 11, weight: .bold))
+                                                .font(.appCaption.weight(.bold))
                                                 .foregroundColor(quality == q ? accentColor : .gray)
                                         }
                                         .padding(.vertical, 8)
@@ -540,7 +540,7 @@ struct SleepLogSheet: View {
                         Section {
                             Text(error)
                                 .foregroundColor(.red)
-                                .font(.system(size: 13))
+                                .font(.appLabel.weight(.regular))
                         }
                     }
                 }

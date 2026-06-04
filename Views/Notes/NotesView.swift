@@ -65,7 +65,7 @@ struct NotesView: View {
                             // Filter toggle
                             HStack {
                                 Toggle("Avec notes seulement", isOn: $showOnlyWithNotes)
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.appLabel)
                                     .foregroundColor(.gray)
                                     .tint(.orange)
                             }
@@ -112,12 +112,12 @@ struct NoteCard: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(formattedDate)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.white)
                 Spacer()
                 if let rpe = session.entry.rpe {
                     Text("RPE \(rpe, specifier: "%.1f")")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(rpeColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -128,14 +128,14 @@ struct NoteCard: View {
 
             if let comment = session.entry.comment, !comment.isEmpty {
                 Text(comment)
-                    .font(.system(size: 14))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.gray)
                     .italic()
             }
 
             if let exos = session.entry.exos, !exos.isEmpty {
                 Text(exos.joined(separator: " · "))
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray.opacity(0.6))
                     .lineLimit(2)
             }

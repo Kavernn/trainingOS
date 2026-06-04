@@ -48,15 +48,15 @@ struct PSSView: View {
                                 // P-D4: LSS error state with retry
                                 HStack(spacing: 10) {
                                     Image(systemName: "exclamationmark.triangle")
-                                        .font(.system(size: 14)).foregroundColor(.orange)
+                                        .font(.appLabel.weight(.regular)).foregroundColor(.orange)
                                     Text("Données de stress momentané indisponibles")
-                                        .font(.system(size: 13)).foregroundColor(.gray)
+                                        .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                                     Spacer()
                                     Button {
                                         Task { await reloadLSS() }
                                     } label: {
                                         Image(systemName: "arrow.clockwise")
-                                            .font(.system(size: 14)).foregroundColor(.purple)
+                                            .font(.appLabel.weight(.regular)).foregroundColor(.purple)
                                     }
                                 }
                                 .padding(14)
@@ -98,7 +98,7 @@ struct PSSView: View {
                             } else {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("HISTORIQUE")
-                                        .font(.system(size: 10, weight: .bold))
+                                        .font(.appCaption.weight(.bold))
                                         .tracking(2).foregroundColor(.gray)
                                         .padding(.horizontal, 16)
                                     ForEach(history) { record in
@@ -128,7 +128,7 @@ struct PSSView: View {
                         showSheet = true
                     } label: {
                         Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 20))
+                            .font(.appTitle.weight(.regular))
                             .foregroundColor(.purple)
                     }
                 }
@@ -178,14 +178,14 @@ struct PSSdueBanner: View {
         Button(action: onTap) {
             HStack(spacing: 10) {
                 Image(systemName: "brain.head.profile")
-                    .font(.system(size: 16)).foregroundColor(.purple)
+                    .font(.appBody).foregroundColor(.purple)
                 Text(message)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.appLabel)
                     .foregroundColor(.white)
                     .multilineTextAlignment(.leading)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
             }
             .padding(14)
             .glassCard(color: .purple, intensity: 0.08)
@@ -256,11 +256,11 @@ struct PSSKPICell: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 22, weight: .black)).foregroundColor(color)
+                .font(.appTitle.weight(.black)).foregroundColor(color)
             Text(label)
-                .font(.system(size: 10, weight: .semibold)).foregroundColor(.white)
+                .font(.appCaption.weight(.semibold)).foregroundColor(.white)
             Text(sublabel)
-                .font(.system(size: 9)).foregroundColor(.gray)
+                .font(.appMicro).foregroundColor(.gray)
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
@@ -319,31 +319,31 @@ struct PSSHistoryRow: View {
                             .rotationEffect(.degrees(-90))
                             .frame(width: 44, height: 44)
                         Text("\(record.score)")
-                            .font(.system(size: 13, weight: .black))
+                            .font(.appLabel.weight(.black))
                             .foregroundColor(record.categoryColor)
                     }
 
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
                             Text(record.categoryLabel)
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.appLabel.weight(.semibold))
                                 .foregroundColor(record.categoryColor)
                             Text(record.type == "full" ? "PSS-10" : "PSS-4")
-                                .font(.system(size: 10, weight: .medium))
+                                .font(.appCaption.weight(.medium))
                                 .foregroundColor(.gray)
                                 .padding(.horizontal, 5).padding(.vertical, 2)
                                 .background(Color.gray.opacity(0.12))
                                 .cornerRadius(4)
                         }
                         Text(pssDisplayDate(record))
-                            .font(.system(size: 11)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                     }
 
                     Spacer()
 
                     if record.streak >= 3 {
                         Text("×\(record.streak)")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .foregroundColor(.yellow)
                             .padding(.horizontal, 5).padding(.vertical, 2)
                             .background(Color.yellow.opacity(0.12))
@@ -351,7 +351,7 @@ struct PSSHistoryRow: View {
                     }
 
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 11)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 }
                 .padding(12)
             }
@@ -364,9 +364,9 @@ struct PSSHistoryRow: View {
                     // Insights
                     ForEach(Array(record.insights.enumerated()), id: \.0) { _, insight in
                         HStack(alignment: .top, spacing: 6) {
-                            Text("•").font(.system(size: 12)).foregroundColor(record.categoryColor)
+                            Text("•").font(.appCaption).foregroundColor(record.categoryColor)
                             Text(insight)
-                                .font(.system(size: 12)).foregroundColor(.gray)
+                                .font(.appCaption).foregroundColor(.gray)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -375,9 +375,9 @@ struct PSSHistoryRow: View {
                     if let notes = record.notes, !notes.isEmpty {
                         HStack(alignment: .top, spacing: 6) {
                             Image(systemName: "note.text")
-                                .font(.system(size: 11)).foregroundColor(.blue)
+                                .font(.appCaption).foregroundColor(.blue)
                             Text(notes)
-                                .font(.system(size: 12)).foregroundColor(.gray.opacity(0.9))
+                                .font(.appCaption).foregroundColor(.gray.opacity(0.9))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -388,7 +388,7 @@ struct PSSHistoryRow: View {
                             ForEach(Array(record.triggerRatings.keys.sorted()), id: \.self) { key in
                                 if let val = record.triggerRatings[key] {
                                     Text("\(key) : \(val)/4")
-                                        .font(.system(size: 10, weight: .medium))
+                                        .font(.appCaption.weight(.medium))
                                         .foregroundColor(.orange)
                                         .padding(.horizontal, 7).padding(.vertical, 3)
                                         .background(Color.orange.opacity(0.1))
@@ -416,13 +416,13 @@ struct PSSEmptyState: View {
             Image(systemName: "brain.head.profile")
                 .font(.system(size: 44)).foregroundColor(.purple.opacity(0.4))
             Text("Aucun bilan stress")
-                .font(.system(size: 16, weight: .medium)).foregroundColor(.gray)
+                .font(.appBody.weight(.medium)).foregroundColor(.gray)
             Text("Le PSS-10 mesure ton niveau de stress perçu\ndu dernier mois (3 min).")
-                .font(.system(size: 13)).foregroundColor(.gray.opacity(0.7))
+                .font(.appLabel.weight(.regular)).foregroundColor(.gray.opacity(0.7))
                 .multilineTextAlignment(.center)
             Button(action: onStart) {
                 Text("Commencer")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 28).padding(.vertical, 12)
                     .background(Color.purple.opacity(0.7))
@@ -539,11 +539,11 @@ struct PSSQuestionnaireSheet: View {
                 VStack(spacing: 6) {
                     HStack {
                         Text("\(answeredCount) / \(questions.count)")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.purple)
                         Spacer()
                         Text(answeredCount == questions.count ? "Prêt ✓" : "\(Int(Double(answeredCount) / Double(total) * 100))%")
-                            .font(.system(size: 12))
+                            .font(.appCaption)
                             .foregroundColor(answeredCount == questions.count ? .green : .gray)
                     }
                     ProgressView(value: Double(answeredCount), total: Double(total))
@@ -557,10 +557,10 @@ struct PSSQuestionnaireSheet: View {
                 // Intro
                 VStack(spacing: 6) {
                     Text("Au cours du **dernier mois**…")
-                        .font(.system(size: 14)).foregroundColor(.gray)
+                        .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                         .multilineTextAlignment(.center)
                     Text("Échelle 0 à 4")
-                        .font(.system(size: 12)).foregroundColor(.gray.opacity(0.6))
+                        .font(.appCaption).foregroundColor(.gray.opacity(0.6))
                 }
                 .padding(.vertical, 12)
 
@@ -595,13 +595,13 @@ struct PSSQuestionnaireSheet: View {
                 VStack(spacing: 10) {
                     if !allAnswered {
                         Text("Réponds à toutes les questions pour continuer")
-                            .font(.system(size: 12)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                     }
                     Button(action: submitQuestionnaire) {
                         HStack(spacing: 8) {
                             if isSaving { ProgressView().tint(.white).scaleEffect(0.8) }
                             Text(isSaving ? "Calcul…" : "Calculer mon score")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.appBody.weight(.semibold))
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -632,12 +632,12 @@ struct PSSQuestionnaireSheet: View {
                     Image(systemName: "checkmark.circle")
                         .font(.system(size: 44)).foregroundColor(.green.opacity(0.6))
                     Text("Résultats envoyés")
-                        .font(.system(size: 18, weight: .semibold)).foregroundColor(.white)
+                        .font(.appHeadline).foregroundColor(.white)
                     Text("Données disponibles après rechargement")
-                        .font(.system(size: 13)).foregroundColor(.gray)
+                        .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                         .multilineTextAlignment(.center)
                     Button("Fermer") { dismiss() }
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 32).padding(.vertical, 14)
                         .background(Color.purple.opacity(0.7))
@@ -749,15 +749,15 @@ struct PSSResultsContent: View {
                 if record.category != "low" {
                     NavigationLink { BreathworkView() } label: {
                         HStack(spacing: 10) {
-                            Image(systemName: "lungs.fill").font(.system(size: 16)).foregroundColor(.green)
+                            Image(systemName: "lungs.fill").font(.appBody).foregroundColor(.green)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Décompresser maintenant")
-                                    .font(.system(size: 14, weight: .semibold)).foregroundColor(.white)
+                                    .font(.appLabel.weight(.semibold)).foregroundColor(.white)
                                 Text("Cohérence cardiaque · 5 min recommandées")
-                                    .font(.system(size: 12)).foregroundColor(.gray)
+                                    .font(.appCaption).foregroundColor(.gray)
                             }
                             Spacer()
-                            Image(systemName: "chevron.right").font(.system(size: 11)).foregroundColor(.gray)
+                            Image(systemName: "chevron.right").font(.appCaption).foregroundColor(.gray)
                         }
                         .padding(14)
                         .background(Color.green.opacity(0.08))
@@ -772,7 +772,7 @@ struct PSSResultsContent: View {
                 notesSection
 
                 Button("Terminer", action: onFinish)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
@@ -790,13 +790,13 @@ struct PSSResultsContent: View {
     private var insightsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("ANALYSE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             ForEach(Array(record.insights.enumerated()), id: \.0) { _, insight in
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 11)).foregroundColor(.yellow)
+                        .font(.appCaption).foregroundColor(.yellow)
                     Text(insight)
-                        .font(.system(size: 13)).foregroundColor(.gray)
+                        .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(10)
@@ -811,9 +811,9 @@ struct PSSResultsContent: View {
     private var notesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("NOTE OPTIONNELLE")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             TextField("Qu'est-ce qui t'a aidé ou stressé ce mois-ci ?", text: $notes, axis: .vertical)
-                .font(.system(size: 13))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.white)
                 .lineLimit(3...5)
                 .padding(12)
@@ -873,19 +873,19 @@ struct PSSQuestionCard: View {
     private var questionHeader: some View {
         HStack(alignment: .top, spacing: 8) {
             Text("\(index)")
-                .font(.system(size: 11, weight: .bold))
+                .font(.appCaption.weight(.bold))
                 .foregroundColor(.purple)
                 .frame(width: 18, height: 18)
                 .background(Color.purple.opacity(0.12))
                 .clipShape(Circle())
             VStack(alignment: .leading, spacing: 5) {
                 Text(question.text)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.appLabel)
                     .foregroundColor(.white)
                     .fixedSize(horizontal: false, vertical: true)
                 if let example = Self.examples[question.id] {
                     Text(example)
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.35))
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -914,7 +914,7 @@ struct PSSResponseButton: View {
         Button(action: onTap) {
             VStack(spacing: 4) {
                 Text("\(val)")
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.appLabel.weight(.bold))
                     .foregroundColor(isSelected ? .white : .gray.opacity(0.6))
                 Text(label)
                     .font(.system(size: 7, weight: .medium))
@@ -946,11 +946,11 @@ struct TriggerRatingSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("MES DÉCLENCHEURS")
-                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             ForEach(triggers, id: \.self) { trigger in
                 VStack(alignment: .leading, spacing: 8) {
                     Text("« \(trigger) » t'a stressé(e) ce mois-ci ?")
-                        .font(.system(size: 13)).foregroundColor(.white)
+                        .font(.appLabel.weight(.regular)).foregroundColor(.white)
                     HStack(spacing: 4) {
                         ForEach(0..<5) { val in
                             Button {
@@ -958,7 +958,7 @@ struct TriggerRatingSection: View {
                             } label: {
                                 VStack(spacing: 3) {
                                     Text("\(val)")
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.appCaption.weight(.bold))
                                         .foregroundColor(ratings[trigger] == val ? .white : .gray.opacity(0.5))
                                     Text(labels[val])
                                         .font(.system(size: 7))
@@ -1008,21 +1008,21 @@ struct PSSScoreRing: View {
                         .foregroundColor(record.categoryColor)
                         .contentTransition(.numericText())
                     Text("/ \(record.maxScore)")
-                        .font(.system(size: 14)).foregroundColor(.gray)
+                        .font(.appLabel.weight(.regular)).foregroundColor(.gray)
                 }
             }
 
             VStack(spacing: 4) {
                 Text(record.categoryLabel)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.appTitle.weight(.bold))
                     .foregroundColor(record.categoryColor)
                 Text(record.type == "full" ? "PSS-10" : "PSS-4")
-                    .font(.system(size: 12)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                 if record.streak >= 3 {
                     HStack(spacing: 4) {
                         Image(systemName: "medal.fill").foregroundColor(.yellow)
                         Text("Tracker régulier ×\(record.streak)")
-                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.yellow)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.yellow)
                     }
                     .padding(.top, 4)
                 }
@@ -1074,15 +1074,15 @@ struct LSSCompactCard: View {
                             .rotationEffect(.degrees(-90))
                             .frame(width: 44, height: 44)
                         Text("\(Int(lss.score))")
-                            .font(.system(size: 13, weight: .black))
+                            .font(.appLabel.weight(.black))
                             .foregroundColor(scoreColor)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Stress \(scoreLabel)")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.appLabel.weight(.semibold))
                             .foregroundColor(scoreColor)
                         Text("Score de stress LSS · automatique")
-                            .font(.system(size: 10)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                     }
                 }
                 Spacer()
@@ -1103,7 +1103,7 @@ struct LSSCompactCard: View {
 
             if !lss.recommendations.isEmpty {
                 Text(lss.recommendations[0])
-                    .font(.system(size: 12)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
                     .lineLimit(2)
             }
         }
@@ -1129,9 +1129,9 @@ struct LSSComponentPill: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: icon).font(.system(size: 9)).foregroundColor(color)
-            Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(.gray)
-            Text("\(value)").font(.system(size: 9, weight: .bold)).foregroundColor(pillColor)
+            Image(systemName: icon).font(.appMicro).foregroundColor(color)
+            Text(label).font(.appMicro.weight(.medium)).foregroundColor(.gray)
+            Text("\(value)").font(.appMicro.weight(.bold)).foregroundColor(pillColor)
         }
         .padding(.horizontal, 7).padding(.vertical, 4)
         .background(color.opacity(0.08))
@@ -1153,10 +1153,10 @@ struct PSSTrendChart: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("TENDANCE")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text("PSS-10 seulement")
-                    .font(.system(size: 9)).foregroundColor(.gray.opacity(0.5))
+                    .font(.appMicro).foregroundColor(.gray.opacity(0.5))
             }
 
             Chart {
@@ -1182,7 +1182,7 @@ struct PSSTrendChart: View {
                 AxisMarks(values: [0, 13, 26, 40]) { value in
                     AxisGridLine().foregroundStyle(Color.white.opacity(0.05))
                     AxisValueLabel()
-                        .font(.system(size: 9))
+                        .font(.appMicro)
                         .foregroundStyle(Color.gray)
                 }
             }
@@ -1190,11 +1190,11 @@ struct PSSTrendChart: View {
 
             // Zone labels
             HStack {
-                Text("Faible ≤13").font(.system(size: 9)).foregroundColor(.green)
+                Text("Faible ≤13").font(.appMicro).foregroundColor(.green)
                 Spacer()
-                Text("Modéré ≤26").font(.system(size: 9)).foregroundColor(.orange)
+                Text("Modéré ≤26").font(.appMicro).foregroundColor(.orange)
                 Spacer()
-                Text("Élevé ≤40").font(.system(size: 9)).foregroundColor(.red)
+                Text("Élevé ≤40").font(.appMicro).foregroundColor(.red)
             }
         }
         .padding(14)

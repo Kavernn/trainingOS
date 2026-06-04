@@ -209,11 +209,11 @@ struct OnboardingView: View {
                 // Height
                 VStack(alignment: .leading, spacing: 8) {
                     Text("TAILLE")
-                        .font(.system(size: 10, weight: .bold)).tracking(2)
+                        .font(.appCaption.weight(.bold)).tracking(2)
                         .foregroundColor(.gray)
                     HStack {
                         Text("\(heightInput) cm")
-                            .font(.system(size: 22, weight: .black))
+                            .font(.appTitle.weight(.black))
                             .foregroundColor(.white)
                         Spacer()
                         Stepper("", value: $heightInput, in: 140...220)
@@ -226,11 +226,11 @@ struct OnboardingView: View {
                 // Weight
                 VStack(alignment: .leading, spacing: 8) {
                     Text("POIDS")
-                        .font(.system(size: 10, weight: .bold)).tracking(2)
+                        .font(.appCaption.weight(.bold)).tracking(2)
                         .foregroundColor(.gray)
                     HStack {
                         Text(String(format: "%.1f %@", weightInput, isKgSelected ? "kg" : "lbs"))
-                            .font(.system(size: 22, weight: .black))
+                            .font(.appTitle.weight(.black))
                             .foregroundColor(.white)
                         Spacer()
                         Stepper("", value: $weightInput, in: 30...300, step: 0.5)

@@ -92,14 +92,14 @@ struct InventaireView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     NavigationLink(destination: GraveyardView()) {
                         Image(systemName: "archivebox.fill")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                             .foregroundColor(Color(hex: "8B6AFF"))
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button { showAdd = true } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.appBody.weight(.semibold))
                             .foregroundColor(.orange)
                     }
                 }
@@ -198,7 +198,7 @@ struct InventaireView: View {
     private var countLabel: some View {
         HStack {
             Text("\(filtered.count) exercice\(filtered.count != 1 ? "s" : "")")
-                .font(.system(size: 11, weight: .medium))
+                .font(.appCaption.weight(.medium))
                 .foregroundColor(.gray)
             Spacer()
         }
@@ -375,21 +375,21 @@ struct InventaireRow: View {
                     .fill(typeColor.opacity(0.15))
                     .frame(width: 36, height: 36)
                 Image(systemName: typeIcon)
-                    .font(.system(size: 16))
+                    .font(.appBody)
                     .foregroundColor(typeColor)
             }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(item.name)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white)
                     if isInProgram {
                         Text("⭐")
-                            .font(.system(size: 10))
+                            .font(.appCaption)
                     }
                     if item.trackingType == "time" {
                         Text("TEMPS")
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.appMicro.weight(.bold))
                             .foregroundColor(.cyan)
                             .padding(.horizontal, 5).padding(.vertical, 2)
                             .background(Color.cyan.opacity(0.15))
@@ -398,21 +398,21 @@ struct InventaireRow: View {
                 }
                 HStack(spacing: 6) {
                     Text(item.type.capitalized)
-                        .font(.system(size: 11)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                     if !item.category.isEmpty {
-                        Text("·").foregroundColor(.gray.opacity(0.4)).font(.system(size: 11))
+                        Text("·").foregroundColor(.gray.opacity(0.4)).font(.appCaption)
                         Text(item.category.capitalized)
-                            .font(.system(size: 11)).foregroundColor(.gray)
+                            .font(.appCaption).foregroundColor(.gray)
                     }
                     if !item.defaultScheme.isEmpty {
-                        Text("·").foregroundColor(.gray.opacity(0.4)).font(.system(size: 11))
+                        Text("·").foregroundColor(.gray.opacity(0.4)).font(.appCaption)
                         Text(item.defaultScheme)
-                            .font(.system(size: 11, weight: .medium)).foregroundColor(.orange.opacity(0.8))
+                            .font(.appCaption.weight(.medium)).foregroundColor(.orange.opacity(0.8))
                     }
                     if !item.loadProfile.isEmpty {
                         let (lpLabel, lpColor) = loadProfileInfo(item.loadProfile)
                         Text(lpLabel)
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.appMicro.weight(.bold))
                             .foregroundColor(lpColor)
                             .padding(.horizontal, 5).padding(.vertical, 2)
                             .background(lpColor.opacity(0.15))
@@ -426,13 +426,13 @@ struct InventaireRow: View {
                     showMedia = true
                 } label: {
                     Image(systemName: "play.circle.fill")
-                        .font(.system(size: 20))
+                        .font(.appTitle.weight(.regular))
                         .foregroundColor(.orange.opacity(0.75))
                 }
                 .buttonStyle(.plain)
             }
             Image(systemName: "chevron.right")
-                .font(.system(size: 11))
+                .font(.appCaption)
                 .foregroundColor(.gray.opacity(0.4))
         }
         .padding(.vertical, 6)
@@ -553,7 +553,7 @@ struct InventoryFormSheet: View {
                             Spacer()
                             if !muscles.isEmpty {
                                 Text("\(muscles.count) sélectionné\(muscles.count > 1 ? "s" : "")")
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                                     .foregroundColor(.orange)
                             }
                         }
@@ -575,13 +575,13 @@ struct InventoryFormSheet: View {
                             // Duration chips
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Durée par série")
-                                    .font(.system(size: 12)).foregroundColor(.gray)
+                                    .font(.appCaption).foregroundColor(.gray)
                                 ScrollView(.horizontal, showsIndicators: false) {
                                     HStack(spacing: 8) {
                                         ForEach(durationOptions, id: \.self) { d in
                                             Button { timeDuration = d } label: {
                                                 Text(formatDur(d))
-                                                    .font(.system(size: 12, weight: .medium))
+                                                    .font(.appCaption.weight(.medium))
                                                     .padding(.horizontal, 10).padding(.vertical, 5)
                                                     .background(timeDuration == d ? Color.cyan : Color(hex: "191926"))
                                                     .foregroundColor(timeDuration == d ? .black : .white)
@@ -593,10 +593,10 @@ struct InventoryFormSheet: View {
                             }
                             // Preview
                             HStack {
-                                Text("Schéma généré").foregroundColor(.gray).font(.system(size: 13))
+                                Text("Schéma généré").foregroundColor(.gray).font(.appLabel.weight(.regular))
                                 Spacer()
                                 Text(generatedScheme)
-                                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.cyan)
+                                    .font(.appLabel.weight(.semibold)).foregroundColor(.cyan)
                             }
                         } header: {
                             sectionHeader("Configuration temps")
@@ -611,7 +611,7 @@ struct InventoryFormSheet: View {
                                     ForEach(schemes, id: \.self) { s in
                                         Button { defaultScheme = s } label: {
                                             Text(s)
-                                                .font(.system(size: 12, weight: .medium))
+                                                .font(.appCaption.weight(.medium))
                                                 .padding(.horizontal, 10).padding(.vertical, 5)
                                                 .background(defaultScheme == s ? Color.orange : Color(hex: "191926"))
                                                 .foregroundColor(defaultScheme == s ? .black : .white)
@@ -675,7 +675,7 @@ struct InventoryFormSheet: View {
                                     restSecs = nil
                                 } label: {
                                     Text("—")
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.appLabel.weight(.semibold))
                                         .foregroundColor(restSecs == nil ? .black : .gray)
                                         .padding(.horizontal, 14).padding(.vertical, 7)
                                         .background(restSecs == nil ? Color.orange : Color(hex: "191926"))
@@ -686,7 +686,7 @@ struct InventoryFormSheet: View {
                                         restSecs = s
                                     } label: {
                                         Text(formatDur(s))
-                                            .font(.system(size: 13, weight: .semibold))
+                                            .font(.appLabel.weight(.semibold))
                                             .foregroundColor(restSecs == s ? .black : .white)
                                             .padding(.horizontal, 14).padding(.vertical, 7)
                                             .background(restSecs == s ? Color.orange : Color(hex: "191926"))
@@ -697,10 +697,10 @@ struct InventoryFormSheet: View {
                         }
                         if let r = restSecs {
                             HStack {
-                                Text("Repos configuré").foregroundColor(.gray).font(.system(size: 13))
+                                Text("Repos configuré").foregroundColor(.gray).font(.appLabel.weight(.regular))
                                 Spacer()
                                 Text(formatDur(r))
-                                    .font(.system(size: 13, weight: .semibold)).foregroundColor(.orange)
+                                    .font(.appLabel.weight(.semibold)).foregroundColor(.orange)
                             }
                         }
                     } header: {
@@ -777,7 +777,7 @@ struct InventoryFormSheet: View {
 
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .semibold))
+            .font(.appCaption.weight(.semibold))
             .foregroundColor(.gray)
             .textCase(nil)
     }
@@ -797,7 +797,7 @@ struct InventoryFormSheet: View {
                 Button { type = t } label: {
                     VStack(spacing: 4) {
                         Text(icons[t] ?? t.capitalized)
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(sel ? .black : (colors[t] ?? .gray))
                     }
                     .frame(maxWidth: .infinity)
@@ -823,7 +823,7 @@ struct InventoryFormSheet: View {
                 let sel = category == c
                 Button { category = (category == c ? "" : c) } label: {
                     Text(labels[c] ?? c.capitalized)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(sel ? .black : (colors[c] ?? .gray))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -843,7 +843,7 @@ struct InventoryFormSheet: View {
                 let sel = pattern == key
                 Button { pattern = (pattern == key ? "" : key) } label: {
                     Text(label)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(sel ? .black : .white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 7)
@@ -865,7 +865,7 @@ struct InventoryFormSheet: View {
                     if sel { muscles.remove(m) } else { muscles.insert(m) }
                 } label: {
                     Text(muscleLabel(m))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.appCaption.weight(.medium))
                         .foregroundColor(sel ? .black : .white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 7)
@@ -883,7 +883,7 @@ struct InventoryFormSheet: View {
         HStack(spacing: 8) {
             TextField("Autre muscle...", text: $customMuscle)
                 .foregroundColor(.white)
-                .font(.system(size: 13))
+                .font(.appLabel.weight(.regular))
             Button {
                 let m = customMuscle.trimmingCharacters(in: .whitespaces).lowercased()
                 guard !m.isEmpty else { return }
@@ -892,7 +892,7 @@ struct InventoryFormSheet: View {
             } label: {
                 Image(systemName: "plus.circle.fill")
                     .foregroundColor(customMuscle.trimmingCharacters(in: .whitespaces).isEmpty ? .gray : .orange)
-                    .font(.system(size: 20))
+                    .font(.appTitle.weight(.regular))
             }
             .disabled(customMuscle.trimmingCharacters(in: .whitespaces).isEmpty)
         }
@@ -906,7 +906,7 @@ struct InventoryFormSheet: View {
                 let sel = level == l
                 Button { level = (level == l ? "" : l) } label: {
                     Text(labels[l] ?? l.capitalized)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(sel ? .black : .white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -931,7 +931,7 @@ struct InventoryFormSheet: View {
                 let sel = loadProfile == value
                 Button { loadProfile = (loadProfile == value ? "" : value) } label: {
                     Text(label)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .multilineTextAlignment(.center)
                         .foregroundColor(sel ? .black : color)
                         .frame(maxWidth: .infinity)
@@ -1056,14 +1056,14 @@ struct ExerciseMediaSheet: View {
                         if !muscles.isEmpty {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("MUSCLES")
-                                    .font(.system(size: 10, weight: .black)).tracking(2)
+                                    .font(.appCaption.weight(.black)).tracking(2)
                                     .foregroundColor(.gray)
                                     .frame(maxWidth: .infinity, alignment: .leading)
 
                                 FlowLayout(spacing: 8) {
                                     ForEach(muscles, id: \.self) { m in
                                         Text(m.capitalized)
-                                            .font(.system(size: 12, weight: .medium))
+                                            .font(.appCaption.weight(.medium))
                                             .foregroundColor(.orange)
                                             .padding(.horizontal, 10).padding(.vertical, 5)
                                             .background(Color.orange.opacity(0.1))
@@ -1078,14 +1078,14 @@ struct ExerciseMediaSheet: View {
                         if let t = tips, !t.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("COACHING")
-                                    .font(.system(size: 10, weight: .black)).tracking(2)
+                                    .font(.appCaption.weight(.black)).tracking(2)
                                     .foregroundColor(.gray)
                                 HStack(alignment: .top, spacing: 8) {
                                     Image(systemName: "lightbulb.fill")
-                                        .font(.system(size: 12))
+                                        .font(.appCaption)
                                         .foregroundColor(.yellow)
                                     Text(t)
-                                        .font(.system(size: 13))
+                                        .font(.appLabel.weight(.regular))
                                         .foregroundColor(.white.opacity(0.85))
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
@@ -1121,7 +1121,7 @@ struct ExerciseMediaSheet: View {
     private func imageTab(label: String, active: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(label)
-                .font(.system(size: 12, weight: .semibold))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(active ? .white : .gray)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)

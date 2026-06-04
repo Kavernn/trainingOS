@@ -205,7 +205,7 @@ struct XPView: View {
                     .frame(width: 100, height: 100)
                 VStack(spacing: 2) {
                     Text("LVL")
-                        .font(.system(size: 10, weight: .bold)).tracking(2)
+                        .font(.appCaption.weight(.bold)).tracking(2)
                         .foregroundColor(.orange)
                     Text("\(level)")
                         .font(.system(size: 44, weight: .black))
@@ -214,16 +214,16 @@ struct XPView: View {
             }
 
             Text(levelTitle)
-                .font(.system(size: 20, weight: .bold))
+                .font(.appTitle.weight(.bold))
                 .foregroundColor(.white)
 
             VStack(spacing: 6) {
                 HStack {
                     Text("\(xp) XP total")
-                        .font(.system(size: 12)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                     Spacer()
                     Text("\(xpInLevel) / \(xpToNextLevel) XP")
-                        .font(.system(size: 12)).foregroundColor(.orange)
+                        .font(.appCaption).foregroundColor(.orange)
                 }
                 Capsule()
                     .fill(Color(hex: "191926"))
@@ -240,9 +240,9 @@ struct XPView: View {
 
             HStack(spacing: 4) {
                 Image(systemName: "shield.checkered")
-                    .font(.system(size: 10)).foregroundColor(.orange.opacity(0.7))
+                    .font(.appCaption).foregroundColor(.orange.opacity(0.7))
                 Text("\(unlockedCount)/\(allBadges.count) badges débloqués")
-                    .font(.system(size: 11)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
             }
         }
         .padding(20)
@@ -268,12 +268,12 @@ struct XPView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack(spacing: 6) {
                             Text(cat.rawValue.uppercased())
-                                .font(.system(size: 10, weight: .bold)).tracking(2)
+                                .font(.appCaption.weight(.bold)).tracking(2)
                                 .foregroundColor(.gray)
                             Spacer()
                             let unlocked = catBadges.filter { $0.unlocked }.count
                             Text("\(unlocked)/\(catBadges.count)")
-                                .font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
+                                .font(.appCaption).foregroundColor(.gray.opacity(0.6))
                         }
                         .padding(.horizontal, 16)
 
@@ -356,12 +356,12 @@ struct BadgeCell: View {
                 }
 
                 Image(systemName: badge.icon)
-                    .font(.system(size: 20))
+                    .font(.appTitle.weight(.regular))
                     .foregroundColor(badge.unlocked ? badge.color : .gray.opacity(0.3))
             }
 
             Text(badge.label)
-                .font(.system(size: 9, weight: .medium))
+                .font(.appMicro.weight(.medium))
                 .foregroundColor(badge.unlocked ? .white : .gray.opacity(0.45))
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
@@ -407,10 +407,10 @@ struct BadgeDetailSheet: View {
 
             VStack(spacing: 8) {
                 Text(badge.label)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.appTitle.weight(.bold))
                     .foregroundColor(.white)
                 Text(badge.desc)
-                    .font(.system(size: 14))
+                    .font(.appLabel.weight(.regular))
                     .foregroundColor(.gray)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
@@ -418,14 +418,14 @@ struct BadgeDetailSheet: View {
 
             if badge.unlocked {
                 Label("Badge débloqué", systemImage: "checkmark.seal.fill")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.green)
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.green.opacity(0.12))
                     .clipShape(Capsule())
             } else if let pl = badge.progressLabel {
                 Label(pl, systemImage: "hourglass")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(.orange)
                     .padding(.horizontal, 16).padding(.vertical, 8)
                     .background(Color.orange.opacity(0.1))

@@ -67,7 +67,7 @@ struct HistoriqueView: View {
                                 showMonthPicker = true
                             } label: {
                                 Label(monthFilter ?? "Tous les mois", systemImage: "calendar")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(monthFilter != nil ? .orange : .gray)
                                     .padding(.horizontal, 12).padding(.vertical, 6)
                                     .background(Color(hex: "1c1c2e")).cornerRadius(8)
@@ -111,7 +111,7 @@ struct HistoriqueView: View {
                                                         ProgressView().tint(.orange).scaleEffect(0.8)
                                                     } else {
                                                         Text("Charger plus")
-                                                            .font(.system(size: 13, weight: .semibold))
+                                                            .font(.appLabel.weight(.semibold))
                                                             .foregroundColor(.orange)
                                                     }
                                                 }
@@ -406,10 +406,10 @@ struct TimelineRow: View {
             // Date column
             VStack(spacing: 2) {
                 Text(String(item.date.suffix(5)))
-                    .font(.system(size: 13, weight: .bold)).foregroundColor(.orange)
+                    .font(.appLabel.weight(.bold)).foregroundColor(.orange)
                 if let rpe = item.rpe {
                     Text("RPE \(String(format: "%.1f", rpe))")
-                        .font(.system(size: 10)).foregroundColor(.gray)
+                        .font(.appCaption).foregroundColor(.gray)
                 }
             }
             .frame(width: 52)
@@ -422,16 +422,16 @@ struct TimelineRow: View {
                 HStack(spacing: 6) {
                     if item.muscuCount > 0 {
                         Label("\(item.muscuCount) muscu", systemImage: "dumbbell.fill")
-                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.orange)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.orange)
                     }
                     if item.hiitCount > 0 {
                         Label("\(item.hiitCount) HIIT", systemImage: "bolt.fill")
-                            .font(.system(size: 12, weight: .semibold)).foregroundColor(.red)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.red)
                     }
                 }
                 if !item.exercises.isEmpty {
                     Text(item.exercises.prefix(3).joined(separator: ", "))
-                        .font(.system(size: 11)).foregroundColor(.gray).lineLimit(1)
+                        .font(.appCaption).foregroundColor(.gray).lineLimit(1)
                 }
             }
             Spacer()
@@ -465,7 +465,7 @@ struct MonthPickerSheet: View {
                         selected = Self.formatter.string(from: pickerDate)
                         onApply()
                     }
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
                     .background(Color.orange).foregroundColor(.white).cornerRadius(14)
                     .padding(.horizontal, 20)
@@ -516,11 +516,11 @@ struct MuscuSessionCard: View {
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
                             Text(formattedDate)
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.appBody.weight(.bold))
                                 .foregroundColor(.white)
                             if session.sessionType == "bonus" {
                                 Text("BONUS")
-                                    .font(.system(size: 9, weight: .black))
+                                    .font(.appMicro.weight(.black))
                                     .tracking(1)
                                     .foregroundColor(.purple)
                                     .padding(.horizontal, 6)
@@ -531,14 +531,14 @@ struct MuscuSessionCard: View {
                         }
                         if !session.exos.isEmpty {
                             Text("\(session.exos.count) exercice\(session.exos.count > 1 ? "s" : "")")
-                                .font(.system(size: 12))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                         }
                     }
                     Spacer()
                     if let rpe = session.rpe {
                         Text("RPE \(rpe, specifier: "%.1f")")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .foregroundColor(rpeColor)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
@@ -546,7 +546,7 @@ struct MuscuSessionCard: View {
                             .clipShape(Capsule())
                     }
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.gray)
                         .padding(.leading, 8)
                 }
@@ -564,14 +564,14 @@ struct MuscuSessionCard: View {
                             ForEach(session.exos) { exo in
                                 HStack {
                                     Text(exo.exercise)
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.appLabel.weight(.semibold))
                                         .foregroundColor(.white)
                                     Spacer()
                                     Text(exo.reps)
-                                        .font(.system(size: 12))
+                                        .font(.appCaption)
                                         .foregroundColor(.gray)
                                     Text(UnitSettings.shared.format(exo.weight))
-                                        .font(.system(size: 13, weight: .semibold))
+                                        .font(.appLabel.weight(.semibold))
                                         .foregroundColor(.orange)
                                         .frame(width: 70, alignment: .trailing)
                                 }
@@ -584,8 +584,8 @@ struct MuscuSessionCard: View {
 
                     if !session.comment.isEmpty {
                         HStack {
-                            Image(systemName: "quote.bubble").font(.system(size: 12)).foregroundColor(.blue)
-                            Text(session.comment).font(.system(size: 13)).foregroundColor(.gray).italic()
+                            Image(systemName: "quote.bubble").font(.appCaption).foregroundColor(.blue)
+                            Text(session.comment).font(.appLabel.weight(.regular)).foregroundColor(.gray).italic()
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
@@ -594,13 +594,13 @@ struct MuscuSessionCard: View {
                     HStack {
                         Button { onEdit() } label: {
                             Label("Modifier", systemImage: "pencil")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(.blue)
                         }
                         Spacer()
                         Button(role: .destructive) { confirmDelete = true } label: {
                             Label("Supprimer", systemImage: "trash")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(.red)
                         }
                     }
@@ -633,18 +633,18 @@ struct HIITSessionCard: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(session.sessionType ?? "HIIT")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.appBody.weight(.bold))
                             .foregroundColor(.orange)
                         if let date = session.date {
                             Text(date)
-                                .font(.system(size: 12))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                         }
                     }
                     Spacer()
                     if let rounds = session.rounds {
                         Text("\(rounds) rounds")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .foregroundColor(.orange)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
@@ -652,7 +652,7 @@ struct HIITSessionCard: View {
                             .clipShape(Capsule())
                     }
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.gray)
                         .padding(.leading, 8)
                 }
@@ -679,8 +679,8 @@ struct HIITSessionCard: View {
 
                     if let notes = session.notes, !notes.isEmpty {
                         HStack {
-                            Image(systemName: "quote.bubble").font(.system(size: 12)).foregroundColor(.blue)
-                            Text(notes).font(.system(size: 13)).foregroundColor(.gray).italic()
+                            Image(systemName: "quote.bubble").font(.appCaption).foregroundColor(.blue)
+                            Text(notes).font(.appLabel.weight(.regular)).foregroundColor(.gray).italic()
                             Spacer()
                         }
                         .padding(.horizontal, 14)
@@ -690,14 +690,14 @@ struct HIITSessionCard: View {
                         if let onEdit = onEdit {
                             Button(action: onEdit) {
                                 Label("Modifier", systemImage: "pencil")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.orange)
                             }
                         }
                         Spacer()
                         Button(role: .destructive) { confirmDelete = true } label: {
                             Label("Supprimer", systemImage: "trash")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(.red)
                         }
                     }
@@ -722,8 +722,8 @@ struct LabelValue: View {
     let color: Color
     var body: some View {
         VStack(spacing: 2) {
-            Text(value).font(.system(size: 18, weight: .black)).foregroundColor(color)
-            Text(label).font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+            Text(value).font(.appHeadline.weight(.black)).foregroundColor(color)
+            Text(label).font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity)
     }
@@ -735,7 +735,7 @@ struct EmptyHistoriqueView: View {
         VStack(spacing: 8) {
             Image(systemName: "tray").font(.system(size: 40)).foregroundColor(.gray.opacity(0.5))
             Text("Tes séances apparaîtront ici\naprès ton premier workout.")
-                .font(.system(size: 14))
+                .font(.appLabel.weight(.regular))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
         }
@@ -782,12 +782,12 @@ struct EditSessionSheet: View {
                         VStack(spacing: 8) {
                             HStack {
                                 Text("RPE SÉANCE")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .tracking(2)
                                     .foregroundColor(.gray)
                                 Spacer()
                                 Text(String(format: "%.1f / 10", rpe))
-                                    .font(.system(size: 24, weight: .black))
+                                    .font(.appTitle.weight(.black))
                                     .foregroundColor(.orange)
                             }
                             Slider(value: $rpe, in: 1...10, step: 0.5)
@@ -801,22 +801,22 @@ struct EditSessionSheet: View {
                         if !exos.isEmpty {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("EXERCICES")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .tracking(2)
                                     .foregroundColor(.gray)
                                 ForEach(exos.indices, id: \.self) { i in
                                     VStack(alignment: .leading, spacing: 6) {
                                         Text(exos[i].exercise)
-                                            .font(.system(size: 13, weight: .semibold))
+                                            .font(.appLabel.weight(.semibold))
                                             .foregroundColor(.white)
                                         HStack(spacing: 10) {
                                             HStack {
                                                 TextField("Poids", text: $exos[i].weightStr)
                                                     .keyboardType(.decimalPad)
-                                                    .font(.system(size: 14))
+                                                    .font(.appLabel.weight(.regular))
                                                     .foregroundColor(.white)
                                                 Text(units.label)
-                                                    .font(.system(size: 12))
+                                                    .font(.appCaption)
                                                     .foregroundColor(.gray)
                                             }
                                             .padding(10)
@@ -824,7 +824,7 @@ struct EditSessionSheet: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 8))
 
                                             TextField("Reps (ex: 5,5,5)", text: $exos[i].reps)
-                                                .font(.system(size: 14))
+                                                .font(.appLabel.weight(.regular))
                                                 .foregroundColor(.white)
                                                 .padding(10)
                                                 .background(Color(hex: "191926"))
@@ -841,12 +841,12 @@ struct EditSessionSheet: View {
                         // Comment
                         VStack(alignment: .leading, spacing: 8) {
                             Text("COMMENTAIRE")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .tracking(2)
                                 .foregroundColor(.gray)
                             TextField("Note, ressenti…", text: $comment, axis: .vertical)
                                 .lineLimit(3...6)
-                                .font(.system(size: 14))
+                                .font(.appLabel.weight(.regular))
                                 .foregroundColor(.white)
                                 .padding(12)
                                 .background(Color.appCard)
@@ -868,7 +868,7 @@ struct EditSessionSheet: View {
                             HStack {
                                 if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
                                 Text("Enregistrer")
-                                    .font(.system(size: 16, weight: .bold))
+                                    .font(.appBody.weight(.bold))
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
@@ -919,7 +919,7 @@ struct EditHIITSheet: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("ROUNDS").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            Text("ROUNDS").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                             Stepper("\(rounds) rounds", value: $rounds, in: 1...20)
                                 .foregroundColor(.white)
                                 .padding(12).background(Color.appCard).clipShape(RoundedRectangle(cornerRadius: 12))
@@ -927,17 +927,17 @@ struct EditHIITSheet: View {
 
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
-                                Text("RPE").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                                Text("RPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                 Spacer()
-                                Text(String(format: "%.1f", rpe)).font(.system(size: 15, weight: .black)).foregroundColor(.orange)
+                                Text(String(format: "%.1f", rpe)).font(.appBody.weight(.black)).foregroundColor(.orange)
                             }
                             Slider(value: $rpe, in: 6...10, step: 0.5).tint(.orange)
                         }
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("NOTES").font(.system(size: 11, weight: .bold)).tracking(2).foregroundColor(.gray)
+                            Text("NOTES").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                             TextField("Notes…", text: $notes, axis: .vertical)
-                                .lineLimit(3...5).font(.system(size: 14)).foregroundColor(.white)
+                                .lineLimit(3...5).font(.appLabel.weight(.regular)).foregroundColor(.white)
                                 .padding(12).background(Color.appCard).clipShape(RoundedRectangle(cornerRadius: 12))
                         }
 
@@ -950,7 +950,7 @@ struct EditHIITSheet: View {
                         } label: {
                             HStack {
                                 if isSaving { ProgressView().tint(.black).scaleEffect(0.8) }
-                                Text("Sauvegarder").font(.system(size: 15, weight: .bold))
+                                Text("Sauvegarder").font(.appBody.weight(.bold))
                             }
                             .foregroundColor(.black).frame(maxWidth: .infinity).padding(14)
                             .background(Color.orange).clipShape(RoundedRectangle(cornerRadius: 14))

@@ -277,10 +277,10 @@ struct ProgrammeView: View {
                                                 ProgressView().tint(.white).scaleEffect(0.8)
                                             } else {
                                                 Image(systemName: "checkmark.seal.fill")
-                                                    .font(.system(size: 13))
+                                                    .font(.appLabel.weight(.regular))
                                             }
                                             Text("Définir comme programme actif")
-                                                .font(.system(size: 13, weight: .semibold))
+                                                .font(.appLabel.weight(.semibold))
                                         }
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 10)
@@ -334,15 +334,15 @@ struct ProgrammeView: View {
                                     : "\(clipboardName) · \(clipboard.count) exos"
                                 HStack(spacing: 10) {
                                     Image(systemName: "doc.on.clipboard.fill")
-                                        .font(.system(size: 13))
+                                        .font(.appLabel.weight(.regular))
                                         .foregroundColor(.orange)
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text("Clipboard")
-                                            .font(.system(size: 10, weight: .bold))
+                                            .font(.appCaption.weight(.bold))
                                             .tracking(1)
                                             .foregroundColor(.gray)
                                         Text(clipboardLabel)
-                                            .font(.system(size: 13, weight: .semibold))
+                                            .font(.appLabel.weight(.semibold))
                                             .foregroundColor(.white)
                                     }
                                     Spacer()
@@ -351,7 +351,7 @@ struct ProgrammeView: View {
                                         clipboardName = ""
                                     } label: {
                                         Image(systemName: "xmark.circle.fill")
-                                            .font(.system(size: 16))
+                                            .font(.appBody)
                                             .foregroundColor(.gray.opacity(0.5))
                                     }
                                     .buttonStyle(.plain)
@@ -382,10 +382,10 @@ struct ProgrammeView: View {
                                             .font(.system(size: 40))
                                             .foregroundColor(.gray.opacity(0.4))
                                         Text("Aucun programme actif.")
-                                            .font(.system(size: 16, weight: .semibold))
+                                            .font(.appBody.weight(.semibold))
                                             .foregroundColor(.white.opacity(0.75))
                                         Text("Importe ton programme ou démarre une séance libre.")
-                                            .font(.system(size: 13))
+                                            .font(.appLabel.weight(.regular))
                                             .foregroundColor(.gray)
                                             .multilineTextAlignment(.center)
                                             .padding(.horizontal, 16)
@@ -393,7 +393,7 @@ struct ProgrammeView: View {
                                     VStack(spacing: 12) {
                                         Button { showCreateProgram = true } label: {
                                             Text("Importer un programme")
-                                                .font(.system(size: 15, weight: .semibold))
+                                                .font(.appBody.weight(.semibold))
                                                 .foregroundColor(.white)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
@@ -405,7 +405,7 @@ struct ProgrammeView: View {
                                             NotificationCenter.default.post(name: .navigateToSeance, object: nil)
                                         } label: {
                                             Text("Séance libre")
-                                                .font(.system(size: 15, weight: .medium))
+                                                .font(.appBody.weight(.medium))
                                                 .foregroundColor(.orange)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
@@ -441,15 +441,15 @@ struct ProgrammeView: View {
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\"\(item.name)\" retiré du programme")
-                                    .font(.system(size: 13, weight: .medium))
+                                    .font(.appLabel)
                                     .foregroundColor(.white)
                                 Text("L'inventaire n'est pas affecté")
-                                    .font(.system(size: 10))
+                                    .font(.appCaption)
                                     .foregroundColor(.gray)
                             }
                             Spacer()
                             Button("Annuler") { undoDelete() }
-                                .font(.system(size: 13, weight: .bold))
+                                .font(.appLabel.weight(.bold))
                                 .foregroundColor(.orange)
                         }
                         .padding(.horizontal, 16).padding(.vertical, 12)
@@ -473,23 +473,23 @@ struct ProgrammeView: View {
                             HStack(spacing: 5) {
                                 ProgressView().scaleEffect(0.7).tint(.orange)
                                 Text("Sauvegarde…")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.orange)
                             }
                             .transition(.opacity.combined(with: .scale(scale: 0.9)))
                         } else if lastSaveError {
                             HStack(spacing: 4) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                                 Text("Erreur réseau")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                             }
                             .foregroundColor(.red)
                             .transition(.opacity)
                         }
                         Button { showCreateSeance = true } label: {
                             Image(systemName: "plus")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.appBody.weight(.semibold))
                                 .foregroundColor(.orange)
                         }
                     }
@@ -1057,15 +1057,15 @@ struct PeriodisationCard: View {
             HStack {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .foregroundColor(color)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.appLabel.weight(.bold))
                 Text("Périodisation")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.appLabel.weight(.bold))
                     .foregroundColor(.white.opacity(0.8))
                 Spacer()
                 if started {
                     Button(action: onReset) {
                         Text("Nouveau mésocycle")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(color)
                     }
                     .buttonStyle(.plain)
@@ -1075,10 +1075,10 @@ struct PeriodisationCard: View {
             if started {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(phase)
-                        .font(.system(size: 20, weight: .black))
+                        .font(.appTitle.weight(.black))
                         .foregroundColor(color)
                     Text("— Semaine \(week)/\(totalWeeks)")
-                        .font(.system(size: 13))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.gray)
                 }
 
@@ -1097,7 +1097,7 @@ struct PeriodisationCard: View {
 
                 HStack {
                     Label(scheme, systemImage: "dumbbell")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.white.opacity(0.65))
                     Spacer()
                     Button {
@@ -1105,10 +1105,10 @@ struct PeriodisationCard: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text(showTimeline ? "Masquer" : "Plan complet")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(.gray)
                             Image(systemName: showTimeline ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 9, weight: .semibold))
+                                .font(.appMicro.weight(.semibold))
                                 .foregroundColor(.gray)
                         }
                     }
@@ -1137,7 +1137,7 @@ struct PeriodisationCard: View {
                                                             .fill(seg.color.opacity(0.5))
                                                     }
                                                     Text("\(w)")
-                                                        .font(.system(size: 9, weight: isCurrentWeek ? .black : .regular))
+                                                        .font(.appMicro.weight(isCurrentWeek ? .black : .regular))
                                                         .foregroundColor(isCurrentWeek ? .white : seg.color.opacity(0.7))
                                                 }
                                                 .frame(maxWidth: .infinity)
@@ -1176,9 +1176,9 @@ struct PeriodisationCard: View {
                     Button(action: apply) {
                         HStack(spacing: 6) {
                             Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                             Text("Appliquer à tout le programme")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
@@ -1195,7 +1195,7 @@ struct PeriodisationCard: View {
                         Image(systemName: "play.fill")
                         Text("Démarrer un mésocycle")
                     }
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.appLabel.weight(.semibold))
                     .foregroundColor(color)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -1240,7 +1240,7 @@ private struct ProgramTabsView: View {
                                 .frame(width: 6, height: 6)
                         }
                         Text(prog.name)
-                            .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                            .font(.appLabel.weight(isSelected ? .semibold : .regular))
                             .foregroundColor(
                                 isSelected ? .black
                                 : isActive  ? .white
@@ -1261,7 +1261,7 @@ private struct ProgramTabsView: View {
                 }
                 Button(action: onAdd) {
                     Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.orange)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
@@ -1408,7 +1408,7 @@ struct EditableSeanceProgramCard: View {
             HStack(spacing: 10) {
                 if onSessionDragChanged != nil {
                     Image(systemName: "line.3.horizontal")
-                        .font(.system(size: 14))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.gray.opacity(0.4))
                         .frame(width: 24)
                         .contentShape(Rectangle())
@@ -1423,22 +1423,22 @@ struct EditableSeanceProgramCard: View {
                     .frame(width: 32, height: 32)
                     .overlay(
                         Text(String(seance.prefix(1)))
-                            .font(.system(size: 13, weight: .black))
+                            .font(.appLabel.weight(.black))
                             .foregroundColor(color)
                     )
                 Text(seance)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(.appBody.weight(.bold))
                     .foregroundColor(color)
                 Spacer()
                 Text("\(exercises.count)")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(color)
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(color.opacity(0.12))
                     .cornerRadius(8)
                 Button(action: onAdd) {
                     Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.appLabel.weight(.bold))
                         .foregroundColor(color)
                         .padding(7)
                         .background(color.opacity(0.15))
@@ -1448,7 +1448,7 @@ struct EditableSeanceProgramCard: View {
                 if let copy = onCopy {
                     Button(action: copy) {
                         Image(systemName: "doc.on.doc")
-                            .font(.system(size: 13))
+                            .font(.appLabel.weight(.regular))
                             .foregroundColor(.orange.opacity(0.7))
                             .padding(7)
                             .background(Color.orange.opacity(0.08))
@@ -1459,7 +1459,7 @@ struct EditableSeanceProgramCard: View {
                 if let paste = onPaste {
                     Button(action: paste) {
                         Image(systemName: "doc.on.clipboard")
-                            .font(.system(size: 13))
+                            .font(.appLabel.weight(.regular))
                             .foregroundColor(.cyan.opacity(0.7))
                             .padding(7)
                             .background(Color.cyan.opacity(0.08))
@@ -1470,7 +1470,7 @@ struct EditableSeanceProgramCard: View {
                 if let del = onDeleteSeance {
                     Button(action: del) {
                         Image(systemName: "trash")
-                            .font(.system(size: 13))
+                            .font(.appLabel.weight(.regular))
                             .foregroundColor(.red.opacity(0.6))
                             .padding(7)
                             .background(Color.red.opacity(0.08))
@@ -1479,7 +1479,7 @@ struct EditableSeanceProgramCard: View {
                     .buttonStyle(.plain)
                 }
                 Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 11))
+                    .font(.appCaption)
                     .foregroundColor(.gray)
                     .padding(.leading, 2)
             }
@@ -1493,10 +1493,10 @@ struct EditableSeanceProgramCard: View {
                 if orderedPairs.isEmpty {
                     HStack {
                         Image(systemName: "plus.circle")
-                            .font(.system(size: 13))
+                            .font(.appLabel.weight(.regular))
                             .foregroundColor(color.opacity(0.5))
                         Text("Aucun exercice — tape + pour en ajouter")
-                            .font(.system(size: 13))
+                            .font(.appLabel.weight(.regular))
                             .foregroundColor(.gray)
                     }
                     .padding(.horizontal, 16).padding(.vertical, 14)
@@ -1507,7 +1507,7 @@ struct EditableSeanceProgramCard: View {
                     HStack(spacing: 0) {
                         // ≡ Drag handle
                         Image(systemName: "line.3.horizontal")
-                            .font(.system(size: 14))
+                            .font(.appLabel.weight(.regular))
                             .foregroundColor(.gray.opacity(0.5))
                             .frame(width: 40)
                             .contentShape(Rectangle())
@@ -1565,12 +1565,12 @@ struct ExerciseRow: View {
         Button(action: onTap) {
             HStack(spacing: 10) {
                 Text(name)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.appLabel.weight(.medium))
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if isSupersetted {
                     Text("SS")
-                        .font(.system(size: 9, weight: .black))
+                        .font(.appMicro.weight(.black))
                         .foregroundColor(.orange)
                         .padding(.horizontal, 5).padding(.vertical, 3)
                         .background(Color.orange.opacity(0.15))
@@ -1578,11 +1578,11 @@ struct ExerciseRow: View {
                 }
                 if let t = trend {
                     Text(t)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.appCaption.weight(.bold))
                         .foregroundColor(t == "↑" ? .green : t == "↓" ? .red : Color(white: 0.5))
                 }
                 Text(scheme)
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.appCaption.weight(.bold))
                     .foregroundColor(color)
                     .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(color.opacity(0.15))
@@ -1592,7 +1592,7 @@ struct ExerciseRow: View {
                     onDelete()
                 } label: {
                     Image(systemName: "trash")
-                        .font(.system(size: 13))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.red.opacity(0.6))
                         .padding(6)
                         .background(Color.red.opacity(0.08))
@@ -1674,7 +1674,7 @@ struct AddExerciseSheet: View {
                                 selectedGroup = nil
                             } label: {
                                 Text("Tous")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(selectedGroup == nil ? .black : .white.opacity(0.7))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
                                     .background(selectedGroup == nil ? Color.orange : Color.white.opacity(0.08))
@@ -1687,7 +1687,7 @@ struct AddExerciseSheet: View {
                                     selectedGroup = active ? nil : grp
                                 } label: {
                                     Text(grp)
-                                        .font(.system(size: 11, weight: .semibold))
+                                        .font(.appCaption.weight(.semibold))
                                         .foregroundColor(active ? .black : .white.opacity(0.7))
                                         .padding(.horizontal, 10).padding(.vertical, 5)
                                         .background(active ? Color.orange : Color.white.opacity(0.08))
@@ -1704,7 +1704,7 @@ struct AddExerciseSheet: View {
                     if !recentExercises.isEmpty && name.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("RÉCENTS")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .tracking(1.5)
                                 .foregroundColor(.gray.opacity(0.55))
                                 .padding(.horizontal, 16)
@@ -1717,10 +1717,10 @@ struct AddExerciseSheet: View {
                                         } label: {
                                             HStack(spacing: 5) {
                                                 Image(systemName: "clock.arrow.circlepath")
-                                                    .font(.system(size: 10))
+                                                    .font(.appCaption)
                                                     .foregroundColor(.orange.opacity(0.7))
                                                 Text(ex)
-                                                    .font(.system(size: 13, weight: .medium))
+                                                    .font(.appLabel)
                                                     .foregroundColor(.white)
                                                     .lineLimit(1)
                                             }
@@ -1745,10 +1745,10 @@ struct AddExerciseSheet: View {
                     // Scheme field
                     HStack {
                         Text("Schéma :")
-                            .font(.system(size: 13))
+                            .font(.appLabel.weight(.regular))
                             .foregroundColor(.gray)
                         TextField("ex: 4x6-8", text: $scheme)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.appLabel)
                             .foregroundColor(.white)
                             .padding(8)
                             .background(Color.appCard)
@@ -1770,10 +1770,10 @@ struct AddExerciseSheet: View {
                                 HStack {
                                     Text(ex)
                                         .foregroundColor(.white)
-                                        .font(.system(size: 14))
+                                        .font(.appLabel.weight(.regular))
                                     Spacer()
                                     Text(muscleGroup(for: ex))
-                                        .font(.system(size: 10))
+                                        .font(.appCaption)
                                         .foregroundColor(.gray.opacity(0.6))
                                     if name == ex {
                                         Image(systemName: "checkmark.circle.fill")
@@ -1852,12 +1852,12 @@ struct EditSchemeSheet: View {
                 VStack(spacing: 20) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Nom de l'exercice")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .tracking(1)
                             .foregroundColor(.gray)
                             .padding(.horizontal)
                         TextField("Nom", text: $name)
-                            .font(.system(size: 17))
+                            .font(.appHeadline.weight(.regular))
                             .foregroundColor(.white)
                             .padding()
                             .background(Color.appCard)
@@ -1867,12 +1867,12 @@ struct EditSchemeSheet: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Schéma de sets/reps")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .tracking(1)
                             .foregroundColor(.gray)
                             .padding(.horizontal)
                         TextField("ex: 4x6-8", text: $scheme)
-                            .font(.system(size: 17))
+                            .font(.appHeadline.weight(.regular))
                             .foregroundColor(.white)
                             .padding()
                             .background(Color.appCard)
@@ -1884,14 +1884,14 @@ struct EditSchemeSheet: View {
                     if let logLabel = lastLogLabel {
                         HStack(spacing: 8) {
                             Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 11))
+                                .font(.appCaption)
                                 .foregroundColor(.gray)
                             Text("Dernier : \(logLabel)")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.appCaption.weight(.medium))
                                 .foregroundColor(.gray)
                             if let dateLabel = lastDateLabel {
                                 Text("· \(dateLabel)")
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                                     .foregroundColor(.gray.opacity(0.6))
                             }
                             Spacer()
@@ -1906,7 +1906,7 @@ struct EditSchemeSheet: View {
                             ForEach(["3x5", "4x5-7", "3x8-10", "4x8-10", "3x10-12", "4x12-15", "3x15"], id: \.self) { s in
                                 Button { scheme = s } label: {
                                     Text(s)
-                                        .font(.system(size: 12, weight: .medium))
+                                        .font(.appCaption.weight(.medium))
                                         .foregroundColor(scheme == s ? .black : .white)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
@@ -1964,10 +1964,10 @@ struct EditableWeekScheduleCard: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "sun.max.fill")
-                        .font(.system(size: 13))
+                        .font(.appLabel.weight(.regular))
                         .foregroundColor(.orange)
                     Text("MATIN")
-                        .font(.system(size: 10, weight: .black))
+                        .font(.appCaption.weight(.black))
                         .tracking(2)
                         .foregroundColor(.orange)
                 }
@@ -1977,10 +1977,10 @@ struct EditableWeekScheduleCard: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Semaine type")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.appLabel.weight(.bold))
                         .foregroundColor(.white.opacity(0.85))
                     Text("Appuie sur un jour pour changer la séance")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.6))
                 }
                 Spacer()
@@ -2005,7 +2005,7 @@ struct EditableWeekScheduleCard: View {
                         VStack(spacing: 4) {
                             HStack(spacing: 3) {
                                 Text(day)
-                                    .font(.system(size: 11, weight: isToday ? .bold : .medium))
+                                    .font(.appCaption.weight(isToday ? .bold : .medium))
                                     .foregroundColor(isToday ? .orange : .gray)
                                 if isToday {
                                     Circle()
@@ -2014,7 +2014,7 @@ struct EditableWeekScheduleCard: View {
                                 }
                             }
                             Text(seanceShort(current))
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .foregroundColor(current == none ? Color.gray.opacity(0.4) : seanceColor(current))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
@@ -2079,10 +2079,10 @@ struct EveningScheduleCard: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "moon.stars.fill")
-                        .font(.system(size: 12))
+                        .font(.appCaption)
                         .foregroundColor(.blue)
                     Text("SOIR")
-                        .font(.system(size: 10, weight: .black))
+                        .font(.appCaption.weight(.black))
                         .tracking(2)
                         .foregroundColor(.blue)
                 }
@@ -2092,10 +2092,10 @@ struct EveningScheduleCard: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Séance du soir")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.appLabel.weight(.bold))
                         .foregroundColor(.white.opacity(0.85))
                     Text("Optionnel — apparaît sur le dashboard le soir")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray.opacity(0.6))
                 }
                 Spacer()
@@ -2118,10 +2118,10 @@ struct EveningScheduleCard: View {
                     } label: {
                         VStack(spacing: 4) {
                             Text(day)
-                                .font(.system(size: 11, weight: .medium))
+                                .font(.appCaption.weight(.medium))
                                 .foregroundColor(.gray)
                             Text(shortLabel(current))
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .foregroundColor(current == none ? Color.gray.opacity(0.4) : sessionColor(current))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.8)
@@ -2189,10 +2189,10 @@ private struct VolumeCard: View {
             HStack {
                 HStack(spacing: 6) {
                     Image(systemName: "chart.bar.fill")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.appCaption.weight(.bold))
                         .foregroundColor(.purple)
                     Text("VOLUME HEBDO")
-                        .font(.system(size: 10, weight: .black))
+                        .font(.appCaption.weight(.black))
                         .tracking(1.5)
                         .foregroundColor(.purple)
                 }
@@ -2205,10 +2205,10 @@ private struct VolumeCard: View {
                 if !alerts.isEmpty {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.orange)
                         Text("\(alerts.count) sous MEV")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.orange)
                     }
                 }
@@ -2217,7 +2217,7 @@ private struct VolumeCard: View {
                     withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
                 } label: {
                     Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 11))
+                        .font(.appCaption)
                         .foregroundColor(.gray)
                         .padding(.leading, 6)
                 }
@@ -2236,11 +2236,11 @@ private struct VolumeCard: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack {
                                 Text(muscle)
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(.appCaption.weight(.semibold))
                                     .foregroundColor(.white.opacity(0.85))
                                 Spacer()
                                 Text("\(sets) sets")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(.appCaption.weight(.bold))
                                     .foregroundColor(barColor)
                             }
                             GeometryReader { geo in
@@ -2282,10 +2282,10 @@ private struct VolumeCard: View {
                         ForEach(alerts, id: \.self) { alert in
                             HStack(spacing: 6) {
                                 Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.system(size: 10))
+                                    .font(.appCaption)
                                     .foregroundColor(.orange)
                                 Text(alert)
-                                    .font(.system(size: 11))
+                                    .font(.appCaption)
                                     .foregroundColor(.orange.opacity(0.85))
                             }
                         }
@@ -2321,12 +2321,12 @@ struct CreateSeanceSheet: View {
                 VStack(spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("NOM DE LA SÉANCE")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.appCaption.weight(.bold))
                             .tracking(1)
                             .foregroundColor(.gray)
                             .padding(.horizontal)
                         TextField("ex: Upper A, Core, Mobility…", text: $name)
-                            .font(.system(size: 17))
+                            .font(.appHeadline.weight(.regular))
                             .foregroundColor(.white)
                             .padding()
                             .background(Color.appCard)
@@ -2340,7 +2340,7 @@ struct CreateSeanceSheet: View {
                             ForEach(["Upper A", "Upper B", "Lower A", "Lower B", "Core", "Mobility", "Full Body", "Cardio"], id: \.self) { preset in
                                 Button { name = preset } label: {
                                     Text(preset)
-                                        .font(.system(size: 12, weight: .medium))
+                                        .font(.appCaption.weight(.medium))
                                         .foregroundColor(name == preset ? .black : .white)
                                         .padding(.horizontal, 12).padding(.vertical, 6)
                                         .background(name == preset ? Color.orange : Color.appCard)

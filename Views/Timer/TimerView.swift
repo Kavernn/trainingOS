@@ -61,7 +61,7 @@ struct TimerView: View {
 
                 // Phase badge
                 Text(phaseLabel)
-                    .font(.system(size: 12, weight: .black))
+                    .font(.appCaption.weight(.black))
                     .tracking(4)
                     .foregroundColor(phaseColor)
                     .padding(.horizontal, 20)
@@ -91,7 +91,7 @@ struct TimerView: View {
                             .contentTransition(.numericText())
                         if phase == .work || phase == .rest {
                             Text("ROUND \(currentRound) / \(totalRounds)")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .tracking(2)
                                 .foregroundColor(.gray)
                         }
@@ -105,7 +105,7 @@ struct TimerView: View {
                             remaining = max(1, remaining - 5)
                         } label: {
                             Text("−5s")
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.appBody.weight(.bold))
                                 .foregroundColor(phaseColor)
                                 .frame(width: 72, height: 36)
                                 .background(phaseColor.opacity(0.12))
@@ -116,7 +116,7 @@ struct TimerView: View {
                             remaining += 5
                         } label: {
                             Text("+5s")
-                                .font(.system(size: 15, weight: .bold))
+                                .font(.appBody.weight(.bold))
                                 .foregroundColor(phaseColor)
                                 .frame(width: 72, height: 36)
                                 .background(phaseColor.opacity(0.12))
@@ -552,7 +552,7 @@ struct TimerStepperRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .font(.system(size: 13, weight: .bold))
+                .font(.appLabel.weight(.bold))
                 .tracking(1)
                 .foregroundColor(.white)
                 .frame(width: 100, alignment: .leading)
@@ -567,13 +567,13 @@ struct TimerStepperRow: View {
                     }
                 } label: {
                     Image(systemName: "minus")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .frame(width: 44, height: 44)
                         .foregroundColor(value - step >= min ? .white : .gray.opacity(0.3))
                 }
 
                 Text("\(value)\(step > 1 ? "s" : "")")
-                    .font(.system(size: 20, weight: .black))
+                    .font(.appTitle.weight(.black))
                     .foregroundColor(color)
                     .frame(width: 64, alignment: .center)
                     .monospacedDigit()
@@ -585,7 +585,7 @@ struct TimerStepperRow: View {
                     }
                 } label: {
                     Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .frame(width: 44, height: 44)
                         .foregroundColor(value + step <= max ? color : .gray.opacity(0.3))
                 }

@@ -116,22 +116,22 @@ struct MoreView: View {
                     .frame(width: 36, height: 36)
                     .shadow(color: color.opacity(0.2), radius: 4, y: 2)
                 Image(systemName: icon)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.appBody.weight(.semibold))
                     .foregroundColor(color)
                 if badge {
                     Circle().fill(Color.orange).frame(width: 9, height: 9).offset(x: 3, y: -3)
                 }
             }
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 16, weight: .medium)).foregroundColor(.white)
+                Text(title).font(.appBody.weight(.medium)).foregroundColor(.white)
                 if let sub = subtitle {
-                    Text(sub).font(.system(size: 11)).foregroundColor(.gray.opacity(0.6))
+                    Text(sub).font(.appCaption).foregroundColor(.gray.opacity(0.6))
                 }
             }
             if badge {
                 Spacer()
                 Text("À faire")
-                    .font(.system(size: 11, weight: .semibold)).foregroundColor(.orange)
+                    .font(.appCaption.weight(.semibold)).foregroundColor(.orange)
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Color.orange.opacity(0.12)).clipShape(Capsule())
             }
@@ -162,7 +162,7 @@ struct MoreRow<Destination: View>: View {
                         .frame(width: 36, height: 36)
                         .shadow(color: color.opacity(0.2), radius: 4, y: 2)
                     Image(systemName: icon)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(color)
                     if badge {
                         Circle()
@@ -173,18 +173,18 @@ struct MoreRow<Destination: View>: View {
                 }
                 VStack(alignment: .leading, spacing: 1) {
                     Text(title)
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.appBody.weight(.medium))
                         .foregroundColor(.white)
                     if let sub = subtitle {
                         Text(sub)
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.gray.opacity(0.6))
                     }
                 }
                 if badge {
                     Spacer()
                     Text("À faire")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.appCaption.weight(.semibold))
                         .foregroundColor(.orange)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)

@@ -82,7 +82,7 @@ struct ObjectifsView: View {
                                         SectionHeader(title: "ARCHIVÉS (\(archived.count))")
                                         Spacer()
                                         Image(systemName: showArchived ? "chevron.up" : "chevron.down")
-                                            .font(.system(size: 11)).foregroundColor(.gray)
+                                            .font(.appCaption).foregroundColor(.gray)
                                     }
                                 }
                                 .buttonStyle(.plain)
@@ -157,7 +157,7 @@ private struct SectionHeader: View {
     let title: String
     var body: some View {
         Text(title)
-            .font(.system(size: 11, weight: .bold)).tracking(2)
+            .font(.appCaption.weight(.bold)).tracking(2)
             .foregroundColor(.gray)
     }
 }
@@ -179,11 +179,11 @@ struct ObjectifCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(obj.exercise)
-                        .font(.system(size: 15, weight: .bold))
+                        .font(.appBody.weight(.bold))
                         .foregroundColor(.white)
                     if !obj.deadline.isEmpty {
                         Text("Deadline: \(obj.deadline)")
-                            .font(.system(size: 11))
+                            .font(.appCaption)
                             .foregroundColor(.gray)
                     }
                 }
@@ -191,14 +191,14 @@ struct ObjectifCard: View {
                 if obj.achieved {
                     HStack(spacing: 8) {
                         Label("Atteint", systemImage: "checkmark.seal.fill")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.appCaption.weight(.semibold))
                             .foregroundColor(.green)
                             .scaleEffect(celebrate ? 1.0 : 0.4)
                             .opacity(celebrate ? 1.0 : 0)
                         if let archive = onArchive {
                             Button(action: archive) {
                                 Label("Archiver", systemImage: "archivebox")
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.appCaption.weight(.medium))
                                     .foregroundColor(.gray)
                                     .padding(.horizontal, 8).padding(.vertical, 4)
                                     .background(Color(hex: "191926")).cornerRadius(8)
@@ -211,21 +211,21 @@ struct ObjectifCard: View {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ACTUEL")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.appMicro.weight(.semibold))
                         .tracking(1)
                         .foregroundColor(.gray)
                     Text(units.format(obj.current))
-                        .font(.system(size: 20, weight: .black))
+                        .font(.appTitle.weight(.black))
                         .foregroundColor(obj.achieved ? .green : .orange)
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
                     Text("OBJECTIF")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.appMicro.weight(.semibold))
                         .tracking(1)
                         .foregroundColor(.gray)
                     Text(units.format(obj.goal))
-                        .font(.system(size: 20, weight: .black))
+                        .font(.appTitle.weight(.black))
                         .foregroundColor(.white)
                 }
             }
@@ -244,7 +244,7 @@ struct ObjectifCard: View {
             .frame(height: 8)
 
             Text("\(Int(pct * 100))% complété")
-                .font(.system(size: 12))
+                .font(.appCaption)
                 .foregroundColor(.gray)
             }
             .padding(16)
@@ -305,28 +305,28 @@ struct SmartGoalCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     Image(systemName: goal.icon)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.appBody.weight(.semibold))
                         .foregroundColor(goal.color)
                         .frame(width: 32, height: 32)
                         .background(goal.color.opacity(0.12))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(goal.label)
-                            .font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                            .font(.appLabel.weight(.bold)).foregroundColor(.white)
                         if let d = goal.daysLeft {
                             Text(d > 0 ? "\(d) jours restants" : "Deadline dépassée")
-                                .font(.system(size: 11)).foregroundColor(d > 0 ? .gray : .red)
+                                .font(.appCaption).foregroundColor(d > 0 ? .gray : .red)
                         }
                     }
                     Spacer()
                     if goal.achieved {
                         Label("Atteint", systemImage: "checkmark.seal.fill")
-                            .font(.system(size: 11, weight: .semibold)).foregroundColor(.green)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.green)
                             .scaleEffect(celebrate ? 1.0 : 0.4).opacity(celebrate ? 1 : 0)
                     }
                     Button { confirmDelete = true } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 12)).foregroundColor(.red.opacity(0.5))
+                            .font(.appCaption).foregroundColor(.red.opacity(0.5))
                             .padding(6).background(Color.red.opacity(0.08)).clipShape(RoundedRectangle(cornerRadius: 6))
                     }
                     .buttonStyle(.plain)
@@ -334,18 +334,18 @@ struct SmartGoalCard: View {
 
                 HStack {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("ACTUEL").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
+                        Text("ACTUEL").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                         Text(goal.current)
-                            .font(.system(size: 22, weight: .black))
+                            .font(.appTitle.weight(.black))
                             .foregroundColor(goal.achieved ? .green : goal.color)
                     }
                     Spacer()
                     Image(systemName: goal.lowerIsBetter ? "arrow.down.circle.fill" : "arrow.up.circle.fill")
-                        .font(.system(size: 14)).foregroundColor(.gray.opacity(0.4))
+                        .font(.appLabel.weight(.regular)).foregroundColor(.gray.opacity(0.4))
                     Spacer()
                     VStack(alignment: .trailing, spacing: 1) {
-                        Text("OBJECTIF").font(.system(size: 9, weight: .bold)).tracking(1).foregroundColor(.gray)
-                        Text(goal.target).font(.system(size: 22, weight: .black)).foregroundColor(.white)
+                        Text("OBJECTIF").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
+                        Text(goal.target).font(.appTitle.weight(.black)).foregroundColor(.white)
                     }
                 }
 
@@ -361,7 +361,7 @@ struct SmartGoalCard: View {
                 .frame(height: 8)
 
                 Text("\(Int(min(goal.progress, 1.0) * 100))% complété")
-                    .font(.system(size: 12)).foregroundColor(.gray)
+                    .font(.appCaption).foregroundColor(.gray)
             }
             .padding(16)
             .background(RoundedRectangle(cornerRadius: 16).fill(Color.appCard))
@@ -463,7 +463,7 @@ struct AddGoalSheet: View {
         VStack(spacing: 16) {
             // Type picker
             VStack(alignment: .leading, spacing: 8) {
-                Text("TYPE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Text("TYPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     ForEach(SmartGoalOption.allCases) { opt in
                         Button {
@@ -472,9 +472,9 @@ struct AddGoalSheet: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: opt.icon)
-                                    .font(.system(size: 13)).foregroundColor(opt.color)
+                                    .font(.appLabel.weight(.regular)).foregroundColor(opt.color)
                                 Text(opt.label)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(.appCaption.weight(.medium))
                                     .foregroundColor(.white)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.leading)
@@ -495,12 +495,12 @@ struct AddGoalSheet: View {
             // Target value
             VStack(alignment: .leading, spacing: 6) {
                 Text("CIBLE (\(smartType.unit.uppercased()))")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 TextField(smartType.placeholder, text: $targetStr)
                     .keyboardType(.decimalPad)
                     .focused($goalFocus, equals: .target)
                     .foregroundColor(.white)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.appTitle.weight(.bold))
                     .padding(12)
                     .background(Color(hex: "191926"))
                     .cornerRadius(10)
@@ -515,7 +515,7 @@ struct AddGoalSheet: View {
     private var exerciseForm: some View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("EXERCICE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Text("EXERCICE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 TextField("ex: Squat", text: $exercise)
                     .foregroundColor(.white).padding(12)
                     .background(Color(hex: "191926")).cornerRadius(10)
@@ -527,10 +527,10 @@ struct AddGoalSheet: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text("POIDS OBJECTIF (\(units.label.uppercased()))")
-                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                    .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                 TextField("0.0", text: $goalWeight)
                     .keyboardType(.decimalPad).foregroundColor(.white)
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.appTitle.weight(.bold))
                     .padding(12).background(Color(hex: "191926")).cornerRadius(10)
                     .focused($goalFocus, equals: .goalWeight)
             }
@@ -542,13 +542,13 @@ struct AddGoalSheet: View {
 
     private var deadlineSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("DEADLINE").font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            Text("DEADLINE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             HStack(spacing: 8) {
                 ForEach([1, 3, 6], id: \.self) { months in
                     Button("\(months) mois") {
                         deadline = Date(timeIntervalSince1970: Date().timeIntervalSince1970 + Double(months) * 30.44 * 86400)
                     }
-                    .font(.system(size: 12, weight: .medium)).foregroundColor(.orange)
+                    .font(.appCaption.weight(.medium)).foregroundColor(.orange)
                     .padding(.horizontal, 10).padding(.vertical, 5)
                     .background(Color.orange.opacity(0.12)).cornerRadius(8)
                 }
@@ -714,14 +714,14 @@ struct EditGoalSheet: View {
                 Color.appBg.ignoresSafeArea()
                 VStack(spacing: 20) {
                     Text(obj.exercise)
-                        .font(.system(size: 22, weight: .bold))
+                        .font(.appTitle.weight(.bold))
                         .foregroundColor(.white)
                         .padding(.top, 20)
 
                     VStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("POIDS OBJECTIF (\(units.label.uppercased()))")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .tracking(2)
                                 .foregroundColor(.gray)
                             TextField("0.0", text: $goalWeight)
@@ -734,7 +734,7 @@ struct EditGoalSheet: View {
 
                         VStack(alignment: .leading, spacing: 6) {
                             Text("DEADLINE")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(.appCaption.weight(.bold))
                                 .tracking(2)
                                 .foregroundColor(.gray)
                             DatePicker("", selection: $deadline, displayedComponents: .date)
