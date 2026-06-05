@@ -103,7 +103,7 @@ struct TodayCardView: View {
                 // ── Récap séance loggée ───────────────────────────────────
                 // isLoggedToday peut être vrai via alreadyLoggedToday même sans session dans le dict
                 if let session = todaySession {
-                    TodaySessionRecap(session: session, color: todayColor)
+                    TodaySessionRecap(session: session, color: todayColor, totalWorkoutMin: dash.totalWorkoutMinToday)
                 }
                 NavigationLink(destination: BonusSeanceView()) {
                     HStack(spacing: 6) {
@@ -247,6 +247,7 @@ struct TodayCardView: View {
 struct TodaySessionRecap: View {
     let session: SessionEntry
     let color: Color
+    var totalWorkoutMin: Double? = nil
     @ObservedObject private var units = UnitSettings.shared
 
     var body: some View {
@@ -256,7 +257,9 @@ struct TodaySessionRecap: View {
                 if let rpe = session.rpe {
                     RecapMetric(value: String(format: "%.1f", rpe), label: "RPE", color: rpeColor(rpe))
                 }
-                if let dur = session.durationMin {
+                if let total = totalWorkoutMin, total > 0 {
+                    RecapMetric(value: "\(Int(total)) min", label: total > (session.durationMin ?? 0) + 1 ? "Total séances" : "Durée", color: .blue)
+                } else if let dur = session.durationMin {
                     RecapMetric(value: String(format: "%.0f min", dur), label: "Durée", color: .blue)
                 }
                 if let energy = session.energyPre {

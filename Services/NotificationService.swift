@@ -646,8 +646,8 @@ final class RestTimerManager: ObservableObject {
 
     /// Non-published — views compute remaining via TimelineView using startDate
     private(set) var remaining: Int = 120
-    /// Set when timer is running; nil when paused/stopped. Non-published — views read via TimelineView.
-    private(set) var startDate: Date?
+    /// Published so adjust() triggers immediate UI update even when totalSeconds is unchanged.
+    @Published private(set) var startDate: Date?
 
     private var timerTask: Task<Void, Never>?
     private var beepPlayer: AVAudioPlayer?
@@ -697,7 +697,7 @@ final class RestTimerManager: ObservableObject {
     }
 
     func adjust(by delta: Int) {
-        remaining = max(10, remaining + delta)
+        remaining = max(1, remaining + delta)
         if isRunning {
             totalSeconds = max(totalSeconds, remaining)
             startDate = Date().addingTimeInterval(-Double(totalSeconds - remaining))

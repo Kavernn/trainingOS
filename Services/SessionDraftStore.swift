@@ -50,6 +50,9 @@ enum SessionDraftStore {
     static func clear(date: String, sessionType: String = "morning") {
         UserDefaults.standard.removeObject(forKey: key(date: date, sessionType: sessionType))
         UserDefaults.standard.removeObject(forKey: startedAtKey(date: date, sessionType: sessionType))
+        UserDefaults.standard.removeObject(forKey: chronoPausedDurationKey(date: date, sessionType: sessionType))
+        UserDefaults.standard.removeObject(forKey: chronoIsPausedKey(date: date, sessionType: sessionType))
+        UserDefaults.standard.removeObject(forKey: chronoPausedAtKey(date: date, sessionType: sessionType))
     }
 
     static func hasDraft(date: String, sessionType: String = "morning") -> Bool {
@@ -66,6 +69,43 @@ enum SessionDraftStore {
 
     static func loadStartedAt(date: String, sessionType: String = "morning") -> Date? {
         let ts = UserDefaults.standard.double(forKey: startedAtKey(date: date, sessionType: sessionType))
+        guard ts > 0 else { return nil }
+        return Date(timeIntervalSince1970: ts)
+    }
+
+    // MARK: - Chrono persistence (pause/resume state)
+
+    private static func chronoPausedDurationKey(date: String, sessionType: String) -> String {
+        "session_chrono_paused_\(sessionType)_\(date)"
+    }
+    private static func chronoIsPausedKey(date: String, sessionType: String) -> String {
+        "session_chrono_is_paused_\(sessionType)_\(date)"
+    }
+    private static func chronoPausedAtKey(date: String, sessionType: String) -> String {
+        "session_chrono_paused_at_\(sessionType)_\(date)"
+    }
+
+    static func saveChronoPausedDuration(date: String, sessionType: String, duration: TimeInterval) {
+        UserDefaults.standard.set(duration, forKey: chronoPausedDurationKey(date: date, sessionType: sessionType))
+    }
+    static func loadChronoPausedDuration(date: String, sessionType: String) -> TimeInterval {
+        UserDefaults.standard.double(forKey: chronoPausedDurationKey(date: date, sessionType: sessionType))
+    }
+    static func saveChronoIsPaused(date: String, sessionType: String, isPaused: Bool) {
+        UserDefaults.standard.set(isPaused, forKey: chronoIsPausedKey(date: date, sessionType: sessionType))
+    }
+    static func loadChronoIsPaused(date: String, sessionType: String) -> Bool {
+        UserDefaults.standard.bool(forKey: chronoIsPausedKey(date: date, sessionType: sessionType))
+    }
+    static func saveChronoPausedAt(date: String, sessionType: String, pausedAt: Date?) {
+        if let pa = pausedAt {
+            UserDefaults.standard.set(pa.timeIntervalSince1970, forKey: chronoPausedAtKey(date: date, sessionType: sessionType))
+        } else {
+            UserDefaults.standard.removeObject(forKey: chronoPausedAtKey(date: date, sessionType: sessionType))
+        }
+    }
+    static func loadChronoPausedAt(date: String, sessionType: String) -> Date? {
+        let ts = UserDefaults.standard.double(forKey: chronoPausedAtKey(date: date, sessionType: sessionType))
         guard ts > 0 else { return nil }
         return Date(timeIntervalSince1970: ts)
     }

@@ -32,6 +32,7 @@ struct DashboardData: Codable {
     let nutritionTotals: NutritionTotals
     let nutritionSettings: NutritionSettings?
     let profile: UserProfile
+    let totalWorkoutMinToday: Double?
 
     enum CodingKeys: String, CodingKey {
         case today, week
@@ -45,6 +46,7 @@ struct DashboardData: Codable {
         case nutritionTotals = "nutrition_totals"
         case nutritionSettings = "nutrition_settings"
         case profile
+        case totalWorkoutMinToday = "total_workout_min_today"
     }
 
     init(from decoder: Decoder) throws {
@@ -63,6 +65,7 @@ struct DashboardData: Codable {
         nutritionTotals     = try c.decode(NutritionTotals.self, forKey: .nutritionTotals)
         nutritionSettings   = try? c.decode(NutritionSettings.self, forKey: .nutritionSettings)
         profile             = try c.decode(UserProfile.self, forKey: .profile)
+        totalWorkoutMinToday = try? c.decode(Double.self, forKey: .totalWorkoutMinToday)
     }
 }
 

@@ -368,6 +368,104 @@ final class ExerciseViewModel: ObservableObject {
     }
 }
 
+// MARK: - WorkoutChronoViewModel
+
+final class WorkoutChronoViewModel: ObservableObject {
+    @Published var elapsedSeconds: Int = 0
+    @Published var isPaused: Bool = false
+
+    private var timer: Timer?
+    private var startTime: Date?
+    private var pausedAt: Date?
+    private var totalPausedDuration: TimeInterval = 0
+    private var persistDate: String?
+    private var persistSessionType: String?
+
+    func start(date: String, sessionType: String) {
+        persistDate = date
+        persistSessionType = sessionType
+        let now = Date()
+        startTime = now
+        totalPausedDuration = 0
+        isPaused = false
+        elapsedSeconds = 0
+        SessionDraftStore.saveChronoPausedDuration(date: date, sessionType: sessionType, duration: 0)
+        SessionDraftStore.saveChronoIsPaused(date: date, sessionType: sessionType, isPaused: false)
+        SessionDraftStore.saveChronoPausedAt(date: date, sessionType: sessionType, pausedAt: nil)
+        resumeTimer()
+    }
+
+    func restore(date: String, sessionType: String) {
+        guard let saved = SessionDraftStore.loadStartedAt(date: date, sessionType: sessionType) else { return }
+        persistDate = date
+        persistSessionType = sessionType
+        startTime = saved
+        totalPausedDuration = SessionDraftStore.loadChronoPausedDuration(date: date, sessionType: sessionType)
+        let savedIsPaused = SessionDraftStore.loadChronoIsPaused(date: date, sessionType: sessionType)
+
+        if savedIsPaused, let pa = SessionDraftStore.loadChronoPausedAt(date: date, sessionType: sessionType) {
+            pausedAt = pa
+            elapsedSeconds = Int(max(0, pa.timeIntervalSince(saved) - totalPausedDuration))
+            isPaused = true
+        } else {
+            elapsedSeconds = Int(max(0, Date().timeIntervalSince(saved) - totalPausedDuration))
+            isPaused = false
+            resumeTimer()
+        }
+    }
+
+    func togglePause() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if isPaused {
+            if let pa = pausedAt {
+                totalPausedDuration += Date().timeIntervalSince(pa)
+                if let d = persistDate, let st = persistSessionType {
+                    SessionDraftStore.saveChronoPausedDuration(date: d, sessionType: st, duration: totalPausedDuration)
+                    SessionDraftStore.saveChronoPausedAt(date: d, sessionType: st, pausedAt: nil)
+                }
+            }
+            pausedAt = nil
+            isPaused = false
+            if let d = persistDate, let st = persistSessionType {
+                SessionDraftStore.saveChronoIsPaused(date: d, sessionType: st, isPaused: false)
+            }
+            resumeTimer()
+        } else {
+            let now = Date()
+            pausedAt = now
+            isPaused = true
+            timer?.invalidate()
+            timer = nil
+            if let d = persistDate, let st = persistSessionType {
+                SessionDraftStore.saveChronoIsPaused(date: d, sessionType: st, isPaused: true)
+                SessionDraftStore.saveChronoPausedAt(date: d, sessionType: st, pausedAt: now)
+            }
+        }
+    }
+
+    var netDurationMinutes: Int {
+        max(1, Int(ceil(Double(elapsedSeconds) / 60.0)))
+    }
+
+    func stop() -> Int {
+        timer?.invalidate()
+        timer = nil
+        isPaused = false
+        return netDurationMinutes
+    }
+
+    private func resumeTimer() {
+        timer?.invalidate()
+        let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self, let start = self.startTime else { return }
+            let elapsed = Int(max(0, Date().timeIntervalSince(start) - self.totalPausedDuration))
+            DispatchQueue.main.async { self.elapsedSeconds = elapsed }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
+    }
+}
+
 // MARK: - SeanceViewModel
 
 @MainActor
@@ -390,6 +488,7 @@ class SeanceViewModel: ObservableObject {
     var sessionStart = Date()
     @Published private(set) var sessionStarted = false
     var draftSessionType: String
+    let chrono = WorkoutChronoViewModel()
 
     var cacheService: CacheService = .shared
 
@@ -450,11 +549,14 @@ class SeanceViewModel: ObservableObject {
         if let saved = SessionDraftStore.loadStartedAt(date: data.todayDate, sessionType: draftSessionType) {
             sessionStart = saved
             sessionStarted = true
+            chrono.restore(date: data.todayDate, sessionType: draftSessionType)
         }
         logResults = restored
         if !sessionStarted && !restored.isEmpty {
             sessionStart = Date()
             sessionStarted = true
+            SessionDraftStore.saveStartedAt(date: data.todayDate, sessionType: draftSessionType, startedAt: sessionStart)
+            chrono.start(date: data.todayDate, sessionType: draftSessionType)
         }
         isResuming = !restored.isEmpty
         if data.alreadyLogged {
@@ -556,6 +658,7 @@ class SeanceViewModel: ObservableObject {
         sessionStarted = true
         if let date = seanceData?.todayDate {
             SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
+            chrono.start(date: date, sessionType: draftSessionType)
         }
     }
 
@@ -569,6 +672,8 @@ class SeanceViewModel: ObservableObject {
         if !sessionStarted {
             sessionStart = Date()
             sessionStarted = true
+            SessionDraftStore.saveStartedAt(date: date, sessionType: draftSessionType, startedAt: sessionStart)
+            chrono.start(date: date, sessionType: draftSessionType)
         }
         let values = logResults.values.map {
             PersistedExerciseLogResult(

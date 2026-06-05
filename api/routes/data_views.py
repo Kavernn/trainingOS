@@ -47,6 +47,7 @@ def api_dashboard():
     }
 
     _today_session = _db.get_workout_session(today_date)
+    _today_bonus = None
     # Séance terminée si : completed=True OU rpe set OU au moins 1 exercice loggué
     _today_logged_names = set()
     try:
@@ -132,6 +133,12 @@ def api_dashboard():
     except Exception:
         pass
 
+    _total_workout_min_today = 0
+    if _today_session:
+        _total_workout_min_today += int(_today_session.get("duration_min") or 0)
+    if _today_bonus:
+        _total_workout_min_today += int(_today_bonus.get("duration_min") or 0)
+
     return jsonify({
         "today":               today_str,
         "week":                get_current_week(),
@@ -147,6 +154,7 @@ def api_dashboard():
         "nutrition_totals":    nutrition_totals,
         "nutrition_settings":  load_nutrition_settings(),
         "profile":             profile,
+        "total_workout_min_today": _total_workout_min_today if _total_workout_min_today > 0 else None,
     })
 
 

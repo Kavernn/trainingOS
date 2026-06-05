@@ -1775,12 +1775,15 @@ struct EnduranceTimerSection: View {
             guard !Task.isCancelled else { return }
             do { try await Task.sleep(nanoseconds: 1_000_000_000) } catch { return }
             guard !Task.isCancelled else { return }
-            remaining -= 1
-            if remaining > 0 && remaining <= 5 {
-                timerState = .warning(remaining)
+            // Sons AVANT décrément — inclut remaining=1 (manquant avec l'ordre inverse)
+            if remaining <= 5 {
                 beepPlayer = makeBeep(hz: 1000, duration: 0.08)
                 beepPlayer?.play()
                 triggerImpact(style: .medium)
+            }
+            remaining -= 1
+            if remaining > 0 && remaining <= 5 {
+                timerState = .warning(remaining)
             } else if remaining > 5 {
                 timerState = .running
             }

@@ -135,7 +135,7 @@ struct WorkoutSeanceView: View {
         guard !isPreloadingAI, preloadedAIAnalysis == nil, !vm.logResults.isEmpty else { return }
         isPreloadingAI = true
         let logRes = vm.logResults
-        let elapsed = Date().timeIntervalSince(vm.sessionStart) / 60
+        let elapsed = Double(vm.chrono.elapsedSeconds) / 60.0
         let rpeVal = computedSessionRPE
         let summary = logRes.map { k, v in
             "\(k): \(v.reps) @ \(String(format: "%.0f", v.weight))lbs RPE\(String(format: "%.1f", v.rpe ?? rpeVal))"
@@ -227,7 +227,7 @@ struct WorkoutSeanceView: View {
         let logged    = vm.logResults.count
         let total     = exercises.count
         let remaining = total - logged
-        let durationMin = Date().timeIntervalSince(vm.sessionStart) / 60
+        let durationMin = Double(vm.chrono.elapsedSeconds) / 60.0
         guard logged >= 2 else { return nil }
 
         if computedSessionRPE >= 9.0 && remaining > 0 {
@@ -812,7 +812,7 @@ struct WorkoutSeanceView: View {
                         }
                         Spacer()
                         if vm.sessionStarted {
-                            SessionTimerView(sessionStart: vm.sessionStart)
+                            SessionTimerView(chrono: vm.chrono)
                         }
                         Button {
                             withAnimation { showSummary.toggle() }
@@ -1117,6 +1117,49 @@ struct WorkoutSeanceView: View {
                     .animation(.spring(response: 0.45, dampingFraction: 0.8), value: advice.id)
                 }
 
+                // Terminer la séance — dernier élément du scroll, jamais sticky
+                VStack(spacing: 0) {
+                    if vm.logResults.isEmpty {
+                        Text("Loggue au moins 1 exercice pour terminer")
+                            .font(.appCaption)
+                            .foregroundColor(.gray.opacity(0.45))
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.bottom, 6)
+                            .transition(.opacity)
+                    }
+                    Button(action: {
+                        let unlogged = exercises.filter { vm.logResults[$0.0] == nil }
+                        if unlogged.isEmpty { showFinishConfirm = true } else { showUnloggedWarning = true }
+                    }) {
+                        HStack(spacing: 8) {
+                            if vm.isFinishing {
+                                ProgressView().tint(.white).scaleEffect(0.8)
+                            } else {
+                                Image(systemName: completionGlow ? "flag.checkered" : "checkmark.circle.fill")
+                            }
+                            Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
+                                .font(.appBody).fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                        .background(vm.logResults.isEmpty || vm.isFinishing ? Color(hex: "1a1a2e") : completionGlow ? Color.green : Color.orange)
+                        .foregroundColor(!vm.logResults.isEmpty && !vm.isFinishing ? .white : .gray)
+                        .cornerRadius(14)
+                        .overlay(
+                            !vm.logResults.isEmpty && !vm.isFinishing ? nil :
+                                RoundedRectangle(cornerRadius: 14).stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                        .shadow(color: completionGlow && !vm.isFinishing ? Color.green.opacity(0.5) : .clear, radius: 12)
+                        .scaleEffect(allLoggedPulse && completionGlow ? 1.02 : 1.0)
+                        .animation(.spring(response: 0.35, dampingFraction: 0.6), value: allLoggedPulse)
+                    }
+                    .disabled(vm.logResults.isEmpty || vm.isFinishing)
+                    .animation(.easeInOut(duration: 0.25), value: vm.logResults.isEmpty)
+                    .animation(.spring(response: 0.4, dampingFraction: 0.7), value: completionGlow)
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 32)
+                .padding(.bottom, 48)
+
             }
             .padding(.bottom, 4)
             .background(
@@ -1140,58 +1183,6 @@ struct WorkoutSeanceView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            let canFinish = !vm.logResults.isEmpty
-            VStack(spacing: 0) {
-                Divider().background(Color.white.opacity(0.08))
-                if !canFinish {
-                    Text("Loggue au moins 1 exercice pour terminer")
-                        .font(.appCaption)
-                        .foregroundColor(.gray.opacity(0.45))
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 8)
-                        .transition(.opacity)
-                }
-                Button(action: {
-                    let unlogged = exercises.filter { vm.logResults[$0.0] == nil }
-                    if unlogged.isEmpty {
-                        showFinishConfirm = true
-                    } else {
-                        showUnloggedWarning = true
-                    }
-                }) {
-                    HStack(spacing: 8) {
-                        if vm.isFinishing {
-                            ProgressView().tint(.white).scaleEffect(0.8)
-                        } else {
-                            Image(systemName: completionGlow ? "flag.checkered" : "checkmark.circle.fill")
-                        }
-                        Text(vm.isFinishing ? "Enregistrement…" : "Terminer la séance")
-                            .font(.appBody).fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(!canFinish || vm.isFinishing ? Color(hex: "1a1a2e") : completionGlow ? Color.green : Color.orange)
-                    .foregroundColor(canFinish && !vm.isFinishing ? .white : .gray)
-                    .cornerRadius(14)
-                    .overlay(
-                        canFinish && !vm.isFinishing ? nil :
-                            RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                    )
-                    .shadow(color: completionGlow && !vm.isFinishing ? Color.green.opacity(0.5) : .clear, radius: 12)
-                    .scaleEffect(allLoggedPulse && completionGlow ? 1.02 : 1.0)
-                    .animation(.spring(response: 0.35, dampingFraction: 0.6), value: allLoggedPulse)
-                }
-                .disabled(!canFinish || vm.isFinishing)
-                .animation(.easeInOut(duration: 0.25), value: canFinish)
-                .animation(.spring(response: 0.4, dampingFraction: 0.7), value: completionGlow)
-                .padding(.horizontal, 16)
-                .padding(.top, canFinish ? 10 : 6)
-                .padding(.bottom, 10)
-            }
-            .background(.ultraThinMaterial)
-            .ignoresSafeArea(.keyboard)
-        }
         .onAppear { scrollProxy = proxy }
         .sheet(isPresented: $showUnloggedWarning) {
             WorkoutSummarySheet(
@@ -1212,13 +1203,13 @@ struct WorkoutSeanceView: View {
             FinishSessionSheet(
                 exercises: exercises.map(\.0),
                 logResults: vm.logResults,
-                elapsedMin: Date().timeIntervalSince(vm.sessionStart) / 60,
+                elapsedMin: Double(vm.chrono.elapsedSeconds) / 60.0,
                 rpe: $rpe,
                 comment: $comment,
                 preEnergy: energyPre,
                 preloadedAnalysis: preloadedAIAnalysis,
                 onSubmit: { _ in
-                    let dur = Date().timeIntervalSince(vm.sessionStart) / 60
+                    let dur = Double(vm.chrono.stop())
                     recapSnapshot = SessionRecapSnapshot(
                         sessionName: data.today,
                         durationMin: dur,

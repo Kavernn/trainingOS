@@ -48,7 +48,10 @@ struct FloatingRestTimerCard: View {
 
                 if timer.isRunning {
                     HStack(spacing: 16) {
-                        Button { timer.adjust(by: -10) } label: {
+                        Button {
+                            timer.adjust(by: -10)
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
                             Text("−10s")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(ringColor.opacity(0.85))
@@ -57,7 +60,10 @@ struct FloatingRestTimerCard: View {
                                 .cornerRadius(20)
                                 .overlay(RoundedRectangle(cornerRadius: 20).stroke(ringColor.opacity(0.25), lineWidth: 1))
                         }
-                        Button { timer.adjust(by: 10) } label: {
+                        Button {
+                            timer.adjust(by: 10)
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
                             Text("+10s")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(ringColor.opacity(0.85))

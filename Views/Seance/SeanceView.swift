@@ -921,11 +921,11 @@ struct ExtraSessionSheet: View {
                 FinishSessionSheet(
                     exercises: Array(extraVM.logResults.keys),
                     logResults: extraVM.logResults,
-                    elapsedMin: Date().timeIntervalSince(extraVM.sessionStart) / 60,
+                    elapsedMin: Double(extraVM.chrono.elapsedSeconds) / 60.0,
                     rpe: $exitRpe,
                     comment: $exitComment,
                     onSubmit: { energy in
-                        let dur = Date().timeIntervalSince(extraVM.sessionStart) / 60
+                        let dur = Double(extraVM.chrono.stop())
                         Task { await extraVM.finish(rpe: exitRpe, comment: exitComment, durationMin: dur, energyPre: energy, bonusSession: true) }
                     }
                 )
@@ -1119,11 +1119,11 @@ struct FinishRemainingSheet: View {
                 FinishSessionSheet(
                     exercises: remaining.map(\.0),
                     logResults: finishVM.logResults,
-                    elapsedMin: Date().timeIntervalSince(finishVM.sessionStart) / 60,
+                    elapsedMin: Double(finishVM.chrono.elapsedSeconds) / 60.0,
                     rpe: $exitRpe, comment: $exitComment,
                     preEnergy: energyPreDate == data.todayDate ? energyPreValue : nil,
                     onSubmit: { energy in
-                        let dur = Date().timeIntervalSince(finishVM.sessionStart) / 60
+                        let dur = Double(finishVM.chrono.stop())
                         Task { await finishVM.finish(rpe: exitRpe, comment: exitComment, durationMin: dur, energyPre: energy, sessionName: data.today) }
                     }
                 )
