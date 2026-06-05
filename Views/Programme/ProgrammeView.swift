@@ -1818,6 +1818,7 @@ struct EditSchemeSheet: View {
     let onSave: (String, String) -> Void  // (newName, newScheme)
 
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var units = UnitSettings.shared
     @State private var name: String = ""
     @State private var scheme: String = ""
 
@@ -1825,7 +1826,7 @@ struct EditSchemeSheet: View {
 
     private var lastLogLabel: String? {
         guard let w = target.lastWeight else { return nil }
-        let wStr = w.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(w)) kg" : "\(w) kg"
+        let wStr = units.format(w, decimals: 0)
         if let r = target.lastReps, !r.isEmpty {
             return "\(wStr) × \(r)"
         }

@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 // MARK: - Objectifs
 struct ObjectifEntry: Identifiable {
@@ -66,9 +67,9 @@ extension SmartGoalEntry {
     func formatValue(_ v: Double) -> String {
         switch type {
         case "body_fat":           return String(format: "%.1f%%", v)
-        case "lean_mass":          return String(format: "%.1f lbs", v)
+        case "lean_mass":          return UnitSettings.shared.format(v)
         case "waist_cm":           return String(format: "%.1f cm", v)
-        case "weekly_volume":      return String(format: "%.0f lbs", v)
+        case "weekly_volume":      return UnitSettings.shared.format(v, decimals: 0)
         case "training_frequency": return String(format: "%.0f séances", v)
         case "protein_daily":      return String(format: "%.0f g", v)
         case "nutrition_streak":   return String(format: "%.0f jours", v)

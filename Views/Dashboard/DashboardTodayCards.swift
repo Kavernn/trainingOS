@@ -351,6 +351,7 @@ struct FlowRow<Item: StringProtocol, Content: View>: View {
 // MARK: - Stats Row
 struct StatsRowView: View {
     let dash: DashboardData
+    @ObservedObject private var units = UnitSettings.shared
 
     var totalSessions: Int { dash.sessions.count }
     var avgRPE: Double {
@@ -374,8 +375,7 @@ struct StatsRowView: View {
     }
     var totalVolume: String {
         let vol = dash.sessions.values.compactMap(\.sessionVolume).reduce(0, +)
-        if vol >= 1000 { return String(format: "%.1ft", vol / 1000.0) }
-        return vol > 0 ? String(format: "%.0fkg", vol) : "—"
+        return vol > 0 ? _formatK(units.display(vol)) + " \(units.label)" : "—"
     }
 
     var body: some View {

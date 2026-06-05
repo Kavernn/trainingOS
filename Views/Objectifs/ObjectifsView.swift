@@ -620,13 +620,13 @@ enum SmartGoalOption: String, CaseIterable, Identifiable {
     var unit: String {
         switch self {
         case .bodyFat:           return "%"
-        case .leanMass:          return "lbs"
+        case .leanMass:          return UnitSettings.shared.label
         case .waistCm:           return "cm"
-        case .weeklyVolume:      return "lbs"
+        case .weeklyVolume:      return UnitSettings.shared.label
         case .trainingFrequency: return "séances"
         case .proteinDaily:      return "g"
         case .nutritionStreak:   return "jours"
-        case .estimated1RM:      return "lbs"
+        case .estimated1RM:      return UnitSettings.shared.label
         case .monthlyDistance:   return "km"
         case .restingHR:         return "bpm"
         case .pssAvg:            return "pts"
