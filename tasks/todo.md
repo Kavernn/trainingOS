@@ -1,7 +1,45 @@
 # TrainingOS — TODO & Améliorations
 
-> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-05-05.
+> Tour de l'app réalisé le 2026-03-15. Mis à jour le 2026-06-03.
 > Audit senior dev/UX ajouté le 2026-04-05 — 20 items priorisés.
+
+---
+
+## ⌚ Watch App — Phase 1 (en cours, 2026-06-03)
+
+### ✅ Fait
+- [x] Architecture et plan validés (offline-first, Watch = terminal, tout passe par iPhone)
+- [x] Fichiers iOS créés : `Services/WatchConnectivityManager.swift`
+- [x] Fichiers Watch créés dans `VinceSeven Watch Watch App/` : WatchTypes, WatchSessionManager, VinceSevenWatchApp, HomeView, ActiveSessionView, MorningLogView, RestTimerView
+- [x] Target Watch ajouté dans Xcode ("VinceSeven Watch Watch App")
+- [x] Bundle ID Watch configuré : `com.kavernntrainingos.app.TrainingOS.watchkitapp`
+- [x] Deployment target Watch abaissé à watchOS 10.0
+- [x] Build iOS passe (0 erreur)
+- [x] WatchConnectivityManager s'initialise correctement au lancement iOS
+
+### 🔴 Bloquant — Déploiement Watch
+- [ ] **Connexion Xcode ↔ Watch échoue** : "The device rejected the connection request" (Code 4 / RemotePairingError 1007)
+- [ ] **À débloquer avant de continuer** :
+  1. Redémarrer la Watch (bouton latéral long → éteindre → rallumer)
+  2. iPhone branché en **USB** au Mac (pas WiFi) pour le déploiement initial
+  3. Vérifier **Developer Mode** sur la Watch : iPhone → app Watch → Privacy & Security → Developer Mode → On
+  4. Xcode → Window → Devices and Simulators → Watch doit réapparaître sous l'iPhone
+  5. Relancer Cmd+R avec le scheme "VinceSeven Watch Watch App"
+
+### 🟡 À faire après déploiement (Phase 1 suite)
+- [ ] Tester la connexion WCSession Watch ↔ iPhone (logs `WCSession counterpart app not installed` doivent disparaître)
+- [ ] Tester logger un set depuis la Watch → vérifie dans Supabase
+- [ ] Tester log du matin depuis la Watch → vérifie dans Supabase
+- [ ] Tester timer repos sur la Watch
+- [ ] Intégrer `WatchConnectivityManager.pushActiveSession()` dans SeanceView au démarrage d'une séance
+- [ ] Intégrer `WatchConnectivityManager.clearActiveSession()` dans FinishSessionSheet
+- [ ] Ajouter capability WatchConnectivity aux deux targets (si pas encore fait)
+
+### 📋 Phase 2 — Après validation Phase 1
+- [ ] Complications watchOS (circulaire streak, rectangulaire séance du jour)
+- [ ] Log nutrition rapide (5 derniers repas)
+- [ ] Suggestion poids (dernier set connu)
+- [ ] Timer endurance Watch (Plank, Deadhang)
 
 ---
 
