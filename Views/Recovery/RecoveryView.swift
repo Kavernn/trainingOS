@@ -302,6 +302,121 @@ private struct RecoveryHeroCard: View {
     }
 }
 
+// MARK: - SleepProgressBar
+
+private struct SleepProgressBar: View {
+    let ratio: CGFloat
+    let color: Color
+    @State private var animRatio: CGFloat = 0
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.white.opacity(0.07)).frame(height: 6)
+                Capsule().fill(color)
+                    .frame(width: geo.size.width * animRatio, height: 6)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeOut(duration: 1.0)) { animRatio = min(ratio, 1.0) }
+        }
+        .onChange(of: ratio) { _, v in
+            withAnimation(.easeOut(duration: 0.6)) { animRatio = min(v, 1.0) }
+        }
+    }
+}
+
+// MARK: - RecoverySleepBarChart
+
+private struct RecoverySleepBarChart: View {
+    let entries: [RecoveryEntry]
+    let goalHours: Double
+
+    private static let dateFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+    private static let dayFmt: DateFormatter = {
+        let f = DateFormatter(); f.locale = Locale(identifier: "fr_CA")
+        f.dateFormat = "EEE"; return f
+    }()
+
+    private func barColor(_ h: Double) -> Color {
+        if h < 5 { return .red }
+        if h < goalHours * 0.85 { return .orange }
+        if h <= goalHours * 1.15 { return .green }
+        return .blue
+    }
+
+    private func dayLabel(_ iso: String) -> String {
+        guard let d = Self.dateFmt.date(from: iso) else { return "" }
+        return Self.dayFmt.string(from: d).prefix(3).lowercased()
+    }
+
+    var body: some View {
+        let yMax = max((entries.compactMap(\.sleepHours).max() ?? 9) + 0.5, goalHours + 0.5)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 5) {
+                Image(systemName: "moon.zzz.fill").font(.system(size: 10)).foregroundColor(.blue)
+                Text("SOMMEIL — \(entries.count) JOURS").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text(String(format: "Obj. %.0fh", goalHours))
+                    .font(.system(size: 10, weight: .semibold)).foregroundColor(.green.opacity(0.7))
+            }
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let barW = w / CGFloat(entries.count) - 4
+                let goalY = h - CGFloat(goalHours / yMax) * h
+
+                ZStack(alignment: .topLeading) {
+                    // Goal line
+                    Path { p in
+                        p.move(to: CGPoint(x: 0, y: goalY))
+                        p.addLine(to: CGPoint(x: w, y: goalY))
+                    }
+                    .stroke(Color.green.opacity(0.35),
+                            style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+
+                    // Bars + quality dots
+                    ForEach(Array(entries.enumerated()), id: \.1.id) { i, entry in
+                        let x = CGFloat(i) * (w / CGFloat(entries.count)) + 2
+                        let bh = entry.sleepHours.map { CGFloat($0 / yMax) * h } ?? 0
+                        let color = barColor(entry.sleepHours ?? 0)
+
+                        // Bar
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(color.opacity(0.75))
+                            .frame(width: barW, height: bh)
+                            .position(x: x + barW / 2, y: h - bh / 2)
+
+                        // Quality dot
+                        if let q = entry.sleepQuality {
+                            let qColor: Color = q >= 7 ? .green : (q >= 4 ? .yellow : .red)
+                            Circle()
+                                .fill(qColor)
+                                .frame(width: 5, height: 5)
+                                .position(x: x + barW / 2, y: h - bh - 6)
+                        }
+                    }
+                }
+            }
+            .frame(height: 90)
+
+            // X-axis labels
+            HStack(spacing: 0) {
+                ForEach(entries, id: \.id) { entry in
+                    Text(dayLabel(entry.date ?? ""))
+                        .font(.system(size: 9))
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(14)
+        .glassCard()
+    }
+}
+
 // MARK: - RecoveryView
 
 struct RecoveryView: View {
@@ -329,6 +444,7 @@ struct RecoveryView: View {
     @State private var isSyncingHK = false
     @State private var syncSuccess = false
     @AppStorage("last_hk_sync_recovery") private var lastHKSyncTimestamp: Double = 0
+    @AppStorage("sleep_goal_hours") private var sleepGoalHours: Double = 8.0
     @State private var hkSpO2: Double? = nil
     @State private var hkWristTemp: Double? = nil
 
@@ -511,6 +627,10 @@ struct RecoveryView: View {
                     .padding(.horizontal, 16)
                     .appearAnimation(delay: 0.10)
 
+                sleepSection
+                    .padding(.horizontal, 16)
+                    .appearAnimation(delay: 0.12)
+
                 Button {
                     if alreadyLoggedToday, let entry = todayEntry {
                         editTarget = entry
@@ -619,6 +739,82 @@ struct RecoveryView: View {
                                     infoEntry: .wristTempMetric,
                                     onAction: { Task { await syncHealthKitNow() } })
                 }
+            }
+        }
+    }
+
+    // MARK: - Sleep section
+
+    private var sleepSection: some View {
+        let entry = todayEntry
+        let hours = entry?.sleepHours
+        let quality = entry?.sleepQuality
+        let bedtime = entry?.bedtime
+        let wakeTime = entry?.wakeTime
+        let goal = sleepGoalHours
+        let sleepPts = Array(log.prefix(10).reversed()).filter { $0.sleepHours != nil }
+
+        return VStack(alignment: .leading, spacing: 10) {
+            // ── Hero ──────────────────────────────────────
+            if let h = hours {
+                let ratio = min(h / goal, 1.0)
+                let dColor: Color = h < 5 ? .red : (h < goal * 0.85 ? .orange : .green)
+
+                VStack(spacing: 0) {
+                    HStack(alignment: .top) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "moon.zzz.fill").font(.system(size: 10)).foregroundColor(.blue)
+                                Text("SOMMEIL").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
+                            }
+                            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                                Text(String(format: "%.1f", h))
+                                    .font(.system(size: 36, weight: .black, design: .rounded))
+                                    .foregroundColor(dColor)
+                                Text("h")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundColor(dColor.opacity(0.7))
+                                    .padding(.bottom, 2)
+                            }
+                            if let bt = bedtime, let wt = wakeTime {
+                                Text("\(bt) → \(wt)")
+                                    .font(.appCaption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(String(format: "%.1fh obj.", goal))
+                                .font(.appMicro.weight(.semibold))
+                                .foregroundColor(.gray)
+                            Text(String(format: "%.0f%%", ratio * 100))
+                                .font(.system(size: 18, weight: .black, design: .rounded))
+                                .foregroundColor(dColor)
+                            if let q = quality {
+                                HStack(spacing: 2) {
+                                    Image(systemName: "star.fill").font(.system(size: 9)).foregroundColor(.yellow)
+                                    Text(String(format: "%.1f/10", q))
+                                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.white.opacity(0.8))
+                                }
+                            }
+                        }
+                    }
+                    .padding(14)
+
+                    // Progress bar
+                    SleepProgressBar(ratio: ratio, color: dColor)
+                        .frame(height: 6)
+                        .padding(.horizontal, 14)
+                        .padding(.bottom, 14)
+                }
+                .background(Color.appCard)
+                .cornerRadius(16)
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(dColor.opacity(0.20), lineWidth: 1))
+            }
+
+            // ── 10-day bar chart ──────────────────────────
+            if sleepPts.count >= 3 {
+                RecoverySleepBarChart(entries: sleepPts, goalHours: goal)
             }
         }
     }
