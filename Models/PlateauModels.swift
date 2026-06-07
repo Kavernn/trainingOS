@@ -14,6 +14,8 @@ struct PlateauResponse: Codable {
 struct PlateauAlert: Codable, Identifiable {
     let id: String?
     let exerciseName: String
+
+    var stableId: String { id ?? exerciseName }
     let detectedAt: String
     let plateauScore: Int
     let plateauWeeks: Int

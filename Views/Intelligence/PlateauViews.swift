@@ -15,11 +15,11 @@ struct PlateauSection: View {
             } else if alerts.isEmpty {
                 emptyState
             } else {
-                ForEach(alerts) { alert in
+                ForEach(alerts, id: \.stableId) { alert in
                     PlateauAlertRow(alert: alert) {
                         selected = alert
                     }
-                    if alert.id != alerts.last?.id {
+                    if alert.stableId != alerts.last?.stableId {
                         Divider()
                             .background(Color(white: 0.2))
                             .padding(.horizontal, 16)
