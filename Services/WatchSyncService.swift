@@ -137,7 +137,7 @@ class WatchSyncService: ObservableObject {
                                            restingHr: t.restingHr, hrv: hrv, activeEnergy: nil,
                                            bodyWeightLbs: nil, bodyFatPct: nil,
                                            hrMorning: nil, hrPostWorkout: nil, hrEvening: nil,
-                                           workouts: [])
+                                           workouts: [], spo2: nil, wristTemp: nil)
                 }
             }
             for await snap in group {

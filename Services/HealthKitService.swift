@@ -261,9 +261,24 @@ class HealthKitService: ObservableObject {
         return v * 100.0
     }
 
+    /// SpO2 scopé à une journée calendrier (minuit → minuit+1).
+    func fetchSpO2(for date: Date) async -> Double? {
+        let start = cal.startOfDay(for: date)
+        let end   = cal.safeDateByAdding(.day, value: 1, to: start)
+        guard let v = await fetchDayAvg(.oxygenSaturation, start: start, end: end, unit: .percent()) else { return nil }
+        return v * 100.0
+    }
+
     // MARK: - Wrist Temperature (deviation from baseline in °C, available after sleep)
     func fetchLatestWristTemperature() async -> Double? {
         return await fetchLatestQuantity(.appleSleepingWristTemperature, unit: .degreeCelsius())
+    }
+
+    /// Température poignet scopée à la fenêtre sommeil (minuit-6h → midi) pour éviter d'aller chercher une nuit précédente.
+    func fetchWristTemp(for date: Date) async -> Double? {
+        let noon      = cal.safeDateByAdding(.hour, value: 12, to: cal.startOfDay(for: date))
+        let nightFrom = cal.safeDateByAdding(.hour, value: -18, to: noon)
+        return await fetchDayAvg(.appleSleepingWristTemperature, start: nightFrom, end: noon, unit: .degreeCelsius())
     }
 
     // MARK: - Running Form (Series 11 — stride, oscillation, contact time)
@@ -287,7 +302,20 @@ class HealthKitService: ObservableObject {
         }
     }
 
-    // MARK: - Generic latest quantity helper
+    // MARK: - Generic helpers
+
+    /// Moyenne statistique d'un type HK sur une fenêtre [start, end).
+    private func fetchDayAvg(_ id: HKQuantityTypeIdentifier, start: Date, end: Date, unit: HKUnit) async -> Double? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return nil }
+        let pred = HKQuery.predicateForSamples(withStart: start, end: end)
+        return await withCheckedContinuation { cont in
+            let q = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: pred, options: .discreteAverage) { _, stats, _ in
+                cont.resume(returning: stats?.averageQuantity()?.doubleValue(for: unit))
+            }
+            store.execute(q)
+        }
+    }
+
     private func fetchLatestQuantity(_ id: HKQuantityTypeIdentifier, unit: HKUnit) async -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return nil }
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
@@ -407,17 +435,19 @@ class HealthKitService: ObservableObject {
             case energy(Double?), workouts([HKWorkout])
             case weight(Double?), fat(Double?)
             case hrM(Double?), hrP(Double?), hrE(Double?)
+            case spo2(Double?), wristTemp(Double?)
         }
         var s: Int? = nil; var sl: Double? = nil; var hr: Double? = nil
         var h: Double? = nil; var ae: Double? = nil; var wkts: [HKWorkout] = []
         var bw: Double? = nil; var bf: Double? = nil
         var hrM: Double? = nil; var hrP: Double? = nil; var hrE: Double? = nil
+        var sp: Double? = nil; var wt: Double? = nil
 
         await withTaskGroup(of: Field.self) { group in
             group.addTask { .steps(await self.fetchTodaySteps()) }
             group.addTask { .sleep(await self.fetchLastNightSleep()) }
-            group.addTask { .rhr(await self.fetchLatestRestingHR()) }
-            group.addTask { .hrv(await self.fetchLatestHRV()) }
+            group.addTask { .rhr(await self.fetchRestingHR(for: now)) }       // date-scoped
+            group.addTask { .hrv(await self.fetchHRV(for: now)) }             // date-scoped
             group.addTask { .energy(await self.fetchTodayActiveEnergy()) }
             group.addTask { .workouts(await self.fetchAllWorkouts(days: 1)) }
             group.addTask { .weight(await self.fetchLatestBodyWeight()) }
@@ -425,19 +455,23 @@ class HealthKitService: ObservableObject {
             group.addTask { .hrM(await self.fetchMorningHR(for: now)) }
             group.addTask { .hrP(await self.fetchPostWorkoutHR(for: now)) }
             group.addTask { .hrE(await self.fetchEveningHR(for: now)) }
+            group.addTask { .spo2(await self.fetchSpO2(for: now)) }
+            group.addTask { .wristTemp(await self.fetchWristTemp(for: now)) }
             for await field in group {
                 switch field {
-                case .steps(let v):    s    = v
-                case .sleep(let v):    sl   = v
-                case .rhr(let v):      hr   = v
-                case .hrv(let v):      h    = v
-                case .energy(let v):   ae   = v
+                case .steps(let v):    s   = v
+                case .sleep(let v):    sl  = v
+                case .rhr(let v):      hr  = v
+                case .hrv(let v):      h   = v
+                case .energy(let v):   ae  = v
                 case .workouts(let v): wkts = v
-                case .weight(let v):   bw   = v
-                case .fat(let v):      bf   = v
-                case .hrM(let v):      hrM  = v
-                case .hrP(let v):      hrP  = v
-                case .hrE(let v):      hrE  = v
+                case .weight(let v):   bw  = v
+                case .fat(let v):      bf  = v
+                case .hrM(let v):      hrM = v
+                case .hrP(let v):      hrP = v
+                case .hrE(let v):      hrE = v
+                case .spo2(let v):     sp  = v
+                case .wristTemp(let v): wt = v
                 }
             }
         }
@@ -460,7 +494,7 @@ class HealthKitService: ObservableObject {
         return WearableSnapshot(date: today, steps: s, sleepHours: sl, restingHr: hr,
                                 hrv: h, activeEnergy: ae, bodyWeightLbs: bw,
                                 bodyFatPct: bf, hrMorning: hrM, hrPostWorkout: hrP,
-                                hrEvening: hrE, workouts: workouts)
+                                hrEvening: hrE, workouts: workouts, spo2: sp, wristTemp: wt)
     }
 
     // MARK: - Background Delivery
@@ -612,6 +646,8 @@ class HealthKitService: ObservableObject {
     func fetchLatestVO2Max() async -> Double? { nil }
     func fetchLatestSpO2() async -> Double? { nil }
     func fetchLatestWristTemperature() async -> Double? { nil }
+    func fetchSpO2(for date: Date) async -> Double? { nil }
+    func fetchWristTemp(for date: Date) async -> Double? { nil }
     func fetchRunningForm(start: Date, end: Date) async -> RunningFormMetrics? { nil }
     func fetchTodayActiveEnergy() async -> Double? { nil }
     func fetchAllWorkouts(days: Int = 1) async -> [Any] { [] }
@@ -619,7 +655,7 @@ class HealthKitService: ObservableObject {
         WearableSnapshot(date: "", steps: nil, sleepHours: nil, restingHr: nil,
                          hrv: nil, activeEnergy: nil, bodyWeightLbs: nil,
                          bodyFatPct: nil, hrMorning: nil, hrPostWorkout: nil,
-                         hrEvening: nil, workouts: [])
+                         hrEvening: nil, workouts: [], spo2: nil, wristTemp: nil)
     }
     func enableBackgroundDelivery(onChange: @escaping () -> Void) async {}
     func saveCardioWorkout(type: String, startDate: Date, endDate: Date, distanceKm: Double?) async {}
