@@ -317,7 +317,12 @@ def api_ritual_today():
     import db as _db
 
     today_str           = _today_mtl().isoformat()
-    existing            = _db.get_ritual_today(today_str)
+    yesterday_str        = (_today_mtl() - timedelta(days=1)).isoformat()
+    existing             = _db.get_ritual_today(today_str)
+    yesterday_ritual     = _db.get_ritual_today(yesterday_str)
+    yesterday_intention  = (yesterday_ritual or {}).get("tomorrow_intention")
+    yesterday_outcome    = (yesterday_ritual or {}).get("outcome")
+    yesterday_evening_at = (yesterday_ritual or {}).get("evening_at")
     streak, best, total = _compute_phoenix()
     raw_demons          = _db.get_ritual_demons()
     demons              = _enrich_carry_counts(raw_demons)  # A1
@@ -346,6 +351,9 @@ def api_ritual_today():
             "phoenix_best":          best,
             "phoenix_total_burned":  total,
             "demons":                demons,
+            "yesterday_intention":   yesterday_intention,
+            "yesterday_outcome":     yesterday_outcome,
+            "yesterday_evening_at":  yesterday_evening_at,
         })
 
     truth, ttype, suggestions, ctx = _build_truth(phoenix_streak=streak)
@@ -388,6 +396,9 @@ def api_ritual_today():
         "phoenix_best":          best,
         "phoenix_total_burned":  total,
         "demons":                demons,
+        "yesterday_intention":   yesterday_intention,
+        "yesterday_outcome":     yesterday_outcome,
+        "yesterday_evening_at":  yesterday_evening_at,
     })
 
 
@@ -440,11 +451,12 @@ def api_ritual_evening():
     if not existing or not existing.get("intention"):
         return jsonify({"error": "Complete the morning ritual first"}), 400
 
-    now_iso    = datetime.now(timezone.utc).isoformat()
-    reflection = (data.get("reflection") or "").strip() or None
-    winddown   = data.get("winddown_done")
-    cold       = data.get("cold_done")
-    gratitude  = (data.get("gratitude") or "").strip() or None
+    now_iso              = datetime.now(timezone.utc).isoformat()
+    reflection           = (data.get("reflection") or "").strip() or None
+    winddown             = data.get("winddown_done")
+    cold                 = data.get("cold_done")
+    gratitude            = (data.get("gratitude") or "").strip() or None
+    tomorrow_intention   = (data.get("tomorrow_intention") or "").strip() or None
 
     patch = {**existing, "outcome": outcome, "evening_at": now_iso}
     if reflection is not None:
@@ -455,6 +467,8 @@ def api_ritual_evening():
         patch["cold_done"] = bool(cold)
     if gratitude:
         patch["gratitude"] = gratitude
+    if tomorrow_intention is not None:
+        patch["tomorrow_intention"] = tomorrow_intention
 
     ok = _db.upsert_ritual(patch)
     if not ok:

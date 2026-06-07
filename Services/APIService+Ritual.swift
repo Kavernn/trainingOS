@@ -70,12 +70,14 @@ extension APIService {
 
     func saveRitualEveningFull(outcome: String, reflection: String? = nil,
                                winddownDone: Bool? = nil, coldDone: Bool? = nil,
-                               gratitude: String? = nil) async throws -> RitualEveningResult {
+                               gratitude: String? = nil,
+                               tomorrowIntention: String? = nil) async throws -> RitualEveningResult {
         var payload: [String: Any] = ["outcome": outcome]
-        if let r = reflection, !r.isEmpty { payload["reflection"]    = r }
-        if let v = winddownDone            { payload["winddown_done"] = v }
-        if let v = coldDone                { payload["cold_done"]     = v }
-        if let g = gratitude, !g.isEmpty  { payload["gratitude"]     = g }
+        if let r = reflection,         !r.isEmpty { payload["reflection"]          = r }
+        if let v = winddownDone                   { payload["winddown_done"]        = v }
+        if let v = coldDone                       { payload["cold_done"]            = v }
+        if let g = gratitude,          !g.isEmpty { payload["gratitude"]            = g }
+        if let t = tomorrowIntention,  !t.isEmpty { payload["tomorrow_intention"]   = t }
 
         let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: payload)
         CacheInvalidation.ritualUpdated.invalidate()

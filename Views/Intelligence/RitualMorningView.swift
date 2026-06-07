@@ -16,9 +16,26 @@ struct RitualMorningView: View {
     @State private var showSpirit     = false
     @State private var isKillingDemon = false
 
-    private let red = Color(hex: "FF2D20")
+    private let red   = Color(hex: "FF2D20")
+    private let forge = Color.forge
 
     private var hasDemon: Bool { ritual.carriedIntention != nil }
+
+    private var yesterdayEveningTimeLabel: String? {
+        guard let iso = ritual.yesterdayEveningAt else { return nil }
+        let df = ISO8601DateFormatter()
+        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = df.date(from: iso) {
+            let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
+            return fmt.string(from: d)
+        }
+        let df2 = ISO8601DateFormatter()
+        if let d = df2.date(from: iso) {
+            let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
+            return fmt.string(from: d)
+        }
+        return nil
+    }
 
     var body: some View {
         ZStack {
@@ -29,6 +46,12 @@ struct RitualMorningView: View {
                     timeLabel
                         .padding(.top, 60)
                         .padding(.horizontal, 24)
+
+                    if let intention = ritual.yesterdayIntention {
+                        yesterdayIntentionCard(intention: intention)
+                            .padding(.top, 20)
+                            .padding(.horizontal, 24)
+                    }
 
                     truthBlock
                         .padding(.top, 32)
@@ -88,6 +111,59 @@ struct RitualMorningView: View {
     }
 
     // MARK: - Components
+
+    private func yesterdayIntentionCard(intention: String) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "sunset.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(forge.opacity(0.7))
+                Text("TON ENGAGEMENT D'HIER SOIR")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(forge.opacity(0.7))
+            }
+            .padding(.top, 14)
+            .padding(.horizontal, 14)
+
+            Text("«\u{202F}\(intention)\u{202F}»")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(.white)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 10)
+                .padding(.horizontal, 14)
+
+            HStack(spacing: 6) {
+                let timeStr = yesterdayEveningTimeLabel.map { "Hier soir · \($0)" } ?? "Hier soir"
+                Text(timeStr)
+                    .font(.system(size: 11))
+                    .foregroundColor(Color(white: 0.28))
+
+                Spacer()
+
+                if let outcome = ritual.yesterdayOutcome {
+                    if outcome == "burned" {
+                        Label("Tu as brûlé hier", systemImage: "flame.fill")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(forge)
+                    } else {
+                        Label("Tu as survécu hier", systemImage: "shield.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color(white: 0.35))
+                    }
+                }
+            }
+            .padding(.top, 8)
+            .padding(.horizontal, 14)
+            .padding(.bottom, 14)
+        }
+        .background(Color(hex: "0E0B08"))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(forge.opacity(0.18), lineWidth: 1)
+        )
+        .cornerRadius(10)
+    }
 
     private var timeLabel: some View {
         let fmt = DateFormatter()

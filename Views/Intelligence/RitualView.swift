@@ -227,6 +227,18 @@ struct RitualBiographyView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 2)
                 }
+                if let tmrw = entry.tomorrowIntention {
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.right")
+                            .font(.system(size: 9))
+                            .foregroundColor(Color.forge.opacity(0.5))
+                        Text(tmrw)
+                            .font(.system(size: 12))
+                            .foregroundColor(Color.forge.opacity(0.65))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 4)
+                }
                 Spacer(minLength: 16)
             }
         }

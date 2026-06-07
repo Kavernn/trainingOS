@@ -25,6 +25,9 @@ struct RitualToday: Codable {
     let winddownDone: Bool
     let coldDone: Bool
     let reflection: String?
+    let yesterdayIntention: String?   // tomorrow_intention saisie hier soir
+    let yesterdayOutcome: String?     // outcome d'hier soir (burned/survived)
+    let yesterdayEveningAt: String?   // heure à laquelle l'intention a été prise hier soir
 
     var morningDone: Bool  { morningAt != nil }
     var eveningDone: Bool  { eveningAt != nil }
@@ -42,14 +45,17 @@ struct RitualToday: Codable {
         case phoenixStreak      = "phoenix_streak"
         case phoenixBest        = "phoenix_best"
         case phoenixTotalBurned = "phoenix_total_burned"
-        case weightLogged   = "weight_logged"
-        case hydrationDone  = "hydration_done"
-        case mobilityDone   = "mobility_done"
-        case proteinDone    = "protein_done"
-        case gratitude      = "gratitude"
-        case winddownDone   = "winddown_done"
-        case coldDone       = "cold_done"
-        case reflection     = "reflection"
+        case weightLogged          = "weight_logged"
+        case hydrationDone         = "hydration_done"
+        case mobilityDone          = "mobility_done"
+        case proteinDone           = "protein_done"
+        case gratitude             = "gratitude"
+        case winddownDone          = "winddown_done"
+        case coldDone              = "cold_done"
+        case reflection            = "reflection"
+        case yesterdayIntention    = "yesterday_intention"
+        case yesterdayOutcome      = "yesterday_outcome"
+        case yesterdayEveningAt    = "yesterday_evening_at"
     }
 
     init(from decoder: Decoder) throws {
@@ -73,10 +79,13 @@ struct RitualToday: Codable {
         hydrationDone = (try? c.decode(Bool.self, forKey: .hydrationDone)) ?? false
         mobilityDone  = (try? c.decode(Bool.self, forKey: .mobilityDone))  ?? false
         proteinDone   = (try? c.decode(Bool.self, forKey: .proteinDone))   ?? false
-        gratitude     = try? c.decode(String.self, forKey: .gratitude)
-        winddownDone  = (try? c.decode(Bool.self, forKey: .winddownDone))  ?? false
-        coldDone      = (try? c.decode(Bool.self, forKey: .coldDone))      ?? false
-        reflection    = try? c.decode(String.self, forKey: .reflection)
+        gratitude          = try? c.decode(String.self, forKey: .gratitude)
+        winddownDone       = (try? c.decode(Bool.self, forKey: .winddownDone))       ?? false
+        coldDone           = (try? c.decode(Bool.self, forKey: .coldDone))           ?? false
+        reflection         = try? c.decode(String.self, forKey: .reflection)
+        yesterdayIntention  = try? c.decode(String.self, forKey: .yesterdayIntention)
+        yesterdayOutcome    = try? c.decode(String.self, forKey: .yesterdayOutcome)
+        yesterdayEveningAt  = try? c.decode(String.self, forKey: .yesterdayEveningAt)
     }
 }
 
@@ -205,6 +214,7 @@ struct RitualHistoryEntry: Codable, Identifiable {
     let date: String
     let truth: String?
     let intention: String?
+    let tomorrowIntention: String?
     let outcome: String?
     let carryCount: Int
     let reflection: String?
@@ -213,21 +223,23 @@ struct RitualHistoryEntry: Codable, Identifiable {
 
     enum CodingKeys: String, CodingKey {
         case date, truth, intention, outcome, reflection
-        case carryCount = "carry_count"
-        case morningAt  = "morning_at"
-        case eveningAt  = "evening_at"
+        case tomorrowIntention = "tomorrow_intention"
+        case carryCount        = "carry_count"
+        case morningAt         = "morning_at"
+        case eveningAt         = "evening_at"
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        date       = (try? c.decode(String.self, forKey: .date))      ?? ""
-        truth      = try? c.decode(String.self, forKey: .truth)
-        intention  = try? c.decode(String.self, forKey: .intention)
-        outcome    = try? c.decode(String.self, forKey: .outcome)
-        carryCount = (try? c.decode(Int.self,   forKey: .carryCount)) ?? 0
-        reflection = try? c.decode(String.self, forKey: .reflection)
-        morningAt  = try? c.decode(String.self, forKey: .morningAt)
-        eveningAt  = try? c.decode(String.self, forKey: .eveningAt)
+        date              = (try? c.decode(String.self, forKey: .date))      ?? ""
+        truth             = try? c.decode(String.self, forKey: .truth)
+        intention         = try? c.decode(String.self, forKey: .intention)
+        tomorrowIntention = try? c.decode(String.self, forKey: .tomorrowIntention)
+        outcome           = try? c.decode(String.self, forKey: .outcome)
+        carryCount        = (try? c.decode(Int.self,   forKey: .carryCount)) ?? 0
+        reflection        = try? c.decode(String.self, forKey: .reflection)
+        morningAt         = try? c.decode(String.self, forKey: .morningAt)
+        eveningAt         = try? c.decode(String.self, forKey: .eveningAt)
     }
 }
 

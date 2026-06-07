@@ -4,19 +4,23 @@ struct RitualEveningView: View {
     let ritual: RitualToday
     let onSaved: (RitualToday) -> Void
 
-    @State private var selectedOutcome: String? = nil
-    @State private var isSaving        = false
-    @State private var showResult      = false
-    @State private var result: RitualEveningResult? = nil
-    @State private var flashOpacity: Double = 0
-    // E6: reflection field
-    @State private var reflection      = ""
-    @FocusState private var reflectionFocused: Bool
-    // Evening micro-ritual checks (D)
-    @State private var winddownDone    = false
-    @State private var coldDone        = false
+    private enum EveningStep { case judgment, intention }
 
-    private let red = Color(hex: "FF2D20")
+    @State private var step             : EveningStep = .judgment
+    @State private var pendingOutcome   : String?     = nil
+    @State private var isSaving         = false
+    @State private var showResult       = false
+    @State private var result           : RitualEveningResult? = nil
+    @State private var flashOpacity     : Double = 0
+    @State private var reflection       = ""
+    @State private var tomorrowIntention = ""
+    @FocusState private var reflectionFocused: Bool
+    @FocusState private var intentionFocused : Bool
+    @State private var winddownDone     = false
+    @State private var coldDone         = false
+
+    private let red   = Color(hex: "FF2D20")
+    private let forge = Color.forge
 
     // E7: format morning_at time
     private var morningTimeLabel: String? {
@@ -35,9 +39,27 @@ struct RitualEveningView: View {
         return nil
     }
 
+    private var tomorrowDateLabel: String {
+        let cal  = Calendar.current
+        let tmrw = cal.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+        let fmt  = DateFormatter()
+        fmt.locale = Locale(identifier: "fr_CA")
+        fmt.dateFormat = "EEEE d MMMM"
+        return fmt.string(from: tmrw).capitalized
+    }
+
     var body: some View {
         ZStack {
-            Color(hex: "0A0A0A").ignoresSafeArea()
+            // Fond qui change entre les deux étapes
+            Group {
+                if step == .judgment {
+                    Color(hex: "0A0A0A")
+                } else {
+                    Color(hex: "0D0906")   // légèrement plus chaud pour l'étape 2
+                }
+            }
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 0.5), value: step)
 
             Color(hex: "FF2D20")
                 .ignoresSafeArea()
@@ -47,22 +69,32 @@ struct RitualEveningView: View {
             if showResult, let r = result {
                 resultView(r)
                     .transition(.opacity)
+            } else if step == .intention {
+                intentionView
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal:   .opacity
+                    ))
             } else {
                 choiceView
+                    .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.4), value: showResult)
-        .onTapGesture { reflectionFocused = false }
+        .animation(.easeInOut(duration: 0.45), value: step)
+        .onTapGesture {
+            reflectionFocused = false
+            intentionFocused  = false
+        }
     }
 
-    // MARK: - Choice view
+    // MARK: - Étape 1 : Jugement
 
     private var choiceView: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer(minLength: 40)
 
-                // E7: morning time header
                 if let t = morningTimeLabel {
                     HStack(spacing: 6) {
                         Image(systemName: "sunrise.fill")
@@ -166,8 +198,8 @@ struct RitualEveningView: View {
     }
 
     private func choiceButton(emoji: String, label: String, outcome: String) -> some View {
-        let isSelected = selectedOutcome == outcome
-        return Button(action: { commit(outcome: outcome) }) {
+        let isSelected = pendingOutcome == outcome
+        return Button(action: { advanceToIntention(outcome: outcome) }) {
             VStack(spacing: 10) {
                 Text(emoji).font(.system(size: 40))
                 Text(label)
@@ -187,6 +219,91 @@ struct RitualEveningView: View {
         }
         .buttonStyle(.plain)
         .disabled(isSaving)
+    }
+
+    // MARK: - Étape 2 : Intention pour demain
+
+    private var intentionView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                Spacer(minLength: 48)
+
+                VStack(alignment: .leading, spacing: 28) {
+                    // Header
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("MAINTENANT")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(3)
+                            .foregroundColor(forge.opacity(0.7))
+
+                        Text("Ton intention pour demain")
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundColor(.white)
+
+                        Text("Pour \(tomorrowDateLabel)")
+                            .font(.system(size: 13))
+                            .foregroundColor(Color(white: 0.38))
+                    }
+
+                    Rectangle()
+                        .fill(forge.opacity(0.15))
+                        .frame(height: 1)
+
+                    // Champ intention
+                    VStack(alignment: .leading, spacing: 12) {
+                        TextField("Demain, je m'engage à...", text: $tomorrowIntention, axis: .vertical)
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundColor(.white)
+                            .tint(forge)
+                            .lineLimit(5)
+                            .focused($intentionFocused)
+                            .onAppear { intentionFocused = true }
+
+                        Rectangle()
+                            .fill(tomorrowIntention.isEmpty ? Color(white: 0.12) : forge.opacity(0.4))
+                            .frame(height: 1)
+                            .animation(.easeInOut(duration: 0.2), value: tomorrowIntention.isEmpty)
+                    }
+
+                    // CTA
+                    VStack(spacing: 12) {
+                        Button(action: { commitWithIntention() }) {
+                            HStack {
+                                Text("Prendre cet engagement")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                tomorrowIntention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                    ? forge.opacity(0.35)
+                                    : forge
+                            )
+                            .cornerRadius(14)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isSaving)
+
+                        Button(action: { commitWithoutIntention() }) {
+                            Text("Passer pour ce soir")
+                                .font(.system(size: 13))
+                                .foregroundColor(Color(white: 0.35))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 10)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isSaving)
+                    }
+                }
+                .padding(.horizontal, 24)
+
+                Spacer(minLength: 40)
+            }
+        }
+        .scrollDismissesKeyboard(.interactively)
     }
 
     // MARK: - Result view
@@ -239,7 +356,6 @@ struct RitualEveningView: View {
                 .font(.system(size: 13))
                 .foregroundColor(Color(white: 0.28))
 
-            // C9: intention matched session feedback
             if r.intentionMatchedSession {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
@@ -253,13 +369,11 @@ struct RitualEveningView: View {
         }
     }
 
-    // E8: survived gets a distinct visual (cold, not fading)
     private var survivedResultContent: some View {
         VStack(spacing: 24) {
             Image(systemName: "moon.fill")
                 .font(.system(size: 48))
                 .foregroundColor(Color(white: 0.3))
-                .scaleEffect(1.0)
 
             VStack(spacing: 8) {
                 Text("It's still there.")
@@ -270,7 +384,6 @@ struct RitualEveningView: View {
                     .foregroundColor(Color(white: 0.3))
             }
 
-            // Show streak reset info if applicable
             if result?.phoenixStreak == 0 && (result?.outcome == "survived") == true {
                 Text("Streak remis à zéro.")
                     .font(.system(size: 12))
@@ -280,21 +393,37 @@ struct RitualEveningView: View {
         }
     }
 
-    // MARK: - Commit
+    // MARK: - Actions
 
-    private func commit(outcome: String) {
+    private func advanceToIntention(outcome: String) {
         guard !isSaving else { return }
-        selectedOutcome = outcome
-        isSaving        = true
         reflectionFocused = false
+        pendingOutcome    = outcome
+        withAnimation { step = .intention }
+    }
+
+    private func commitWithIntention() {
+        let text = tomorrowIntention.trimmingCharacters(in: .whitespacesAndNewlines)
+        commit(tomorrowIntention: text.isEmpty ? nil : text)
+    }
+
+    private func commitWithoutIntention() {
+        commit(tomorrowIntention: nil)
+    }
+
+    private func commit(tomorrowIntention: String?) {
+        guard let outcome = pendingOutcome, !isSaving else { return }
+        isSaving         = true
+        intentionFocused = false
 
         Task {
             do {
                 let r = try await APIService.shared.saveRitualEveningFull(
-                    outcome:      outcome,
-                    reflection:   reflection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : reflection,
-                    winddownDone: winddownDone ? true : nil,
-                    coldDone:     coldDone ? true : nil
+                    outcome:           outcome,
+                    reflection:        reflection.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : reflection,
+                    winddownDone:      winddownDone ? true : nil,
+                    coldDone:          coldDone ? true : nil,
+                    tomorrowIntention: tomorrowIntention
                 )
                 await showEveningResult(r, outcome: outcome)
             } catch APIError.queuedOffline {
@@ -306,8 +435,8 @@ struct RitualEveningView: View {
                 await showEveningResult(synthetic, outcome: outcome)
             } catch {
                 await MainActor.run {
-                    selectedOutcome = nil
-                    isSaving        = false
+                    pendingOutcome = nil
+                    isSaving       = false
                 }
             }
         }
@@ -324,7 +453,6 @@ struct RitualEveningView: View {
             }
             try? await Task.sleep(nanoseconds: 200_000_000)
         } else {
-            // E8: distinct survived pulse — dim flash instead of red
             await MainActor.run {
                 withAnimation(.easeIn(duration: 0.2)) { flashOpacity = 0.0 }
             }

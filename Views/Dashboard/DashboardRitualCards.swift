@@ -248,10 +248,92 @@ struct QuickWarRoomTriggerSheet: View {
 struct MorningRitualEntryCard: View {
     let ritual: RitualToday
     let onComplete: () -> Void
-    @State private var showRitual = false
+    @State private var showRitual    = false
     @State private var dragOffset: CGFloat = 0
 
+    private var eveningTimeLabel: String? {
+        guard let iso = ritual.yesterdayEveningAt else { return nil }
+        let df = ISO8601DateFormatter()
+        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = df.date(from: iso) {
+            let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
+            return fmt.string(from: d)
+        }
+        let df2 = ISO8601DateFormatter()
+        if let d = df2.date(from: iso) {
+            let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
+            return fmt.string(from: d)
+        }
+        return nil
+    }
+
     var body: some View {
+        Group {
+            if let yesterday = ritual.yesterdayIntention {
+                intentionCard(yesterday)
+            } else {
+                defaultCard
+            }
+        }
+        .fullScreenCover(isPresented: $showRitual, onDismiss: onComplete) {
+            RitualView()
+        }
+    }
+
+    // Card enrichie — intention d'hier soir visible
+    private func intentionCard(_ intention: String) -> some View {
+        Button { showRitual = true } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sunset.fill")
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(Color.forge.opacity(0.8))
+                    Text("TON ENGAGEMENT")
+                        .font(.appMicro.weight(.black))
+                        .foregroundColor(Color.forge.opacity(0.8))
+                        .tracking(0.5)
+                    Spacer()
+                }
+                .padding(.bottom, 8)
+
+                Rectangle()
+                    .fill(Color.forge.opacity(0.12))
+                    .frame(height: 1)
+                    .padding(.bottom, 10)
+
+                Text("«\u{202F}\(intention)\u{202F}»")
+                    .font(.appCaption.weight(.medium))
+                    .foregroundColor(.white.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(3)
+                    .padding(.bottom, 10)
+
+                HStack {
+                    let timeStr = eveningTimeLabel.map { "Hier soir · \($0)" } ?? "Hier soir"
+                    Text(timeStr)
+                        .font(.appMicro)
+                        .foregroundColor(.white.opacity(0.3))
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(Color.forge.opacity(0.5))
+                }
+            }
+            .padding(13)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color.forge.opacity(0.22), lineWidth: 1)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // Card par défaut — comportement inchangé
+    private var defaultCard: some View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
@@ -299,9 +381,6 @@ struct MorningRitualEntryCard: View {
                 }
         )
         .onTapGesture { showRitual = true }
-        .fullScreenCover(isPresented: $showRitual, onDismiss: onComplete) {
-            RitualView()
-        }
     }
 }
 

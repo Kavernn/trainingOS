@@ -307,7 +307,7 @@ enum NotificationService {
 
             let content = UNMutableNotificationContent()
             content.title = "Est-ce que tu l'as tué ?"
-            content.body  = "Reviens juger ta journée — BURNED ou SURVIVED."
+            content.body  = "🌙 Juge ta journée — engage-toi pour demain."
             content.sound = .default
 
             var dc = DateComponents()
