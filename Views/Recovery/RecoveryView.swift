@@ -417,6 +417,76 @@ private struct RecoverySleepBarChart: View {
     }
 }
 
+// MARK: - AccordionRow
+
+private struct AccordionRow: View {
+    let entry: RecoveryEntry
+    var onEdit: () -> Void
+
+    private static let isoFmt: DateFormatter = {
+        let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; return f
+    }()
+    private static let displayFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "fr_CA")
+        f.dateFormat = "EEE d MMM"
+        return f
+    }()
+
+    private var formattedDate: String {
+        guard let d = entry.date,
+              let date = Self.isoFmt.date(from: d) else { return entry.date ?? "—" }
+        return Self.displayFmt.string(from: date).capitalized
+    }
+
+    var body: some View {
+        Button(action: onEdit) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(formattedDate)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.9))
+                    if let src = entry.source {
+                        Text(src == "manual" ? "Manuel" : "Apple Santé")
+                            .font(.appMicro)
+                            .foregroundColor(.gray.opacity(0.55))
+                    }
+                }
+                Spacer()
+                // Key metrics inline
+                Group {
+                    metricChip(icon: "moon.zzz.fill",
+                               value: entry.sleepHours.map { String(format: "%.1fh", $0) },
+                               color: .blue)
+                    metricChip(icon: "waveform.path.ecg",
+                               value: entry.hrv.map { String(format: "%.0f", $0) },
+                               color: .green)
+                    metricChip(icon: "heart.fill",
+                               value: entry.restingHr.map { String(format: "%.0f", $0) },
+                               color: .red)
+                }
+                Image(systemName: "pencil")
+                    .font(.system(size: 10))
+                    .foregroundColor(.gray.opacity(0.35))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func metricChip(icon: String, value: String?, color: Color) -> some View {
+        HStack(spacing: 2) {
+            Image(systemName: icon)
+                .font(.system(size: 8))
+                .foregroundColor(value != nil ? color : .gray.opacity(0.3))
+            Text(value ?? "—")
+                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .foregroundColor(value != nil ? .white.opacity(0.85) : .gray.opacity(0.35))
+        }
+    }
+}
+
 // MARK: - RecoveryView
 
 struct RecoveryView: View {
@@ -445,6 +515,7 @@ struct RecoveryView: View {
     @State private var syncSuccess = false
     @AppStorage("last_hk_sync_recovery") private var lastHKSyncTimestamp: Double = 0
     @AppStorage("sleep_goal_hours") private var sleepGoalHours: Double = 8.0
+    @State private var showHistoryAccordion = false
     @State private var hkSpO2: Double? = nil
     @State private var hkWristTemp: Double? = nil
 
@@ -651,6 +722,10 @@ struct RecoveryView: View {
                 .buttonStyle(SpringButtonStyle())
                 .padding(.horizontal, 16)
                 .appearAnimation(delay: 0.08)
+
+                historyAccordion
+                    .padding(.horizontal, 16)
+                    .appearAnimation(delay: 0.14)
 
                 Spacer(minLength: 32)
             }
@@ -926,6 +1001,65 @@ struct RecoveryView: View {
                 }
                 .padding(14)
                 .glassCard()
+            }
+        }
+    }
+
+    // MARK: - History Accordion (today tab)
+
+    private var historyAccordion: some View {
+        let recent = Array(log.prefix(10))
+        return Group {
+            if !recent.isEmpty {
+                VStack(spacing: 0) {
+                    // Header / toggle
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            showHistoryAccordion.toggle()
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.gray)
+                            Text("HISTORIQUE RÉCENT")
+                                .font(.appMicro.weight(.bold))
+                                .tracking(2)
+                                .foregroundColor(.gray)
+                            Spacer()
+                            Text("\(recent.count) entrées")
+                                .font(.appMicro)
+                                .foregroundColor(.gray.opacity(0.6))
+                            Image(systemName: showHistoryAccordion ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.gray.opacity(0.5))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(Color.appCard)
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+
+                    if showHistoryAccordion {
+                        VStack(spacing: 0) {
+                            ForEach(Array(recent.enumerated()), id: \.1.id) { i, entry in
+                                AccordionRow(entry: entry, onEdit: { editTarget = entry })
+                                if i < recent.count - 1 {
+                                    Divider()
+                                        .background(Color.white.opacity(0.05))
+                                        .padding(.horizontal, 14)
+                                }
+                            }
+                        }
+                        .background(Color.appCard.opacity(0.6))
+                        .cornerRadius(12, corners: [.bottomLeft, .bottomRight])
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.07), lineWidth: 1))
             }
         }
     }
