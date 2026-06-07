@@ -188,3 +188,24 @@ extension PSSRecord {
         }
     }
 }
+
+// MARK: - Muscle group localization
+extension String {
+    var localizedMuscleGroup: String {
+        switch self.lowercased() {
+        case "glutes":                return "Fessiers"
+        case "chest":                 return "Pectoraux"
+        case "back":                  return "Dos"
+        case "shoulders":             return "Épaules"
+        case "biceps":                return "Biceps"
+        case "triceps":               return "Triceps"
+        case "legs", "quads":         return "Jambes"
+        case "hamstrings":            return "Ischio-jambiers"
+        case "calves":                return "Mollets"
+        case "core", "abs":           return "Core"
+        case "forearms":              return "Avant-bras"
+        case "traps":                 return "Trapèzes"
+        default:                      return self.capitalized
+        }
+    }
+}

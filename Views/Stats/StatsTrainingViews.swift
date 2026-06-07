@@ -303,6 +303,14 @@ struct WeekComparisonCard: View {
     var daysElapsed: Int = 7
     @ObservedObject private var units = UnitSettings.shared
 
+    private var isProjecting: Bool { daysElapsed < 7 }
+    private var projectedSessions: Double {
+        isProjecting ? Double(thisWeekSessions) * 7.0 / Double(max(1, daysElapsed)) : Double(thisWeekSessions)
+    }
+    private var projectedVolume: Double {
+        isProjecting ? thisWeekVolume * 7.0 / Double(max(1, daysElapsed)) : thisWeekVolume
+    }
+
     private func delta(_ a: Double, _ b: Double) -> (String, Color) {
         let d = a - b
         if abs(d) < 0.01 { return ("=", .gray) }
@@ -319,22 +327,21 @@ struct WeekComparisonCard: View {
         let hasData = lastWeekVolume > 0 || lastWeekSessions > 0
         guard hasData else { return ("Pas encore assez de données.", .gray) }
 
-        // Semaine en cours avec peu de jours — comparaison biaisée
-        if daysElapsed <= 3 {
-            return ("Semaine en cours (J+\(daysElapsed)) — chiffres partiels, reviens jeudi.", .gray)
-        }
+        let compVolume = projectedVolume
+        let compSessions = projectedSessions
+        let suffix = isProjecting ? " (projection J+\(daysElapsed))" : ""
 
-        let volumeUp = thisWeekVolume >= lastWeekVolume * 0.98
-        let sessionsUp = thisWeekSessions >= lastWeekSessions
+        let volumeUp = compVolume >= lastWeekVolume * 0.98
+        let sessionsUp = compSessions >= Double(lastWeekSessions) * 0.98
 
         if volumeUp && sessionsUp {
-            return ("Volume en hausse, sessions stables ou en hausse. Tu montes.", .green)
+            return ("Volume en hausse, sessions stables ou en hausse. Tu montes.\(suffix)", .green)
         } else if !volumeUp && !sessionsUp {
-            return ("Volume en baisse, sessions en baisse. Le relâchement s'installe.", .red)
+            return ("Volume en baisse, sessions en baisse. Le relâchement s'installe.\(suffix)", .red)
         } else if volumeUp && !sessionsUp {
-            return ("Moins de séances, plus de volume par séance. Tu condenses.", .orange)
+            return ("Moins de séances, plus de volume par séance. Tu condenses.\(suffix)", .orange)
         } else {
-            return ("Plus de séances, volume en baisse. L'intensité recule.", .orange)
+            return ("Plus de séances, volume en baisse. L'intensité recule.\(suffix)", .orange)
         }
     }
 
@@ -342,6 +349,10 @@ struct WeekComparisonCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("TOI VS TOI — SEMAINE PASSÉE")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            if isProjecting {
+                Text("Projection basée sur \(daysElapsed) jour\(daysElapsed > 1 ? "s" : "")")
+                    .font(.system(size: 10)).foregroundColor(.orange.opacity(0.7))
+            }
             HStack(spacing: 0) {
                 // Header
                 VStack(alignment: .leading, spacing: 10) {
@@ -352,21 +363,25 @@ struct WeekComparisonCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                // This week
+                // This week / Projection
                 VStack(alignment: .center, spacing: 10) {
-                    Text("Cette sem.").font(.system(size: 10, weight: .bold)).foregroundColor(.orange)
-                    Text("\(thisWeekSessions)").font(.system(size: 14, weight: .black)).foregroundColor(.white)
-                    Text(thisWeekVolume > 0 ? _formatK(thisWeekVolume) : "—").font(.system(size: 14, weight: .black)).foregroundColor(.white)
-                    Text(thisWeekAvgRPE > 0 ? String(format: "%.1f", thisWeekAvgRPE) : "—").font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                    Text(isProjecting ? "Proj. J+\(daysElapsed)" : "Cette sem.")
+                        .font(.system(size: 10, weight: .bold)).foregroundColor(.orange)
+                    Text(isProjecting ? "~\(Int(round(projectedSessions)))" : "\(thisWeekSessions)")
+                        .font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                    Text(projectedVolume > 0 ? (isProjecting ? "~\(_formatK(projectedVolume))" : _formatK(thisWeekVolume)) : "—")
+                        .font(.system(size: 14, weight: .black)).foregroundColor(.white)
+                    Text(thisWeekAvgRPE > 0 ? String(format: "%.1f", thisWeekAvgRPE) : "—")
+                        .font(.system(size: 14, weight: .black)).foregroundColor(.white)
                 }
                 .frame(maxWidth: .infinity)
 
-                // Delta
+                // Delta (vs last week, using projected values)
                 VStack(alignment: .center, spacing: 10) {
                     Text("").font(.system(size: 10)).frame(height: 18)
-                    let ds = deltaInt(thisWeekSessions, lastWeekSessions)
+                    let ds = delta(projectedSessions, Double(lastWeekSessions))
                     Text(ds.0).font(.system(size: 12, weight: .bold)).foregroundColor(ds.1)
-                    let dv = delta(thisWeekVolume, lastWeekVolume)
+                    let dv = delta(projectedVolume, lastWeekVolume)
                     Text(dv.0).font(.system(size: 12, weight: .bold)).foregroundColor(dv.1)
                     let dr = delta(thisWeekAvgRPE, lastWeekAvgRPE)
                     Text(dr.0).font(.system(size: 12, weight: .bold)).foregroundColor(dr.1)

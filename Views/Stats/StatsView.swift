@@ -360,7 +360,7 @@ struct StatsView: View {
             .sorted { $0.1 > $1.1 }
         if let overdue = overdueList.first {
             insights.append(("exclamationmark.circle.fill",
-                             "\(overdue.0.capitalized) absent depuis \(overdue.1) jours. Le groupe régresse.",
+                             "\(overdue.0.localizedMuscleGroup) absent depuis \(overdue.1) jours. Le groupe régresse.",
                              .blue))
         }
         return Array(insights.prefix(4))
