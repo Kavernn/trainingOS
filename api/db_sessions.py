@@ -704,14 +704,16 @@ def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
         return []
 
 
-def get_all_exercise_history() -> dict:
+def get_all_exercise_history(cutoff_days: int = 180) -> dict:
     """Return {exercise_name: [{date, weight, reps}]} for all exercises in one query.
 
     Used by load_weights() to avoid N+1 per-exercise queries.
-    Paginates to bypass Supabase's 1000-row default cap.
+    Filters to the last cutoff_days (default 180) to cap egress.
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return {}
+    from datetime import date as _date, timedelta
+    cutoff = (_date.today() - timedelta(days=cutoff_days)).isoformat()
     page_size = 1000
 
     def _do() -> dict:
@@ -721,6 +723,7 @@ def get_all_exercise_history() -> dict:
             resp = (
                 db_core._client.table("exercise_logs")
                 .select("weight, reps, sets_json, exercises(name), workout_sessions(date)")
+                .gte("workout_sessions.date", cutoff)
                 .range(offset, offset + page_size - 1)
                 .execute()
             )
