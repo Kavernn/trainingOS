@@ -194,6 +194,33 @@ class HealthKitService: ObservableObject {
         }
     }
 
+    /// Bedtime + wakeTime for the night preceding `date` (same window as fetchSleep).
+    func fetchSleepWindow(for date: Date) async -> SleepWindow? {
+        guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else { return nil }
+        let start = cal.safeDateByAdding(.hour, value: -6, to: cal.startOfDay(for: date))
+        let end   = cal.safeDateByAdding(.hour, value: 12, to: cal.startOfDay(for: date))
+        let pred  = HKQuery.predicateForSamples(withStart: start, end: end)
+        let sort  = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        return await withCheckedContinuation { cont in
+            let q = HKSampleQuery(sampleType: type, predicate: pred, limit: 100, sortDescriptors: [sort]) { _, samples, _ in
+                guard let samples = samples as? [HKCategorySample] else { cont.resume(returning: nil); return }
+                let asleep = samples.filter {
+                    $0.value == HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue ||
+                    $0.value == HKCategoryValueSleepAnalysis.asleepCore.rawValue ||
+                    $0.value == HKCategoryValueSleepAnalysis.asleepDeep.rawValue ||
+                    $0.value == HKCategoryValueSleepAnalysis.asleepREM.rawValue
+                }
+                guard !asleep.isEmpty else { cont.resume(returning: nil); return }
+                let totalSec = asleep.reduce(0.0) { $0 + $1.endDate.timeIntervalSince($1.startDate) }
+                guard totalSec > 0 else { cont.resume(returning: nil); return }
+                let bedtime  = asleep.min(by: { $0.startDate < $1.startDate })!.startDate
+                let wakeTime = asleep.max(by: { $0.endDate   < $1.endDate   })!.endDate
+                cont.resume(returning: SleepWindow(bedtime: bedtime, wakeTime: wakeTime, hours: totalSec / 3600.0))
+            }
+            store.execute(q)
+        }
+    }
+
     // MARK: - Resting Heart Rate
     func fetchLatestRestingHR() async -> Double? {
         return await fetchLatestQuantity(.restingHeartRate, unit: HKUnit(from: "count/min"))
@@ -436,12 +463,14 @@ class HealthKitService: ObservableObject {
             case weight(Double?), fat(Double?)
             case hrM(Double?), hrP(Double?), hrE(Double?)
             case spo2(Double?), wristTemp(Double?)
+            case sleepWindow(SleepWindow?)
         }
         var s: Int? = nil; var sl: Double? = nil; var hr: Double? = nil
         var h: Double? = nil; var ae: Double? = nil; var wkts: [HKWorkout] = []
         var bw: Double? = nil; var bf: Double? = nil
         var hrM: Double? = nil; var hrP: Double? = nil; var hrE: Double? = nil
         var sp: Double? = nil; var wt: Double? = nil
+        var sleepWin: SleepWindow? = nil
 
         await withTaskGroup(of: Field.self) { group in
             group.addTask { .steps(await self.fetchTodaySteps()) }
@@ -457,24 +486,32 @@ class HealthKitService: ObservableObject {
             group.addTask { .hrE(await self.fetchEveningHR(for: now)) }
             group.addTask { .spo2(await self.fetchSpO2(for: now)) }
             group.addTask { .wristTemp(await self.fetchWristTemp(for: now)) }
+            group.addTask { .sleepWindow(await self.fetchSleepWindow(for: now)) }
             for await field in group {
                 switch field {
-                case .steps(let v):    s   = v
-                case .sleep(let v):    sl  = v
-                case .rhr(let v):      hr  = v
-                case .hrv(let v):      h   = v
-                case .energy(let v):   ae  = v
-                case .workouts(let v): wkts = v
-                case .weight(let v):   bw  = v
-                case .fat(let v):      bf  = v
-                case .hrM(let v):      hrM = v
-                case .hrP(let v):      hrP = v
-                case .hrE(let v):      hrE = v
-                case .spo2(let v):     sp  = v
-                case .wristTemp(let v): wt = v
+                case .steps(let v):       s        = v
+                case .sleep(let v):       sl       = v
+                case .rhr(let v):         hr       = v
+                case .hrv(let v):         h        = v
+                case .energy(let v):      ae       = v
+                case .workouts(let v):    wkts     = v
+                case .weight(let v):      bw       = v
+                case .fat(let v):         bf       = v
+                case .hrM(let v):         hrM      = v
+                case .hrP(let v):         hrP      = v
+                case .hrE(let v):         hrE      = v
+                case .spo2(let v):        sp       = v
+                case .wristTemp(let v):   wt       = v
+                case .sleepWindow(let v): sleepWin = v
                 }
             }
         }
+
+        let timeFmt: DateFormatter = {
+            let f = DateFormatter(); f.dateFormat = "HH:mm"; return f
+        }()
+        let bedtime  = sleepWin.map { timeFmt.string(from: $0.bedtime) }
+        let wakeTime = sleepWin.map { timeFmt.string(from: $0.wakeTime) }
 
         let workouts = wkts.map { w -> WearableWorkout in
             let type: String
@@ -494,7 +531,8 @@ class HealthKitService: ObservableObject {
         return WearableSnapshot(date: today, steps: s, sleepHours: sl, restingHr: hr,
                                 hrv: h, activeEnergy: ae, bodyWeightLbs: bw,
                                 bodyFatPct: bf, hrMorning: hrM, hrPostWorkout: hrP,
-                                hrEvening: hrE, workouts: workouts, spo2: sp, wristTemp: wt)
+                                hrEvening: hrE, workouts: workouts, spo2: sp, wristTemp: wt,
+                                bedtime: bedtime, wakeTime: wakeTime)
     }
 
     // MARK: - Background Delivery
@@ -651,11 +689,13 @@ class HealthKitService: ObservableObject {
     func fetchRunningForm(start: Date, end: Date) async -> RunningFormMetrics? { nil }
     func fetchTodayActiveEnergy() async -> Double? { nil }
     func fetchAllWorkouts(days: Int = 1) async -> [Any] { [] }
+    func fetchSleepWindow(for date: Date) async -> SleepWindow? { nil }
     func fetchTodayHealthSnapshot() async -> WearableSnapshot {
         WearableSnapshot(date: "", steps: nil, sleepHours: nil, restingHr: nil,
                          hrv: nil, activeEnergy: nil, bodyWeightLbs: nil,
                          bodyFatPct: nil, hrMorning: nil, hrPostWorkout: nil,
-                         hrEvening: nil, workouts: [], spo2: nil, wristTemp: nil)
+                         hrEvening: nil, workouts: [], spo2: nil, wristTemp: nil,
+                         bedtime: nil, wakeTime: nil)
     }
     func enableBackgroundDelivery(onChange: @escaping () -> Void) async {}
     func saveCardioWorkout(type: String, startDate: Date, endDate: Date, distanceKm: Double?) async {}

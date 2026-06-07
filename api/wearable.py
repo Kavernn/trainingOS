@@ -43,7 +43,8 @@ def register_routes(app):
         # ── Recovery metrics ─────────────────────────────────────────────────
         wearable_recovery: dict = {}
         for key in ("steps", "sleep_hours", "resting_hr", "hrv", "active_energy",
-                    "hr_morning", "hr_post_workout", "hr_evening"):
+                    "hr_morning", "hr_post_workout", "hr_evening",
+                    "bedtime", "wake_time"):
             if data.get(key) is not None:
                 wearable_recovery[key] = data[key]
 

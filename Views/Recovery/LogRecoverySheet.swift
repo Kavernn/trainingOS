@@ -446,9 +446,10 @@ struct LogRecoverySheet: View {
             let v  = await hk.fetchHRV(for: date)
             let st = await hk.fetchSteps(for: date)
             let a  = await hk.fetchActiveEnergy(for: date)
-            let m  = await hk.fetchMorningHR(for: date)
-            let pw = await hk.fetchPostWorkoutHR(for: date)
-            let e  = await hk.fetchEveningHR(for: date)
+            let m   = await hk.fetchMorningHR(for: date)
+            let pw  = await hk.fetchPostWorkoutHR(for: date)
+            let e   = await hk.fetchEveningHR(for: date)
+            let win = await hk.fetchSleepWindow(for: date)
 
             if let s  { sleepHoursStr    = String(format: "%.1f", s) }
             if let h  { restingHrStr     = String(format: "%.0f", h) }
@@ -458,6 +459,8 @@ struct LogRecoverySheet: View {
             if let m  { hrMorningStr     = String(format: "%.0f", m) }
             if let pw { hrPostWorkoutStr = String(format: "%.0f", pw) }
             if let e  { hrEveningStr     = String(format: "%.0f", e) }
+            if let win { bedtime = win.bedtime; hasBedtime = true
+                         wakeTime = win.wakeTime; hasWakeTime = true }
 
             isLoadingHK = false
         }

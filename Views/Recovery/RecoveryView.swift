@@ -1334,7 +1334,9 @@ struct RecoveryView: View {
                 hrEvening: entry.hrEvening,
                 workouts: [],
                 spo2: nil,
-                wristTemp: nil
+                wristTemp: nil,
+                bedtime: nil,
+                wakeTime: nil
             )
             do {
                 try await APIService.shared.syncWearableData(snapshot)

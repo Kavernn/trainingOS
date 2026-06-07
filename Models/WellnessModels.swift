@@ -70,6 +70,8 @@ struct WearableSnapshot {
     let workouts: [WearableWorkout]
     let spo2: Double?
     let wristTemp: Double?
+    let bedtime: String?
+    let wakeTime: String?
 }
 
 // MARK: - Mood
