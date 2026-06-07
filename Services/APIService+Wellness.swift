@@ -39,19 +39,49 @@ extension APIService {
         CacheInvalidation.recoveryLogged.invalidate()
     }
 
-    /// Envoie le snapshot HealthKit du jour à /api/healthkit_sync.
-    /// Règle merge : manual > HK — ne jamais écraser une valeur manuelle.
-    /// Retourne l'entrée après merge ou nil si rien à syncer / offline.
-    func syncHealthKitToday(snapshot: WearableSnapshot) async throws -> RecoveryEntry? {
+    // MARK: - iOS-side manual > HK protection
+
+    /// Construit le payload HK en excluant les champs déjà saisis manuellement.
+    ///
+    /// Règle : si `existingEntry.source == "manual"` ET que le champ a déjà une valeur,
+    /// on ne l'envoie pas — la saisie manuelle prime sur HealthKit des deux côtés.
+    /// Les champs cumulatifs (steps, active_energy) sont toujours inclus car ils
+    /// croissent dans la journée ; le backend les protège aussi si source="manual".
+    static func buildHKPayload(
+        snapshot: WearableSnapshot,
+        existingEntry: RecoveryEntry?
+    ) -> [String: Any] {
+        let isManual = existingEntry?.source == "manual"
+
+        // Retourne la valeur HK seulement si on ne risque pas d'écraser une valeur manuelle.
+        func hk<T>(_ existing: T?, _ fromHK: T?) -> T? {
+            guard let v = fromHK else { return nil }
+            if isManual && existing != nil { return nil }
+            return v
+        }
+
         var body: [String: Any] = [:]
-        if let v = snapshot.sleepHours    { body["sleep_hours"]        = v }
-        if let v = snapshot.restingHr     { body["resting_hr"]         = v }
-        if let v = snapshot.hrv           { body["hrv"]                = v }
-        if let v = snapshot.steps         { body["steps"]              = v }
-        if let v = snapshot.activeEnergy  { body["active_energy"]      = v }
-        if let v = snapshot.hrMorning     { body["hr_morning"]         = v }
-        if let v = snapshot.hrPostWorkout { body["hr_post_workout"]    = v }
-        if let v = snapshot.hrEvening     { body["hr_evening"]         = v }
+        if let v = hk(existingEntry?.sleepHours,    snapshot.sleepHours)    { body["sleep_hours"]       = v }
+        if let v = hk(existingEntry?.restingHr,     snapshot.restingHr)     { body["resting_hr"]        = v }
+        if let v = hk(existingEntry?.hrv,           snapshot.hrv)           { body["hrv"]               = v }
+        if let v = hk(existingEntry?.hrMorning,     snapshot.hrMorning)     { body["hr_morning"]        = Int(v) }
+        if let v = hk(existingEntry?.hrPostWorkout, snapshot.hrPostWorkout) { body["hr_post_workout"]   = Int(v) }
+        if let v = hk(existingEntry?.hrEvening,     snapshot.hrEvening)     { body["hr_evening"]        = Int(v) }
+        // Cumulatifs — toujours inclus (le backend protège si source=manual)
+        if let v = snapshot.steps        { body["steps"]         = v }
+        if let v = snapshot.activeEnergy { body["active_energy"] = v }
+        return body
+    }
+
+    /// Envoie le snapshot HealthKit du jour à /api/healthkit_sync.
+    /// Règle merge : manual > HK des deux côtés (iOS + backend).
+    /// `existingEntry` = entrée courante en DB — permet le filtre iOS-side.
+    /// Retourne l'entrée après merge ou nil si rien à syncer / offline.
+    func syncHealthKitToday(
+        snapshot: WearableSnapshot,
+        existingEntry: RecoveryEntry? = nil
+    ) async throws -> RecoveryEntry? {
+        let body = APIService.buildHKPayload(snapshot: snapshot, existingEntry: existingEntry)
         guard !body.isEmpty else { return nil }
         guard let data = try await offlinePost(endpoint: "/api/healthkit_sync", payload: body) else {
             return nil
