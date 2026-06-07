@@ -778,20 +778,6 @@ private struct UnifiedRecoverySleepSection: View {
             }
             .disabled(watchSync.isSyncing)
 #endif
-            NavigationLink(destination: RecoveryView()) {
-                HStack(spacing: 4) {
-                    Text("Détails")
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.orange)
-                    Image(systemName: "chevron.right")
-                        .font(.appMicro.weight(.bold))
-                        .foregroundColor(.orange.opacity(0.7))
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.orange.opacity(0.1))
-                .clipShape(Capsule())
-            }
         }
     }
 
@@ -993,21 +979,6 @@ private struct UnifiedRecoverySleepSection: View {
             Sleep10dChart(history: sleepHistory)
         }
 
-        NavigationLink(destination: SleepView()) {
-            HStack(spacing: 6) {
-                Image(systemName: "bed.double.fill")
-                    .font(.appCaption)
-                Text("Journal de sommeil complet")
-                    .font(.appCaption.weight(.semibold))
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.appMicro.weight(.bold))
-            }
-            .foregroundColor(.purple.opacity(0.9))
-            .padding(10)
-            .background(Color.purple.opacity(0.08))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
     }
 
     private func secondaryMetricsGrid(entry: RecoveryEntry) -> some View {
