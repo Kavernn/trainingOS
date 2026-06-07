@@ -140,7 +140,9 @@ extension APIService {
             return entry
         }
         body["workouts"] = workouts
-        _ = try await offlinePost(endpoint: "/api/wearable/sync", payload: body)
+        guard try await offlinePost(endpoint: "/api/wearable/sync", payload: body) != nil else {
+            throw APIError.queuedOffline
+        }
         CacheInvalidation.wearableSynced.invalidate()
     }
 

@@ -25,6 +25,60 @@ struct CardInfoButton: View {
     }
 }
 
+// MARK: - Tappable metric cell (recovery / wellness grids)
+
+struct TappableMetricCell: View {
+    let label: String
+    let value: String
+    let icon: String
+    let color: Color
+    var valueColor: Color = .white
+    var subtitle: String? = nil
+    let infoEntry: InfoEntry
+
+    @State private var showInfo = false
+
+    var body: some View {
+        Button { showInfo = true } label: {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.appCaption)
+                    .foregroundColor(color)
+                    .frame(width: 18)
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 3) {
+                        Text(label)
+                            .font(.appMicro.weight(.semibold))
+                            .tracking(0.3)
+                            .foregroundColor(.gray)
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 8))
+                            .foregroundColor(.gray.opacity(0.45))
+                    }
+                    Text(value)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundColor(valueColor)
+                    if let sub = subtitle {
+                        Text(sub)
+                            .font(.appMicro)
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showInfo) {
+            InfoSheetView(title: label, entries: [infoEntry])
+        }
+    }
+}
+
 struct InfoSheetView: View {
     let title: String
     let entries: [InfoEntry]
@@ -226,6 +280,92 @@ extension InfoEntry {
             definition: "L'autre face du RPE. Plutôt que de noter la difficulté, tu indiques combien de reps tu aurais pu faire de plus avant l'échec :\n\n• RIR 0 → Échec total (= RPE 10)\n• RIR 1 → Très dur (= RPE 9)\n• RIR 2 → Dur mais propre (= RPE 8)\n• RIR 3 → Challenge contrôlé (= RPE 7)\n• RIR 4+ → Trop facile (= RPE 6 ou moins)\n\nPour progresser : vise RIR 1–3 sur la plupart de tes sets. RIR 0 (échec) doit rester rare — il épuise le système nerveux."
         ),
     ]
+
+    // Recovery & sleep metrics — Énergie & Récupération tab
+    static let readinessMetric = InfoEntry(
+        term: "Readiness — Score de préparation",
+        definition: "Score composite 0–100 qui estime si ton corps est prêt à performer aujourd'hui. Il combine HRV, sommeil, charge d'entraînement (ACWR), fatigue perçue et nutrition.\n\n76–100 → Optimal : séance intense ou test de force.\n61–75 → Bon : entraîne-toi normalement.\n41–60 → Modéré : réduis volume/intensité de 15–20 %.\n0–40 → Repos : récupération active seulement."
+    )
+
+    static let hrvMetric = InfoEntry(
+        term: "HRV — Variabilité cardiaque",
+        definition: "Mesure l'irrégularité entre tes battements au repos (en ms, RMSSD). Une HRV élevée indique un système nerveux bien récupéré ; une HRV basse signale fatigue, stress ou surentraînement.\n\nSynchronisée automatiquement depuis Apple Watch / HealthKit, idéalement mesurée au réveil.\n\nPour l'améliorer : dors 7–9h, évite l'alcool, espace les séances intenses, pratique la cohérence cardiaque."
+    )
+
+    static let restingHrMetric = InfoEntry(
+        term: "FC Repos — Fréquence cardiaque au repos",
+        definition: "Ton rythme cardiaque au repos (bpm). Plus elle est basse, mieux tu récupères. Une FC repos élevée par rapport à ta baseline peut indiquer stress, maladie, manque de sommeil ou surcharge d'entraînement.\n\nSource : Apple Watch (moyenne quotidienne) ou saisie manuelle."
+    )
+
+    static let stepsMetric = InfoEntry(
+        term: "Pas — Activité quotidienne",
+        definition: "Nombre de pas enregistrés aujourd'hui. Utilisé pour calculer ton NEAT (activité non sportive) dans le bilan énergétique.\n\n10 000 pas/jour est un repère courant, mais l'essentiel est la régularité et la tendance sur la semaine."
+    )
+
+    static let sorenessMetric = InfoEntry(
+        term: "Courbatures",
+        definition: "Niveau de douleur musculaire ressenti, sur une échelle de 1 à 10. Un score élevé indique que tes muscles sont encore en réparation — s'entraîner lourd dans cet état ralentit la progression.\n\nSaisie manuelle ou via le log matinal Apple Watch."
+    )
+
+    static let fatigueMetric = InfoEntry(
+        term: "Fatigue perçue",
+        definition: "Échelle Hooper 0–10 : comment tu te sens globalement (énergie, lourdeur, motivation). Complète la HRV pour capturer ce que les capteurs ne voient pas.\n\n7+ = fatigue significative — réduis l'intensité ou prends un jour de repos actif."
+    )
+
+    static let energyPreMetric = InfoEntry(
+        term: "Énergie perçue",
+        definition: "Ton niveau d'énergie avant l'entraînement (1–10). Indique si tu te sens prêt à pousser ou si tu devrais modérer l'effort, indépendamment des métriques objectives.\n\nSaisie via le log matinal Watch ou la fiche de récupération."
+    )
+
+    static let hrMorningMetric = InfoEntry(
+        term: "FC Matin",
+        definition: "Fréquence cardiaque moyenne entre 6h et 9h. Sert de référence pour comparer ta récupération cardiovasculaire dans la journée.\n\nUne FC matin anormalement élevée peut signaler un manque de récupération."
+    )
+
+    static let hrPostWorkoutMetric = InfoEntry(
+        term: "FC Post-Séance",
+        definition: "Fréquence cardiaque ~30 min après ta dernière séance. Comparée à la FC matin, elle indique si ton corps est revenu à un état de repos.\n\nUn écart important (delta FC) suggère une récupération cardiovasculaire incomplète."
+    )
+
+    static let hrEveningMetric = InfoEntry(
+        term: "FC Soir",
+        definition: "Fréquence cardiaque moyenne entre 21h et 23h. Une FC soir élevée peut indiquer un stress résiduel, une séance tardive ou un sommeil perturbé à venir."
+    )
+
+    static let deltaFcMetric = InfoEntry(
+        term: "Delta FC — Écart matin / post-séance",
+        definition: "Différence entre ta FC post-séance et ta FC matin. Un delta faible (≤ 10 bpm) = bonne récupération cardiovasculaire. 11–20 bpm = modéré. > 20 bpm = récupération incomplète — privilégie le repos ou une séance légère."
+    )
+
+    static let sleepDurationMetric = InfoEntry(
+        term: "Durée de sommeil",
+        definition: "Temps total de sommeil effectif cette nuit (heures). Objectif optimal : 7–9h.\n\n< 6h : récupération musculaire et hormonale compromise.\n6–7h : court mais acceptable ponctuellement.\n7–9h : optimal.\n> 9h : long — peut indiquer dette de sommeil ou fatigue accumulée.\n\nSource : Apple Watch (auto) ou saisie manuelle."
+    )
+
+    static let sleepQualityMetric = InfoEntry(
+        term: "Qualité de sommeil",
+        definition: "Évaluation subjective de la qualité de ta nuit (1–5 ou 1–10 selon la source). La Watch ne mesure pas la qualité ressentie — seule une saisie manuelle ou le log sommeil la renseigne.\n\nImpact direct sur le score de readiness (15 % du poids)."
+    )
+
+    static let sleepStreakMetric = InfoEntry(
+        term: "Streak sommeil",
+        definition: "Nombre de jours consécutifs avec au moins 7h de sommeil enregistrées. La régularité du sommeil est aussi importante que la durée d'une seule nuit."
+    )
+
+    static let activeEnergyMetric = InfoEntry(
+        term: "Dépense active (HealthKit)",
+        definition: "Calories brûlées par l'activité physique enregistrée par Apple Watch, hors métabolisme de base. Sur un jour de repos, une dépense > 800 kcal peut indiquer une activité élevée malgré l'absence de séance planifiée."
+    )
+
+    static let spo2Metric = InfoEntry(
+        term: "SpO2 — Saturation en oxygène",
+        definition: "Pourcentage d'oxygène dans ton sang, mesuré par Apple Watch Series 6+. Une valeur normale est 95–100 %. Une baisse persistante peut indiquer un problème de récupération, d'altitude ou de santé respiratoire."
+    )
+
+    static let wristTempMetric = InfoEntry(
+        term: "Température au poignet",
+        definition: "Écart de température par rapport à ta baseline personnelle (Apple Watch Series 8+). Une hausse peut signaler une maladie naissante, un stress ou une mauvaise récupération — avant même que tu ne le ressentes."
+    )
 
     // Volume landmarks (MEV / MAV / MRV)
     static let volumeLandmarkEntries: [InfoEntry] = [

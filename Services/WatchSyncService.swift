@@ -67,12 +67,13 @@ class WatchSyncService: ObservableObject {
             lastError = "Accès refusé — activer dans Réglages > Confidentialité > Santé"
             return
         }
-        await sync()
+        await sync(manual: true)
     }
 
     /// Force-syncs regardless of the last sync timestamp.
     /// Does NOT prompt for HealthKit authorization — call requestAuthorizationAndSync() for that.
-    func sync() async {
+    /// Pass `manual: true` from UI buttons to surface errors when no HealthKit data is found.
+    func sync(manual: Bool = false) async {
         guard !isSyncing else { return }
         guard hk.hasBeenAuthorized() else { return }
         isSyncing = true
@@ -85,12 +86,20 @@ class WatchSyncService: ObservableObject {
                     || snapshot.restingHr != nil || snapshot.hrv != nil
                     || snapshot.activeEnergy != nil || !snapshot.workouts.isEmpty
         if hasData {
-            do { try await APIService.shared.syncWearableData(snapshot) }
-            catch { lastError = error.localizedDescription }
+            do {
+                try await APIService.shared.syncWearableData(snapshot)
+            } catch {
+                lastError = error.localizedDescription
+                return
+            }
         }
 
         // Backfill recent days if their recovery logs have no steps
         await backfillRecentDaysIfNeeded()
+
+        if manual && !hasData && lastError == nil {
+            lastError = "Aucune donnée HealthKit — porte ton Apple Watch et autorise l'accès dans Réglages > Santé"
+        }
 
         lastSyncDate      = Date()
         lastSyncCompleted = Date()

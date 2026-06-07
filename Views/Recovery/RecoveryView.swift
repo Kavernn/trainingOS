@@ -52,35 +52,53 @@ private struct RecoveryDayCell: View {
     let label: String
     let color: Color
     let isHK: Bool
+    var infoEntry: InfoEntry? = nil
+
+    @State private var showInfo = false
 
     var body: some View {
-        VStack(spacing: 6) {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: icon)
-                    .font(.appHeadline.weight(.medium))
-                    .foregroundColor(value == "—" ? .gray.opacity(0.5) : color)
-                if isHK && value == "—" {
-                    Image(systemName: "heart.fill")
-                        .font(.system(size: 7))
-                        .foregroundColor(.red.opacity(0.65))
-                        .offset(x: 7, y: -3)
+        Button {
+            if infoEntry != nil { showInfo = true }
+        } label: {
+            VStack(spacing: 6) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: icon)
+                        .font(.appHeadline.weight(.medium))
+                        .foregroundColor(value == "—" ? .gray.opacity(0.5) : color)
+                    if isHK && value == "—" {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 7))
+                            .foregroundColor(.red.opacity(0.65))
+                            .offset(x: 7, y: -3)
+                    } else if infoEntry != nil {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 7))
+                            .foregroundColor(.gray.opacity(0.45))
+                            .offset(x: 7, y: -3)
+                    }
                 }
+                Text(value)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(value == "—" ? .gray.opacity(0.5) : .white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+                Text(label)
+                    .font(.appMicro.weight(.medium))
+                    .foregroundColor(.gray)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
             }
-            Text(value)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundColor(value == "—" ? .gray.opacity(0.5) : .white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-            Text(label)
-                .font(.appMicro.weight(.medium))
-                .foregroundColor(.gray)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 4)
+            .glassCard()
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .padding(.horizontal, 4)
-        .glassCard()
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showInfo) {
+            if let entry = infoEntry {
+                InfoSheetView(title: label, entries: [entry])
+            }
+        }
     }
 }
 
@@ -378,48 +396,62 @@ struct RecoveryView: View {
             Group {
                 RecoveryDayCell(icon: "moon.zzz.fill",
                                 value: entry?.sleepHours.map { String(format: "%.1fh", $0) } ?? "—",
-                                label: "Sommeil", color: .blue, isHK: true)
+                                label: "Sommeil", color: .blue, isHK: true,
+                                infoEntry: .sleepDurationMetric)
                 RecoveryDayCell(icon: "star.fill",
                                 value: entry?.sleepQuality.map { String(format: "%.1f/10", $0) } ?? "—",
-                                label: "Qualité sommeil", color: .purple, isHK: false)
+                                label: "Qualité sommeil", color: .purple, isHK: false,
+                                infoEntry: .sleepQualityMetric)
                 RecoveryDayCell(icon: "heart.fill",
                                 value: entry?.restingHr.map { String(format: "%.0f bpm", $0) } ?? "—",
-                                label: "FC repos", color: .red, isHK: true)
+                                label: "FC repos", color: .red, isHK: true,
+                                infoEntry: .restingHrMetric)
                 RecoveryDayCell(icon: "waveform.path.ecg",
                                 value: entry?.hrv.map { String(format: "%.0f ms", $0) } ?? "—",
-                                label: "HRV", color: hrvAnalysis?.zoneColor ?? .green, isHK: true)
+                                label: "HRV", color: hrvAnalysis?.zoneColor ?? .green, isHK: true,
+                                infoEntry: .hrvMetric)
                 RecoveryDayCell(icon: "figure.walk",
                                 value: stepsStr,
-                                label: "Pas", color: .teal, isHK: true)
+                                label: "Pas", color: .teal, isHK: true,
+                                infoEntry: .stepsMetric)
                 RecoveryDayCell(icon: "flame.fill",
                                 value: entry?.activeEnergy.map { String(format: "%.0f kcal", $0) } ?? "—",
-                                label: "Énergie active", color: .orange, isHK: true)
+                                label: "Énergie active", color: .orange, isHK: true,
+                                infoEntry: .activeEnergyMetric)
             }
             Group {
                 RecoveryDayCell(icon: "sunrise.fill",
                                 value: entry?.hrMorning.map { String(format: "%.0f bpm", $0) } ?? "—",
-                                label: "FC matin", color: .cyan, isHK: true)
+                                label: "FC matin", color: .cyan, isHK: true,
+                                infoEntry: .hrMorningMetric)
                 RecoveryDayCell(icon: "dumbbell.fill",
                                 value: entry?.hrPostWorkout.map { String(format: "%.0f bpm", $0) } ?? "—",
-                                label: "FC post séance", color: Color(red: 1, green: 0.42, blue: 0.12), isHK: true)
+                                label: "FC post séance", color: Color(red: 1, green: 0.42, blue: 0.12), isHK: true,
+                                infoEntry: .hrPostWorkoutMetric)
                 RecoveryDayCell(icon: "moon.fill",
                                 value: entry?.hrEvening.map { String(format: "%.0f bpm", $0) } ?? "—",
-                                label: "FC soir", color: .indigo, isHK: true)
+                                label: "FC soir", color: .indigo, isHK: true,
+                                infoEntry: .hrEveningMetric)
                 RecoveryDayCell(icon: "bolt.fill",
                                 value: entry?.soreness.map { String(format: "%.1f/10", $0) } ?? "—",
-                                label: "Courbatures", color: .yellow, isHK: false)
+                                label: "Courbatures", color: .yellow, isHK: false,
+                                infoEntry: .sorenessMetric)
                 RecoveryDayCell(icon: "battery.25percent",
                                 value: entry?.fatigue.map { String(format: "%.1f/10", $0) } ?? "—",
-                                label: "Fatigue", color: .red, isHK: false)
+                                label: "Fatigue", color: .red, isHK: false,
+                                infoEntry: .fatigueMetric)
                 RecoveryDayCell(icon: "bolt.circle.fill",
                                 value: entry?.energyPre.map { String(format: "%.1f/10", $0) } ?? "—",
-                                label: "Énergie pré", color: .mint, isHK: false)
+                                label: "Énergie pré", color: .mint, isHK: false,
+                                infoEntry: .energyPreMetric)
                 RecoveryDayCell(icon: "lungs.fill",
                                 value: hkSpO2.map { String(format: "%.0f%%", $0) } ?? "—",
-                                label: "SpO2", color: .blue, isHK: true)
+                                label: "SpO2", color: .blue, isHK: true,
+                                infoEntry: .spo2Metric)
                 RecoveryDayCell(icon: "thermometer.medium",
                                 value: hkWristTemp.map { String(format: "%@%.1f°C", $0 >= 0 ? "+" : "", $0) } ?? "—",
-                                label: "Temp. poignet", color: .mint, isHK: true)
+                                label: "Temp. poignet", color: .mint, isHK: true,
+                                infoEntry: .wristTempMetric)
             }
         }
     }
@@ -649,16 +681,16 @@ struct RecoveryView: View {
 
     #if !targetEnvironment(macCatalyst)
     private func syncHealthKitNow() async {
-        let hk = HealthKitService.shared
-        let authorized = await hk.requestAuthorization()
-        guard authorized else { return }
         isSyncingHK = true
-        let snapshot = await hk.fetchTodayHealthSnapshot()
-        _ = try? await APIService.shared.syncHealthKitToday(snapshot: snapshot)
+        await watchSync.requestAuthorizationAndSync()
         await loadData()
         lastHKSyncTimestamp = Date().timeIntervalSince1970
         isSyncingHK = false
-        syncSuccess.toggle()
+        if let err = watchSync.lastError {
+            apiError = err
+        } else {
+            syncSuccess.toggle()
+        }
     }
 
     private func backfillFromHealthKit() async {
@@ -680,21 +712,22 @@ struct RecoveryView: View {
 
             guard newRHR != nil || newHRV != nil else { continue }
 
+            let snapshot = WearableSnapshot(
+                date: dateStr,
+                steps: entry.steps,
+                sleepHours: entry.sleepHours,
+                restingHr: newRHR ?? entry.restingHr,
+                hrv: newHRV ?? entry.hrv,
+                activeEnergy: entry.activeEnergy,
+                bodyWeightLbs: nil,
+                bodyFatPct: nil,
+                hrMorning: entry.hrMorning,
+                hrPostWorkout: entry.hrPostWorkout,
+                hrEvening: entry.hrEvening,
+                workouts: []
+            )
             do {
-                try await APIService.shared.logRecovery(
-                    sleepHours:    entry.sleepHours,
-                    sleepQuality:  entry.sleepQuality,
-                    restingHr:     newRHR ?? entry.restingHr,
-                    hrv:           newHRV ?? entry.hrv,
-                    steps:         entry.steps,
-                    soreness:      entry.soreness,
-                    activeEnergy:  entry.activeEnergy,
-                    hrMorning:     entry.hrMorning,
-                    hrPostWorkout: entry.hrPostWorkout,
-                    hrEvening:     entry.hrEvening,
-                    notes:         entry.notes ?? "",
-                    date:          dateStr
-                )
+                try await APIService.shared.syncWearableData(snapshot)
                 updated += 1
             } catch {
                 logger.error("backfill failed for \(dateStr): \(error)")

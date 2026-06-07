@@ -61,7 +61,15 @@ struct EnergyRecoveryView: View {
         }
         .navigationTitle("Énergie & Récupération")
         .navigationBarTitleDisplayMode(.inline)
-        .task { await loadData() }
+        .task {
+#if !targetEnvironment(macCatalyst)
+            await WatchSyncService.shared.syncIfNeeded()
+#endif
+            await loadData()
+        }
+        .onChange(of: WatchSyncService.shared.lastSyncCompleted) { _, _ in
+            Task { await loadData() }
+        }
         .alert("Erreur réseau", isPresented: Binding(
             get: { apiError != nil },
             set: { if !$0 { apiError = nil } }
@@ -616,7 +624,7 @@ private struct EnergyChartSection: View {
     }
 }
 
-// MARK: - Tab 1 — Récupération & Sommeil
+// MARK: - Tab 1 — Récupération & Sommeil (unifié)
 
 private struct RecoverySleepTabContent: View {
     let recoveryLog: [RecoveryEntry]
@@ -627,32 +635,36 @@ private struct RecoverySleepTabContent: View {
     let onRefresh: () async -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            RecoverySectionContent(log: recoveryLog,
-                                   summary: dailySummary,
-                                   hrv: hrvAnalysis,
-                                   onRefresh: onRefresh)
-            SleepSectionContent(history: sleepHistory, stats: sleepStats)
-        }
+        UnifiedRecoverySleepSection(
+            log: recoveryLog,
+            summary: dailySummary,
+            hrv: hrvAnalysis,
+            sleepHistory: sleepHistory,
+            sleepStats: sleepStats,
+            onRefresh: onRefresh
+        )
         .padding(.horizontal, 16)
         .padding(.top, 4)
     }
 }
 
-// MARK: - Section Récupération du jour
+// MARK: - Section unifiée Récupération & Sommeil
 
-private struct RecoverySectionContent: View {
+private struct UnifiedRecoverySleepSection: View {
     let log: [RecoveryEntry]
     let summary: DailySummary?
     let hrv: HRVAnalysis?
+    let sleepHistory: [SleepEntry]
+    let sleepStats: SleepStats?
     let onRefresh: () async -> Void
 
-    @AppStorage("last_hk_sync_energy") private var lastHKSyncTimestamp: Double = 0
-    @State private var isSyncingHK = false
-    @State private var showHistory = false
+    @ObservedObject private var watchSync = WatchSyncService.shared
+    @State private var showExpanded = false
     @State private var showLogSheet = false
+    @State private var syncError: String?
 
     private var today: RecoveryEntry? { log.first }
+    private var sleepToday: SleepEntry? { sleepHistory.first }
 
     private var readinessScore: Double? {
         if let s = summary?.recoveryScore { return s * 10 }
@@ -660,296 +672,499 @@ private struct RecoverySectionContent: View {
         return nil
     }
 
-    private var syncTimeLabel: String? {
-        guard lastHKSyncTimestamp > 0 else { return nil }
-        let d = Date(timeIntervalSince1970: lastHKSyncTimestamp)
-        let f = DateFormatter()
-        f.dateFormat = "HH:mm"
-        return "Sync \(f.string(from: d))"
+    private var hasAnyData: Bool {
+        today != nil || sleepToday != nil
     }
 
 #if !targetEnvironment(macCatalyst)
     private func syncNow() async {
-        let hk = HealthKitService.shared
-        let authorized = await hk.requestAuthorization()
-        guard authorized else { return }
-        isSyncingHK = true
-        let snapshot = await hk.fetchTodayHealthSnapshot()
-        _ = try? await APIService.shared.syncHealthKitToday(snapshot: snapshot)
+        syncError = nil
+        await watchSync.requestAuthorizationAndSync()
+        if let err = watchSync.lastError {
+            syncError = err
+        }
         await onRefresh()
-        lastHKSyncTimestamp = Date().timeIntervalSince1970
-        isSyncingHK = false
     }
 #endif
 
     var body: some View {
-        let score = readinessScore
         VStack(alignment: .leading, spacing: 14) {
+            sectionHeader
 
-            // Header
-            HStack(alignment: .center) {
-                Text("RÉCUPÉRATION")
-                    .font(.appCaption.weight(.black))
-                    .tracking(2)
-                    .foregroundColor(.gray)
-                Spacer()
-#if !targetEnvironment(macCatalyst)
-                Button {
-                    Task { await syncNow() }
-                } label: {
-                    HStack(spacing: 4) {
-                        if isSyncingHK {
-                            ProgressView()
-                                .progressViewStyle(.circular)
-                                .scaleEffect(0.7)
-                                .tint(.orange)
-                        } else {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.appCaption.weight(.semibold))
-                                .foregroundColor(.orange)
-                        }
-                        if let t = syncTimeLabel {
-                            Text(t)
-                                .font(.appMicro)
-                                .foregroundColor(.gray)
-                        }
-                    }
-                }
-                .disabled(isSyncingHK)
-#endif
-                NavigationLink(destination: RecoveryView()) {
-                    HStack(spacing: 4) {
-                        Text("Voir plus")
-                            .font(.appCaption.weight(.medium))
-                            .foregroundColor(.orange)
-                        Image(systemName: "chevron.right")
-                            .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.orange.opacity(0.7))
-                    }
-                }
-                .padding(.leading, 8)
-            }
+            if hasAnyData {
+                heroRow
+                primaryMetricsGrid
+                expandToggle
 
-            // Métriques ou état vide
-            if let e = today {
-                RecoveryMetricsGrid(entry: e, readiness: score, hrv: hrv)
+                if showExpanded {
+                    expandedContent
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             } else {
-                VStack(spacing: 8) {
-                    Text("Aucune donnée de récupération pour aujourd'hui")
-                        .font(.appLabel.weight(.regular))
-                        .foregroundColor(.gray)
-                        .multilineTextAlignment(.center)
-#if !targetEnvironment(macCatalyst)
-                    Button {
-                        Task { await syncNow() }
-                    } label: {
-                        Label("Actualiser depuis HealthKit", systemImage: "arrow.clockwise")
-                            .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.orange)
-                    }
-                    .disabled(isSyncingHK)
-#endif
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                emptyState
             }
 
-            // Bouton compléter manuellement
-            Button {
-                showLogSheet = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "pencil.line")
+#if !targetEnvironment(macCatalyst)
+            if let err = syncError ?? watchSync.lastError {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
                         .font(.appCaption)
-                    Text("Compléter manuellement")
-                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.orange)
+                    Text(err)
+                        .font(.appCaption)
+                        .foregroundColor(.orange.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .foregroundColor(.white.opacity(0.7))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(Color.white.opacity(0.06))
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-            .sheet(isPresented: $showLogSheet) {
-                LogRecoverySheet(prefillEntry: today,
-                                 onSaved: { await onRefresh() })
-            }
 
-            // Accordéon historique
-            Button {
-                withAnimation(.easeInOut(duration: 0.25)) { showHistory.toggle() }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(showHistory ? "Masquer l'historique" : "Voir l'historique")
-                        .font(.appCaption.weight(.medium))
-                        .foregroundColor(.gray)
-                    Image(systemName: showHistory ? "chevron.up" : "chevron.down")
-                        .font(.appMicro.weight(.semibold))
-                        .foregroundColor(.gray.opacity(0.7))
-                }
+            WatchSyncBannerView(sync: watchSync) {
+                Task { await syncNow() }
             }
+#endif
 
-            if showHistory && log.count >= 3 {
-                Recovery14dChart(log: log)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            manualLogButton
         }
         .padding(16)
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.orange.opacity(0.15), lineWidth: 1)
+        )
+        .sheet(isPresented: $showLogSheet) {
+            LogRecoverySheet(prefillEntry: today, onSaved: { await onRefresh() })
+        }
     }
-}
 
-// MARK: - Grille métriques du jour
+    // MARK: Header
 
-private struct RecoveryMetricsGrid: View {
-    let entry: RecoveryEntry
-    let readiness: Double?
-    let hrv: HRVAnalysis?
-
-    var body: some View {
-        let scoreInt    = readiness.map { Int($0) }
-        let scoreColor: Color = {
-            guard let s = readiness else { return .gray }
-            if s >= 75 { return .green }
-            if s >= 50 { return .orange }
-            return .red
-        }()
-        let statusLabel = readiness.map { $0 >= 75 ? "Bon" : $0 >= 50 ? "Moyen" : "Faible" } ?? "—"
-        let hrvVal      = hrv?.todayRmssd ?? entry.hrv
-        let rhr         = entry.restingHr
-        let steps       = entry.steps
-        let soreness    = entry.soreness
-        let fatigue     = entry.fatigue
-        let hrMorning   = entry.hrMorning
-        let hrPost      = entry.hrPostWorkout
-        let hrEvening   = entry.hrEvening
-        let energyPre   = entry.energyPre
-        let deltaFC: Double? = hrMorning.flatMap { m in hrPost.map { p in p - m } }
-        let deltaColor: Color = deltaFC.map { d in d <= 10 ? .green : d <= 20 ? .orange : .red } ?? .gray
-        let hrvSubtitle: String? = {
-            guard let h = hrv else { return nil }
-            if h.baselineAvailable, let score = h.hrvScore {
-                let label = score >= 70 ? "au-dessus" : score >= 40 ? "dans ta norme" : "en dessous"
-                return "\(Int(score))/100 — \(label) de ta baseline"
+    private var sectionHeader: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("RÉCUPÉRATION & SOMMEIL")
+                    .font(.appCaption.weight(.black))
+                    .tracking(2)
+                    .foregroundColor(.gray)
+                if let last = watchSync.lastSyncDate {
+                    Text("Sync \(last.formatted(.relative(presentation: .numeric)))")
+                        .font(.appMicro)
+                        .foregroundColor(.gray.opacity(0.7))
+                }
             }
-            return "Baseline en cours (\(h.dataPoints7d)/7 j)"
-        }()
-
-        VStack(spacing: 10) {
-            HStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .stroke(Color.white.opacity(0.08), lineWidth: 5)
-                        .frame(width: 56, height: 56)
-                    Circle()
-                        .trim(from: 0, to: CGFloat(readiness ?? 0) / 100)
-                        .stroke(scoreColor,
-                                style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                        .frame(width: 56, height: 56)
-                        .rotationEffect(.degrees(-90))
-                    if let s = scoreInt {
-                        Text("\(s)")
-                            .font(.system(size: 16, weight: .black, design: .rounded))
-                            .foregroundColor(scoreColor)
+            Spacer()
+#if !targetEnvironment(macCatalyst)
+            Button {
+                Task { await syncNow() }
+            } label: {
+                HStack(spacing: 4) {
+                    if watchSync.isSyncing {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .scaleEffect(0.7)
+                            .tint(.orange)
                     } else {
-                        Text("—")
-                            .font(.appLabel.weight(.bold))
-                            .foregroundColor(.gray)
+                        Image(systemName: "arrow.clockwise")
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundColor(.orange)
                     }
                 }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Readiness")
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(.gray)
-                    Text(statusLabel)
-                        .font(.appLabel.weight(.bold))
-                        .foregroundColor(scoreColor)
-                    if let msg = hrv?.contextualMessage {
-                        Text(msg)
-                            .font(.appCaption)
-                            .foregroundColor(.gray)
-                            .lineLimit(2)
-                    }
-                }
-                Spacer()
+                .padding(6)
+                .background(Color.orange.opacity(0.1))
+                .clipShape(Circle())
             }
-
-            LazyVGrid(columns: [GridItem(.flexible()),
-                                GridItem(.flexible()),
-                                GridItem(.flexible())],
-                      spacing: 8) {
-                metricCell(label: "HRV",
-                           value: hrvVal.map { "\(Int($0)) ms" } ?? "—",
-                           icon: "waveform.path.ecg", color: .blue,
-                           subtitle: hrvSubtitle)
-                metricCell(label: "FC Repos",
-                           value: rhr.map { "\(Int($0)) bpm" } ?? "—",
-                           icon: "heart.fill", color: .red)
-                metricCell(label: "Pas",
-                           value: steps.map { "\($0)" } ?? "—",
-                           icon: "figure.walk", color: .green)
-                metricCell(label: "Courbatures",
-                           value: soreness.map { "\(Int($0))/10" } ?? "—",
-                           icon: "bolt.fill", color: .orange)
-                metricCell(label: "Fatigue",
-                           value: fatigue.map { "\(Int($0))/10" } ?? "—",
-                           icon: "gauge", color: .purple)
-                metricCell(label: "Énergie perçue",
-                           value: energyPre.map { "\(Int($0))/10" } ?? "—",
-                           icon: "bolt.fill",
-                           color: energyPre.map { $0 >= 7 ? Color.green : $0 >= 4 ? Color.orange : Color.red } ?? .gray,
-                           valueColor: energyPre.map { $0 >= 7 ? Color.green : $0 >= 4 ? Color.orange : Color.red } ?? .white)
-                metricCell(label: "FC Matin",
-                           value: hrMorning.map { "\(Int($0)) bpm" } ?? "—",
-                           icon: "sun.max.fill", color: .yellow)
-                metricCell(label: "FC Post-Séance",
-                           value: hrPost.map { "\(Int($0)) bpm" } ?? "—",
-                           icon: "figure.strengthtraining.traditional", color: .orange)
-                metricCell(label: "FC Soir",
-                           value: hrEvening.map { "\(Int($0)) bpm" } ?? "—",
-                           icon: "moon.fill", color: .indigo)
-                if let d = deltaFC {
-                    metricCell(label: "Delta FC",
-                               value: (d >= 0 ? "+" : "") + "\(Int(d)) bpm",
-                               icon: "arrow.up.arrow.down", color: deltaColor,
-                               valueColor: deltaColor)
+            .disabled(watchSync.isSyncing)
+#endif
+            NavigationLink(destination: RecoveryView()) {
+                HStack(spacing: 4) {
+                    Text("Détails")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.orange)
+                    Image(systemName: "chevron.right")
+                        .font(.appMicro.weight(.bold))
+                        .foregroundColor(.orange.opacity(0.7))
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.1))
+                .clipShape(Capsule())
             }
         }
     }
 
-    private func metricCell(label: String, value: String,
-                            icon: String, color: Color,
-                            valueColor: Color = .white,
-                            subtitle: String? = nil) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.appCaption)
-                .foregroundColor(color)
-                .frame(width: 18)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(label)
+    // MARK: Hero — Readiness + Sommeil côte à côte
+
+    private var heroRow: some View {
+        HStack(spacing: 12) {
+            readinessHero
+            Divider().frame(height: 56).background(Color.white.opacity(0.08))
+            sleepHero
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var readinessHero: some View {
+        let score = readinessScore
+        let scoreInt = score.map { Int($0) }
+        let scoreColor: Color = {
+            guard let s = score else { return .gray }
+            if s >= 75 { return .green }
+            if s >= 50 { return .orange }
+            return .red
+        }()
+        let statusLabel = score.map { $0 >= 75 ? "Bon" : $0 >= 50 ? "Moyen" : "Faible" } ?? "—"
+
+        return HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.08), lineWidth: 5)
+                    .frame(width: 52, height: 52)
+                Circle()
+                    .trim(from: 0, to: CGFloat(score ?? 0) / 100)
+                    .stroke(scoreColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .frame(width: 52, height: 52)
+                    .rotationEffect(.degrees(-90))
+                Text(scoreInt.map { "\($0)" } ?? "—")
+                    .font(.system(size: 15, weight: .black, design: .rounded))
+                    .foregroundColor(scoreColor)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Readiness")
                     .font(.appMicro.weight(.semibold))
-                    .tracking(0.3)
                     .foregroundColor(.gray)
-                Text(value)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(valueColor)
-                    .contentTransition(.numericText())
-                    .animation(.easeInOut(duration: 0.4), value: value)
-                if let sub = subtitle {
-                    Text(sub)
+                Text(statusLabel)
+                    .font(.appLabel.weight(.bold))
+                    .foregroundColor(scoreColor)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .overlay {
+            TappableMetricOverlay(entry: InfoEntry.readinessMetric, title: "Readiness")
+        }
+    }
+
+    private var sleepHero: some View {
+        let hours = sleepToday?.durationHours ?? today?.sleepHours
+        let durColor: Color = {
+            guard let h = hours else { return .gray }
+            if h >= 7 { return .green }
+            if h >= 6 { return .orange }
+            return .red
+        }()
+        let catLabel: String = {
+            guard let cat = sleepToday?.durationCategory else {
+                guard let h = hours else { return "—" }
+                if h >= 7 { return "Optimal" }
+                if h >= 6 { return "Court" }
+                return "Insuffisant"
+            }
+            switch cat.lowercased() {
+            case "optimal": return "Optimal"
+            case "short": return "Court"
+            case "very_short", "insufficient", "insuffisant": return "Insuffisant"
+            case "long": return "Long"
+            default: return cat.capitalized
+            }
+        }()
+
+        return HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.08), lineWidth: 5)
+                    .frame(width: 52, height: 52)
+                Circle()
+                    .trim(from: 0, to: CGFloat(min(hours ?? 0, 10) / 10.0))
+                    .stroke(durColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                    .frame(width: 52, height: 52)
+                    .rotationEffect(.degrees(-90))
+                Text(hours.map { String(format: "%.1fh", $0) } ?? "—")
+                    .font(.system(size: 11, weight: .black, design: .rounded))
+                    .foregroundColor(durColor)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Sommeil")
+                    .font(.appMicro.weight(.semibold))
+                    .foregroundColor(.gray)
+                Text(catLabel)
+                    .font(.appLabel.weight(.bold))
+                    .foregroundColor(durColor)
+                if let e = sleepToday {
+                    Text(e.qualityEmoji + " " + e.qualityLabel)
                         .font(.appMicro)
                         .foregroundColor(.gray)
                         .lineLimit(1)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay {
+            TappableMetricOverlay(entry: InfoEntry.sleepDurationMetric, title: "Sommeil")
+        }
+    }
+
+    // MARK: Primary metrics (always visible)
+
+    private var primaryMetricsGrid: some View {
+        let entry = today
+        let hrvVal = hrv?.todayRmssd ?? entry?.hrv
+        let hrvSubtitle: String? = {
+            guard let h = hrv else { return nil }
+            if h.baselineAvailable, let score = h.hrvScore {
+                let label = score >= 70 ? "au-dessus" : score >= 40 ? "dans ta norme" : "en dessous"
+                return "\(Int(score))/100 — \(label)"
+            }
+            return "Baseline (\(h.dataPoints7d)/7 j)"
+        }()
+        let qualVal: String = {
+            if let e = sleepToday, e.quality > 0 {
+                return "\(e.quality)/5"
+            }
+            if let q = entry?.sleepQuality { return "\(Int(q))/10" }
+            return "—"
+        }()
+
+        return LazyVGrid(
+            columns: [GridItem(.flexible()), GridItem(.flexible())],
+            spacing: 8
+        ) {
+            TappableMetricCell(
+                label: "HRV", value: hrvVal.map { "\(Int($0)) ms" } ?? "—",
+                icon: "waveform.path.ecg", color: .blue,
+                subtitle: hrvSubtitle, infoEntry: InfoEntry.hrvMetric
+            )
+            TappableMetricCell(
+                label: "FC Repos", value: entry?.restingHr.map { "\(Int($0)) bpm" } ?? "—",
+                icon: "heart.fill", color: .red, infoEntry: InfoEntry.restingHrMetric
+            )
+            TappableMetricCell(
+                label: "Durée sommeil",
+                value: (sleepToday?.durationHours ?? entry?.sleepHours).map { String(format: "%.1fh", $0) } ?? "—",
+                icon: "moon.zzz.fill", color: .indigo, infoEntry: InfoEntry.sleepDurationMetric
+            )
+            TappableMetricCell(
+                label: "Qualité sommeil", value: qualVal,
+                icon: "star.fill", color: .purple, infoEntry: InfoEntry.sleepQualityMetric
+            )
+        }
+    }
+
+    // MARK: Expanded section
+
+    private var expandToggle: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.25)) { showExpanded.toggle() }
+        } label: {
+            HStack(spacing: 6) {
+                Text(showExpanded ? "Voir moins" : "Voir plus")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.orange)
+                Image(systemName: showExpanded ? "chevron.up" : "chevron.down")
+                    .font(.appMicro.weight(.bold))
+                    .foregroundColor(.orange.opacity(0.7))
+                Spacer()
+                Text("Toutes les métriques")
+                    .font(.appMicro)
+                    .foregroundColor(.gray)
+            }
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var expandedContent: some View {
+        if let entry = today {
+            secondaryMetricsGrid(entry: entry)
+        }
+
+        if let stats = sleepStats, (stats.avgDuration != nil || stats.avgQuality != nil || stats.streak > 0) {
+            sleepStatsRow(stats: stats)
+        }
+
+        if log.count >= 3 {
+            Recovery14dChart(log: log)
+        }
+        if sleepHistory.count >= 2 {
+            Sleep10dChart(history: sleepHistory)
+        }
+
+        NavigationLink(destination: SleepView()) {
+            HStack(spacing: 6) {
+                Image(systemName: "bed.double.fill")
+                    .font(.appCaption)
+                Text("Journal de sommeil complet")
+                    .font(.appCaption.weight(.semibold))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.appMicro.weight(.bold))
+            }
+            .foregroundColor(.purple.opacity(0.9))
+            .padding(10)
+            .background(Color.purple.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private func secondaryMetricsGrid(entry: RecoveryEntry) -> some View {
+        let energyPre = entry.energyPre
+        let energyColor: Color = energyPre.map { $0 >= 7 ? .green : $0 >= 4 ? .orange : .red } ?? .gray
+        let deltaFC: Double? = entry.hrMorning.flatMap { m in entry.hrPostWorkout.map { p in p - m } }
+        let deltaColor: Color = deltaFC.map { d in d <= 10 ? .green : d <= 20 ? .orange : .red } ?? .gray
+
+        return LazyVGrid(
+            columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())],
+            spacing: 8
+        ) {
+            TappableMetricCell(label: "Pas", value: entry.steps.map { "\($0)" } ?? "—",
+                               icon: "figure.walk", color: .green, infoEntry: InfoEntry.stepsMetric)
+            TappableMetricCell(label: "Courbatures", value: entry.soreness.map { "\(Int($0))/10" } ?? "—",
+                               icon: "bolt.fill", color: .orange, infoEntry: InfoEntry.sorenessMetric)
+            TappableMetricCell(label: "Fatigue", value: entry.fatigue.map { "\(Int($0))/10" } ?? "—",
+                               icon: "gauge", color: .purple, infoEntry: InfoEntry.fatigueMetric)
+            TappableMetricCell(label: "Énergie perçue", value: energyPre.map { "\(Int($0))/10" } ?? "—",
+                               icon: "bolt.fill", color: energyColor, valueColor: energyColor,
+                               infoEntry: InfoEntry.energyPreMetric)
+            TappableMetricCell(label: "FC Matin", value: entry.hrMorning.map { "\(Int($0)) bpm" } ?? "—",
+                               icon: "sun.max.fill", color: .yellow, infoEntry: InfoEntry.hrMorningMetric)
+            TappableMetricCell(label: "FC Post-Séance", value: entry.hrPostWorkout.map { "\(Int($0)) bpm" } ?? "—",
+                               icon: "figure.strengthtraining.traditional", color: .orange,
+                               infoEntry: InfoEntry.hrPostWorkoutMetric)
+            TappableMetricCell(label: "FC Soir", value: entry.hrEvening.map { "\(Int($0)) bpm" } ?? "—",
+                               icon: "moon.fill", color: .indigo, infoEntry: InfoEntry.hrEveningMetric)
+            if let d = deltaFC {
+                TappableMetricCell(
+                    label: "Delta FC",
+                    value: (d >= 0 ? "+" : "") + "\(Int(d)) bpm",
+                    icon: "arrow.up.arrow.down", color: deltaColor, valueColor: deltaColor,
+                    infoEntry: InfoEntry.deltaFcMetric
+                )
+            }
+            if let ae = entry.activeEnergy, ae > 0 {
+                TappableMetricCell(label: "Dépense active", value: "\(Int(ae)) kcal",
+                                   icon: "applewatch", color: .cyan, infoEntry: InfoEntry.activeEnergyMetric)
+            }
+        }
+    }
+
+    private func sleepStatsRow(stats: SleepStats) -> some View {
+        HStack(spacing: 0) {
+            if let d = stats.avgDuration {
+                sleepStat(label: "Moy. durée", value: String(format: "%.1fh", d))
+                Spacer()
+            }
+            if let q = stats.avgQuality {
+                sleepStat(label: "Moy. qualité", value: String(format: "%.1f/5", q))
+                Spacer()
+            }
+            if stats.streak > 0 {
+                TappableSleepStat(label: "Streak", value: "\(stats.streak)j")
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func sleepStat(label: String, value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 14, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+            Text(label)
+                .font(.appMicro.weight(.medium))
+                .foregroundColor(.gray)
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 10) {
+            Image(systemName: "heart.text.square")
+                .font(.system(size: 28))
+                .foregroundColor(.gray.opacity(0.4))
+            Text("Aucune donnée pour aujourd'hui")
+                .font(.appLabel.weight(.medium))
+                .foregroundColor(.gray)
+            Text("Synchronise ton Apple Watch ou complète manuellement")
+                .font(.appCaption)
+                .foregroundColor(.gray.opacity(0.7))
+                .multilineTextAlignment(.center)
+#if !targetEnvironment(macCatalyst)
+            Button {
+                Task { await syncNow() }
+            } label: {
+                Label("Synchroniser HealthKit", systemImage: "arrow.clockwise")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.orange)
+            }
+            .disabled(watchSync.isSyncing)
+#endif
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+    }
+
+    private var manualLogButton: some View {
+        Button { showLogSheet = true } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "pencil.line")
+                    .font(.appCaption)
+                Text("Compléter manuellement")
+                    .font(.appCaption.weight(.semibold))
+            }
+            .foregroundColor(.white.opacity(0.7))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.06))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+}
+
+// MARK: - Helpers tapables (hero rings)
+
+private struct TappableMetricOverlay: View {
+    let entry: InfoEntry
+    let title: String
+    @State private var showInfo = false
+
+    var body: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .onTapGesture { showInfo = true }
+            .sheet(isPresented: $showInfo) {
+                InfoSheetView(title: title, entries: [entry])
+            }
+    }
+}
+
+private struct TappableSleepStat: View {
+    let label: String
+    let value: String
+    @State private var showInfo = false
+
+    var body: some View {
+        Button { showInfo = true } label: {
+            VStack(spacing: 2) {
+                Text(value)
+                    .font(.system(size: 14, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                HStack(spacing: 2) {
+                    Text(label)
+                        .font(.appMicro.weight(.medium))
+                        .foregroundColor(.gray)
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 7))
+                        .foregroundColor(.gray.opacity(0.4))
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showInfo) {
+            InfoSheetView(title: label, entries: [InfoEntry.sleepStreakMetric])
+        }
     }
 }
 
@@ -1102,135 +1317,6 @@ private struct Recovery14dChart: View {
                 }
             }
             .frame(height: 130)
-        }
-    }
-}
-
-// MARK: - Section Sommeil (Étape 7)
-
-private struct SleepSectionContent: View {
-    let history: [SleepEntry]
-    let stats: SleepStats?
-
-    var body: some View {
-        let todayEntry = history.first
-        let avgDur     = stats?.avgDuration
-        let avgQual    = stats?.avgQuality
-        let streak     = stats?.streak ?? 0
-
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("SOMMEIL")
-                    .font(.appCaption.weight(.black))
-                    .tracking(2)
-                    .foregroundColor(.gray)
-                Spacer()
-                NavigationLink(destination: SleepView()) {
-                    HStack(spacing: 4) {
-                        Text("Voir plus")
-                            .font(.appCaption.weight(.medium))
-                            .foregroundColor(.purple)
-                        Image(systemName: "chevron.right")
-                            .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.purple.opacity(0.7))
-                    }
-                }
-            }
-
-            if let e = todayEntry {
-                SleepTodayCard(entry: e)
-            } else {
-                Text("Aucune donnée de sommeil")
-                    .font(.appLabel.weight(.regular))
-                    .foregroundColor(.gray)
-            }
-
-            if avgDur != nil || avgQual != nil || streak > 0 {
-                HStack(spacing: 0) {
-                    if let d = avgDur {
-                        sleepStat(label: "Moy. durée",
-                                  value: String(format: "%.1fh", d))
-                        Spacer()
-                    }
-                    if let q = avgQual {
-                        sleepStat(label: "Moy. qualité",
-                                  value: String(format: "%.1f/5", q))
-                        Spacer()
-                    }
-                    if streak > 0 {
-                        sleepStat(label: "Streak", value: "\(streak)j")
-                    }
-                }
-            }
-
-            if history.count >= 2 {
-                Sleep10dChart(history: history)
-            }
-        }
-        .padding(16)
-        .background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
-    private func sleepStat(label: String, value: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 15, weight: .black, design: .rounded))
-                .foregroundColor(.white)
-            Text(label)
-                .font(.appCaption.weight(.medium))
-                .foregroundColor(.gray)
-        }
-    }
-}
-
-// MARK: - Carte sommeil du jour
-
-private struct SleepTodayCard: View {
-    let entry: SleepEntry
-
-    private func categoryLabel(_ cat: String) -> String {
-        switch cat.lowercased() {
-        case "optimal":                       return "Optimal"
-        case "short":                         return "Court"
-        case "very_short", "insufficient":   return "Insuffisant"
-        case "long":                          return "Long"
-        default:                              return cat.capitalized
-        }
-    }
-
-    var body: some View {
-        let durColor: Color = entry.durationHours >= 7 ? .green
-                            : entry.durationHours >= 6 ? .orange : .red
-        let qualDisplay = entry.qualityEmoji + " " + entry.qualityLabel
-        let catLabel    = categoryLabel(entry.durationCategory)
-
-        HStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .stroke(Color.white.opacity(0.08), lineWidth: 5)
-                    .frame(width: 56, height: 56)
-                Circle()
-                    .trim(from: 0, to: CGFloat(min(entry.durationHours / 10.0, 1.0)))
-                    .stroke(durColor, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                    .frame(width: 56, height: 56)
-                    .rotationEffect(.degrees(-90))
-                Text(String(format: "%.1fh", entry.durationHours))
-                    .font(.system(size: 12, weight: .black, design: .rounded))
-                    .foregroundColor(durColor)
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                Text("Cette nuit")
-                    .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.gray)
-                Text(catLabel)
-                    .font(.appLabel.weight(.bold))
-                    .foregroundColor(durColor)
-                Text(qualDisplay)
-                    .font(.appCaption)
-                    .foregroundColor(.gray)
-            }
-            Spacer()
         }
     }
 }

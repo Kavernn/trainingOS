@@ -103,7 +103,8 @@ enum CacheInvalidation {
         case .exerciseSaved:
             return ["seance_data"]
         case .wearableSynced:
-            return ["recovery_data", "cardio_data", "hrv_analysis"]
+            return ["recovery_data", "cardio_data", "hrv_analysis",
+                    "sleep_history", "sleep_today", "sleep_stats"]
         case .ritualActioned:
             return ["ritual_today", "ritual_streak"]
         case .ritualUpdated:
