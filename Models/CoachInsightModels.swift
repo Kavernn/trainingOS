@@ -40,6 +40,15 @@ struct ProactiveInsightItem: Codable {
     }
 }
 
+struct IntelligenceInsightsResponse: Codable {
+    let insights: [ProactiveInsightItem]
+    let computedAt: String
+    enum CodingKeys: String, CodingKey {
+        case insights   = "insights"
+        case computedAt = "computed_at"
+    }
+}
+
 struct ProactiveInsightsResponse: Codable {
     let pushInsight:          ProactiveInsightItem?
     let dashboardInsight:     ProactiveInsightItem?

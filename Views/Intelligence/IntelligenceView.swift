@@ -40,6 +40,8 @@ struct IntelligenceView: View {
     @State private var isLoadingWeeklyReport                    = false
     @State private var dailyInsight: DailyInsight? = nil
     @State private var proactiveInsights: ProactiveInsightsResponse? = nil
+    @State private var intelligenceInsights: [ProactiveInsightItem] = []
+    @State private var isLoadingIntelligence = false
     @State private var isLoadingInsight = false
     @State private var postSessionData: PostSessionData? = nil
     @AppStorage("post_session_logged_at") private var postSessionLoggedAt: String = ""
@@ -717,6 +719,24 @@ struct IntelligenceView: View {
                 }
             }
 
+            // NIVEAU 3c — Intelligence proactive (accordion)
+            bilanAccordionRow(id: "intelligence", icon: "sparkles", label: "Intelligence", accent: .blue) {
+                if isLoadingIntelligence {
+                    SkeletonBar(height: 80, radius: 12)
+                        .padding(.horizontal, 16).padding(.bottom, 4)
+                } else if intelligenceInsights.isEmpty {
+                    Text("Pas encore assez de données pour générer des insights.")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(white: 0.45))
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                } else {
+                    ForEach(intelligenceInsights, id: \.dimension) { insight in
+                        intelligenceInsightCard(insight)
+                    }
+                }
+            }
+
             // Bilan complet — accès direct au rapport
             Button { openWeeklyReport() } label: {
                 HStack(spacing: 10) {
@@ -745,6 +765,7 @@ struct IntelligenceView: View {
         .onAppear {
             if narrative == nil && !isLoadingNarrative { loadNarrative() }
             if overtrainingRisk == nil { Task { await loadIntelligenceFeatures() } }
+            if intelligenceInsights.isEmpty && !isLoadingIntelligence { Task { await loadProactiveIntelligence() } }
         }
     }
 
@@ -899,6 +920,46 @@ struct IntelligenceView: View {
         case "red":    return .red
         default:       return .gray
         }
+    }
+
+    private func insightAccentColor(_ colorStr: String) -> Color {
+        switch colorStr {
+        case "red":    return .red
+        case "orange": return .orange
+        case "yellow": return Color(red: 0.95, green: 0.80, blue: 0.15)
+        case "green":  return .green
+        case "teal":   return .teal
+        case "blue":   return .blue
+        case "purple": return .purple
+        default:       return .gray
+        }
+    }
+
+    @ViewBuilder
+    private func intelligenceInsightCard(_ insight: ProactiveInsightItem) -> some View {
+        let accent = insightAccentColor(insight.color)
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: insight.icon)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(accent)
+                .frame(width: 22)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(insight.title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                Text(insight.message)
+                    .font(.system(size: 12))
+                    .foregroundColor(Color(white: 0.62))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(12)
+        .background(accent.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accent.opacity(0.2), lineWidth: 1))
+        .padding(.horizontal, 16)
+        .padding(.bottom, 4)
     }
 
     @ViewBuilder
@@ -1079,6 +1140,16 @@ struct IntelligenceView: View {
                 )
             }
         } catch { }
+    }
+
+    private func loadProactiveIntelligence() async {
+        await MainActor.run { isLoadingIntelligence = true }
+        do {
+            let result = try await APIService.shared.fetchIntelligenceInsights()
+            await MainActor.run { intelligenceInsights = result; isLoadingIntelligence = false }
+        } catch {
+            await MainActor.run { isLoadingIntelligence = false }
+        }
     }
 
     private func computeStreak(from sessions: [String: SessionEntry]) -> Int {

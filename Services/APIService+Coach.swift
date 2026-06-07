@@ -7,6 +7,12 @@ extension APIService {
         return try APIService.decoder.decode(DailyInsight.self, from: data)
     }
 
+    func fetchIntelligenceInsights() async throws -> [ProactiveInsightItem] {
+        let url = try buildURL(path: "/api/coach/intelligence_insights")
+        let data = try await fetchWithCache(url: url, key: "intelligence_insights")
+        return try APIService.decoder.decode(IntelligenceInsightsResponse.self, from: data).insights
+    }
+
     func fetchProactiveInsights() async throws -> ProactiveInsightsResponse {
         let url = try buildURL(path: "/api/coach/proactive_insights")
         let data = try await fetchWithCache(url: url, key: "proactive_insights")
