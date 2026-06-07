@@ -317,6 +317,26 @@ struct StatsView: View {
         return d.isEmpty ? 0 : d.reduce(0, +) / Double(d.count)
     }
 
+    // ── Recovery Profile ──────────────────────────────────────────────
+    var recoveryProfile: (avgDays: Double, sampleSize: Int)? {
+        let heavy = sessions.filter { ($0.value.rpe ?? 0) >= 7.5 }
+        guard !heavy.isEmpty else { return nil }
+        let sortedRec = filteredRecovery.sorted { ($0.date ?? "") < ($1.date ?? "") }
+        var days: [Int] = []
+        for (sessionDate, _) in heavy {
+            let after = sortedRec.filter { ($0.date ?? "") > sessionDate }
+            guard let recovered = after.first(where: { ($0.soreness ?? 10) < 3 }),
+                  let rd = recovered.date,
+                  let sd = DateFormatter.isoDate.date(from: sessionDate),
+                  let recovDate = DateFormatter.isoDate.date(from: rd) else { continue }
+            let d = Int(recovDate.timeIntervalSince(sd) / 86400)
+            if d > 0 && d <= 10 { days.append(d) }
+        }
+        guard days.count >= 3 else { return nil }
+        let avg = Double(days.reduce(0, +)) / Double(days.count)
+        return (avg, days.count)
+    }
+
     // ── Smart Insights ────────────────────────────────────────────────
     var smartInsights: [(icon: String, text: String, color: Color)] {
         var insights: [(String, String, Color)] = []

@@ -363,9 +363,22 @@ extension StatsView {
             .padding(.horizontal, 16)
         }
 
-        // 3. Wellness trend (3 sparklines)
+        // 3. Wellness trend (sparklines — qualité sommeil, douleurs, fatigue, pas, énergie, FC repos)
         if filteredRecovery.count >= 7 {
             WellnessTrendView(recovery: Array(filteredRecovery.prefix(30).reversed()), pssHistory: pssHistory)
+                .padding(.horizontal, 16)
+        }
+
+        // 3b. Sleep Debt 7j
+        let recovFor7 = Array(recoveryLog.sorted { ($0.date ?? "") > ($1.date ?? "") }.prefix(14))
+        if recovFor7.filter({ $0.sleepHours != nil }).count >= 3 {
+            SleepDebtCard(recovery: recovFor7)
+                .padding(.horizontal, 16)
+        }
+
+        // 3c. Profil de récupération (RPE 8+ → jours avant soreness < 3)
+        if let rp = recoveryProfile {
+            RecoveryProfileCard(avgDays: rp.avgDays, sampleSize: rp.sampleSize)
                 .padding(.horizontal, 16)
         }
 

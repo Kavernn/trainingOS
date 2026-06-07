@@ -714,6 +714,10 @@ struct WellnessTrendView: View {
                     let sorenessVals = recovery.compactMap { $0.soreness.map { Double($0) } }
                     let fatigueVals = recovery.compactMap { $0.fatigue.map { Double($0) } }
 
+                    let stepsVals    = recovery.compactMap { $0.steps.map { min(Double($0) / 1000.0, 20.0) } }
+                    let energyVals   = recovery.compactMap { $0.energyPre }
+                    let restingHrVals = recovery.compactMap { $0.restingHr }
+
                     if !sleepVals.isEmpty {
                         WellnessSparkline(label: "Sommeil", values: movingAvg(sleepVals), color: .blue, range: 1...10)
                     }
@@ -722,6 +726,15 @@ struct WellnessTrendView: View {
                     }
                     if !fatigueVals.isEmpty {
                         WellnessSparkline(label: "Fatigue", values: movingAvg(fatigueVals), color: .purple, range: 1...10, invertTrend: true)
+                    }
+                    if !stepsVals.isEmpty {
+                        WellnessSparkline(label: "Pas (k)", values: movingAvg(stepsVals), color: .cyan, range: 0...20)
+                    }
+                    if !energyVals.isEmpty {
+                        WellnessSparkline(label: "Énergie", values: movingAvg(energyVals), color: .green, range: 1...10)
+                    }
+                    if !restingHrVals.isEmpty {
+                        WellnessSparkline(label: "FC repos", values: movingAvg(restingHrVals), color: .red, range: 40...100, invertTrend: true)
                     }
                 }
             }
@@ -895,5 +908,121 @@ struct StressCravingsInsightView: View {
             return "Pas encore assez de données pour détecter un pattern stress → déclencheurs."
         }
         return "Tes niveaux de stress élevés (PSS > \(median)) coïncident souvent avec tes journées les plus difficiles. Reste vigilant."
+    }
+}
+
+// MARK: - Sleep Debt Card
+struct SleepDebtCard: View {
+    let recovery: [RecoveryEntry]
+    @AppStorage("sleep_goal_hours") private var sleepGoal: Double = 8.0
+
+    private var last7Hours: [Double] {
+        recovery
+            .sorted { ($0.date ?? "") > ($1.date ?? "") }
+            .prefix(7)
+            .compactMap(\.sleepHours)
+    }
+
+    private var totalDebt: Double {
+        last7Hours.reduce(0) { $0 + max(0, sleepGoal - $1) }
+    }
+
+    private var avgSleep: Double? {
+        guard !last7Hours.isEmpty else { return nil }
+        return last7Hours.reduce(0, +) / Double(last7Hours.count)
+    }
+
+    private var debtColor: Color {
+        if totalDebt < 2 { return .green }
+        if totalDebt < 5 { return .orange }
+        return .red
+    }
+
+    private var insightText: String {
+        if totalDebt <= 0 { return "Aucune dette — tu respectes ton objectif sommeil. Excellent." }
+        if totalDebt < 2  { return "Dette légère : \(String(format: "%.1f", totalDebt))h sur 7 jours. Récupère ce week-end." }
+        if totalDebt < 5  { return "Dette modérée : \(String(format: "%.1f", totalDebt))h sur 7 jours. Ton HRV et ta récup en souffrent probablement." }
+        return "Dette sévère : \(String(format: "%.1f", totalDebt))h en 7 jours. Dors davantage avant ta prochaine séance lourde."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("DETTE DE SOMMEIL — 7 JOURS")
+                    .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+                Spacer()
+                Text("obj. \(String(format: "%.0f", sleepGoal))h/j")
+                    .font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
+            }
+            if last7Hours.isEmpty {
+                EmptyChartPlaceholder(message: "Logge tes heures de sommeil quotidiennement")
+            } else {
+                HStack(spacing: 20) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(totalDebt <= 0 ? "0h" : "-\(String(format: "%.1f", totalDebt))h")
+                            .font(.system(size: 28, weight: .black)).foregroundColor(debtColor)
+                        Text("dette accumulée").font(.system(size: 11)).foregroundColor(.gray)
+                    }
+                    Spacer()
+                    if let avg = avgSleep {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(String(format: "%.1fh", avg))
+                                .font(.system(size: 28, weight: .black)).foregroundColor(.white)
+                            Text("moy. / nuit").font(.system(size: 11)).foregroundColor(.gray)
+                        }
+                    }
+                }
+                Rectangle().fill(Color.white.opacity(0.06)).frame(height: 0.5)
+                Text(insightText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(16).glassCard().cornerRadius(14)
+    }
+}
+
+// MARK: - Recovery Profile Card
+struct RecoveryProfileCard: View {
+    let avgDays: Double
+    let sampleSize: Int
+
+    private var profileColor: Color {
+        if avgDays <= 1.5 { return .green }
+        if avgDays <= 3.0 { return .orange }
+        return .red
+    }
+
+    private var insightText: String {
+        if avgDays <= 1.5 { return "Tu récupères vite. Tu peux enchaîner les séances lourdes à \(Int(round(avgDays))) jour d'intervalle." }
+        if avgDays <= 3.0 { return "Récupération standard. Prévois \(Int(round(avgDays))) jours entre deux séances à RPE 8+." }
+        return "Récupération lente. Espace tes séances lourdes d'au moins \(Int(round(avgDays))) jours pour éviter de cumuler la fatigue."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("PROFIL DE RÉCUPÉRATION")
+                .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
+            HStack(alignment: .bottom, spacing: 6) {
+                Text(String(format: "%.1f", avgDays))
+                    .font(.system(size: 36, weight: .black)).foregroundColor(profileColor)
+                Text("jours")
+                    .font(.system(size: 14, weight: .medium)).foregroundColor(.gray)
+                    .padding(.bottom, 6)
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("après RPE 8+").font(.system(size: 11)).foregroundColor(.gray)
+                    Text("pour soreness < 3").font(.system(size: 11)).foregroundColor(.gray)
+                    Text("(\(sampleSize) séances)").font(.system(size: 10)).foregroundColor(.gray.opacity(0.6))
+                }
+            }
+            Rectangle().fill(Color.white.opacity(0.06)).frame(height: 0.5)
+            Text(insightText)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.white.opacity(0.8))
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16).glassCard().cornerRadius(14)
     }
 }

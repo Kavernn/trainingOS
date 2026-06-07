@@ -225,7 +225,7 @@ def get_recovery_logs(limit: int = 100) -> List[dict]:
     def _fetch():
         return (
             db_core._client.table("recovery_logs")
-            .select("date, sleep_hours, sleep_quality, resting_hr, hrv, steps, soreness, fatigue_perceived, active_energy, hr_morning, hr_post_workout, hr_evening, energy_pre, source, notes")
+            .select("date, sleep_hours, sleep_quality, resting_hr, hrv, steps, soreness, fatigue_perceived, active_energy, hr_morning, hr_post_workout, hr_evening, energy_pre, bedtime, wake_time, source, notes")
             .order("date", desc=True)
             .limit(limit)
             .execute()
@@ -285,7 +285,8 @@ def merge_recovery_wearable(target_date: str, wearable: dict) -> bool:
     Never overwrites: sleep_quality, soreness, notes.
     """
     WEARABLE_KEYS = ("steps", "sleep_hours", "resting_hr", "hrv", "active_energy",
-                     "hr_morning", "hr_post_workout", "hr_evening")
+                     "hr_morning", "hr_post_workout", "hr_evening",
+                     "bedtime", "wake_time")
     # Cumulative metrics grow throughout the day — always update from HealthKit
     # unless the entry was manually entered by the user.
     CUMULATIVE_KEYS = {"steps", "active_energy"}
