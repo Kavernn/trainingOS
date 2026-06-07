@@ -146,7 +146,15 @@ def _load_context(days: int = 90) -> dict[str, dict]:
 
         # Nutrition
         try:
-            rows = db._client.table("nutrition_entries").select("date, proteines, glucides, calories").gte("date", cutoff).execute().data or []
+            def _fetch_nutrition():
+                return db._client.table("nutrition_entries").select("date, proteines, glucides, calories").gte("date", cutoff).execute().data or []
+            try:
+                rows = _fetch_nutrition()
+            except Exception as _e:
+                if "Server disconnected" in str(_e) or "RemoteProtocol" in type(_e).__name__:
+                    rows = _fetch_nutrition()
+                else:
+                    raise
             for r in rows:
                 d = str(r.get("date") or "")[:10]
                 if d not in ctx:
