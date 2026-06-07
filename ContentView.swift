@@ -92,7 +92,10 @@ private struct iOSContentView: View {
         .onReceive(appState.$pendingDeepLink.compactMap { $0 }) { link in
             switch link {
             case "intelligence": selectedTab = 0
-            case "warroom":      selectedTab = 1
+            case "warroom":      selectedTab = 0  // War Room is inside IntelligenceView
+            case "dashboard":    selectedTab = 1
+            case "seance":       selectedTab = 2
+            case "more":         selectedTab = 4
             default: break
             }
             appState.pendingDeepLink = nil

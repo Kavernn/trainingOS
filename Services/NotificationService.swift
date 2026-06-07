@@ -146,6 +146,10 @@ enum NotificationService {
         guard let rawHour = tracker.preferredHour(for: .nutritionLog) else { return }
         let hour = min(max(rawHour, 7), 20)
 
+        // Don't remind if a meal was already logged today
+        let today = DateFormatter.isoDate.string(from: Date())
+        guard UserDefaults.standard.string(forKey: "nutrition.last.log.date") != today else { return }
+
         let content = UNMutableNotificationContent()
         content.title = "Repas du jour 🥗"
         content.body  = "Tu n'as pas encore loggé tes repas — garde le cap sur tes objectifs."
@@ -157,6 +161,38 @@ enum NotificationService {
 
         let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+    }
+
+    // MARK: - Post-action cancellation
+
+    static func cancelNutritionReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["nutrition.daily.reminder"])
+    }
+
+    static func cancelMorningRitualReminders() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["ritual.morning.reminder", "ritual.streak.risk"])
+    }
+
+    static func cancelEveningRitualReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["ritual.evening.reminder"])
+    }
+
+    static func cancelSessionReminders() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["weekly.friday.fullbody", "inactivity.reminder"])
+    }
+
+    static func cancelPSSReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["pss.weekly.test"])
+    }
+
+    static func cancelHRVReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["hrv.morning.reminder"])
     }
 
     // MARK: - Inactivity Reminder (adaptive fire time — defaults to 19:00)

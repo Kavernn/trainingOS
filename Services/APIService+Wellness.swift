@@ -132,6 +132,7 @@ extension APIService {
             throw APIError.queuedOffline
         }
         CacheInvalidation.pssSubmitted.invalidate()
+        NotificationService.cancelPSSReminder()
         return try APIService.decoder.decode(PSSRecord.self, from: data)
     }
 

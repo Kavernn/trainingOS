@@ -88,6 +88,7 @@ class WatchSyncService: ObservableObject {
         if hasData {
             do {
                 try await APIService.shared.syncWearableData(snapshot)
+                if snapshot.hrv != nil { NotificationService.cancelHRVReminder() }
             } catch {
                 lastError = error.localizedDescription
                 return

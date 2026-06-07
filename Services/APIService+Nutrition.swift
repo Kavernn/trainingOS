@@ -38,9 +38,9 @@ extension APIService {
         if let d  = date     { payload["date"] = d }
         _ = try await offlinePost(endpoint: "/api/nutrition/add", payload: payload)
         CacheInvalidation.nutritionLogged.invalidate()
+        UserDefaults.standard.set(DateFormatter.isoDate.string(from: Date()), forKey: "nutrition.last.log.date")
+        NotificationService.cancelNutritionReminder()
         BehaviorTracker.shared.record(.nutritionLog)
-        UNUserNotificationCenter.current()
-            .removePendingNotificationRequests(withIdentifiers: ["nutrition.daily.reminder"])
     }
 
     func scanNutritionLabel(imageBase64: String, quantity: Double, unit: String) async throws -> ScanResult {
@@ -219,6 +219,8 @@ extension APIService {
     func logMealTemplate(_ id: String, mealType: String) async throws {
         _ = try await offlinePost(endpoint: "/api/meal_templates/\(id)/log",
                                   payload: ["meal_type": mealType])
+        UserDefaults.standard.set(DateFormatter.isoDate.string(from: Date()), forKey: "nutrition.last.log.date")
+        NotificationService.cancelNutritionReminder()
     }
 }
 

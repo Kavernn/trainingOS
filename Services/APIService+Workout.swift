@@ -63,6 +63,7 @@ extension APIService {
         if try await offlinePost(endpoint: "/api/log_session", payload: body) != nil {
             CacheInvalidation.sessionLogged(isSecond: secondSession, isBonus: bonusSession).invalidate()
         }
+        if !secondSession && !bonusSession { NotificationService.cancelSessionReminders() }
     }
 
     func fetchSeanceSoirData() async throws -> SeanceSoirData {

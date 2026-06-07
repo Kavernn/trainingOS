@@ -46,14 +46,24 @@ private final class AppNotificationDelegate: NSObject, UNUserNotificationCenterD
     ) {
         let id = response.notification.request.identifier
         DispatchQueue.main.async {
-            if id.hasPrefix("event.phoenix") || id.hasPrefix("event.dna") {
-                AppState.shared.pendingDeepLink = "intelligence"
-            } else if id.hasPrefix("event.season") || id.hasPrefix("event.capsule") {
+            if id.hasPrefix("event.phoenix") || id.hasPrefix("event.dna")
+                || id.hasPrefix("event.season") || id.hasPrefix("event.capsule")
+                || id.hasPrefix("event.graveyard")
+                || id == "ritual.morning.reminder" || id == "ritual.streak.risk"
+                || id == "ritual.demon.haunting" || id == "ritual.evening.reminder"
+                || id == "weekly.recap.sunday" {
                 AppState.shared.pendingDeepLink = "intelligence"
             } else if id.hasPrefix("war_room") {
                 AppState.shared.pendingDeepLink = "warroom"
-            } else if id.hasPrefix("event.graveyard") {
-                AppState.shared.pendingDeepLink = "intelligence"
+            } else if id == "nutrition.daily.reminder" {
+                AppState.shared.pendingDeepLink = "more"
+            } else if id == "hrv.morning.reminder" || id == "selfcare.daily.reminder"
+                        || id == "pss.weekly.test" {
+                AppState.shared.pendingDeepLink = "more"
+            } else if id == "inactivity.reminder" || id == "weekly.friday.fullbody" {
+                AppState.shared.pendingDeepLink = "seance"
+            } else if id == "streak.milestone" {
+                AppState.shared.pendingDeepLink = "dashboard"
             }
         }
         completionHandler()

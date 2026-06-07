@@ -19,11 +19,13 @@ extension APIService {
         if let f = carriedFrom { payload["carried_from"] = f }
         _ = try await offlinePost(endpoint: "/api/ritual/morning", payload: payload)
         CacheInvalidation.ritualActioned.invalidate()
+        NotificationService.cancelMorningRitualReminders()
     }
 
     func saveRitualEvening(outcome: String) async throws -> RitualEveningResult {
         let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: ["outcome": outcome])
         CacheInvalidation.ritualActioned.invalidate()
+        NotificationService.cancelEveningRitualReminder()
         guard let data else { throw APIError.queuedOffline }
         return try APIService.decoder.decode(RitualEveningResult.self, from: data)
     }
@@ -81,6 +83,7 @@ extension APIService {
 
         let data = try await offlinePost(endpoint: "/api/ritual/evening", payload: payload)
         CacheInvalidation.ritualUpdated.invalidate()
+        NotificationService.cancelEveningRitualReminder()
         guard let data else { throw APIError.queuedOffline }
         return try APIService.decoder.decode(RitualEveningResult.self, from: data)
     }
