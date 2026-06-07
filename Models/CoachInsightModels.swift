@@ -12,6 +12,48 @@ struct DailyInsight: Codable {
     var isEmpty: Bool { type == "none" || title.isEmpty }
 }
 
+struct ProactiveInsightItem: Codable {
+    let dimension: String
+    let level: Int
+    let title: String
+    let message: String
+    let action: String
+    let icon: String
+    let color: String
+
+    func asDailyInsight() -> DailyInsight {
+        let mappedAction: String
+        switch action {
+        case "open_seance":   mappedAction = "seance"
+        case "open_recovery": mappedAction = "stats"
+        default:              mappedAction = "coach"
+        }
+        return DailyInsight(
+            type: level == 1 ? "alert" : "opportunity",
+            icon: icon,
+            title: title,
+            body: message,
+            source: "proactive",
+            action: mappedAction,
+            priority: level == 1 ? 10 : 5
+        )
+    }
+}
+
+struct ProactiveInsightsResponse: Codable {
+    let pushInsight:          ProactiveInsightItem?
+    let dashboardInsight:     ProactiveInsightItem?
+    let intelligenceInsights: [ProactiveInsightItem]
+    let computedAt:           String
+
+    enum CodingKeys: String, CodingKey {
+        case pushInsight          = "push_insight"
+        case dashboardInsight     = "dashboard_insight"
+        case intelligenceInsights = "intelligence_insights"
+        case computedAt           = "computed_at"
+    }
+}
+
 struct PostSessionData: Codable {
     let volumeDeltaPct: Int?
     let avgRpe: Double?

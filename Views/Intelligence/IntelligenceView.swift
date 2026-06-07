@@ -39,6 +39,7 @@ struct IntelligenceView: View {
     @State private var showWeeklyReport                         = false
     @State private var isLoadingWeeklyReport                    = false
     @State private var dailyInsight: DailyInsight? = nil
+    @State private var proactiveInsights: ProactiveInsightsResponse? = nil
     @State private var isLoadingInsight = false
     @State private var postSessionData: PostSessionData? = nil
     @AppStorage("post_session_logged_at") private var postSessionLoggedAt: String = ""
@@ -63,6 +64,12 @@ struct IntelligenceView: View {
     var onOpenSession: (() -> Void)? = nil
 
     private var todayRecovery: RecoveryEntry? { recoveryData.first }
+
+    private var activeInsight: DailyInsight? {
+        if let pi = proactiveInsights?.dashboardInsight { return pi.asDailyInsight() }
+        if let di = dailyInsight, !di.isEmpty { return di }
+        return nil
+    }
 
     private var shouldShowPostSeanceCard: Bool {
         guard let loggedAt = ISO8601DateFormatter().date(from: postSessionLoggedAt) else { return false }
@@ -246,8 +253,14 @@ struct IntelligenceView: View {
                 if api.dashboard == nil { await api.fetchDashboard() }
                 Task { generatedProgram = try? await APIService.shared.fetchLatestGeneratedProgram() }
                 await loadContextData()
+                let streak = computeStreak(from: sessionsData)
+                NotificationService.scheduleStreakDanger(
+                    streak: streak,
+                    hasSessionToday: api.dashboard?.alreadyLoggedToday == true
+                )
                 await MainActor.run { purgeStaleMemoryEntries() }
                 Task { await loadDailyInsight() }
+                Task { await loadProactiveInsights() }
                 // Post-séance: if session already logged, ensure timestamp is set for today
                 if api.dashboard?.alreadyLoggedToday == true {
                     let today = DateFormatter.isoDate.string(from: Date())
@@ -305,7 +318,7 @@ struct IntelligenceView: View {
 
     @ViewBuilder
     private var summaryCardsView: some View {
-        if let insight = dailyInsight, !insight.isEmpty {
+        if let insight = activeInsight {
             InsightPrincipalCard(
                 insight: insight,
                 onNavigateToProgramme: {
@@ -1052,6 +1065,34 @@ struct IntelligenceView: View {
         } catch {
             await MainActor.run { isLoadingInsight = false }
         }
+    }
+
+    private func loadProactiveInsights() async {
+        do {
+            let result = try await APIService.shared.fetchProactiveInsights()
+            await MainActor.run { proactiveInsights = result }
+            if let push = result.pushInsight {
+                NotificationService.scheduleProactiveAlert(
+                    title: push.title,
+                    body: push.message,
+                    identifier: "proactive.\(push.dimension)"
+                )
+            }
+        } catch { }
+    }
+
+    private func computeStreak(from sessions: [String: SessionEntry]) -> Int {
+        let formatter = DateFormatter.isoDate
+        var streak = 0
+        var checkTime = Date().timeIntervalSince1970
+        for _ in 0..<60 {
+            let check = formatter.string(from: Date(timeIntervalSince1970: checkTime))
+            if sessions[check] != nil {
+                streak += 1
+                checkTime -= 86400
+            } else { break }
+        }
+        return streak
     }
 
     private func loadPostSession() async {

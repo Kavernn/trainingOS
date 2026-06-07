@@ -253,6 +253,55 @@ enum NotificationService {
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
     }
 
+    // MARK: - Proactive Alert (D3/D10 — at most once per dimension per day)
+
+    static func scheduleProactiveAlert(title: String, body: String, identifier: String) {
+        guard !globalDisabled else { return }
+        let today = DateFormatter.isoDate.string(from: Date())
+        let guardKey = "proactive_alert_shown_\(identifier)_\(today)"
+        guard !UserDefaults.standard.bool(forKey: guardKey) else { return }
+        UserDefaults.standard.set(true, forKey: guardKey)
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            let center = UNUserNotificationCenter.current()
+            center.removePendingNotificationRequests(withIdentifiers: [identifier])
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body  = body
+            content.sound = .default
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            center.add(UNNotificationRequest(identifier: identifier, content: content, trigger: trigger))
+        }
+    }
+
+    // MARK: - D13: Streak danger (17:30 daily, only if streak >= 3 and no session today)
+
+    static func scheduleStreakDanger(streak: Int, hasSessionToday: Bool) {
+        guard !globalDisabled else { return }
+        let center = UNUserNotificationCenter.current()
+        let id = "streak.danger.daily"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+        guard streak >= 3, !hasSessionToday else { return }
+
+        let today = DateFormatter.isoDate.string(from: Date())
+        let guardKey = "notif_streak_danger_date"
+        guard UserDefaults.standard.string(forKey: guardKey) != today else { return }
+        UserDefaults.standard.set(today, forKey: guardKey)
+
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Streak de \(streak) jours 🔥"
+            content.body  = "Pas encore de séance aujourd'hui — protège ton streak."
+            content.sound = .default
+            var dc = DateComponents()
+            dc.hour = 17; dc.minute = 30
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+    }
+
     // MARK: - Weekly Recap (Sunday — adaptive hour, defaults to 10:00)
 
     private static func scheduleWeeklyRecapNotification(tracker: BehaviorTracker) {

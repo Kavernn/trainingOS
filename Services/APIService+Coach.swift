@@ -7,6 +7,12 @@ extension APIService {
         return try APIService.decoder.decode(DailyInsight.self, from: data)
     }
 
+    func fetchProactiveInsights() async throws -> ProactiveInsightsResponse {
+        let url = try buildURL(path: "/api/coach/proactive_insights")
+        let data = try await fetchWithCache(url: url, key: "proactive_insights")
+        return try APIService.decoder.decode(ProactiveInsightsResponse.self, from: data)
+    }
+
     func fetchPostSession(date: String? = nil) async throws -> PostSessionData {
         let today = DateFormatter.isoDate.string(from: Date())
         let key = "post_session_\(date ?? today)"
