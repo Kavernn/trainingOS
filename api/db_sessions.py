@@ -464,6 +464,7 @@ def upsert_exercise_log_direct(
     sets_json: list | None = None,
     rpe: float | None = None,
     pain_zone: str | None = None,
+    notes: str | None = None,
 ) -> bool:
     """Insert/update an exercise_log row using session_id directly (bypasses date lookup)."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
@@ -486,6 +487,8 @@ def upsert_exercise_log_direct(
             payload["rpe"] = round(float(rpe), 1)
         if pain_zone:
             payload["pain_zone"] = pain_zone
+        if notes:
+            payload["notes"] = notes
         resp = (
             db_core._client.table("exercise_logs")
             .upsert(payload, on_conflict="session_id,exercise_id")
@@ -780,7 +783,7 @@ def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) ->
 
         resp = (
             db_core._client.table("exercise_logs")
-            .select("exercise_id, weight, reps, sets_json, workout_sessions(date)")
+            .select("exercise_id, weight, reps, sets_json, notes, workout_sessions(date)")
             .in_("exercise_id", ex_ids)
             .order("workout_sessions(date)", desc=True)
             .execute()
@@ -801,6 +804,8 @@ def get_exercise_history_bulk(exercise_names: list[str], limit_per: int = 20) ->
             entry = {"date": d, "weight": r.get("weight"), "reps": r.get("reps")}
             if r.get("sets_json"):
                 entry["sets"] = r.get("sets_json")
+            if r.get("notes"):
+                entry["notes"] = r.get("notes")
             lst.append(entry)
         return result
 

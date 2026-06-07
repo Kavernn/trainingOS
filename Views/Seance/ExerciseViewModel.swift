@@ -34,6 +34,7 @@ struct ExerciseLogResult {
     var isBonus: Bool = false
     var equipmentType: String = ""
     var painZone: String = ""
+    var notes: String = ""
 }
 
 private struct DraftSet: Codable {
@@ -332,7 +333,7 @@ final class ExerciseViewModel: ObservableObject {
             let setsPayload: [[String: Any]] = sets.map { ["weight": 0, "reps": String($0.duration)] }
             let result = ExerciseLogResult(name: name, weight: 0, reps: repsStr, rpe: exerciseRPE,
                 sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
-                equipmentType: "bodyweight", painZone: painZone)
+                equipmentType: "bodyweight", painZone: painZone, notes: sessionNote)
             logStatus = .success(0)
             return result
         }
@@ -355,7 +356,7 @@ final class ExerciseViewModel: ObservableObject {
         }
         let result = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE,
             sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
-            equipmentType: equipmentType, painZone: painZone)
+            equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
         logStatus = .success(total)
         return result
     }
@@ -592,7 +593,7 @@ class SeanceViewModel: ObservableObject {
                     exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
                     sets: result.sets, force: true,
                     isSecond: result.isSecond, isBonus: result.isBonus,
-                    equipmentType: result.equipmentType, painZone: result.painZone,
+                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes,
                     invalidate: false)
                 batchInvalidations.append(.exerciseLogged(isSecond: result.isSecond, isBonus: result.isBonus))
                 if response.isPR == true {

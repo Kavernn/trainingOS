@@ -56,6 +56,8 @@ struct ExerciseCard: View {
     @State private var undoTask: Task<Void, Never>?
     // Draft saved indicator
     @State private var showSaved = false
+    // Previous session note dismissal
+    @State private var hidePreviousNote = false
 
     init(name: String, scheme: String, weightData: WeightData?,
          equipmentType: String = "machine", trackingType: String = "reps",
@@ -905,6 +907,28 @@ struct ExerciseCard: View {
     }
 
     @ViewBuilder private var formView: some View {
+        // Rappel note dernière séance
+        if let prev = evm.weightData?.history?.first(where: { ($0.sessionNotes ?? "").isEmpty == false }),
+           let prevNote = prev.sessionNotes, !hidePreviousNote {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "note.text").font(.appCaption).foregroundColor(.orange.opacity(0.7))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Dernière séance · \(prev.date ?? "")")
+                        .font(.appMicro).fontWeight(.semibold).foregroundColor(.orange.opacity(0.6))
+                    Text(prevNote.count > 120 ? String(prevNote.prefix(120)) + "…" : prevNote)
+                        .font(.appCaption).foregroundColor(.white.opacity(0.75))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Button { withAnimation { hidePreviousNote = true } } label: {
+                    Image(systemName: "xmark").font(.appMicro).foregroundColor(.gray.opacity(0.4))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 8)
+            .background(Color.orange.opacity(0.07))
+            .cornerRadius(8)
+        }
         if !isTimeBased, evm.lastReps != "—", !evm.lastReps.isEmpty {
             Button {
                 triggerImpact(style: .medium)
@@ -1017,6 +1041,21 @@ struct ExerciseCard: View {
         .padding(.top, 2)
         if !isTimeBased, evm.avgWeight != nil { avgTotalRow }
         effortRow
+        // Note de séance — toujours visible, sauvegardée au log
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "note").font(.appCaption)
+                .foregroundColor(evm.sessionNote.isEmpty ? .gray.opacity(0.35) : .orange.opacity(0.7))
+                .padding(.top, 1)
+            TextField("Note de séance…", text: $evm.sessionNote, axis: .vertical)
+                .font(.appCaption)
+                .foregroundColor(evm.sessionNote.isEmpty ? .gray : .orange)
+                .lineLimit(1...3)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 7)
+        .background(evm.sessionNote.isEmpty ? Color.clear : Color.orange.opacity(0.06))
+        .cornerRadius(8)
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(
+            evm.sessionNote.isEmpty ? Color.white.opacity(0.05) : Color.orange.opacity(0.15), lineWidth: 1))
         if showAdvanced {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { showAdvanced = false }
@@ -1069,15 +1108,8 @@ struct ExerciseCard: View {
                     .font(.appCaption).foregroundColor(evm.painZone.isEmpty ? .gray : .red)
             }
             HStack(spacing: 6) {
-                Image(systemName: "note").font(.appCaption).foregroundColor(.orange.opacity(0.6))
-                TextField("Note de séance (effacée après)", text: $evm.sessionNote, axis: .vertical)
-                    .font(.appCaption)
-                    .foregroundColor(evm.sessionNote.isEmpty ? .gray : .orange)
-                    .lineLimit(1...2)
-            }
-            HStack(spacing: 6) {
                 Image(systemName: "note.text").font(.appCaption).foregroundColor(.cyan.opacity(0.6))
-                TextField("Notes techniques (persistent)", text: noteBinding, axis: .vertical)
+                TextField("Notes techniques (persistantes)", text: noteBinding, axis: .vertical)
                     .font(.appCaption)
                     .foregroundColor(exoNote.isEmpty ? .gray : .cyan)
                     .lineLimit(1...3)

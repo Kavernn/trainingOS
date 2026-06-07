@@ -353,7 +353,8 @@ struct WeightHistoryEntry: Codable {
     let date: String?
     let weight: Double?         // average weight across sets
     let reps: String?
-    let note: String?
+    let note: String?           // progression action note (+2.5, stagné…)
+    let sessionNotes: String?   // user-written note for this session
     let oneRM: Double?
     let sets: [SetEntry]?       // raw per-set data
     let exerciseVolume: Double? // total volume for this exercise entry
@@ -398,6 +399,7 @@ struct WeightHistoryEntry: Codable {
         case date, weight, reps, note, sets
         case oneRM          = "1rm"
         case exerciseVolume = "exercise_volume"
+        case sessionNotes   = "notes"
     }
 }
 

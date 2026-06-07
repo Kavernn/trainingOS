@@ -46,7 +46,7 @@ class SeanceSoirViewModel: SeanceViewModel {
                     exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
                     sets: result.sets, force: true,
                     isSecond: true, isBonus: false,
-                    equipmentType: result.equipmentType, painZone: result.painZone)
+                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes)
             } catch {
                 failedExercises.append(result.name)
             }

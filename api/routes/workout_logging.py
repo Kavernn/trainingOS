@@ -34,6 +34,7 @@ def api_log():
         session_name   = data.get("session_name")
         equipment_type = data.get("equipment_type", "")
         pain_zone      = data.get("pain_zone", "")
+        notes          = data.get("notes", "") or ""
 
         if not exercise or not reps_str:
             return jsonify({"error": "Données manquantes"}), 400
@@ -144,6 +145,7 @@ def api_log():
                 sets_json=sets_data or None,
                 rpe=rpe,
                 pain_zone=pain_zone or None,
+                notes=notes or None,
             )
             if not ok:
                 return jsonify({"error": "Échec de l'enregistrement en base"}), 500

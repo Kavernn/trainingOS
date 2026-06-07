@@ -19,7 +19,7 @@ class BonusSeanceViewModel: SeanceViewModel {
                     exercise: result.name, weight: result.weight, reps: result.reps, rpe: result.rpe,
                     sets: result.sets, force: true,
                     isSecond: false, isBonus: true,
-                    equipmentType: result.equipmentType, painZone: result.painZone)
+                    equipmentType: result.equipmentType, painZone: result.painZone, notes: result.notes)
             } catch {
                 failedExercises.append(result.name)
             }
