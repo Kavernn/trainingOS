@@ -76,6 +76,8 @@ def api_log_recovery():
         "hr_post_workout":   data.get("hr_post_workout"),
         "hr_evening":        data.get("hr_evening"),
         "notes":             data.get("notes", ""),
+        "bedtime":           data.get("bedtime"),
+        "wake_time":         data.get("wake_time"),
         "source":            "manual",
     }
     ok = _db.upsert_recovery_log(entry)
@@ -136,6 +138,8 @@ def api_healthkit_sync():
         "fatigue_perceived": existing.get("fatigue_perceived"),
         "energy_pre":        existing.get("energy_pre"),
         "notes":             existing.get("notes", ""),
+        "bedtime":           existing.get("bedtime"),
+        "wake_time":         existing.get("wake_time"),
         "source":            existing.get("source") or "healthkit",
     }
 

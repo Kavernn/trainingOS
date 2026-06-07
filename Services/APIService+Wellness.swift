@@ -17,7 +17,8 @@ extension APIService {
                      fatigue: Double? = nil, energyPre: Double? = nil,
                      activeEnergy: Double? = nil, hrMorning: Double? = nil,
                      hrPostWorkout: Double? = nil, hrEvening: Double? = nil,
-                     notes: String, date: String? = nil) async throws {
+                     notes: String, date: String? = nil,
+                     bedtime: String? = nil, wakeTime: String? = nil) async throws {
         var body: [String: Any] = ["notes": notes]
         if let v = sleepHours    { body["sleep_hours"]        = v }
         if let v = sleepQuality  { body["sleep_quality"]      = v }
@@ -32,6 +33,8 @@ extension APIService {
         if let v = hrPostWorkout { body["hr_post_workout"]    = Int(v) }
         if let v = hrEvening     { body["hr_evening"]         = Int(v) }
         if let d = date          { body["date"]               = d }
+        if let v = bedtime       { body["bedtime"]            = v }
+        if let v = wakeTime      { body["wake_time"]          = v }
         _ = try await offlinePost(endpoint: "/api/log_recovery", payload: body)
         CacheInvalidation.recoveryLogged.invalidate()
     }

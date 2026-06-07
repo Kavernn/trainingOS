@@ -125,6 +125,8 @@ def save_sleep_entry(
     existing_rec["date"]          = today
     existing_rec["sleep_hours"]   = duration
     existing_rec["sleep_quality"] = round((quality - 1) / 4 * 9 + 1)
+    existing_rec["bedtime"]       = bedtime
+    existing_rec["wake_time"]     = wake_time
     existing_rec["source"]        = "manual"
     ok = db.upsert_recovery_log(existing_rec)
     if not ok:
@@ -161,8 +163,8 @@ def _recovery_to_sleep(entry: dict) -> dict:
     return {
         "id":                entry["date"],
         "date":              entry["date"],
-        "bedtime":           "—",
-        "wake_time":         "—",
+        "bedtime":           entry.get("bedtime") or "—",
+        "wake_time":         entry.get("wake_time") or "—",
         "duration_hours":    h,
         "quality":           quality,
         "quality_label":     q_label,
