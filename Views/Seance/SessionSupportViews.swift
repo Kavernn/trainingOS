@@ -959,7 +959,7 @@ struct CoachingChip: View {
                 Image(systemName: typeIcon)
                     .font(.appCaption).foregroundColor(typeColor)
                 if let w = suggestion.suggestedWeight {
-                    Text(w.fmtLbs())
+                    Text(UnitSettings.shared.format(w))
                         .font(.appLabel).fontWeight(.black).foregroundColor(typeColor)
                 }
                 Text(suggestion.reason)
