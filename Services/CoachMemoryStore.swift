@@ -383,7 +383,7 @@ enum CoachMemoryAnalyzer {
             .max(by: { ($0.1.currentWeight ?? 0) < ($1.1.currentWeight ?? 0) })
         else { return nil }
         let w = data.currentWeight ?? 0
-        return "Charge maximale actuelle : \(name) à \(String(format: "%.0f", w)) lbs"
+        return "Charge maximale actuelle : \(name) à \(UnitSettings.shared.format(w, decimals: 0))"
     }
 
     private static func dayName(_ weekday: Int) -> String {
@@ -447,7 +447,7 @@ enum CoachMemoryAnalyzer {
 
             return abs(v.lbsPerWeek) < 0.05
                 ? "\(v.name) stable"
-                : "\(v.name) \(sign)\(String(format: "%.1f", v.lbsPerWeek))lbs/sem"
+                : "\(v.name) \(sign)\(UnitSettings.shared.format(abs(v.lbsPerWeek)))/sem"
         }
 
         return "Vélocité charges : " + parts.joined(separator: " | ")
@@ -536,7 +536,7 @@ enum CoachMemoryAnalyzer {
 
             if weightFlat && repsFlat {
                 plateaus.append(
-                    "Plateau \(name) : \(String(format: "%.0f", weights3[0]))lbs×\(reps3[0]) reps — 3 séances sans progression"
+                    "Plateau \(name) : \(UnitSettings.shared.format(weights3[0], decimals: 0))×\(reps3[0]) reps — 3 séances sans progression"
                 )
             }
         }
@@ -544,8 +544,9 @@ enum CoachMemoryAnalyzer {
         // Limit to 3 most impactful (heaviest weight)
         return plateaus
             .sorted { lhs, rhs in
-                let w0 = Double(lhs.components(separatedBy: ":").last?.components(separatedBy: "lbs").first?.trimmingCharacters(in: .whitespaces) ?? "0") ?? 0
-                let w1 = Double(rhs.components(separatedBy: ":").last?.components(separatedBy: "lbs").first?.trimmingCharacters(in: .whitespaces) ?? "0") ?? 0
+                let unit = UnitSettings.shared.label
+                let w0 = Double(lhs.components(separatedBy: ":").last?.components(separatedBy: unit).first?.trimmingCharacters(in: .whitespaces) ?? "0") ?? 0
+                let w1 = Double(rhs.components(separatedBy: ":").last?.components(separatedBy: unit).first?.trimmingCharacters(in: .whitespaces) ?? "0") ?? 0
                 return w0 > w1
             }
             .prefix(3)

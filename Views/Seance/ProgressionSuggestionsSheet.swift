@@ -239,18 +239,18 @@ private struct SuggestionRow: View {
                suggestion.suggestionType != "maintain",
                suggestion.suggestionType != "rep_progress" {
                 HStack(spacing: 6) {
-                    Text(cur.fmtLbs())
+                    Text(UnitSettings.shared.format(cur))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.gray)
                     Image(systemName: "arrow.right")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundColor(.gray)
-                    Text(sug.fmtLbs())
+                    Text(UnitSettings.shared.format(sug))
                         .font(.system(size: 22, weight: .black))
                         .foregroundColor(typeColor)
                     let delta = sug - cur
                     if delta != 0 {
-                        Text(delta > 0 ? "+\(delta.fmtLbs())" : delta.fmtLbs())
+                        Text(delta > 0 ? "+\(UnitSettings.shared.format(delta))" : UnitSettings.shared.format(delta))
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(delta > 0 ? typeColor.opacity(0.7) : .red.opacity(0.7))
                             .padding(.horizontal, 6)
@@ -292,7 +292,7 @@ private struct SuggestionRow: View {
                                     Image(systemName: "checkmark")
                                         .font(.system(size: 11, weight: .bold))
                                     if let sug = suggestion.suggestedWeight {
-                                        Text("Appliquer · \(sug.fmtLbs())")
+                                        Text("Appliquer · \(UnitSettings.shared.format(sug))")
                                             .font(.system(size: 13, weight: .semibold))
                                     } else {
                                         Text("Appliquer")
@@ -367,7 +367,7 @@ private struct MaintainRow: View {
                 .foregroundColor(Color.white.opacity(0.55))
             Spacer()
             if let w = suggestion.currentWeight {
-                Text(w.fmtLbs())
+                Text(UnitSettings.shared.format(w))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.gray)
             }
@@ -380,14 +380,3 @@ private struct MaintainRow: View {
     }
 }
 
-// MARK: - Helpers
-
-extension Double {
-    /// "165 lbs" — no decimal if whole number
-    func fmtLbs() -> String {
-        let s = self.truncatingRemainder(dividingBy: 1) == 0
-            ? String(Int(self))
-            : String(format: "%.1f", self)
-        return "\(s) lbs"
-    }
-}
