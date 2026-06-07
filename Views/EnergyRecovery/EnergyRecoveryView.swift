@@ -756,6 +756,19 @@ private struct UnifiedRecoverySleepSection: View {
                 }
             }
             Spacer()
+            NavigationLink(destination: RecoveryView()) {
+                HStack(spacing: 3) {
+                    Text("Détails")
+                        .font(.appCaption.weight(.semibold))
+                    Image(systemName: "chevron.right")
+                        .font(.appMicro)
+                }
+                .foregroundColor(.orange)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 5)
+                .background(Color.orange.opacity(0.1))
+                .clipShape(Capsule())
+            }
 #if !targetEnvironment(macCatalyst)
             Button {
                 Task { await syncNow() }
