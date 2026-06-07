@@ -102,6 +102,167 @@ private struct RecoveryDayCell: View {
     }
 }
 
+// MARK: - RecoveryHeroCard
+
+private struct RecoveryHeroCard: View {
+    let score: Double?
+    let hrv: Double?
+    let sleepHours: Double?
+    let restingHr: Double?
+    let isSyncing: Bool
+    let lastSyncLabel: String
+    let formattedDate: String
+    let onSync: () -> Void
+
+    @State private var displayScore: Double = 0
+
+    private var scoreInt: Int { score.map { Int($0 * 100) } ?? 0 }
+
+    private var scoreColor: Color {
+        guard score != nil else { return .gray }
+        if scoreInt >= 80 { return .green }
+        if scoreInt >= 60 { return Color(red: 1.0, green: 0.78, blue: 0.0) }
+        if scoreInt >= 40 { return .orange }
+        return .red
+    }
+
+    private var gradientTop: Color {
+        guard score != nil else { return .gray.opacity(0.12) }
+        if scoreInt >= 80 { return .green.opacity(0.28) }
+        if scoreInt >= 60 { return Color(red: 1.0, green: 0.78, blue: 0.0).opacity(0.22) }
+        if scoreInt >= 40 { return .orange.opacity(0.24) }
+        return .red.opacity(0.24)
+    }
+
+    private var verdictLabel: String {
+        guard score != nil else { return "En attente de données" }
+        if scoreInt >= 80 { return "Prêt(e) à performer" }
+        if scoreInt >= 60 { return "Récupération modérée" }
+        if scoreInt >= 40 { return "Récupération incomplète" }
+        return "Repos prioritaire"
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(formattedDate)
+                        .font(.appLabel)
+                        .foregroundColor(.white.opacity(0.85))
+                    Text(lastSyncLabel)
+                        .font(.appCaption)
+                        .foregroundColor(.gray.opacity(0.65))
+                }
+                Spacer()
+                #if !targetEnvironment(macCatalyst)
+                Button(action: onSync) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.appCaption.weight(.bold))
+                            .rotationEffect(.degrees(isSyncing ? 360 : 0))
+                            .animation(
+                                isSyncing
+                                    ? .linear(duration: 0.8).repeatForever(autoreverses: false)
+                                    : .default,
+                                value: isSyncing
+                            )
+                        Text("Sync")
+                            .font(.appCaption.weight(.semibold))
+                    }
+                    .foregroundColor(isSyncing ? .gray : scoreColor)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.08))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(SpringButtonStyle())
+                .disabled(isSyncing)
+                #endif
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            VStack(spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text("\(Int(displayScore))")
+                        .font(.system(size: 68, weight: .black, design: .rounded))
+                        .foregroundColor(scoreColor)
+                        .contentTransition(.numericText())
+                        .monospacedDigit()
+                    if score != nil {
+                        Text("/100")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(scoreColor.opacity(0.55))
+                            .padding(.bottom, 6)
+                    }
+                }
+                Text(verdictLabel.uppercased())
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(.gray.opacity(0.75))
+            }
+            .padding(.bottom, 18)
+
+            HStack(spacing: 8) {
+                heroPill(icon: "waveform.path.ecg",
+                         label: "HRV",
+                         value: hrv.map { String(format: "%.0f ms", $0) },
+                         color: .green)
+                heroPill(icon: "moon.zzz.fill",
+                         label: "Sommeil",
+                         value: sleepHours.map { String(format: "%.1f h", $0) },
+                         color: .blue)
+                heroPill(icon: "heart.fill",
+                         label: "FC repos",
+                         value: restingHr.map { String(format: "%.0f bpm", $0) },
+                         color: .red)
+            }
+            .padding(.horizontal, 14)
+            .padding(.bottom, 16)
+        }
+        .background(
+            ZStack {
+                Color.appCard
+                LinearGradient(colors: [gradientTop, gradientTop.opacity(0)],
+                               startPoint: .top, endPoint: .bottom)
+            }
+        )
+        .cornerRadius(20)
+        .overlay(RoundedRectangle(cornerRadius: 20)
+            .stroke(scoreColor.opacity(score != nil ? 0.20 : 0.08), lineWidth: 1))
+        .onAppear { animateScore() }
+        .onChange(of: score) { _, _ in animateScore() }
+    }
+
+    private func animateScore() {
+        withAnimation(.easeOut(duration: 1.2)) { displayScore = (score ?? 0) * 100 }
+    }
+
+    private func heroPill(icon: String, label: String, value: String?, color: Color) -> some View {
+        let hasValue = value != nil
+        return VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 13))
+                .foregroundColor(hasValue ? color : .gray.opacity(0.35))
+            Text(value ?? "—")
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(hasValue ? .white : .gray.opacity(0.4))
+                .lineLimit(1).minimumScaleFactor(0.7)
+            Text(label)
+                .font(.system(size: 9, weight: .semibold))
+                .tracking(1)
+                .foregroundColor(.gray.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(color.opacity(hasValue ? 0.10 : 0.04))
+        .cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .stroke(color.opacity(hasValue ? 0.18 : 0.06), lineWidth: 1))
+    }
+}
+
 // MARK: - RecoveryView
 
 struct RecoveryView: View {
@@ -286,24 +447,18 @@ struct RecoveryView: View {
     private var todayScrollView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                todayHeader
-                    .padding(.horizontal, 16)
-
-                RecoveryPerformanceBanner(
-                    dashboard: api.dashboard,
-                    hrvAnalysis: hrvAnalysis,
-                    recoveryScore: readinessData.map { Double($0.score) / 10.0 },
-                    onTap: onOpenSession
+                RecoveryHeroCard(
+                    score: readinessData.map { Double($0.score) / 10.0 },
+                    hrv: todayEntry?.hrv,
+                    sleepHours: todayEntry?.sleepHours,
+                    restingHr: todayEntry?.restingHr,
+                    isSyncing: isSyncingHK,
+                    lastSyncLabel: lastSyncLabel,
+                    formattedDate: formattedToday,
+                    onSync: { Task { await syncHealthKitNow() } }
                 )
                 .padding(.horizontal, 16)
-                .appearAnimation(delay: 0.02)
-
-                if let entry = todayEntry {
-                    ReadinessCard(entry: entry, backendScore: readinessData.map { Double($0.score) / 10.0 },
-                                  hrv7dBaseline: hrvAnalysis?.hrv7dAvg)
-                        .padding(.horizontal, 16)
-                        .appearAnimation(delay: 0.04)
-                }
+                .appearAnimation(delay: 0)
 
                 metricGrid
                     .padding(.horizontal, 16)
@@ -338,48 +493,6 @@ struct RecoveryView: View {
         .refreshable {
             await loadData()
         }
-    }
-
-    private var todayHeader: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(formattedToday)
-                        .font(.appLabel)
-                        .foregroundColor(.gray)
-                    Text(lastSyncLabel)
-                        .font(.appCaption)
-                        .foregroundColor(.gray.opacity(0.65))
-                }
-                Spacer()
-                #if !targetEnvironment(macCatalyst)
-                Button {
-                    Task { await syncHealthKitNow() }
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
-                            .font(.appLabel.weight(.semibold))
-                            .rotationEffect(.degrees(isSyncingHK ? 360 : 0))
-                            .animation(
-                                isSyncingHK
-                                    ? .linear(duration: 0.8).repeatForever(autoreverses: false)
-                                    : .default,
-                                value: isSyncingHK
-                            )
-                        Text("Actualiser")
-                            .font(.appLabel.weight(.semibold))
-                    }
-                    .foregroundColor(isSyncingHK ? .gray : .orange)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .glassCard()
-                }
-                .buttonStyle(SpringButtonStyle())
-                .disabled(isSyncingHK)
-                #endif
-            }
-        }
-        .appearAnimation(delay: 0)
     }
 
     private var metricGrid: some View {
