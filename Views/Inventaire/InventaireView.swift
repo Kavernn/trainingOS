@@ -19,26 +19,42 @@ struct InventoryItem: Identifiable {
     var muscles: [String]
     var trackingType: String
     var restSeconds: Int?
-    var loadProfile: String   // "compound_heavy" | "compound_hypertrophy" | "isolation" | ""
+    var loadProfile: String
     var gifUrl: String?
     var useCount: Int
     var notes: String?
+    // classification anatomique + fonctionnelle (migration 063)
+    var muscleGroup: String
+    var muscleSpecific: String?
+    var secondaryMuscles: [String]
+    var movementPattern: String
+    var weightType: String
+    var equipment: [String]
+    var alternateName: String?
+
     init(name: String, _ d: [String: Any]) {
-        self.name          = name
-        self.type          = d["type"]          as? String ?? "machine"
-        self.category      = d["category"]      as? String ?? ""
-        self.pattern       = d["pattern"]       as? String ?? ""
-        self.level         = d["level"]         as? String ?? ""
-        self.barWeight     = d["bar_weight"]    as? Double ?? 0
-        self.increment     = d["increment"]     as? Double ?? 5
-        self.defaultScheme = d["default_scheme"] as? String ?? "3x8-12"
-        self.muscles       = d["muscles"]       as? [String] ?? []
-        self.trackingType  = d["tracking_type"] as? String ?? "reps"
-        self.restSeconds   = d["rest_seconds"]  as? Int
-        self.loadProfile   = d["load_profile"]  as? String ?? ""
-        self.gifUrl        = d["gif_url"]        as? String
-        self.useCount      = d["use_count"]      as? Int ?? 0
-        self.notes         = d["tips"]            as? String
+        self.name             = name
+        self.type             = d["type"]             as? String ?? "machine"
+        self.category         = d["category"]         as? String ?? ""
+        self.pattern          = d["pattern"]          as? String ?? ""
+        self.level            = d["level"]            as? String ?? ""
+        self.barWeight        = d["bar_weight"]       as? Double ?? 0
+        self.increment        = d["increment"]        as? Double ?? 5
+        self.defaultScheme    = d["default_scheme"]   as? String ?? "3x8-12"
+        self.muscles          = d["muscles"]          as? [String] ?? []
+        self.trackingType     = d["tracking_type"]    as? String ?? "reps"
+        self.restSeconds      = d["rest_seconds"]     as? Int
+        self.loadProfile      = d["load_profile"]     as? String ?? ""
+        self.gifUrl           = d["gif_url"]          as? String
+        self.useCount         = d["use_count"]        as? Int ?? 0
+        self.notes            = d["tips"]             as? String
+        self.muscleGroup      = d["muscle_group"]     as? String ?? ""
+        self.muscleSpecific   = d["muscle_specific"]  as? String
+        self.secondaryMuscles = d["secondary_muscles"] as? [String] ?? []
+        self.movementPattern  = d["movement_pattern"] as? String ?? ""
+        self.weightType       = d["weight_type"]      as? String ?? ""
+        self.equipment        = d["equipment"]        as? [String] ?? []
+        self.alternateName    = d["alternate_name"]   as? String
     }
 }
 
@@ -56,6 +72,8 @@ struct CatalogueView: View {
     @State private var editTarget: InventoryItem?
     @State private var showAdd = false
     @State private var prefillName = ""
+    @State private var showGaps = false
+    @State private var gapsCount = 0
     @State private var errorMsg: String?
     @State private var pendingDelete: String?
     @State private var addToProgramTarget: InventoryItem?
@@ -132,10 +150,28 @@ struct CatalogueView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    NavigationLink(destination: GraveyardView()) {
-                        Image(systemName: "archivebox.fill")
-                            .font(.appBody.weight(.semibold))
-                            .foregroundColor(Color(hex: "8B6AFF"))
+                    HStack(spacing: 14) {
+                        NavigationLink(destination: GraveyardView()) {
+                            Image(systemName: "archivebox.fill")
+                                .font(.appBody.weight(.semibold))
+                                .foregroundColor(Color(hex: "8B6AFF"))
+                        }
+                        if gapsCount > 0 {
+                            Button { showGaps = true } label: {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "tag.fill")
+                                        .font(.appBody.weight(.semibold))
+                                        .foregroundColor(.orange)
+                                    Text("\(gapsCount)")
+                                        .font(.system(size: 9, weight: .black))
+                                        .foregroundColor(.white)
+                                        .padding(2)
+                                        .background(Color.red)
+                                        .clipShape(Circle())
+                                        .offset(x: 6, y: -6)
+                                }
+                            }
+                        }
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -152,6 +188,11 @@ struct CatalogueView: View {
                             .font(.appBody.weight(.semibold))
                             .foregroundColor(sortOrder == .frequency ? Color.forge : .gray)
                     }
+                }
+            }
+            .sheet(isPresented: $showGaps) {
+                ClassificationGapsSheet { newCount in
+                    gapsCount = newCount
                 }
             }
             .sheet(isPresented: $showAdd) {
@@ -351,23 +392,40 @@ struct CatalogueView: View {
             await MainActor.run { items = loaded; inProgram = prog }
         }
         await MainActor.run { isLoading = false }
+        await loadGapsCount()
+    }
+
+    private func loadGapsCount() async {
+        guard let url = URL(string: "\(kBaseURL)/api/exercises/classification_gaps") else { return }
+        if let (data, _) = try? await URLSession.authed.data(from: url),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let total = json["total"] as? Int {
+            await MainActor.run { gapsCount = total }
+        }
     }
 
     private func postSave(_ item: InventoryItem, originalName: String? = nil) async {
         var body: [String: Any] = [
-            "name":           item.name,
-            "type":           item.type,
-            "category":       item.category,
-            "pattern":        item.pattern,
-            "level":          item.level,
-            "bar_weight":     item.barWeight,
-            "increment":      item.increment,
-            "default_scheme": item.defaultScheme,
-            "muscles":        item.muscles,
-            "tracking_type":  item.trackingType,
-            "rest_seconds":   item.restSeconds as Any,
-            "load_profile":   item.loadProfile.isEmpty ? NSNull() : item.loadProfile,
-            "tips":           item.notes ?? NSNull(),
+            "name":              item.name,
+            "type":              item.type,
+            "category":          item.category,
+            "pattern":           item.pattern,
+            "level":             item.level,
+            "bar_weight":        item.barWeight,
+            "increment":         item.increment,
+            "default_scheme":    item.defaultScheme,
+            "muscles":           item.muscles,
+            "tracking_type":     item.trackingType,
+            "rest_seconds":      item.restSeconds as Any,
+            "load_profile":      item.loadProfile.isEmpty ? NSNull() : item.loadProfile,
+            "tips":              item.notes ?? NSNull(),
+            "muscle_group":      item.muscleGroup.isEmpty ? NSNull() : item.muscleGroup,
+            "muscle_specific":   item.muscleSpecific ?? NSNull(),
+            "secondary_muscles": item.secondaryMuscles,
+            "movement_pattern":  item.movementPattern.isEmpty ? NSNull() : item.movementPattern,
+            "weight_type":       item.weightType.isEmpty ? NSNull() : item.weightType,
+            "equipment":         item.equipment,
+            "alternate_name":    item.alternateName ?? NSNull(),
         ]
         if let orig = originalName, orig != item.name {
             body["original_name"] = orig
@@ -548,20 +606,219 @@ struct CatalogueRow: View {
 
 // MARK: - Form Sheet (Add & Edit)
 
-private let kMuscleGroups = [
-    "chest", "shoulders", "rear delts", "triceps", "biceps",
-    "lats", "traps", "rhomboids", "lower back",
-    "abs", "obliques",
-    "fessiers", "hamstrings", "quads", "calves",
-    "forearms", "rotators", "abductors"
+// ── Taxonomie musculaire ──────────────────────────────────────────────────────
+
+private let kMusclesByGroup: [(group: String, specifics: [String])] = [
+    ("Pectoraux", [
+        "Pectoral majeur — chef claviculaire", "Pectoral majeur — chef sternal",
+        "Pectoral majeur — chef costal", "Pectoral mineur", "Serratus antérieur"
+    ]),
+    ("Dos", [
+        "Grand dorsal", "Trapèze — chef supérieur", "Trapèze — chef moyen",
+        "Trapèze — chef inférieur", "Rhomboïdes", "Grand rond",
+        "Érecteurs du rachis", "Multifides"
+    ]),
+    ("Épaules", [
+        "Deltoïde antérieur", "Deltoïde médial", "Deltoïde postérieur",
+        "Sous-épineux", "Supra-épineux", "Sous-scapulaire", "Petit rond"
+    ]),
+    ("Biceps+Avant-bras", [
+        "Biceps brachial — longue portion", "Biceps brachial — courte portion",
+        "Brachial", "Brachioradialis", "Supinateur",
+        "Fléchisseurs du poignet", "Extenseurs du poignet"
+    ]),
+    ("Triceps", [
+        "Triceps — longue portion", "Triceps — chef latéral",
+        "Triceps — chef médial", "Anconé"
+    ]),
+    ("Quadriceps", [
+        "Vaste latéral", "Vaste médial", "Vaste intermédiaire", "Droit fémoral"
+    ]),
+    ("Ischio-jambiers", [
+        "Biceps fémoral — longue portion", "Biceps fémoral — courte portion",
+        "Semi-tendineux", "Semi-membraneux"
+    ]),
+    ("Fessiers", [
+        "Grand fessier", "Moyen fessier", "Petit fessier", "Tenseur du fascia lata"
+    ]),
+    ("Mollets", [
+        "Gastrocnémien — chef médial", "Gastrocnémien — chef latéral",
+        "Soléaire", "Tibial antérieur"
+    ]),
+    ("Core", [
+        "Droit de l'abdomen", "Oblique externe", "Oblique interne",
+        "Transverse de l'abdomen", "Carré des lombes", "Psoas"
+    ]),
+    ("Hanches", [
+        "Grand adducteur", "Long adducteur", "Court adducteur", "Gracile", "Pectiné"
+    ]),
+    ("Cou", ["Sterno-cléido-mastoïdien", "Splénius"]),
+    ("Autre", [])
 ]
 
-private let kPatternOptions: [(String, String)] = [
-    ("horizontal_push", "H. Push"), ("vertical_push", "V. Push"),
-    ("horizontal_pull", "H. Pull"), ("vertical_pull", "V. Pull"),
-    ("squat", "Squat"), ("hinge", "Hinge"),
-    ("core", "Core"), ("isolation", "Isolation"), ("mobility", "Mobilité")
+private let kMovementPatterns: [(String, String)] = [
+    ("push_horizontal",    "Poussée horizontale"),
+    ("push_vertical",      "Poussée verticale"),
+    ("pull_horizontal",    "Tirage horizontal"),
+    ("pull_vertical",      "Tirage vertical"),
+    ("squat",              "Squat / Quad"),
+    ("hinge",              "Charnière / Hanche"),
+    ("unilateral_leg",     "Unilatéral jambe"),
+    ("press_machine",      "Presse machine"),
+    ("isolation_arm",      "Isolation bras"),
+    ("isolation_shoulder", "Isolation épaule"),
+    ("isolation_leg",      "Isolation jambe"),
+    ("core",               "Core / Gainage"),
+    ("rotation",           "Rotation"),
+    ("carry",              "Carry / Transport"),
+    ("cardio",             "Cardio"),
+    ("accessory_wrist",    "Accessoire poignet"),
+    ("other",              "Autre"),
 ]
+
+private struct WeightTypeOption {
+    let key: String
+    let label: String
+    let note: String
+    let color: Color
+}
+
+private let kWeightTypes: [WeightTypeOption] = [
+    WeightTypeOption(key: "barbell",      label: "Barre",        note: "Poids par côté + barre",   color: .orange),
+    WeightTypeOption(key: "dumbbell",     label: "Haltères",     note: "Poids par haltère",         color: .blue),
+    WeightTypeOption(key: "cable_single", label: "Câble",        note: "Poids de la pile",          color: .teal),
+    WeightTypeOption(key: "cable_double", label: "Câble ×2",     note: "Pile × 2 (bilatéral)",     color: .teal),
+    WeightTypeOption(key: "press",        label: "Presse",       note: "Charge totale machine",     color: .purple),
+    WeightTypeOption(key: "fixed_weight", label: "Poids fixe",   note: "Pas de reps comptées",      color: .yellow),
+    WeightTypeOption(key: "bodyweight",   label: "Corps",        note: "Poids corporel",            color: .green),
+    WeightTypeOption(key: "endurance",    label: "Endurance",    note: "Durée en secondes",         color: .cyan),
+    WeightTypeOption(key: "machine",      label: "Machine",      note: "Sélecteur de pile",         color: Color(hex: "8B6AFF")),
+]
+
+private let kEquipmentOptions = [
+    "Barre", "Haltères", "Machine", "Câble", "Bandes",
+    "Poids du corps", "Smith Machine", "TRX", "Autre"
+]
+
+// ── Backward compat helpers ───────────────────────────────────────────────────
+
+private func muscleGroupToEnglish(_ g: String) -> String {
+    switch g {
+    case "Pectoraux":         return "chest"
+    case "Dos":               return "back"
+    case "Épaules":           return "shoulders"
+    case "Biceps+Avant-bras": return "biceps"
+    case "Triceps":           return "triceps"
+    case "Quadriceps":        return "quads"
+    case "Ischio-jambiers":   return "hamstrings"
+    case "Fessiers":          return "fessiers"
+    case "Mollets":           return "calves"
+    case "Core":              return "core"
+    case "Hanches":           return "adductors"
+    case "Cou":               return "neck"
+    default:                  return "other"
+    }
+}
+
+private func weightTypeToLegacy(_ wt: String) -> String {
+    switch wt {
+    case "barbell":      return "barbell"
+    case "dumbbell":     return "dumbbell"
+    case "cable_single": return "cable"
+    case "cable_double": return "cable_double"
+    case "bodyweight":   return "bodyweight"
+    case "endurance":    return "bodyweight"
+    case "press":        return "press"
+    case "fixed_weight": return "fixed_weight"
+    default:             return "machine"
+    }
+}
+
+private func movementPatternToLegacy(_ mp: String) -> String {
+    switch mp {
+    case "push_horizontal", "push_vertical":   return "push"
+    case "pull_horizontal", "pull_vertical":   return "pull"
+    case "squat", "unilateral_leg":            return "squat"
+    case "hinge":                              return "hinge"
+    case "core", "rotation":                   return "core"
+    case "carry":                              return "carry"
+    default:                                   return "isolation"
+    }
+}
+
+private func categoryFromMovementPattern(_ mp: String) -> String {
+    switch mp {
+    case "push_horizontal", "push_vertical":                   return "push"
+    case "pull_horizontal", "pull_vertical":                   return "pull"
+    case "squat", "hinge", "unilateral_leg", "press_machine",
+         "isolation_leg":                                      return "legs"
+    case "core", "rotation":                                   return "core"
+    case "cardio":                                             return "mobility"
+    default:                                                   return ""
+    }
+}
+
+// ── Muscles secondaires — sheet ───────────────────────────────────────────────
+
+private struct SecondaryMusclesSheet: View {
+    @Binding var selected: Set<String>
+    let excludedPrimary: String?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBg.ignoresSafeArea()
+                List {
+                    ForEach(kMusclesByGroup, id: \.group) { entry in
+                        if !entry.specifics.isEmpty {
+                            Section {
+                                ForEach(entry.specifics, id: \.self) { muscle in
+                                    let isPrimary = muscle == excludedPrimary
+                                    let isSelected = selected.contains(muscle)
+                                    let isMaxed = selected.count >= 3 && !isSelected
+                                    Button {
+                                        guard !isPrimary, !isMaxed else { return }
+                                        if isSelected { selected.remove(muscle) } else { selected.insert(muscle) }
+                                    } label: {
+                                        HStack {
+                                            Text(muscle)
+                                                .font(.appLabel.weight(.regular))
+                                                .foregroundColor(isPrimary || isMaxed ? .gray.opacity(0.4) : .white)
+                                            Spacer()
+                                            if isSelected {
+                                                Image(systemName: "checkmark.circle.fill").foregroundColor(.orange)
+                                            } else if isPrimary {
+                                                Text("principal").font(.appMicro).foregroundColor(.gray.opacity(0.5))
+                                            }
+                                        }
+                                    }
+                                    .disabled(isPrimary || isMaxed)
+                                    .listRowBackground(Color.appCard)
+                                }
+                            } header: {
+                                Text(entry.group)
+                                    .font(.appCaption.weight(.semibold))
+                                    .foregroundColor(.gray)
+                                    .textCase(nil)
+                            }
+                        }
+                    }
+                }
+                .scrollContentBackground(.hidden)
+            }
+            .navigationTitle("Muscles secondaires (max 3)")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("OK") { dismiss() }.foregroundColor(.orange)
+                }
+            }
+        }
+    }
+}
+
+// ── Formulaire principal ──────────────────────────────────────────────────────
 
 struct InventoryFormSheet: View {
     let existing: InventoryItem?
@@ -571,276 +828,66 @@ struct InventoryFormSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    // Identité
     @State private var name          = ""
-    @State private var type          = "machine"
-    @State private var category      = ""
-    @State private var pattern       = ""
-    @State private var level         = ""
-    @State private var defaultScheme = "3x8-12"
-    @State private var increment     = "5"
-    @State private var barWeight     = "0"
-    @State private var muscles: Set<String> = []
-    @State private var customMuscle  = ""
-    @State private var trackingType  = "reps"
-    @State private var timeSets      = 3
-    @State private var timeDuration  = 30  // seconds
-    @State private var restSecs: Int? = nil   // nil = pas de repos configuré
-    @State private var loadProfile   = ""     // "" | "compound_heavy" | "compound_hypertrophy" | "isolation"
-    @State private var notes         = ""
+    @State private var alternateName = ""
+    // Classification musculaire
+    @State private var muscleGroup       = ""
+    @State private var muscleSpecific    = ""
+    @State private var secondaryMuscles: Set<String> = []
+    @State private var showSecondarySheet = false
+    // Pattern fonctionnel
+    @State private var movementPattern  = ""
+    // Calcul du poids
+    @State private var weightType       = ""
+    @State private var equipmentSet: Set<String> = []
+    @State private var barWeight        = "0"
+    // Progression
+    @State private var trackingType     = "reps"
+    @State private var defaultScheme    = "3x8-12"
+    @State private var timeSets         = 3
+    @State private var timeDuration     = 30
+    @State private var increment        = "5"
+    // Profil / Niveau / Notes / Repos (legacy)
+    @State private var level       = ""
+    @State private var loadProfile = ""
+    @State private var notes       = ""
+    @State private var restSecs: Int? = nil
 
-    let types      = ["barbell", "ez-bar", "dumbbell", "cable", "cable_double", "machine", "bodyweight"]
-    let categories = ["", "push", "pull", "legs", "core", "mobility"]
-    let levels     = ["", "beginner", "intermediate", "advanced"]
-    let schemes    = ["3x5", "4x5-7", "3x8-10", "4x8-10", "3x10-12", "4x12-15", "3x15"]
+    let schemes         = ["3x5", "4x5-7", "3x8-10", "4x8-10", "3x10-12", "4x12-15", "3x15"]
     let durationOptions = [15, 20, 30, 45, 60, 90, 120]
 
     private func formatDur(_ s: Int) -> String {
         s >= 60 ? "\(s / 60)min\(s % 60 > 0 ? "\(s % 60)s" : "")" : "\(s)s"
     }
     private var generatedScheme: String { "\(timeSets)x\(formatDur(timeDuration))" }
-
     private var isEditing: Bool { existing != nil }
     private var trimmedName: String { name.trimmingCharacters(in: .whitespaces) }
     private var isDuplicate: Bool {
         guard !isEditing, !trimmedName.isEmpty else { return false }
         return existingNames.contains { $0.lowercased() == trimmedName.lowercased() }
     }
-    private var canSave: Bool { !trimmedName.isEmpty && !isDuplicate }
+    private var canSave: Bool { !trimmedName.isEmpty && !isDuplicate && !muscleGroup.isEmpty && !weightType.isEmpty }
+
+    private var availableSpecifics: [String] {
+        kMusclesByGroup.first(where: { $0.group == muscleGroup })?.specifics ?? []
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 Form {
-                    // ── Nom ──────────────────────────────────────
-                    Section {
-                        TextField("Nom de l'exercice", text: $name)
-                            .foregroundColor(.white)
-                        if isDuplicate {
-                            HStack(spacing: 6) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.appCaption)
-                                    .foregroundColor(.yellow)
-                                Text("Un exercice avec ce nom existe déjà.")
-                                    .font(.appCaption)
-                                    .foregroundColor(.yellow)
-                            }
-                        }
-                    } header: {
-                        sectionHeader("Nom *")
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    // ── Type ─────────────────────────────────────
-                    Section {
-                        typeGrid
-                    } header: {
-                        sectionHeader("Type d'équipement")
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    // ── Tracking ──────────────────────────────────
-                    Section {
-                        Picker("Tracking", selection: $trackingType) {
-                            Text("Reps / Poids").tag("reps")
-                            Text("Temps").tag("time")
-                        }
-                        .pickerStyle(.segmented)
-                    } header: {
-                        sectionHeader("Type de tracking")
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    // ── Catégorie ─────────────────────────────────
-                    Section {
-                        catGrid
-                    } header: {
-                        sectionHeader("Catégorie")
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    // ── Pattern mouvement ─────────────────────────
-                    Section {
-                        patternGrid
-                    } header: {
-                        sectionHeader("Pattern de mouvement")
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    // ── Muscles ───────────────────────────────────
-                    Section {
-                        muscleChips
-                        customMuscleRow
-                    } header: {
-                        HStack {
-                            sectionHeader("Muscles ciblés")
-                            Spacer()
-                            if !muscles.isEmpty {
-                                Text("\(muscles.count) sélectionné\(muscles.count > 1 ? "s" : "")")
-                                    .font(.appCaption)
-                                    .foregroundColor(.orange)
-                            }
-                        }
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    // ── Schéma ────────────────────────────────────
-                    if trackingType == "time" {
-                        Section {
-                            // Sets
-                            HStack {
-                                Text("Séries").foregroundColor(.gray)
-                                Spacer()
-                                Stepper("\(timeSets)", value: $timeSets, in: 1...10)
-                                    .foregroundColor(.white)
-                                    .labelsHidden()
-                                Text("\(timeSets)").foregroundColor(.white).frame(width: 20)
-                            }
-                            // Duration chips
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Durée par série")
-                                    .font(.appCaption).foregroundColor(.gray)
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 8) {
-                                        ForEach(durationOptions, id: \.self) { d in
-                                            Button { timeDuration = d } label: {
-                                                Text(formatDur(d))
-                                                    .font(.appCaption.weight(.medium))
-                                                    .padding(.horizontal, 10).padding(.vertical, 5)
-                                                    .background(timeDuration == d ? Color.cyan : Color(hex: "191926"))
-                                                    .foregroundColor(timeDuration == d ? .black : .white)
-                                                    .cornerRadius(16)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            // Preview
-                            HStack {
-                                Text("Schéma généré").foregroundColor(.gray).font(.appLabel.weight(.regular))
-                                Spacer()
-                                Text(generatedScheme)
-                                    .font(.appLabel.weight(.semibold)).foregroundColor(.cyan)
-                            }
-                        } header: {
-                            sectionHeader("Configuration temps")
-                        }
-                        .listRowBackground(Color.appCard)
-                    } else {
-                        Section("Schéma par défaut") {
-                            TextField("ex: 4x6-8", text: $defaultScheme)
-                                .foregroundColor(.white)
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(schemes, id: \.self) { s in
-                                        Button { defaultScheme = s } label: {
-                                            Text(s)
-                                                .font(.appCaption.weight(.medium))
-                                                .padding(.horizontal, 10).padding(.vertical, 5)
-                                                .background(defaultScheme == s ? Color.orange : Color(hex: "191926"))
-                                                .foregroundColor(defaultScheme == s ? .black : .white)
-                                                .cornerRadius(16)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        .listRowBackground(Color.appCard)
-                    }
-
-                    // ── Paramètres numériques (reps seulement) ────
-                    if trackingType == "reps" {
-                        Section("Paramètres") {
-                            HStack {
-                                Text("Incrément (lbs)").foregroundColor(.gray)
-                                Spacer()
-                                TextField("5", text: $increment)
-                                    .keyboardType(.decimalPad)
-                                    .multilineTextAlignment(.trailing)
-                                    .foregroundColor(.white)
-                                    .frame(width: 60)
-                            }
-                            if type == "barbell" || type == "ez-bar" {
-                                HStack {
-                                    Text(type == "ez-bar" ? "Poids barre EZ (lbs)" : "Poids barre (lbs)").foregroundColor(.gray)
-                                    Spacer()
-                                    TextField(type == "ez-bar" ? "25" : "45", text: $barWeight)
-                                        .keyboardType(.decimalPad)
-                                        .multilineTextAlignment(.trailing)
-                                        .foregroundColor(.white)
-                                        .frame(width: 60)
-                                }
-                            }
-                        }
-                        .listRowBackground(Color.appCard)
-                    }
-
-                    // ── Profil de charge ──────────────────────────
-                    Section {
-                        loadProfileGrid
-                    } header: {
-                        sectionHeader("Profil de charge")
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    // ── Niveau ────────────────────────────────────
-                    Section {
-                        levelGrid
-                    } header: {
-                        sectionHeader("Niveau")
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    // ── Notes personnelles ────────────────────────
-                    Section {
-                        TextField("Cues techniques, conseils, variantes…", text: $notes, axis: .vertical)
-                            .foregroundColor(.white)
-                            .lineLimit(3...6)
-                    } header: {
-                        sectionHeader("Notes personnelles")
-                    }
-                    .listRowBackground(Color.appCard)
-
-                    // ── Repos ─────────────────────────────────────
-                    Section {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                Button {
-                                    restSecs = nil
-                                } label: {
-                                    Text("—")
-                                        .font(.appLabel.weight(.semibold))
-                                        .foregroundColor(restSecs == nil ? .black : .gray)
-                                        .padding(.horizontal, 14).padding(.vertical, 7)
-                                        .background(restSecs == nil ? Color.orange : Color(hex: "191926"))
-                                        .clipShape(Capsule())
-                                }
-                                ForEach([30, 45, 60, 90, 120, 180], id: \.self) { s in
-                                    Button {
-                                        restSecs = s
-                                    } label: {
-                                        Text(formatDur(s))
-                                            .font(.appLabel.weight(.semibold))
-                                            .foregroundColor(restSecs == s ? .black : .white)
-                                            .padding(.horizontal, 14).padding(.vertical, 7)
-                                            .background(restSecs == s ? Color.orange : Color(hex: "191926"))
-                                            .clipShape(Capsule())
-                                    }
-                                }
-                            }
-                        }
-                        if let r = restSecs {
-                            HStack {
-                                Text("Repos configuré").foregroundColor(.gray).font(.appLabel.weight(.regular))
-                                Spacer()
-                                Text(formatDur(r))
-                                    .font(.appLabel.weight(.semibold)).foregroundColor(.orange)
-                            }
-                        }
-                    } header: {
-                        sectionHeader("Temps de repos par défaut")
-                    }
-                    .listRowBackground(Color.appCard)
+                    identitySection
+                    muscleSection
+                    movementPatternSection
+                    weightTypeSection
+                    trackingSection
+                    progressionSection
+                    loadProfileSection
+                    levelSection
+                    notesSection
+                    restSection
                 }
                 .scrollContentBackground(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -853,64 +900,119 @@ struct InventoryFormSheet: View {
                     Button("Annuler") { dismiss() }.foregroundColor(.gray)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Enregistrer") {
+                    Button(isEditing ? "Sauvegarder" : "Créer l'exercice") {
                         guard canSave else { return }
-                        var item = InventoryItem(name: trimmedName, [:])
-                        item.type          = type
-                        item.category      = category
-                        item.pattern       = pattern
-                        item.level         = level
-                        item.defaultScheme = (trackingType == "time") ? generatedScheme : defaultScheme
-                        item.increment     = Double(increment) ?? 5
-                        item.barWeight     = Double(barWeight) ?? 0
-                        item.muscles       = muscles.sorted()
-                        item.trackingType  = trackingType
-                        item.restSeconds   = restSecs
-                        item.loadProfile   = loadProfile
-                        item.notes         = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes.trimmingCharacters(in: .whitespacesAndNewlines)
-                        onSave(item)
-                        dismiss()
+                        saveItem()
                     }
                     .foregroundColor(canSave ? .orange : .gray)
                     .disabled(!canSave)
                 }
             }
         }
-        .onAppear {
-            if let e = existing {
-                name          = e.name
-                type          = e.type
-                category      = e.category
-                pattern       = e.pattern
-                level         = e.level
-                defaultScheme = e.defaultScheme
-                increment     = String(e.increment)
-                barWeight     = String(e.barWeight)
-                muscles       = Set(e.muscles)
-                trackingType  = e.trackingType
-                restSecs      = e.restSeconds
-                loadProfile   = e.loadProfile
-                notes         = e.notes ?? ""
-                // Parse existing time scheme (e.g. "3x45s" → sets=3, duration=45)
-                if e.trackingType == "time" {
-                    let parts = e.defaultScheme.lowercased().split(separator: "x")
-                    if parts.count == 2, let s = Int(parts[0]) {
-                        timeSets = s
-                        let durStr = String(parts[1])
-                        if durStr.hasSuffix("min"), let m = Int(durStr.dropLast(3)) {
-                            timeDuration = m * 60
-                        } else if let sec = Int(durStr.filter { $0.isNumber }) {
-                            timeDuration = sec
-                        }
-                    }
-                }
-            } else if let pn = prefillName {
-                name = pn
-            }
+        .onAppear { loadExisting() }
+        .sheet(isPresented: $showSecondarySheet) {
+            SecondaryMusclesSheet(
+                selected: $secondaryMuscles,
+                excludedPrimary: muscleSpecific.isEmpty ? nil : muscleSpecific
+            )
         }
     }
 
-    // MARK: – Section grids
+    // MARK: – Save / Load
+
+    private func saveItem() {
+        var item = InventoryItem(name: trimmedName, [:])
+        item.muscleGroup      = muscleGroup
+        item.muscleSpecific   = muscleSpecific.isEmpty ? nil : muscleSpecific
+        item.secondaryMuscles = secondaryMuscles.sorted()
+        item.movementPattern  = movementPattern
+        item.weightType       = weightType
+        item.equipment        = equipmentSet.sorted()
+        item.alternateName    = alternateName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : alternateName.trimmingCharacters(in: .whitespaces)
+        item.type             = weightTypeToLegacy(weightType)
+        item.category         = categoryFromMovementPattern(movementPattern)
+        item.pattern          = movementPatternToLegacy(movementPattern)
+        item.level            = level
+        item.muscles          = muscleGroup.isEmpty ? [] : [muscleGroupToEnglish(muscleGroup)]
+        item.defaultScheme    = (trackingType == "time" || weightType == "endurance") ? generatedScheme : defaultScheme
+        item.increment        = Double(increment) ?? 5
+        item.barWeight        = Double(barWeight) ?? 0
+        item.trackingType     = (weightType == "endurance") ? "time" : trackingType
+        item.restSeconds      = restSecs
+        item.loadProfile      = loadProfile
+        let n = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        item.notes            = n.isEmpty ? nil : n
+        onSave(item)
+        dismiss()
+    }
+
+    private func loadExisting() {
+        if let e = existing {
+            name             = e.name
+            alternateName    = e.alternateName ?? ""
+            muscleGroup      = e.muscleGroup.isEmpty ? englishToMuscleGroup(e.muscles.first ?? "") : e.muscleGroup
+            muscleSpecific   = e.muscleSpecific ?? ""
+            secondaryMuscles = Set(e.secondaryMuscles)
+            movementPattern  = e.movementPattern
+            weightType       = e.weightType.isEmpty ? legacyTypeToWeightType(e.type, tracking: e.trackingType) : e.weightType
+            equipmentSet     = Set(e.equipment)
+            barWeight        = String(e.barWeight)
+            trackingType     = e.trackingType
+            defaultScheme    = e.defaultScheme
+            increment        = String(e.increment)
+            level            = e.level
+            loadProfile      = e.loadProfile
+            restSecs         = e.restSeconds
+            notes            = e.notes ?? ""
+            if e.trackingType == "time" {
+                let parts = e.defaultScheme.lowercased().split(separator: "x")
+                if parts.count == 2, let s = Int(parts[0]) {
+                    timeSets = s
+                    let durStr = String(parts[1])
+                    if durStr.hasSuffix("min"), let m = Int(durStr.dropLast(3)) {
+                        timeDuration = m * 60
+                    } else if let sec = Int(durStr.filter { $0.isNumber }) {
+                        timeDuration = sec
+                    }
+                }
+            }
+        } else if let pn = prefillName {
+            name = pn
+        }
+    }
+
+    private func legacyTypeToWeightType(_ t: String, tracking: String) -> String {
+        if tracking == "time" { return "endurance" }
+        switch t {
+        case "barbell", "ez-bar": return "barbell"
+        case "dumbbell":          return "dumbbell"
+        case "cable":             return "cable_single"
+        case "cable_double":      return "cable_double"
+        case "bodyweight":        return "bodyweight"
+        case "press":             return "press"
+        case "fixed_weight":      return "fixed_weight"
+        default:                  return "machine"
+        }
+    }
+
+    private func englishToMuscleGroup(_ eng: String) -> String {
+        switch eng {
+        case "chest":                          return "Pectoraux"
+        case "back", "lats", "traps":          return "Dos"
+        case "shoulders", "delts", "rear delts": return "Épaules"
+        case "biceps", "forearms":             return "Biceps+Avant-bras"
+        case "triceps":                        return "Triceps"
+        case "quads", "quadriceps":            return "Quadriceps"
+        case "hamstrings":                     return "Ischio-jambiers"
+        case "fessiers", "glutes":             return "Fessiers"
+        case "calves":                         return "Mollets"
+        case "core", "abs":                    return "Core"
+        case "adductors":                      return "Hanches"
+        default:                               return ""
+        }
+    }
+
+    // MARK: – Section helpers
 
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
@@ -919,183 +1021,435 @@ struct InventoryFormSheet: View {
             .textCase(nil)
     }
 
-    private var typeGrid: some View {
-        let icons: [String: String] = [
-            "barbell": "Barre", "ez-bar": "EZ-Bar", "dumbbell": "Haltère",
-            "cable": "Câble", "cable_double": "Câble ×2", "machine": "Machine", "bodyweight": "Corps"
-        ]
-        let colors: [String: Color] = [
-            "barbell": .orange, "ez-bar": .yellow, "dumbbell": .blue,
-            "cable": .teal, "cable_double": .teal, "machine": .purple, "bodyweight": .green
-        ]
-        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 80), spacing: 8)], spacing: 8) {
-            ForEach(types, id: \.self) { t in
-                let sel = type == t
-                Button { type = t } label: {
-                    VStack(spacing: 4) {
-                        Text(icons[t] ?? t.capitalized)
-                            .font(.appCaption.weight(.semibold))
-                            .foregroundColor(sel ? .black : (colors[t] ?? .gray))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(sel ? (colors[t] ?? .gray) : (colors[t] ?? .gray).opacity(0.12))
-                    .cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : (colors[t] ?? .gray).opacity(0.3), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
+    private func requiredBadge(_ missing: Bool) -> some View {
+        Group {
+            if missing {
+                Text("REQUIS")
+                    .font(.appMicro.weight(.bold))
+                    .foregroundColor(.red.opacity(0.7))
             }
         }
-        .padding(.vertical, 4)
     }
 
-    private var catGrid: some View {
-        let labels = ["push": "Push", "pull": "Pull", "legs": "Jambes",
-                      "core": "Core", "mobility": "Mobilité"]
-        let colors: [String: Color] = ["push": .red, "pull": .blue, "legs": .green,
-                                        "core": .orange, "mobility": .purple]
-        let opts = ["push", "pull", "legs", "core", "mobility"]
-        return LazyVGrid(columns: [GridItem(.adaptive(minimum: 72), spacing: 8)], spacing: 8) {
-            ForEach(opts, id: \.self) { c in
-                let sel = category == c
-                Button { category = (category == c ? "" : c) } label: {
-                    Text(labels[c] ?? c.capitalized)
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(sel ? .black : (colors[c] ?? .gray))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(sel ? (colors[c] ?? .gray) : (colors[c] ?? .gray).opacity(0.12))
-                        .cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : (colors[c] ?? .gray).opacity(0.3), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.vertical, 4)
-    }
+    // MARK: – Sections
 
-    private var patternGrid: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
-            ForEach(kPatternOptions, id: \.0) { key, label in
-                let sel = pattern == key
-                Button { pattern = (pattern == key ? "" : key) } label: {
-                    Text(label)
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(sel ? .black : .white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .background(sel ? Color.orange : Color(hex: "191926"))
-                        .cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-
-    private var muscleChips: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 8)], spacing: 8) {
-            ForEach(kMuscleGroups, id: \.self) { m in
-                let sel = muscles.contains(m)
-                Button {
-                    if sel { muscles.remove(m) } else { muscles.insert(m) }
-                } label: {
-                    Text(muscleLabel(m))
-                        .font(.appCaption.weight(.medium))
-                        .foregroundColor(sel ? .black : .white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 7)
-                        .background(sel ? Color.orange : Color(hex: "191926"))
-                        .cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(.vertical, 4)
-    }
-
-    private var customMuscleRow: some View {
-        HStack(spacing: 8) {
-            TextField("Autre muscle...", text: $customMuscle)
+    @ViewBuilder
+    private var identitySection: some View {
+        Section {
+            TextField("Nom de l'exercice", text: $name)
                 .foregroundColor(.white)
+            if isDuplicate {
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.appCaption).foregroundColor(.yellow)
+                    Text("Un exercice avec ce nom existe déjà.")
+                        .font(.appCaption).foregroundColor(.yellow)
+                }
+            }
+            TextField("Nom alternatif (ex: Bench Press)", text: $alternateName)
+                .foregroundColor(.white.opacity(0.6))
                 .font(.appLabel.weight(.regular))
-            Button {
-                let m = customMuscle.trimmingCharacters(in: .whitespaces).lowercased()
-                guard !m.isEmpty else { return }
-                muscles.insert(m)
-                customMuscle = ""
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .foregroundColor(customMuscle.trimmingCharacters(in: .whitespaces).isEmpty ? .gray : .orange)
-                    .font(.appTitle.weight(.regular))
+        } header: {
+            sectionHeader("Nom *")
+        }
+        .listRowBackground(Color.appCard)
+    }
+
+    @ViewBuilder
+    private var muscleSection: some View {
+        Section {
+            Picker("Groupe principal *", selection: $muscleGroup) {
+                Text("Choisir…").tag("")
+                ForEach(kMusclesByGroup, id: \.group) { entry in
+                    Text(entry.group).tag(entry.group)
+                }
             }
-            .disabled(customMuscle.trimmingCharacters(in: .whitespaces).isEmpty)
+            .pickerStyle(.menu)
+            .tint(muscleGroup.isEmpty ? .gray : .orange)
+
+            if !availableSpecifics.isEmpty {
+                Picker("Muscle spécifique", selection: $muscleSpecific) {
+                    Text("Aucun (optionnel)").tag("")
+                    ForEach(availableSpecifics, id: \.self) { m in
+                        Text(m).tag(m)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(.orange.opacity(0.8))
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Muscles secondaires")
+                        .font(.appLabel.weight(.regular))
+                        .foregroundColor(.gray)
+                    Spacer()
+                    if secondaryMuscles.count < 3 {
+                        Button {
+                            showSecondarySheet = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "plus.circle.fill")
+                                Text("Ajouter").font(.appCaption.weight(.medium))
+                            }
+                            .foregroundColor(.orange)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                if !secondaryMuscles.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(secondaryMuscles.sorted(), id: \.self) { muscle in
+                                HStack(spacing: 4) {
+                                    Text(muscle)
+                                        .font(.appMicro.weight(.medium))
+                                        .lineLimit(1)
+                                    Button {
+                                        secondaryMuscles.remove(muscle)
+                                    } label: {
+                                        Image(systemName: "xmark").font(.appMicro)
+                                    }
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(Color.orange.opacity(0.2))
+                                .cornerRadius(8)
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                            }
+                        }
+                    }
+                } else {
+                    Text("Optionnel — max 3, ne comptent pas dans les stats")
+                        .font(.appMicro).foregroundColor(.gray.opacity(0.55))
+                }
+            }
+        } header: {
+            HStack {
+                sectionHeader("Classification musculaire")
+                Spacer()
+                requiredBadge(muscleGroup.isEmpty)
+            }
+        }
+        .listRowBackground(Color.appCard)
+        .onChange(of: muscleGroup) { _, _ in
+            if !availableSpecifics.contains(muscleSpecific) { muscleSpecific = "" }
         }
     }
 
-    private var levelGrid: some View {
-        let labels = ["beginner": "Débutant", "intermediate": "Intermédiaire", "advanced": "Avancé"]
-        let opts = ["beginner", "intermediate", "advanced"]
-        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            ForEach(opts, id: \.self) { l in
-                let sel = level == l
-                Button { level = (level == l ? "" : l) } label: {
-                    Text(labels[l] ?? l.capitalized)
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(sel ? .black : .white)
+    @ViewBuilder
+    private var movementPatternSection: some View {
+        Section {
+            let columns = [GridItem(.adaptive(minimum: 100), spacing: 8)]
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(kMovementPatterns, id: \.0) { key, label in
+                    let sel = movementPattern == key
+                    Button { movementPattern = (movementPattern == key ? "" : key) } label: {
+                        Text(label)
+                            .font(.appCaption.weight(.semibold))
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(sel ? .black : .white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 7)
+                            .background(sel ? Color.orange : Color(hex: "191926"))
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            sectionHeader("Pattern de mouvement")
+        }
+        .listRowBackground(Color.appCard)
+    }
+
+    @ViewBuilder
+    private var weightTypeSection: some View {
+        Section {
+            let cols3 = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
+            LazyVGrid(columns: cols3, spacing: 8) {
+                ForEach(kWeightTypes, id: \.key) { opt in
+                    let sel = weightType == opt.key
+                    Button { weightType = opt.key } label: {
+                        VStack(spacing: 3) {
+                            Text(opt.label)
+                                .font(.appCaption.weight(.semibold))
+                                .foregroundColor(sel ? .black : opt.color)
+                            Text(opt.note)
+                                .font(.appMicro)
+                                .foregroundColor(sel ? .black.opacity(0.65) : .gray)
+                                .multilineTextAlignment(.center)
+                        }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
-                        .background(sel ? Color.orange : Color(hex: "191926"))
+                        .background(sel ? opt.color : opt.color.opacity(0.1))
                         .cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : opt.color.opacity(0.25), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+            }
+            .padding(.vertical, 4)
+
+            if weightType == "press" {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle").foregroundColor(.purple)
+                    Text("Le poids du sled n'est pas inclus. Logguez la charge totale chargée.")
+                        .font(.appCaption).foregroundColor(.gray)
+                }
+            }
+            if weightType == "fixed_weight" {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle").foregroundColor(.yellow)
+                    Text("Logguez uniquement le poids utilisé. Les reps sont optionnelles.")
+                        .font(.appCaption).foregroundColor(.gray)
+                }
+            }
+            if weightType == "barbell" {
+                HStack {
+                    Text("Poids barre (lbs)").foregroundColor(.gray)
+                    Spacer()
+                    TextField("45", text: $barWeight)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .foregroundColor(.white)
+                        .frame(width: 60)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Équipement (optionnel)")
+                    .font(.appCaption).foregroundColor(.gray)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(kEquipmentOptions, id: \.self) { eq in
+                            let sel = equipmentSet.contains(eq)
+                            Button {
+                                if sel { equipmentSet.remove(eq) } else { equipmentSet.insert(eq) }
+                            } label: {
+                                Text(eq)
+                                    .font(.appCaption.weight(.medium))
+                                    .foregroundColor(sel ? .black : .white)
+                                    .padding(.horizontal, 10).padding(.vertical, 5)
+                                    .background(sel ? Color.orange : Color(hex: "191926"))
+                                    .cornerRadius(16)
+                                    .overlay(Capsule().stroke(sel ? .clear : Color.white.opacity(0.15), lineWidth: 1))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        } header: {
+            HStack {
+                sectionHeader("Type de poids")
+                Spacer()
+                requiredBadge(weightType.isEmpty)
             }
         }
-        .padding(.vertical, 4)
+        .listRowBackground(Color.appCard)
     }
 
-    private var loadProfileGrid: some View {
-        let opts: [(String, String, Color)] = [
-            ("compound_heavy",        "Composé lourd\n5–8 reps",    .red),
-            ("compound_hypertrophy",  "Composé hyper\n8–12 reps",   .orange),
-            ("isolation",             "Isolation\n12–15 reps",       .yellow),
-        ]
-        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-            ForEach(opts, id: \.0) { value, label, color in
-                let sel = loadProfile == value
-                Button { loadProfile = (loadProfile == value ? "" : value) } label: {
-                    Text(label)
-                        .font(.appCaption.weight(.semibold))
-                        .multilineTextAlignment(.center)
-                        .foregroundColor(sel ? .black : color)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .background(sel ? color : color.opacity(0.12))
-                        .cornerRadius(10)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : color.opacity(0.3), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
+    @ViewBuilder
+    private var trackingSection: some View {
+        Section {
+            Picker("Tracking", selection: $trackingType) {
+                Text("Reps / Poids").tag("reps")
+                Text("Temps").tag("time")
             }
+            .pickerStyle(.segmented)
+        } header: {
+            sectionHeader("Type de tracking")
         }
-        .padding(.vertical, 4)
+        .listRowBackground(Color.appCard)
     }
 
-    private func muscleLabel(_ m: String) -> String {
-        switch m {
-        case "chest": return "Pectoraux"; case "shoulders": return "Épaules"
-        case "rear delts": return "Post. Épaule"; case "triceps": return "Triceps"
-        case "biceps": return "Biceps"; case "lats": return "Dorsaux"
-        case "traps": return "Trapèzes"; case "rhomboids": return "Rhomboïdes"
-        case "lower back": return "Lombaires"; case "abs": return "Abdos"
-        case "obliques": return "Obliques"; case "fessiers": return "Fessiers"
-        case "hamstrings": return "Ischio"; case "quads": return "Quadriceps"
-        case "calves": return "Mollets"; case "forearms": return "Avant-bras"
-        case "rotators": return "Rotateurs"; case "abductors": return "Abducteurs"
-        default: return m.capitalized
+    @ViewBuilder
+    private var progressionSection: some View {
+        if trackingType == "time" || weightType == "endurance" {
+            Section {
+                HStack {
+                    Text("Séries").foregroundColor(.gray)
+                    Spacer()
+                    Stepper("\(timeSets)", value: $timeSets, in: 1...10).labelsHidden()
+                    Text("\(timeSets)").foregroundColor(.white).frame(width: 20)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Durée par série").font(.appCaption).foregroundColor(.gray)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(durationOptions, id: \.self) { d in
+                                Button { timeDuration = d } label: {
+                                    Text(formatDur(d))
+                                        .font(.appCaption.weight(.medium))
+                                        .padding(.horizontal, 10).padding(.vertical, 5)
+                                        .background(timeDuration == d ? Color.cyan : Color(hex: "191926"))
+                                        .foregroundColor(timeDuration == d ? .black : .white)
+                                        .cornerRadius(16)
+                                }
+                            }
+                        }
+                    }
+                }
+                HStack {
+                    Text("Schéma").foregroundColor(.gray).font(.appLabel.weight(.regular))
+                    Spacer()
+                    Text(generatedScheme).font(.appLabel.weight(.semibold)).foregroundColor(.cyan)
+                }
+            } header: {
+                sectionHeader("Configuration temps")
+            }
+            .listRowBackground(Color.appCard)
+        } else {
+            Section {
+                TextField("ex: 4x6-8", text: $defaultScheme).foregroundColor(.white)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(schemes, id: \.self) { s in
+                            Button { defaultScheme = s } label: {
+                                Text(s)
+                                    .font(.appCaption.weight(.medium))
+                                    .padding(.horizontal, 10).padding(.vertical, 5)
+                                    .background(defaultScheme == s ? Color.orange : Color(hex: "191926"))
+                                    .foregroundColor(defaultScheme == s ? .black : .white)
+                                    .cornerRadius(16)
+                            }
+                        }
+                    }
+                }
+            } header: {
+                sectionHeader("Schéma par défaut")
+            }
+            .listRowBackground(Color.appCard)
         }
+
+        Section {
+            HStack {
+                Text("Incrément (lbs)").foregroundColor(.gray)
+                Spacer()
+                TextField("5", text: $increment)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundColor(.white)
+                    .frame(width: 60)
+            }
+        } header: {
+            sectionHeader("Progression")
+        }
+        .listRowBackground(Color.appCard)
+    }
+
+    @ViewBuilder
+    private var loadProfileSection: some View {
+        Section {
+            let opts: [(String, String, Color)] = [
+                ("compound_heavy",       "Composé lourd\n5–8 reps",  .red),
+                ("compound_hypertrophy", "Composé hyper\n8–12 reps", .orange),
+                ("isolation",            "Isolation\n12–15 reps",     .yellow),
+            ]
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(opts, id: \.0) { value, label, color in
+                    let sel = loadProfile == value
+                    Button { loadProfile = (loadProfile == value ? "" : value) } label: {
+                        Text(label)
+                            .font(.appCaption.weight(.semibold))
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(sel ? .black : color)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(sel ? color : color.opacity(0.12))
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : color.opacity(0.3), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            sectionHeader("Profil de charge")
+        }
+        .listRowBackground(Color.appCard)
+    }
+
+    @ViewBuilder
+    private var levelSection: some View {
+        Section {
+            let levels: [(String, String)] = [
+                ("beginner", "Débutant"), ("intermediate", "Intermédiaire"), ("advanced", "Avancé")
+            ]
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(levels, id: \.0) { key, label in
+                    let sel = level == key
+                    Button { level = (level == key ? "" : key) } label: {
+                        Text(label)
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundColor(sel ? .black : .white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(sel ? Color.orange : Color(hex: "191926"))
+                            .cornerRadius(10)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(sel ? .clear : Color.white.opacity(0.1), lineWidth: 1))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            sectionHeader("Niveau")
+        }
+        .listRowBackground(Color.appCard)
+    }
+
+    @ViewBuilder
+    private var notesSection: some View {
+        Section {
+            TextField("Cues techniques, conseils, variantes…", text: $notes, axis: .vertical)
+                .foregroundColor(.white)
+                .lineLimit(3...6)
+        } header: {
+            sectionHeader("Notes personnelles")
+        }
+        .listRowBackground(Color.appCard)
+    }
+
+    @ViewBuilder
+    private var restSection: some View {
+        Section {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    Button { restSecs = nil } label: {
+                        Text("—")
+                            .font(.appLabel.weight(.semibold))
+                            .foregroundColor(restSecs == nil ? .black : .gray)
+                            .padding(.horizontal, 14).padding(.vertical, 7)
+                            .background(restSecs == nil ? Color.orange : Color(hex: "191926"))
+                            .clipShape(Capsule())
+                    }
+                    ForEach([30, 45, 60, 90, 120, 180], id: \.self) { s in
+                        Button { restSecs = s } label: {
+                            Text(formatDur(s))
+                                .font(.appLabel.weight(.semibold))
+                                .foregroundColor(restSecs == s ? .black : .white)
+                                .padding(.horizontal, 14).padding(.vertical, 7)
+                                .background(restSecs == s ? Color.orange : Color(hex: "191926"))
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+            if let r = restSecs {
+                HStack {
+                    Text("Repos configuré").foregroundColor(.gray).font(.appLabel.weight(.regular))
+                    Spacer()
+                    Text(formatDur(r)).font(.appLabel.weight(.semibold)).foregroundColor(.orange)
+                }
+            }
+        } header: {
+            sectionHeader("Temps de repos par défaut")
+        }
+        .listRowBackground(Color.appCard)
     }
 }
 
@@ -1772,8 +2126,8 @@ struct AddExerciseToProgramSheet: View {
         }
     }
 
-    private func addTo(seance: String) async {
-        await MainActor.run { pendingSeance = seance }
+    private func addTo(seance seanceName: String) async {
+        await MainActor.run { pendingSeance = seanceName }
         guard let url = URL(string: "\(kBaseURL)/api/programme") else {
             await MainActor.run { pendingSeance = nil }; return
         }
@@ -1792,6 +2146,198 @@ struct AddExerciseToProgramSheet: View {
             pendingSeance = nil
             onAdded()
             dismiss()
+        }
+    }
+}
+
+// MARK: - ClassificationGapsSheet
+
+private struct ClassificationGap: Identifiable, Decodable {
+    var id: String { name }
+    let name: String
+    let currentMuscleGroup:   String?
+    let currentMuscleSpecific: String?
+    let suggestedMuscleGroup:  String?
+    let suggestedMuscleSpecific: String?
+    let suggestedMovementPattern: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case currentMuscleGroup      = "current_muscle_group"
+        case currentMuscleSpecific   = "current_muscle_specific"
+        case suggestedMuscleGroup    = "suggested_muscle_group"
+        case suggestedMuscleSpecific  = "suggested_muscle_specific"
+        case suggestedMovementPattern = "suggested_movement_pattern"
+    }
+}
+
+struct ClassificationGapsSheet: View {
+    let onCountChange: (Int) -> Void
+
+    @State private var gaps: [ClassificationGap] = []
+    @State private var isLoading = true
+    @State private var appliedNames: Set<String> = []
+    @State private var skippedNames: Set<String> = []
+    @State private var applyingName: String?
+    @Environment(\.dismiss) private var dismiss
+
+    private var visible: [ClassificationGap] {
+        gaps.filter { !skippedNames.contains($0.name) && !appliedNames.contains($0.name) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBg.ignoresSafeArea()
+                if isLoading {
+                    ProgressView().tint(.forge)
+                } else if visible.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 44))
+                            .foregroundColor(.green)
+                        Text("Tout est classifié")
+                            .font(.appTitle3)
+                            .foregroundColor(.white)
+                        Text("Tous les exercices ont un groupe musculaire et un muscle spécifique.")
+                            .font(.appBody)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                } else {
+                    List {
+                        Section {
+                            Text("Ces exercices ont des suggestions basées sur leur nom. Applique-les un à un ou passe.")
+                                .font(.appCaption)
+                                .foregroundColor(.gray)
+                                .listRowBackground(Color.appBg)
+                        }
+                        ForEach(visible) { gap in
+                            gapRow(gap)
+                                .listRowBackground(Color.appCard)
+                                .listRowSeparatorTint(Color.white.opacity(0.07))
+                        }
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .navigationTitle("\(visible.count) suggestion\(visible.count == 1 ? "" : "s")")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fermer") { dismiss() }.foregroundColor(.gray)
+                }
+            }
+        }
+        .task { await loadGaps() }
+    }
+
+    @ViewBuilder
+    private func gapRow(_ gap: ClassificationGap) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(gap.name)
+                .font(.appBody.weight(.semibold))
+                .foregroundColor(.white)
+
+            VStack(alignment: .leading, spacing: 3) {
+                if let mg = gap.suggestedMuscleGroup ?? gap.currentMuscleGroup {
+                    tagLine(icon: "person.crop.circle", label: "Groupe", value: mg, color: .blue)
+                }
+                if let ms = gap.suggestedMuscleSpecific {
+                    tagLine(icon: "target", label: "Spécifique", value: ms, color: .forge)
+                }
+                if let mp = gap.suggestedMovementPattern {
+                    tagLine(icon: "arrow.triangle.2.circlepath", label: "Pattern", value: mp, color: .purple)
+                }
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    Task { await applyGap(gap) }
+                } label: {
+                    HStack(spacing: 4) {
+                        if applyingName == gap.name {
+                            ProgressView().tint(.white).scaleEffect(0.7)
+                        } else {
+                            Image(systemName: "checkmark")
+                        }
+                        Text("Appliquer")
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 7)
+                    .background(Color.forge)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .disabled(applyingName != nil)
+
+                Button {
+                    withAnimation { skippedNames.insert(gap.name) }
+                    onCountChange(visible.count - 1)
+                } label: {
+                    Text("Passer")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.gray)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(Color.white.opacity(0.07))
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+                .disabled(applyingName != nil)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func tagLine(icon: String, label: String, value: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundColor(color)
+            Text("\(label): ")
+                .font(.system(size: 11))
+                .foregroundColor(.gray)
+            + Text(value)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.white.opacity(0.85))
+        }
+    }
+
+    private func loadGaps() async {
+        guard let url = URL(string: "\(kBaseURL)/api/exercises/classification_gaps") else {
+            await MainActor.run { isLoading = false }; return
+        }
+        if let (data, _) = try? await URLSession.authed.data(from: url),
+           let json = try? JSONDecoder().decode([String: [ClassificationGap]].self, from: data),
+           let loaded = json["gaps"] {
+            await MainActor.run { gaps = loaded; isLoading = false }
+            onCountChange(loaded.count)
+        } else {
+            await MainActor.run { isLoading = false }
+        }
+    }
+
+    private func applyGap(_ gap: ClassificationGap) async {
+        guard let url = URL(string: "\(kBaseURL)/api/exercises/classify") else { return }
+        await MainActor.run { applyingName = gap.name }
+        var body: [String: Any] = ["name": gap.name]
+        if let v = gap.suggestedMuscleGroup  ?? gap.currentMuscleGroup  { body["muscle_group"]     = v }
+        if let v = gap.suggestedMuscleSpecific                           { body["muscle_specific"]  = v }
+        if let v = gap.suggestedMovementPattern                          { body["movement_pattern"] = v }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        _ = try? await URLSession.authed.data(for: req)
+        await MainActor.run {
+            appliedNames.insert(gap.name)
+            applyingName = nil
+            onCountChange(visible.count)
         }
     }
 }

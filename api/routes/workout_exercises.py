@@ -21,18 +21,26 @@ def api_save_exercise():
 
     raw_load_profile = data.get("load_profile")
     entry = {
-        "type":           data.get("type", "machine"),
-        "increment":      float(data.get("increment", 5)),
-        "bar_weight":     float(data.get("bar_weight", 0)),
-        "default_scheme": data.get("default_scheme", "3x8-12"),
-        "muscles":        data.get("muscles", []),
-        "category":       data.get("category", ""),
-        "level":          data.get("level", ""),
-        "pattern":        data.get("pattern", ""),
-        "tracking_type":  data.get("tracking_type", "reps"),
-        "rest_seconds":   data.get("rest_seconds"),
-        "load_profile":   raw_load_profile if raw_load_profile else None,
-        "tips":           data.get("tips") or None,
+        "type":              data.get("type", "machine"),
+        "increment":         float(data.get("increment", 5)),
+        "bar_weight":        float(data.get("bar_weight", 0)),
+        "default_scheme":    data.get("default_scheme", "3x8-12"),
+        "muscles":           data.get("muscles", []),
+        "category":          data.get("category", ""),
+        "level":             data.get("level", ""),
+        "pattern":           data.get("pattern", ""),
+        "tracking_type":     data.get("tracking_type", "reps"),
+        "rest_seconds":      data.get("rest_seconds"),
+        "load_profile":      raw_load_profile if raw_load_profile else None,
+        "tips":              data.get("tips") or None,
+        # classification anatomique + fonctionnelle (migration 063)
+        "muscle_group":      data.get("muscle_group") or None,
+        "muscle_specific":   data.get("muscle_specific") or None,
+        "secondary_muscles": data.get("secondary_muscles") or [],
+        "movement_pattern":  data.get("movement_pattern") or None,
+        "weight_type":       data.get("weight_type") or None,
+        "equipment":         data.get("equipment") or [],
+        "alternate_name":    data.get("alternate_name") or None,
     }
 
     if original_name and original_name != name:
@@ -125,6 +133,67 @@ def api_exercise_set_gif():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     return jsonify({"ok": True, "name": name, "gif_url": gif_url or None})
+
+
+@workout_exercises_bp.route("/api/exercises/classification_gaps", methods=["GET"])
+def api_classification_gaps():
+    """Return exercises missing muscle_group or muscle_specific, with rule-based suggestions.
+
+    Response: {"gaps": [{name, current_muscle_group, current_muscle_specific,
+                          suggested_muscle_group, suggested_muscle_specific,
+                          suggested_movement_pattern}], "total": N}
+    """
+    from inventory import load_inventory
+    from muscle_classification import suggest_classification
+    inv = load_inventory() or {}
+    gaps = []
+    for name, data in inv.items():
+        mg = (data.get("muscle_group") or "").strip()
+        ms = (data.get("muscle_specific") or "").strip()
+        if mg and ms:
+            continue
+        suggestion = suggest_classification(name, data)
+        if not suggestion:
+            continue
+        gaps.append({
+            "name":                     name,
+            "current_muscle_group":     mg or None,
+            "current_muscle_specific":  ms or None,
+            "suggested_muscle_group":   suggestion.get("muscle_group"),
+            "suggested_muscle_specific": suggestion.get("muscle_specific"),
+            "suggested_movement_pattern": suggestion.get("movement_pattern"),
+        })
+    gaps.sort(key=lambda x: x["name"])
+    return jsonify({"gaps": gaps, "total": len(gaps)})
+
+
+@workout_exercises_bp.route("/api/exercises/classify", methods=["POST"])
+def api_exercise_classify():
+    """Patch muscle_group / muscle_specific / movement_pattern on an existing exercise.
+
+    Body: {"name": "...", "muscle_group": "...", "muscle_specific": "...", "movement_pattern": "..."}
+    All classification fields are optional — only non-null values are written.
+    """
+    import db as _db
+    data = request.get_json(silent=True) or {}
+    name = data.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "name required"}), 400
+    ex_id = _db.get_exercise_id(name)
+    if not ex_id:
+        return jsonify({"error": "exercise not found"}), 404
+    patch = {
+        k: data.get(k) or None
+        for k in ("muscle_group", "muscle_specific", "movement_pattern")
+        if data.get(k)
+    }
+    if not patch:
+        return jsonify({"error": "nothing to update"}), 400
+    try:
+        _db._client.table("exercises").update(patch).eq("id", ex_id).execute()
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"ok": True, "name": name, **patch})
 
 
 @workout_exercises_bp.route("/api/exercise/media", methods=["GET"])
