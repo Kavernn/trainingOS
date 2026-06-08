@@ -121,6 +121,38 @@ def get_ritual_demons() -> List[dict]:
         return []
 
 
+def get_ritual_routine_history(limit: int = 180) -> List[dict]:
+    """Return daily_ritual rows with routine checklist columns, oldest first."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            db_core._client.table("daily_ritual")
+            .select(
+                "date, routine_completed_at, routine_no_food, routine_dim_lights, "
+                "routine_shower, routine_connection, routine_deconnect, "
+                "routine_priorities_done, routine_bedtime_ok"
+            )
+            .order("date", desc=False)
+            .limit(limit)
+            .execute()
+        )
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_ritual_routine_history retry: %s", e2)
+                return []
+        db_core.logger.error("get_ritual_routine_history error: %s", e)
+        return []
+
+
 def get_ritual_history_full(limit: int = 90, offset: int = 0) -> List[dict]:
     """Return full ritual history with all fields for biography view."""
     if db_core._client is None or db_core.MODE == "OFFLINE":

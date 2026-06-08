@@ -266,9 +266,29 @@ struct RitualEveningView: View {
                         .fill(Color.forge.opacity(0.15))
                         .frame(height: 1)
 
+                    // Rappel priorités si pas encore dans la routine
+                    if !ritual.routinePrioritiesDone {
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("📝")
+                                .font(.system(size: 13))
+                            Text("Note 3–6 priorités pour demain dans ton intention.")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(white: 0.45))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color(white: 0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.forge.opacity(0.18), lineWidth: 1)
+                        )
+                        .cornerRadius(10)
+                    }
+
                     // Champ intention
                     VStack(alignment: .leading, spacing: 12) {
-                        TextField("Demain, je m'engage à...", text: $tomorrowIntention, axis: .vertical)
+                        TextField("Demain, je m'engage à...\n(ex: 3 priorités concrètes)", text: $tomorrowIntention, axis: .vertical)
                             .font(.system(size: 17, weight: .regular))
                             .foregroundColor(.white)
                             .tint(Color.forge)

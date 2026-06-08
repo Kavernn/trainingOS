@@ -431,6 +431,12 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
+        // Evening routine correlations
+        if let rc = routineCorrelations {
+            RoutineCorrelationsCard(data: rc)
+                .padding(.horizontal, 16)
+        }
+
         Spacer(minLength: 32)
     }
 }

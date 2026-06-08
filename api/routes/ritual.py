@@ -398,10 +398,18 @@ def api_ritual_today():
         "phoenix_best":          best,
         "phoenix_total_burned":  total,
         "demons":                demons,
-        "yesterday_intention":   yesterday_intention,
-        "yesterday_outcome":     yesterday_outcome,
-        "yesterday_evening_at":  yesterday_evening_at,
-        "morning_ack":           None,
+        "yesterday_intention":       yesterday_intention,
+        "yesterday_outcome":         yesterday_outcome,
+        "yesterday_evening_at":      yesterday_evening_at,
+        "morning_ack":               None,
+        "routine_no_food":           False,
+        "routine_dim_lights":        False,
+        "routine_shower":            False,
+        "routine_connection":        False,
+        "routine_deconnect":         False,
+        "routine_priorities_done":   False,
+        "routine_bedtime_ok":        False,
+        "routine_completed_at":      None,
     })
 
 
@@ -472,6 +480,7 @@ def api_ritual_evening():
         patch["gratitude"] = gratitude
     if tomorrow_intention is not None:
         patch["tomorrow_intention"] = tomorrow_intention
+        patch["routine_priorities_done"] = True
 
     ok = _db.upsert_ritual(patch)
     if not ok:
@@ -682,3 +691,229 @@ def api_ritual_history_full():
     total  = _db.count_ritual_entries()
 
     return jsonify({"entries": rows, "total": total, "limit": limit, "offset": offset})
+
+
+_ROUTINE_ITEMS = {
+    "routine_no_food", "routine_dim_lights", "routine_shower",
+    "routine_connection", "routine_deconnect", "routine_priorities_done",
+    "routine_bedtime_ok",
+}
+
+
+@ritual_bp.route("/api/ritual/evening_routine", methods=["POST"])
+def api_ritual_evening_routine():
+    """Auto-save a single evening routine item. Toggles one field at a time."""
+    import db as _db
+
+    data = request.get_json(silent=True) or {}
+    today_str = _today_mtl().isoformat()
+
+    patch_fields = {k: bool(data[k]) for k in _ROUTINE_ITEMS if k in data}
+    if not patch_fields:
+        return jsonify({"error": "no routine field provided"}), 400
+
+    existing = _db.get_ritual_today(today_str) or {"date": today_str}
+    patch = {**existing, **patch_fields}
+
+    all_done = all(patch.get(item, False) for item in _ROUTINE_ITEMS)
+    if all_done and not existing.get("routine_completed_at"):
+        patch["routine_completed_at"] = datetime.now(timezone.utc).isoformat()
+    elif not all_done:
+        patch["routine_completed_at"] = None
+
+    ok = _db.upsert_ritual(patch)
+    if not ok:
+        return jsonify({"error": "Erreur base de données"}), 500
+
+    return jsonify({
+        "ok": True,
+        "updated": list(patch_fields.keys()),
+        "all_done": all_done,
+        "routine_completed_at": patch.get("routine_completed_at"),
+    })
+
+
+@ritual_bp.route("/api/ritual/routine_correlations", methods=["GET"])
+def api_ritual_routine_correlations():
+    """Compute 5 evening-routine correlations + streak. Requires ≥14 data points."""
+    import db as _db
+    import math
+
+    MIN_POINTS = 14
+
+    routine_rows = _db.get_ritual_routine_history(limit=180)
+    recovery_rows = _db.get_recovery_logs(limit=180)
+
+    # Index recovery by date string
+    rec_by_date: dict[str, dict] = {r["date"]: r for r in recovery_rows if r.get("date")}
+
+    # ── helpers ──────────────────────────────────────────────────────────────
+
+    def _pearson(xs: list[float], ys: list[float]) -> float | None:
+        n = len(xs)
+        if n < MIN_POINTS:
+            return None
+        mx = sum(xs) / n
+        my = sum(ys) / n
+        num = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+        den = math.sqrt(
+            sum((x - mx) ** 2 for x in xs) * sum((y - my) ** 2 for y in ys)
+        )
+        if den == 0:
+            return None
+        return round(num / den, 3)
+
+    def _delta_pairs(completed_flag: bool, metric: str) -> list[tuple[int, float]]:
+        """For each row, pair (0/1 completed) with next-day metric value."""
+        pairs = []
+        for i, row in enumerate(routine_rows[:-1]):
+            next_date = (date.fromisoformat(row["date"]) + timedelta(days=1)).isoformat()
+            rec = rec_by_date.get(next_date)
+            if rec is None:
+                continue
+            val = rec.get(metric)
+            if val is None:
+                continue
+            try:
+                val = float(val)
+            except (TypeError, ValueError):
+                continue
+            done = bool(row.get("routine_completed_at"))
+            pairs.append((1 if done else 0, val))
+        return pairs
+
+    # ── Corr 1 : routine_completed → HRV next day ─────────────────────────
+    pairs1 = _delta_pairs(True, "hrv_ms")
+    xs1 = [p[0] for p in pairs1]
+    ys1 = [p[1] for p in pairs1]
+    corr1 = _pearson(xs1, ys1)
+    if corr1 is not None:
+        completed_hrv = [y for x, y in pairs1 if x == 1]
+        skipped_hrv   = [y for x, y in pairs1 if x == 0]
+        delta1 = round(
+            (sum(completed_hrv) / len(completed_hrv) - sum(skipped_hrv) / len(skipped_hrv))
+            if completed_hrv and skipped_hrv else 0,
+            1,
+        )
+    else:
+        delta1 = None
+
+    # ── Corr 2 : routine_completed → sleep_hours next day ─────────────────
+    pairs2 = _delta_pairs(True, "sleep_hours")
+    xs2 = [p[0] for p in pairs2]
+    ys2 = [p[1] for p in pairs2]
+    corr2 = _pearson(xs2, ys2)
+    if corr2 is not None:
+        completed_sleep = [y for x, y in pairs2 if x == 1]
+        skipped_sleep   = [y for x, y in pairs2 if x == 0]
+        delta2 = round(
+            (sum(completed_sleep) / len(completed_sleep) - sum(skipped_sleep) / len(skipped_sleep)) * 60
+            if completed_sleep and skipped_sleep else 0,
+            0,
+        )
+    else:
+        delta2 = None
+
+    # ── Corr 3 : routine_completed → readiness next day ───────────────────
+    pairs3 = _delta_pairs(True, "readiness_score")
+    xs3 = [p[0] for p in pairs3]
+    ys3 = [p[1] for p in pairs3]
+    corr3 = _pearson(xs3, ys3)
+    if corr3 is not None:
+        completed_r = [y for x, y in pairs3 if x == 1]
+        skipped_r   = [y for x, y in pairs3 if x == 0]
+        delta3 = round(
+            sum(completed_r) / len(completed_r) - sum(skipped_r) / len(skipped_r)
+            if completed_r and skipped_r else 0,
+            1,
+        )
+    else:
+        delta3 = None
+
+    # ── Corr 4 : best individual item → sleep_hours next day ──────────────
+    _ITEMS = [
+        "routine_no_food", "routine_dim_lights", "routine_shower",
+        "routine_connection", "routine_deconnect",
+        "routine_priorities_done", "routine_bedtime_ok",
+    ]
+    best_item: str | None = None
+    best_item_corr: float | None = None
+    for item in _ITEMS:
+        item_pairs: list[tuple[float, float]] = []
+        for row in routine_rows:
+            next_date = (date.fromisoformat(row["date"]) + timedelta(days=1)).isoformat()
+            rec = rec_by_date.get(next_date)
+            if rec is None:
+                continue
+            val = rec.get("sleep_hours")
+            if val is None:
+                continue
+            try:
+                val = float(val)
+            except (TypeError, ValueError):
+                continue
+            item_pairs.append((1.0 if row.get(item) else 0.0, val))
+        c = _pearson([p[0] for p in item_pairs], [p[1] for p in item_pairs])
+        if c is not None and (best_item_corr is None or abs(c) > abs(best_item_corr)):
+            best_item = item
+            best_item_corr = c
+
+    # ── Corr 5 : bedtime hour → HRV next day ──────────────────────────────
+    bedtime_pairs: list[tuple[float, float]] = []
+    for row in routine_rows:
+        completed_at = row.get("routine_completed_at")
+        if not completed_at:
+            continue
+        next_date = (date.fromisoformat(row["date"]) + timedelta(days=1)).isoformat()
+        rec = rec_by_date.get(next_date)
+        if rec is None:
+            continue
+        hrv = rec.get("hrv_ms")
+        if hrv is None:
+            continue
+        try:
+            dt = datetime.fromisoformat(completed_at.replace("Z", "+00:00"))
+            hour_frac = dt.hour + dt.minute / 60.0
+            bedtime_pairs.append((hour_frac, float(hrv)))
+        except (TypeError, ValueError):
+            continue
+    corr5 = _pearson([p[0] for p in bedtime_pairs], [p[1] for p in bedtime_pairs])
+    if corr5 is not None and len(bedtime_pairs) >= 2:
+        n5 = len(bedtime_pairs)
+        mx5 = sum(p[0] for p in bedtime_pairs) / n5
+        my5 = sum(p[1] for p in bedtime_pairs) / n5
+        slope5 = (
+            sum((p[0] - mx5) * (p[1] - my5) for p in bedtime_pairs)
+            / sum((p[0] - mx5) ** 2 for p in bedtime_pairs)
+        )
+        slope5 = round(slope5, 2)
+    else:
+        slope5 = None
+
+    # ── Streak : consecutive days with routine_completed_at ───────────────
+    streak = 0
+    today_d = _today_mtl()
+    for i in range(len(routine_rows) - 1, -1, -1):
+        row = routine_rows[i]
+        expected = (today_d - timedelta(days=streak)).isoformat()
+        if row["date"] != expected:
+            break
+        if not row.get("routine_completed_at"):
+            break
+        streak += 1
+
+    return jsonify({
+        "data_points":     len(routine_rows),
+        "min_points":      MIN_POINTS,
+        "corr1_hrv":       corr1,
+        "delta1_hrv_ms":   delta1,
+        "corr2_sleep":     corr2,
+        "delta2_sleep_min": delta2,
+        "corr3_readiness": corr3,
+        "delta3_readiness": delta3,
+        "corr4_best_item":  best_item_corr,
+        "corr4_best_item_name": best_item,
+        "corr5_bedtime_hrv": corr5,
+        "slope5_ms_per_hour": slope5,
+        "routine_streak":  streak,
+    })

@@ -100,6 +100,15 @@ struct DashboardView: View {
                                 DashboardStatusBar(dash: dash, streakData: vm.streakData, showChecklist: $showChecklist)
                                     .appearAnimation(delay: 0.03)
 
+                                // 1b — Routine de soir (visible dès 20h)
+                                if Calendar.current.component(.hour, from: Date()) >= 20,
+                                   let ritual = vm.ritualToday {
+                                    EveningRoutineCard(ritual: ritual) {
+                                        Task { await vm.refreshRitual() }
+                                    }
+                                    .appearAnimation(delay: 0.035)
+                                }
+
                                 // 2 — Alerte critique
                                 if let signal = vm.criticalSignal(dash: dash) {
                                     CriticalAlertCard(signal: signal) {

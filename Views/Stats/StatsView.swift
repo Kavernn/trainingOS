@@ -117,7 +117,8 @@ struct StatsView: View {
     @State var graveyardCount:   Int                    = 0
     @State var deloadStatus:     DeloadStatusData?      = nil
     @State var intensityData:    IntensityData?         = nil
-    @State var ritualStats:      RitualStats?           = nil
+    @State var ritualStats:         RitualStats?           = nil
+    @State var routineCorrelations: RoutineCorrelations?   = nil
 
     // ── Streak — source serveur unique (P1.2) ───────────────────────────────
     @State var streakData: StreakResponse? = nil
@@ -741,6 +742,11 @@ struct StatsView: View {
         Task {
             if let rs = try? await APIService.shared.fetchRitualStats() {
                 await MainActor.run { ritualStats = rs }
+            }
+        }
+        Task {
+            if let rc = try? await APIService.shared.fetchRoutineCorrelations() {
+                await MainActor.run { routineCorrelations = rc }
             }
         }
     }

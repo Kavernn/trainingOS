@@ -72,6 +72,17 @@ extension APIService {
         CacheInvalidation.ritualItemActioned.invalidate()
     }
 
+    func fetchRoutineCorrelations() async throws -> RoutineCorrelations {
+        let url  = try buildURL(path: "/api/ritual/routine_correlations")
+        let data = try await fetchWithCache(url: url, key: "routine_correlations")
+        return try APIService.decoder.decode(RoutineCorrelations.self, from: data)
+    }
+
+    func saveEveningRoutineItem(_ field: String, value: Bool) async throws {
+        _ = try await offlinePost(endpoint: "/api/ritual/evening_routine", payload: [field: value])
+        CacheInvalidation.ritualItemActioned.invalidate()
+    }
+
     func saveRitualEveningFull(outcome: String, reflection: String? = nil,
                                winddownDone: Bool? = nil, coldDone: Bool? = nil,
                                gratitude: String? = nil,

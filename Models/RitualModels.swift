@@ -29,6 +29,15 @@ struct RitualToday: Codable {
     let yesterdayOutcome: String?     // outcome d'hier soir (burned/survived)
     let yesterdayEveningAt: String?   // heure à laquelle l'intention a été prise hier soir
     let morningAck: Bool?             // acquittement matin : true=accompli, false=non, nil=pas encore répondu
+    // Evening routine checklist (migration 065)
+    let routineNoFood: Bool
+    let routineDimLights: Bool
+    let routineShower: Bool
+    let routineConnection: Bool
+    let routineDeconnect: Bool
+    let routinePrioritiesDone: Bool
+    let routineBedtimeOk: Bool
+    let routineCompletedAt: String?
 
     var morningDone: Bool  { morningAt != nil }
     var eveningDone: Bool  { eveningAt != nil }
@@ -58,6 +67,14 @@ struct RitualToday: Codable {
         case yesterdayOutcome      = "yesterday_outcome"
         case yesterdayEveningAt    = "yesterday_evening_at"
         case morningAck            = "morning_ack"
+        case routineNoFood         = "routine_no_food"
+        case routineDimLights      = "routine_dim_lights"
+        case routineShower         = "routine_shower"
+        case routineConnection     = "routine_connection"
+        case routineDeconnect      = "routine_deconnect"
+        case routinePrioritiesDone = "routine_priorities_done"
+        case routineBedtimeOk      = "routine_bedtime_ok"
+        case routineCompletedAt    = "routine_completed_at"
     }
 
     init(from decoder: Decoder) throws {
@@ -88,7 +105,15 @@ struct RitualToday: Codable {
         yesterdayIntention  = try? c.decode(String.self, forKey: .yesterdayIntention)
         yesterdayOutcome    = try? c.decode(String.self, forKey: .yesterdayOutcome)
         yesterdayEveningAt  = try? c.decode(String.self, forKey: .yesterdayEveningAt)
-        morningAck          = try? c.decode(Bool.self,   forKey: .morningAck)
+        morningAck            = try? c.decode(Bool.self,   forKey: .morningAck)
+        routineNoFood         = (try? c.decode(Bool.self, forKey: .routineNoFood))         ?? false
+        routineDimLights      = (try? c.decode(Bool.self, forKey: .routineDimLights))      ?? false
+        routineShower         = (try? c.decode(Bool.self, forKey: .routineShower))         ?? false
+        routineConnection     = (try? c.decode(Bool.self, forKey: .routineConnection))     ?? false
+        routineDeconnect      = (try? c.decode(Bool.self, forKey: .routineDeconnect))      ?? false
+        routinePrioritiesDone = (try? c.decode(Bool.self, forKey: .routinePrioritiesDone)) ?? false
+        routineBedtimeOk      = (try? c.decode(Bool.self, forKey: .routineBedtimeOk))      ?? false
+        routineCompletedAt    = try? c.decode(String.self, forKey: .routineCompletedAt)
     }
 }
 
@@ -251,4 +276,53 @@ struct RitualHistoryPage: Codable {
     let total: Int
     let limit: Int
     let offset: Int
+}
+
+struct RoutineCorrelations: Codable {
+    let dataPoints: Int
+    let minPoints: Int
+    let corr1Hrv: Double?
+    let delta1HrvMs: Double?
+    let corr2Sleep: Double?
+    let delta2SleepMin: Double?
+    let corr3Readiness: Double?
+    let delta3Readiness: Double?
+    let corr4BestItem: Double?
+    let corr4BestItemName: String?
+    let corr5BedtimeHrv: Double?
+    let slope5MsPerHour: Double?
+    let routineStreak: Int
+
+    enum CodingKeys: String, CodingKey {
+        case dataPoints        = "data_points"
+        case minPoints         = "min_points"
+        case corr1Hrv          = "corr1_hrv"
+        case delta1HrvMs       = "delta1_hrv_ms"
+        case corr2Sleep        = "corr2_sleep"
+        case delta2SleepMin    = "delta2_sleep_min"
+        case corr3Readiness    = "corr3_readiness"
+        case delta3Readiness   = "delta3_readiness"
+        case corr4BestItem     = "corr4_best_item"
+        case corr4BestItemName = "corr4_best_item_name"
+        case corr5BedtimeHrv   = "corr5_bedtime_hrv"
+        case slope5MsPerHour   = "slope5_ms_per_hour"
+        case routineStreak     = "routine_streak"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        dataPoints        = (try? c.decode(Int.self,    forKey: .dataPoints))        ?? 0
+        minPoints         = (try? c.decode(Int.self,    forKey: .minPoints))         ?? 14
+        corr1Hrv          = try? c.decode(Double.self,  forKey: .corr1Hrv)
+        delta1HrvMs       = try? c.decode(Double.self,  forKey: .delta1HrvMs)
+        corr2Sleep        = try? c.decode(Double.self,  forKey: .corr2Sleep)
+        delta2SleepMin    = try? c.decode(Double.self,  forKey: .delta2SleepMin)
+        corr3Readiness    = try? c.decode(Double.self,  forKey: .corr3Readiness)
+        delta3Readiness   = try? c.decode(Double.self,  forKey: .delta3Readiness)
+        corr4BestItem     = try? c.decode(Double.self,  forKey: .corr4BestItem)
+        corr4BestItemName = try? c.decode(String.self,  forKey: .corr4BestItemName)
+        corr5BedtimeHrv   = try? c.decode(Double.self,  forKey: .corr5BedtimeHrv)
+        slope5MsPerHour   = try? c.decode(Double.self,  forKey: .slope5MsPerHour)
+        routineStreak     = (try? c.decode(Int.self,    forKey: .routineStreak))     ?? 0
+    }
 }

@@ -233,6 +233,7 @@ from db_features import (
     get_ritual_history,
     get_ritual_demons,
     get_ritual_history_full,
+    get_ritual_routine_history,
     count_ritual_entries,
     get_war_room_config,
     upsert_war_room_config,

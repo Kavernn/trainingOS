@@ -356,6 +356,47 @@ enum NotificationService {
         }
     }
 
+    // MARK: - Evening Routine Bedtime Reminder (23h30 — one-shot daily)
+
+    /// Schedule at 20h when the EveningRoutineCard appears.
+    /// No-op if bedtime_ok already checked, if it's past 23h30, or already scheduled today.
+    static func scheduleEveningRoutineBedtimeReminder(bedtimeOkAlreadyChecked: Bool) {
+        guard !globalDisabled else { return }
+        guard !bedtimeOkAlreadyChecked else { return }
+
+        let now = Date()
+        let cal = Calendar.current
+        let hour   = cal.component(.hour,   from: now)
+        let minute = cal.component(.minute, from: now)
+        guard hour < 23 || (hour == 23 && minute < 30) else { return }
+
+        let today    = DateFormatter.isoDate.string(from: now)
+        let guardKey = "notif_evening_routine_bedtime_date"
+        guard UserDefaults.standard.string(forKey: guardKey) != today else { return }
+        UserDefaults.standard.set(today, forKey: guardKey)
+
+        let center = UNUserNotificationCenter.current()
+        let id = "routine.stricte.bedtime"
+        center.removePendingNotificationRequests(withIdentifiers: [id])
+
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "23h30"
+            content.body  = "Il est temps de poser l'écran."
+            content.sound = .default
+            var dc = DateComponents()
+            dc.hour = 23; dc.minute = 30
+            let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: false)
+            center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
+        }
+    }
+
+    static func cancelEveningRoutineBedtimeReminder() {
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: ["routine.stricte.bedtime"])
+    }
+
     // MARK: - Ritual Morning Reminder (B1 — adaptive, defaults to 07:00)
 
     static func scheduleRitualMorningReminder(hour: Int = 7, minute: Int = 0) {
