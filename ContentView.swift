@@ -42,6 +42,7 @@ private struct iOSContentView: View {
     @ObservedObject var sync: SyncManager
     @ObservedObject private var api      = APIService.shared
     @ObservedObject private var appState = AppState.shared
+    @ObservedObject private var theme    = AppTheme.shared
     @Binding var selectedTab: Int
 
     private var seanceBadge: Int {
