@@ -51,12 +51,8 @@ class WatchSyncService: ObservableObject {
     }
 
     /// Syncs only if the last sync was more than 30 min ago.
-    /// Backfill runs at most once per hour — it fetches 7 days of recovery_logs + upserts.
+    /// Backfill throttle is enforced inside sync() — no need to duplicate here.
     func syncIfNeeded() async {
-        if hk.hasBeenAuthorized() && shouldBackfill {
-            await backfillRecentDaysIfNeeded()
-            defaults.set(Date(), forKey: lastBackfillKey)
-        }
         guard shouldSync else { return }
         await sync()
     }
@@ -103,8 +99,11 @@ class WatchSyncService: ObservableObject {
             }
         }
 
-        // Backfill recent days if their recovery logs have no steps
-        await backfillRecentDaysIfNeeded()
+        // Backfill recent days — throttled to 1h to avoid excessive egress
+        if shouldBackfill {
+            await backfillRecentDaysIfNeeded()
+            defaults.set(Date(), forKey: lastBackfillKey)
+        }
 
         if manual && !hasData && lastError == nil {
             lastError = "Aucune donnée HealthKit — porte ton Apple Watch et autorise l'accès dans Réglages > Santé"
