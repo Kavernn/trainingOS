@@ -256,17 +256,105 @@ def api_inventaire_data():
     from inventory import load_inventory
     from planner import load_program
     from blocks import get_strength_exercises
+    from db_exercises import get_exercise_use_counts
 
     inventory = load_inventory()
     if inventory is None:
         return jsonify({"inventory": {}, "in_program": []})
-    # Derive which exercises are currently in the program
+
+    use_counts = get_exercise_use_counts()
+    enriched = {}
+    for name, data in inventory.items():
+        d = dict(data)
+        d["use_count"] = use_counts.get(d.get("id", ""), 0)
+        enriched[name] = d
+
     full_program = _db.get_full_program(None) or load_program()
     in_program: set = set()
     for session_def in full_program.values():
         exos = get_strength_exercises(session_def) if isinstance(session_def, dict) and "blocks" in session_def else (session_def if isinstance(session_def, dict) else {})
         in_program.update(exos.keys())
-    return jsonify({"inventory": inventory, "in_program": sorted(in_program)})
+    return jsonify({"inventory": enriched, "in_program": sorted(in_program)})
+
+
+@data_views_bp.route("/api/exercise_detail")
+def api_exercise_detail():
+    import json as _json
+    import db as _db
+    from planner import load_program
+    from blocks import get_strength_exercises
+    from db_sessions import get_exercise_detail_history
+    from datetime import datetime, timedelta
+
+    name = request.args.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "name required"}), 400
+
+    history_raw = get_exercise_detail_history(name, limit=10)
+
+    def calc_e1rm(weight, reps_str):
+        try:
+            reps = int(str(reps_str).split("-")[0]) if reps_str else 0
+            w = float(weight) if weight else 0.0
+            if reps <= 0 or w <= 0 or reps > 15:
+                return None
+            if reps <= 10:
+                return round(w * (1 + reps / 30), 1)
+            return round(w * 36 / (37 - reps), 1)
+        except Exception:
+            return None
+
+    history = []
+    e1rms = []
+    for row in history_raw:
+        e1rm = calc_e1rm(row.get("weight"), row.get("reps"))
+        if e1rm:
+            e1rms.append(e1rm)
+        sets_raw = row.get("sets_json")
+        sets = []
+        if sets_raw:
+            try:
+                parsed = _json.loads(sets_raw) if isinstance(sets_raw, str) else sets_raw
+                sets = parsed if isinstance(parsed, list) else []
+            except Exception:
+                pass
+        history.append({
+            "date":   row.get("date"),
+            "weight": row.get("weight"),
+            "reps":   str(row.get("reps", "")),
+            "sets":   sets,
+            "rpe":    row.get("rpe"),
+            "e1rm":   e1rm,
+        })
+
+    e1rm_current = e1rms[0] if e1rms else None
+    e1rm_best    = max(e1rms) if e1rms else None
+
+    cutoff_30d = (datetime.now() - timedelta(days=30)).date()
+    trend_30d = [
+        {"date": h["date"], "e1rm": h["e1rm"]}
+        for h in history
+        if h["e1rm"] and h["date"]
+        and datetime.strptime(h["date"], "%Y-%m-%d").date() >= cutoff_30d
+    ]
+
+    full_program = _db.get_full_program(None) or load_program()
+    in_sessions = []
+    for session_name, session_def in full_program.items():
+        exos = (get_strength_exercises(session_def)
+                if isinstance(session_def, dict) and "blocks" in session_def
+                else (session_def if isinstance(session_def, dict) else {}))
+        if name in exos:
+            in_sessions.append(session_name)
+
+    return jsonify({
+        "e1rm_current": e1rm_current,
+        "e1rm_best":    e1rm_best,
+        "last_session": {"date": history[0]["date"], "weight": history[0]["weight"], "reps": history[0]["reps"]} if history else None,
+        "history":      history[:5],
+        "trend_30d":    trend_30d,
+        "in_sessions":  sorted(in_sessions),
+    })
 
 
 @data_views_bp.route("/api/historique_data")

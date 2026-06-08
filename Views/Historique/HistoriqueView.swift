@@ -42,6 +42,7 @@ struct HistoriqueView: View {
     @State private var showMonthPicker = false
     @State private var pickerDate = Date()
     @State private var timelineCache: [TimelineDay] = []
+    @State private var activeExercises: Set<String> = []
 
     var body: some View {
         NavigationStack {
@@ -96,6 +97,7 @@ struct HistoriqueView: View {
                                             MuscuSessionCard(
                                                 session: session,
                                                 isExpanded: expandedIDs.contains(session.id),
+                                                activeExercises: activeExercises,
                                                 onToggle: { toggle(session.id) },
                                                 onDelete: { Task { await deleteMuscu(session) } },
                                                 onEdit: { editTarget = session }
@@ -158,7 +160,10 @@ struct HistoriqueView: View {
             .navigationTitle("Historique")
             .navigationBarTitleDisplayMode(.large)
         }
-        .task { await loadData() }
+        .task {
+            await loadData()
+            await loadActiveExercises()
+        }
         .onChange(of: muscuSessions.count) { timelineCache = buildTimeline() }
         .onChange(of: hiitSessions.count)  { timelineCache = buildTimeline() }
         .sheet(item: $editTarget) { session in
@@ -213,6 +218,16 @@ struct HistoriqueView: View {
             apiError = "Impossible de charger l'historique — vérifie ta connexion."
         }
         isLoading = false
+    }
+
+    private func loadActiveExercises() async {
+        guard let url = URL(string: "\(APIConfig.base)/api/inventory") else { return }
+        var req = URLRequest(url: url)
+        req.timeoutInterval = 10
+        if let (data, _) = try? await URLSession.authed.data(for: req),
+           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            activeExercises = Set(dict.keys)
+        }
     }
 
     private func loadMore() async {
@@ -486,6 +501,7 @@ struct MonthPickerSheet: View {
 struct MuscuSessionCard: View {
     let session: HistoriqueMuscu
     let isExpanded: Bool
+    var activeExercises: Set<String> = []
     let onToggle: () -> Void
     let onDelete: () -> Void
     let onEdit: () -> Void
@@ -563,9 +579,18 @@ struct MuscuSessionCard: View {
                         VStack(spacing: 0) {
                             ForEach(session.exos) { exo in
                                 HStack {
+                                    let isArchived = !activeExercises.isEmpty && !activeExercises.contains(exo.exercise)
                                     Text(exo.exercise)
                                         .font(.appLabel.weight(.semibold))
                                         .foregroundColor(.white)
+                                    if isArchived {
+                                        Text("archivé")
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundColor(.gray)
+                                            .padding(.horizontal, 5).padding(.vertical, 2)
+                                            .background(Color.white.opacity(0.07))
+                                            .cornerRadius(4)
+                                    }
                                     Spacer()
                                     Text(exo.reps)
                                         .font(.appCaption)

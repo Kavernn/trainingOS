@@ -193,19 +193,27 @@ extension PSSRecord {
 extension String {
     var localizedMuscleGroup: String {
         switch self.lowercased() {
-        case "glutes":                return "Fessiers"
-        case "chest":                 return "Pectoraux"
-        case "back":                  return "Dos"
-        case "shoulders":             return "Épaules"
-        case "biceps":                return "Biceps"
-        case "triceps":               return "Triceps"
-        case "legs", "quads":         return "Jambes"
-        case "hamstrings":            return "Ischio-jambiers"
-        case "calves":                return "Mollets"
-        case "core", "abs":           return "Core"
-        case "forearms":              return "Avant-bras"
-        case "traps":                 return "Trapèzes"
-        default:                      return self.capitalized
+        case "glutes", "fessiers":                      return "Fessiers"
+        case "chest", "pectorals", "pectoral":          return "Pectoraux"
+        case "back":                                    return "Dos"
+        case "lats", "lat":                             return "Dorsaux"
+        case "shoulders", "deltoids":                   return "Épaules"
+        case "rear delt", "rear delts",
+             "posterior deltoid":                       return "Post. Épaule"
+        case "biceps", "bicep":                         return "Biceps"
+        case "triceps", "tricep":                       return "Triceps"
+        case "legs", "quads", "quadriceps":             return "Quadriceps"
+        case "hamstrings":                              return "Ischio-jambiers"
+        case "calves":                                  return "Mollets"
+        case "core", "abs":                             return "Core"
+        case "obliques":                                return "Obliques"
+        case "forearms":                                return "Avant-bras"
+        case "traps", "trapezius":                      return "Trapèzes"
+        case "rhomboids", "rhomboid":                   return "Rhomboïdes"
+        case "lower back":                              return "Lombaires"
+        case "rotators":                                return "Rotateurs"
+        case "abductors":                               return "Abducteurs"
+        default:                                        return self.capitalized
         }
     }
 }

@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import Charts
 
 private let kBaseURL = APIConfig.base
 
@@ -20,6 +21,8 @@ struct InventoryItem: Identifiable {
     var restSeconds: Int?
     var loadProfile: String   // "compound_heavy" | "compound_hypertrophy" | "isolation" | ""
     var gifUrl: String?
+    var useCount: Int
+    var notes: String?
     init(name: String, _ d: [String: Any]) {
         self.name          = name
         self.type          = d["type"]          as? String ?? "machine"
@@ -34,12 +37,14 @@ struct InventoryItem: Identifiable {
         self.restSeconds   = d["rest_seconds"]  as? Int
         self.loadProfile   = d["load_profile"]  as? String ?? ""
         self.gifUrl        = d["gif_url"]        as? String
+        self.useCount      = d["use_count"]      as? Int ?? 0
+        self.notes         = d["tips"]            as? String
     }
 }
 
 // MARK: - View
 
-struct InventaireView: View {
+struct CatalogueView: View {
     @State private var items: [InventoryItem] = []
     @State private var inProgram: Set<String> = []
     @State private var isLoading = true
@@ -50,20 +55,34 @@ struct InventaireView: View {
     @State private var filterProgram = false
     @State private var editTarget: InventoryItem?
     @State private var showAdd = false
+    @State private var prefillName = ""
     @State private var errorMsg: String?
     @State private var pendingDelete: String?
+    @State private var addToProgramTarget: InventoryItem?
+    @State private var detailTarget: InventoryItem?
 
-    let types      = ["Tous", "barbell", "ez-bar", "dumbbell", "cable", "cable_double", "machine", "bodyweight"]
+    private enum SortOrder: String, CaseIterable {
+        case alpha     = "A–Z"
+        case frequency = "Fréquence"
+        var icon: String { self == .alpha ? "textformat.abc" : "chart.bar.fill" }
+    }
+    @State private var sortOrder: SortOrder = .alpha
+
+    let types      = ["Tous", "barbell", "ez-bar", "dumbbell", "cable", "cable_double", "machine", "bodyweight", "endurance"]
     let categories = ["Tous", "push", "pull", "legs", "core", "mobility"]
 
     var filtered: [InventoryItem] {
-        items.filter { item in
-            (selectedType == "Tous" || item.type == selectedType) &&
+        let base = items.filter { item in
+            (selectedType == "Tous" ||
+             (selectedType == "endurance" ? item.trackingType == "time" : item.type == selectedType)) &&
             (selectedCategory == "Tous" || item.category == selectedCategory) &&
             (!filterProgram || inProgram.contains(item.name)) &&
             (debouncedSearch.isEmpty || item.name.localizedCaseInsensitiveContains(debouncedSearch))
         }
-        .sorted { $0.name < $1.name }
+        switch sortOrder {
+        case .alpha:     return base.sorted { $0.name < $1.name }
+        case .frequency: return base.sorted { $0.useCount > $1.useCount }
+        }
     }
 
     var body: some View {
@@ -71,7 +90,7 @@ struct InventaireView: View {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 if isLoading {
-                    InventaireSkeletonView()
+                    CatalogueSkeletonView()
                 } else {
                     VStack(spacing: 0) {
                         searchBar
@@ -85,8 +104,31 @@ struct InventaireView: View {
                         }
                     }
                 }
+                // FAB
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button {
+                            prefillName = ""
+                            showAdd = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.title2.weight(.semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 56, height: 56)
+                                .background(Color.forge)
+                                .clipShape(Circle())
+                                .shadow(color: Color.forge.opacity(0.4), radius: 10, y: 4)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.trailing, 20)
+                        .padding(.bottom, fabBottomPadding + 16)
+                    }
+                }
+                .zIndex(5)
             }
-            .navigationTitle("Inventaire")
+            .navigationTitle("Catalogue")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -97,21 +139,45 @@ struct InventaireView: View {
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button { showAdd = true } label: {
-                        Image(systemName: "plus")
+                    Menu {
+                        ForEach(SortOrder.allCases, id: \.self) { order in
+                            Button {
+                                sortOrder = order
+                            } label: {
+                                Label(order.rawValue, systemImage: sortOrder == order ? "checkmark" : order.icon)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
                             .font(.appBody.weight(.semibold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(sortOrder == .frequency ? Color.forge : .gray)
                     }
                 }
             }
             .sheet(isPresented: $showAdd) {
-                InventoryFormSheet(existing: nil) { saved in
+                InventoryFormSheet(existing: nil, prefillName: prefillName.isEmpty ? nil : prefillName, existingNames: items.map(\.name)) { saved in
                     Task { await postSave(saved) }
                 }
             }
             .sheet(item: $editTarget) { target in
-                InventoryFormSheet(existing: target) { saved in
+                InventoryFormSheet(existing: target, existingNames: items.map(\.name)) { saved in
                     Task { await postSave(saved, originalName: target.name) }
+                }
+            }
+            .sheet(item: $addToProgramTarget) { target in
+                AddExerciseToProgramSheet(exercise: target) {
+                    Task { await loadData() }
+                }
+            }
+            .sheet(item: $detailTarget) { target in
+                CatalogueExerciseDetailView(item: target, isInProgram: inProgram.contains(target.name)) {
+                    editTarget = target
+                } onArchive: {
+                    pendingDelete = target.name
+                } onAddToProgram: {
+                    addToProgramTarget = target
+                } onReload: {
+                    Task { await loadData() }
                 }
             }
         }
@@ -127,19 +193,19 @@ struct InventaireView: View {
             }
         }
         .confirmationDialog(
-            inProgram.contains(pendingDelete ?? "")
-                ? "Cet exercice est dans ton programme — le supprimer le retirera de toutes tes séances."
-                : "Supprimer \(pendingDelete ?? "") de l'inventaire ?",
+            "Archiver \(pendingDelete ?? "") ?",
             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Supprimer", role: .destructive) {
+            Button("Archiver", role: .destructive) {
                 if let name = pendingDelete {
                     Task { await deleteItem(name) }
                     pendingDelete = nil
                 }
             }
             Button("Annuler", role: .cancel) { pendingDelete = nil }
+        } message: {
+            Text("Ton historique et tes stats sont préservés. L'exercice n'apparaîtra plus dans le catalogue.")
         }
     }
 
@@ -168,11 +234,11 @@ struct InventaireView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(types, id: \.self) { t in
-                    ChipButton(label: typeLabel(t), isSelected: selectedType == t, color: typeColor(t), size: .small) {
+                    ChipButton(label: typeLabel(t), isSelected: selectedType == t, size: .small) {
                         selectedType = t
                     }
                 }
-                ChipButton(label: "⭐ En programme", isSelected: filterProgram, color: .orange, size: .small) {
+                ChipButton(label: "⭐ En programme", isSelected: filterProgram, size: .small) {
                     filterProgram.toggle()
                 }
             }
@@ -185,7 +251,7 @@ struct InventaireView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
                 ForEach(categories, id: \.self) { c in
-                    ChipButton(label: catLabel(c), isSelected: selectedCategory == c, color: catColor(c), size: .small) {
+                    ChipButton(label: catLabel(c), isSelected: selectedCategory == c, size: .small) {
                         selectedCategory = c
                     }
                 }
@@ -206,26 +272,62 @@ struct InventaireView: View {
         .padding(.bottom, 4)
     }
 
+    @ViewBuilder
     private var emptyState: some View {
-        EmptyStateView(icon: "magnifyingglass", title: "Aucun exercice trouvé", compact: true)
+        if debouncedSearch.isEmpty {
+            EmptyStateView(icon: "books.vertical.fill", title: "Catalogue vide", compact: true)
+                .padding(.top, 40)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            VStack(spacing: 14) {
+                EmptyStateView(icon: "magnifyingglass", title: "Aucun exercice pour « \(debouncedSearch) »", compact: true)
+                Button {
+                    prefillName = debouncedSearch
+                    showAdd = true
+                } label: {
+                    Text("Créer « \(debouncedSearch) »")
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(Color.forge)
+                        .padding(.horizontal, 20).padding(.vertical, 10)
+                        .background(Color.forge.opacity(0.12))
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.25), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
             .padding(.top, 40)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
     }
 
     private var itemList: some View {
         List {
             ForEach(filtered, id: \.name) { item in
-                InventaireRow(item: item, isInProgram: inProgram.contains(item.name))
+                CatalogueRow(item: item, isInProgram: inProgram.contains(item.name))
                     .listRowBackground(Color.appCard)
                     .listRowSeparatorTint(Color.white.opacity(0.07))
                     .contentShape(Rectangle())
-                    .onTapGesture { editTarget = item }
+                    .onTapGesture { detailTarget = item }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
                             pendingDelete = item.name
                         } label: {
-                            Label("Supprimer", systemImage: "trash")
+                            Label("Archiver", systemImage: "archivebox")
                         }
+                        Button {
+                            editTarget = item
+                        } label: {
+                            Label("Modifier", systemImage: "pencil")
+                        }
+                        .tint(.blue)
+                    }
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            addToProgramTarget = item
+                        } label: {
+                            Label("Programme", systemImage: "plus.circle.fill")
+                        }
+                        .tint(.green)
                     }
             }
         }
@@ -265,6 +367,7 @@ struct InventaireView: View {
             "tracking_type":  item.trackingType,
             "rest_seconds":   item.restSeconds as Any,
             "load_profile":   item.loadProfile.isEmpty ? NSNull() : item.loadProfile,
+            "tips":           item.notes ?? NSNull(),
         ]
         if let orig = originalName, orig != item.name {
             body["original_name"] = orig
@@ -302,6 +405,7 @@ struct InventaireView: View {
         case "dumbbell": return "Haltère"; case "cable": return "Câble"
         case "cable_double": return "Câble ×2"
         case "machine": return "Machine"; case "bodyweight": return "Corps"
+        case "endurance": return "⏱ Endurance"
         default: return "Tous"
         }
     }
@@ -334,7 +438,7 @@ struct InventaireView: View {
 
 // MARK: - Row
 
-struct InventaireRow: View {
+struct CatalogueRow: View {
     let item: InventoryItem
     var isInProgram: Bool = false
     @State private var showMedia = false
@@ -461,6 +565,8 @@ private let kPatternOptions: [(String, String)] = [
 
 struct InventoryFormSheet: View {
     let existing: InventoryItem?
+    var prefillName: String? = nil
+    var existingNames: [String] = []
     let onSave: (InventoryItem) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -480,6 +586,7 @@ struct InventoryFormSheet: View {
     @State private var timeDuration  = 30  // seconds
     @State private var restSecs: Int? = nil   // nil = pas de repos configuré
     @State private var loadProfile   = ""     // "" | "compound_heavy" | "compound_hypertrophy" | "isolation"
+    @State private var notes         = ""
 
     let types      = ["barbell", "ez-bar", "dumbbell", "cable", "cable_double", "machine", "bodyweight"]
     let categories = ["", "push", "pull", "legs", "core", "mobility"]
@@ -493,7 +600,12 @@ struct InventoryFormSheet: View {
     private var generatedScheme: String { "\(timeSets)x\(formatDur(timeDuration))" }
 
     private var isEditing: Bool { existing != nil }
-    private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespaces) }
+    private var isDuplicate: Bool {
+        guard !isEditing, !trimmedName.isEmpty else { return false }
+        return existingNames.contains { $0.lowercased() == trimmedName.lowercased() }
+    }
+    private var canSave: Bool { !trimmedName.isEmpty && !isDuplicate }
 
     var body: some View {
         NavigationStack {
@@ -501,9 +613,21 @@ struct InventoryFormSheet: View {
                 Color.appBg.ignoresSafeArea()
                 Form {
                     // ── Nom ──────────────────────────────────────
-                    Section("Nom") {
+                    Section {
                         TextField("Nom de l'exercice", text: $name)
                             .foregroundColor(.white)
+                        if isDuplicate {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.appCaption)
+                                    .foregroundColor(.yellow)
+                                Text("Un exercice avec ce nom existe déjà.")
+                                    .font(.appCaption)
+                                    .foregroundColor(.yellow)
+                            }
+                        }
+                    } header: {
+                        sectionHeader("Nom *")
                     }
                     .listRowBackground(Color.appCard)
 
@@ -667,6 +791,16 @@ struct InventoryFormSheet: View {
                     }
                     .listRowBackground(Color.appCard)
 
+                    // ── Notes personnelles ────────────────────────
+                    Section {
+                        TextField("Cues techniques, conseils, variantes…", text: $notes, axis: .vertical)
+                            .foregroundColor(.white)
+                            .lineLimit(3...6)
+                    } header: {
+                        sectionHeader("Notes personnelles")
+                    }
+                    .listRowBackground(Color.appCard)
+
                     // ── Repos ─────────────────────────────────────
                     Section {
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -720,9 +854,8 @@ struct InventoryFormSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Enregistrer") {
-                        let trimmed = name.trimmingCharacters(in: .whitespaces)
-                        guard !trimmed.isEmpty else { return }
-                        var item = InventoryItem(name: trimmed, [:])
+                        guard canSave else { return }
+                        var item = InventoryItem(name: trimmedName, [:])
                         item.type          = type
                         item.category      = category
                         item.pattern       = pattern
@@ -734,6 +867,7 @@ struct InventoryFormSheet: View {
                         item.trackingType  = trackingType
                         item.restSeconds   = restSecs
                         item.loadProfile   = loadProfile
+                        item.notes         = notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : notes.trimmingCharacters(in: .whitespacesAndNewlines)
                         onSave(item)
                         dismiss()
                     }
@@ -756,6 +890,7 @@ struct InventoryFormSheet: View {
                 trackingType  = e.trackingType
                 restSecs      = e.restSeconds
                 loadProfile   = e.loadProfile
+                notes         = e.notes ?? ""
                 // Parse existing time scheme (e.g. "3x45s" → sets=3, duration=45)
                 if e.trackingType == "time" {
                     let parts = e.defaultScheme.lowercased().split(separator: "x")
@@ -769,6 +904,8 @@ struct InventoryFormSheet: View {
                         }
                     }
                 }
+            } else if let pn = prefillName {
+                name = pn
             }
         }
     }
@@ -964,7 +1101,7 @@ struct InventoryFormSheet: View {
 
 // MARK: - Skeleton
 
-private struct InventaireSkeletonView: View {
+private struct CatalogueSkeletonView: View {
     @State private var shimmer = false
 
     var body: some View {
@@ -1157,6 +1294,504 @@ struct FlowLayout: Layout {
             if x + s.width > bounds.maxX && x > bounds.minX { y += rowH + spacing; x = bounds.minX; rowH = 0 }
             sv.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(s))
             x += s.width + spacing; rowH = max(rowH, s.height)
+        }
+    }
+}
+
+// MARK: - Exercise Detail View
+
+private struct ExerciseDetail {
+    var e1rmCurrent: Double?
+    var e1rmBest: Double?
+    var lastSession: LastSession?
+    var history: [HistoryEntry]
+    var trend30d: [TrendPoint]
+    var inSessions: [String]
+
+    struct LastSession { var date: String; var weight: Double?; var reps: String }
+    struct HistoryEntry {
+        var date: String; var weight: Double?; var reps: String
+        var sets: [[Double]]; var rpe: Double?; var e1rm: Double?
+    }
+    struct TrendPoint { var date: String; var e1rm: Double }
+}
+
+struct CatalogueExerciseDetailView: View {
+    let item: InventoryItem
+    let isInProgram: Bool
+    let onEdit: () -> Void
+    let onArchive: () -> Void
+    let onAddToProgram: () -> Void
+    let onReload: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var detail: ExerciseDetail?
+    @State private var isLoading = true
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBg.ignoresSafeArea()
+                if isLoading {
+                    ProgressView().tint(.orange)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 20) {
+                            if let d = detail {
+                                if d.e1rmCurrent != nil || d.e1rmBest != nil {
+                                    statsSection(d)
+                                }
+                                if !d.trend30d.isEmpty {
+                                    trendSection(d.trend30d)
+                                }
+                                if !d.history.isEmpty {
+                                    historySection(d.history)
+                                }
+                                if !d.inSessions.isEmpty {
+                                    programmeSection(d.inSessions)
+                                }
+                            } else {
+                                EmptyStateView(icon: "chart.bar.xaxis", title: "Aucun historique pour cet exercice.", compact: true)
+                                    .padding(.top, 40)
+                            }
+                            actionsSection
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 16)
+                    }
+                }
+            }
+            .navigationTitle(item.name)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fermer") { dismiss() }.foregroundColor(.gray)
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { onEdit() }
+                    } label: {
+                        Image(systemName: "pencil")
+                            .font(.appBody.weight(.semibold))
+                            .foregroundColor(Color.forge)
+                    }
+                }
+            }
+        }
+        .task { await loadDetail() }
+    }
+
+    // MARK: – Sections
+
+    private func statsSection(_ d: ExerciseDetail) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("STATS")
+                .font(.appCaption.weight(.black)).tracking(2)
+                .foregroundColor(.gray)
+
+            HStack(spacing: 12) {
+                if let cur = d.e1rmCurrent {
+                    statCard(label: "e1RM actuel", value: String(format: "%.1f", cur), unit: "lbs", accent: Color.forge)
+                }
+                if let best = d.e1rmBest {
+                    statCard(label: "Meilleur e1RM", value: String(format: "%.1f", best), unit: "lbs", accent: .yellow)
+                }
+            }
+
+            if let last = d.lastSession {
+                HStack(spacing: 8) {
+                    Image(systemName: "calendar")
+                        .font(.appCaption)
+                        .foregroundColor(.gray)
+                    Text("Dernière séance")
+                        .font(.appCaption)
+                        .foregroundColor(.gray)
+                    Spacer()
+                    Text(frenchDate(last.date))
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.white.opacity(0.85))
+                    if let w = last.weight {
+                        Text("· \(Int(w))lbs × \(last.reps)")
+                            .font(.appCaption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .background(Color.appCard)
+                .cornerRadius(10)
+            }
+        }
+    }
+
+    private func statCard(label: String, value: String, unit: String, accent: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.appCaption)
+                .foregroundColor(.gray)
+            HStack(alignment: .lastTextBaseline, spacing: 3) {
+                Text(value)
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .foregroundColor(accent)
+                Text(unit)
+                    .font(.appCaption)
+                    .foregroundColor(.gray)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accent.opacity(0.2), lineWidth: 1))
+    }
+
+    private func trendSection(_ trend: [ExerciseDetail.TrendPoint]) -> some View {
+        let vals = trend.map(\.e1rm)
+        let minV = (vals.min() ?? 0) * 0.97
+        let maxV = (vals.max() ?? 1) * 1.03
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("PROGRESSION 30J")
+                    .font(.appCaption.weight(.black)).tracking(2)
+                    .foregroundColor(.gray)
+                Spacer()
+                let delta = (vals.last ?? 0) - (vals.first ?? 0)
+                if delta != 0 {
+                    Text(delta > 0 ? "+\(String(format: "%.1f", delta))lbs" : "\(String(format: "%.1f", delta))lbs")
+                        .font(.appCaption.weight(.bold))
+                        .foregroundColor(delta > 0 ? .green : .red)
+                }
+            }
+            Chart {
+                ForEach(Array(trend.enumerated()), id: \.offset) { i, pt in
+                    AreaMark(x: .value("", i), y: .value("", pt.e1rm))
+                        .foregroundStyle(LinearGradient(
+                            colors: [Color.forge.opacity(0.3), Color.forge.opacity(0.0)],
+                            startPoint: .top, endPoint: .bottom))
+                        .interpolationMethod(.catmullRom)
+                    LineMark(x: .value("", i), y: .value("", pt.e1rm))
+                        .foregroundStyle(Color.forge)
+                        .lineStyle(StrokeStyle(lineWidth: 2))
+                        .interpolationMethod(.catmullRom)
+                    if i == trend.count - 1 {
+                        PointMark(x: .value("", i), y: .value("", pt.e1rm))
+                            .foregroundStyle(Color.forge)
+                            .symbolSize(30)
+                    }
+                }
+            }
+            .chartYScale(domain: minV...maxV)
+            .chartXAxis(.hidden).chartYAxis(.hidden)
+            .frame(height: 72)
+            .padding(.horizontal, 4)
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(12)
+    }
+
+    private func historySection(_ history: [ExerciseDetail.HistoryEntry]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("HISTORIQUE")
+                .font(.appCaption.weight(.black)).tracking(2)
+                .foregroundColor(.gray)
+            ForEach(Array(history.enumerated()), id: \.offset) { _, entry in
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(frenchDateShort(entry.date))
+                            .font(.appCaption.weight(.semibold))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .frame(width: 56, alignment: .trailing)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        let setsSummary = setsSummaryText(entry)
+                        Text(setsSummary)
+                            .font(.appLabel.weight(.semibold))
+                            .foregroundColor(.white)
+                        HStack(spacing: 6) {
+                            if let e1rm = entry.e1rm {
+                                Text("e1RM \(String(format: "%.0f", e1rm))lbs")
+                                    .font(.appCaption)
+                                    .foregroundColor(Color.forge.opacity(0.8))
+                            }
+                            if let rpe = entry.rpe {
+                                Text("RPE \(String(format: "%.1f", rpe))")
+                                    .font(.appCaption)
+                                    .foregroundColor(.gray)
+                            }
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.vertical, 6)
+                if history.last?.date != entry.date {
+                    Divider().background(Color.white.opacity(0.06))
+                }
+            }
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(12)
+    }
+
+    private func programmeSection(_ sessions: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("PROGRAMME")
+                .font(.appCaption.weight(.black)).tracking(2)
+                .foregroundColor(.gray)
+            ForEach(sessions, id: \.self) { s in
+                HStack(spacing: 10) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.appLabel)
+                    Text(s)
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+                .padding(.vertical, 4)
+            }
+        }
+        .padding(14)
+        .background(Color.appCard)
+        .cornerRadius(12)
+    }
+
+    private var actionsSection: some View {
+        VStack(spacing: 10) {
+            if !isInProgram {
+                Button {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { onAddToProgram() }
+                } label: {
+                    Label("Ajouter au programme", systemImage: "plus.circle.fill")
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.green.opacity(0.85))
+                        .cornerRadius(12)
+                }
+                .buttonStyle(.plain)
+            }
+            Button {
+                dismiss()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { onArchive() }
+            } label: {
+                Label("Archiver cet exercice", systemImage: "archivebox")
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.red.opacity(0.8))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.red.opacity(0.08))
+                    .cornerRadius(12)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.2), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: – Network
+
+    private func loadDetail() async {
+        guard let url = URL(string: "\(kBaseURL)/api/exercise_detail?name=\(item.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") else {
+            await MainActor.run { isLoading = false }; return
+        }
+        guard let (data, _) = try? await URLSession.authed.data(from: url),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            await MainActor.run { isLoading = false }; return
+        }
+
+        let e1rmCurrent = json["e1rm_current"] as? Double
+        let e1rmBest    = json["e1rm_best"]    as? Double
+
+        var lastSession: ExerciseDetail.LastSession? = nil
+        if let ls = json["last_session"] as? [String: Any], let d = ls["date"] as? String {
+            lastSession = ExerciseDetail.LastSession(
+                date: d,
+                weight: ls["weight"] as? Double,
+                reps: ls["reps"] as? String ?? ""
+            )
+        }
+
+        let historyRaw = json["history"] as? [[String: Any]] ?? []
+        let history: [ExerciseDetail.HistoryEntry] = historyRaw.compactMap { h in
+            guard let date = h["date"] as? String else { return nil }
+            let rawSets = h["sets"] as? [[Any]] ?? []
+            let sets: [[Double]] = rawSets.compactMap { s in
+                guard s.count >= 2,
+                      let w = (s[0] as? Double) ?? (s[0] as? Int).map(Double.init),
+                      let r = (s[1] as? Double) ?? (s[1] as? Int).map(Double.init) else { return nil }
+                return [w, r]
+            }
+            return ExerciseDetail.HistoryEntry(
+                date: date,
+                weight: h["weight"] as? Double,
+                reps: h["reps"] as? String ?? "",
+                sets: sets,
+                rpe: h["rpe"] as? Double,
+                e1rm: h["e1rm"] as? Double
+            )
+        }
+
+        let trendRaw = json["trend_30d"] as? [[String: Any]] ?? []
+        let trend: [ExerciseDetail.TrendPoint] = trendRaw.compactMap { t in
+            guard let d = t["date"] as? String, let e = t["e1rm"] as? Double else { return nil }
+            return ExerciseDetail.TrendPoint(date: d, e1rm: e)
+        }.sorted { $0.date < $1.date }
+
+        let inSessions = json["in_sessions"] as? [String] ?? []
+
+        let built = ExerciseDetail(
+            e1rmCurrent: e1rmCurrent, e1rmBest: e1rmBest,
+            lastSession: lastSession, history: history,
+            trend30d: trend, inSessions: inSessions
+        )
+        await MainActor.run {
+            detail  = (e1rmCurrent != nil || !history.isEmpty || !inSessions.isEmpty) ? built : nil
+            isLoading = false
+        }
+    }
+
+    // MARK: – Helpers
+
+    private func setsSummaryText(_ entry: ExerciseDetail.HistoryEntry) -> String {
+        if !entry.sets.isEmpty {
+            let grouped = Dictionary(grouping: entry.sets, by: { $0[0] })
+            if grouped.count == 1, let w = grouped.keys.first {
+                return "\(entry.sets.count) × \(Int(entry.sets[0][1])) reps @ \(Int(w))lbs"
+            }
+            return entry.sets.map { "\(Int($0[1]))@\(Int($0[0]))" }.joined(separator: " / ")
+        }
+        if let w = entry.weight {
+            return "\(Int(w))lbs × \(entry.reps) reps"
+        }
+        return "\(entry.reps) reps"
+    }
+
+    private func frenchDate(_ iso: String) -> String {
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        guard let d = fmt.date(from: iso) else { return iso }
+        let out = DateFormatter(); out.locale = Locale(identifier: "fr_CA"); out.dateFormat = "d MMMM yyyy"
+        return out.string(from: d)
+    }
+
+    private func frenchDateShort(_ iso: String) -> String {
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        guard let d = fmt.date(from: iso) else { return iso }
+        let out = DateFormatter(); out.locale = Locale(identifier: "fr_CA"); out.dateFormat = "d MMM"
+        return out.string(from: d)
+    }
+}
+
+// MARK: - Add to Programme Sheet
+
+struct AddExerciseToProgramSheet: View {
+    let exercise: InventoryItem
+    let onAdded: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var seances: [String] = []
+    @State private var isLoading = true
+    @State private var pendingSeance: String? = nil
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.appBg.ignoresSafeArea()
+                if isLoading {
+                    ProgressView().tint(.orange)
+                } else if seances.isEmpty {
+                    EmptyStateView(icon: "list.bullet.clipboard", title: "Aucune séance dans ton programme", compact: true)
+                        .padding(.top, 60)
+                } else {
+                    List {
+                        Section {
+                            ForEach(seances, id: \.self) { seance in
+                                Button {
+                                    guard pendingSeance == nil else { return }
+                                    Task { await addTo(seance: seance) }
+                                } label: {
+                                    HStack(spacing: 14) {
+                                        Image(systemName: "dumbbell.fill")
+                                            .font(.appLabel)
+                                            .foregroundColor(.gray)
+                                            .frame(width: 28)
+                                        Text(seance)
+                                            .font(.appLabel.weight(.semibold))
+                                            .foregroundColor(.white)
+                                        Spacer()
+                                        if pendingSeance == seance {
+                                            ProgressView().tint(.forge).scaleEffect(0.8)
+                                        } else {
+                                            Image(systemName: "plus.circle")
+                                                .foregroundColor(.green)
+                                                .font(.appBody)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                                .buttonStyle(.plain)
+                                .listRowBackground(Color.appCard)
+                                .listRowSeparatorTint(Color.white.opacity(0.07))
+                            }
+                        } header: {
+                            Text("Ajouter à quelle séance ?")
+                                .font(.appCaption.weight(.semibold))
+                                .foregroundColor(.gray)
+                                .textCase(nil)
+                        }
+                    }
+                    .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                }
+            }
+            .navigationTitle(exercise.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { dismiss() }.foregroundColor(.gray)
+                }
+            }
+        }
+        .task { await loadSeances() }
+    }
+
+    private func loadSeances() async {
+        guard let url = URL(string: "\(kBaseURL)/api/programme_data") else {
+            await MainActor.run { isLoading = false }; return
+        }
+        if let (data, _) = try? await URLSession.authed.data(from: url),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let prog = json["full_program"] as? [String: Any] {
+            let names = prog.keys.sorted()
+            await MainActor.run { seances = names; isLoading = false }
+        } else {
+            await MainActor.run { isLoading = false }
+        }
+    }
+
+    private func addTo(seance: String) async {
+        await MainActor.run { pendingSeance = seance }
+        guard let url = URL(string: "\(kBaseURL)/api/programme") else {
+            await MainActor.run { pendingSeance = nil }; return
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let scheme = exercise.defaultScheme.isEmpty ? "3x8-12" : exercise.defaultScheme
+        req.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "action": "add", "jour": seance,
+            "exercise": exercise.name, "scheme": scheme
+        ])
+        _ = try? await URLSession.authed.data(for: req)
+        CacheService.shared.clear(for: "programme_data")
+        CacheService.shared.clear(for: "seance_data")
+        await MainActor.run {
+            pendingSeance = nil
+            onAdded()
+            dismiss()
         }
     }
 }

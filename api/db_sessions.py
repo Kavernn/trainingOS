@@ -704,6 +704,50 @@ def get_exercise_history(exercise_name: str, limit: int = 50) -> List[dict]:
         return []
 
 
+def get_exercise_detail_history(exercise_name: str, limit: int = 10) -> List[dict]:
+    """Return [{date, weight, reps, sets_json, rpe, session_id}] newest first, including rpe."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        ex_id = get_exercise_id(exercise_name)
+        if not ex_id:
+            return []
+        resp = (
+            db_core._client.table("exercise_logs")
+            .select("weight, reps, sets_json, rpe, session_id, workout_sessions(date)")
+            .eq("exercise_id", ex_id)
+            .order("workout_sessions(date)", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        rows = resp.data or []
+        return [
+            {
+                "date":       r["workout_sessions"]["date"],
+                "weight":     r["weight"],
+                "reps":       r["reps"],
+                "sets_json":  r.get("sets_json"),
+                "rpe":        r.get("rpe"),
+                "session_id": r["session_id"],
+            }
+            for r in rows
+            if r.get("workout_sessions")
+        ]
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_exercise_detail_history(%s) retry: %s", exercise_name, e2)
+                return []
+        db_core.logger.error("get_exercise_detail_history(%s) error: %s", exercise_name, e)
+        return []
+
+
 def get_all_exercise_history(cutoff_days: int = 180) -> dict:
     """Return {exercise_name: [{date, weight, reps}]} for all exercises in one query.
 

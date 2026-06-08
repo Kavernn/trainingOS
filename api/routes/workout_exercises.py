@@ -19,6 +19,7 @@ def api_save_exercise():
 
     inv = load_inventory() or {}
 
+    raw_load_profile = data.get("load_profile")
     entry = {
         "type":           data.get("type", "machine"),
         "increment":      float(data.get("increment", 5)),
@@ -30,6 +31,8 @@ def api_save_exercise():
         "pattern":        data.get("pattern", ""),
         "tracking_type":  data.get("tracking_type", "reps"),
         "rest_seconds":   data.get("rest_seconds"),
+        "load_profile":   raw_load_profile if raw_load_profile else None,
+        "tips":           data.get("tips") or None,
     }
 
     if original_name and original_name != name:

@@ -172,7 +172,7 @@ struct MuscleBreakdownView: View {
                 VStack(spacing: 8) {
                     ForEach(sorted, id: \.0) { muscle, entry in
                         HStack(spacing: 10) {
-                            Text(muscle.capitalized)
+                            Text(muscle.localizedMuscleGroup)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.white)
                                 .frame(width: 110, alignment: .leading)
@@ -344,7 +344,7 @@ struct MuscleVolumeView: View {
                     VStack(spacing: 8) {
                         ForEach(sorted, id: \.0) { muscle, volume in
                             HStack(spacing: 10) {
-                                Text(muscle.capitalized)
+                                Text(muscle.localizedMuscleGroup)
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
@@ -437,7 +437,7 @@ struct VolumeLandmarksCard: View {
                         let barW = outer.size.width - 190
                         let ratio = min(Double(lm.weeklySets) / Double(lm.mrv), 1.2)
                         HStack(spacing: 8) {
-                            Text(muscle.capitalized)
+                            Text(muscle.localizedMuscleGroup)
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundColor(.white)
                                 .frame(width: 100, alignment: .leading)

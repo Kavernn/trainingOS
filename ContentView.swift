@@ -181,7 +181,7 @@ private enum MacPage: String, Identifiable {
         case .pss:            return "Stress (PSS)"
         case .mentalHealth:   return "Santé Mentale"
         case .notes:          return "Notes"
-        case .inventaire:     return "Inventaire"
+        case .inventaire:     return "Catalogue"
         case .profil:         return "Profil"
         }
     }
@@ -330,7 +330,7 @@ private struct MacContentView: View {
         case .pss:             PSSView()
         case .mentalHealth:    MentalAmeView()
         case .notes:           NotesView()
-        case .inventaire:      InventaireView()
+        case .inventaire:      CatalogueView()
         case .profil:          ProfileView()
         }
     }

@@ -77,7 +77,7 @@ struct MoreView: View {
                         MoreRow(icon: "gearshape.fill",   color: .purple, title: "Paramètres",
                                 subtitle: "Entraînement, nutrition, récupération…") { SettingsView() }
                         MoreRow(icon: "person.fill",      color: .purple, title: "Profil")        { ProfileView() }
-                        MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Inventaire")    { InventaireView() }
+                        MoreRow(icon: "shippingbox.fill", color: .gray,   title: "Catalogue")    { CatalogueView() }
                         MoreRow(icon: "note.text",        color: .blue,   title: "Notes")         { NotesView() }
                     }
                     .listRowBackground(glassRowBG(.gray))

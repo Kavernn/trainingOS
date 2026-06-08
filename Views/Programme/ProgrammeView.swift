@@ -234,6 +234,18 @@ struct ProgrammeView: View {
         }.sorted()
     }
 
+    private var todaySessionName: String? {
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        let idx = (weekday + 5) % 7  // 1=Sun → idx=6, 2=Mon → idx=0, …, 7=Sat → idx=5
+        guard idx < dayNames.count else { return nil }
+        let day = dayNames[idx]
+        return schedule[day].flatMap { $0 == "Repos" ? nil : $0 }
+    }
+
+    private var activeProgrammeName: String {
+        programs.first { $0.id == activeProgramId }?.name ?? ""
+    }
+
     /// Known seances in canonical order, then any custom seances alphabetically.
     var orderedSeances: [String] {
         let known  = seanceOrder.filter { fullProgram[$0] != nil }
@@ -294,6 +306,19 @@ struct ProgrammeView: View {
                                     .padding(.horizontal, 16)
                                     .transition(.move(edge: .top).combined(with: .opacity))
                                 }
+                            }
+
+                            if !activeProgrammeName.isEmpty || !periodisationStart.isEmpty {
+                                ActiveProgrammeBanner(
+                                    programmeName:  activeProgrammeName,
+                                    phase:          currentPhase.rawValue,
+                                    phaseColor:     phaseColor,
+                                    week:           mesocycleWeek,
+                                    totalWeeks:     11,
+                                    started:        !periodisationStart.isEmpty,
+                                    todaySession:   todaySessionName
+                                )
+                                .padding(.horizontal, 16)
                             }
 
                             EditableWeekScheduleCard(
@@ -636,6 +661,7 @@ struct ProgrammeView: View {
             },
             onCopy:  { copySeance(name: seance, exercises: fullProgram[seance] ?? [:]) },
             onPaste: pasteAction,
+            isToday: seance == todaySessionName,
             onSessionDragChanged: { dy in
                 if draggingSession == nil { triggerImpact(style: .light) }
                 draggingSession = seance
@@ -1319,6 +1345,7 @@ struct EditableSeanceProgramCard: View {
     var onDeleteSeance:       (() -> Void)? = nil
     var onCopy:               (() -> Void)? = nil
     var onPaste:              (() -> Void)? = nil
+    var isToday:              Bool = false
     var onSessionDragChanged: ((CGFloat) -> Void)? = nil
     var onSessionDragEnded:   (() -> Void)? = nil
     var supersets: [String: SupersetEntry] = [:]
@@ -1429,6 +1456,14 @@ struct EditableSeanceProgramCard: View {
                 Text(seance)
                     .font(.appBody.weight(.bold))
                     .foregroundColor(color)
+                if isToday {
+                    Text("AUJOURD'HUI")
+                        .font(.system(size: 9, weight: .black)).tracking(1)
+                        .foregroundColor(Color.forge)
+                        .padding(.horizontal, 7).padding(.vertical, 3)
+                        .background(Color.forge.opacity(0.12))
+                        .cornerRadius(5)
+                }
                 Spacer()
                 Text("\(exercises.count)")
                     .font(.appCaption.weight(.bold))
@@ -1547,8 +1582,9 @@ struct EditableSeanceProgramCard: View {
             }
         }
         .background(Color.appCard)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(color.opacity(0.2), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(isToday ? Color.forge.opacity(0.7) : color.opacity(0.2), lineWidth: isToday ? 1.5 : 1))
         .cornerRadius(14)
+        .shadow(color: isToday ? Color.forge.opacity(0.18) : .clear, radius: 14, y: 4)
     }
 }
 
@@ -2374,5 +2410,88 @@ struct CreateSeanceSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Active Programme Banner
+
+private struct ActiveProgrammeBanner: View {
+    let programmeName: String
+    let phase: String
+    let phaseColor: Color
+    let week: Int
+    let totalWeeks: Int
+    let started: Bool
+    let todaySession: String?
+
+    private var progress: Double {
+        guard started, totalWeeks > 0 else { return 0 }
+        return min(Double(week) / Double(totalWeeks), 1.0)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    if !programmeName.isEmpty {
+                        Text(programmeName.uppercased())
+                            .font(.system(size: 9, weight: .black)).tracking(1.5)
+                            .foregroundColor(.gray.opacity(0.6))
+                    }
+                    HStack(spacing: 8) {
+                        Text(phase)
+                            .font(.appLabel.weight(.bold))
+                            .foregroundColor(phaseColor)
+                        if started {
+                            Text("·")
+                                .foregroundColor(.gray.opacity(0.4))
+                                .font(.appLabel)
+                            Text("Semaine \(week)")
+                                .font(.appLabel.weight(.regular))
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                    if let session = todaySession {
+                        HStack(spacing: 5) {
+                            Image(systemName: "flame.fill")
+                                .font(.system(size: 9))
+                                .foregroundColor(Color.forge)
+                            Text(session)
+                                .font(.appCaption.weight(.semibold))
+                                .foregroundColor(Color.forge.opacity(0.9))
+                        }
+                    }
+                }
+                Spacer()
+                if started {
+                    VStack(alignment: .trailing, spacing: 3) {
+                        Text("\(Int(progress * 100))%")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(phaseColor)
+                        Text("du cycle")
+                            .font(.appCaption)
+                            .foregroundColor(.gray)
+                    }
+                }
+            }
+            .padding(.horizontal, 14).padding(.top, 12).padding(.bottom, started ? 10 : 14)
+
+            if started {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.07)).frame(height: 3)
+                        Capsule()
+                            .fill(LinearGradient(colors: [phaseColor.opacity(0.6), phaseColor],
+                                                 startPoint: .leading, endPoint: .trailing))
+                            .frame(width: geo.size.width * progress, height: 3)
+                    }
+                }
+                .frame(height: 3)
+                .padding(.horizontal, 14).padding(.bottom, 12)
+            }
+        }
+        .background(Color.appCard)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(phaseColor.opacity(0.15), lineWidth: 1))
+        .cornerRadius(12)
     }
 }

@@ -265,3 +265,30 @@ def delete_exercise_by_name(name: str) -> bool:
                 return False
         db_core.logger.error("delete_exercise_by_name error: %s", e)
         return False
+
+
+def get_exercise_use_counts() -> dict:
+    """Return {exercise_id: count} — number of exercise_log rows per exercise (cap 5000 rows)."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return {}
+
+    def _do() -> dict:
+        resp = db_core._client.table("exercise_logs").select("exercise_id").limit(5000).execute()
+        counts: dict = {}
+        for row in (resp.data or []):
+            eid = row.get("exercise_id")
+            if eid:
+                counts[eid] = counts.get(eid, 0) + 1
+        return counts
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_exercise_use_counts retry error: %s", e2)
+                return {}
+        db_core.logger.error("get_exercise_use_counts error: %s", e)
+        return {}
