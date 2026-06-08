@@ -1287,7 +1287,9 @@ struct RecoveryView: View {
         }
     }
 
-    #if !targetEnvironment(macCatalyst)
+    #if targetEnvironment(macCatalyst)
+    private func syncHealthKitNow() async {}
+    #else
     private func syncHealthKitNow() async {
         isSyncingHK = true
         await watchSync.requestAuthorizationAndSync()
