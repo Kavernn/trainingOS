@@ -265,7 +265,7 @@
 		WR008001AA00300B2F5DAAAA /* PatternReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR008000AA00300B2F5DAAAA /* PatternReportView.swift */; };
 		WR009001AA00300B2F5DAAAA /* WarMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR009000AA00300B2F5DAAAA /* WarMapView.swift */; };
 		WR010001AA00300B2F5DAAAA /* WarRoomSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */; };
-		WTHR002WTHR002WTHR002002 /* WeatherService.swift in Sources */ = {isa = PBXBuildFile; fileRef = WTHR001WTHR001WTHR001001 /* WeatherService.swift */; };
+
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -586,7 +586,7 @@
 		WR008000AA00300B2F5DAAAA /* PatternReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternReportView.swift; sourceTree = "<group>"; };
 		WR009000AA00300B2F5DAAAA /* WarMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarMapView.swift; sourceTree = "<group>"; };
 		WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomSettingsView.swift; sourceTree = "<group>"; };
-		WTHR001WTHR001WTHR001001 /* WeatherService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherService.swift; sourceTree = "<group>"; };
+
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -980,7 +980,7 @@
 				APISL001APISL001APISL001 /* APIService+Sleep.swift */,
 				APIEN001APIEN001APIEN001 /* APIService+Energy.swift */,
 				NOTSC001NOTSC001NOTSC001 /* NotificationScheduler.swift */,
-				WTHR001WTHR001WTHR001001 /* WeatherService.swift */,
+
 				NHLS001NHLS001NHLS001001 /* NHLService.swift */,
 				D0FE1CA8525F46319027AD6D /* AlertService.swift */,
 				27D3508F57CBFDAD2C6FDA2D /* HealthKitService.swift */,
@@ -1526,7 +1526,7 @@
 				APISL002APISL002APISL002 /* APIService+Sleep.swift in Sources */,
 				APIEN002APIEN002APIEN002 /* APIService+Energy.swift in Sources */,
 				NOTSC002NOTSC002NOTSC002 /* NotificationScheduler.swift in Sources */,
-				WTHR002WTHR002WTHR002002 /* WeatherService.swift in Sources */,
+
 				NHLS002NHLS002NHLS002002 /* NHLService.swift in Sources */,
 				TDYW002TDYW002TDYW002002 /* TodayWidgets.swift in Sources */,
 				D665E44D2F5D98BA002AE470 /* TrainingOSApp.swift in Sources */,
