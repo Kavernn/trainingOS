@@ -396,16 +396,16 @@ struct DemonDashboardBanner: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(Color(white: 0.08))
+                        .fill(Color.forge.opacity(AppTheme.shared.selectedTheme == .blood ? 0.18 : 0.08))
                         .frame(width: 36, height: 36)
                     Image(systemName: "moon.stars.fill")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(Color(white: 0.4))
+                        .foregroundColor(AppTheme.shared.selectedTheme == .blood ? Color.forge.opacity(0.7) : Color(white: 0.4))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("DÉMON · \(demon.carryCount) NUITS")
                         .font(.appMicro.weight(.black))
-                        .foregroundColor(Color(white: 0.3))
+                        .foregroundColor(AppTheme.shared.selectedTheme == .blood ? Color.forge.opacity(0.55) : Color(white: 0.3))
                         .tracking(0.5)
                     Text("«\(demon.intention)»")
                         .font(.appCaption)
@@ -415,7 +415,7 @@ struct DemonDashboardBanner: View {
                 Spacer()
                 Image(systemName: "flame.fill")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(Color(hex: "FF2D20").opacity(0.5))
+                    .foregroundColor(Color.forge.opacity(AppTheme.shared.selectedTheme == .blood ? 0.85 : 0.5))
             }
             .padding(13)
             .background(
@@ -423,7 +423,7 @@ struct DemonDashboardBanner: View {
                     .fill(Color.appCard)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color(white: 0.12), lineWidth: 1)
+                            .stroke(Color.forge.opacity(AppTheme.shared.selectedTheme == .blood ? 0.3 : 0.08), lineWidth: 1)
                     )
             )
         }

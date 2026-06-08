@@ -41,7 +41,7 @@ struct RecoveryScoreChart: View {
                                 else { path.addLine(to: CGPoint(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.blue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                        .stroke(AppTheme.shared.selectedTheme == .monochrome ? Color.white : Color.blue, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
 
                         ForEach(Array(scores.enumerated()), id: \.0) { i, entry in
                             let x = CGFloat(i) * step
@@ -166,7 +166,7 @@ struct RecoveryCompositeScoreView: View {
                                 else { p.addLine(to: .init(x: x, y: y)) }
                             }
                         }
-                        .stroke(Color.teal, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                        .stroke(AppTheme.shared.selectedTheme == .monochrome ? Color.white.opacity(0.6) : Color.teal, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
 
                         ForEach(Array(points.enumerated()), id: \.0) { i, pt in
                             let c: Color = pt.1 >= 70 ? .green : pt.1 >= 45 ? .orange : .red

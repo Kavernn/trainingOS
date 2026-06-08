@@ -53,7 +53,7 @@ struct PrimaryButton: View {
         Group {
             if isLoading {
                 ProgressView()
-                    .tint(style == .ghost || style == .outlined ? Color.forge : .white)
+                    .tint(style == .ghost || style == .outlined ? Color.forge : AppTheme.shared.accentText)
                     .scaleEffect(0.9)
             } else {
                 HStack(spacing: 8) {
@@ -96,8 +96,9 @@ struct PrimaryButton: View {
 
     private var foregroundColor: Color {
         switch style {
-        case .filled, .destructive: return .white
-        case .outlined, .ghost:     return Color.forge
+        case .filled:      return AppTheme.shared.accentText
+        case .destructive: return .white
+        case .outlined, .ghost: return Color.forge
         }
     }
 

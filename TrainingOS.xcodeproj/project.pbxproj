@@ -98,6 +98,7 @@
 		B3B48DFB53C2B424CC9A1E51 /* ErrorBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07D371C240AB1E744F76FA81 /* ErrorBannerView.swift */; };
 		B40E23156FF67C93658260BD /* BodyBudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85B27AF055DB8AC84A8CEA39 /* BodyBudgetView.swift */; };
 		BA758653D86B40DBAD0CDE88 /* GraveyardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5102C218CC34F1FAF908DE4 /* GraveyardView.swift */; };
+		AT000001AT000001AT000001 /* AppTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AT000002AT000002AT000002 /* AppTheme.swift */; };
 		BB001001BB001001BB001001 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB001002BB001002BB001002 /* DesignSystem.swift */; };
 		BB2200042F5D98BA002AE470 /* HealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */; };
 		BB3300012F5D98BA002AE471 /* BonusSeanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */; };
@@ -415,6 +416,7 @@
 		B5102C218CC34F1FAF908DE4 /* GraveyardView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GraveyardView.swift; sourceTree = "<group>"; };
 		B9C0D1E2F3A4B5C6D7E8F9A0 /* CardioSummaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardioSummaryView.swift; sourceTree = "<group>"; };
 		BAC82E18346773B8F8591B8F /* RitualMorningView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RitualMorningView.swift; sourceTree = "<group>"; };
+		AT000002AT000002AT000002 /* AppTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTheme.swift; sourceTree = "<group>"; };
 		BB001002BB001002BB001002 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		BB2200022F5D98BA002AE470 /* HealthDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthDashboardView.swift; sourceTree = "<group>"; };
 		BB3300002F5D98BA002AE471 /* BonusSeanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BonusSeanceView.swift; sourceTree = "<group>"; };
@@ -1017,6 +1019,7 @@
 				D665E43A2F5D98B8002AE470 /* Extensions.swift */,
 				AC0002AC0002AC0002AC0002 /* APIConfig.swift */,
 				BB001002BB001002BB001002 /* DesignSystem.swift */,
+				AT000002AT000002AT000002 /* AppTheme.swift */,
 				PH000001PH000001PH000001 /* PlatformHelpers.swift */,
 				RH000001RH000001RH000001 /* RPEHelper.swift */,
 			);
@@ -1532,6 +1535,7 @@
 				D665E44F2F5D98BA002AE470 /* Extensions.swift in Sources */,
 				AC0001AC0001AC0001AC0001 /* APIConfig.swift in Sources */,
 				BB001001BB001001BB001001 /* DesignSystem.swift in Sources */,
+				AT000001AT000001AT000001 /* AppTheme.swift in Sources */,
 				PH000002PH000002PH000002 /* PlatformHelpers.swift in Sources */,
 				RH000002RH000002RH000002 /* RPEHelper.swift in Sources */,
 				D665E4502F5D98BA002AE470 /* DashboardView.swift in Sources */,

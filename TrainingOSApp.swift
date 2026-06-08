@@ -81,6 +81,7 @@ private final class AppNotificationDelegate: NSObject, UNUserNotificationCenterD
 @main
 struct TrainingOSApp: App {
     @StateObject private var appState = AppState.shared
+    @StateObject private var appTheme = AppTheme.shared
     @State private var showSplash = true
     @State private var hkSetupDone = false
     @AppStorage("onboarding_completed") private var onboardingCompleted = false
@@ -147,6 +148,7 @@ struct TrainingOSApp: App {
             }
         }
         .environmentObject(appState)
+        .environmentObject(appTheme)
         .onAppear {
             CacheService.invalidateIfVersionChanged()
             SyncManager.shared.setup()

@@ -41,7 +41,7 @@ struct GlassCard: ViewModifier {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    .stroke(Color.forge.opacity(AppTheme.shared.glassOpacity), lineWidth: 0.5)
             )
             .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 4)
     }

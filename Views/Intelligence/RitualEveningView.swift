@@ -20,7 +20,6 @@ struct RitualEveningView: View {
     @State private var coldDone         = false
 
     private let red   = Color(hex: "FF2D20")
-    private let forge = Color.forge
 
     // E7: format morning_at time
     private var morningTimeLabel: String? {
@@ -234,7 +233,7 @@ struct RitualEveningView: View {
                         Text("MAINTENANT")
                             .font(.system(size: 10, weight: .bold))
                             .tracking(3)
-                            .foregroundColor(forge.opacity(0.7))
+                            .foregroundColor(Color.forge.opacity(0.7))
 
                         Text("Ton intention pour demain")
                             .font(.system(size: 26, weight: .semibold))
@@ -246,7 +245,7 @@ struct RitualEveningView: View {
                     }
 
                     Rectangle()
-                        .fill(forge.opacity(0.15))
+                        .fill(Color.forge.opacity(0.15))
                         .frame(height: 1)
 
                     // Champ intention
@@ -254,13 +253,13 @@ struct RitualEveningView: View {
                         TextField("Demain, je m'engage à...", text: $tomorrowIntention, axis: .vertical)
                             .font(.system(size: 17, weight: .regular))
                             .foregroundColor(.white)
-                            .tint(forge)
+                            .tint(Color.forge)
                             .lineLimit(5)
                             .focused($intentionFocused)
                             .onAppear { intentionFocused = true }
 
                         Rectangle()
-                            .fill(tomorrowIntention.isEmpty ? Color(white: 0.12) : forge.opacity(0.4))
+                            .fill(tomorrowIntention.isEmpty ? Color(white: 0.12) : Color.forge.opacity(0.4))
                             .frame(height: 1)
                             .animation(.easeInOut(duration: 0.2), value: tomorrowIntention.isEmpty)
                     }
@@ -279,8 +278,8 @@ struct RitualEveningView: View {
                             .padding(.vertical, 16)
                             .background(
                                 tomorrowIntention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                    ? forge.opacity(0.35)
-                                    : forge
+                                    ? Color.forge.opacity(0.35)
+                                    : Color.forge
                             )
                             .cornerRadius(14)
                         }
@@ -326,7 +325,7 @@ struct RitualEveningView: View {
         VStack(spacing: 24) {
             Image(systemName: "flame.fill")
                 .font(.system(size: 48))
-                .foregroundColor(red)
+                .foregroundColor(Color.forge)
 
             VStack(spacing: 6) {
                 Text("\(r.phoenixStreak)")
@@ -342,7 +341,7 @@ struct RitualEveningView: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color(white: 0.08)).frame(height: 3)
                     Capsule()
-                        .fill(red)
+                        .fill(Color.forge)
                         .frame(width: geo.size.width, height: 3)
                         .transition(.asymmetric(
                             insertion: .move(edge: .leading),

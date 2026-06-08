@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct DisplaySettingsView: View {
-    @ObservedObject private var units = UnitSettings.shared
+    @ObservedObject private var units  = UnitSettings.shared
+    @ObservedObject private var theme  = AppTheme.shared
     @AppStorage("steps_daily_goal")   private var stepsGoal: Int = 10000
     @AppStorage("hydration_goal_ml")  private var hydrationGoal: Int = 2500
 
@@ -22,6 +23,18 @@ struct DisplaySettingsView: View {
             AmbientBackground(color: .cyan)
 
             List {
+                Section("Apparence") {
+                    HStack(spacing: 12) {
+                        ForEach(AppThemeOption.allCases, id: \.rawValue) { option in
+                            themeCard(option)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    .animation(.easeInOut(duration: 0.25), value: theme.selectedTheme)
+                }
+                .listRowBackground(Color.appCard)
+                .listRowSeparatorTint(Color.white.opacity(0.06))
+
                 Section("Unités de mesure") {
                     HStack(spacing: 12) {
                         settingsIcon("scalemass.fill", color: .cyan)
@@ -99,6 +112,50 @@ struct DisplaySettingsView: View {
         }
         .navigationTitle("Affichage & Unités")
         .navigationBarTitleDisplayMode(.large)
+    }
+
+    @ViewBuilder
+    private func themeCard(_ option: AppThemeOption) -> some View {
+        let isActive = theme.selectedTheme == option
+        Button {
+            theme.selectedTheme = option
+        } label: {
+            VStack(spacing: 8) {
+                Circle()
+                    .fill(option.previewColor)
+                    .frame(width: 36, height: 36)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.white.opacity(isActive ? 0.5 : 0.15), lineWidth: 1.5)
+                    )
+
+                Text(option.displayName)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(isActive ? .white : .white.opacity(0.45))
+
+                if isActive {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Color.forge)
+                } else {
+                    Color.clear.frame(height: 12)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isActive ? Color.forge.opacity(0.08) : Color.white.opacity(0.04))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(
+                        isActive ? Color.forge.opacity(0.6) : Color.white.opacity(0.08),
+                        lineWidth: isActive ? 1.5 : 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

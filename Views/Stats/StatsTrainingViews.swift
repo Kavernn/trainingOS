@@ -451,6 +451,14 @@ struct PersonalRecordsView: View {
     }
 
     private func prColor(_ rank: Int) -> Color {
+        if AppTheme.shared.selectedTheme == .monochrome {
+            switch rank {
+            case 0: return .white
+            case 1: return Color(white: 0.60)
+            case 2: return Color(white: 0.40)
+            default: return Color(white: 0.25)
+            }
+        }
         switch rank {
         case 0: return .yellow
         case 1: return .gray
@@ -551,7 +559,11 @@ struct Top5VolumeView: View {
     }
 
     private func barColor(_ i: Int) -> Color {
-        [Color.orange, .blue, .purple, .green, .red][i % 5]
+        if AppTheme.shared.selectedTheme == .monochrome {
+            let opacities: [Double] = [1.0, 0.65, 0.45, 0.30, 0.18]
+            return Color.white.opacity(opacities[i % 5])
+        }
+        return [Color.orange, .blue, .purple, .green, .red][i % 5]
     }
 
     private func formatK(_ v: Double) -> String {
