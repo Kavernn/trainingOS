@@ -5,6 +5,33 @@ from life_stress_engine import refresh_life_stress_score
 
 logger = logging.getLogger("trainingos.morning_brief")
 
+
+def _get_hrv_context():
+    """Return (today_hrv_ms, pct_vs_baseline) or (None, None)."""
+    try:
+        import db as _db_hrv
+        logs = _db_hrv.get_recovery_logs(limit=35)
+        if not logs:
+            return None, None
+        today_hrv = None
+        for log in logs[:3]:
+            if log.get("hrv") is not None:
+                today_hrv = float(log["hrv"])
+                break
+        if today_hrv is None:
+            return None, None
+        baseline_vals = [float(l["hrv"]) for l in logs[5:] if l.get("hrv") is not None]
+        if len(baseline_vals) < 5:
+            baseline_vals = [float(l["hrv"]) for l in logs[1:] if l.get("hrv") is not None]
+        if not baseline_vals:
+            return round(today_hrv), None
+        baseline = sum(baseline_vals) / len(baseline_vals)
+        pct = round((today_hrv - baseline) / baseline * 100)
+        return round(today_hrv), pct
+    except Exception:
+        return None, None
+
+
 HEAVY = {"Push A", "Push B", "Pull A", "Pull B + Full Body", "Legs"}
 LIGHT = {"Yoga / Tai Chi", "Recovery"}
 
@@ -26,7 +53,8 @@ def get_morning_brief():
     intensity = _intensity(today)
     components = lss_data.get("components", {})
 
-    rec, msg, adjustments = _evaluate(lss, intensity, flags)
+    hrv_ms, hrv_pct = _get_hrv_context()
+    rec, msg, adjustments = _evaluate(lss, intensity, flags, hrv_ms=hrv_ms, hrv_pct=hrv_pct, session_name=today)
 
     # Spirit signals — yesterday's practice (metadata only)
     breathwork_yesterday = False
@@ -88,30 +116,59 @@ def get_morning_brief():
     }
 
 
-def _evaluate(lss, intensity, flags):
+def _evaluate(lss, intensity, flags, hrv_ms=None, hrv_pct=None, session_name=None):
     adj = []
     if flags.get("hrv_drop"):          adj.append("HRV bas — évite les efforts maximaux")
     if flags.get("sleep_deprivation"): adj.append("Manque de sommeil — réduis l'intensité")
     if flags.get("training_overload"): adj.append("Surcharge cumulée — déload recommandé")
 
+    def _hrv_str():
+        if hrv_ms is None:
+            return None
+        if hrv_pct is not None:
+            sign = "+" if hrv_pct >= 0 else ""
+            return f"HRV {hrv_ms}ms ({sign}{hrv_pct}% vs baseline)"
+        return f"HRV {hrv_ms}ms"
+
+    hrv_str = _hrv_str()
+    lss_str = f"Readiness {lss:.0f}/100" if lss is not None else None
+
+    def _lead():
+        return hrv_str if hrv_str else lss_str or "Données limitées"
+
     if lss is None:
-        return "go", "Données insuffisantes — bonne séance !", adj
+        msg = f"{_lead()}. Bonne séance." if session_name else f"{_lead()}."
+        return "go", msg, adj
+
+    if lss < 25:
+        if intensity == "heavy":
+            adj += ["Réduis les charges de 10-15%", "Supprime le dernier set"]
+        msg = f"{_lead()} — récupération critique. Décale ou session légère."
+        return "defer", msg, adj
 
     if lss < 40:
         if intensity == "heavy":
             adj += ["Réduis les charges de 10-15%", "Supprime le dernier set"]
-            if lss < 25:
-                return "defer", f"LSS {lss:.0f} — récupération critique. Décale ou opte pour une session légère.", adj
-            return "reduce", f"LSS {lss:.0f} — récupération faible. Allège la charge aujourd'hui.", adj
+            msg = f"{_lead()} — récupération faible. Allège les charges aujourd'hui."
+            return "reduce", msg, adj
         if intensity == "moderate":
             adj.append("RPE cible ≤ 6")
-            return "reduce", f"LSS {lss:.0f} — récupération faible. Session allégée conseillée.", adj
-        return "go", f"LSS {lss:.0f} — bonne journée pour une session légère.", adj
+            msg = f"{_lead()} — récupération faible. RPE ≤ 6 ce soir."
+            return "reduce", msg, adj
+        msg = f"{_lead()}. Bonne journée pour {session_name}." if session_name else f"{_lead()}."
+        return "go", msg, adj
 
     if lss < 65:
         if intensity == "heavy":
             adj.append("Surveille ton RPE — arrête à 7-8 max")
-            return "go_caution", f"LSS {lss:.0f} — récupération modérée. Séance possible, reste dans les limites.", adj
-        return "go", f"LSS {lss:.0f} — récupération correcte. Bonne séance !", adj
+            msg = f"{_lead()} — fenêtre correcte. RPE ≤ 8 ce soir."
+            return "go_caution", msg, adj
+        msg = f"{_lead()} — récupération correcte. Bonne séance."
+        return "go", msg, adj
 
-    return "go", f"LSS {lss:.0f} — récupération optimale. Vas-y à fond !", adj
+    if intensity == "heavy":
+        msg = f"{_lead()} — fenêtre optimale. Pousse fort ce soir."
+    else:
+        sn = session_name or "séance"
+        msg = f"{_lead()} — récupération optimale. {sn} au programme."
+    return "go", msg, adj

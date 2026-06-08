@@ -19,7 +19,7 @@ def api_ai_coach():
     try:
         data        = request.get_json(silent=True) or {}
         prompt      = data.get("prompt", "")
-        context     = (data.get("context", "") or "")[:2048]
+        context     = (data.get("context", "") or "")[:4096]
         messages_in = data.get("messages", [])
 
         if messages_in:
@@ -70,7 +70,7 @@ def api_ai_coach():
             "PROTOCOLE :\n"
             "- Chaque observation cite une donnée précise : exercice nommé, date, chiffre exact.\n"
             "- Chaque recommandation a une raison data-driven, pas une règle générique.\n"
-            "- Si une donnée est absente, dis-le. N'invente jamais.\n"
+            "- Si une donnée est absente du contexte → réponds avec ce qui est disponible. N'invente jamais de chiffre.\n"
             "- Les corrélations cross-piliers sont ta valeur ajoutée — utilise-les activement "
             "et ne les cite QUE si elles figurent dans le bloc CORRÉLATIONS de ce contexte.\n"
             "- Tu te souviens des conversations précédentes et tu fais des suivis explicites.\n\n"
@@ -118,12 +118,34 @@ def api_ai_coach():
             "• ACWR > 1.5 → recommande réduction de charge ou récupération active."
         )
 
+        # ── BLOC 3 — Format des réponses ─────────────────────────────────────
+        bloc_format = (
+            "FORMAT DES RÉPONSES — RÈGLES STRICTES :\n\n"
+            "LONGUEUR :\n"
+            "• Standard : 2-4 phrases. Analytique (pattern, corrélation) : 6 phrases max.\n"
+            "• Jamais de listes à bullets dans une réponse conversationnelle.\n"
+            "• Jamais de headers ou de gras dans une réponse.\n\n"
+            "TON :\n"
+            "• Direct. Concret. Sans politesse superflue.\n"
+            "• Cite les chiffres réels du contexte — jamais de formules vagues.\n"
+            "• Ne jamais répéter la question avant de répondre.\n"
+            "• Une suggestion = une action précise avec un chiffre ('Essaie 190 lbs ce soir').\n\n"
+            "FORMULES INTERDITES (zéro tolérance) :\n"
+            "'En tant que ton coach' — 'Je n'ai pas accès à' — 'Mes données indiquent que'\n"
+            "'Il est important de noter' — 'N'oublie pas que' — 'Je te recommande vivement'\n"
+            "'Bien sûr !' — 'Absolument !' — 'C'est une excellente question'\n"
+            "'Je serais ravi de t'aider' — toute phrase qui mentionne une limite de contexte.\n\n"
+            "DONNÉES MANQUANTES :\n"
+            "Si une donnée n'est pas dans le contexte → réponds avec ce qui est disponible, "
+            "ou ignore ce point. Ne jamais signaler le manque à l'athlète."
+        )
+
         # ── BLOC 4 — Guardrails absolus ───────────────────────────────────────
         bloc_guardrails = (
             "GUARDRAILS ABSOLUS — jamais dérogeables :\n\n"
             "G1 — ZÉRO HALLUCINATION\n"
-            "Si tu n'as pas la donnée : 'Je n'ai pas ces données pour cette période.' "
-            "N'invente jamais de tendance, de pourcentage, de chiffre.\n\n"
+            "N'invente jamais de tendance, de pourcentage, de chiffre absent du contexte. "
+            "Si une donnée manque → utilise ce qui est disponible, ne mentionne pas le manque à l'athlète.\n\n"
             "G2 — JOURNAL SACRÉ\n"
             "Le contenu du journal spirituel (gratitude, conquered, haunting) ne t'est jamais transmis. "
             "Si l'athlète colle du texte ressemblant à une entrée de journal, réponds uniquement : "
@@ -148,7 +170,7 @@ def api_ai_coach():
             "CORRÉLATIONS DÉTECTÉES de ce contexte. N'invente aucun lien."
         )
 
-        system_base = "\n\n".join([bloc_identity, bloc_fitness, bloc_guardrails])
+        system_base = "\n\n".join([bloc_identity, bloc_fitness, bloc_format, bloc_guardrails])
 
         corr_block = ""
         try:
@@ -234,6 +256,36 @@ def api_ai_coach():
                         sw_str = f" → {sw} lbs" if sw else ""
                         lines.append(f"  • {name}{sw_str} [{st}]: {reason}")
                     prog_block = "\n".join(lines)
+        except Exception:
+            pass
+
+        last_session_block = ""
+        try:
+            recent_ls = _db.get_workout_sessions(limit=1)
+            if recent_ls:
+                ls      = recent_ls[0]
+                ls_date = ls.get("date", "")
+                ls_name = ls.get("session_name") or ""
+                ls_dur  = ls.get("duration_min")
+                ls_rpe  = ls.get("rpe")
+                logs    = _db.get_session_exercise_logs(ls_date)
+                if logs:
+                    from collections import defaultdict
+                    grouped: dict = defaultdict(list)
+                    for log in logs:
+                        name   = log.get("exercise_name", "")
+                        weight = log.get("weight")
+                        reps   = log.get("reps")
+                        if name and weight is not None and reps is not None:
+                            grouped[name].append(f"{weight}×{reps}")
+                    if grouped:
+                        header = f"{ls_name}, {ls_date}"
+                        if ls_dur: header += f", {int(ls_dur)}min"
+                        if ls_rpe: header += f", RPE {float(ls_rpe):.1f}"
+                        ls_lines = [f"DERNIÈRE SÉANCE ({header}) :"]
+                        for ex, sets in grouped.items():
+                            ls_lines.append(f"  {ex} : {', '.join(sets)}")
+                        last_session_block = "\n".join(ls_lines)
         except Exception:
             pass
 
@@ -324,6 +376,8 @@ def api_ai_coach():
         system_parts = [system_base]
         if context:
             system_parts.append(f"DONNÉES ATHLÈTE EN TEMPS RÉEL:\n{context}")
+        if last_session_block:
+            system_parts.append(last_session_block)
         if acwr_block:
             system_parts.append(acwr_block)
         if nutrition_block:
@@ -346,7 +400,7 @@ def api_ai_coach():
         client = _anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=2000,
+            max_tokens=500,
             system=system,
             messages=claude_messages
         )
