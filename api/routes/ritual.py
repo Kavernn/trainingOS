@@ -215,7 +215,8 @@ _TRUTH_SYSTEM = (
     "- Cite UN chiffre réel issu du contexte fourni. Pas de généralité.\n"
     "- Pas de point d'interrogation. Pas de 'peut-être'. Pas de 'tu devrais'.\n"
     "- Pas d'emoji. Pas d'exclamation.\n"
-    "- La vérité constate — elle n'encourage pas.\n\n"
+    "- La vérité constate — elle n'encourage pas.\n"
+    "- INTERDIT : mentionner le streak Phoenix, les jours consécutifs du rituel, ou les jours enchaînés.\n\n"
     "EXEMPLES DE TON :\n"
     "✓ 'Tu n'as pas touché une barre depuis 6 jours. Le corps oublie vite.'\n"
     "✓ 'Ton PSS a monté de 11 à 24 en 10 jours. La charge mentale précède toujours la régression physique.'\n"
@@ -315,10 +316,14 @@ def api_ritual_today():
     raw_demons          = _db.get_ritual_demons()
     demons              = _enrich_carry_counts(raw_demons)  # A1
 
+    _STREAK_KEYWORDS = ("enchaînes", "jours consécutifs", "Phoenix tient", "streak", "jours de suite")
+
     if existing:
-        ttype = existing.get("truth_type", "default")
-        # streak_elevation supprimé — remplacer toute truth en cache de ce type
-        if ttype == "streak_elevation":
+        ttype      = existing.get("truth_type", "default")
+        truth_text = existing.get("truth", "")
+        needs_regen = (ttype == "streak_elevation") or any(kw in truth_text for kw in _STREAK_KEYWORDS)
+        # streak_elevation supprimé — remplacer toute truth en cache mentionnant le streak
+        if needs_regen:
             new_truth, ttype, _, ctx = _build_truth(phoenix_streak=streak)
             new_truth = _generate_truth_with_claude(ttype, new_truth, ctx)
             try:
