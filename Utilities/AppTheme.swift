@@ -102,15 +102,17 @@ extension AppThemeColors {
 final class AppTheme: ObservableObject {
     static let shared = AppTheme()
 
-    @AppStorage("app_theme") var rawTheme: String = AppThemeOption.blood.rawValue {
-        didSet { objectWillChange.send() }
+    private static let storageKey = "app_theme"
+
+    @Published var selectedTheme: AppThemeOption {
+        didSet { UserDefaults.standard.set(selectedTheme.rawValue, forKey: Self.storageKey) }
     }
 
     @Published var refreshToken: UUID = UUID()
 
-    var selectedTheme: AppThemeOption {
-        get { AppThemeOption(rawValue: rawTheme) ?? .blood }
-        set { rawTheme = newValue.rawValue }
+    private init() {
+        let stored = UserDefaults.standard.string(forKey: Self.storageKey) ?? ""
+        selectedTheme = AppThemeOption(rawValue: stored) ?? .blood
     }
 
     func applyTheme(_ option: AppThemeOption) {

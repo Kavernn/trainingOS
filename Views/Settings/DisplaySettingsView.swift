@@ -7,6 +7,8 @@ struct DisplaySettingsView: View {
     @AppStorage("hydration_goal_ml")  private var hydrationGoal: Int = 2500
     @State private var pendingTheme: AppThemeOption = AppTheme.shared.selectedTheme
 
+    private func syncPending() { pendingTheme = theme.selectedTheme }
+
     private let stepsOptions = [5000, 7500, 8000, 10000, 12000, 15000]
 
     private var hydrationLabel: String {
@@ -134,6 +136,7 @@ struct DisplaySettingsView: View {
         }
         .navigationTitle("Affichage & Unités")
         .navigationBarTitleDisplayMode(.large)
+        .onAppear { syncPending() }
     }
 
     @ViewBuilder
