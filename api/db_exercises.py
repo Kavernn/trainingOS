@@ -189,16 +189,10 @@ def upsert_exercise(data: dict) -> dict:
     name = data.get("name", "")
 
     def _do() -> dict:
-        try:
-            resp = db_core._client.table("exercises").insert(data).execute()
-            if resp.data:
-                return resp.data[0]
-        except Exception as insert_err:
-            db_core.logger.error("upsert_exercise INSERT error for %s: %s", name, insert_err)
-        resp = db_core._client.table("exercises").update(data).eq("name", name).execute()
+        resp = db_core._client.table("exercises").upsert(data, on_conflict="name").execute()
         if resp.data:
             return resp.data[0]
-        db_core.logger.error("upsert_exercise UPDATE found no row for %s", name)
+        db_core.logger.error("upsert_exercise upsert found no row for %s", name)
         return data
 
     try:
