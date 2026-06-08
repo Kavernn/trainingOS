@@ -122,12 +122,18 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.06)
                                 }
 
-                                // 5 — Coach brief
-                                if let brief = vm.morningBrief {
-                                    CoachBriefCard(
-                                        brief: brief,
+                                // 5 — Coach + alerte proactive (priorité : alerte > coach)
+                                if vm.morningBrief != nil || alertService.visibleAlert != nil {
+                                    CoachInsightCard(
+                                        brief: vm.morningBrief,
                                         sessionCompletedToday: dash.alreadyLoggedToday,
-                                        tip: vm.coachTip
+                                        tip: vm.coachTip,
+                                        alert: alertService.visibleAlert,
+                                        onDismissAlert: {
+                                            withAnimation(.easeOut(duration: 0.25)) {
+                                                if let a = alertService.visibleAlert { alertService.dismiss(a) }
+                                            }
+                                        }
                                     )
                                     .appearAnimation(delay: 0.08)
                                 } else if vm.morningBriefFailed {
@@ -255,16 +261,6 @@ struct DashboardView: View {
                                         NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
                                     }
                                     .appearAnimation(delay: 0.30)
-                                }
-
-                                // 19 — Alerte proactive
-                                if let alert = alertService.visibleAlert {
-                                    ProactiveBannerCard(alert: alert) {
-                                        withAnimation(.easeOut(duration: 0.25)) {
-                                            alertService.dismiss(alert)
-                                        }
-                                    }
-                                    .appearAnimation(delay: 0.31)
                                 }
 
                                 // ── SCROLL PROFOND ────────────────────────────

@@ -1,9 +1,13 @@
 import SwiftUI
 
-struct CoachBriefCard: View {
-    let brief: MorningBriefData
+// MARK: - Coach Insight Card (Coach brief + proactive alert, priority: alert > coach)
+
+struct CoachInsightCard: View {
+    let brief: MorningBriefData?
     let sessionCompletedToday: Bool
     var tip: CoachTip? = nil
+    var alert: ProactiveAlert? = nil
+    var onDismissAlert: (() -> Void)? = nil
 
     private var contextLabel: String {
         if sessionCompletedToday { return "Coach · Post-séance" }
@@ -35,19 +39,68 @@ struct CoachBriefCard: View {
     }
 
     var body: some View {
+        if let alert {
+            alertContent(alert)
+        } else if let brief {
+            coachContent(brief)
+        }
+    }
+
+    @ViewBuilder
+    private func alertContent(_ alert: ProactiveAlert) -> some View {
+        let accentColor: Color = alert.severity == "warning" ? .orange : .blue
+        let alertIcon: String = {
+            switch alert.type {
+            case "nutrition": return "fork.knife.circle.fill"
+            case "recovery":  return "heart.fill"
+            case "training":  return "figure.strengthtraining.traditional"
+            default:          return "bell.fill"
+            }
+        }()
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle().fill(accentColor.opacity(0.15)).frame(width: 36, height: 36)
+                Image(systemName: alertIcon)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(accentColor)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(alert.title)
+                    .font(.appLabel.weight(.semibold))
+                    .foregroundColor(.white)
+                Text(alert.message)
+                    .font(.appCaption)
+                    .foregroundColor(.white.opacity(0.75))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Button(action: { onDismissAlert?() }) {
+                Image(systemName: "xmark")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(.gray.opacity(0.7))
+                    .padding(8)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .background(accentColor.opacity(0.07))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(accentColor.opacity(0.22), lineWidth: 1))
+        .cornerRadius(14)
+    }
+
+    @ViewBuilder
+    private func coachContent(_ brief: MorningBriefData) -> some View {
         Button {
             NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
         } label: {
             HStack(alignment: .top, spacing: 12) {
                 ZStack {
-                    Circle()
-                        .fill(Color.orange.opacity(0.18))
-                        .frame(width: 40, height: 40)
+                    Circle().fill(Color.orange.opacity(0.18)).frame(width: 40, height: 40)
                     Image(systemName: "brain.head.profile")
                         .font(.appBody.weight(.semibold))
                         .foregroundColor(.orange)
                 }
-
                 VStack(alignment: .leading, spacing: 5) {
                     HStack {
                         Text(contextLabel)
@@ -66,12 +119,8 @@ struct CoachBriefCard: View {
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .lineSpacing(2)
-
                     if let tip {
-                        Rectangle()
-                            .fill(Color.white.opacity(0.08))
-                            .frame(height: 0.5)
-                            .padding(.top, 4)
+                        Rectangle().fill(Color.white.opacity(0.08)).frame(height: 0.5).padding(.top, 4)
                         HStack(alignment: .top, spacing: 6) {
                             Image(systemName: tipIcon(for: tip.domain))
                                 .font(.appCaption)
@@ -93,10 +142,7 @@ struct CoachBriefCard: View {
             }
             .padding(14)
             .background(Color.orange.opacity(0.07))
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.orange.opacity(0.22), lineWidth: 1)
-            )
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.22), lineWidth: 1))
             .cornerRadius(14)
         }
         .buttonStyle(.plain)

@@ -147,7 +147,6 @@
 		DD44000B2F5D98BA002AE473 /* CrisisResourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000C2F5D98BA002AE473 /* CrisisResourcesView.swift */; };
 		DD44000D2F5D98BA002AE473 /* MentalHealthDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD44000E2F5D98BA002AE473 /* MentalHealthDashboardView.swift */; };
 		E2EEABEF20DD4D01BA4AE9F8 /* PhoenixModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8E0A90D35DB4D65AC6116B6 /* PhoenixModels.swift */; };
-		E3BB78033EEA4FB1AE6D7812 /* ProactiveBannerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */; };
 		E6F7A8B9C0D1E2F3A4B5C6D7 /* CardioActiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A8B9C0D1E2F3A4B5C6D7E8 /* CardioActiveView.swift */; };
 		E789F2FAD4C103D95BE150F9 /* AppLoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064B3F7E137EC0EB4D86A07 /* AppLoadingView.swift */; };
 		EBD686A12DC32EF0A13FD632 /* NutritionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = A937EBC71FB17046EDA80FA1 /* NutritionModels.swift */; };
@@ -425,7 +424,6 @@
 		BC0000042F5D98BA002AE470 /* NavyCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavyCalculatorView.swift; sourceTree = "<group>"; };
 		BC0000062F5D98BA002AE470 /* BodyCompHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyCompHistoryView.swift; sourceTree = "<group>"; };
 		C0C1F3D689C1DB3835B184F6 /* HealthKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = HealthKit.framework; path = System/Library/Frameworks/HealthKit.framework; sourceTree = SDKROOT; };
-		C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProactiveBannerCard.swift; sourceTree = "<group>"; };
 		CC1100002F5D98BA002AE470 /* DashboardCardioCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardCardioCard.swift; sourceTree = "<group>"; };
 		CC3300012F5D98BA002AE472 /* PSSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PSSView.swift; sourceTree = "<group>"; };
 		CD9E6AAF315054167C4627AE /* APIService+BodyBudget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = "APIService+BodyBudget.swift"; sourceTree = "<group>"; };
@@ -1041,7 +1039,6 @@
 				6C9C3BAFE34446EBAB1885FB /* DashboardRitualCards.swift */,
 				CL0010002F5D98B8002AE470 /* ChecklistCardView.swift */,
 				D68B8535D55F4B109509F146 /* MorningRevealView.swift */,
-				C66EA6F0F3584EAC95E75CCD /* ProactiveBannerCard.swift */,
 				919FB376F03F41EEAFABB73F /* CoachBriefCard.swift */,
 				F3A1C0AC417B1DAB71004001 /* CoachTipCard.swift */,
 				F2E1D0C9B8A7F6E5D4C3B2A1 /* InfoButton.swift */,
@@ -1589,7 +1586,6 @@
 				F2EA55F129F3462CBACE25FF /* CoachMemoryView.swift in Sources */,
 				329ACD1942044D42B9EE63F3 /* AlertService.swift in Sources */,
 				15AFE1BFA7B8487CBEECB98C /* ProactiveAlert.swift in Sources */,
-				E3BB78033EEA4FB1AE6D7812 /* ProactiveBannerCard.swift in Sources */,
 				CF49E6FEF95E455D9F84D443 /* CoachBriefCard.swift in Sources */,
 				F3A1C0AC417B1DAB71004002 /* CoachTipCard.swift in Sources */,
 				A1B2C3D4E5F6A7B8C9D0E1F2 /* InfoButton.swift in Sources */,
