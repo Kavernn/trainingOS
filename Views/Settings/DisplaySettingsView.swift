@@ -5,6 +5,7 @@ struct DisplaySettingsView: View {
     @ObservedObject private var theme  = AppTheme.shared
     @AppStorage("steps_daily_goal")   private var stepsGoal: Int = 10000
     @AppStorage("hydration_goal_ml")  private var hydrationGoal: Int = 2500
+    @State private var pendingTheme: AppThemeOption = AppTheme.shared.selectedTheme
 
     private let stepsOptions = [5000, 7500, 8000, 10000, 12000, 15000]
 
@@ -30,10 +31,31 @@ struct DisplaySettingsView: View {
                         }
                     }
                     .padding(.vertical, 8)
-                    .animation(.easeInOut(duration: 0.25), value: theme.selectedTheme)
+                    .animation(.easeInOut(duration: 0.25), value: pendingTheme)
+
+                    if pendingTheme != theme.selectedTheme {
+                        Button {
+                            theme.applyTheme(pendingTheme)
+                        } label: {
+                            Text("Appliquer")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(Color.forge.opacity(pendingTheme == .monochrome ? 1 : 1))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.forge.opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(Color.forge.opacity(0.35), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
                 .listRowBackground(Color.appCard)
                 .listRowSeparatorTint(Color.white.opacity(0.06))
+                .animation(.easeInOut(duration: 0.2), value: pendingTheme != theme.selectedTheme)
 
                 Section("Unités de mesure") {
                     HStack(spacing: 12) {
@@ -116,9 +138,10 @@ struct DisplaySettingsView: View {
 
     @ViewBuilder
     private func themeCard(_ option: AppThemeOption) -> some View {
-        let isActive = theme.selectedTheme == option
+        let isActive  = pendingTheme == option
+        let isApplied = theme.selectedTheme == option
         Button {
-            theme.selectedTheme = option
+            pendingTheme = option
         } label: {
             VStack(spacing: 8) {
                 Circle()
@@ -134,7 +157,7 @@ struct DisplaySettingsView: View {
                     .foregroundColor(isActive ? .white : .white.opacity(0.45))
 
                 if isActive {
-                    Image(systemName: "checkmark")
+                    Image(systemName: isApplied ? "checkmark.circle.fill" : "checkmark")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(Color.forge)
                 } else {

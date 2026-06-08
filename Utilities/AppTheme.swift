@@ -106,9 +106,16 @@ final class AppTheme: ObservableObject {
         didSet { objectWillChange.send() }
     }
 
+    @Published var refreshToken: UUID = UUID()
+
     var selectedTheme: AppThemeOption {
         get { AppThemeOption(rawValue: rawTheme) ?? .blood }
         set { rawTheme = newValue.rawValue }
+    }
+
+    func applyTheme(_ option: AppThemeOption) {
+        selectedTheme = option
+        refreshToken  = UUID()
     }
 
     var colors: AppThemeColors {

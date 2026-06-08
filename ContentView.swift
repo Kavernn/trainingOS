@@ -3,6 +3,7 @@ import Combine
 import UIKit
 
 struct ContentView: View {
+    @ObservedObject private var theme   = AppTheme.shared
     @ObservedObject private var network = NetworkMonitor.shared
     @ObservedObject private var sync    = SyncManager.shared
     @State private var selectedTab   = 1
@@ -31,6 +32,7 @@ struct ContentView: View {
         MacContentView(network: network, sync: sync)
 #else
         iOSContentView(network: network, sync: sync, selectedTab: $selectedTab)
+            .id(theme.refreshToken)
 #endif
     }
 }
