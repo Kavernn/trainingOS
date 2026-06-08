@@ -2136,7 +2136,7 @@ struct AddExerciseToProgramSheet: View {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let scheme = exercise.defaultScheme.isEmpty ? "3x8-12" : exercise.defaultScheme
         req.httpBody = try? JSONSerialization.data(withJSONObject: [
-            "action": "add", "jour": seance,
+            "action": "add", "jour": seanceName,
             "exercise": exercise.name, "scheme": scheme
         ])
         _ = try? await URLSession.authed.data(for: req)
@@ -2197,7 +2197,7 @@ struct ClassificationGapsSheet: View {
                             .font(.system(size: 44))
                             .foregroundColor(.green)
                         Text("Tout est classifié")
-                            .font(.appTitle3)
+                            .font(.appTitle)
                             .foregroundColor(.white)
                         Text("Tous les exercices ont un groupe musculaire et un muscle spécifique.")
                             .font(.appBody)
