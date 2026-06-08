@@ -120,9 +120,9 @@ enum CacheInvalidation {
         case .warRoomConfigUpdated:
             return ["war_room_config"]
         case .warRoomBattleLogged:
-            return ["war_room_summary", "war_room_battles"]
+            return ["war_room_summary", "war_room_battles", "war_room_today_status"]
         case .warRoomTriggerLogged:
-            return ["war_room_triggers"]
+            return ["war_room_triggers", "war_room_today_status"]
         case .warRoomArsenalMutated:
             return ["war_room_arsenal"]
         case .spiritConfigUpdated:

@@ -24,6 +24,7 @@ struct DashboardView: View {
     @State private var showNutritionAddSheet = false
     @State private var showQuickTrigger = false
     @State private var showQuickBattle = false
+    @State private var warRoomToastMessage: String? = nil
     @Environment(\.scenePhase) private var scenePhase
     var onOpenSession: (() -> Void)? = nil
 
@@ -182,6 +183,29 @@ struct DashboardView: View {
                                         .appearAnimationHot(delay: 0.14)
                                 }
 
+                                // 8b — War Room strip
+                                if vm.warRoomEnabled {
+                                    WarRoomStripView(
+                                        hasResult:      vm.warRoomHasResult,
+                                        hasTemptation:  vm.warRoomHasTemptation,
+                                        onResultTap: {
+                                            if vm.warRoomHasResult {
+                                                warRoomToastMessage = "Résultat déjà loggué aujourd'hui"
+                                            } else {
+                                                showQuickBattle = true
+                                            }
+                                        },
+                                        onTemptationTap: {
+                                            if vm.warRoomHasTemptation {
+                                                warRoomToastMessage = "Tentation déjà loggée aujourd'hui"
+                                            } else {
+                                                showQuickTrigger = true
+                                            }
+                                        }
+                                    )
+                                    .appearAnimation(delay: 0.16)
+                                }
+
                                 // ── FOLD NATUREL ──────────────────────────────
 
                                 // 9 — Rituel (demon > soir > matin)
@@ -308,54 +332,6 @@ struct DashboardView: View {
                     .padding()
                 }
 
-                // War Room floating pills — visible when War Room is active
-                if vm.warRoomEnabled {
-                    VStack {
-                        Spacer()
-                        HStack(spacing: 10) {
-                            Spacer()
-                            Button { showQuickBattle = true } label: {
-                                HStack(spacing: 5) {
-                                    Image(systemName: "flag.fill")
-                                        .font(.appCaption).fontWeight(.bold)
-                                    Text("Résultat")
-                                        .font(.appCaption).fontWeight(.semibold)
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 9)
-                                .background(
-                                    Capsule()
-                                        .fill(Color(hex: "0a1a0a"))
-                                        .overlay(Capsule().stroke(Color.green.opacity(0.5), lineWidth: 1))
-                                )
-                                .shadow(color: Color.green.opacity(0.25), radius: 6, y: 3)
-                            }
-                            .buttonStyle(.plain)
-                            Button { showQuickTrigger = true } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "bolt.fill")
-                                        .font(.appCaption).fontWeight(.bold)
-                                    Text("Tentation")
-                                        .font(.appLabel).fontWeight(.semibold)
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 10)
-                                .background(
-                                    Capsule()
-                                        .fill(Color(hex: "1a0505"))
-                                        .overlay(Capsule().stroke(Color(hex: "C0201A").opacity(0.6), lineWidth: 1))
-                                )
-                                .shadow(color: Color(hex: "C0201A").opacity(0.3), radius: 8, y: 4)
-                            }
-                            .buttonStyle(.plain)
-                            .padding(.trailing, 20)
-                        }
-                        .padding(.bottom, fabBottomPadding)
-                    }
-                    .allowsHitTesting(true)
-                }
             }
             .navigationBarHidden(true)
         }
@@ -383,11 +359,36 @@ struct DashboardView: View {
         }) {
             MoodLogSheet()
         }
-        .sheet(isPresented: $showQuickTrigger) {
+        .sheet(isPresented: $showQuickTrigger, onDismiss: {
+            Task { await vm.refreshWarRoomTodayStatus() }
+        }) {
             QuickWarRoomTriggerSheet()
         }
-        .sheet(isPresented: $showQuickBattle) {
+        .sheet(isPresented: $showQuickBattle, onDismiss: {
+            Task { await vm.refreshWarRoomTodayStatus() }
+        }) {
             QuickBattleSheet()
+        }
+        .overlay(alignment: .top) {
+            if let msg = warRoomToastMessage {
+                Text(msg)
+                    .font(.appCaption).fontWeight(.medium)
+                    .foregroundColor(.white.opacity(0.9))
+                    .padding(.horizontal, 16).padding(.vertical, 9)
+                    .background(Color.appCard.opacity(0.96))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.1), lineWidth: 0.5))
+                    .cornerRadius(20)
+                    .shadow(color: .black.opacity(0.3), radius: 8, y: 4)
+                    .padding(.top, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .onAppear {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.2) {
+                            withAnimation(.easeOut(duration: 0.3)) { warRoomToastMessage = nil }
+                        }
+                    }
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: warRoomToastMessage)
+            }
         }
         .sheet(isPresented: $showSleepSheet) {
             NavigationStack {

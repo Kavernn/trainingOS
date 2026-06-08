@@ -163,6 +163,29 @@ struct WarRoomPatterns: Codable {
     }
 }
 
+// MARK: - Today Status
+
+struct WarRoomTodayStatus: Codable {
+    let active: Bool
+    let hasResult: Bool
+    let hasTemptation: Bool
+    let resultLoggedAt: String?
+    let temptationLoggedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case active
+        case hasResult          = "has_result"
+        case hasTemptation      = "has_temptation"
+        case resultLoggedAt     = "result_logged_at"
+        case temptationLoggedAt = "temptation_logged_at"
+    }
+
+    static let inactive = WarRoomTodayStatus(
+        active: false, hasResult: false, hasTemptation: false,
+        resultLoggedAt: nil, temptationLoggedAt: nil
+    )
+}
+
 // MARK: - War Map
 
 struct WarMapDay: Codable {

@@ -264,6 +264,7 @@
 		WR008001AA00300B2F5DAAAA /* PatternReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR008000AA00300B2F5DAAAA /* PatternReportView.swift */; };
 		WR009001AA00300B2F5DAAAA /* WarMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR009000AA00300B2F5DAAAA /* WarMapView.swift */; };
 		WR010001AA00300B2F5DAAAA /* WarRoomSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */; };
+		WRS0001WRS0001WRS0001001 /* WarRoomStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WRS0001WRS0001WRS0001000 /* WarRoomStripView.swift */; };
 
 /* End PBXBuildFile section */
 
@@ -584,6 +585,7 @@
 		WR008000AA00300B2F5DAAAA /* PatternReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PatternReportView.swift; sourceTree = "<group>"; };
 		WR009000AA00300B2F5DAAAA /* WarMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarMapView.swift; sourceTree = "<group>"; };
 		WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomSettingsView.swift; sourceTree = "<group>"; };
+		WRS0001WRS0001WRS0001000 /* WarRoomStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomStripView.swift; sourceTree = "<group>"; };
 
 /* End PBXFileReference section */
 
@@ -1047,6 +1049,7 @@
 				85B27AF055DB8AC84A8CEA39 /* BodyBudgetView.swift */,
 				9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */,
 				3FB0319AE30B4059B3096D9B /* PhoenixCard.swift */,
+				WRS0001WRS0001WRS0001000 /* WarRoomStripView.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -1545,6 +1548,7 @@
 				D665E4562F5D98BA002AE470 /* DashboardWeeklyCards.swift in Sources */,
 				D665E4572F5D98BA002AE470 /* DashboardReadinessCards.swift in Sources */,
 				D665E4582F5D98BA002AE470 /* DashboardRitualCards.swift in Sources */,
+				WRS0001WRS0001WRS0001001 /* WarRoomStripView.swift in Sources */,
 				CL0010012F5D98BA002AE470 /* ChecklistCardView.swift in Sources */,
 				07CE5F1491DA4A1EBC8F6810 /* MorningRevealView.swift in Sources */,
 				AA0020012F5D98BA002AE470 /* MoreView.swift in Sources */,

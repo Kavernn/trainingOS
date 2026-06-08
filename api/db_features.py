@@ -316,6 +316,41 @@ def insert_war_room_trigger(data: dict) -> Optional[dict]:
         return None
 
 
+def get_war_room_today_status(today: str) -> dict:
+    _empty = {"has_result": False, "has_temptation": False,
+              "result_logged_at": None, "temptation_logged_at": None}
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return _empty
+
+    def _do():
+        b = (db_core._client.table("war_room_battles")
+             .select("created_at").eq("date", today).limit(1).execute())
+        battle = (b.data or [None])[0]
+
+        t = (db_core._client.table("war_room_triggers")
+             .select("logged_at").eq("date", today).limit(1).execute())
+        trigger = (t.data or [None])[0]
+
+        return {
+            "has_result":           battle is not None,
+            "has_temptation":       trigger is not None,
+            "result_logged_at":     battle["created_at"] if battle else None,
+            "temptation_logged_at": trigger["logged_at"] if trigger else None,
+        }
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_war_room_today_status retry: %s", e2)
+                return _empty
+        db_core.logger.error("get_war_room_today_status error: %s", e)
+        return _empty
+
+
 def get_war_room_arsenal() -> List[dict]:
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []

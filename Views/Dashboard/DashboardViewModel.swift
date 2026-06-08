@@ -35,6 +35,8 @@ private final class P3State: @unchecked Sendable {
     var streakData: StreakResponse? = nil
     var activeSeason: Season? = nil
     var warRoomEnabled = false
+    var warRoomHasResult = false
+    var warRoomHasTemptation = false
 }
 
 // MARK: - PhoenixScoreDeltaTracker
@@ -173,6 +175,8 @@ final class DashboardViewModel: ObservableObject {
     @Published var dailyPattern: PatternEntry?
     @Published var ritualToday: RitualToday?
     @Published var warRoomEnabled = false
+    @Published var warRoomHasResult = false
+    @Published var warRoomHasTemptation = false
     @Published var hrvAnalysis: HRVAnalysis? = nil
     @Published var yesterdayNutrition: NutritionDayHistory?
     @Published var cardioToday: CardioEntry? = nil
@@ -417,6 +421,12 @@ final class DashboardViewModel: ObservableObject {
                     }
                 }
                 group.addTask { @MainActor in
+                    if let ts = try? await APIService.shared.getWarRoomTodayStatus() {
+                        p3.warRoomHasResult     = ts.hasResult
+                        p3.warRoomHasTemptation = ts.hasTemptation
+                    }
+                }
+                group.addTask { @MainActor in
                     if let graveyard = try? await APIService.shared.fetchGraveyard(),
                        let latest = graveyard.tombstones.first {
                         NotificationService.notifyNewTombstone(
@@ -448,13 +458,23 @@ final class DashboardViewModel: ObservableObject {
             readinessData = p3.readinessData
             streakData    = p3.streakData
             activeSeason  = p3.activeSeason
-            warRoomEnabled = p3.warRoomEnabled
+            warRoomEnabled      = p3.warRoomEnabled
+            warRoomHasResult    = p3.warRoomHasResult
+            warRoomHasTemptation = p3.warRoomHasTemptation
             analyticsLoadedDate = today
         }
     }
 
     func refreshMoodDue() async {
         moodDue = try? await APIService.shared.checkMoodDue()
+    }
+
+    func refreshWarRoomTodayStatus() async {
+        CacheService.shared.clear(for: "war_room_today_status")
+        if let ts = try? await APIService.shared.getWarRoomTodayStatus() {
+            warRoomHasResult     = ts.hasResult
+            warRoomHasTemptation = ts.hasTemptation
+        }
     }
 
     func refreshRitual() async {

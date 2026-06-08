@@ -107,6 +107,14 @@ extension APIService {
         return try APIService.decoder.decode(WarRoomPatterns.self, from: data)
     }
 
+    // MARK: Today Status
+
+    func getWarRoomTodayStatus() async throws -> WarRoomTodayStatus {
+        let url  = try buildURL(path: "/api/war_room/today_status")
+        let data = try await fetchWithCache(url: url, key: "war_room_today_status")
+        return try APIService.decoder.decode(WarRoomTodayStatus.self, from: data)
+    }
+
     // MARK: War Map
 
     func getWarMap() async throws -> [WarMapMonth] {

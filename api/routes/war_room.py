@@ -43,6 +43,19 @@ def api_wr_summary():
     return jsonify(_e.compute_summary())
 
 
+# ── Today status ──────────────────────────────────────────────────────────────
+
+@war_room_bp.route("/api/war_room/today_status", methods=["GET"])
+def api_wr_today_status():
+    import db
+    config = db.get_war_room_config() or {}
+    if not config.get("war_start_date"):
+        return jsonify({"active": False})
+    today  = _today_mtl()
+    status = db.get_war_room_today_status(today)
+    return jsonify({"active": True, **status})
+
+
 # ── Battles ───────────────────────────────────────────────────────────────────
 
 @war_room_bp.route("/api/war_room/battles", methods=["GET"])
@@ -60,7 +73,15 @@ def api_wr_battle_upsert():
     if status not in ("victory", "lost", "active"):
         return jsonify({"error": "status must be victory | lost | active"}), 400
 
-    battle_date = data.get("date") or _today_mtl()
+    battle_date  = data.get("date") or _today_mtl()
+    today_status = db.get_war_room_today_status(battle_date)
+    if today_status.get("has_result"):
+        return jsonify({
+            "error":     "already_logged",
+            "message":   "Résultat déjà loggué aujourd'hui",
+            "logged_at": today_status.get("result_logged_at"),
+        }), 409
+
     payload = {
         "date":   battle_date,
         "status": status,
@@ -91,7 +112,16 @@ def api_wr_triggers():
 @war_room_bp.route("/api/war_room/trigger", methods=["POST"])
 def api_wr_trigger_log():
     import db
-    data    = request.get_json(silent=True) or {}
+    data         = request.get_json(silent=True) or {}
+    trigger_date = data.get("date") or _today_mtl()
+    today_status = db.get_war_room_today_status(trigger_date)
+    if today_status.get("has_temptation"):
+        return jsonify({
+            "error":     "already_logged",
+            "message":   "Tentation déjà loggée aujourd'hui",
+            "logged_at": today_status.get("temptation_logged_at"),
+        }), 409
+
     context = data.get("context", "custom")
     valid_contexts = {"stress", "social", "boredom", "pain", "celebration", "exhaustion", "custom"}
     if context not in valid_contexts:
@@ -102,7 +132,7 @@ def api_wr_trigger_log():
     yielded   = bool(data.get("yielded", False))
 
     payload = {
-        "date":         data.get("date") or _today_mtl(),
+        "date":         trigger_date,
         "context":      context,
         "context_note": (data.get("context_note") or "").strip() or None,
         "intensity":    intensity,
