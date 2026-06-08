@@ -59,8 +59,6 @@ struct TodayCardView: View {
                         .foregroundColor(isLoggedToday ? .green : todayColor)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("AUJOURD'HUI")
-                        .font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray.opacity(0.7))
                     Text(dash.today)
                         .font(.appHeadline.weight(.bold))
                         .foregroundColor(isLoggedToday ? .green : todayColor)

@@ -5,6 +5,68 @@ import SwiftUI
 struct PhoenixCard: View {
     let score: PhoenixScore
     var dayDelta: Double? = nil
+    var budget: BodyBudgetResponse? = nil
+
+    @State private var showDetail = false
+
+    var body: some View {
+        Button { showDetail = true } label: {
+            PhoenixCardContent(score: score, dayDelta: dayDelta, budget: budget, showCanvas: false)
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showDetail) {
+            PhoenixDetailSheet(score: score, dayDelta: dayDelta, budget: budget)
+        }
+    }
+}
+
+// MARK: - Detail Sheet
+
+private struct PhoenixDetailSheet: View {
+    let score: PhoenixScore
+    var dayDelta: Double? = nil
+    var budget: BodyBudgetResponse? = nil
+
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 12) {
+                    PhoenixCardContent(score: score, dayDelta: dayDelta, budget: budget, showCanvas: true)
+                    if let b = budget {
+                        Text(b.insight)
+                            .font(.appLabel.weight(.regular))
+                            .foregroundColor(.white.opacity(0.75))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 4)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
+            }
+            .background(Color.appBg.ignoresSafeArea())
+            .navigationTitle("Phoenix Score")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fermer") { dismiss() }
+                        .foregroundColor(.white)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Card Content (compact dashboard + full sheet)
+
+private struct PhoenixCardContent: View {
+    let score: PhoenixScore
+    var dayDelta: Double? = nil
+    var budget: BodyBudgetResponse? = nil
+    var showCanvas: Bool = false
 
     @State private var seeds = PhoenixSeed.generate(count: 40)
     @State private var isVisible = false
@@ -12,10 +74,15 @@ struct PhoenixCard: View {
     var body: some View {
         let state = score.phoenixState
         VStack(spacing: 0) {
-            phoenixCanvas(state: state)
+            if showCanvas {
+                phoenixCanvas(state: state)
+            }
             scoreSection(state: state)
             if !score.isFoundation {
                 axesSection(state: state)
+            }
+            if let b = budget {
+                budgetSection(b)
             }
         }
         .background(state.cardBackground)
@@ -27,7 +94,6 @@ struct PhoenixCard: View {
         .shadow(color: state.glowColor.opacity(state.glowOpacity), radius: state.glowRadius)
     }
 
-    // Priority guidance: worst-delta axis message shown below the score
     private var priorityGuidance: String? {
         guard let g = score.guidance, !score.isFoundation else { return nil }
         let candidates: [(Double, String?)] = [
@@ -48,7 +114,6 @@ struct PhoenixCard: View {
     @ViewBuilder
     private func phoenixCanvas(state: PhoenixState) -> some View {
         let capturedSeeds = seeds
-        // Throttle to 1/min when off-screen (TabView keeps views alive between tabs)
         TimelineView(.animation(minimumInterval: isVisible ? 1.0 / 30.0 : 60.0)) { tl in
             let t = tl.date.timeIntervalSinceReferenceDate
             Canvas { ctx, size in
@@ -65,15 +130,10 @@ struct PhoenixCard: View {
     private func scoreSection(state: PhoenixState) -> some View {
         VStack(spacing: 5) {
             ZStack(alignment: .topTrailing) {
-                VStack(spacing: 2) {
-                    Text(score.isFoundation ? "PHOENIX SCORE" : state.label.uppercased())
-                        .font(.appMicro.weight(.black)).tracking(3)
-                        .foregroundColor(state.scoreColor.opacity(0.65))
-                    Text("Ta transformation · semaine en cours")
-                        .font(.appMicro)
-                        .foregroundColor(.white.opacity(0.28))
-                }
-                .frame(maxWidth: .infinity)
+                Text(score.isFoundation ? "PHOENIX SCORE" : state.label.uppercased())
+                    .font(.appMicro.weight(.black)).tracking(3)
+                    .foregroundColor(state.scoreColor.opacity(0.65))
+                    .frame(maxWidth: .infinity)
                 CardInfoButton(title: "Phoenix Score", entries: InfoEntry.phoenixEntries)
                     .padding(.trailing, 14)
             }
@@ -169,6 +229,16 @@ struct PhoenixCard: View {
             }
         }
         .padding(.vertical, 10)
+    }
+
+    @ViewBuilder
+    private func budgetSection(_ b: BodyBudgetResponse) -> some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.06))
+            .frame(height: 1)
+        PillarRow(pillars: b.pillars)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
     }
 
     private func pillDividerHeight(_ a: String?, _ b: String?) -> CGFloat {
@@ -345,7 +415,6 @@ fileprivate func drawFlame(_ ctx: inout GraphicsContext, size: CGSize, seeds: [P
         let y = yBase
         let fade = min(1.0, min(progress * 5, (1.0 - progress) * 3))
         let opacity = s.alpha * 0.75 * fade
-        // Color gradient: base = orange, tip = yellow
         let hue = progress > 0.5 ? Color(hex: "FFD700") : Color(hex: "F5A623")
         let glow = intensity > 1.5 ? 3.5 : 2.0
         fillParticle(&ctx, x: x, y: y, size: s.size * (0.5 + progress * 0.6), color: hue, opacity: opacity, glowMult: glow)
@@ -386,7 +455,6 @@ fileprivate func drawSupernova(_ ctx: inout GraphicsContext, size: CGSize, seeds
         let c = colors[i % colors.count]
         fillParticle(&ctx, x: x, y: y, size: s.size, color: c, opacity: opacity, glowMult: 3.0)
     }
-    // Central burst
     let corePulse = 0.5 + 0.5 * sin(t * 3.0)
     let coreRect = CGRect(x: cx - 8, y: cy - 8, width: 16, height: 16)
     ctx.fill(Path(ellipseIn: coreRect), with: .color(Color.white.opacity(0.6 * corePulse)))

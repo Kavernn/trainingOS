@@ -7,7 +7,6 @@ struct DashboardView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var vm = DashboardViewModel()
     @StateObject private var weatherVM = WeatherViewModel()
-    @StateObject private var nhlService = NHLService()
     @ObservedObject private var api = APIService.shared
     @ObservedObject private var loadingState = APILoadingState.shared
     @ObservedObject private var alertService = AlertService.shared
@@ -105,11 +104,11 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0)
                                 }
 
-                                // 3 — Greeting
-                                GreetingHeaderView(dash: dash, showChecklist: $showChecklist)
+                                // 1 — Status bar
+                                DashboardStatusBar(dash: dash, streakData: vm.streakData, showChecklist: $showChecklist)
                                     .appearAnimation(delay: 0.03)
 
-                                // 4 — Séance du jour
+                                // 3 — Séance du jour
                                 TodayCardView(
                                     dash: dash,
                                     showGreatDayBadge: vm.morningBrief?.recommendation == "go" && (vm.deload?.fatigueLevel ?? 0) == 0 && dash.sessions[todayStr] != nil,
@@ -117,6 +116,12 @@ struct DashboardView: View {
                                     readiness: vm.readinessData
                                 )
                                 .appearAnimation(delay: 0.05)
+
+                                // 4 — Readiness Strip (remonte au-dessus du fold)
+                                if vm.morningBrief != nil || vm.todayRecovery != nil {
+                                    ReadinessStripView(brief: vm.morningBrief, recovery: vm.todayRecovery)
+                                        .appearAnimation(delay: 0.06)
+                                }
 
                                 // 4.5 — Activité cardio du jour
                                 if let cardio = vm.cardioToday {
@@ -138,7 +143,8 @@ struct DashboardView: View {
                                 if let brief = vm.morningBrief {
                                     CoachBriefCard(
                                         brief: brief,
-                                        sessionCompletedToday: dash.alreadyLoggedToday
+                                        sessionCompletedToday: dash.alreadyLoggedToday,
+                                        tip: vm.coachTip
                                     )
                                     .appearAnimation(delay: 0.09)
                                 } else if vm.morningBriefFailed {
@@ -165,20 +171,11 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.09)
                                 }
 
-                                if let tip = vm.coachTip {
-                                    CoachTipCard(tip: tip)
-                                        .appearAnimation(delay: 0.11)
-                                }
-
-                                // 7 — Phoenix + récupération
+                                // 7 — Phoenix + récupération (budget fusionné)
                                 if let phoenix = vm.phoenixScore {
-                                    PhoenixCard(score: phoenix, dayDelta: vm.phoenixDayDelta)
+                                    PhoenixCard(score: phoenix, dayDelta: vm.phoenixDayDelta, budget: vm.bodyBudget)
                                         .appearAnimationHot(delay: 0.12)
                                 }
-
-                                // 8 — Body budget
-                                BodyBudgetCard(budget: vm.bodyBudget)
-                                    .appearAnimation(delay: 0.14)
 
                                 // 9 — Métriques du jour
                                 DailyMetricsRow(
@@ -282,13 +279,7 @@ struct DashboardView: View {
                                 WeatherChipView(vm: weatherVM)
                                     .appearAnimation(delay: 0.38)
 
-                                // 22 — Habs (hors off-season)
-                                if !nhlService.isOffSeason {
-                                    HabsWidget(service: nhlService)
-                                        .appearAnimation(delay: 0.40)
-                                }
-
-                                // 23 — Citation
+                                // 22 — Citation
                                 QuoteOfDayView()
                                     .appearAnimation(delay: 0.42)
 
@@ -315,7 +306,6 @@ struct DashboardView: View {
                             vm.bodyBudget     = try? await APIService.shared.fetchBodyBudget()
                             vm.readinessData  = try? await APIService.shared.fetchReadiness()
                             weatherVM.requestUpdate()
-                            await nhlService.fetch()
                         }
 
                         QuickLogBar(
@@ -403,12 +393,12 @@ struct DashboardView: View {
             }
             .navigationBarHidden(true)
         }
-        .task { await vm.loadAll(); await nhlService.fetchIfNeeded(); lastRefresh = Date(); checkAndShowMorningReveal(); weatherVM.requestUpdate() }
+        .task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal(); weatherVM.requestUpdate() }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 BehaviorTracker.shared.record(.appOpen)
                 if !loadingState.isLoading, Date().timeIntervalSince(lastRefresh) > 300 {
-                    Task { await vm.loadAll(); await nhlService.fetchIfNeeded(); lastRefresh = Date(); checkAndShowMorningReveal() }
+                    Task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
                 }
             }
         }

@@ -90,7 +90,7 @@ private struct BodyBudgetContent: View {
 
 // MARK: - Pillar Row
 
-private struct PillarRow: View {
+struct PillarRow: View {
     let pillars: BodyBudgetPillars
 
     var body: some View {
@@ -108,7 +108,7 @@ private struct PillarRow: View {
     }
 }
 
-private struct PillarCell: View {
+struct PillarCell: View {
     let label: String
     let value: Int
     let color: Color

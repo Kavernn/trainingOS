@@ -79,89 +79,41 @@ struct SkeletonBar: View {
     }
 }
 
-// MARK: - Fatigue Score Gauge
-struct FatigueScoreGauge: View {
-    let score: Int
-
-    private var gaugeColor: Color {
-        if score >= 75 { return .red }
-        if score >= 65 { return .orange }
-        return .green
-    }
-
-    private var label: String {
-        if score >= 75 { return "Critique" }
-        if score >= 65 { return "Attention" }
-        return "Modéré"
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("Score de fatigue")
-                    .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.5))
-                Spacer()
-                Text("\(score)/100 — \(label)")
-                    .font(.appCaption.weight(.semibold))
-                    .foregroundColor(gaugeColor)
-            }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white.opacity(0.08)).frame(height: 6)
-                    Capsule()
-                        .fill(gaugeColor)
-                        .frame(width: geo.size.width * CGFloat(score) / 100, height: 6)
-                }
-            }
-            .frame(height: 6)
-        }
-    }
-}
-
-// MARK: - Greeting Header
-struct GreetingHeaderView: View {
+// MARK: - Dashboard Status Bar
+struct DashboardStatusBar: View {
     let dash: DashboardData
+    var streakData: StreakResponse? = nil
     @Binding var showChecklist: Bool
 
-    var greeting: String {
-        let hour = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
-        if hour < 12 { return "Bon matin" }
-        if hour < 18 { return "Bon après-midi" }
-        return "Bonsoir"
-    }
-
-    var formattedDate: String {
+    private var dateShort: String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "fr_CA")
-        f.dateFormat = "EEEE d MMMM"
+        f.dateFormat = "EEE d MMM"
         return f.string(from: Date()).capitalized
     }
 
-    var streak: Int {
-        // N'utilise PAS Calendar.startOfDay ni addingTimeInterval :
-        // sur iOS 26 ces appels routent via Calendar.date(byAdding:wrappingComponents:true)
-        // qui recurse infiniment dans _CalendarGregorian.dateComponents → crash 0x8BADF00D.
+    private var currentStreak: Int {
+        if let s = streakData { return s.currentStreak }
+        // iOS 26 : pas de Calendar.startOfDay — arithmétique pure (évite crash 0x8BADF00D)
         let fmt = DateFormatter.isoDate
-        let todayStr = fmt.string(from: Date())                     // dateComponents, pas date(byAdding:)
-        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }  // parse → Date, pas date(byAdding:)
-        let base = todayMidnight.timeIntervalSince1970              // secondes epoch
+        let todayStr = fmt.string(from: Date())
+        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
+        let base = todayMidnight.timeIntervalSince1970
         var count = 0
         for i in 0..<365 {
-            let checkDate = Date(timeIntervalSince1970: base - Double(i) * 86400.0) // arithmétique pure
-            let key = fmt.string(from: checkDate)
-            if dash.sessions[key] != nil {
-                count += 1
-            } else if i == 0 {
-                continue // aujourd'hui pas encore loggé, on vérifie hier
-            } else {
-                break
-            }
+            let key = fmt.string(from: Date(timeIntervalSince1970: base - Double(i) * 86400.0))
+            if dash.sessions[key] != nil { count += 1 }
+            else if i == 0 { continue }
+            else { break }
         }
         return count
     }
 
-    var todayColor: Color {
+    private var isLoggedToday: Bool {
+        dash.alreadyLoggedToday || dash.sessions[dash.todayDate] != nil
+    }
+
+    private var todayColor: Color {
         let low = dash.today.lowercased()
         if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return .green }
         if low.contains("pull")  { return .cyan }
@@ -171,104 +123,62 @@ struct GreetingHeaderView: View {
         return .blue
     }
 
-    var todayIcon: String {
+    private var dotColor: Color {
+        if isLoggedToday { return .green }
         let low = dash.today.lowercased()
-        if low.contains("yoga")  { return "figure.mind.and.body" }
-        if low.contains("repos") || low.contains("recovery") || low.contains("rest") { return "moon.fill" }
-        if low.contains("upper") || low.contains("lower") ||
-           low.contains("push") || low.contains("pull") ||
-           low.contains("legs") || low.contains("full body") { return "dumbbell.fill" }
-        return "dumbbell.fill"
-    }
-
-    var weekSessions: Int {
-        let fmt = DateFormatter.isoDate
-        let todayStr = fmt.string(from: Date())
-        guard let todayMidnight = fmt.date(from: todayStr) else { return 0 }
-        let base = todayMidnight.timeIntervalSince1970
-        let epochDays = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 86400
-        let weekday = ((epochDays + 4) % 7) + 1
-        let daysSinceMonday = (weekday + 5) % 7
-        var count = 0
-        for i in 0...daysSinceMonday {
-            let d = Date(timeIntervalSince1970: base - Double(i) * 86400.0)
-            if dash.sessions[fmt.string(from: d)] != nil { count += 1 }
+        if low.contains("repos") || low.contains("recovery") || low.contains("rest") {
+            return Color.secondary
         }
-        return count
+        return todayColor
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(greeting + (dash.profile.name.map { ", \($0.components(separatedBy: " ").first ?? $0)" } ?? "") + " 👋")
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundColor(.white)
-                    Text(formattedDate)
-                        .font(.appLabel.weight(.regular))
-                        .foregroundColor(.gray)
-                }
+        HStack(spacing: 0) {
+            Text(dateShort)
+                .font(.appLabel.weight(.medium))
+                .foregroundColor(.white)
 
-                Spacer()
+            Spacer()
 
-                VStack(alignment: .trailing, spacing: 6) {
-                    HStack(spacing: 6) {
-                        // UX#2: Checklist button in header — out of main scroll
-                        Button {
-                            showChecklist = true
-                        } label: {
-                            Image(systemName: "checklist")
-                                .font(.appLabel.weight(.semibold))
-                                .foregroundColor(.orange)
-                                .padding(8)
-                                .background(Color.orange.opacity(0.12))
-                                .clipShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-
-                        Text("Sem. \(dash.week)")
-                            .font(.appCaption.weight(.bold))
-                            .tracking(1)
-                            .foregroundColor(.gray)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(Capsule())
-                    }
-
-                    if streak > 1 {
-                        StreakBadge(count: streak)
-                    }
-                }
-            }
-
-            // Workout badge + week progress
             HStack(spacing: 10) {
-                HStack(spacing: 5) {
-                    Image(systemName: todayIcon)
-                        .font(.appCaption.weight(.semibold))
-                        .foregroundColor(todayColor)
-                    Text(dash.today)
-                        .font(.appCaption.weight(.bold))
-                        .foregroundColor(todayColor)
-                }
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(todayColor.opacity(0.12))
-                .overlay(Capsule().stroke(todayColor.opacity(0.25), lineWidth: 1))
-                .clipShape(Capsule())
-
-                Spacer()
-
-                if weekSessions > 0 {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
+                if currentStreak > 0 {
+                    HStack(spacing: 3) {
+                        Text("🔥")
                             .font(.appCaption)
-                            .foregroundColor(.green.opacity(0.7))
-                        Text("\(weekSessions) séance\(weekSessions != 1 ? "s" : "") cette sem.")
-                            .font(.appCaption.weight(.medium))
-                            .foregroundColor(.gray)
+                        Text("\(currentStreak)j")
+                            .font(.appCaption.weight(.bold))
+                            .foregroundColor(Color.forge)
                     }
+                    Text("·")
+                        .font(.appCaption)
+                        .foregroundColor(.gray.opacity(0.5))
                 }
+
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(dotColor)
+                        .frame(width: 6, height: 6)
+                    Text(dash.today)
+                        .font(.appCaption.weight(.medium))
+                        .foregroundColor(.white.opacity(0.85))
+                        .lineLimit(1)
+                }
+
+                Text("·")
+                    .font(.appCaption)
+                    .foregroundColor(.gray.opacity(0.5))
+
+                Button {
+                    showChecklist = true
+                } label: {
+                    Image(systemName: "checklist")
+                        .font(.appCaption.weight(.semibold))
+                        .foregroundColor(.orange)
+                        .padding(7)
+                        .background(Color.orange.opacity(0.12))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
             }
         }
         .padding(.top, 12)
