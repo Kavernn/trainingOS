@@ -27,10 +27,12 @@ class WatchSyncService: ObservableObject {
     @Published var lastSyncCompleted: Date?
     @Published var lastError: String?
 
-    private let syncInterval: TimeInterval = 30 * 60  // 30 min
-    private let defaults     = UserDefaults.standard
-    private let lastSyncKey  = "watchSync_lastDate"
-    private let hk           = HealthKitService.shared
+    private let syncInterval:     TimeInterval = 30 * 60   // 30 min
+    private let backfillInterval: TimeInterval = 60 * 60   // 1h — backfill is expensive (7 days × upsert)
+    private let defaults       = UserDefaults.standard
+    private let lastSyncKey    = "watchSync_lastDate"
+    private let lastBackfillKey = "watchSync_lastBackfill"
+    private let hk             = HealthKitService.shared
 
     private init() {
         lastSyncDate = defaults.object(forKey: lastSyncKey) as? Date
@@ -43,11 +45,17 @@ class WatchSyncService: ObservableObject {
         return Date().timeIntervalSince(last) > syncInterval
     }
 
+    private var shouldBackfill: Bool {
+        guard let last = defaults.object(forKey: lastBackfillKey) as? Date else { return true }
+        return Date().timeIntervalSince(last) > backfillInterval
+    }
+
     /// Syncs only if the last sync was more than 30 min ago.
-    /// Backfill always runs regardless of the throttle — it is idempotent and cheap.
+    /// Backfill runs at most once per hour — it fetches 7 days of recovery_logs + upserts.
     func syncIfNeeded() async {
-        if hk.hasBeenAuthorized() {
+        if hk.hasBeenAuthorized() && shouldBackfill {
             await backfillRecentDaysIfNeeded()
+            defaults.set(Date(), forKey: lastBackfillKey)
         }
         guard shouldSync else { return }
         await sync()
