@@ -229,8 +229,13 @@ final class ExerciseViewModel: ObservableObject {
     }
 
     var canLog: Bool {
-        if isTimeBased     { return sets.contains { $0.duration > 0 } }
+        if isTimeBased { return sets.contains { $0.duration > 0 } }
         if equipmentType == "bodyweight" { return sets.contains { Int($0.reps) != nil } }
+        if equipmentType == "fixed_weight" {
+            return sets.contains {
+                Double($0.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")) != nil
+            }
+        }
         return sets.contains {
             Int($0.reps) != nil &&
             Double($0.weight.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")) != nil
@@ -321,7 +326,8 @@ final class ExerciseViewModel: ObservableObject {
     @discardableResult
     func logExercise(alreadyLoggedViaBinding: Bool) -> ExerciseLogResult? {
         let alreadyLogged = isLogged || alreadyLoggedViaBinding || isSkipped
-        guard !alreadyLogged || isEditing, canLog, !repsStr.isEmpty else { return nil }
+        let repsOk = !repsStr.isEmpty || equipmentType == "fixed_weight"
+        guard !alreadyLogged || isEditing, canLog, repsOk else { return nil }
 
         if isEditing { isLogged = false }
         isLogged  = true
@@ -343,18 +349,21 @@ final class ExerciseViewModel: ObservableObject {
         guard let avg = avg else { return nil }
         let w     = units.toStorage(avg)
         let total = totalWeight(for: w)
+        let isFixedWeight = equipmentType == "fixed_weight"
         let setsPayload: [[String: Any]] = sets.compactMap { s -> [String: Any]? in
-            guard !s.reps.isEmpty else { return nil }
+            let reps = s.reps.isEmpty ? (isFixedWeight ? "0" : nil) : s.reps
+            guard let reps = reps else { return nil }
             let setRPE = s.rpe ?? RPEHelper.rirToRPE(s.rir)
             if equipmentType == "bodyweight" {
                 let lest = Double(s.weight.replacingOccurrences(of: ",", with: ".")) ?? 0
-                return ["weight": units.toStorage(lest), "reps": s.reps, "rir": s.rir, "rpe": setRPE]
+                return ["weight": units.toStorage(lest), "reps": reps, "rir": s.rir, "rpe": setRPE]
             }
             guard let sw = Double(s.weight.replacingOccurrences(of: ",", with: ".")), sw > 0 else { return nil }
             let setTotal = totalWeight(for: units.toStorage(sw))
-            return ["weight": setTotal, "reps": s.reps, "rir": s.rir, "rpe": setRPE]
+            return ["weight": setTotal, "reps": reps, "rir": s.rir, "rpe": setRPE]
         }
-        let result = ExerciseLogResult(name: name, weight: total, reps: repsStr, rpe: exerciseRPE,
+        let repsForResult = repsStr.isEmpty && isFixedWeight ? "0" : repsStr
+        let result = ExerciseLogResult(name: name, weight: total, reps: repsForResult, rpe: exerciseRPE,
             sets: setsPayload, isSecond: isSecondSession, isBonus: isBonusSession,
             equipmentType: equipmentType, painZone: painZone, notes: sessionNote)
         logStatus = .success(total)

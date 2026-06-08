@@ -27,23 +27,32 @@ CREATE POLICY "anon_all" ON public.programs FOR ALL TO anon USING (true) WITH CH
 
 -- === 2. exercises ===
 -- Référentiel des exercices — avec tracking_type (migration 001) + soft delete (migration 020)
+-- + classification anatomique/fonctionnelle (migration 063)
 CREATE TABLE IF NOT EXISTS exercises (
-    id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    name            TEXT        NOT NULL UNIQUE,
-    type            TEXT,                              -- barbell | dumbbell | machine | bodyweight | cable
-    category        TEXT,                              -- strength | cardio | hiit | mobility
-    pattern         TEXT,                              -- push | pull | hinge | squat | carry | core
-    level           TEXT,                              -- beginner | intermediate | advanced
-    muscles         TEXT[]      DEFAULT '{}',          -- groupes musculaires primaires + secondaires
-    tips            TEXT,                              -- cue technique / note de coaching
-    gif_url         TEXT,
-    increment       NUMERIC     DEFAULT 5,             -- kg/lb ajoutés lors d'une progression
-    bar_weight      NUMERIC     DEFAULT 0,             -- poids de la barre (ex. 20 pour barre olympique)
-    default_scheme  TEXT,                              -- ex. "4x5-7", "3x10-12"
-    tracking_type   TEXT        NOT NULL DEFAULT 'reps',  -- reps | time (migration 001)
-    current_weight  NUMERIC,                           -- poids courant suggéré (migration 011)
-    deleted_at      TIMESTAMPTZ,                       -- soft delete (migration 020)
-    created_at      TIMESTAMPTZ DEFAULT NOW()
+    id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    name             TEXT        NOT NULL UNIQUE,
+    type             TEXT,                              -- barbell | dumbbell | machine | bodyweight | cable (legacy — voir weight_type)
+    category         TEXT,                              -- strength | cardio | hiit | mobility
+    pattern          TEXT,                              -- push | pull | hinge | squat | carry | core (grossier)
+    level            TEXT,                              -- beginner | intermediate | advanced
+    muscles          TEXT[]      DEFAULT '{}',          -- groupes musculaires (legacy — voir muscle_group)
+    tips             TEXT,                              -- cue technique / note de coaching
+    gif_url          TEXT,
+    increment        NUMERIC     DEFAULT 5,             -- kg/lb ajoutés lors d'une progression
+    bar_weight       NUMERIC     DEFAULT 0,             -- poids de la barre (ex. 20 pour barre olympique)
+    default_scheme   TEXT,                              -- ex. "4x5-7", "3x10-12"
+    tracking_type    TEXT        NOT NULL DEFAULT 'reps',  -- reps | time (migration 001)
+    current_weight   NUMERIC,                          -- poids courant suggéré (migration 011)
+    deleted_at       TIMESTAMPTZ,                      -- soft delete (migration 020)
+    created_at       TIMESTAMPTZ DEFAULT NOW(),
+    -- migration 063 — classification anatomique et fonctionnelle
+    muscle_group     TEXT,                             -- groupe principal : Pectoraux | Dos | Épaules | Biceps+Avant-bras | Triceps | Quadriceps | Ischio-jambiers | Fessiers | Mollets | Core | Hanches | Autre
+    muscle_specific  TEXT,                             -- muscle précis : ex. "Deltoïde postérieur", "Grand dorsal"
+    secondary_muscles TEXT[],                          -- muscles secondaires (max 3)
+    movement_pattern TEXT,                             -- pattern fonctionnel détaillé : push_horizontal | push_vertical | pull_horizontal | pull_vertical | squat | hinge | unilateral_leg | press_machine | isolation_arm | isolation_shoulder | isolation_leg | core | rotation | carry | cardio | accessory_wrist | other
+    weight_type      TEXT,                             -- type de calcul du poids : barbell | dumbbell | cable_single | cable_double | press | fixed_weight | bodyweight | endurance | machine
+    equipment        TEXT[],                           -- équipements multiples : barre | haltères | machine | câble | bandes | poids_du_corps | smith | trx | autre
+    alternate_name   TEXT                              -- alias / surnom (ex: "Bench Press" pour "Développé couché")
 );
 
 CREATE INDEX IF NOT EXISTS idx_exercises_name ON exercises (name);

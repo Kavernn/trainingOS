@@ -176,6 +176,8 @@ struct ExerciseCard: View {
         case "bodyweight":   return "Poids corps"
         case "cable":        return "Câble"
         case "cable_double": return "Câble ×2"
+        case "press":        return "Presse"
+        case "fixed_weight": return "Poids fixe"
         default:             return "Machine"
         }
     }
@@ -187,6 +189,8 @@ struct ExerciseCard: View {
         case "cable_double": return "POIDS PAR CÂBLE (\(units.label.uppercased()))"
         case "bodyweight":   return "LEST (\(units.label.uppercased()))"
         case "ez-bar":       return "POIDS TOTAL (\(units.label.uppercased()))"
+        case "press":        return "CHARGE MACHINE (\(units.label.uppercased()))"
+        case "fixed_weight": return "POIDS FIXE (\(units.label.uppercased()))"
         default:             return "POIDS (\(units.label.uppercased()))"
         }
     }
@@ -198,6 +202,8 @@ struct ExerciseCard: View {
         case "bodyweight":               return "figure.walk"
         case "cable":                    return "arrow.up.and.down.circle"
         case "cable_double":             return "arrow.left.and.right.circle"
+        case "press":                    return "arrow.down.to.line.compact"
+        case "fixed_weight":             return "scalemass.fill"
         default:                         return "gearshape.fill"
         }
     }
@@ -294,7 +300,7 @@ struct ExerciseCard: View {
                     .buttonStyle(.plain)
                 }
                 Spacer()
-                Text("REPS")
+                Text(evm.equipmentType == "fixed_weight" ? "REPS (OPT.)" : "REPS")
                     .font(.appCaption).fontWeight(.bold).tracking(1).foregroundColor(.gray)
                     .frame(width: 140, alignment: .center)
                 // W-C2 — hide RIR column for time-based exercises
@@ -364,7 +370,7 @@ struct ExerciseCard: View {
                         StepperInput(
                             valueStr: $evm.sets[i].reps,
                             increment: 1,
-                            minimum: 1,
+                            minimum: evm.equipmentType == "fixed_weight" ? 0 : 1,
                             placeholder: Double(evm.lastRepsParts.indices.contains(i)
                                 ? evm.lastRepsParts[i] : "1") ?? 1,
                             isInteger: true,
@@ -819,13 +825,15 @@ struct ExerciseCard: View {
             }
             Spacer()
             Menu {
-                Button { evm.equipmentType = "barbell" }    label: { Label("Barre",       systemImage: "minus.circle.fill") }
-                Button { evm.equipmentType = "ez-bar" }     label: { Label("EZ-Bar",      systemImage: "waveform") }
-                Button { evm.equipmentType = "dumbbell" }   label: { Label("Haltères",    systemImage: "dumbbell.fill") }
-                Button { evm.equipmentType = "machine" }    label: { Label("Machine",     systemImage: "gearshape.fill") }
+                Button { evm.equipmentType = "barbell" }      label: { Label("Barre",        systemImage: "minus.circle.fill") }
+                Button { evm.equipmentType = "ez-bar" }       label: { Label("EZ-Bar",       systemImage: "waveform") }
+                Button { evm.equipmentType = "dumbbell" }     label: { Label("Haltères",     systemImage: "dumbbell.fill") }
+                Button { evm.equipmentType = "machine" }      label: { Label("Machine",      systemImage: "gearshape.fill") }
                 Button { evm.equipmentType = "cable" }        label: { Label("Câble",        systemImage: "arrow.up.and.down.circle") }
                 Button { evm.equipmentType = "cable_double" } label: { Label("Câble ×2",     systemImage: "arrow.left.and.right.circle") }
                 Button { evm.equipmentType = "bodyweight" }   label: { Label("Poids corps",  systemImage: "figure.walk") }
+                Button { evm.equipmentType = "press" }        label: { Label("Presse",       systemImage: "arrow.down.to.line.compact") }
+                Button { evm.equipmentType = "fixed_weight" } label: { Label("Poids fixe",   systemImage: "scalemass.fill") }
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: equipmentIcon(evm.equipmentType)).font(.appCaption)
@@ -1157,7 +1165,9 @@ struct ExerciseCard: View {
                 default:                         return stored
                 }
             }
-            let showPerSide = evm.equipmentType == "barbell" || evm.equipmentType == "dumbbell" || evm.equipmentType == "cable_double"
+            let showPerSide = evm.equipmentType == "barbell"
+                           || evm.equipmentType == "dumbbell"
+                           || evm.equipmentType == "cable_double"
             let sparkData: [Double] = history.reversed().compactMap { entry -> Double? in
                 guard let w = entry.weight else { return nil }
                 return historyPerSide(w)
