@@ -4,17 +4,21 @@ struct RitualMorningView: View {
     let ritual: RitualToday
     let onSaved: (RitualToday) -> Void
 
-    @State private var intention     = ""
-    @State private var isSaving      = false
-    @State private var useCarried    = false
+    @State private var intention       = ""
+    @State private var isSaving        = false
+    @State private var useCarried      = false
     @FocusState private var focused: Bool
 
     // D: micro-ritual checklist local state (mirrors ritual values on appear)
-    @State private var hydrationDone  = false
-    @State private var mobilityDone   = false
-    @State private var proteinDone    = false
-    @State private var showSpirit     = false
-    @State private var isKillingDemon = false
+    @State private var hydrationDone   = false
+    @State private var mobilityDone    = false
+    @State private var proteinDone     = false
+    @State private var showSpirit      = false
+    @State private var isKillingDemon  = false
+
+    // Phase 1 matin — jugement de l'intention d'hier soir
+    @State private var morningAck      : Bool? = nil
+    @State private var ackFeedbackDone = false
 
     private let red   = Color(hex: "FF2D20")
 
@@ -50,6 +54,12 @@ struct RitualMorningView: View {
                         yesterdayIntentionCard(intention: intention)
                             .padding(.top, 20)
                             .padding(.horizontal, 24)
+
+                        if !ackFeedbackDone {
+                            morningAckBlock
+                                .padding(.top, 16)
+                                .padding(.horizontal, 24)
+                        }
                     }
 
                     truthBlock
@@ -100,6 +110,11 @@ struct RitualMorningView: View {
             hydrationDone = ritual.hydrationDone
             mobilityDone  = ritual.mobilityDone
             proteinDone   = ritual.proteinDone
+            // Restore morningAck from API — si déjà répondu, cacher le bloc
+            if let saved = ritual.morningAck {
+                morningAck      = saved
+                ackFeedbackDone = true
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { focused = true }
             // B3: schedule streak at risk if applicable
             NotificationService.scheduleRitualStreakAtRisk(
@@ -404,6 +419,70 @@ struct RitualMorningView: View {
         }
         .disabled(intention.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
         .buttonStyle(.plain)
+    }
+
+    // MARK: - Phase 1 matin : jugement intention d'hier
+
+    @ViewBuilder
+    private var morningAckBlock: some View {
+        if let ack = morningAck {
+            Text(ack ? "Bien." : "Noté.")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(ack ? Color.forge : Color(white: 0.32))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .transition(.opacity)
+        } else {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("L'AS-TU ACCOMPLI ?")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(3)
+                        .foregroundColor(Color(white: 0.28))
+
+                    if let yi = ritual.yesterdayIntention {
+                        let truncated = yi.count > 55 ? String(yi.prefix(55)) + "…" : yi
+                        Text("«\u{202F}\(truncated)\u{202F}»")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(white: 0.28))
+                            .lineLimit(2)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    ackChoiceButton(label: "OUI  ✓", value: true)
+                    ackChoiceButton(label: "NON  ✗", value: false)
+                }
+            }
+            .transition(.opacity)
+        }
+    }
+
+    private func ackChoiceButton(label: String, value: Bool) -> some View {
+        Button(action: { recordMorningAck(value) }) {
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+                .tracking(1)
+                .foregroundColor(Color(white: 0.55))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Color(white: 0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(white: 0.12), lineWidth: 1)
+                )
+                .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func recordMorningAck(_ value: Bool) {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        withAnimation(.easeInOut(duration: 0.25)) { morningAck = value }
+        Task { try? await APIService.shared.saveRitualChecklist(morningAck: value) }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            withAnimation(.easeInOut(duration: 0.3)) { ackFeedbackDone = true }
+        }
     }
 
     // MARK: - Save

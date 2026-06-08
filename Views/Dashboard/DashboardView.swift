@@ -173,11 +173,11 @@ struct DashboardView: View {
                                 )
                                 .appearAnimation(delay: 0.10)
 
-                                // 7 — Momentum strip (semaine + streak fusionnés)
+                                // 7 — Momentum strip (semaine + streak)
                                 MomentumStripView(dash: dash, streakData: vm.streakData)
                                     .appearAnimation(delay: 0.12)
 
-                                // 8 — Phoenix compact (budget fusionné)
+                                // 8 — Phoenix compact
                                 if let phoenix = vm.phoenixScore {
                                     PhoenixCard(score: phoenix, dayDelta: vm.phoenixDayDelta, budget: vm.bodyBudget)
                                         .appearAnimationHot(delay: 0.14)
@@ -185,25 +185,15 @@ struct DashboardView: View {
 
                                 // ── FOLD NATUREL ──────────────────────────────
 
-                                // 10 — Rituel (demon > soir > matin, un seul slot)
+                                // 9 — Rituel (demon > soir > matin)
                                 if let ritual = vm.ritualToday {
                                     RitualDemonCard(ritual: ritual) {
                                         Task { await vm.refreshRitual() }
                                     }
-                                    .appearAnimation(delay: 0.20)
+                                    .appearAnimation(delay: 0.18)
                                 }
 
-                                // 12 — Activité cardio du jour
-                                if let cardio = vm.cardioToday {
-                                    DashboardCardioCard(entry: cardio)
-                                        .appearAnimation(delay: 0.23)
-                                }
-
-                                // 13 — LSS micro-widget
-                                LSSMiniCard(trend: vm.lssTrend)
-                                    .appearAnimation(delay: 0.24)
-
-                                // 14 — Macros (pattern C uniquement)
+                                // 10 — Macros (pattern C, actionnable avant séance)
                                 if let pattern = vm.dailyPattern,
                                    pattern.family == "C",
                                    pattern.macroThreshold != nil,
@@ -215,26 +205,32 @@ struct DashboardView: View {
                                     MacroInsightCard(pattern: pattern, yesterday: yesterday) {
                                         NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
                                     }
-                                    .appearAnimation(delay: 0.25)
+                                    .appearAnimation(delay: 0.20)
                                 }
 
-                                // HRV nudge (récupération)
-                                HRVMorningNudgeView(analysis: vm.hrvAnalysis)
-                                    .appearAnimation(delay: 0.26)
+                                // 11 — Cardio du jour
+                                if let cardio = vm.cardioToday {
+                                    DashboardCardioCard(entry: cardio)
+                                        .appearAnimation(delay: 0.22)
+                                }
 
-                                // 15 — Breathwork (stress élevé)
+                                // 12 — HRV nudge
+                                HRVMorningNudgeView(analysis: vm.hrvAnalysis)
+                                    .appearAnimation(delay: 0.24)
+
+                                // 13 — Breathwork (stress élevé, groupé avec HRV)
                                 if let lss = vm.lssTrend.last, lss.score < 50 {
                                     BreathworkNudgeCard()
-                                        .appearAnimation(delay: 0.28)
+                                        .appearAnimation(delay: 0.26)
                                 }
 
-                                // 17 — Saison (strip 28pt, transparent)
-                                if let season = vm.activeSeason {
-                                    SeasonStripView(season: season) { showSeasonClose = true }
-                                        .appearAnimation(delay: 0.29)
-                                }
+                                // 14 — LSS micro-widget
+                                LSSMiniCard(trend: vm.lssTrend)
+                                    .appearAnimation(delay: 0.28)
 
-                                // 18 — Pattern
+                                // ── DISCOVERY ─────────────────────────────────
+
+                                // 15 — Pattern du jour
                                 if let pattern = vm.dailyPattern {
                                     PatternDailyChip(pattern: pattern) {
                                         NotificationCenter.default.post(name: .navigateToIntelligence, object: nil)
@@ -242,17 +238,23 @@ struct DashboardView: View {
                                     .appearAnimation(delay: 0.30)
                                 }
 
+                                // 16 — Saison (strip 28pt, transparent)
+                                if let season = vm.activeSeason {
+                                    SeasonStripView(season: season) { showSeasonClose = true }
+                                        .appearAnimation(delay: 0.32)
+                                }
+
                                 // ── SCROLL PROFOND ────────────────────────────
 
-                                // 20 — Citation
+                                // 17 — Citation
                                 QuoteOfDayView()
                                     .appearAnimation(delay: 0.34)
 
-                                // 21 — XP
+                                // 18 — XP
                                 XPChipView(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.38)
 
-                                // 23 — Objectif
+                                // 19 — Objectif
                                 if let goal = dash.profile.goal, !goal.isEmpty {
                                     GoalReminderView(goal: goal)
                                         .appearAnimation(delay: 0.40)

@@ -28,6 +28,7 @@ struct RitualToday: Codable {
     let yesterdayIntention: String?   // tomorrow_intention saisie hier soir
     let yesterdayOutcome: String?     // outcome d'hier soir (burned/survived)
     let yesterdayEveningAt: String?   // heure à laquelle l'intention a été prise hier soir
+    let morningAck: Bool?             // acquittement matin : true=accompli, false=non, nil=pas encore répondu
 
     var morningDone: Bool  { morningAt != nil }
     var eveningDone: Bool  { eveningAt != nil }
@@ -56,6 +57,7 @@ struct RitualToday: Codable {
         case yesterdayIntention    = "yesterday_intention"
         case yesterdayOutcome      = "yesterday_outcome"
         case yesterdayEveningAt    = "yesterday_evening_at"
+        case morningAck            = "morning_ack"
     }
 
     init(from decoder: Decoder) throws {
@@ -86,6 +88,7 @@ struct RitualToday: Codable {
         yesterdayIntention  = try? c.decode(String.self, forKey: .yesterdayIntention)
         yesterdayOutcome    = try? c.decode(String.self, forKey: .yesterdayOutcome)
         yesterdayEveningAt  = try? c.decode(String.self, forKey: .yesterdayEveningAt)
+        morningAck          = try? c.decode(Bool.self,   forKey: .morningAck)
     }
 }
 

@@ -63,11 +63,6 @@ _SUGGESTIONS: dict[str, list[str]] = {
         "Une nuit à côté ne définit pas la trajectoire.",
         "Je rebuild à partir d'aujourd'hui.",
     ],
-    "streak_elevation": [
-        "Mon streak tient. Maintenant j'élève le niveau de l'intention.",
-        "Assez de survivre — maintenant je vise plus haut.",
-        "Le confort du streak est le danger du streak.",
-    ],
     "default": [
         "Je montre qui je suis aujourd'hui.",
         "Je ne laisse pas la peur décider.",
@@ -148,13 +143,6 @@ def _build_truth(phoenix_streak: int = 0) -> tuple[str, str, list[str], dict]:
                      f"({avg_r:.1f} vs {avg_o:.1f}). La fatigue s'accumule sans que tu le voies.")
                 ctx = {"RPE_récent_moyen": round(avg_r, 1), "RPE_précédent_moyen": round(avg_o, 1)}
                 return t, "stress_rising", _SUGGESTIONS["stress_rising"], ctx
-
-    # C4: Streak elevation — only surfaces when no workout urgency
-    if phoenix_streak >= 7:
-        t = (f"Ton Phoenix tient depuis {phoenix_streak} jours. "
-             f"Assez de survivre — maintenant tu élèves le niveau.")
-        ctx = {"phoenix_streak": phoenix_streak}
-        return t, "streak_elevation", _SUGGESTIONS["streak_elevation"], ctx
 
     # C2: PSS-4 high stress
     try:
@@ -399,6 +387,7 @@ def api_ritual_today():
         "yesterday_intention":   yesterday_intention,
         "yesterday_outcome":     yesterday_outcome,
         "yesterday_evening_at":  yesterday_evening_at,
+        "morning_ack":           None,
     })
 
 
@@ -519,7 +508,7 @@ def api_ritual_checklist():
     today_str = _today_mtl().isoformat()
     existing  = _db.get_ritual_today(today_str) or {"date": today_str}
 
-    allowed = {"weight_logged", "hydration_done", "mobility_done", "protein_done"}
+    allowed = {"weight_logged", "hydration_done", "mobility_done", "protein_done", "morning_ack"}
     patch = {k: bool(data[k]) for k in allowed if k in data}
     if not patch:
         return jsonify({"error": "no checklist fields provided"}), 400

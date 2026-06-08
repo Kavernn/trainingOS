@@ -59,12 +59,14 @@ extension APIService {
     }
 
     func saveRitualChecklist(weightLogged: Bool? = nil, hydrationDone: Bool? = nil,
-                             mobilityDone: Bool? = nil, proteinDone: Bool? = nil) async throws {
+                             mobilityDone: Bool? = nil, proteinDone: Bool? = nil,
+                             morningAck: Bool? = nil) async throws {
         var payload: [String: Any] = [:]
         if let v = weightLogged  { payload["weight_logged"]   = v }
         if let v = hydrationDone { payload["hydration_done"]  = v }
         if let v = mobilityDone  { payload["mobility_done"]   = v }
         if let v = proteinDone   { payload["protein_done"]    = v }
+        if let v = morningAck    { payload["morning_ack"]     = v }
         guard !payload.isEmpty else { return }
         _ = try await offlinePost(endpoint: "/api/ritual/checklist", payload: payload)
         CacheInvalidation.ritualItemActioned.invalidate()

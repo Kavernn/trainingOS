@@ -78,6 +78,15 @@ struct RitualEveningView: View {
                 choiceView
                     .transition(.opacity)
             }
+
+            if !showResult {
+                VStack {
+                    progressDots
+                        .padding(.top, 54)
+                    Spacer()
+                }
+                .allowsHitTesting(false)
+            }
         }
         .animation(.easeInOut(duration: 0.4), value: showResult)
         .animation(.easeInOut(duration: 0.45), value: step)
@@ -85,6 +94,20 @@ struct RitualEveningView: View {
             reflectionFocused = false
             intentionFocused  = false
         }
+    }
+
+    // MARK: - Progress indicator
+
+    private var progressDots: some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(step == .judgment ? Color(white: 0.75) : Color(white: 0.2))
+                .frame(width: 6, height: 6)
+            Circle()
+                .fill(step == .intention ? Color(white: 0.75) : Color(white: 0.2))
+                .frame(width: 6, height: 6)
+        }
+        .animation(.easeInOut(duration: 0.3), value: step)
     }
 
     // MARK: - Étape 1 : Jugement
@@ -230,18 +253,13 @@ struct RitualEveningView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     // Header
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("MAINTENANT")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(3)
-                            .foregroundColor(Color.forge.opacity(0.7))
-
-                        Text("Ton intention pour demain")
-                            .font(.system(size: 26, weight: .semibold))
+                        Text("Demain")
+                            .font(.system(size: 32, weight: .black))
                             .foregroundColor(.white)
 
-                        Text("Pour \(tomorrowDateLabel)")
-                            .font(.system(size: 13))
-                            .foregroundColor(Color(white: 0.38))
+                        Text(tomorrowDateLabel)
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(white: 0.35))
                     }
 
                     Rectangle()
