@@ -27,37 +27,18 @@ struct DisplaySettingsView: View {
 
             List {
                 Section("Apparence") {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         ForEach(AppThemeOption.allCases, id: \.rawValue) { option in
                             themeCard(option)
                         }
                     }
                     .padding(.vertical, 8)
-                    .animation(.easeInOut(duration: 0.25), value: pendingTheme)
-
-                    if pendingTheme != theme.selectedTheme {
-                        Button {
-                            theme.applyTheme(pendingTheme)
-                        } label: {
-                            Text("Appliquer")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(Color.forge.opacity(pendingTheme == .monochrome ? 1 : 1))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.forge.opacity(0.12))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .strokeBorder(Color.forge.opacity(0.35), lineWidth: 1)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
+                    .animation(.easeInOut(duration: 0.2), value: pendingTheme)
                 }
                 .listRowBackground(Color.appCard)
                 .listRowSeparatorTint(Color.white.opacity(0.06))
-                .animation(.easeInOut(duration: 0.2), value: pendingTheme != theme.selectedTheme)
+
+                applySection
 
                 Section("Unités de mesure") {
                     HStack(spacing: 12) {
@@ -139,45 +120,75 @@ struct DisplaySettingsView: View {
         .onAppear { syncPending() }
     }
 
+    private var hasChange: Bool { pendingTheme != theme.selectedTheme }
+
+    @ViewBuilder
+    private var applySection: some View {
+        Section {
+            Button {
+                guard hasChange else { return }
+                theme.applyTheme(pendingTheme)
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: hasChange ? "paintpalette.fill" : "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(hasChange ? pendingTheme.previewColor : .green)
+                    Text(hasChange ? "Appliquer « \(pendingTheme.displayName) »" : "Thème appliqué")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(hasChange ? .white : .white.opacity(0.35))
+                    Spacer()
+                    if hasChange {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.3))
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .buttonStyle(.plain)
+        }
+        .listRowBackground(hasChange ? pendingTheme.previewColor.opacity(0.14) : Color.appCard)
+        .listRowSeparatorTint(Color.white.opacity(0.06))
+    }
+
     @ViewBuilder
     private func themeCard(_ option: AppThemeOption) -> some View {
-        let isActive  = pendingTheme == option
-        let isApplied = theme.selectedTheme == option
-        Button {
-            pendingTheme = option
-        } label: {
-            VStack(spacing: 8) {
-                Circle()
-                    .fill(option.previewColor)
-                    .frame(width: 36, height: 36)
-                    .overlay(
-                        Circle()
-                            .strokeBorder(Color.white.opacity(isActive ? 0.5 : 0.15), lineWidth: 1.5)
-                    )
+        let isPending = pendingTheme == option
+        let isApplied = theme.selectedTheme == option && !hasChange
+        Button { pendingTheme = option } label: {
+            VStack(spacing: 7) {
+                ZStack(alignment: .bottomTrailing) {
+                    Circle()
+                        .fill(option.previewColor)
+                        .frame(width: 40, height: 40)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(Color.white.opacity(isPending ? 0.9 : 0.15),
+                                              lineWidth: isPending ? 2.5 : 1)
+                        )
+                    if isApplied {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(.white)
+                            .background(Circle().fill(option.previewColor).padding(1))
+                            .offset(x: 4, y: 4)
+                    }
+                }
+                .padding(.bottom, isApplied ? 4 : 0)
 
                 Text(option.displayName)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(isActive ? .white : .white.opacity(0.45))
-
-                if isActive {
-                    Image(systemName: isApplied ? "checkmark.circle.fill" : "checkmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(Color.forge)
-                } else {
-                    Color.clear.frame(height: 12)
-                }
+                    .font(.system(size: 11, weight: isPending ? .bold : .regular))
+                    .foregroundColor(isPending ? .white : .white.opacity(0.4))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, 10)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isActive ? Color.forge.opacity(0.08) : Color.white.opacity(0.04))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(
-                        isActive ? Color.forge.opacity(0.6) : Color.white.opacity(0.08),
-                        lineWidth: isActive ? 1.5 : 1
+                    .fill(isPending ? Color.white.opacity(0.07) : Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(isPending ? Color.white.opacity(0.4) : Color.clear,
+                                          lineWidth: 1.5)
                     )
             )
         }
