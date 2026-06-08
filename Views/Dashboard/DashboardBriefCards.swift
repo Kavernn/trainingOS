@@ -1,10 +1,11 @@
 import SwiftUI
 
-// MARK: - UX#1 — Readiness Strip (before TodayCard)
+// MARK: - Recovery Trio Card (Readiness + HRV + Sommeil)
 
-struct ReadinessStripView: View {
+struct RecoveryTrioCard: View {
     let brief: MorningBriefData?
     let recovery: RecoveryEntry?
+    var hrvAnalysis: HRVAnalysis? = nil
 
     private var accent: Color {
         switch brief?.recommendation {
@@ -15,16 +16,16 @@ struct ReadinessStripView: View {
         }
     }
 
-    private var label: String {
+    private var readinessLabel: String {
         switch brief?.recommendation {
-        case "defer":      return "Repos recommandé"
-        case "reduce":     return "Volume réduit aujourd'hui"
-        case "go_caution": return "Entraîne-toi avec prudence"
-        default:           return "Prêt à performer"
+        case "defer":      return "Repos"
+        case "reduce":     return "Réduit"
+        case "go_caution": return "Prudence"
+        default:           return "Prêt"
         }
     }
 
-    private var icon: String {
+    private var readinessIcon: String {
         switch brief?.recommendation {
         case "defer":      return "exclamationmark.triangle.fill"
         case "reduce":     return "arrow.down.circle.fill"
@@ -33,60 +34,68 @@ struct ReadinessStripView: View {
         }
     }
 
+    private var sleepLabel: String {
+        guard let h = recovery?.sleepHours else { return "Sommeil" }
+        if h >= 7.5 { return "Récupérateur" }
+        if h >= 6.0 { return "Correct" }
+        return "Insuffisant"
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(accent.opacity(0.15)).frame(width: 36, height: 36)
-                Image(systemName: icon)
-                    .font(.appBody)
-                    .foregroundColor(accent)
-            }
-            VStack(alignment: .leading, spacing: 1) {
-                Text("RÉCUPÉRATION")
-                    .font(.appMicro.weight(.bold)).tracking(2)
-                    .foregroundColor(.gray)
-                Text(label)
-                    .font(.appLabel.weight(.semibold))
-                    .foregroundColor(accent)
-            }
-            Spacer()
-            if let rec = recovery {
-                HStack(spacing: 14) {
-                    if let hrv = rec.hrv {
-                        VStack(spacing: 0) {
-                            Text("\(Int(hrv))")
-                                .font(.appLabel.weight(.black))
-                                .foregroundColor(.green)
-                            Text("HRV")
-                                .font(.system(size: 8)).foregroundColor(.gray)
-                        }
-                    }
-                    if let rhr = rec.restingHr {
-                        VStack(spacing: 0) {
-                            Text("\(Int(rhr))")
-                                .font(.appLabel.weight(.black))
-                                .foregroundColor(.red.opacity(0.85))
-                            Text("FC")
-                                .font(.system(size: 8)).foregroundColor(.gray)
-                        }
-                    }
-                    if let sleep = rec.sleepHours {
-                        VStack(spacing: 0) {
-                            Text(String(format: "%.1fh", sleep))
-                                .font(.appLabel.weight(.black))
-                                .foregroundColor(.blue)
-                            Text("Sommeil")
-                                .font(.system(size: 8)).foregroundColor(.gray)
-                        }
-                    }
-                }
-            }
+        HStack(spacing: 0) {
+            trioPill(icon: readinessIcon,
+                     value: readinessLabel,
+                     subLabel: "Récupération",
+                     color: accent)
+
+            pillDivider
+
+            let hrvColor = hrvAnalysis?.zoneColor ?? Color.green
+            let hrvTrend = hrvAnalysis.map { $0.trendArrow } ?? ""
+            let hrvValue = recovery?.hrv.map { "\(Int($0))\(hrvTrend)" } ?? "–"
+            let hrvSub   = recovery?.hrv != nil ? "HRV ms" : "HRV"
+            trioPill(icon: "waveform.path.ecg",
+                     value: hrvValue,
+                     subLabel: hrvSub,
+                     color: recovery?.hrv != nil ? hrvColor : .gray)
+
+            pillDivider
+
+            let sleepValue = recovery?.sleepHours.map { String(format: "%.1fh", $0) } ?? "–"
+            trioPill(icon: "moon.zzz.fill",
+                     value: sleepValue,
+                     subLabel: sleepLabel,
+                     color: recovery?.sleepHours != nil ? Color.blue : .gray)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(accent.opacity(0.07))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(accent.opacity(0.2), lineWidth: 1))
-        .cornerRadius(12)
+        .background(accent.opacity(0.06))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(accent.opacity(0.18), lineWidth: 1))
+        .cornerRadius(14)
+    }
+
+    private var pillDivider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.07))
+            .frame(width: 1)
+            .padding(.vertical, 10)
+    }
+
+    private func trioPill(icon: String, value: String, subLabel: String, color: Color) -> some View {
+        VStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.appLabel.weight(.semibold))
+                .foregroundColor(color)
+            Text(value)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(subLabel)
+                .font(.appMicro)
+                .foregroundColor(.gray)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
     }
 }
 

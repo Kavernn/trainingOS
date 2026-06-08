@@ -116,9 +116,9 @@ struct DashboardView: View {
                                 )
                                 .appearAnimation(delay: 0.05)
 
-                                // 4 — Readiness strip
+                                // 4 — Recovery trio (Readiness + HRV + Sommeil)
                                 if vm.morningBrief != nil || vm.todayRecovery != nil {
-                                    ReadinessStripView(brief: vm.morningBrief, recovery: vm.todayRecovery)
+                                    RecoveryTrioCard(brief: vm.morningBrief, recovery: vm.todayRecovery, hrvAnalysis: vm.hrvAnalysis)
                                         .appearAnimation(delay: 0.06)
                                 }
 
