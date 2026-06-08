@@ -185,24 +185,12 @@ struct DashboardView: View {
 
                                 // ── FOLD NATUREL ──────────────────────────────
 
-                                // 10 — Rituel matin (avant 14h)
-                                if let ritual = vm.ritualToday,
-                                   !ritual.morningDone,
-                                   Calendar.current.component(.hour, from: Date()) < 14 {
-                                    MorningRitualEntryCard(ritual: ritual) {
+                                // 10 — Rituel (demon > soir > matin, un seul slot)
+                                if let ritual = vm.ritualToday {
+                                    RitualDemonCard(ritual: ritual) {
                                         Task { await vm.refreshRitual() }
                                     }
                                     .appearAnimation(delay: 0.20)
-                                }
-
-                                // 11 — Rituel soir (après 18h)
-                                if let ritual = vm.ritualToday,
-                                   !ritual.eveningDone,
-                                   Calendar.current.component(.hour, from: Date()) >= 18 {
-                                    EveningRitualEntryCard(ritual: ritual) {
-                                        Task { await vm.refreshRitual() }
-                                    }
-                                    .appearAnimation(delay: 0.22)
                                 }
 
                                 // 12 — Activité cardio du jour
@@ -234,16 +222,7 @@ struct DashboardView: View {
                                 HRVMorningNudgeView(analysis: vm.hrvAnalysis)
                                     .appearAnimation(delay: 0.26)
 
-                                // 15 — Démon rituel
-                                if let ritual = vm.ritualToday,
-                                   let topDemon = ritual.demons.filter({ $0.carryCount >= 3 }).max(by: { $0.carryCount < $1.carryCount }) {
-                                    DemonDashboardBanner(demon: topDemon) {
-                                        Task { await vm.refreshRitual() }
-                                    }
-                                    .appearAnimation(delay: 0.27)
-                                }
-
-                                // 16 — Breathwork (stress élevé)
+                                // 15 — Breathwork (stress élevé)
                                 if let lss = vm.lssTrend.last, lss.score < 50 {
                                     BreathworkNudgeCard()
                                         .appearAnimation(delay: 0.28)

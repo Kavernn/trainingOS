@@ -1,24 +1,82 @@
 import SwiftUI
 
-// MARK: - Evening Ritual Entry Card
+// MARK: - Ritual Demon Card (demon > soir > matin, un seul slot)
 
-struct EveningRitualEntryCard: View {
+struct RitualDemonCard: View {
     let ritual: RitualToday
     let onComplete: () -> Void
-    @State private var showRitualEvening = false
+    @State private var showRitual = false
+    @State private var dragOffset: CGFloat = 0
+
+    private var hour: Int { Calendar.current.component(.hour, from: Date()) }
+
+    private var topDemon: RitualDemon? {
+        ritual.demons.filter { $0.carryCount >= 3 }.max(by: { $0.carryCount < $1.carryCount })
+    }
 
     var body: some View {
-        Button { showRitualEvening = true } label: {
+        Group {
+            if let demon = topDemon {
+                demonContent(demon)
+            } else if !ritual.eveningDone && hour >= 18 {
+                eveningContent
+            } else if !ritual.morningDone && hour < 14 {
+                morningContent
+            }
+        }
+        .fullScreenCover(isPresented: $showRitual, onDismiss: onComplete) {
+            RitualView()
+        }
+    }
+
+    @ViewBuilder
+    private func demonContent(_ demon: RitualDemon) -> some View {
+        let isBlood = AppTheme.shared.selectedTheme == .blood
+        Button { showRitual = true } label: {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(Color(hex: "1a0a0a"))
+                        .fill(Color.forge.opacity(isBlood ? 0.18 : 0.08))
                         .frame(width: 36, height: 36)
+                    Image(systemName: "moon.stars.fill")
+                        .font(.appLabel.weight(.semibold))
+                        .foregroundColor(isBlood ? Color.forge.opacity(0.7) : Color(white: 0.4))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("DÉMON · \(demon.carryCount) NUITS")
+                        .font(.appMicro.weight(.black))
+                        .foregroundColor(isBlood ? Color.forge.opacity(0.55) : Color(white: 0.3))
+                        .tracking(0.5)
+                    Text("«\(demon.intention)»")
+                        .font(.appCaption)
+                        .foregroundColor(Color(white: 0.55))
+                        .lineLimit(1)
+                }
+                Spacer()
+                Image(systemName: "flame.fill")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(Color.forge.opacity(isBlood ? 0.85 : 0.5))
+            }
+            .padding(13)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.forge.opacity(isBlood ? 0.3 : 0.08), lineWidth: 1))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var eveningContent: some View {
+        Button { showRitual = true } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(Color(hex: "1a0a0a")).frame(width: 36, height: 36)
                     Image(systemName: "flame.fill")
                         .font(.appBody.weight(.semibold))
                         .foregroundColor(Color(hex: "E8441A"))
                 }
-
                 VStack(alignment: .leading, spacing: 2) {
                     Text("FERME TA JOURNÉE")
                         .font(.appMicro.weight(.black))
@@ -35,14 +93,11 @@ struct EveningRitualEntryCard: View {
                             .foregroundColor(.white.opacity(0.6))
                     }
                 }
-
                 Spacer()
-
                 Text("BURNED / SURVIVED")
                     .font(.appMicro.weight(.bold))
                     .foregroundColor(Color(hex: "E8441A"))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
                     .background(Color(hex: "E8441A").opacity(0.12))
                     .clipShape(Capsule())
             }
@@ -50,16 +105,121 @@ struct EveningRitualEntryCard: View {
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.appCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color(hex: "E8441A").opacity(0.3), lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color(hex: "E8441A").opacity(0.3), lineWidth: 1))
             )
         }
         .buttonStyle(.plain)
-        .fullScreenCover(isPresented: $showRitualEvening, onDismiss: onComplete) {
-            RitualView()
+    }
+
+    private var morningContent: some View {
+        Group {
+            if let intention = ritual.yesterdayIntention {
+                morningIntentionCard(intention)
+            } else {
+                morningDefaultCard
+            }
         }
+    }
+
+    private func morningIntentionCard(_ intention: String) -> some View {
+        let timeStr: String = {
+            guard let iso = ritual.yesterdayEveningAt else { return "Hier soir" }
+            let df = ISO8601DateFormatter()
+            df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let d = df.date(from: iso) {
+                let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
+                return "Hier soir · \(fmt.string(from: d))"
+            }
+            if let d = ISO8601DateFormatter().date(from: iso) {
+                let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
+                return "Hier soir · \(fmt.string(from: d))"
+            }
+            return "Hier soir"
+        }()
+        return Button { showRitual = true } label: {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sunset.fill")
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(Color.forge.opacity(0.8))
+                    Text("TON ENGAGEMENT")
+                        .font(.appMicro.weight(.black))
+                        .foregroundColor(Color.forge.opacity(0.8))
+                        .tracking(0.5)
+                    Spacer()
+                }
+                .padding(.bottom, 8)
+                Rectangle().fill(Color.forge.opacity(0.12)).frame(height: 1).padding(.bottom, 10)
+                Text("«\u{202F}\(intention)\u{202F}»")
+                    .font(.appCaption.weight(.medium))
+                    .foregroundColor(.white.opacity(0.85))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(3)
+                    .padding(.bottom, 10)
+                HStack {
+                    Text(timeStr)
+                        .font(.appMicro).foregroundColor(.white.opacity(0.3))
+                    Spacer()
+                    Image(systemName: "arrow.right")
+                        .font(.appMicro.weight(.semibold))
+                        .foregroundColor(Color.forge.opacity(0.5))
+                }
+            }
+            .padding(13)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.forge.opacity(0.22), lineWidth: 1))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var morningDefaultCard: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color.orange.opacity(0.12)).frame(width: 36, height: 36)
+                Image(systemName: dragOffset > 20 ? "arrow.right.circle.fill" : "sunrise.fill")
+                    .font(.appBody.weight(.semibold))
+                    .foregroundColor(.orange)
+                    .animation(.easeInOut(duration: 0.15), value: dragOffset > 20)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("RITUEL DU MATIN")
+                    .font(.appMicro.weight(.black))
+                    .foregroundColor(.orange.opacity(0.8))
+                    .tracking(0.5)
+                Text("Pose ton intention avant de commencer.")
+                    .font(.appCaption)
+                    .foregroundColor(.white.opacity(0.6))
+            }
+            Spacer()
+            Text("COMMENCER")
+                .font(.appMicro.weight(.bold))
+                .foregroundColor(.orange)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(Color.orange.opacity(0.12))
+                .clipShape(Capsule())
+        }
+        .padding(13)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.appCard)
+                .overlay(RoundedRectangle(cornerRadius: 14)
+                    .stroke(dragOffset > 20 ? Color.orange.opacity(0.6) : Color.orange.opacity(0.25), lineWidth: 1))
+        )
+        .offset(x: max(0, dragOffset * 0.3))
+        .gesture(
+            DragGesture()
+                .onChanged { v in dragOffset = v.translation.width }
+                .onEnded { v in
+                    if v.translation.width > 60 { showRitual = true }
+                    withAnimation(.spring(response: 0.3)) { dragOffset = 0 }
+                }
+        )
+        .onTapGesture { showRitual = true }
     }
 }
 
@@ -240,195 +400,6 @@ struct QuickWarRoomTriggerSheet: View {
         }
         .presentationDetents([.medium])
         .presentationBackground(Color.appBg)
-    }
-}
-
-// MARK: - Morning Ritual Entry Card
-
-struct MorningRitualEntryCard: View {
-    let ritual: RitualToday
-    let onComplete: () -> Void
-    @State private var showRitual    = false
-    @State private var dragOffset: CGFloat = 0
-
-    private var eveningTimeLabel: String? {
-        guard let iso = ritual.yesterdayEveningAt else { return nil }
-        let df = ISO8601DateFormatter()
-        df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = df.date(from: iso) {
-            let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
-            return fmt.string(from: d)
-        }
-        let df2 = ISO8601DateFormatter()
-        if let d = df2.date(from: iso) {
-            let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
-            return fmt.string(from: d)
-        }
-        return nil
-    }
-
-    var body: some View {
-        Group {
-            if let yesterday = ritual.yesterdayIntention {
-                intentionCard(yesterday)
-            } else {
-                defaultCard
-            }
-        }
-        .fullScreenCover(isPresented: $showRitual, onDismiss: onComplete) {
-            RitualView()
-        }
-    }
-
-    // Card enrichie — intention d'hier soir visible
-    private func intentionCard(_ intention: String) -> some View {
-        Button { showRitual = true } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 8) {
-                    Image(systemName: "sunset.fill")
-                        .font(.appMicro.weight(.semibold))
-                        .foregroundColor(Color.forge.opacity(0.8))
-                    Text("TON ENGAGEMENT")
-                        .font(.appMicro.weight(.black))
-                        .foregroundColor(Color.forge.opacity(0.8))
-                        .tracking(0.5)
-                    Spacer()
-                }
-                .padding(.bottom, 8)
-
-                Rectangle()
-                    .fill(Color.forge.opacity(0.12))
-                    .frame(height: 1)
-                    .padding(.bottom, 10)
-
-                Text("«\u{202F}\(intention)\u{202F}»")
-                    .font(.appCaption.weight(.medium))
-                    .foregroundColor(.white.opacity(0.85))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineLimit(3)
-                    .padding(.bottom, 10)
-
-                HStack {
-                    let timeStr = eveningTimeLabel.map { "Hier soir · \($0)" } ?? "Hier soir"
-                    Text(timeStr)
-                        .font(.appMicro)
-                        .foregroundColor(.white.opacity(0.3))
-                    Spacer()
-                    Image(systemName: "arrow.right")
-                        .font(.appMicro.weight(.semibold))
-                        .foregroundColor(Color.forge.opacity(0.5))
-                }
-            }
-            .padding(13)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.appCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.forge.opacity(0.22), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    // Card par défaut — comportement inchangé
-    private var defaultCard: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color.orange.opacity(0.12))
-                    .frame(width: 36, height: 36)
-                Image(systemName: dragOffset > 20 ? "arrow.right.circle.fill" : "sunrise.fill")
-                    .font(.appBody.weight(.semibold))
-                    .foregroundColor(.orange)
-                    .animation(.easeInOut(duration: 0.15), value: dragOffset > 20)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("RITUEL DU MATIN")
-                    .font(.appMicro.weight(.black))
-                    .foregroundColor(.orange.opacity(0.8))
-                    .tracking(0.5)
-                Text("Pose ton intention avant de commencer.")
-                    .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            Spacer()
-            Text("COMMENCER")
-                .font(.appMicro.weight(.bold))
-                .foregroundColor(.orange)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.orange.opacity(0.12))
-                .clipShape(Capsule())
-        }
-        .padding(13)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.appCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(dragOffset > 20 ? Color.orange.opacity(0.6) : Color.orange.opacity(0.25), lineWidth: 1)
-                )
-        )
-        .offset(x: max(0, dragOffset * 0.3))
-        .gesture(
-            DragGesture()
-                .onChanged { v in dragOffset = v.translation.width }
-                .onEnded { v in
-                    if v.translation.width > 60 { showRitual = true }
-                    withAnimation(.spring(response: 0.3)) { dragOffset = 0 }
-                }
-        )
-        .onTapGesture { showRitual = true }
-    }
-}
-
-// MARK: - E5: Demon Dashboard Banner
-
-struct DemonDashboardBanner: View {
-    let demon: RitualDemon
-    let onComplete: () -> Void
-    @State private var showRitual = false
-
-    var body: some View {
-        Button { showRitual = true } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.forge.opacity(AppTheme.shared.selectedTheme == .blood ? 0.18 : 0.08))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "moon.stars.fill")
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(AppTheme.shared.selectedTheme == .blood ? Color.forge.opacity(0.7) : Color(white: 0.4))
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("DÉMON · \(demon.carryCount) NUITS")
-                        .font(.appMicro.weight(.black))
-                        .foregroundColor(AppTheme.shared.selectedTheme == .blood ? Color.forge.opacity(0.55) : Color(white: 0.3))
-                        .tracking(0.5)
-                    Text("«\(demon.intention)»")
-                        .font(.appCaption)
-                        .foregroundColor(Color(white: 0.55))
-                        .lineLimit(1)
-                }
-                Spacer()
-                Image(systemName: "flame.fill")
-                    .font(.appCaption.weight(.semibold))
-                    .foregroundColor(Color.forge.opacity(AppTheme.shared.selectedTheme == .blood ? 0.85 : 0.5))
-            }
-            .padding(13)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.appCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.forge.opacity(AppTheme.shared.selectedTheme == .blood ? 0.3 : 0.08), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .fullScreenCover(isPresented: $showRitual, onDismiss: onComplete) { RitualView() }
     }
 }
 
