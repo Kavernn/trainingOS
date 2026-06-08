@@ -228,9 +228,9 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.28)
                                 }
 
-                                // 17 — Saison
+                                // 17 — Saison (strip 28pt, transparent)
                                 if let season = vm.activeSeason {
-                                    SeasonBannerView(season: season) { showSeasonClose = true }
+                                    SeasonStripView(season: season) { showSeasonClose = true }
                                         .appearAnimation(delay: 0.29)
                                 }
 

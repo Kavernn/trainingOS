@@ -250,37 +250,31 @@ struct SeasonView: View {
 
 // MARK: - Season banner (for DashboardView)
 
-struct SeasonBannerView: View {
+struct SeasonStripView: View {
     let season: Season
     let onCloseTap: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("SEASON \(season.number)  ·  JOUR \(season.dayNumber) / 90")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Color.forge)
-                    .tracking(2)
-                if season.dayNumber >= 80 {
-                    Text("La fin de saison approche.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color.secondary)
-                }
+        HStack(spacing: 8) {
+            Text("S\(season.number) · JOUR \(season.dayNumber)/90")
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundColor(Color.forge.opacity(0.65))
+                .tracking(1.5)
+            if season.dayNumber >= 80 {
+                Text("· fin de saison proche")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
             }
             Spacer()
             if season.dayNumber >= 80 {
-                Button("Bilan") { onCloseTap() }
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Color.forge)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .background(Color.forge.opacity(0.12), in: Capsule())
+                Button("Bilan →") { onCloseTap() }
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(Color.forge.opacity(0.8))
+                    .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color.appCard.opacity(0.7), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.forge.opacity(0.15), lineWidth: 0.5))
+        .frame(minHeight: 28)
+        .padding(.horizontal, 4)
     }
 }
 
