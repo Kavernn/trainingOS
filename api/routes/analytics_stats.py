@@ -14,7 +14,7 @@ def api_stats_data():
     from body_weight import load_body_weight
     from nutrition import (load_settings as load_nutrition_settings)
     from inventory import load_inventory
-    from utils import _calc_muscle_stats, _calc_weekly_sets_per_muscle, MUSCLE_LANDMARKS
+    from utils import _calc_muscle_stats, _calc_weekly_sets_per_muscle, _calc_weekly_specific_breakdown, MUSCLE_LANDMARKS
     import db as _db
     from utils import load_hiit_log
 
@@ -33,11 +33,16 @@ def api_stats_data():
     inventory       = load_inventory() or {}
     muscle_stats    = _calc_muscle_stats(sessions, weights, inventory)
     weekly_sets     = _calc_weekly_sets_per_muscle(weights, inventory)
+    weekly_specific = _calc_weekly_specific_breakdown(weights, inventory)
     inventory_types = {name: info.get("type") or "machine" for name, info in inventory.items()}
 
     tracked_muscles = set(muscle_stats.keys()) | set(weekly_sets.keys())
     muscle_landmarks = {
-        muscle: {**MUSCLE_LANDMARKS[muscle], "weekly_sets": weekly_sets.get(muscle, 0)}
+        muscle: {
+            **MUSCLE_LANDMARKS[muscle],
+            "weekly_sets":    weekly_sets.get(muscle, 0),
+            "specific_detail": weekly_specific.get(muscle) or None,
+        }
         for muscle in tracked_muscles
         if muscle in MUSCLE_LANDMARKS
     }

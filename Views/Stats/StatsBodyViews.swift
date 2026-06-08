@@ -479,6 +479,32 @@ struct VolumeLandmarksCard: View {
             Text("MEV · MAV · MRV d'après Renaissance Periodization (Israetel et al.)")
                 .font(.system(size: 9)).foregroundColor(.gray.opacity(0.6))
                 .padding(.top, 2)
+
+            let specificsEntries: [(String, [String: Int])] = sorted.compactMap { muscle, lm in
+                guard let detail = lm.specificDetail, !detail.isEmpty else { return nil }
+                return (muscle, detail)
+            }
+            if !specificsEntries.isEmpty {
+                Divider().background(Color.white.opacity(0.08))
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("DÉTAIL PAR MUSCLE SPÉCIFIQUE")
+                        .font(.system(size: 9, weight: .bold)).tracking(2)
+                        .foregroundColor(.gray)
+                    ForEach(specificsEntries, id: \.0) { muscleKey, detail in
+                        ForEach(detail.sorted(by: { $0.value > $1.value }), id: \.key) { specific, count in
+                            HStack {
+                                Text("\(muscleKey.localizedMuscleGroup) → \(specific)")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.white.opacity(0.65))
+                                Spacer()
+                                Text("\(count) sets")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.65))
+                            }
+                        }
+                    }
+                }
+            }
         }
         .padding(16)
         .glassCard()

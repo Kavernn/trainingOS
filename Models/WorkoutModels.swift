@@ -146,10 +146,12 @@ struct MuscleLandmark: Codable {
     let mav: Int        // Maximum Adaptive Volume
     let mrv: Int        // Maximum Recoverable Volume
     let weeklySets: Int // Actual sets logged this week
+    let specificDetail: [String: Int]? // {specific_name: sets} for exercises with muscle_specific set
 
     enum CodingKeys: String, CodingKey {
         case mev, mav, mrv
-        case weeklySets = "weekly_sets"
+        case weeklySets     = "weekly_sets"
+        case specificDetail = "specific_detail"
     }
 
     enum Zone { case underMEV, optimal, approachingMRV, overMRV }

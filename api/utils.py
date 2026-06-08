@@ -412,6 +412,59 @@ def _calc_weekly_sets_per_muscle(weights: dict, inventory: dict) -> dict[str, in
     return weekly
 
 
+# French muscle_group → normalized English key (same keys as MUSCLE_LANDMARKS)
+_MUSCLE_GROUP_FR_TO_EN: dict[str, str] = {
+    "pectoraux":         "chest",
+    "dos":               "lats",
+    "épaules":           "deltoids",
+    "épaules post.":     "rear delt",
+    "biceps":            "biceps",
+    "triceps":           "triceps",
+    "quadriceps":        "quadriceps",
+    "ischio-jambiers":   "hamstrings",
+    "fessiers":          "fessiers",
+    "mollets":           "calves",
+    "abdominaux":        "core",
+    "avant-bras":        "forearms",
+    "trapèzes":          "trapezius",
+}
+
+
+def _calc_weekly_specific_breakdown(weights: dict, inventory: dict) -> dict[str, dict[str, int]]:
+    """Return {muscle_key: {specific_name: sets}} for exercises with muscle_specific set, last 7 days.
+
+    Used to show 'Épaules → Deltoïde postérieur: X sets' in the volume landmarks card.
+    Only populated for exercises where muscle_specific is explicitly set (new taxonomy).
+    """
+    from datetime import date, timedelta
+    from progression import parse_reps
+    cutoff = (date.fromisoformat(_today_mtl()) - timedelta(days=7)).isoformat()
+    result: dict[str, dict[str, int]] = {}
+    for ex_name, ex_data in weights.items():
+        inv = inventory.get(ex_name) or {}
+        muscle_group_fr  = (inv.get("muscle_group")  or "").strip()
+        muscle_specific  = (inv.get("muscle_specific") or "").strip()
+        if not muscle_group_fr or not muscle_specific:
+            continue
+        muscle_key = _MUSCLE_GROUP_FR_TO_EN.get(muscle_group_fr.lower())
+        if not muscle_key:
+            continue
+        for entry in ex_data.get("history", []):
+            d = entry.get("date") or ""
+            if d < cutoff:
+                break
+            if entry.get("sets"):
+                n_sets = len(entry["sets"])
+            else:
+                try:
+                    n_sets = len(parse_reps(entry.get("reps") or ""))
+                except Exception:
+                    n_sets = 1
+            by_key = result.setdefault(muscle_key, {})
+            by_key[muscle_specific] = by_key.get(muscle_specific, 0) + n_sets
+    return result
+
+
 def _calc_muscle_stats(sessions: dict, weights: dict, inventory: dict) -> dict:
     """Compute per-muscle volume from weights history × inventory muscles.
 
