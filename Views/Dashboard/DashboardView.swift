@@ -167,8 +167,8 @@ struct DashboardView: View {
                                 )
                                 .appearAnimation(delay: 0.10)
 
-                                // 7 — Progression semaine
-                                WeekProgressStripView(dash: dash)
+                                // 7 — Momentum strip (semaine + streak fusionnés)
+                                MomentumStripView(dash: dash, streakData: vm.streakData)
                                     .appearAnimation(delay: 0.12)
 
                                 // 8 — Phoenix compact (budget fusionné)
@@ -178,12 +178,6 @@ struct DashboardView: View {
                                 }
 
                                 // ── FOLD NATUREL ──────────────────────────────
-
-                                // 9 — Streak (conditionnel : > 3j)
-                                if (vm.streakData?.currentStreak ?? 0) > 3 {
-                                    DailyStreakCard(sessions: dash.sessions, streakData: vm.streakData)
-                                        .appearAnimation(delay: 0.18)
-                                }
 
                                 // 10 — Rituel matin (avant 14h)
                                 if let ritual = vm.ritualToday,
