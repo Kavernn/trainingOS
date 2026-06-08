@@ -168,8 +168,7 @@ struct DashboardView: View {
                                     nutritionSettings: dash.nutritionSettings,
                                     moodDue: vm.moodDue,
                                     readinessIsLocal: vm.readinessIsLocal,
-                                    onMoodTap: { showMoodSheet = true },
-                                    hrvAnalysis: vm.hrvAnalysis
+                                    onMoodTap: { showMoodSheet = true }
                                 )
                                 .appearAnimation(delay: 0.10)
 

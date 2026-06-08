@@ -213,7 +213,6 @@ struct DailyMetricsRow: View {
     // D-D14: show asterisk when score is computed locally (HRV/server data unavailable)
     var readinessIsLocal: Bool = false
     var onMoodTap: (() -> Void)? = nil
-    var hrvAnalysis: HRVAnalysis? = nil
 
     private var calorieGoal: Double? {
         nutritionSettings?.calories
@@ -233,15 +232,6 @@ struct DailyMetricsRow: View {
     private var readinessAttention: Bool {
         guard let s = readinessScore else { return false }
         return s >= 40 && s < 60
-    }
-
-    private var hrvAttention: Bool {
-        guard let hrv = hrvAnalysis,
-              let rmssd = hrv.todayRmssd,
-              let baseline = hrv.hrv30dAvg,
-              baseline > 0 else { return false }
-        let ratio = rmssd / baseline
-        return ratio >= 0.80 && ratio < 0.90
     }
 
     var body: some View {
@@ -284,20 +274,6 @@ struct DailyMetricsRow: View {
                 }
             }
 
-            // HRV compact — visible seulement si baseline disponible ou valeur du jour
-            if let hrv = hrvAnalysis, hrv.todayRmssd != nil || hrv.baselineAvailable {
-                NavigationLink(destination: RecoveryView()) {
-                    MetricChip(
-                        icon: "waveform.path.ecg",
-                        value: hrv.todayRmssd.map { "\(Int($0))\(hrv.trendArrow)" } ?? "–",
-                        unit: hrv.todayRmssd != nil ? "ms" : "",
-                        label: hrv.hrvZone != nil ? (hrv.hrvZone == "green" ? "HRV optimal" : hrv.hrvZone == "orange" ? "HRV normal" : "HRV faible") : "HRV",
-                        color: hrv.zoneColor,
-                        isAttention: hrvAttention
-                    )
-                }
-                .buttonStyle(.plain)
-            }
         }
     }
 }
