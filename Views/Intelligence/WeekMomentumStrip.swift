@@ -52,13 +52,6 @@ struct WeekMomentumStrip: View {
 
     private var weekCount: Int { dots.filter { $0.hasSession }.count }
 
-    private var streakMessage: String {
-        if streak >= 30 { return "🏆 \(streak)j — légende en cours" }
-        if streak >= 14 { return "🔥 \(streak)j — 2 semaines non-stop !" }
-        if streak >= 7  { return "🔥 \(streak)j de suite — semaine parfaite !" }
-        if streak >= 5  { return "🔥 \(streak)j d'affilée — momentum solide" }
-        return ""
-    }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -105,13 +98,6 @@ struct WeekMomentumStrip: View {
                 }
             }
 
-            if !streakMessage.isEmpty {
-                Text(streakMessage)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.orange)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 2)
-            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
