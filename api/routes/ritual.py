@@ -316,7 +316,16 @@ def api_ritual_today():
     demons              = _enrich_carry_counts(raw_demons)  # A1
 
     if existing:
-        ttype       = existing.get("truth_type", "default")
+        ttype = existing.get("truth_type", "default")
+        # streak_elevation supprimé — remplacer toute truth en cache de ce type
+        if ttype == "streak_elevation":
+            new_truth, ttype, _, ctx = _build_truth(phoenix_streak=streak)
+            new_truth = _generate_truth_with_claude(ttype, new_truth, ctx)
+            try:
+                _db.upsert_ritual({**existing, "truth": new_truth, "truth_type": ttype})
+            except Exception:
+                pass
+            existing = {**existing, "truth": new_truth, "truth_type": ttype}
         suggestions = _SUGGESTIONS.get(ttype, _SUGGESTIONS["default"])
         # Surface oldest demon even on existing
         carried_intention = existing.get("carried_intention")
