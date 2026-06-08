@@ -6,7 +6,6 @@ import Combine
 struct DashboardView: View {
     @EnvironmentObject private var appState: AppState
     @StateObject private var vm = DashboardViewModel()
-    @StateObject private var weatherVM = WeatherViewModel()
     @ObservedObject private var api = APIService.shared
     @ObservedObject private var loadingState = APILoadingState.shared
     @ObservedObject private var alertService = AlertService.shared
@@ -280,11 +279,7 @@ struct DashboardView: View {
                                 QuoteOfDayView()
                                     .appearAnimation(delay: 0.34)
 
-                                // 21 — Météo
-                                WeatherChipView(vm: weatherVM)
-                                    .appearAnimation(delay: 0.36)
-
-                                // 22 — XP
+                                // 21 — XP
                                 XPChipView(sessions: dash.sessions)
                                     .appearAnimation(delay: 0.38)
 
@@ -294,11 +289,6 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.40)
                                 }
 
-                                // 24 — Saison midpoint
-                                if let season = vm.activeSeason, (44...46).contains(season.dayNumber) {
-                                    SeasonMidpointCard(seasonNumber: season.number)
-                                        .appearAnimation(delay: 0.42)
-                                }
                             }
                             .padding(.horizontal, 16)
                             .padding(.top, 8)
@@ -312,7 +302,6 @@ struct DashboardView: View {
                             vm.eveningSession = try? await APIService.shared.fetchSeanceSoirData()
                             vm.bodyBudget     = try? await APIService.shared.fetchBodyBudget()
                             vm.readinessData  = try? await APIService.shared.fetchReadiness()
-                            weatherVM.requestUpdate()
                         }
 
                         QuickLogBar(
@@ -400,7 +389,7 @@ struct DashboardView: View {
             }
             .navigationBarHidden(true)
         }
-        .task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal(); weatherVM.requestUpdate() }
+        .task { await vm.loadAll(); lastRefresh = Date(); checkAndShowMorningReveal() }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 BehaviorTracker.shared.record(.appOpen)

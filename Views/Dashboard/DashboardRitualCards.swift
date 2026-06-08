@@ -432,55 +432,6 @@ struct DemonDashboardBanner: View {
     }
 }
 
-// MARK: - Season Midpoint Card (D44-D46)
-
-struct SeasonMidpointCard: View {
-    let seasonNumber: Int
-    @State private var showOath = false
-
-    var body: some View {
-        Button { showOath = true } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.purple.opacity(0.12))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "flag.2.crossed.fill")
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.purple)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("MI-SAISON \(seasonNumber)")
-                        .font(.appMicro.weight(.black))
-                        .foregroundColor(.purple.opacity(0.8))
-                        .tracking(0.5)
-                    Text("La saison se gagne ou se perd dans les 45 prochains jours.")
-                        .font(.appCaption)
-                        .foregroundColor(.white.opacity(0.7))
-                        .lineLimit(2)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.appCaption.weight(.semibold))
-                    .foregroundColor(.purple.opacity(0.6))
-            }
-            .padding(13)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.appCard)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.purple.opacity(0.25), lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .sheet(isPresented: $showOath) {
-            OathGateView()
-        }
-    }
-}
-
 // MARK: - Quick Battle Sheet (War Room victory / defeat)
 
 struct QuickBattleSheet: View {
