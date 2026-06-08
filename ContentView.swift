@@ -3,12 +3,13 @@ import Combine
 import UIKit
 
 struct ContentView: View {
-    @ObservedObject private var theme   = AppTheme.shared
+    let themeToken: UUID
     @ObservedObject private var network = NetworkMonitor.shared
     @ObservedObject private var sync    = SyncManager.shared
     @State private var selectedTab   = 1
 
-    init() {
+    init(themeToken: UUID = UUID()) {
+        self.themeToken = themeToken
         // iOS 26+: skip UIKit appearance — Liquid Glass manages bar styling natively.
         // Setting UITabBarAppearance/UINavigationBarAppearance via UIKit proxy on iOS 26
         // conflicts with the Liquid Glass visual style system.
@@ -32,7 +33,7 @@ struct ContentView: View {
         MacContentView(network: network, sync: sync)
 #else
         iOSContentView(network: network, sync: sync, selectedTab: $selectedTab)
-            .id(theme.refreshToken)
+            .id(themeToken)
 #endif
     }
 }
@@ -44,7 +45,6 @@ private struct iOSContentView: View {
     @ObservedObject var sync: SyncManager
     @ObservedObject private var api      = APIService.shared
     @ObservedObject private var appState = AppState.shared
-    @ObservedObject private var theme    = AppTheme.shared
     @Binding var selectedTab: Int
 
     private var seanceBadge: Int {

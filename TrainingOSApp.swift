@@ -138,13 +138,13 @@ struct TrainingOSApp: App {
     private var rootView: some View {
         Group {
             if ProcessInfo.processInfo.environment["UITEST_MODE"] == "1" {
-                ContentView()
+                ContentView(themeToken: appTheme.refreshToken)
             } else if showSplash {
                 SplashView { showSplash = false }
             } else if !onboardingCompleted {
                 OnboardingView { onboardingCompleted = true }
             } else {
-                ContentView()
+                ContentView(themeToken: appTheme.refreshToken)
             }
         }
         .environmentObject(appState)
