@@ -40,7 +40,7 @@ DEFAULT_REP_RANGE: dict = {"min": 8, "max": 12}
 
 # Rep ranges par load_profile — utilisées en fallback dans get_rep_range()
 _REP_RANGE_BY_PROFILE: dict[str, dict] = {
-    "compound_heavy":       {"min": 3,  "max": 6},
+    "compound_heavy":       {"min": 5,  "max": 7},
     "compound_hypertrophy": {"min": 8,  "max": 12},
     "isolation":            {"min": 12, "max": 15},
     "endurance_strength":   {"min": 15, "max": 20},

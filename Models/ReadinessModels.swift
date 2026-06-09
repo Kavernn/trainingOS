@@ -20,6 +20,7 @@ struct ReadinessResponse: Codable {
 
 struct ReadinessModules: Codable {
     let hrv:           ReadinessModule
+    let rhr:           ReadinessModule
     let acwr:          ReadinessModule
     let sleepQuality:  ReadinessModule
     let sleepDuration: ReadinessModule
@@ -29,7 +30,7 @@ struct ReadinessModules: Codable {
     let pattern:       ReadinessModule
 
     enum CodingKeys: String, CodingKey {
-        case hrv, acwr, subjective, nutrition, pattern
+        case hrv, rhr, acwr, subjective, nutrition, pattern
         case sleepQuality  = "sleep_quality"
         case sleepDuration = "sleep_duration"
         case muscleRec     = "muscle_rec"

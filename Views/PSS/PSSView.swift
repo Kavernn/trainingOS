@@ -789,6 +789,22 @@ struct PSSResultsContent: View {
 
     private var insightsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if record.proReferral {
+                HStack(spacing: 10) {
+                    Image(systemName: "cross.circle.fill")
+                        .font(.system(size: 18)).foregroundColor(.white)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Consultation professionnelle recommandée")
+                            .font(.appLabel.weight(.semibold)).foregroundColor(.white)
+                        Text("Ton niveau de stress est élevé. Parle à un professionnel de santé mentale.")
+                            .font(.appCaption).foregroundColor(.white.opacity(0.80))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(12)
+                .background(Color(hex: "FF3B30").opacity(0.85))
+                .cornerRadius(10)
+            }
             Text("ANALYSE")
                 .font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
             ForEach(Array(record.insights.enumerated()), id: \.0) { _, insight in

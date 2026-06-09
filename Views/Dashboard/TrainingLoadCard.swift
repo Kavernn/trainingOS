@@ -189,6 +189,24 @@ private struct LoadBreakdownCard: View {
                          value: data.chronic.map { String(format: "%.0f", $0) } ?? "—",
                          color: .white.opacity(0.55))
             }
+            if data.strengthAcwr != nil || data.cardioAcwr != nil {
+                Divider().background(Color.white.opacity(0.08))
+                HStack(spacing: 0) {
+                    if let s = data.strengthAcwr {
+                        LoadStat(label: "FORCE", sublabel: "ACWR",
+                                 value: s.ratio.map { String(format: "%.2f×", $0) } ?? "—",
+                                 color: .white.opacity(0.70))
+                    }
+                    if data.strengthAcwr != nil && data.cardioAcwr != nil {
+                        Divider().background(Color.white.opacity(0.10)).frame(height: 40)
+                    }
+                    if let c = data.cardioAcwr {
+                        LoadStat(label: "CARDIO", sublabel: "ACWR",
+                                 value: c.ratio.map { String(format: "%.2f×", $0) } ?? "—",
+                                 color: .white.opacity(0.70))
+                    }
+                }
+            }
         }
         .padding(14)
         .glassCard()

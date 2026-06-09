@@ -226,6 +226,7 @@ struct ReadinessSheet: View {
         let m = readiness.modules
         return [
             (m.hrv.label,           m.hrv.score,           m.hrv.detail),
+            (m.rhr.label,           m.rhr.score,           m.rhr.detail),
             (m.acwr.label,          m.acwr.score,          m.acwr.detail),
             (m.sleepQuality.label,  m.sleepQuality.score,  m.sleepQuality.detail),
             (m.sleepDuration.label, m.sleepDuration.score, m.sleepDuration.detail),
