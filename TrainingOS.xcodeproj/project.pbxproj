@@ -1802,6 +1802,23 @@
 				STNA0004STNA0004STNA0004 /* CardioSettingsView.swift in Sources */,
 				STNA0005STNA0005STNA0005 /* DisplaySettingsView.swift in Sources */,
 				STNA0006STNA0006STNA0006 /* HealthDataSettingsView.swift in Sources */,
+				VEL001AA00300B2F5D0001 /* VelocityModels.swift in Sources */,
+				CMP001AA00300B2F5D0001 /* CompoundModels.swift in Sources */,
+				TMP001AA00300B2F5D0001 /* TemporalModels.swift in Sources */,
+				PRT001AA00300B2F5D0001 /* PortraitModels.swift in Sources */,
+				BPR001AA00300B2F5D0001 /* BehavioralPRModels.swift in Sources */,
+				RPT001AA00300B2F5D0001 /* RuptureModels.swift in Sources */,
+				VEL002AA00300B2F5D0001 /* APIService+Velocity.swift in Sources */,
+				CMP002AA00300B2F5D0001 /* APIService+Compound.swift in Sources */,
+				TMP002AA00300B2F5D0001 /* APIService+Temporal.swift in Sources */,
+				PRT002AA00300B2F5D0001 /* APIService+Portrait.swift in Sources */,
+				BPR002AA00300B2F5D0001 /* APIService+BehavioralPR.swift in Sources */,
+				RPT002AA00300B2F5D0001 /* APIService+Rupture.swift in Sources */,
+				VCC001AA00300B2F5D0001 /* VelocityCompoundCard.swift in Sources */,
+				TPC001AA00300B2F5D0001 /* TemporalPatternCard.swift in Sources */,
+				PRC001AA00300B2F5D0001 /* PortraitJ90Card.swift in Sources */,
+				BPC001AA00300B2F5D0001 /* BehavioralPRsCard.swift in Sources */,
+				RRC001AA00300B2F5D0001 /* RuptureRiskCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
