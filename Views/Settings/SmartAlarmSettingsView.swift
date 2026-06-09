@@ -32,6 +32,12 @@ struct SmartAlarmSettingsView: View {
                     .listRowBackground(Color.appCard)
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
+                    Section("Comment ça fonctionne") {
+                        howItWorksView
+                    }
+                    .listRowBackground(Color.appCard)
+                    .listRowSeparatorTint(Color.white.opacity(0.06))
+
                     Section("Statut") {
                         alarmStateRow
                     }
@@ -114,11 +120,41 @@ struct SmartAlarmSettingsView: View {
             let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
             return "Armé — \(fmt.string(from: at))"
         case .notArmed:
-            return "En attente du log de récupération"
+            return "Non armé — tapez « Armer réveil cyclique » sur le tableau de bord au moment du coucher (dès 20h)"
         case .authorizationDenied:
             return "Permission refusée — activer dans Réglages > VinceSeven"
         case .disabled:
             return "Désactivé"
+        }
+    }
+
+    // MARK: - Mode d'emploi
+
+    private var howItWorksView: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            howStep("1", "Réglez la fenêtre de réveil ci-dessus (ex. 6h30–7h00).")
+            howStep("2", "Au coucher, tapez « Armer réveil cyclique » sur le tableau de bord — visible de 20h à 3h.")
+            howStep("3", "L'alarme se place à la fin d'un cycle de 90 min dans votre fenêtre. Si aucun cycle n'y tombe, elle sonne à la borne de fin.")
+            howStep("4", "Une fois armée, l'alarme sonne quoi qu'il arrive — app fermée, mode silencieux, Focus.")
+
+            Text("Pas de tap au coucher = pas d'alarme.")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Color(white: 0.4))
+                .padding(.top, 2)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func howStep(_ number: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(number)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(AppTheme.shared.accent)
+                .frame(width: 14, alignment: .center)
+            Text(text)
+                .font(.system(size: 13))
+                .foregroundColor(Color(white: 0.5))
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
