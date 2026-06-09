@@ -332,7 +332,7 @@ struct DashboardView: View {
 
                                 // 16e — Dette de sommeil
                                 if let debt = vm.sleepDebt, debt.hasData {
-                                    SleepDebtCard(data: debt)
+                                    SleepDebtAnalyticsCard(data: debt)
                                         .appearAnimation(delay: 0.39)
                                 }
 

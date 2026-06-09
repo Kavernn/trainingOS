@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - SleepDebtCard (Dashboard compact)
 
-struct SleepDebtCard: View {
+struct SleepDebtAnalyticsCard: View {
     let data: SleepDebtData
 
     private var debtColor: Color {
