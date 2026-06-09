@@ -57,28 +57,27 @@ def register_routes(app):
         workouts   = data.get("workouts", [])
         added      = 0
         existing   = db.get_cardio_logs(limit=200) or []
+        # Set updated within the loop to catch duplicates inside the same sync call
+        seen_keys  = {(e.get("date"), e.get("type"), e.get("source")) for e in existing}
 
         for w in workouts:
             workout_type = w.get("type")
             if not workout_type:
                 continue
 
-            # Deduplicate: skip if same date + type + source already stored
-            already = any(
-                e.get("date") == target_date
-                and e.get("type") == workout_type
-                and e.get("source") == "healthkit"
-                for e in existing
-            )
-            if already:
+            key = (target_date, workout_type, "healthkit")
+            if key in seen_keys:
                 continue
+            seen_keys.add(key)
 
             raw_duration = w.get("duration_min")
+            # Cap at 180 min — HealthKit sometimes reports multi-hour auto-detected sessions
+            duration_min = min(int(raw_duration), 180) if raw_duration is not None else None
             entry = {
                 "date":         target_date,
                 "type":         workout_type,
                 "source":       "healthkit",
-                "duration_min": int(raw_duration) if raw_duration is not None else None,
+                "duration_min": duration_min,
                 "distance_km":  w.get("distance_km"),
                 "avg_hr":       w.get("avg_hr"),
                 "avg_pace":     w.get("avg_pace"),

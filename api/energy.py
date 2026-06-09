@@ -123,7 +123,7 @@ def _eat_from_cardio_entries(entries: list[dict], weight_kg: float) -> list[dict
                            "calories": int(cals), "source": "gps"})
         elif dur:
             met  = _met_cardio(ctype, dur, dist)
-            cals = round(met * weight_kg * dur / 60)
+            cals = min(round(met * weight_kg * dur / 60), 1500)
             result.append({"type": ctype, "duration_min": dur,
                            "calories": cals, "met": met, "source": "met_estimate"})
     return result
