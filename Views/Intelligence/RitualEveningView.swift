@@ -190,18 +190,19 @@ struct EngagementCreationView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 52))
                 .foregroundColor(amber)
-
-            VStack(spacing: 8) {
-                let n = validTexts.count
-                Text("\(n) engagement\(n > 1 ? "s" : "") créé\(n > 1 ? "s" : "")")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
-                Text("Verrouillés pour \(tomorrowDateShort)")
-                    .font(.system(size: 13))
-                    .foregroundColor(Color(white: 0.35))
-            }
+            Text(confirmedCountLabel)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(.white)
+            Text("Verrouillés pour \(tomorrowDateShort)")
+                .font(.system(size: 13))
+                .foregroundColor(Color(white: 0.35))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var confirmedCountLabel: String {
+        let n = validTexts.count
+        return "\(n) engagement\(n > 1 ? "s" : "") créé\(n > 1 ? "s" : "")"
     }
 
     // MARK: - Helpers

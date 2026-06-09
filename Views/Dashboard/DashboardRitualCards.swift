@@ -1,226 +1,180 @@
 import SwiftUI
 
-// MARK: - Ritual Demon Card (demon > soir > matin, un seul slot)
+// MARK: - Ritual Engagement Card (état dynamique du cycle engagement)
 
 struct RitualDemonCard: View {
     let ritual: RitualToday
     let onComplete: () -> Void
     @State private var showRitual = false
-    @State private var dragOffset: CGFloat = 0
 
-    private var hour: Int { Calendar.current.component(.hour, from: Date()) }
+    private var pendingCount: Int {
+        ritual.engagements.filter { !$0.isAddressed }.count
+    }
 
-    private var topDemon: RitualDemon? {
-        ritual.demons.filter { $0.carryCount >= 3 }.max(by: { $0.carryCount < $1.carryCount })
+    private var readyCardTitle: String {
+        let n = ritual.tomorrowEngagements.count
+        return "DEMAIN : \(n) ENGAGEMENT\(n > 1 ? "S" : "") ✓"
     }
 
     var body: some View {
-        Group {
-            if let demon = topDemon {
-                demonContent(demon)
-            } else if !ritual.eveningDone && hour >= 18 {
-                eveningContent
-            } else if !ritual.morningDone && hour < 14 {
-                morningContent
+        cardContent
+            .fullScreenCover(isPresented: $showRitual, onDismiss: onComplete) {
+                RitualView()
             }
-        }
-        .fullScreenCover(isPresented: $showRitual, onDismiss: onComplete) {
-            RitualView()
-        }
     }
 
     @ViewBuilder
-    private func demonContent(_ demon: RitualDemon) -> some View {
-        let isBlood = AppTheme.shared.selectedTheme == .blood
-        Button { showRitual = true } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.forge.opacity(isBlood ? 0.18 : 0.08))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "moon.stars.fill")
-                        .font(.appLabel.weight(.semibold))
-                        .foregroundColor(isBlood ? Color.forge.opacity(0.7) : Color(white: 0.4))
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("DÉMON · \(demon.carryCount) NUITS")
-                        .font(.appMicro.weight(.black))
-                        .foregroundColor(isBlood ? Color.forge.opacity(0.55) : Color(white: 0.3))
-                        .tracking(0.5)
-                    Text("«\(demon.intention)»")
-                        .font(.appCaption)
-                        .foregroundColor(Color(white: 0.55))
-                        .lineLimit(1)
-                }
-                Spacer()
-                Image(systemName: "flame.fill")
-                    .font(.appCaption.weight(.semibold))
-                    .foregroundColor(Color.forge.opacity(isBlood ? 0.85 : 0.5))
-            }
-            .padding(13)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(Color.appCard)
-                    .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.forge.opacity(isBlood ? 0.3 : 0.08), lineWidth: 1))
-            )
+    private var cardContent: some View {
+        if !ritual.engagements.isEmpty && !ritual.allEngagementsAddressed {
+            pendingCard
+        } else if ritual.allEngagementsAddressed && !ritual.tomorrowCreated {
+            prepareCard
+        } else if ritual.tomorrowCreated {
+            readyCard
+        } else {
+            firstDayCard
         }
-        .buttonStyle(.plain)
     }
 
-    private var eveningContent: some View {
+    // Engagements en attente d'adressage
+    private var pendingCard: some View {
         Button { showRitual = true } label: {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle().fill(Color(hex: "1a0a0a")).frame(width: 36, height: 36)
-                    Image(systemName: "flame.fill")
+                    Circle().fill(Color(hex: "F59E0B").opacity(0.12)).frame(width: 36, height: 36)
+                    Image(systemName: "checklist")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(Color(hex: "E8441A"))
+                        .foregroundColor(Color(hex: "F59E0B"))
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("FERME TA JOURNÉE")
+                    Text("\(pendingCount) ENGAGEMENT\(pendingCount > 1 ? "S" : "") EN ATTENTE")
                         .font(.appMicro.weight(.black))
-                        .foregroundColor(Color(hex: "E8441A").opacity(0.8))
+                        .foregroundColor(Color(hex: "F59E0B").opacity(0.85))
                         .tracking(0.5)
-                    if let intention = ritual.intention, !intention.isEmpty {
-                        Text("« \(intention) »")
-                            .font(.appCaption.weight(.medium))
-                            .foregroundColor(.white.opacity(0.75))
-                            .lineLimit(1)
-                    } else {
-                        Text("Tu avais posé une intention ce matin.")
+                    if let ts = ritual.engagementsCreatedAt {
+                        Text(ts)
                             .font(.appCaption)
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(.white.opacity(0.45))
                     }
                 }
                 Spacer()
-                Text("BURNED / SURVIVED")
-                    .font(.appMicro.weight(.bold))
-                    .foregroundColor(Color(hex: "E8441A"))
-                    .padding(.horizontal, 8).padding(.vertical, 4)
-                    .background(Color(hex: "E8441A").opacity(0.12))
-                    .clipShape(Capsule())
+                Image(systemName: "arrow.right")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(Color(hex: "F59E0B").opacity(0.6))
             }
             .padding(13)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.appCard)
                     .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color(hex: "E8441A").opacity(0.3), lineWidth: 1))
+                        .stroke(Color(hex: "F59E0B").opacity(0.25), lineWidth: 1))
             )
         }
         .buttonStyle(.plain)
     }
 
-    private var morningContent: some View {
-        Group {
-            if let intention = ritual.yesterdayIntention {
-                morningIntentionCard(intention)
-            } else {
-                morningDefaultCard
-            }
-        }
-    }
-
-    private func morningIntentionCard(_ intention: String) -> some View {
-        let timeStr: String = {
-            guard let iso = ritual.yesterdayEveningAt else { return "Hier soir" }
-            let df = ISO8601DateFormatter()
-            df.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let d = df.date(from: iso) {
-                let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
-                return "Hier soir · \(fmt.string(from: d))"
-            }
-            if let d = ISO8601DateFormatter().date(from: iso) {
-                let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
-                return "Hier soir · \(fmt.string(from: d))"
-            }
-            return "Hier soir"
-        }()
-        return Button { showRitual = true } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 8) {
-                    Image(systemName: "sunset.fill")
-                        .font(.appMicro.weight(.semibold))
-                        .foregroundColor(Color.forge.opacity(0.8))
-                    Text("TON ENGAGEMENT")
+    // Tout adressé, manque la création du soir
+    private var prepareCard: some View {
+        Button { showRitual = true } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(Color(hex: "F59E0B").opacity(0.08)).frame(width: 36, height: 36)
+                    Image(systemName: "moon.stars.fill")
+                        .font(.appBody.weight(.semibold))
+                        .foregroundColor(Color(hex: "F59E0B").opacity(0.7))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("PRÉPARE DEMAIN")
                         .font(.appMicro.weight(.black))
-                        .foregroundColor(Color.forge.opacity(0.8))
+                        .foregroundColor(Color(hex: "F59E0B").opacity(0.8))
                         .tracking(0.5)
-                    Spacer()
+                    Text("Journée clôturée · Crée tes engagements.")
+                        .font(.appCaption)
+                        .foregroundColor(.white.opacity(0.5))
                 }
-                .padding(.bottom, 8)
-                Rectangle().fill(Color.forge.opacity(0.12)).frame(height: 1).padding(.bottom, 10)
-                Text("«\u{202F}\(intention)\u{202F}»")
-                    .font(.appCaption.weight(.medium))
-                    .foregroundColor(.white.opacity(0.85))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .lineLimit(3)
-                    .padding(.bottom, 10)
-                HStack {
-                    Text(timeStr)
-                        .font(.appMicro).foregroundColor(.white.opacity(0.3))
-                    Spacer()
-                    Image(systemName: "arrow.right")
-                        .font(.appMicro.weight(.semibold))
-                        .foregroundColor(Color.forge.opacity(0.5))
-                }
+                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(Color(hex: "F59E0B").opacity(0.5))
             }
             .padding(13)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.appCard)
                     .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color.forge.opacity(0.22), lineWidth: 1))
+                        .stroke(Color(hex: "F59E0B").opacity(0.15), lineWidth: 1))
             )
         }
         .buttonStyle(.plain)
     }
 
-    private var morningDefaultCard: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(Color.orange.opacity(0.12)).frame(width: 36, height: 36)
-                Image(systemName: dragOffset > 20 ? "arrow.right.circle.fill" : "sunrise.fill")
-                    .font(.appBody.weight(.semibold))
-                    .foregroundColor(.orange)
-                    .animation(.easeInOut(duration: 0.15), value: dragOffset > 20)
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("RITUEL DU MATIN")
-                    .font(.appMicro.weight(.black))
-                    .foregroundColor(.orange.opacity(0.8))
-                    .tracking(0.5)
-                Text("Pose ton intention avant de commencer.")
-                    .font(.appCaption)
-                    .foregroundColor(.white.opacity(0.6))
-            }
-            Spacer()
-            Text("COMMENCER")
-                .font(.appMicro.weight(.bold))
-                .foregroundColor(.orange)
-                .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Color.orange.opacity(0.12))
-                .clipShape(Capsule())
-        }
-        .padding(13)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color.appCard)
-                .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(dragOffset > 20 ? Color.orange.opacity(0.6) : Color.orange.opacity(0.25), lineWidth: 1))
-        )
-        .offset(x: max(0, dragOffset * 0.3))
-        .gesture(
-            DragGesture()
-                .onChanged { v in dragOffset = v.translation.width }
-                .onEnded { v in
-                    if v.translation.width > 60 { showRitual = true }
-                    withAnimation(.spring(response: 0.3)) { dragOffset = 0 }
+    // Demain déjà préparé
+    private var readyCard: some View {
+        Button { showRitual = true } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(Color(hex: "22C55E").opacity(0.1)).frame(width: 36, height: 36)
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.appBody.weight(.semibold))
+                        .foregroundColor(Color(hex: "22C55E").opacity(0.7))
                 }
-        )
-        .onTapGesture { showRitual = true }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(readyCardTitle)
+                        .font(.appMicro.weight(.black))
+                        .foregroundColor(Color(hex: "22C55E").opacity(0.75))
+                        .tracking(0.5)
+                    Text("Cycle complété.")
+                        .font(.appCaption)
+                        .foregroundColor(.white.opacity(0.4))
+                }
+                Spacer()
+            }
+            .padding(13)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color(hex: "22C55E").opacity(0.15), lineWidth: 1))
+            )
+        }
+        .buttonStyle(.plain)
     }
+
+    // Premier jour / aucun engagement
+    private var firstDayCard: some View {
+        Button { showRitual = true } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle().fill(Color(hex: "F59E0B").opacity(0.08)).frame(width: 36, height: 36)
+                    Image(systemName: "sunrise.fill")
+                        .font(.appBody.weight(.semibold))
+                        .foregroundColor(Color(hex: "F59E0B").opacity(0.7))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("CE SOIR, CRÉE TES ENGAGEMENTS")
+                        .font(.appMicro.weight(.black))
+                        .foregroundColor(Color(hex: "F59E0B").opacity(0.75))
+                        .tracking(0.5)
+                    Text("Aucun engagement prévu pour demain.")
+                        .font(.appCaption)
+                        .foregroundColor(.white.opacity(0.45))
+                }
+                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.appCaption.weight(.semibold))
+                    .foregroundColor(Color(hex: "F59E0B").opacity(0.5))
+            }
+            .padding(13)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.appCard)
+                    .overlay(RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color(hex: "F59E0B").opacity(0.12), lineWidth: 1))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
 }
 
 // MARK: - Breathwork Nudge Card

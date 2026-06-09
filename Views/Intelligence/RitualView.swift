@@ -9,9 +9,10 @@ struct RitualView: View {
 
     private var phase: RitualPhase {
         guard let r = ritual else { return .loading }
-        if !r.hasEngagementsToday      { return .creating }
-        if !r.allEngagementsAddressed  { return .addressing }
-        if !r.tomorrowCreated          { return .creating }
+        // Adressage prioritaire si des engagements du jour sont en attente
+        if r.hasEngagementsToday && !r.allEngagementsAddressed { return .addressing }
+        // Création si demain n'est pas encore préparé
+        if !r.tomorrowCreated { return .creating }
         return .done
     }
 
@@ -282,115 +283,33 @@ struct RitualDoneView: View {
     let onDemons: () -> Void
     @State private var showHeatMap = false
 
-    private var todayLabel: String {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "EEEE d MMMM"
-        fmt.locale = Locale(identifier: "fr_CA")
-        return fmt.string(from: Date()).capitalized
-    }
+    private let amber = Color(hex: "F59E0B")
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 0) {
-                // Date header
                 Text(todayLabel)
                     .font(.system(size: 11))
                     .foregroundColor(Color(white: 0.25))
                     .tracking(1)
                     .padding(.top, 40)
 
-                Spacer(minLength: 32)
+                Spacer(minLength: 40)
 
-                // Outcome badge
-                VStack(spacing: 16) {
-                    if ritual.burnedToday {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 52))
-                            .foregroundColor(Color(hex: "FF2D20"))
-                    } else {
-                        Image(systemName: "moon.fill")
-                            .font(.system(size: 52))
-                            .foregroundColor(.gray)
-                    }
-
-                    Text(ritual.burnedToday ? "BURNED" : "SURVIVED")
-                        .font(.system(size: 13, weight: .black))
-                        .tracking(5)
-                        .foregroundColor(ritual.burnedToday ? Color(hex: "FF2D20") : .gray)
-
-                    if ritual.phoenixStreak > 0 {
-                        VStack(spacing: 4) {
-                            Text("\(ritual.phoenixStreak)")
-                                .font(.system(size: 64, weight: .black))
-                                .foregroundColor(.white)
-                            Text("JOURS CONSÉCUTIFS")
-                                .font(.system(size: 10, weight: .bold))
-                                .tracking(3)
-                                .foregroundColor(Color(white: 0.3))
-                        }
-                        .padding(.top, 4)
-                    }
-
-                    Text("\(ritual.phoenixTotalBurned) intentions tuées au total")
-                        .font(.system(size: 12))
-                        .foregroundColor(Color(white: 0.3))
-                }
+                cycleStateBlock
+                    .padding(.horizontal, 24)
 
                 Spacer(minLength: 48)
 
-                // "Come back tomorrow" message
-                Text(ritual.burnedToday ? "Reviens demain pour continuer la série." : "Reviens demain et tue-le.")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(white: 0.2))
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-
-                Spacer(minLength: 36)
-
-                // Action cards
                 VStack(spacing: 10) {
-                    // F6: heatmap card
                     Button { showHeatMap = true } label: {
-                        HStack(spacing: 10) {
-                            Image(systemName: "calendar.badge.checkmark")
-                                .font(.system(size: 14))
-                                .foregroundColor(Color(white: 0.4))
-                                .frame(width: 30)
-                            Text("Voir le calendrier")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color(white: 0.55))
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11))
-                                .foregroundColor(Color(white: 0.2))
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 14)
-                        .background(Color(white: 0.06))
-                        .cornerRadius(12)
+                        doneActionRow(icon: "calendar.badge.checkmark", label: "Voir le calendrier")
                     }
                     .buttonStyle(.plain)
 
-                    // Demons card
                     if !ritual.demons.isEmpty {
                         Button(action: onDemons) {
-                            HStack(spacing: 10) {
-                                Image(systemName: "moon.stars.fill")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(Color(white: 0.3))
-                                    .frame(width: 30)
-                                Text("\(ritual.demons.count) démon\(ritual.demons.count > 1 ? "s" : "") persistant\(ritual.demons.count > 1 ? "s" : "")")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(Color(white: 0.45))
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(Color(white: 0.2))
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(Color(white: 0.06))
-                            .cornerRadius(12)
+                            doneActionRow(icon: "moon.stars.fill", label: demonsLabel)
                         }
                         .buttonStyle(.plain)
                     }
@@ -400,9 +319,71 @@ struct RitualDoneView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .navigationDestination(isPresented: $showHeatMap) {
-            RitualHeatMapView()
+        .navigationDestination(isPresented: $showHeatMap) { RitualHeatMapView() }
+    }
+
+    private var cycleStateBlock: some View {
+        VStack(spacing: 16) {
+            if ritual.tomorrowCreated {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(amber)
+                Text("Cycle complété")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+                Text(tomorrowEngagementsLabel)
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(white: 0.35))
+            } else {
+                Image(systemName: "moon.stars.fill")
+                    .font(.system(size: 48))
+                    .foregroundColor(Color(white: 0.3))
+                Text("Journée clôturée")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+                Text("Ce soir, crée tes engagements pour demain.")
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(white: 0.35))
+                    .multilineTextAlignment(.center)
+            }
         }
+    }
+
+    private var tomorrowEngagementsLabel: String {
+        let n = ritual.tomorrowEngagements.count
+        return "\(n) engagement\(n > 1 ? "s" : "") prévus pour demain"
+    }
+
+    private var demonsLabel: String {
+        let n = ritual.demons.count
+        return "\(n) démon\(n > 1 ? "s" : "") persistant\(n > 1 ? "s" : "")"
+    }
+
+    private func doneActionRow(icon: String, label: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(Color(white: 0.4))
+                .frame(width: 30)
+            Text(label)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(Color(white: 0.55))
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11))
+                .foregroundColor(Color(white: 0.2))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(Color(white: 0.06))
+        .cornerRadius(12)
+    }
+
+    private var todayLabel: String {
+        let fmt = DateFormatter()
+        fmt.dateFormat = "EEEE d MMMM"
+        fmt.locale = Locale(identifier: "fr_CA")
+        return fmt.string(from: Date()).capitalized
     }
 }
 
