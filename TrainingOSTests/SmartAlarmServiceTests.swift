@@ -132,4 +132,99 @@ final class SmartAlarmServiceTests: XCTestCase {
         XCTAssertLessThan(alarmTime, Date(),
             "alarmTime = wEnd (hier 07h00) doit être dans le passé — guard alarmTime > Date() bloque le scheduling")
     }
+
+    // MARK: - Test 7 : armement 22h30 (soir) → alarme LENDEMAIN, borne FIN 07h00
+
+    func testSchedule_coucher2230_alarmeLendemain_borneFin() async {
+        // 22:30 → sleepStart 22:45 → cycles : 00:15/01:45/03:15/04:45/06:15/07:45
+        // Fenêtre 06:30–07:00 : n=5 à 06:15 (avant), n=6 à 07:45 (après) → borne FIN = 07:00
+        let bedtime = date(hour: 22, minute: 30)
+
+        let (points, result) = await MainActor.run {
+            let s = SmartAlarmService.shared
+            let pts = s.calculateCyclePoints(bedtime: bedtime)
+            let wStart = date(hour: 6, minute: 30, offsetDays: 1)
+            let wEnd   = date(hour: 7, minute: 0,  offsetDays: 1)
+            return (pts, s.selectOptimalPoint(from: pts, windowStart: wStart, windowEnd: wEnd))
+        }
+
+        // Aucun cycle dans la fenêtre 06h30–07h00
+        let wStart = date(hour: 6, minute: 30, offsetDays: 1)
+        let wEnd   = date(hour: 7, minute: 0,  offsetDays: 1)
+        XCTAssertFalse(points.contains { $0 >= wStart && $0 <= wEnd },
+            "Aucun cycle 22h30 ne tombe dans 06h30–07h00")
+        // Borne FIN appliquée → 07h00 demain
+        XCTAssertEqual(result, date(hour: 7, minute: 0, offsetDays: 1),
+            "Borne FIN 07h00 demain")
+        // Date = LENDEMAIN (bedtimeHour=22 >= 12 → dayOffset=1)
+        let cal = Calendar.current
+        let tomorrowDay = cal.dateComponents([.day], from: cal.date(byAdding: .day, value: 1, to: Date())!).day
+        XCTAssertEqual(cal.dateComponents([.day], from: result).day, tomorrowDay,
+            "Coucher 22h30 → alarme le LENDEMAIN")
+    }
+
+    // MARK: - Test 8 : armement 00h30 (post-minuit) → alarme MÊME jour 06h45
+
+    func testSchedule_coucher0030_alarme0645_memeJour() async {
+        // 00:30 → sleepStart 00:45 → n=4 → 00:45 + 6h = 06:45 → dans fenêtre 06:30–07:00
+        // bedtimeHour=0 < 12 → dayOffset=0 → même jour
+        let bedtime = date(hour: 0, minute: 30)
+
+        let result = await MainActor.run {
+            let s = SmartAlarmService.shared
+            let pts = s.calculateCyclePoints(bedtime: bedtime)
+            let wStart = date(hour: 6, minute: 30, offsetDays: 0)
+            let wEnd   = date(hour: 7, minute: 0,  offsetDays: 0)
+            return s.selectOptimalPoint(from: pts, windowStart: wStart, windowEnd: wEnd)
+        }
+
+        XCTAssertEqual(result, date(hour: 6, minute: 45, offsetDays: 0),
+            "Coucher 00h30 + latence 15min → cycle n=4 à 06h45, même jour")
+        let cal = Calendar.current
+        XCTAssertEqual(cal.dateComponents([.year, .month, .day], from: result),
+                       cal.dateComponents([.year, .month, .day], from: Date()),
+                       "Alarme doit être aujourd'hui, pas demain")
+    }
+
+    // MARK: - Test 9 : cancelAlarm() → pendingAlarmID nil + état non armé
+
+    func testCancelAlarm_nePlusArme() async {
+        let fakeID = UUID()
+        UserDefaults.standard.set(fakeID.uuidString, forKey: "smartAlarm.pendingAlarmID")
+
+        await MainActor.run { SmartAlarmService.shared.cancelAlarm() }
+
+        XCTAssertNil(UserDefaults.standard.string(forKey: "smartAlarm.pendingAlarmID"),
+            "cancelAlarm() doit supprimer pendingAlarmID")
+        // État ne doit plus être .armed(at:) quelle que soit la valeur de isEnabled
+        let state = await MainActor.run { SmartAlarmService.shared.state }
+        if case .armed = state {
+            XCTFail("État ne doit pas être .armed après cancelAlarm() — obtenu \(state)")
+        }
+    }
+
+    // MARK: - Test 10 : scheduleAlarm(bedtimeDate:) quand disabled → retour sans throw, sans armer
+    // @MainActor requis — SmartAlarmService est @MainActor, les surcharges async de MainActor.run
+    // ne sont pas résolues correctement dans ce contexte XCTest (Swift 6).
+
+    @MainActor
+    func testScheduleAlarm_disabled_noop() async {
+        // disable() ne requiert pas AlarmKit si aucun pendingAlarmID n'est planté
+        await SmartAlarmService.shared.disable()
+        XCTAssertFalse(SmartAlarmService.shared.isEnabled,
+            "isEnabled doit être false après disable()")
+
+        let pendingBefore = UserDefaults.standard.string(forKey: "smartAlarm.pendingAlarmID")
+
+        var threw = false
+        do {
+            try await SmartAlarmService.shared.scheduleAlarm(bedtimeDate: Date())
+        } catch {
+            threw = true
+        }
+        XCTAssertFalse(threw, "scheduleAlarm(bedtimeDate:) ne doit pas throw quand isEnabled=false")
+        XCTAssertEqual(UserDefaults.standard.string(forKey: "smartAlarm.pendingAlarmID"),
+                       pendingBefore, "Aucun pendingAlarmID planté quand isEnabled=false")
+        XCTAssertEqual(SmartAlarmService.shared.state, .disabled, "État reste .disabled")
+    }
 }

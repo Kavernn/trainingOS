@@ -461,6 +461,8 @@ struct EveningRoutineCard: View {
     let ritual: RitualToday
     let onRoutineUpdated: () -> Void
 
+    @ObservedObject private var alarm = SmartAlarmService.shared
+
     @State private var noFood: Bool
     @State private var dimLights: Bool
     @State private var shower: Bool
@@ -607,7 +609,66 @@ struct EveningRoutineCard: View {
             deconnectRow
             prioritiesRow
             itemRow("🌙", "Au lit avant l'heure",    checked: $bedtimeOk,   field: "routine_bedtime_ok")
+            if alarm.isEnabled { alarmRow }
         }
+    }
+
+    // MARK: - Smart alarm row
+
+    private var alarmRow: some View {
+        let isArmed: Bool
+        let label: String
+        if case .armed(let t) = alarm.state {
+            isArmed = true
+            let fmt = DateFormatter()
+            fmt.dateFormat = "HH:mm"
+            label = "Armé — \(fmt.string(from: t))"
+        } else {
+            isArmed = false
+            label = "Armer réveil cyclique"
+        }
+        return Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            if isArmed {
+                alarm.cancelAlarm()
+            } else {
+                Task { try? await alarm.scheduleAlarm(bedtimeDate: Date()) }
+            }
+        } label: {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .stroke(isArmed ? Color.green.opacity(0.6) : Color.white.opacity(0.2), lineWidth: 1.5)
+                        .frame(width: 20, height: 20)
+                    Image(systemName: isArmed ? "bell.fill" : "bell")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(isArmed ? .green : .white.opacity(0.5))
+                }
+                .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isArmed)
+                Text("🔔").font(.system(size: 14))
+                Text(label)
+                    .font(.appCaption)
+                    .foregroundColor(isArmed ? .green.opacity(0.85) : .white.opacity(0.8))
+                Spacer()
+                if isArmed {
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        alarm.cancelAlarm()
+                    } label: {
+                        Text("Annuler")
+                            .font(.appMicro.weight(.bold))
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
+        .animation(.easeInOut(duration: 0.2), value: isArmed)
     }
 
     // MARK: - Generic item row

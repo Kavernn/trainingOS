@@ -7,14 +7,12 @@ import AlarmKit
 struct SmartAlarmMetadata: AlarmMetadata {}
 
 enum SmartAlarmError: LocalizedError {
-    case noBedtime
     case authorizationDenied
     case alarmInPast
     case schedulingFailed(Error)
 
     var errorDescription: String? {
         switch self {
-        case .noBedtime:              return "Aucun coucher loggé"
         case .authorizationDenied:    return "Permission AlarmKit refusée — activer dans Réglages"
         case .alarmInPast:            return "Heure d'alarme déjà passée"
         case .schedulingFailed(let e): return "Scheduling échoué : \(e.localizedDescription)"
@@ -86,14 +84,9 @@ final class SmartAlarmService: ObservableObject {
         await rescheduleIfBedtimeExists()
     }
 
-    // Called from LogRecoverySheet after successful save
-    func scheduleAlarm(bedtime bedtimeStr: String?) async throws {
+    // Called from EveningRoutineCard "Je me couche" tap — bedtime = Date.now
+    func scheduleAlarm(bedtimeDate: Date) async throws {
         guard isEnabled else { return }
-        guard let bedtimeStr, !bedtimeStr.isEmpty else {
-            state = .notArmed
-            throw SmartAlarmError.noBedtime
-        }
-        let bedtimeDate = try parseBedtime(bedtimeStr)
         UserDefaults.standard.set(bedtimeDate.timeIntervalSinceReferenceDate, forKey: Keys.lastBedtimeTS)
         try await scheduleFromBedtimeDate(bedtimeDate)
     }
@@ -104,6 +97,7 @@ final class SmartAlarmService: ObservableObject {
               let id = UUID(uuidString: idString) else { return }
         try? AlarmManager.shared.stop(id: id)
         UserDefaults.standard.removeObject(forKey: Keys.pendingAlarmID)
+        state = isEnabled ? .notArmed : .disabled
     }
 
     // MARK: - Cycle logic (pure, tested separately)
@@ -191,23 +185,6 @@ final class SmartAlarmService: ObservableObject {
 
         UserDefaults.standard.set(alarmID.uuidString, forKey: Keys.pendingAlarmID)
         state = .armed(at: alarmTime)
-    }
-
-    // Parses "HH:mm" relative to today. windowDates handles which calendar day the alarm lands on.
-    private func parseBedtime(_ bedtimeStr: String) throws -> Date {
-        let fmt = DateFormatter()
-        fmt.dateFormat = "HH:mm"
-        fmt.locale = Locale(identifier: "en_US_POSIX")
-        guard let timeDate = fmt.date(from: bedtimeStr) else { throw SmartAlarmError.noBedtime }
-
-        let calendar = Calendar.current
-        let now = Date()
-        var comps = calendar.dateComponents([.year, .month, .day], from: now)
-        comps.hour   = calendar.component(.hour,   from: timeDate)
-        comps.minute = calendar.component(.minute, from: timeDate)
-        comps.second = 0
-        guard let candidate = calendar.date(from: comps) else { throw SmartAlarmError.noBedtime }
-        return candidate
     }
 
     // Evening bedtime (hour 12–23) → alarm next calendar day

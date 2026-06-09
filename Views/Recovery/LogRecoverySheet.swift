@@ -499,9 +499,6 @@ struct LogRecoverySheet: View {
                 triggerNotificationFeedback(.success)
                 triggerImpact(style: .medium)
                 await onSaved()
-                if hasBedtime {
-                    try? await SmartAlarmService.shared.scheduleAlarm(bedtime: timeFmt.string(from: bedtime))
-                }
                 isSaving = false
                 dismiss()
             } catch {

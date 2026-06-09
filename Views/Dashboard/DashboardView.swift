@@ -100,8 +100,9 @@ struct DashboardView: View {
                                 DashboardStatusBar(dash: dash, streakData: vm.streakData, showChecklist: $showChecklist)
                                     .appearAnimation(delay: 0.03)
 
-                                // 1b — Routine de soir (visible dès 20h)
-                                if Calendar.current.component(.hour, from: Date()) >= 20,
+                                // 1b — Routine de soir (visible dès 20h, et jusqu'à 3h pour couchers tardifs)
+                                let eveningHour = Calendar.current.component(.hour, from: Date())
+                                if (eveningHour >= 20 || eveningHour < 3),
                                    let ritual = vm.ritualToday {
                                     EveningRoutineCard(ritual: ritual) {
                                         Task { await vm.refreshRitual() }
