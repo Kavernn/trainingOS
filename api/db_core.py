@@ -51,7 +51,16 @@ def _reconnect() -> bool:
 
 
 def _is_disconnect(e: Exception) -> bool:
-    return "disconnected" in str(e).lower() or "server disconnected" in str(e).lower()
+    msg = str(e).lower()
+    return (
+        "disconnected" in msg
+        or "server disconnected" in msg
+        or "send_end_stream" in msg          # h11 stream state machine error
+        or "connection reset" in msg
+        or "connection refused" in msg
+        or "broken pipe" in msg
+        or (isinstance(e, OSError) and e.errno in (11, 104, 110, 111))  # EAGAIN/ECONNRESET/ETIMEDOUT/ECONNREFUSED
+    )
 
 # ---------------------------------------------------------------------------
 # SQLite local (kv_local: key TEXT PK, value TEXT JSON, updated_at TEXT ISO, dirty INT)

@@ -272,6 +272,7 @@ from db_features import (
     get_prev_season_had_reset,
     get_spirit_metadata,
     get_war_room_coach_context,
+    get_war_room_today_status,
     _next_month_str,
     get_adherence_active_days,
     get_current_1rm_estimates,
