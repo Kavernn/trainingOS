@@ -59,6 +59,9 @@ private final class P3State: @unchecked Sendable {
     var progressiveOverload: ProgressiveOverloadData? = nil
     var sessionQuality: SessionQualityData? = nil
     var trainingHeatmap: TrainingHeatmapData? = nil
+    var bodyWeightTrend: BodyWeightTrendData? = nil
+    var energyPerformance: EnergyPerformanceData? = nil
+    var prTracker: PRTrackerData? = nil
 }
 
 // MARK: - PhoenixScoreDeltaTracker
@@ -225,6 +228,9 @@ final class DashboardViewModel: ObservableObject {
     @Published var progressiveOverload: ProgressiveOverloadData? = nil
     @Published var sessionQuality: SessionQualityData? = nil
     @Published var trainingHeatmap: TrainingHeatmapData? = nil
+    @Published var bodyWeightTrend: BodyWeightTrendData? = nil
+    @Published var energyPerformance: EnergyPerformanceData? = nil
+    @Published var prTracker: PRTrackerData? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -514,6 +520,9 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in p3.progressiveOverload = try? await APIService.shared.fetchProgressiveOverload() }
                 group.addTask { @MainActor in p3.sessionQuality     = try? await APIService.shared.fetchSessionQuality() }
                 group.addTask { @MainActor in p3.trainingHeatmap    = try? await APIService.shared.fetchTrainingHeatmap() }
+                group.addTask { @MainActor in p3.bodyWeightTrend    = try? await APIService.shared.fetchBodyWeightTrend() }
+                group.addTask { @MainActor in p3.energyPerformance  = try? await APIService.shared.fetchEnergyPerformance() }
+                group.addTask { @MainActor in p3.prTracker          = try? await APIService.shared.fetchPRTracker() }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
             insights      = p3.insights
@@ -549,6 +558,9 @@ final class DashboardViewModel: ObservableObject {
             progressiveOverload     = p3.progressiveOverload
             sessionQuality          = p3.sessionQuality
             trainingHeatmap         = p3.trainingHeatmap
+            bodyWeightTrend         = p3.bodyWeightTrend
+            energyPerformance       = p3.energyPerformance
+            prTracker               = p3.prTracker
             analyticsLoadedDate     = today
         }
     }

@@ -145,6 +145,9 @@ from routes.stress_load          import stress_load_bp
 from routes.progressive_overload import progressive_overload_bp
 from routes.session_quality      import session_quality_bp
 from routes.training_heatmap     import training_heatmap_bp
+from routes.body_weight_trend    import body_weight_trend_bp
+from routes.energy_performance   import energy_performance_bp
+from routes.pr_tracker           import pr_tracker_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -216,6 +219,9 @@ app.register_blueprint(stress_load_bp)
 app.register_blueprint(progressive_overload_bp)
 app.register_blueprint(session_quality_bp)
 app.register_blueprint(training_heatmap_bp)
+app.register_blueprint(body_weight_trend_bp)
+app.register_blueprint(energy_performance_bp)
+app.register_blueprint(pr_tracker_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────

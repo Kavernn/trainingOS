@@ -319,6 +319,15 @@
 		THM001AA00300B2F5D0001 /* TrainingHeatmapModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = THM001AA00300B2F5D0000 /* TrainingHeatmapModels.swift */; };
 		THM002AA00300B2F5D0001 /* APIService+TrainingHeatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = THM002AA00300B2F5D0000 /* APIService+TrainingHeatmap.swift */; };
 		THM003AA00300B2F5D0001 /* TrainingHeatmapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = THM003AA00300B2F5D0000 /* TrainingHeatmapCard.swift */; };
+		BWT001AA00300B2F5D0001 /* BodyWeightTrendModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BWT001AA00300B2F5D0000 /* BodyWeightTrendModels.swift */; };
+		BWT002AA00300B2F5D0001 /* APIService+BodyWeightTrend.swift in Sources */ = {isa = PBXBuildFile; fileRef = BWT002AA00300B2F5D0000 /* APIService+BodyWeightTrend.swift */; };
+		BWT003AA00300B2F5D0001 /* BodyWeightTrendCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BWT003AA00300B2F5D0000 /* BodyWeightTrendCard.swift */; };
+		EPF001AA00300B2F5D0001 /* EnergyPerformanceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPF001AA00300B2F5D0000 /* EnergyPerformanceModels.swift */; };
+		EPF002AA00300B2F5D0001 /* APIService+EnergyPerformance.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPF002AA00300B2F5D0000 /* APIService+EnergyPerformance.swift */; };
+		EPF003AA00300B2F5D0001 /* EnergyPerformanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */; };
+		PRT001AA00300B2F5D0001 /* PRTrackerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRT001AA00300B2F5D0000 /* PRTrackerModels.swift */; };
+		PRT002AA00300B2F5D0001 /* APIService+PRTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRT002AA00300B2F5D0000 /* APIService+PRTracker.swift */; };
+		PRT003AA00300B2F5D0001 /* PRTrackerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRT003AA00300B2F5D0000 /* PRTrackerCard.swift */; };
 /* End PBXBuildFile section */
 		TRL001AA00300B2F5D0001 /* TrainingLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */; };
 		IDW001AA00300B2F5D0001 /* IdealWeekModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */; };
@@ -705,6 +714,15 @@
 		THM001AA00300B2F5D0000 /* TrainingHeatmapModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingHeatmapModels.swift; sourceTree = "<group>"; };
 		THM002AA00300B2F5D0000 /* APIService+TrainingHeatmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+TrainingHeatmap.swift"; sourceTree = "<group>"; };
 		THM003AA00300B2F5D0000 /* TrainingHeatmapCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingHeatmapCard.swift; sourceTree = "<group>"; };
+		BWT001AA00300B2F5D0000 /* BodyWeightTrendModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyWeightTrendModels.swift; sourceTree = "<group>"; };
+		BWT002AA00300B2F5D0000 /* APIService+BodyWeightTrend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+BodyWeightTrend.swift"; sourceTree = "<group>"; };
+		BWT003AA00300B2F5D0000 /* BodyWeightTrendCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BodyWeightTrendCard.swift; sourceTree = "<group>"; };
+		EPF001AA00300B2F5D0000 /* EnergyPerformanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyPerformanceModels.swift; sourceTree = "<group>"; };
+		EPF002AA00300B2F5D0000 /* APIService+EnergyPerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+EnergyPerformance.swift"; sourceTree = "<group>"; };
+		EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyPerformanceCard.swift; sourceTree = "<group>"; };
+		PRT001AA00300B2F5D0000 /* PRTrackerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRTrackerModels.swift; sourceTree = "<group>"; };
+		PRT002AA00300B2F5D0000 /* APIService+PRTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+PRTracker.swift"; sourceTree = "<group>"; };
+		PRT003AA00300B2F5D0000 /* PRTrackerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRTrackerCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadModels.swift; sourceTree = "<group>"; };
 		IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekModels.swift; sourceTree = "<group>"; };
@@ -1108,6 +1126,9 @@
 				POE001AA00300B2F5D0000 /* ProgressiveOverloadModels.swift */,
 				SQS001AA00300B2F5D0000 /* SessionQualityModels.swift */,
 				THM001AA00300B2F5D0000 /* TrainingHeatmapModels.swift */,
+				BWT001AA00300B2F5D0000 /* BodyWeightTrendModels.swift */,
+				EPF001AA00300B2F5D0000 /* EnergyPerformanceModels.swift */,
+				PRT001AA00300B2F5D0000 /* PRTrackerModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1183,6 +1204,9 @@
 				POE002AA00300B2F5D0000 /* APIService+ProgressiveOverload.swift */,
 				SQS002AA00300B2F5D0000 /* APIService+SessionQuality.swift */,
 				THM002AA00300B2F5D0000 /* APIService+TrainingHeatmap.swift */,
+				BWT002AA00300B2F5D0000 /* APIService+BodyWeightTrend.swift */,
+				EPF002AA00300B2F5D0000 /* APIService+EnergyPerformance.swift */,
+				PRT002AA00300B2F5D0000 /* APIService+PRTracker.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1245,6 +1269,9 @@
 				POE003AA00300B2F5D0000 /* ProgressiveOverloadCard.swift */,
 				SQS003AA00300B2F5D0000 /* SessionQualityCard.swift */,
 				THM003AA00300B2F5D0000 /* TrainingHeatmapCard.swift */,
+				BWT003AA00300B2F5D0000 /* BodyWeightTrendCard.swift */,
+				EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */,
+				PRT003AA00300B2F5D0000 /* PRTrackerCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -2011,6 +2038,15 @@
 				THM001AA00300B2F5D0001 /* TrainingHeatmapModels.swift in Sources */,
 				THM002AA00300B2F5D0001 /* APIService+TrainingHeatmap.swift in Sources */,
 				THM003AA00300B2F5D0001 /* TrainingHeatmapCard.swift in Sources */,
+				BWT001AA00300B2F5D0001 /* BodyWeightTrendModels.swift in Sources */,
+				BWT002AA00300B2F5D0001 /* APIService+BodyWeightTrend.swift in Sources */,
+				BWT003AA00300B2F5D0001 /* BodyWeightTrendCard.swift in Sources */,
+				EPF001AA00300B2F5D0001 /* EnergyPerformanceModels.swift in Sources */,
+				EPF002AA00300B2F5D0001 /* APIService+EnergyPerformance.swift in Sources */,
+				EPF003AA00300B2F5D0001 /* EnergyPerformanceCard.swift in Sources */,
+				PRT001AA00300B2F5D0001 /* PRTrackerModels.swift in Sources */,
+				PRT002AA00300B2F5D0001 /* APIService+PRTracker.swift in Sources */,
+				PRT003AA00300B2F5D0001 /* PRTrackerCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

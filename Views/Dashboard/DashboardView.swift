@@ -402,6 +402,24 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.59)
                                 }
 
+                                // 16p — Tendance du Poids
+                                if let bwt = vm.bodyWeightTrend, bwt.hasData {
+                                    BodyWeightTrendCard(data: bwt)
+                                        .appearAnimation(delay: 0.61)
+                                }
+
+                                // 16q — Énergie × Performance
+                                if let enerPerf = vm.energyPerformance, enerPerf.hasData {
+                                    EnergyPerformanceCard(data: enerPerf)
+                                        .appearAnimation(delay: 0.63)
+                                }
+
+                                // 16r — Records Personnels
+                                if let prs = vm.prTracker, prs.hasData {
+                                    PRTrackerCard(data: prs)
+                                        .appearAnimation(delay: 0.65)
+                                }
+
                                 // ── SCROLL PROFOND ────────────────────────────
 
                                 // 17 — Citation
