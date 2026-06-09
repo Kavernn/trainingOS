@@ -513,13 +513,18 @@ class HealthKitService: ObservableObject {
         let bedtime  = sleepWin.map { timeFmt.string(from: $0.bedtime) }
         let wakeTime = sleepWin.map { timeFmt.string(from: $0.wakeTime) }
 
-        let workouts = wkts.map { w -> WearableWorkout in
+        let workouts = wkts.compactMap { w -> WearableWorkout? in
             let type: String
             switch w.workoutActivityType {
             case .running:   type = "course"
             case .cycling:   type = "vélo"
             case .swimming:  type = "natation"
             case .walking:   type = "marche"
+            case .traditionalStrengthTraining,
+                 .functionalStrengthTraining,
+                 .crossTraining,
+                 .coreTraining:
+                return nil
             default:         type = "autre"
             }
             let dist = w.totalDistance.map { $0.doubleValue(for: .meter()) / 1000.0 }
@@ -634,13 +639,18 @@ class HealthKitService: ObservableObject {
     }
 
     // MARK: - Workout → CardioEntry
-    func workoutToCardioEntry(_ w: HKWorkout) -> (type: String, durationMin: Double, distanceKm: Double?, calories: Double?, avgHr: Double?) {
+    func workoutToCardioEntry(_ w: HKWorkout) -> (type: String, durationMin: Double, distanceKm: Double?, calories: Double?, avgHr: Double?)? {
         let type: String
         switch w.workoutActivityType {
         case .running:   type = "course"
         case .cycling:   type = "vélo"
         case .swimming:  type = "natation"
         case .walking:   type = "marche"
+        case .traditionalStrengthTraining,
+             .functionalStrengthTraining,
+             .crossTraining,
+             .coreTraining:
+            return nil
         default:         type = "autre"
         }
         let dur  = w.duration / 60.0

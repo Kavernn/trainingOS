@@ -202,7 +202,7 @@ struct CardioView: View {
             })
 
             for w in workouts {
-                let entry = hk.workoutToCardioEntry(w)
+                guard let entry = hk.workoutToCardioEntry(w) else { continue }
                 let dateStr = fmt.string(from: w.startDate)
                 let key = "\(dateStr)|\(entry.type)"
                 guard !existing.contains(key) else { continue }
