@@ -198,7 +198,13 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.15)
                                 }
 
-                                // 8c — War Room strip
+                                // 8c — Rupture Risk (vigilance ou plus)
+                                if let rupture = vm.ruptureRisk, rupture.score >= 20 {
+                                    RuptureRiskCard(data: rupture)
+                                        .appearAnimation(delay: 0.17)
+                                }
+
+                                // 8d — War Room strip
                                 if vm.warRoomEnabled {
                                     WarRoomStripView(
                                         hasResult:      vm.warRoomHasResult,
@@ -286,6 +292,18 @@ struct DashboardView: View {
                                 if let temporal = vm.temporalPatterns, temporal.hasBaseline {
                                     TemporalPatternCard(data: temporal)
                                         .appearAnimation(delay: 0.33)
+                                }
+
+                                // 16c — Portrait J-90
+                                if let portrait = vm.portraitData, portrait.hasBaseline {
+                                    PortraitJ90Card(data: portrait)
+                                        .appearAnimation(delay: 0.35)
+                                }
+
+                                // 16d — Records comportementaux
+                                if let prs = vm.behavioralPRs, prs.hasData {
+                                    BehavioralPRsCard(data: prs)
+                                        .appearAnimation(delay: 0.37)
                                 }
 
                                 // ── SCROLL PROFOND ────────────────────────────

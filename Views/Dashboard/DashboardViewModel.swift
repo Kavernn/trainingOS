@@ -40,6 +40,9 @@ private final class P3State: @unchecked Sendable {
     var velocityData: VelocityData? = nil
     var compoundScore: CompoundScore? = nil
     var temporalPatterns: TemporalPatterns? = nil
+    var portraitData: PortraitData? = nil
+    var behavioralPRs: BehavioralPRsData? = nil
+    var ruptureRisk: RuptureRisk? = nil
 }
 
 // MARK: - PhoenixScoreDeltaTracker
@@ -187,6 +190,9 @@ final class DashboardViewModel: ObservableObject {
     @Published var velocityData: VelocityData? = nil
     @Published var compoundScore: CompoundScore? = nil
     @Published var temporalPatterns: TemporalPatterns? = nil
+    @Published var portraitData: PortraitData? = nil
+    @Published var behavioralPRs: BehavioralPRsData? = nil
+    @Published var ruptureRisk: RuptureRisk? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -457,6 +463,9 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in p3.velocityData     = try? await APIService.shared.fetchVelocity() }
                 group.addTask { @MainActor in p3.compoundScore    = try? await APIService.shared.fetchCompoundScore() }
                 group.addTask { @MainActor in p3.temporalPatterns = try? await APIService.shared.fetchTemporalPatterns() }
+                group.addTask { @MainActor in p3.portraitData     = try? await APIService.shared.fetchPortraitJ90() }
+                group.addTask { @MainActor in p3.behavioralPRs    = try? await APIService.shared.fetchBehavioralPRs() }
+                group.addTask { @MainActor in p3.ruptureRisk      = try? await APIService.shared.fetchRuptureRisk() }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
             insights      = p3.insights
@@ -473,6 +482,9 @@ final class DashboardViewModel: ObservableObject {
             velocityData         = p3.velocityData
             compoundScore        = p3.compoundScore
             temporalPatterns     = p3.temporalPatterns
+            portraitData         = p3.portraitData
+            behavioralPRs        = p3.behavioralPRs
+            ruptureRisk          = p3.ruptureRisk
             analyticsLoadedDate  = today
         }
     }

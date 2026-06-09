@@ -124,6 +124,9 @@ from routes.proactive_insights   import proactive_insights_bp
 from routes.velocity             import velocity_bp
 from routes.compound             import compound_bp
 from routes.temporal             import temporal_bp
+from routes.portrait             import portrait_bp
+from routes.behavioral_prs       import behavioral_prs_bp
+from routes.rupture              import rupture_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -174,6 +177,9 @@ app.register_blueprint(proactive_insights_bp)
 app.register_blueprint(velocity_bp)
 app.register_blueprint(compound_bp)
 app.register_blueprint(temporal_bp)
+app.register_blueprint(portrait_bp)
+app.register_blueprint(behavioral_prs_bp)
+app.register_blueprint(rupture_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────
