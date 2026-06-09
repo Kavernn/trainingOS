@@ -32,6 +32,9 @@ struct SettingsView: View {
                     MoreRow(icon: "bed.double.fill", color: .indigo,
                             title: "Récupération & Sommeil",
                             subtitle: "Objectif sommeil, HRV, horaires") { RecoverySettingsView() }
+                    MoreRow(icon: "alarm.fill", color: .indigo,
+                            title: "Réveil intelligent",
+                            subtitle: "Cycles 90 min, fenêtre personnalisée") { SmartAlarmSettingsView() }
                 }
                 .listRowBackground(glassRowBG(.indigo))
                 .listRowSeparatorTint(Color.white.opacity(0.06))

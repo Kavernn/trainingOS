@@ -4,20 +4,20 @@
 //
 
 import XCTest
-import SwiftData
 @testable import TrainingOS
 
 @MainActor
 final class SyncManagerTests: XCTestCase {
 
-    var container: ModelContainer!
+    var queue: UserDefaultsSyncQueue!
     var manager: SyncManager!
 
     override func setUp() async throws {
         try await super.setUp()
-        container = try makeInMemoryContainer()
-        manager = SyncManager()
-        manager.setup(container: container)
+        // Isolated UserDefaults — never pollutes .standard
+        let defaults = UserDefaults(suiteName: "test-sync-\(UUID().uuidString)")!
+        queue = UserDefaultsSyncQueue(defaults: defaults)
+        manager = SyncManager(queue: queue)
         manager.isOnlineProvider = { true }
         manager.urlSession = makeMockURLSession(statusCode: 200)
     }
@@ -33,73 +33,48 @@ final class SyncManagerTests: XCTestCase {
     func testFlushSuccessMarksSynced() async throws {
         manager.urlSession = makeMockURLSession(statusCode: 200)
         manager.enqueue(endpoint: "/api/log", payload: ["exercise": "Squat"])
-
         await manager.flushQueue()
-
         XCTAssertEqual(manager.pendingCount, 0)
-        let context = ModelContext(container)
-        let descriptor = FetchDescriptor<PendingMutation>()
-        let all = try context.fetch(descriptor)
-        XCTAssertTrue(all.allSatisfy { $0.isSynced })
+        XCTAssertTrue(queue.load().allSatisfy { $0.isSynced })
     }
 
     func testFlush409CountsAsSuccess() async throws {
         manager.urlSession = makeMockURLSession(statusCode: 409)
         manager.enqueue(endpoint: "/api/log", payload: ["exercise": "Deadlift"])
-
         await manager.flushQueue()
-
         XCTAssertEqual(manager.pendingCount, 0)
-        let context = ModelContext(container)
-        let descriptor = FetchDescriptor<PendingMutation>()
-        let all = try context.fetch(descriptor)
-        XCTAssertTrue(all.allSatisfy { $0.isSynced })
+        XCTAssertTrue(queue.load().allSatisfy { $0.isSynced })
     }
 
     func testFlushFailureIncrementsRetry() async throws {
         manager.urlSession = makeMockURLSession(statusCode: 500)
         manager.enqueue(endpoint: "/api/log", payload: ["exercise": "OHP"])
-
         await manager.flushQueue()
-
-        let context = ModelContext(container)
-        let descriptor = FetchDescriptor<PendingMutation>()
-        let all = try context.fetch(descriptor)
+        let all = queue.load()
         XCTAssertEqual(all.first?.retryCount, 1)
         XCTAssertFalse(all.first?.isSynced ?? true)
     }
 
     func testFlushIgnoresMutationsOver5Retries() async throws {
-        // Insert a mutation with retryCount = 5 directly
-        let context = ModelContext(container)
-        let mutation = PendingMutation(endpoint: "/api/log", payload: ["exercise": "Curl"])
+        var mutation = PendingMutation(endpoint: "/api/log", payload: ["exercise": "Curl"])
         mutation.retryCount = 5
-        context.insert(mutation)
-        try context.save()
-
+        queue.append(mutation)
         manager.urlSession = makeMockURLSession(statusCode: 200)
         await manager.flushQueue()
-
-        // Mutation with retryCount=5 is excluded from flush predicate → still not synced
-        let all = try context.fetch(FetchDescriptor<PendingMutation>())
-        XCTAssertFalse(all.first?.isSynced ?? true)
+        // Zombie is dropped entirely (not synced), not present in queue anymore
+        let all = queue.load()
+        XCTAssertFalse(all.contains { $0.id == mutation.id }, "Zombie should be purged")
     }
 
     func testPurgeOldSynced() async throws {
-        // Insert a synced mutation older than 7 days
-        let context = ModelContext(container)
-        let old = PendingMutation(endpoint: "/api/log", payload: [:])
+        var old = PendingMutation(endpoint: "/api/log", payload: [:])
         old.isSynced = true
         old.createdAt = Date().addingTimeInterval(-8 * 86_400)
-        context.insert(old)
-        try context.save()
-
-        // Also enqueue a fresh one so flushQueue has work to do and runs purge
+        queue.append(old)
         manager.urlSession = makeMockURLSession(statusCode: 200)
         manager.enqueue(endpoint: "/api/log", payload: ["exercise": "Row"])
         await manager.flushQueue()
-
-        let all = try context.fetch(FetchDescriptor<PendingMutation>())
+        let all = queue.load()
         XCTAssertFalse(all.contains { $0.id == old.id }, "Old synced mutation should have been purged")
     }
 }

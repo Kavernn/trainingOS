@@ -20,13 +20,15 @@ final class SyncManager: ObservableObject {
     @Published var offlineToast: String? = nil
     @Published private(set) var zombieDropCount: Int = 0
 
-    private let queue = UserDefaultsSyncQueue()
+    private let queue: UserDefaultsSyncQueue
     private var cancellables = Set<AnyCancellable>()
     private let logger = Logger(subsystem: "TrainingOS", category: "sync")
 
     private enum SendResult { case success, retryable, discarded(Int) }
 
-    init() {}
+    init(queue: UserDefaultsSyncQueue = UserDefaultsSyncQueue()) {
+        self.queue = queue
+    }
 
     // MARK: - Setup
 
@@ -170,7 +172,7 @@ final class SyncManager: ObservableObject {
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
         do {
-            let (_, response) = try await URLSession.authed.data(for: req)
+            let (_, response) = try await urlSession.data(for: req)
             let code = (response as? HTTPURLResponse)?.statusCode ?? 0
             if (400...499).contains(code) && code != 429 {
                 return .discarded(code)

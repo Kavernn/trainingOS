@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import SwiftData
 @testable import TrainingOS
 
 // MARK: - CacheService factory
@@ -13,14 +12,6 @@ func makeTempCacheService() -> CacheService {
     let tmp = FileManager.default.temporaryDirectory
         .appendingPathComponent("tests-cache-\(UUID().uuidString)", isDirectory: true)
     return CacheService(directory: tmp)
-}
-
-// MARK: - SwiftData in-memory container
-
-func makeInMemoryContainer() throws -> ModelContainer {
-    let schema = Schema([PendingMutation.self])
-    let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-    return try ModelContainer(for: schema, configurations: [config])
 }
 
 // MARK: - MockURLProtocol
