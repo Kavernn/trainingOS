@@ -118,6 +118,56 @@ def insert_pss_record(entry: dict) -> Optional[dict]:
 
 
 # ---------------------------------------------------------------------------
+# DASS-21 records
+
+def get_dass_records(limit: int = 0) -> List[dict]:
+    """Return DASS-21 records, newest first."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        q = db_core._client.table("dass_records").select("*").order("date", desc=True)
+        if limit:
+            q = q.limit(limit)
+        resp = q.execute()
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_dass_records retry error: %s", e2)
+                return []
+        db_core.logger.error("get_dass_records error: %s", e)
+        return []
+
+
+def insert_dass_record(entry: dict) -> Optional[dict]:
+    """Upsert a DASS-21 record. On conflict on date — one record per day."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return None
+
+    def _do() -> Optional[dict]:
+        resp = db_core._client.table("dass_records").upsert(entry, on_conflict="date").execute()
+        return resp.data[0] if resp.data else None
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("insert_dass_record retry error: %s", e2)
+                return None
+        db_core.logger.error("insert_dass_record error: %s", e)
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Sleep records — TABLE ARCHIVÉE, ne plus alimenter.
 # Source de vérité sommeil : recovery_logs.sleep_hours (saisie manuelle).
 # ---------------------------------------------------------------------------

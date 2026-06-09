@@ -126,6 +126,76 @@ def api_pss_delete():
         raise
 
 
+# ── DASS-21 ───────────────────────────────────────────────────────────────────
+
+@wellness_stress_bp.route("/api/dass/questions")
+def api_dass_questions():
+    """Retourne les 21 questions DASS avec leur sous-échelle."""
+    from dass import get_questions
+    return jsonify(get_questions())
+
+
+@wellness_stress_bp.route("/api/dass/submit", methods=["POST"])
+def api_dass_submit():
+    """
+    Soumet un questionnaire DASS-21 et persiste le résultat.
+
+    Body JSON :
+    {
+      "responses": [int × 21],   // 0-3 par item
+      "notes":     str (optionnel)
+    }
+    """
+    from dass import save_dass_record
+    data = request.get_json(silent=True) or {}
+    responses = data.get("responses")
+    if not responses:
+        return jsonify({"error": "responses requis (21 entiers 0-3)"}), 400
+    try:
+        parsed = [int(r) for r in responses]
+        if any(v < 0 or v > 3 for v in parsed):
+            return jsonify({"error": "Chaque réponse doit être entre 0 et 3"}), 422
+        record = save_dass_record(responses=parsed, notes=data.get("notes"))
+        return jsonify(record), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 422
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@wellness_stress_bp.route("/api/dass/history")
+def api_dass_history():
+    """
+    Historique des enregistrements DASS-21.
+    ?limit=12
+    """
+    from dass import get_history as dass_get_history
+    try:
+        limit = int(request.args.get("limit", 12))
+    except ValueError:
+        limit = 12
+    return jsonify(dass_get_history(limit))
+
+
+@wellness_stress_bp.route("/api/dass/check_due")
+def api_dass_check_due():
+    """Vérifie si un DASS-21 est dû (mensuel)."""
+    from dass import check_due as dass_check_due
+    return jsonify(dass_check_due())
+
+
+@wellness_stress_bp.route("/api/dass/latest")
+def api_dass_latest():
+    """Retourne le dernier enregistrement DASS-21."""
+    from dass import get_latest as dass_get_latest
+    result = dass_get_latest()
+    if not result:
+        return jsonify(None)
+    return jsonify(result)
+
+
+# ── Sommeil ────────────────────────────────────────────────────────────────────
+
 @wellness_stress_bp.route("/api/sleep/log", methods=["POST"])
 def api_sleep_log():
     from sleep import save_sleep_entry

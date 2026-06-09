@@ -72,9 +72,24 @@ def save_settings(limite_calories: int, objectif_proteines: int,
     db.update_nutrition_settings(patch)
 
 
-_HEAVY_SESSIONS = frozenset({"legs b", "lower a", "lower", "legs", "squat", "deadlift"})
-_LIGHT_SESSIONS = frozenset({"upper a", "push a", "pull a"})
-_REST_KEYWORDS  = frozenset({"repos", "rest", "recovery", "yoga", "stretch", "off", "cardio léger"})
+_HEAVY_SESSIONS = frozenset({
+    "legs", "legs a", "legs b", "lower", "lower a", "lower b",
+    "squat", "deadlift", "rdl", "hip thrust",
+    "quad", "hamstring", "glute", "hinge",
+})
+_LIGHT_SESSIONS = frozenset({
+    "upper", "upper a", "upper b",
+    "push", "push a", "push b",
+    "pull", "pull a", "pull b",
+    "chest", "bench", "shoulders", "overhead", "ohp",
+    "arms", "bicep", "tricep", "back",
+})
+_REST_KEYWORDS = frozenset({
+    "repos", "rest", "recovery",
+    "yoga", "stretch", "stretching", "mobilité", "mobilite",
+    "off", "cardio léger", "light cardio",
+    "active recovery", "marche",
+})
 
 
 def _get_day_intensity() -> tuple[str, str]:

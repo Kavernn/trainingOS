@@ -169,6 +169,8 @@ from db_wellness import (
     insert_mood_log,
     get_pss_records,
     insert_pss_record,
+    get_dass_records,
+    insert_dass_record,
     get_sleep_records,
     upsert_sleep_record,
     delete_sleep_record,
