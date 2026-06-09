@@ -284,6 +284,12 @@
 		BPC001AA00300B2F5D0001 /* BehavioralPRsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */; };
 		RRC001AA00300B2F5D0001 /* RuptureRiskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */; };
 /* End PBXBuildFile section */
+		TRL001AA00300B2F5D0001 /* TrainingLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */; };
+		IDW001AA00300B2F5D0001 /* IdealWeekModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */; };
+		TRL002AA00300B2F5D0001 /* APIService+TrainingLoad.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL002AA00300B2F5D0000 /* APIService+TrainingLoad.swift */; };
+		IDW002AA00300B2F5D0001 /* APIService+IdealWeek.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW002AA00300B2F5D0000 /* APIService+IdealWeek.swift */; };
+		TRL003AA00300B2F5D0001 /* TrainingLoadCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL003AA00300B2F5D0000 /* TrainingLoadCard.swift */; };
+		IDW003AA00300B2F5D0001 /* IdealWeekCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW003AA00300B2F5D0000 /* IdealWeekCard.swift */; };
 		PFC001AA00300B2F5D0001 /* PerformanceConditionsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFC001AA00300B2F5D0000 /* PerformanceConditionsModels.swift */; };
 		SLD001AA00300B2F5D0001 /* SleepDebtModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */; };
 		PFC002AA00300B2F5D0001 /* APIService+PerformanceConditions.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */; };
@@ -628,6 +634,12 @@
 		BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehavioralPRsCard.swift; sourceTree = "<group>"; };
 		RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuptureRiskCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+		TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadModels.swift; sourceTree = "<group>"; };
+		IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekModels.swift; sourceTree = "<group>"; };
+		TRL002AA00300B2F5D0000 /* APIService+TrainingLoad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+TrainingLoad.swift; sourceTree = "<group>"; };
+		IDW002AA00300B2F5D0000 /* APIService+IdealWeek.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+IdealWeek.swift; sourceTree = "<group>"; };
+		TRL003AA00300B2F5D0000 /* TrainingLoadCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadCard.swift; sourceTree = "<group>"; };
+		IDW003AA00300B2F5D0000 /* IdealWeekCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekCard.swift; sourceTree = "<group>"; };
 		PFC001AA00300B2F5D0000 /* PerformanceConditionsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceConditionsModels.swift; sourceTree = "<group>"; };
 		SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDebtModels.swift; sourceTree = "<group>"; };
 		PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+PerformanceConditions.swift; sourceTree = "<group>"; };
@@ -1010,6 +1022,8 @@
 					RPT001AA00300B2F5D0000 /* RuptureModels.swift */,
 				PFC001AA00300B2F5D0000 /* PerformanceConditionsModels.swift */,
 				SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */,
+				TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */,
+				IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1071,6 +1085,8 @@
 					RPT002AA00300B2F5D0000 /* APIService+Rupture.swift */,
 				PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */,
 				SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */,
+				TRL002AA00300B2F5D0000 /* APIService+TrainingLoad.swift */,
+				IDW002AA00300B2F5D0000 /* APIService+IdealWeek.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1119,6 +1135,8 @@
 				RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */,
 				PFC003AA00300B2F5D0000 /* PerformanceConditionsCard.swift */,
 				SLD003AA00300B2F5D0000 /* SleepDebtCard.swift */,
+				TRL003AA00300B2F5D0000 /* TrainingLoadCard.swift */,
+				IDW003AA00300B2F5D0000 /* IdealWeekCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";

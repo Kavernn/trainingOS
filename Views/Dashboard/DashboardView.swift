@@ -198,6 +198,12 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.15)
                                 }
 
+                                // 8b2 — Zone de charge (ACWR)
+                                if let load = vm.trainingLoad, load.hasData {
+                                    TrainingLoadCard(data: load)
+                                        .appearAnimation(delay: 0.155)
+                                }
+
                                 // 8c — Rupture Risk (vigilance ou plus)
                                 if let rupture = vm.ruptureRisk, rupture.score >= 20 {
                                     RuptureRiskCard(data: rupture)
@@ -316,6 +322,12 @@ struct DashboardView: View {
                                 if let debt = vm.sleepDebt, debt.hasData {
                                     SleepDebtCard(data: debt)
                                         .appearAnimation(delay: 0.39)
+                                }
+
+                                // 16f — Semaine idéale
+                                if let ideal = vm.idealWeek, ideal.hasData {
+                                    IdealWeekCard(data: ideal)
+                                        .appearAnimation(delay: 0.41)
                                 }
 
                                 // ── SCROLL PROFOND ────────────────────────────
