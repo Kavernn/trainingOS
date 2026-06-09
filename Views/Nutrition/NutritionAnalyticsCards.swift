@@ -5,11 +5,17 @@ import SwiftUI
 struct DailyRemainingCard: View {
     let totals: NutritionTotals?
     let settings: NutritionSettings?
+    var todayType: String? = nil
     @State private var prevAllDone = false
     @State private var goalScale: CGFloat = 1.0
 
-    private var remainingCal: Double  { max((settings?.calories  ?? 2400) - (totals?.calories  ?? 0), 0) }
-    private var remainingProt: Double { max((settings?.proteines ?? 180)  - (totals?.proteines ?? 0), 0) }
+    private var effectiveCalTarget: Double {
+        if let t = todayType, let dt = settings?.dayTypeTargets?.target(for: t) { return dt.calories }
+        return settings?.calories ?? 2400
+    }
+    private var calorieSurplus: Double { max(0, (totals?.calories ?? 0) - effectiveCalTarget) }
+    private var remainingCal: Double  { max(effectiveCalTarget - (totals?.calories  ?? 0), 0) }
+    private var remainingProt: Double { max((settings?.proteines ?? 180) - (totals?.proteines ?? 0), 0) }
     // N-C1: only mark as done when settings are actually configured
     private var allDone: Bool         { settings != nil && remainingCal <= 0 && remainingProt <= 0 }
 
@@ -39,20 +45,27 @@ struct DailyRemainingCard: View {
                     .foregroundColor(.gray)
                     .frame(maxWidth: .infinity)
             } else if allDone {
-                Label("Objectifs atteints !", systemImage: "checkmark.seal.fill")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.green)
-                    .frame(maxWidth: .infinity)
-                    .scaleEffect(goalScale)
-                    .onChange(of: allDone) { done in
-                        if done && !prevAllDone {
-                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                            triggerNotificationFeedback(.success)
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.5)) { goalScale = 1.35 }
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7).delay(0.15)) { goalScale = 1.0 }
+                VStack(spacing: 6) {
+                    Label("Objectifs atteints !", systemImage: "checkmark.seal.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.green)
+                        .scaleEffect(goalScale)
+                        .onChange(of: allDone) { done in
+                            if done && !prevAllDone {
+                                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                                triggerNotificationFeedback(.success)
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.5)) { goalScale = 1.35 }
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7).delay(0.15)) { goalScale = 1.0 }
+                            }
+                            prevAllDone = done
                         }
-                        prevAllDone = done
+                    if calorieSurplus > 200 {
+                        Label("Surplus de \(Int(calorieSurplus)) kcal — reste léger ce soir", systemImage: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.yellow)
                     }
+                }
+                .frame(maxWidth: .infinity)
             } else {
                 HStack(alignment: .center, spacing: 16) {
                     VStack(spacing: 2) {
@@ -90,6 +103,7 @@ struct DailyRemainingCard: View {
 struct AdherenceScoreCard: View {
     let history: [NutritionDayHistory]
     let settings: NutritionSettings?
+    var period: Int = 7
 
     private var protTarget: Double { settings?.proteines ?? 180 }
     private var calTarget:  Double { settings?.calories  ?? 2400 }
@@ -145,7 +159,7 @@ struct AdherenceScoreCard: View {
                         Text("\(successDays)/\(history.count) jours dans les objectifs")
                             .font(.system(size: 12))
                             .foregroundColor(.gray)
-                        Text("Prot ≥ 90% · Cal ≤ 110%")
+                        Text("\(history.count)/\(period) jours loggués · Prot ≥90% · Cal ≤110%")
                             .font(.system(size: 10))
                             .foregroundColor(Color.gray.opacity(0.6))
                     }
@@ -398,13 +412,14 @@ struct MacroGapChip: View {
 
 struct NutritionCorrelationsCard: View {
     let settings: NutritionSettings?
+    var refreshID: UUID = UUID()
     @State private var data: NutritionCorrelations? = nil
     @State private var timingData: NutritionTimingData? = nil
     @State private var isLoading = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("CORRÉLATIONS")
+            Text("OBSERVATIONS")
                 .font(.system(size: 10, weight: .bold)).tracking(2).foregroundColor(.gray)
 
             if isLoading {
@@ -491,7 +506,8 @@ struct NutritionCorrelationsCard: View {
         .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
-        .task {
+        .task(id: refreshID) {
+            isLoading = true
             guard let url = URL(string: "\(APIConfig.base)/api/nutrition/correlations"),
                   let (raw, _) = try? await URLSession.authed.data(from: url),
                   let decoded  = try? APIService.decoder.decode(NutritionCorrelations.self, from: raw)
@@ -626,7 +642,7 @@ struct WorkoutTimingCard: View {
 
     private var guidance: Guidance? {
         let hour = (Int(Date().timeIntervalSince1970) + TimeZone.current.secondsFromGMT()) / 3600 % 24
-        let isTraining = todayType == "training"
+        let isTraining = ["heavy", "moderate", "light"].contains(todayType)
         let protConsumed = totals?.proteines ?? 0
         let protGoal = settings?.proteines ?? 0
         let calConsumed = totals?.calories ?? 0

@@ -213,8 +213,9 @@ def api_nutrition_quality():
     from utils import get_nutrition_time_context, _today_mtl
     score, details = _score_nutrition()
     ctx = get_nutrition_time_context(_today_mtl())
+    normalized = min(100, int(round(score / 90.0 * 100))) if score > 0 else 0
     return jsonify({
-        "score":        int(score),
+        "score":        normalized,
         "cal_pct":      details.get("cal_pct"),
         "prot_pct":     details.get("prot_pct"),
         "is_too_early": ctx.get("is_too_early", False),

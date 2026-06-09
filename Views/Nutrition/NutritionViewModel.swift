@@ -15,6 +15,7 @@ final class NutritionViewModel: ObservableObject {
     @Published var qualityScore: Int? = nil
     @Published var qualityIsTooEarly: Bool = false
     @Published var qualityNoData: Bool = false
+    @Published var refreshID: UUID = UUID()
 
     func loadData(days: Int = 7, silent: Bool = false) async {
         if !silent { isLoading = true }
@@ -39,6 +40,7 @@ final class NutritionViewModel: ObservableObject {
             networkError = "Impossible de charger la nutrition"
         }
         isLoading = false
+        refreshID = UUID()
         if let qUrl = URL(string: "\(APIConfig.base)/api/nutrition/quality"),
            let (qData, _) = try? await URLSession.authed.data(for: URLRequest(url: qUrl)),
            let q = try? APIService.decoder.decode(NutritionQualityResponse.self, from: qData) {

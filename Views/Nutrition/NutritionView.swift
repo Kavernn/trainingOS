@@ -80,7 +80,7 @@ struct NutritionView: View {
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.05)
 
-                            DailyRemainingCard(totals: vm.totals, settings: effectiveSettings)
+                            DailyRemainingCard(totals: vm.totals, settings: effectiveSettings, todayType: vm.todayType)
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.08)
 
@@ -160,7 +160,7 @@ struct NutritionView: View {
                             }
 
                             if !vm.history.isEmpty {
-                                AdherenceScoreCard(history: vm.history, settings: vm.settings)
+                                AdherenceScoreCard(history: vm.history, settings: vm.settings, period: historyPeriod)
                                     .padding(.horizontal, 16)
                                     .appearAnimation(delay: 0.22)
                             }
@@ -171,7 +171,7 @@ struct NutritionView: View {
                                     .appearAnimation(delay: 0.25)
                             }
 
-                            NutritionCorrelationsCard(settings: vm.settings)
+                            NutritionCorrelationsCard(settings: vm.settings, refreshID: vm.refreshID)
                                 .padding(.horizontal, 16)
                                 .appearAnimation(delay: 0.28)
 
@@ -186,7 +186,10 @@ struct NutritionView: View {
                         .padding(.vertical, 16)
                     }
                     .scrollDismissesKeyboard(.interactively)
-                    .refreshable { await vm.loadData() }
+                    .refreshable {
+            await vm.loadData()
+            await loadMacroGap()
+        }
                 }
             }
             .navigationTitle("Nutrition")
@@ -273,15 +276,18 @@ struct NutritionView: View {
         }
         .task {
             await vm.loadData(days: historyPeriod)
-            // N-D1: show banner if settings are nil after load
             showSettingsBanner = vm.settings == nil
-            if let url = URL(string: "\(APIService.shared.baseURL)/api/macro_gap"),
-               let (d, _) = try? await URLSession.authed.data(from: url),
-               let gap = try? APIService.decoder.decode(MacroGap.self, from: d) {
-                macroGap = gap
-            }
+            await loadMacroGap()
         }
         .toast($toast)
+    }
+
+    @MainActor
+    private func loadMacroGap() async {
+        guard let url = URL(string: "\(APIService.shared.baseURL)/api/macro_gap"),
+              let (d, _) = try? await URLSession.authed.data(from: url),
+              let gap = try? APIService.decoder.decode(MacroGap.self, from: d) else { return }
+        macroGap = gap
     }
 
     @MainActor
