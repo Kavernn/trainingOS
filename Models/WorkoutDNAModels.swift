@@ -9,15 +9,19 @@ struct WorkoutDNAResponse: Codable {
     let recovery: DNARecovery
     let signatureLifts: [DNASignatureLift]
     let muscleDominants: [DNAMuscleDominant]?
+    let movementPatterns: DNAMovementPatterns?
+    let intensityTimeline: [DNAIntensityMonth]?
     let dnaSeed: String
     let computedAt: String
 
     enum CodingKeys: String, CodingKey {
         case period, archetype, ppl, intensity, consistency, recovery
-        case signatureLifts  = "signature_lifts"
-        case muscleDominants = "muscle_dominants"
-        case dnaSeed         = "dna_seed"
-        case computedAt      = "computed_at"
+        case signatureLifts    = "signature_lifts"
+        case muscleDominants   = "muscle_dominants"
+        case movementPatterns  = "movement_patterns"
+        case intensityTimeline = "intensity_timeline"
+        case dnaSeed           = "dna_seed"
+        case computedAt        = "computed_at"
     }
 }
 
@@ -109,6 +113,56 @@ struct DNAMuscleDominant: Codable {
     let muscle: String
     let sets: Int
     let pct: Int
+}
+
+struct DNAMovementPatterns: Codable {
+    let hasData: Bool
+    let patterns: [DNAMovementPatternEntry]
+    let ratios: DNAPatternRatios
+    let diversityScore: Int
+    let totalSets: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case patterns
+        case hasData        = "has_data"
+        case ratios
+        case diversityScore = "diversity_score"
+        case totalSets      = "total_sets"
+    }
+}
+
+struct DNAMovementPatternEntry: Codable, Identifiable {
+    var id: String { pattern }
+    let pattern: String
+    let sets: Int
+    let pct: Int
+}
+
+struct DNAPatternRatios: Codable {
+    let hingeSquat: Double?
+    let pushHorizVert: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case hingeSquat    = "hinge_squat"
+        case pushHorizVert = "push_horiz_vert"
+    }
+}
+
+struct DNAIntensityMonth: Codable, Identifiable {
+    var id: String { month }
+    let month: String
+    let strengthPct: Int
+    let hypertrophyPct: Int
+    let endurancePct: Int
+    let totalSets: Int
+
+    enum CodingKeys: String, CodingKey {
+        case month
+        case strengthPct    = "strength_pct"
+        case hypertrophyPct = "hypertrophy_pct"
+        case endurancePct   = "endurance_pct"
+        case totalSets      = "total_sets"
+    }
 }
 
 struct DNASignatureLift: Codable, Identifiable {

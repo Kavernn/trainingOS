@@ -1008,7 +1008,7 @@ def get_exercise_logs_for_session_with_names(session_id: str) -> List[dict]:
 def get_exercise_logs_since(cutoff_date: str) -> List[dict]:
     """Return exercise logs since cutoff_date (inclusive) with muscles info.
 
-    Returns [{exercise_name, muscles, sets_json, rpe, date}] sorted date desc.
+    Returns [{exercise_name, muscles, muscle_group, muscle_specific, sets_json, rpe, date}].
     Used by muscle_volume.compute_weekly_hard_sets().
     """
     if db_core._client is None or db_core.MODE == "OFFLINE":
@@ -1017,7 +1017,7 @@ def get_exercise_logs_since(cutoff_date: str) -> List[dict]:
     def _do() -> List[dict]:
         resp = (
             db_core._client.table("exercise_logs")
-            .select("sets_json, exercises(name, muscles), workout_sessions(date, rpe)")
+            .select("sets_json, exercises(name, muscles, muscle_group, muscle_specific), workout_sessions(date, rpe)")
             .gte("workout_sessions.date", cutoff_date)
             .execute()
         )
@@ -1029,11 +1029,13 @@ def get_exercise_logs_since(cutoff_date: str) -> List[dict]:
             if not ex.get("name") or not ses.get("date"):
                 continue
             result.append({
-                "exercise_name": ex["name"],
-                "muscles":       ex.get("muscles") or [],
-                "sets_json":     r.get("sets_json") or [],
-                "rpe":           ses.get("rpe"),
-                "date":          ses["date"],
+                "exercise_name":  ex["name"],
+                "muscles":        ex.get("muscles") or [],
+                "muscle_group":   ex.get("muscle_group") or "",
+                "muscle_specific": ex.get("muscle_specific") or "",
+                "sets_json":      r.get("sets_json") or [],
+                "rpe":            ses.get("rpe"),
+                "date":           ses["date"],
             })
         return result
 
@@ -1198,7 +1200,7 @@ def get_exercises_info_bulk(exercise_names: list[str]) -> dict[str, dict]:
     def _do() -> dict[str, dict]:
         resp = (
             db_core._client.table("exercises")
-            .select("name, category, load_profile, default_scheme, muscles")
+            .select("name, category, load_profile, default_scheme, muscles, muscle_group, muscle_specific, movement_pattern, weight_type")
             .in_("name", names)
             .is_("deleted_at", "null")
             .execute()

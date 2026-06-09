@@ -344,7 +344,16 @@ def _compute_muscle_dominants(history: dict, ex_info: dict, period_days: int = 9
     muscle_sets: dict[str, int] = {}
 
     for name, entries in history.items():
-        muscles = ex_info.get(name, {}).get("muscles") or []
+        info = ex_info.get(name, {})
+        # Prefer new enriched catalog fields; fall back to legacy muscles[]
+        muscle_group    = (info.get("muscle_group") or "").strip()
+        muscle_specific = (info.get("muscle_specific") or "").strip()
+        if muscle_group and muscle_specific:
+            muscles = [muscle_specific]           # precise: e.g. "Pectoraux claviculaires"
+        elif muscle_group:
+            muscles = [muscle_group]              # group-level: e.g. "Pectoraux"
+        else:
+            muscles = info.get("muscles") or []   # legacy fallback: e.g. ["chest"]
         if not muscles:
             continue
         for e in entries:
@@ -358,6 +367,103 @@ def _compute_muscle_dominants(history: dict, ex_info: dict, period_days: int = 9
     total  = sum(muscle_sets.values()) or 1
     ranked = sorted(muscle_sets.items(), key=lambda x: x[1], reverse=True)[:6]
     return [{"muscle": m, "sets": s, "pct": round(s / total * 100)} for m, s in ranked]
+
+
+# ── 7. Movement Patterns ─────────────────────────────────────────────────────
+
+def _compute_movement_patterns(history: dict, ex_info: dict, period_days: int = 90) -> dict:
+    cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat()
+    pattern_sets: dict[str, int] = {}
+
+    for name, entries in history.items():
+        pattern = (ex_info.get(name, {}).get("movement_pattern") or "").strip()
+        if not pattern:
+            continue
+        for e in entries:
+            if (e.get("date") or "") < cutoff:
+                continue
+            sets_list = e.get("sets")
+            n_sets = len(sets_list) if isinstance(sets_list, list) else 1
+            pattern_sets[pattern] = pattern_sets.get(pattern, 0) + n_sets
+
+    if not pattern_sets:
+        return {"has_data": False, "patterns": [], "ratios": {}, "diversity_score": 0}
+
+    total = sum(pattern_sets.values()) or 1
+    patterns_ranked = sorted(
+        [{"pattern": p, "sets": s, "pct": round(s / total * 100)} for p, s in pattern_sets.items()],
+        key=lambda x: x["sets"], reverse=True,
+    )
+
+    # Diagnostically useful ratios
+    hinge  = pattern_sets.get("hinge", 0)
+    squat  = pattern_sets.get("squat", 0)
+    push_h = pattern_sets.get("push_horizontal", 0)
+    push_v = pattern_sets.get("push_vertical", 0)
+
+    ratios: dict = {}
+    if squat > 0:
+        ratios["hinge_squat"] = round(hinge / squat, 2)  # >0.75 = posterior-chain balance
+    if push_v > 0:
+        ratios["push_horiz_vert"] = round(push_h / push_v, 2)
+
+    diversity = round(len(pattern_sets) / 17 * 100)  # % of 17 canonical patterns used
+
+    return {
+        "has_data":       True,
+        "patterns":       patterns_ranked,
+        "ratios":         ratios,
+        "diversity_score": diversity,
+        "total_sets":     total,
+    }
+
+
+# ── 8. Intensity Timeline ─────────────────────────────────────────────────────
+
+def _compute_intensity_timeline(history: dict, months: int = 6) -> list[dict]:
+    """Monthly rep-zone breakdown — last N months."""
+    today = date_cls.fromisoformat(_today_mtl())
+    month_buckets: dict[str, dict[str, int]] = {}
+    for i in range(months - 1, -1, -1):
+        m = today.month - i
+        y = today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        month_buckets[f"{y}-{m:02d}"] = {"strength": 0, "power": 0, "hypertrophy": 0, "endurance": 0}
+
+    for name, entries in history.items():
+        for e in entries:
+            month_key = str(e.get("date") or "")[:7]
+            if month_key not in month_buckets:
+                continue
+            default_reps = int(str(e.get("reps") or "8").split(",")[0].strip() or 8)
+            sets_list = e.get("sets")
+            iter_reps: list[int] = []
+            if isinstance(sets_list, list):
+                for s in sets_list:
+                    iter_reps.append(int(s.get("reps") if isinstance(s, dict) else default_reps))
+            else:
+                iter_reps = [default_reps]
+
+            bkt = month_buckets[month_key]
+            for r in iter_reps:
+                if r <= 4:    bkt["strength"]    += 1
+                elif r <= 7:  bkt["power"]       += 1
+                elif r <= 12: bkt["hypertrophy"] += 1
+                else:         bkt["endurance"]   += 1
+
+    result = []
+    for month_key, zones in sorted(month_buckets.items()):
+        total = sum(zones.values()) or 1
+        result.append({
+            "month":           month_key,
+            "strength_pct":    round((zones["strength"] + zones["power"]) / total * 100),
+            "hypertrophy_pct": round(zones["hypertrophy"] / total * 100),
+            "endurance_pct":   round(zones["endurance"] / total * 100),
+            "total_sets":      sum(zones.values()),
+        })
+    return result
 
 
 # ── Archetype ─────────────────────────────────────────────────────────────────
@@ -404,27 +510,31 @@ def compute(period_days: int = 90) -> dict:
         history  = db.get_all_exercise_history()
         ex_info  = db.get_exercises_info_bulk(list(history.keys()))
 
-        ppl              = _compute_ppl(history, ex_info, period_days)
-        intensity        = _compute_intensity(history, ex_info, period_days)
-        consistency      = _compute_consistency(period_days)
-        recovery         = _compute_recovery(intensity.get("score", 50), period_days)
-        lifts            = _compute_signature_lifts(history)
-        muscle_dominants = _compute_muscle_dominants(history, ex_info, period_days)
-        arch             = _archetype(ppl, intensity, consistency)
-        seed             = _dna_seed(ppl, intensity, consistency, recovery)
+        ppl               = _compute_ppl(history, ex_info, period_days)
+        intensity         = _compute_intensity(history, ex_info, period_days)
+        consistency       = _compute_consistency(period_days)
+        recovery          = _compute_recovery(intensity.get("score", 50), period_days)
+        lifts             = _compute_signature_lifts(history)
+        muscle_dominants  = _compute_muscle_dominants(history, ex_info, period_days)
+        movement_patterns = _compute_movement_patterns(history, ex_info, period_days)
+        intensity_timeline = _compute_intensity_timeline(history)
+        arch              = _archetype(ppl, intensity, consistency)
+        seed              = _dna_seed(ppl, intensity, consistency, recovery)
 
         result = {
-            "period":            {"from": (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat(),
-                                  "to":   date_cls.fromisoformat(_today_mtl()).isoformat()},
-            "archetype":         arch,
-            "ppl":               ppl,
-            "intensity":         intensity,
-            "consistency":       consistency,
-            "recovery":          recovery,
-            "signature_lifts":   lifts,
-            "muscle_dominants":  muscle_dominants,
-            "dna_seed":          seed,
-            "computed_at":       datetime.now(timezone.utc).isoformat(),
+            "period":             {"from": (date_cls.fromisoformat(_today_mtl()) - timedelta(days=period_days)).isoformat(),
+                                   "to":   date_cls.fromisoformat(_today_mtl()).isoformat()},
+            "archetype":          arch,
+            "ppl":                ppl,
+            "intensity":          intensity,
+            "consistency":        consistency,
+            "recovery":           recovery,
+            "signature_lifts":    lifts,
+            "muscle_dominants":   muscle_dominants,
+            "movement_patterns":  movement_patterns,
+            "intensity_timeline": intensity_timeline,
+            "dna_seed":           seed,
+            "computed_at":        datetime.now(timezone.utc).isoformat(),
         }
         _CACHE[cache_key] = {"data": result, "ts": now_ts}
         return result

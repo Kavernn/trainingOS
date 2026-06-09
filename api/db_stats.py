@@ -61,7 +61,7 @@ def get_pattern_volume(days: int = 28, weights: dict | None = None) -> dict:
         inventory = load_inventory() or {}
         pattern_vol: dict[str, float] = {}
         for name, data in weights.items():
-            pattern = (inventory.get(name) or {}).get("pattern") or ""
+            pattern = (inventory.get(name) or {}).get("movement_pattern") or ""
             if not pattern:
                 continue
             for entry in (data.get("history") or []):
@@ -141,7 +141,7 @@ def get_one_rm_trend(days: int = 84, weights: dict | None = None) -> dict:
         compound_patterns = {"squat", "hinge", "push", "pull"}
         result: dict[str, list[dict]] = {}
         for name, data in weights.items():
-            pattern = (inventory.get(name) or {}).get("pattern") or ""
+            pattern = (inventory.get(name) or {}).get("movement_pattern") or ""
             if pattern not in compound_patterns:
                 continue
             points = []
@@ -677,7 +677,7 @@ def get_sessions_with_energy_pre(days: int = 90) -> list[dict]:
 
 
 def get_exercise_logs_with_category(days: int = 90) -> list[dict]:
-    """Return exercise_logs with exercise category for push/pull ratio computation."""
+    """Return exercise_logs with exercise metadata for push/pull + agonist/antagonist analysis."""
     if db_core._client is None or db_core.MODE == "OFFLINE":
         return []
     from datetime import date as _date, timedelta
@@ -686,7 +686,7 @@ def get_exercise_logs_with_category(days: int = 90) -> list[dict]:
     def _do() -> list[dict]:
         resp = (
             db_core._client.table("exercise_logs")
-            .select("weight, reps, workout_sessions(date), exercises(name, category, load_profile)")
+            .select("weight, reps, workout_sessions(date), exercises(name, category, load_profile, muscle_group, muscle_specific)")
             .gte("workout_sessions(date)", cutoff)
             .limit(1000)
             .execute()
@@ -700,12 +700,14 @@ def get_exercise_logs_with_category(days: int = 90) -> list[dict]:
             if not d:
                 continue
             result.append({
-                "date":         d,
-                "exercise":     ex.get("name"),
-                "category":     ex.get("category"),
-                "load_profile": ex.get("load_profile"),
-                "weight":       r.get("weight", 0),
-                "reps":         r.get("reps", ""),
+                "date":            d,
+                "exercise":        ex.get("name"),
+                "category":        ex.get("category"),
+                "load_profile":    ex.get("load_profile"),
+                "muscle_group":    ex.get("muscle_group") or "",
+                "muscle_specific": ex.get("muscle_specific") or "",
+                "weight":          r.get("weight", 0),
+                "reps":            r.get("reps", ""),
             })
         return result
 

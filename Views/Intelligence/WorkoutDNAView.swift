@@ -125,8 +125,15 @@ private struct WorkoutDNAInlineContent: View {
             scorePillsSection
             pplSection
             intensitySection
+            if let timeline = dna.intensityTimeline,
+               timeline.filter({ $0.totalSets > 0 }).count >= 2 {
+                intensityTimelineSection(timeline)
+            }
             if let muscles = dna.muscleDominants, !muscles.isEmpty {
                 muscleDominantsSection(muscles)
+            }
+            if let patterns = dna.movementPatterns, patterns.hasData {
+                movementPatternsSection(patterns)
             }
             consistencySection
             recoverySection
@@ -301,6 +308,147 @@ private struct WorkoutDNAInlineContent: View {
         }
     }
 
+    // MARK: Intensity Timeline
+
+    @ViewBuilder
+    private func intensityTimelineSection(_ timeline: [DNAIntensityMonth]) -> some View {
+        DNASectionCard(title: "ÉVOLUTION DE L'INTENSITÉ — 6 MOIS", accent: accent) {
+            let activeMonths = timeline.filter { $0.totalSets > 0 }
+            VStack(spacing: 10) {
+                // Stacked bar chart
+                HStack(alignment: .bottom, spacing: 5) {
+                    ForEach(timeline) { month in
+                        VStack(spacing: 2) {
+                            if month.totalSets > 0 {
+                                IntensityTimelineBar(month: month)
+                            } else {
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(Color.white.opacity(0.04))
+                                    .frame(height: 48)
+                            }
+                            Text(String(month.month.suffix(2)))
+                                .font(.system(size: 8))
+                                .foregroundColor(.gray.opacity(0.5))
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .frame(height: 60)
+                // Legend
+                HStack(spacing: 12) {
+                    IntensityTimelineLegendDot(color: Color(red: 0.31, green: 0.43, blue: 0.97), label: "Force")
+                    IntensityTimelineLegendDot(color: Color(red: 0.66, green: 0.33, blue: 0.97), label: "Hypertrophie")
+                    IntensityTimelineLegendDot(color: Color(red: 0.20, green: 0.70, blue: 0.98), label: "Endurance")
+                    Spacer()
+                    if let trend = intensityTrend(activeMonths) {
+                        Text(trend)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(accent)
+                    }
+                }
+            }
+        }
+    }
+
+    private func intensityTrend(_ months: [DNAIntensityMonth]) -> String? {
+        guard months.count >= 2 else { return nil }
+        let first = months.first!.strengthPct
+        let last  = months.last!.strengthPct
+        let delta = last - first
+        if delta > 8  { return "↑ Plus lourd" }
+        if delta < -8 { return "↓ Plus de volume" }
+        return nil
+    }
+
+    // MARK: Movement Patterns
+
+    @ViewBuilder
+    private func movementPatternsSection(_ patterns: DNAMovementPatterns) -> some View {
+        DNASectionCard(title: "PATTERNS DE MOUVEMENT", accent: accent) {
+            VStack(spacing: 12) {
+                // Top 6 patterns as bars
+                let topPatterns = Array(patterns.patterns.prefix(6))
+                VStack(spacing: 6) {
+                    ForEach(topPatterns) { entry in
+                        HStack(spacing: 8) {
+                            Text(patternLabel(entry.pattern))
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.gray)
+                                .frame(width: 110, alignment: .leading)
+                                .lineLimit(1)
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Color.white.opacity(0.06))
+                                    Capsule()
+                                        .fill(patternColor(entry.pattern))
+                                        .frame(width: geo.size.width * CGFloat(entry.pct) / 100)
+                                }
+                            }
+                            .frame(height: 7)
+                            Text("\(entry.pct)%")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(patternColor(entry.pattern))
+                                .frame(width: 28, alignment: .trailing)
+                        }
+                    }
+                }
+                // Ratios + diversity
+                HStack(spacing: 0) {
+                    if let hs = patterns.ratios.hingeSquat {
+                        PatternRatioPill(label: "Hinge/Squat", value: hs,
+                                        ideal: 0.75, warn: 0.5)
+                        Spacer()
+                    }
+                    if let pv = patterns.ratios.pushHorizVert {
+                        PatternRatioPill(label: "Horiz/Vert", value: pv,
+                                        ideal: 1.0, warn: 0.4)
+                        Spacer()
+                    }
+                    HStack(spacing: 4) {
+                        Image(systemName: "shuffle")
+                            .font(.system(size: 10))
+                            .foregroundColor(.gray)
+                        Text("Diversité \(patterns.diversityScore)%")
+                            .font(.system(size: 11))
+                            .foregroundColor(patterns.diversityScore >= 40 ? accent : .orange)
+                    }
+                }
+            }
+        }
+    }
+
+    private func patternLabel(_ pattern: String) -> String {
+        switch pattern {
+        case "squat":              return "Squat"
+        case "hinge":              return "Hinge"
+        case "push_horizontal":    return "Push Horiz."
+        case "push_vertical":      return "Push Vert."
+        case "pull_horizontal":    return "Pull Horiz."
+        case "pull_vertical":      return "Pull Vert."
+        case "hip_thrust":         return "Hip Thrust"
+        case "lunge":              return "Lunge"
+        case "carry":              return "Carry"
+        case "plank":              return "Gainage"
+        case "anti_rotation":      return "Anti-rotation"
+        case "rotation":           return "Rotation"
+        case "jump":               return "Saut"
+        case "sprint":             return "Sprint"
+        case "isolation_upper":    return "Isolation Haut"
+        case "isolation_lower":    return "Isolation Bas"
+        case "cardio":             return "Cardio"
+        default:                   return pattern.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+
+    private func patternColor(_ pattern: String) -> Color {
+        if pattern.hasPrefix("push") { return Color(red: 0.98, green: 0.45, blue: 0.10) }
+        if pattern.hasPrefix("pull") { return Color(red: 0.20, green: 0.70, blue: 0.98) }
+        if pattern == "squat" || pattern == "lunge" { return Color(red: 0.95, green: 0.80, blue: 0.10) }
+        if pattern == "hinge" || pattern == "hip_thrust" { return Color(red: 0.13, green: 0.77, blue: 0.37) }
+        if pattern.hasPrefix("isolation") { return Color(red: 0.66, green: 0.33, blue: 0.97) }
+        return .gray
+    }
+
     private var shareButton: some View {
         Button(action: onShare) {
             HStack(spacing: 8) {
@@ -317,6 +465,78 @@ private struct WorkoutDNAInlineContent: View {
         .buttonStyle(SpringButtonStyle())
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
+    }
+}
+
+// MARK: - Intensity Timeline Bar
+
+private struct IntensityTimelineBar: View {
+    let month: DNAIntensityMonth
+
+    var body: some View {
+        GeometryReader { geo in
+            let h = geo.size.height
+            let strH  = CGFloat(month.strengthPct)    / 100 * h
+            let hypH  = CGFloat(month.hypertrophyPct) / 100 * h
+            let endH  = CGFloat(month.endurancePct)   / 100 * h
+            VStack(spacing: 0) {
+                // Endurance (top)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(red: 0.20, green: 0.70, blue: 0.98).opacity(0.75))
+                    .frame(height: max(0, endH))
+                // Hypertrophie (middle)
+                Rectangle()
+                    .fill(Color(red: 0.66, green: 0.33, blue: 0.97).opacity(0.75))
+                    .frame(height: max(0, hypH))
+                // Force (bottom)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color(red: 0.31, green: 0.43, blue: 0.97).opacity(0.75))
+                    .frame(height: max(0, strH))
+            }
+        }
+        .frame(height: 48)
+        .clipShape(RoundedRectangle(cornerRadius: 3))
+    }
+}
+
+private struct IntensityTimelineLegendDot: View {
+    let color: Color
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 9)).foregroundColor(.gray)
+        }
+    }
+}
+
+// MARK: - Pattern Ratio Pill
+
+private struct PatternRatioPill: View {
+    let label: String
+    let value: Double
+    let ideal: Double
+    let warn: Double
+
+    private var pillColor: Color {
+        if value < warn { return .red }
+        if abs(value - ideal) / max(ideal, 0.01) > 0.35 { return .orange }
+        return .green
+    }
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(String(format: "%.2f", value))
+                .font(.system(size: 13, weight: .black, design: .rounded))
+                .foregroundColor(pillColor)
+            Text(label)
+                .font(.system(size: 8))
+                .foregroundColor(.gray)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .background(pillColor.opacity(0.10))
+        .cornerRadius(7)
     }
 }
 
