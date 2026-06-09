@@ -192,7 +192,13 @@ struct DashboardView: View {
                                         .appearAnimationHot(delay: 0.14)
                                 }
 
-                                // 8b — War Room strip
+                                // 8b — Vélocité + Score Composé
+                                if let vel = vm.velocityData, let comp = vm.compoundScore, vel.hasBaseline {
+                                    VelocityCompoundCard(velocity: vel, compound: comp)
+                                        .appearAnimation(delay: 0.15)
+                                }
+
+                                // 8c — War Room strip
                                 if vm.warRoomEnabled {
                                     WarRoomStripView(
                                         hasResult:      vm.warRoomHasResult,
@@ -274,6 +280,12 @@ struct DashboardView: View {
                                 if let season = vm.activeSeason {
                                     SeasonStripView(season: season) { showSeasonClose = true }
                                         .appearAnimation(delay: 0.32)
+                                }
+
+                                // 16b — Rythme hebdomadaire
+                                if let temporal = vm.temporalPatterns, temporal.hasBaseline {
+                                    TemporalPatternCard(data: temporal)
+                                        .appearAnimation(delay: 0.33)
                                 }
 
                                 // ── SCROLL PROFOND ────────────────────────────

@@ -72,16 +72,19 @@ def _compute_phoenix() -> tuple[int, int, int]:
 def api_ritual_today():
     import db as _db
 
-    today_str           = _today_mtl().isoformat()
+    today_str            = _today_mtl().isoformat()
     yesterday_str        = (_today_mtl() - timedelta(days=1)).isoformat()
+    tomorrow_str         = (_today_mtl() + timedelta(days=1)).isoformat()
     existing             = _db.get_ritual_today(today_str)
     yesterday_ritual     = _db.get_ritual_today(yesterday_str)
     yesterday_intention  = (yesterday_ritual or {}).get("tomorrow_intention")
     yesterday_outcome    = (yesterday_ritual or {}).get("outcome")
     yesterday_evening_at = (yesterday_ritual or {}).get("evening_at")
-    streak, best, total = _compute_phoenix()
-    raw_demons          = _db.get_ritual_demons()
-    demons              = _enrich_carry_counts(raw_demons)  # A1
+    streak, best, total  = _compute_phoenix()
+    raw_demons           = _db.get_ritual_demons()
+    demons               = _enrich_carry_counts(raw_demons)  # A1
+    engagements          = _db.get_engagements_for_date(today_str)
+    tomorrow_engagements = _db.get_engagements_for_date(tomorrow_str)
 
     if existing:
         # Surface oldest demon even on existing
@@ -107,6 +110,8 @@ def api_ritual_today():
             "yesterday_intention":   yesterday_intention,
             "yesterday_outcome":     yesterday_outcome,
             "yesterday_evening_at":  yesterday_evening_at,
+            "engagements":           engagements,
+            "tomorrow_engagements":  tomorrow_engagements,
         })
 
     truth, ttype = random.choice(_DEFAULT_TRUTHS)
@@ -159,6 +164,8 @@ def api_ritual_today():
         "routine_priorities_done":   False,
         "routine_bedtime_ok":        False,
         "routine_completed_at":      None,
+        "engagements":           engagements,
+        "tomorrow_engagements":  tomorrow_engagements,
     })
 
 
@@ -340,6 +347,46 @@ _ROUTINE_ITEMS = {
     "routine_connection", "routine_deconnect", "routine_priorities_done",
     "routine_bedtime_ok",
 }
+
+
+@ritual_bp.route("/api/ritual/engagements", methods=["GET"])
+def api_ritual_engagements_get():
+    """Return engagements for a given date (default = today)."""
+    import db as _db
+    date_str = request.args.get("date") or _today_mtl().isoformat()
+    rows = _db.get_engagements_for_date(date_str)
+    return jsonify(rows)
+
+
+@ritual_bp.route("/api/ritual/engagements", methods=["POST"])
+def api_ritual_engagements_create():
+    """Replace all engagements for a date. Body: {date, engagements: [str]}."""
+    import db as _db
+    data     = request.get_json(silent=True) or {}
+    date_str = (data.get("date") or "").strip()
+    texts    = [t for t in (data.get("engagements") or []) if isinstance(t, str) and t.strip()]
+    if not date_str:
+        return jsonify({"error": "date is required"}), 400
+    if not texts:
+        return jsonify({"error": "at least one engagement is required"}), 400
+    if len(texts) > 5:
+        return jsonify({"error": "maximum 5 engagements per day"}), 400
+    rows = _db.create_engagements(date_str, texts)
+    return jsonify({"ok": True, "engagements": rows})
+
+
+@ritual_bp.route("/api/ritual/engagements/<engagement_id>", methods=["PATCH"])
+def api_ritual_engagements_update(engagement_id: str):
+    """Update the status of a single engagement. Body: {status: 'done'|'notdone'}."""
+    import db as _db
+    data   = request.get_json(silent=True) or {}
+    status = (data.get("status") or "").strip()
+    if status not in ("done", "notdone"):
+        return jsonify({"error": "status must be 'done' or 'notdone'"}), 400
+    ok = _db.update_engagement_status(engagement_id, status)
+    if not ok:
+        return jsonify({"error": "Erreur base de données"}), 500
+    return jsonify({"ok": True})
 
 
 @ritual_bp.route("/api/ritual/evening_routine", methods=["POST"])

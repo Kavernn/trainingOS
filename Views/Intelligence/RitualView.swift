@@ -9,8 +9,9 @@ struct RitualView: View {
 
     private var phase: RitualPhase {
         guard let r = ritual else { return .loading }
-        if !r.morningDone { return .morning }
-        if !r.eveningDone { return .evening }
+        if !r.hasEngagementsToday      { return .creating }
+        if !r.allEngagementsAddressed  { return .addressing }
+        if !r.tomorrowCreated          { return .creating }
         return .done
     }
 
@@ -23,20 +24,17 @@ struct RitualView: View {
                     ProgressView().tint(Color(hex: "FF2D20"))
                 } else if let r = ritual {
                     switch phase {
-                    case .morning:
-                        RitualMorningView(ritual: r) { updated in
+                    case .addressing:
+                        EngagementAddressingView(ritual: r) { updated in
                             ritual = updated
-                            if updated.morningDone { ActionFeedbackManager.shared.show(.ritualComplete) }
                         }
-                    case .evening:
-                        RitualEveningView(ritual: r) { updated in
+                    case .creating:
+                        EngagementCreationView(ritual: r) { updated in
                             ritual = updated
-                            if updated.eveningDone { ActionFeedbackManager.shared.show(.ritualComplete) }
+                            if updated.tomorrowCreated { ActionFeedbackManager.shared.show(.ritualComplete) }
                         }
                     case .done:
-                        RitualDoneView(ritual: r, onDemons: {
-                            showDemons = true
-                        })
+                        RitualDoneView(ritual: r, onDemons: { showDemons = true })
                     case .loading:
                         EmptyView()
                     }
@@ -82,7 +80,7 @@ struct RitualView: View {
     }
 }
 
-private enum RitualPhase { case loading, morning, evening, done }
+private enum RitualPhase { case loading, addressing, creating, done }
 
 // MARK: - F1: Ritual Biography — intention timeline
 

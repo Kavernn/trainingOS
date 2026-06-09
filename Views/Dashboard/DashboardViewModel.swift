@@ -37,6 +37,9 @@ private final class P3State: @unchecked Sendable {
     var warRoomEnabled = false
     var warRoomHasResult = false
     var warRoomHasTemptation = false
+    var velocityData: VelocityData? = nil
+    var compoundScore: CompoundScore? = nil
+    var temporalPatterns: TemporalPatterns? = nil
 }
 
 // MARK: - PhoenixScoreDeltaTracker
@@ -181,6 +184,9 @@ final class DashboardViewModel: ObservableObject {
     @Published var yesterdayNutrition: NutritionDayHistory?
     @Published var cardioToday: CardioEntry? = nil
     @Published var streakData: StreakResponse? = nil
+    @Published var velocityData: VelocityData? = nil
+    @Published var compoundScore: CompoundScore? = nil
+    @Published var temporalPatterns: TemporalPatterns? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -448,6 +454,9 @@ final class DashboardViewModel: ObservableObject {
                         NotificationService.scheduleTimeCapsuleSoon(capsules: capsules)
                     }
                 }
+                group.addTask { @MainActor in p3.velocityData     = try? await APIService.shared.fetchVelocity() }
+                group.addTask { @MainActor in p3.compoundScore    = try? await APIService.shared.fetchCompoundScore() }
+                group.addTask { @MainActor in p3.temporalPatterns = try? await APIService.shared.fetchTemporalPatterns() }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
             insights      = p3.insights
@@ -458,10 +467,13 @@ final class DashboardViewModel: ObservableObject {
             readinessData = p3.readinessData
             streakData    = p3.streakData
             activeSeason  = p3.activeSeason
-            warRoomEnabled      = p3.warRoomEnabled
-            warRoomHasResult    = p3.warRoomHasResult
+            warRoomEnabled       = p3.warRoomEnabled
+            warRoomHasResult     = p3.warRoomHasResult
             warRoomHasTemptation = p3.warRoomHasTemptation
-            analyticsLoadedDate = today
+            velocityData         = p3.velocityData
+            compoundScore        = p3.compoundScore
+            temporalPatterns     = p3.temporalPatterns
+            analyticsLoadedDate  = today
         }
     }
 

@@ -207,6 +207,92 @@ def count_ritual_entries() -> int:
         return 0
 
 
+# ── Ritual Engagements ───────────────────────────────────────────────────────
+
+def get_engagements_for_date(date_str: str) -> List[dict]:
+    """Return all engagements for a given target date, ordered by sort_order."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        resp = (
+            db_core._client.table("ritual_engagements")
+            .select("*")
+            .eq("date", date_str)
+            .order("sort_order")
+            .execute()
+        )
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("get_engagements_for_date retry: %s", e2)
+                return []
+        db_core.logger.error("get_engagements_for_date error: %s", e)
+        return []
+
+
+def create_engagements(date_str: str, texts: List[str]) -> List[dict]:
+    """Replace all engagements for a date with the provided texts."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return []
+
+    def _do() -> List[dict]:
+        db_core._client.table("ritual_engagements").delete().eq("date", date_str).execute()
+        clean = [t.strip() for t in texts if t.strip()]
+        if not clean:
+            return []
+        rows = [{"date": date_str, "text": t, "sort_order": i} for i, t in enumerate(clean)]
+        resp = db_core._client.table("ritual_engagements").insert(rows).execute()
+        return resp.data or []
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("create_engagements retry: %s", e2)
+                return []
+        db_core.logger.error("create_engagements error: %s", e)
+        return []
+
+
+def update_engagement_status(engagement_id: str, status: str) -> bool:
+    """Set the status (done/notdone) on a single engagement row."""
+    if db_core._client is None or db_core.MODE == "OFFLINE":
+        return False
+    from datetime import datetime, timezone as _tz
+    now_iso = datetime.now(_tz.utc).isoformat()
+
+    def _do() -> bool:
+        resp = (
+            db_core._client.table("ritual_engagements")
+            .update({"status": status, "updated_at": now_iso})
+            .eq("id", engagement_id)
+            .execute()
+        )
+        return bool(resp.data)
+
+    try:
+        return _do()
+    except Exception as e:
+        if db_core._is_disconnect(e) and db_core._reconnect():
+            try:
+                return _do()
+            except Exception as e2:
+                db_core.logger.error("update_engagement_status retry: %s", e2)
+                return False
+        db_core.logger.error("update_engagement_status error: %s", e)
+        return False
+
+
 # ── War Room ──────────────────────────────────────────────────────────────────
 
 def get_war_room_config() -> Optional[dict]:
