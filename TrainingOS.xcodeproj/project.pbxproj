@@ -310,6 +310,15 @@
 		SLI001AA00300B2F5D0001 /* StressLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLI001AA00300B2F5D0000 /* StressLoadModels.swift */; };
 		SLI002AA00300B2F5D0001 /* APIService+StressLoad.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLI002AA00300B2F5D0000 /* APIService+StressLoad.swift */; };
 		SLI003AA00300B2F5D0001 /* StressLoadCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLI003AA00300B2F5D0000 /* StressLoadCard.swift */; };
+		POE001AA00300B2F5D0001 /* ProgressiveOverloadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = POE001AA00300B2F5D0000 /* ProgressiveOverloadModels.swift */; };
+		POE002AA00300B2F5D0001 /* APIService+ProgressiveOverload.swift in Sources */ = {isa = PBXBuildFile; fileRef = POE002AA00300B2F5D0000 /* APIService+ProgressiveOverload.swift */; };
+		POE003AA00300B2F5D0001 /* ProgressiveOverloadCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = POE003AA00300B2F5D0000 /* ProgressiveOverloadCard.swift */; };
+		SQS001AA00300B2F5D0001 /* SessionQualityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQS001AA00300B2F5D0000 /* SessionQualityModels.swift */; };
+		SQS002AA00300B2F5D0001 /* APIService+SessionQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQS002AA00300B2F5D0000 /* APIService+SessionQuality.swift */; };
+		SQS003AA00300B2F5D0001 /* SessionQualityCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQS003AA00300B2F5D0000 /* SessionQualityCard.swift */; };
+		THM001AA00300B2F5D0001 /* TrainingHeatmapModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = THM001AA00300B2F5D0000 /* TrainingHeatmapModels.swift */; };
+		THM002AA00300B2F5D0001 /* APIService+TrainingHeatmap.swift in Sources */ = {isa = PBXBuildFile; fileRef = THM002AA00300B2F5D0000 /* APIService+TrainingHeatmap.swift */; };
+		THM003AA00300B2F5D0001 /* TrainingHeatmapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = THM003AA00300B2F5D0000 /* TrainingHeatmapCard.swift */; };
 /* End PBXBuildFile section */
 		TRL001AA00300B2F5D0001 /* TrainingLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */; };
 		IDW001AA00300B2F5D0001 /* IdealWeekModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */; };
@@ -687,6 +696,15 @@
 		SLI001AA00300B2F5D0000 /* StressLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StressLoadModels.swift; sourceTree = "<group>"; };
 		SLI002AA00300B2F5D0000 /* APIService+StressLoad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+StressLoad.swift"; sourceTree = "<group>"; };
 		SLI003AA00300B2F5D0000 /* StressLoadCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StressLoadCard.swift; sourceTree = "<group>"; };
+		POE001AA00300B2F5D0000 /* ProgressiveOverloadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressiveOverloadModels.swift; sourceTree = "<group>"; };
+		POE002AA00300B2F5D0000 /* APIService+ProgressiveOverload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+ProgressiveOverload.swift"; sourceTree = "<group>"; };
+		POE003AA00300B2F5D0000 /* ProgressiveOverloadCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressiveOverloadCard.swift; sourceTree = "<group>"; };
+		SQS001AA00300B2F5D0000 /* SessionQualityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionQualityModels.swift; sourceTree = "<group>"; };
+		SQS002AA00300B2F5D0000 /* APIService+SessionQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SessionQuality.swift"; sourceTree = "<group>"; };
+		SQS003AA00300B2F5D0000 /* SessionQualityCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionQualityCard.swift; sourceTree = "<group>"; };
+		THM001AA00300B2F5D0000 /* TrainingHeatmapModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingHeatmapModels.swift; sourceTree = "<group>"; };
+		THM002AA00300B2F5D0000 /* APIService+TrainingHeatmap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+TrainingHeatmap.swift"; sourceTree = "<group>"; };
+		THM003AA00300B2F5D0000 /* TrainingHeatmapCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingHeatmapCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadModels.swift; sourceTree = "<group>"; };
 		IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekModels.swift; sourceTree = "<group>"; };
@@ -1087,6 +1105,9 @@
 				VPG001AA00300B2F5D0000 /* VolumeProgressionModels.swift */,
 				SHC001AA00300B2F5D0000 /* SleepHRVModels.swift */,
 				SLI001AA00300B2F5D0000 /* StressLoadModels.swift */,
+				POE001AA00300B2F5D0000 /* ProgressiveOverloadModels.swift */,
+				SQS001AA00300B2F5D0000 /* SessionQualityModels.swift */,
+				THM001AA00300B2F5D0000 /* TrainingHeatmapModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1159,6 +1180,9 @@
 				VPG002AA00300B2F5D0000 /* APIService+VolumeProgression.swift */,
 				SHC002AA00300B2F5D0000 /* APIService+SleepHRV.swift */,
 				SLI002AA00300B2F5D0000 /* APIService+StressLoad.swift */,
+				POE002AA00300B2F5D0000 /* APIService+ProgressiveOverload.swift */,
+				SQS002AA00300B2F5D0000 /* APIService+SessionQuality.swift */,
+				THM002AA00300B2F5D0000 /* APIService+TrainingHeatmap.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1218,6 +1242,9 @@
 				VPG003AA00300B2F5D0000 /* VolumeProgressionCard.swift */,
 				SHC003AA00300B2F5D0000 /* SleepHRVCard.swift */,
 				SLI003AA00300B2F5D0000 /* StressLoadCard.swift */,
+				POE003AA00300B2F5D0000 /* ProgressiveOverloadCard.swift */,
+				SQS003AA00300B2F5D0000 /* SessionQualityCard.swift */,
+				THM003AA00300B2F5D0000 /* TrainingHeatmapCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -1975,6 +2002,15 @@
 				SLI001AA00300B2F5D0001 /* StressLoadModels.swift in Sources */,
 				SLI002AA00300B2F5D0001 /* APIService+StressLoad.swift in Sources */,
 				SLI003AA00300B2F5D0001 /* StressLoadCard.swift in Sources */,
+				POE001AA00300B2F5D0001 /* ProgressiveOverloadModels.swift in Sources */,
+				POE002AA00300B2F5D0001 /* APIService+ProgressiveOverload.swift in Sources */,
+				POE003AA00300B2F5D0001 /* ProgressiveOverloadCard.swift in Sources */,
+				SQS001AA00300B2F5D0001 /* SessionQualityModels.swift in Sources */,
+				SQS002AA00300B2F5D0001 /* APIService+SessionQuality.swift in Sources */,
+				SQS003AA00300B2F5D0001 /* SessionQualityCard.swift in Sources */,
+				THM001AA00300B2F5D0001 /* TrainingHeatmapModels.swift in Sources */,
+				THM002AA00300B2F5D0001 /* APIService+TrainingHeatmap.swift in Sources */,
+				THM003AA00300B2F5D0001 /* TrainingHeatmapCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

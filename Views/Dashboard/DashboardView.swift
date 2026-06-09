@@ -384,6 +384,24 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.53)
                                 }
 
+                                // 16m — Surcharge Progressive
+                                if let overload = vm.progressiveOverload, overload.hasData {
+                                    ProgressiveOverloadCard(data: overload)
+                                        .appearAnimation(delay: 0.55)
+                                }
+
+                                // 16n — Qualité des Séances
+                                if let sessQ = vm.sessionQuality, sessQ.hasData {
+                                    SessionQualityCard(data: sessQ)
+                                        .appearAnimation(delay: 0.57)
+                                }
+
+                                // 16o — Heatmap d'Entraînement
+                                if let heatmap = vm.trainingHeatmap, heatmap.hasData {
+                                    TrainingHeatmapCard(data: heatmap)
+                                        .appearAnimation(delay: 0.59)
+                                }
+
                                 // ── SCROLL PROFOND ────────────────────────────
 
                                 // 17 — Citation

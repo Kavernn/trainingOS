@@ -56,6 +56,9 @@ private final class P3State: @unchecked Sendable {
     var volumeProgression: VolumeProgressionData? = nil
     var sleepHRV: SleepHRVData? = nil
     var stressLoad: StressLoadData? = nil
+    var progressiveOverload: ProgressiveOverloadData? = nil
+    var sessionQuality: SessionQualityData? = nil
+    var trainingHeatmap: TrainingHeatmapData? = nil
 }
 
 // MARK: - PhoenixScoreDeltaTracker
@@ -219,6 +222,9 @@ final class DashboardViewModel: ObservableObject {
     @Published var volumeProgression: VolumeProgressionData? = nil
     @Published var sleepHRV: SleepHRVData? = nil
     @Published var stressLoad: StressLoadData? = nil
+    @Published var progressiveOverload: ProgressiveOverloadData? = nil
+    @Published var sessionQuality: SessionQualityData? = nil
+    @Published var trainingHeatmap: TrainingHeatmapData? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -505,6 +511,9 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in p3.volumeProgression  = try? await APIService.shared.fetchVolumeProgression() }
                 group.addTask { @MainActor in p3.sleepHRV           = try? await APIService.shared.fetchSleepHRV() }
                 group.addTask { @MainActor in p3.stressLoad         = try? await APIService.shared.fetchStressLoad() }
+                group.addTask { @MainActor in p3.progressiveOverload = try? await APIService.shared.fetchProgressiveOverload() }
+                group.addTask { @MainActor in p3.sessionQuality     = try? await APIService.shared.fetchSessionQuality() }
+                group.addTask { @MainActor in p3.trainingHeatmap    = try? await APIService.shared.fetchTrainingHeatmap() }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
             insights      = p3.insights
@@ -537,6 +546,9 @@ final class DashboardViewModel: ObservableObject {
             volumeProgression       = p3.volumeProgression
             sleepHRV                = p3.sleepHRV
             stressLoad              = p3.stressLoad
+            progressiveOverload     = p3.progressiveOverload
+            sessionQuality          = p3.sessionQuality
+            trainingHeatmap         = p3.trainingHeatmap
             analyticsLoadedDate     = today
         }
     }

@@ -142,6 +142,9 @@ from routes.consistency          import consistency_bp
 from routes.volume_progression   import volume_progression_bp
 from routes.sleep_hrv            import sleep_hrv_bp
 from routes.stress_load          import stress_load_bp
+from routes.progressive_overload import progressive_overload_bp
+from routes.session_quality      import session_quality_bp
+from routes.training_heatmap     import training_heatmap_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -210,6 +213,9 @@ app.register_blueprint(consistency_bp)
 app.register_blueprint(volume_progression_bp)
 app.register_blueprint(sleep_hrv_bp)
 app.register_blueprint(stress_load_bp)
+app.register_blueprint(progressive_overload_bp)
+app.register_blueprint(session_quality_bp)
+app.register_blueprint(training_heatmap_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────
