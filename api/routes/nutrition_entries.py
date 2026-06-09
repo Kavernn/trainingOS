@@ -90,7 +90,7 @@ def api_nutrition_tdee():
     POST sans body — lit user_profile automatiquement.
     """
     import db as _db
-    from tdee import compute_tdee, compute_dynamic_day_targets
+    from tdee import compute_tdee, compute_dynamic_day_targets, check_goal_realism
     from nutrition import save_settings as save_nutrition_settings
 
     profile = _db.get_profile() or {}
@@ -124,7 +124,8 @@ def api_nutrition_tdee():
         "goal_phase":        tdee_data["goal_phase"],
     })
 
-    return jsonify({"success": True, **tdee_data})
+    goal_check = check_goal_realism(profile, tdee_data)
+    return jsonify({"success": True, **tdee_data, "goal_realism": goal_check})
 
 
 @nutrition_bp.route("/api/nutrition/adaptive-check", methods=["GET"])

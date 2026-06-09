@@ -210,3 +210,96 @@ def check_weight_progress(goal: str, calorie_target: int) -> dict | None:
 
     return {"adjust_kcal": 0, "delta_kg_per_week": round(delta_kg, 2),
             "reason": "Progression conforme à l'objectif"}
+
+
+# ── Réalisme des objectifs ────────────────────────────────────────────────────
+
+# Bornes physiologiques (natty, intermédiaire) — Helms et al. 2014 ; Hall & Guo 2017
+_GOAL_LIMITS = {
+    # (surplus_kcal_min, surplus_kcal_max, gain_lbs_month_max)
+    "bulk":    (200,  500, 2.0),
+    # (deficit_kcal_min, deficit_kcal_max, loss_lbs_month_max)
+    "cut":     (300,  750, 4.0),
+    # recomp : léger déficit — pas de borne dure sur la balance
+    "recomp":  (-200, 0,   None),
+    "maintain": (0,   0,   None),
+}
+
+
+def check_goal_realism(profile: dict, tdee_data: dict) -> dict:
+    """
+    Vérifie que l'objectif et le surplus/déficit calorique restent dans les
+    limites physiologiques natty (Helms et al. 2014).
+
+    Retourne :
+      {
+        "ok":       bool,
+        "warnings": [str],   # liste vide si tout est OK
+        "limits":   dict,    # surplus/déficit recommandés
+      }
+
+    Références :
+      Gain masse maigre : 0.5–2 lbs/mois (natty intermédiaire) → surplus ≤ 500 kcal
+      Perte grasse saine : 0.5–1% BF/mois → déficit 300–750 kcal (≤ 1 kg/sem)
+      Déficit > 750 kcal → risque catabolisme musculaire (Helms et al. 2014)
+      Surplus > 500 kcal → risque prise de gras excessive (Hall & Guo 2017)
+    """
+    goal           = str(profile.get("goal") or "maintain")
+    calorie_target = int(tdee_data.get("calorie_target") or 0)
+    tdee_kcal      = int(tdee_data.get("tdee_kcal") or 0)
+    warnings: list[str] = []
+
+    if tdee_kcal <= 0:
+        return {"ok": True, "warnings": [], "limits": {}}
+
+    delta = calorie_target - tdee_kcal  # positif = surplus, négatif = déficit
+
+    if goal == "bulk":
+        surplus_min, surplus_max, _ = _GOAL_LIMITS["bulk"]
+        if delta < surplus_min:
+            warnings.append(
+                f"Surplus trop faible ({delta:+d} kcal) — vise +{surplus_min}–{surplus_max} kcal "
+                f"pour maximiser la prise de masse maigre (Helms et al. 2014)."
+            )
+        elif delta > surplus_max:
+            warnings.append(
+                f"Surplus excessif ({delta:+d} kcal > +{surplus_max} kcal) — "
+                f"au-delà de +{surplus_max} kcal le gain supplémentaire est majoritairement du gras "
+                f"(Hall & Guo 2017). Réduis à +{surplus_min}–{surplus_max} kcal."
+            )
+
+    elif goal == "cut":
+        deficit_min, deficit_max, _ = _GOAL_LIMITS["cut"]
+        deficit_abs = abs(delta)
+        if deficit_abs < deficit_min:
+            warnings.append(
+                f"Déficit trop faible ({delta:+d} kcal) — vise −{deficit_min}–{deficit_max} kcal "
+                f"pour une perte de gras efficace sans perte musculaire (Helms et al. 2014)."
+            )
+        elif deficit_abs > deficit_max:
+            warnings.append(
+                f"Déficit excessif ({delta:+d} kcal < −{deficit_max} kcal) — "
+                f"risque de catabolisme musculaire au-delà de −{deficit_max} kcal/j "
+                f"(Helms et al. 2014). Remonte à −{deficit_min}–{deficit_max} kcal."
+            )
+
+    elif goal == "recomp":
+        if delta > 0:
+            warnings.append(
+                f"Recomposition : surplus détecté ({delta:+d} kcal). "
+                f"Vise un léger déficit (−100 à −200 kcal) pour optimiser le ratio perte/gain."
+            )
+        elif delta < -300:
+            warnings.append(
+                f"Recomposition : déficit trop marqué ({delta:+d} kcal). "
+                f"Limite à −200 kcal pour préserver la synthèse musculaire."
+            )
+
+    limits = {
+        "bulk":    {"surplus_min": 200,  "surplus_max": 500},
+        "cut":     {"deficit_min": 300,  "deficit_max": 750},
+        "recomp":  {"deficit_min": 100,  "deficit_max": 200},
+        "maintain": {},
+    }.get(goal, {})
+
+    return {"ok": len(warnings) == 0, "warnings": warnings, "limits": limits}
