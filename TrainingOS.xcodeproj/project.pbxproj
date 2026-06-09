@@ -266,6 +266,23 @@
 		WR010001AA00300B2F5DAAAA /* WarRoomSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */; };
 		WRS0001WRS0001WRS0001001 /* WarRoomStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = WRS0001WRS0001WRS0001000 /* WarRoomStripView.swift */; };
 
+		VEL001AA00300B2F5D0001 /* VelocityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = VEL001AA00300B2F5D0000 /* VelocityModels.swift */; };
+		CMP001AA00300B2F5D0001 /* CompoundModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CMP001AA00300B2F5D0000 /* CompoundModels.swift */; };
+		TMP001AA00300B2F5D0001 /* TemporalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = TMP001AA00300B2F5D0000 /* TemporalModels.swift */; };
+		VEL002AA00300B2F5D0001 /* APIService+Velocity.swift in Sources */ = {isa = PBXBuildFile; fileRef = VEL002AA00300B2F5D0000 /* APIService+Velocity.swift */; };
+		CMP002AA00300B2F5D0001 /* APIService+Compound.swift in Sources */ = {isa = PBXBuildFile; fileRef = CMP002AA00300B2F5D0000 /* APIService+Compound.swift */; };
+		TMP002AA00300B2F5D0001 /* APIService+Temporal.swift in Sources */ = {isa = PBXBuildFile; fileRef = TMP002AA00300B2F5D0000 /* APIService+Temporal.swift */; };
+		VCC001AA00300B2F5D0001 /* VelocityCompoundCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = VCC001AA00300B2F5D0000 /* VelocityCompoundCard.swift */; };
+		TPC001AA00300B2F5D0001 /* TemporalPatternCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = TPC001AA00300B2F5D0000 /* TemporalPatternCard.swift */; };
+		PRT001AA00300B2F5D0001 /* PortraitModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRT001AA00300B2F5D0000 /* PortraitModels.swift */; };
+		BPR001AA00300B2F5D0001 /* BehavioralPRModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BPR001AA00300B2F5D0000 /* BehavioralPRModels.swift */; };
+		RPT001AA00300B2F5D0001 /* RuptureModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = RPT001AA00300B2F5D0000 /* RuptureModels.swift */; };
+		PRT002AA00300B2F5D0001 /* APIService+Portrait.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRT002AA00300B2F5D0000 /* APIService+Portrait.swift */; };
+		BPR002AA00300B2F5D0001 /* APIService+BehavioralPR.swift in Sources */ = {isa = PBXBuildFile; fileRef = BPR002AA00300B2F5D0000 /* APIService+BehavioralPR.swift */; };
+		RPT002AA00300B2F5D0001 /* APIService+Rupture.swift in Sources */ = {isa = PBXBuildFile; fileRef = RPT002AA00300B2F5D0000 /* APIService+Rupture.swift */; };
+		PRC001AA00300B2F5D0001 /* PortraitJ90Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRC001AA00300B2F5D0000 /* PortraitJ90Card.swift */; };
+		BPC001AA00300B2F5D0001 /* BehavioralPRsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */; };
+		RRC001AA00300B2F5D0001 /* RuptureRiskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -587,6 +604,23 @@
 		WR010000AA00300B2F5DAAAA /* WarRoomSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomSettingsView.swift; sourceTree = "<group>"; };
 		WRS0001WRS0001WRS0001000 /* WarRoomStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WarRoomStripView.swift; sourceTree = "<group>"; };
 
+		VEL001AA00300B2F5D0000 /* VelocityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VelocityModels.swift; sourceTree = "<group>"; };
+		CMP001AA00300B2F5D0000 /* CompoundModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompoundModels.swift; sourceTree = "<group>"; };
+		TMP001AA00300B2F5D0000 /* TemporalModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporalModels.swift; sourceTree = "<group>"; };
+		VEL002AA00300B2F5D0000 /* APIService+Velocity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+Velocity.swift; sourceTree = "<group>"; };
+		CMP002AA00300B2F5D0000 /* APIService+Compound.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+Compound.swift; sourceTree = "<group>"; };
+		TMP002AA00300B2F5D0000 /* APIService+Temporal.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+Temporal.swift; sourceTree = "<group>"; };
+		VCC001AA00300B2F5D0000 /* VelocityCompoundCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VelocityCompoundCard.swift; sourceTree = "<group>"; };
+		TPC001AA00300B2F5D0000 /* TemporalPatternCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporalPatternCard.swift; sourceTree = "<group>"; };
+		PRT001AA00300B2F5D0000 /* PortraitModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortraitModels.swift; sourceTree = "<group>"; };
+		BPR001AA00300B2F5D0000 /* BehavioralPRModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehavioralPRModels.swift; sourceTree = "<group>"; };
+		RPT001AA00300B2F5D0000 /* RuptureModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuptureModels.swift; sourceTree = "<group>"; };
+		PRT002AA00300B2F5D0000 /* APIService+Portrait.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+Portrait.swift; sourceTree = "<group>"; };
+		BPR002AA00300B2F5D0000 /* APIService+BehavioralPR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+BehavioralPR.swift; sourceTree = "<group>"; };
+		RPT002AA00300B2F5D0000 /* APIService+Rupture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+Rupture.swift; sourceTree = "<group>"; };
+		PRC001AA00300B2F5D0000 /* PortraitJ90Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortraitJ90Card.swift; sourceTree = "<group>"; };
+		BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehavioralPRsCard.swift; sourceTree = "<group>"; };
+		RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuptureRiskCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -956,6 +990,12 @@
 				SE001000AA00300B2F5DDDDD /* SeasonModels.swift */,
 				GF006000AA00300B2F5DEEEE /* GymFinderModels.swift */,
 				SM001000AA00300B2F5DFFFF /* StatsModels.swift */,
+					VEL001AA00300B2F5D0000 /* VelocityModels.swift */,
+					CMP001AA00300B2F5D0000 /* CompoundModels.swift */,
+					TMP001AA00300B2F5D0000 /* TemporalModels.swift */,
+					PRT001AA00300B2F5D0000 /* PortraitModels.swift */,
+					BPR001AA00300B2F5D0000 /* BehavioralPRModels.swift */,
+					RPT001AA00300B2F5D0000 /* RuptureModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1009,6 +1049,12 @@
 				OA002000AA00300B2F5DCCCC /* APIService+Oath.swift */,
 				SE002000AA00300B2F5DDDDD /* APIService+Seasons.swift */,
 				GF007000AA00300B2F5DEEEE /* GymFinderService.swift */,
+					VEL002AA00300B2F5D0000 /* APIService+Velocity.swift */,
+					CMP002AA00300B2F5D0000 /* APIService+Compound.swift */,
+					TMP002AA00300B2F5D0000 /* APIService+Temporal.swift */,
+					PRT002AA00300B2F5D0000 /* APIService+Portrait.swift */,
+					BPR002AA00300B2F5D0000 /* APIService+BehavioralPR.swift */,
+					RPT002AA00300B2F5D0000 /* APIService+Rupture.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1050,6 +1096,11 @@
 				9F885F025D0C3FCE1AD1C939 /* ReadinessView.swift */,
 				3FB0319AE30B4059B3096D9B /* PhoenixCard.swift */,
 				WRS0001WRS0001WRS0001000 /* WarRoomStripView.swift */,
+				VCC001AA00300B2F5D0000 /* VelocityCompoundCard.swift */,
+				TPC001AA00300B2F5D0000 /* TemporalPatternCard.swift */,
+				PRC001AA00300B2F5D0000 /* PortraitJ90Card.swift */,
+				BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */,
+				RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
