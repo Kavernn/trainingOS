@@ -301,6 +301,15 @@
 		OPD003AA00300B2F5D0001 /* OptimalDayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = OPD003AA00300B2F5D0000 /* OptimalDayCard.swift */; };
 		MBL003AA00300B2F5D0001 /* MuscleBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */; };
 		CST003AA00300B2F5D0001 /* ConsistencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CST003AA00300B2F5D0000 /* ConsistencyCard.swift */; };
+		VPG001AA00300B2F5D0001 /* VolumeProgressionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = VPG001AA00300B2F5D0000 /* VolumeProgressionModels.swift */; };
+		VPG002AA00300B2F5D0001 /* APIService+VolumeProgression.swift in Sources */ = {isa = PBXBuildFile; fileRef = VPG002AA00300B2F5D0000 /* APIService+VolumeProgression.swift */; };
+		VPG003AA00300B2F5D0001 /* VolumeProgressionCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = VPG003AA00300B2F5D0000 /* VolumeProgressionCard.swift */; };
+		SHC001AA00300B2F5D0001 /* SleepHRVModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHC001AA00300B2F5D0000 /* SleepHRVModels.swift */; };
+		SHC002AA00300B2F5D0001 /* APIService+SleepHRV.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHC002AA00300B2F5D0000 /* APIService+SleepHRV.swift */; };
+		SHC003AA00300B2F5D0001 /* SleepHRVCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHC003AA00300B2F5D0000 /* SleepHRVCard.swift */; };
+		SLI001AA00300B2F5D0001 /* StressLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLI001AA00300B2F5D0000 /* StressLoadModels.swift */; };
+		SLI002AA00300B2F5D0001 /* APIService+StressLoad.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLI002AA00300B2F5D0000 /* APIService+StressLoad.swift */; };
+		SLI003AA00300B2F5D0001 /* StressLoadCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLI003AA00300B2F5D0000 /* StressLoadCard.swift */; };
 /* End PBXBuildFile section */
 		TRL001AA00300B2F5D0001 /* TrainingLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */; };
 		IDW001AA00300B2F5D0001 /* IdealWeekModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */; };
@@ -669,6 +678,15 @@
 		OPD003AA00300B2F5D0000 /* OptimalDayCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimalDayCard.swift; sourceTree = "<group>"; };
 		MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleBalanceCard.swift; sourceTree = "<group>"; };
 		CST003AA00300B2F5D0000 /* ConsistencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsistencyCard.swift; sourceTree = "<group>"; };
+		VPG001AA00300B2F5D0000 /* VolumeProgressionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeProgressionModels.swift; sourceTree = "<group>"; };
+		VPG002AA00300B2F5D0000 /* APIService+VolumeProgression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+VolumeProgression.swift"; sourceTree = "<group>"; };
+		VPG003AA00300B2F5D0000 /* VolumeProgressionCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumeProgressionCard.swift; sourceTree = "<group>"; };
+		SHC001AA00300B2F5D0000 /* SleepHRVModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHRVModels.swift; sourceTree = "<group>"; };
+		SHC002AA00300B2F5D0000 /* APIService+SleepHRV.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SleepHRV.swift"; sourceTree = "<group>"; };
+		SHC003AA00300B2F5D0000 /* SleepHRVCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepHRVCard.swift; sourceTree = "<group>"; };
+		SLI001AA00300B2F5D0000 /* StressLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StressLoadModels.swift; sourceTree = "<group>"; };
+		SLI002AA00300B2F5D0000 /* APIService+StressLoad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+StressLoad.swift"; sourceTree = "<group>"; };
+		SLI003AA00300B2F5D0000 /* StressLoadCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StressLoadCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadModels.swift; sourceTree = "<group>"; };
 		IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekModels.swift; sourceTree = "<group>"; };
@@ -1066,6 +1084,9 @@
 				OPD001AA00300B2F5D0000 /* OptimalDayModels.swift */,
 				MBL001AA00300B2F5D0000 /* MuscleBalanceModels.swift */,
 				CST001AA00300B2F5D0000 /* ConsistencyModels.swift */,
+				VPG001AA00300B2F5D0000 /* VolumeProgressionModels.swift */,
+				SHC001AA00300B2F5D0000 /* SleepHRVModels.swift */,
+				SLI001AA00300B2F5D0000 /* StressLoadModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1135,6 +1156,9 @@
 				OPD002AA00300B2F5D0000 /* APIService+OptimalDay.swift */,
 				MBL002AA00300B2F5D0000 /* APIService+MuscleBalance.swift */,
 				CST002AA00300B2F5D0000 /* APIService+Consistency.swift */,
+				VPG002AA00300B2F5D0000 /* APIService+VolumeProgression.swift */,
+				SHC002AA00300B2F5D0000 /* APIService+SleepHRV.swift */,
+				SLI002AA00300B2F5D0000 /* APIService+StressLoad.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1191,6 +1215,9 @@
 				OPD003AA00300B2F5D0000 /* OptimalDayCard.swift */,
 				MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */,
 				CST003AA00300B2F5D0000 /* ConsistencyCard.swift */,
+				VPG003AA00300B2F5D0000 /* VolumeProgressionCard.swift */,
+				SHC003AA00300B2F5D0000 /* SleepHRVCard.swift */,
+				SLI003AA00300B2F5D0000 /* StressLoadCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -1939,6 +1966,15 @@
 				OPD003AA00300B2F5D0001 /* OptimalDayCard.swift in Sources */,
 				MBL003AA00300B2F5D0001 /* MuscleBalanceCard.swift in Sources */,
 				CST003AA00300B2F5D0001 /* ConsistencyCard.swift in Sources */,
+				VPG001AA00300B2F5D0001 /* VolumeProgressionModels.swift in Sources */,
+				VPG002AA00300B2F5D0001 /* APIService+VolumeProgression.swift in Sources */,
+				VPG003AA00300B2F5D0001 /* VolumeProgressionCard.swift in Sources */,
+				SHC001AA00300B2F5D0001 /* SleepHRVModels.swift in Sources */,
+				SHC002AA00300B2F5D0001 /* APIService+SleepHRV.swift in Sources */,
+				SHC003AA00300B2F5D0001 /* SleepHRVCard.swift in Sources */,
+				SLI001AA00300B2F5D0001 /* StressLoadModels.swift in Sources */,
+				SLI002AA00300B2F5D0001 /* APIService+StressLoad.swift in Sources */,
+				SLI003AA00300B2F5D0001 /* StressLoadCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

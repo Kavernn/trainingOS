@@ -366,6 +366,24 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.47)
                                 }
 
+                                // 16j — Progression du Volume
+                                if let volProg = vm.volumeProgression, volProg.hasData {
+                                    VolumeProgressionCard(data: volProg)
+                                        .appearAnimation(delay: 0.49)
+                                }
+
+                                // 16k — Sommeil × HRV
+                                if let sleepHrv = vm.sleepHRV, sleepHrv.hasData {
+                                    SleepHRVCard(data: sleepHrv)
+                                        .appearAnimation(delay: 0.51)
+                                }
+
+                                // 16l — Stress Load Index
+                                if let stressLd = vm.stressLoad, stressLd.hasData {
+                                    StressLoadCard(data: stressLd)
+                                        .appearAnimation(delay: 0.53)
+                                }
+
                                 // ── SCROLL PROFOND ────────────────────────────
 
                                 // 17 — Citation

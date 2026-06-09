@@ -136,7 +136,12 @@ from routes.comeback_arc         import comeback_arc_bp
 from routes.weekly_momentum      import weekly_momentum_bp
 from routes.optimal_day          import optimal_day_bp
 from routes.muscle_balance       import muscle_balance_bp
+from routes.muscle_imbalance     import muscle_imbalance_bp
+from routes.muscle_volume        import muscle_volume_bp
 from routes.consistency          import consistency_bp
+from routes.volume_progression   import volume_progression_bp
+from routes.sleep_hrv            import sleep_hrv_bp
+from routes.stress_load          import stress_load_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -199,7 +204,12 @@ app.register_blueprint(comeback_arc_bp)
 app.register_blueprint(weekly_momentum_bp)
 app.register_blueprint(optimal_day_bp)
 app.register_blueprint(muscle_balance_bp)
+app.register_blueprint(muscle_imbalance_bp)
+app.register_blueprint(muscle_volume_bp)
 app.register_blueprint(consistency_bp)
+app.register_blueprint(volume_progression_bp)
+app.register_blueprint(sleep_hrv_bp)
+app.register_blueprint(stress_load_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────

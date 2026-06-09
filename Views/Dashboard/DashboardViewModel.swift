@@ -53,6 +53,9 @@ private final class P3State: @unchecked Sendable {
     var optimalDay: OptimalDayData? = nil
     var muscleBalance: MuscleBalanceData? = nil
     var consistency: ConsistencyData? = nil
+    var volumeProgression: VolumeProgressionData? = nil
+    var sleepHRV: SleepHRVData? = nil
+    var stressLoad: StressLoadData? = nil
 }
 
 // MARK: - PhoenixScoreDeltaTracker
@@ -213,6 +216,9 @@ final class DashboardViewModel: ObservableObject {
     @Published var optimalDay: OptimalDayData? = nil
     @Published var muscleBalance: MuscleBalanceData? = nil
     @Published var consistency: ConsistencyData? = nil
+    @Published var volumeProgression: VolumeProgressionData? = nil
+    @Published var sleepHRV: SleepHRVData? = nil
+    @Published var stressLoad: StressLoadData? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -494,8 +500,11 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in p3.comebackArc      = try? await APIService.shared.fetchComebackArc() }
                 group.addTask { @MainActor in p3.weeklyMomentum   = try? await APIService.shared.fetchWeeklyMomentum() }
                 group.addTask { @MainActor in p3.optimalDay       = try? await APIService.shared.fetchOptimalDay() }
-                group.addTask { @MainActor in p3.muscleBalance    = try? await APIService.shared.fetchMuscleBalance() }
-                group.addTask { @MainActor in p3.consistency      = try? await APIService.shared.fetchConsistency() }
+                group.addTask { @MainActor in p3.muscleBalance      = try? await APIService.shared.fetchMuscleBalance() }
+                group.addTask { @MainActor in p3.consistency        = try? await APIService.shared.fetchConsistency() }
+                group.addTask { @MainActor in p3.volumeProgression  = try? await APIService.shared.fetchVolumeProgression() }
+                group.addTask { @MainActor in p3.sleepHRV           = try? await APIService.shared.fetchSleepHRV() }
+                group.addTask { @MainActor in p3.stressLoad         = try? await APIService.shared.fetchStressLoad() }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
             insights      = p3.insights
@@ -525,6 +534,9 @@ final class DashboardViewModel: ObservableObject {
             optimalDay              = p3.optimalDay
             muscleBalance           = p3.muscleBalance
             consistency             = p3.consistency
+            volumeProgression       = p3.volumeProgression
+            sleepHRV                = p3.sleepHRV
+            stressLoad              = p3.stressLoad
             analyticsLoadedDate     = today
         }
     }
