@@ -687,7 +687,7 @@ def get_exercise_logs_with_category(days: int = 90) -> list[dict]:
         resp = (
             db_core._client.table("exercise_logs")
             .select("weight, reps, workout_sessions(date), exercises(name, category, load_profile, muscle_group, muscle_specific)")
-            .gte("workout_sessions(date)", cutoff)
+            .gte("workout_sessions.date", cutoff)
             .limit(1000)
             .execute()
         )

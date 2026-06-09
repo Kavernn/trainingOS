@@ -101,7 +101,7 @@ struct MuscleImbalanceData: Codable {
 
 // MARK: - Muscle Volume (hard sets + MEV)
 
-struct MuscleVolumeEntry: Codable, Identifiable {
+struct MuscleHardSetsEntry: Codable, Identifiable {
     var id: String { label }
     let sets: Int
     let status: String    // "low" | "optimal" | "high"
@@ -136,7 +136,7 @@ struct MuscleNeglectedEntry: Codable, Identifiable {
 }
 
 struct MuscleVolumeData: Codable {
-    let currentWeek: [String: MuscleVolumeEntry]
+    let currentWeek: [String: MuscleHardSetsEntry]
     let weeklyAvg: [String: MuscleVolumeAvgEntry]
     let neglected: [MuscleNeglectedEntry]
     let mev: Int
