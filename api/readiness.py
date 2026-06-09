@@ -1,15 +1,16 @@
 """
 readiness.py — Pre-session Readiness Score (0-100).
 
-8 modules with adaptive weights (NSCA/ACSM aligned):
-  HRV normalisé        25%  (baseline personnelle 7j — Plews 2013, Buchheit 2014)
-  Charge ACWR          20%  (acute:chronic workload ratio — Gabbett 2016)
+9 modules with adaptive weights (Halson 2014, NSCA/ACSM aligned):
+  HRV normalisé        20%  (baseline personnelle 7j — Plews 2013, Buchheit 2014)
+  FC repos (RHR)       15%  (baseline personnelle 7j — Halson 2014)
+  Charge ACWR          15%  (acute:chronic workload ratio — Gabbett 2016)
   Qualité du sommeil   15%  (score 0-10 — Fullagar et al. 2015)
   Durée du sommeil     10%  (objectif 8h — Fullagar et al. 2015)
   Fatigue subjective   10%  (Hooper Index — fatigue perçue — Hooper & Mackinnon 1995)
-  Récupération musc.   10%  (courbe exponentielle — MacDougall 1995)
-  Nutrition             5%  (adhérence cals/protéines — ACSM 2016)
-  Pattern repos         5%  (supercompensation — Zatsiorsky & Kraemer 2006)
+  Récupération musc.    8%  (courbe exponentielle — MacDougall 1995)
+  Nutrition             4%  (adhérence cals/protéines — ACSM 2016)
+  Pattern repos         3%  (supercompensation — Zatsiorsky & Kraemer 2006)
 
 Modificateurs multiplicatifs post-scoring :
   Delta FC cardiaque   ±5%  (hr_morning / hr_post_workout)
@@ -46,14 +47,15 @@ _CAT_LABEL = {
 }
 
 _WEIGHTS = {
-    "hrv":            0.25,  # Plews 2013, Buchheit 2014
-    "acwr":           0.20,  # Gabbett 2016
+    "hrv":            0.20,  # Plews 2013, Buchheit 2014
+    "rhr":            0.15,  # Halson 2014 — FC repos vs baseline personnelle
+    "acwr":           0.15,  # Gabbett 2016
     "sleep_quality":  0.15,  # Fullagar et al. 2015
     "sleep_duration": 0.10,  # Fullagar et al. 2015
     "subjective":     0.10,  # Hooper & Mackinnon 1995
-    "muscle_rec":     0.10,  # MacDougall 1995
-    "nutrition":      0.05,  # ACSM 2016
-    "pattern":        0.05,  # Zatsiorsky & Kraemer 2006
+    "muscle_rec":     0.08,  # MacDougall 1995
+    "nutrition":      0.04,  # ACSM 2016
+    "pattern":        0.03,  # Zatsiorsky & Kraemer 2006
 }
 
 # Muscle recovery — courbe exponentielle (MacDougall 1995, Zatsiorsky & Kraemer 2006)
@@ -158,7 +160,50 @@ def _score_acwr() -> tuple[float | None, dict]:
     return round(max(0.0, min(100.0, score)), 1), details
 
 
-# ── Module 3: Qualité du sommeil ──────────────────────────────────────────────
+# ── Module 3: FC repos (RHR) ─────────────────────────────────────────────────
+
+def _score_rhr() -> tuple[float | None, dict]:
+    """FC repos vs baseline personnelle 7j (Halson 2014).
+
+    Score 100 = RHR ≤ baseline. Dégradation proportionnelle si RHR élevée :
+    +5% vs baseline → ~90, +10% → ~80, +20% → ~60.
+    Retourne None si baseline insuffisante (<3 jours).
+    """
+    try:
+        today_s  = _today_mtl()
+        rec_logs = db.get_recovery_logs() or []
+
+        today_rec = next((e for e in rec_logs if str(e.get("date", ""))[:10] == today_s), None)
+        if not today_rec or today_rec.get("rhr") is None:
+            return None, {"data_insufficient": True}
+
+        today_rhr = float(today_rec["rhr"])
+        today_dt  = date_cls.fromisoformat(today_s)
+        window_7d = [(today_dt - timedelta(days=i)).isoformat() for i in range(1, 8)]
+
+        vals_7d = [
+            float(e["rhr"])
+            for e in rec_logs
+            if str(e.get("date", ""))[:10] in window_7d and e.get("rhr") is not None
+        ]
+        if len(vals_7d) < 3:
+            return None, {"data_insufficient": True, "reason": "baseline_insuffisante"}
+
+        baseline  = sum(vals_7d) / len(vals_7d)
+        delta_pct = (today_rhr - baseline) / baseline
+        score     = round(max(0.0, min(100.0, 100.0 - delta_pct * 200.0)), 1)
+
+        return score, {
+            "today_rhr":   round(today_rhr, 1),
+            "baseline_7d": round(baseline, 1),
+            "delta_bpm":   round(today_rhr - baseline, 1),
+        }
+    except Exception as e:
+        logger.exception("_score_rhr failed: %s", e)
+        return None, {"data_insufficient": True}
+
+
+# ── Module 5: Qualité du sommeil ──────────────────────────────────────────────
 
 def _score_sleep_quality() -> tuple[float | None, dict]:
     """Qualité du sommeil 0-10 → 0-100 (Fullagar et al. 2015).
@@ -179,7 +224,7 @@ def _score_sleep_quality() -> tuple[float | None, dict]:
         return None, {"data_insufficient": True}
 
 
-# ── Module 4: Durée du sommeil ────────────────────────────────────────────────
+# ── Module 6: Durée du sommeil ────────────────────────────────────────────────
 
 def _score_sleep_duration() -> tuple[float | None, dict]:
     """Durée du sommeil vs objectif 8h (Fullagar et al. 2015).
@@ -203,7 +248,7 @@ def _score_sleep_duration() -> tuple[float | None, dict]:
         return None, {"data_insufficient": True}
 
 
-# ── Module 5: Fatigue subjective ──────────────────────────────────────────────
+# ── Module 7: Fatigue subjective ──────────────────────────────────────────────
 
 def _score_subjective() -> tuple[float | None, dict]:
     """Fatigue perçue — Hooper Index (Hooper & Mackinnon 1995).
@@ -232,7 +277,7 @@ def _score_subjective() -> tuple[float | None, dict]:
         return None, {"data_insufficient": True}
 
 
-# ── Module 6: Nutrition ───────────────────────────────────────────────────────
+# ── Module 8: Nutrition ───────────────────────────────────────────────────────
 
 def _ratio_score(r: float) -> float:
     if 0.85 <= r <= 1.10:  return 90.0
@@ -308,7 +353,7 @@ def _score_nutrition() -> tuple[float, dict]:
     return round(max(0.0, min(100.0, score)), 1), details
 
 
-# ── Module 7: Pattern (repos uniquement) ──────────────────────────────────────
+# ── Module 9: Pattern (repos uniquement) ──────────────────────────────────────
 
 def _score_pattern() -> tuple[float, dict]:
     """Score basé sur les jours de repos depuis la dernière séance.
@@ -350,7 +395,7 @@ def _score_pattern() -> tuple[float, dict]:
     return round(max(0.0, min(100.0, score)), 1), details
 
 
-# ── Module 8: Muscle Group Recovery ───────────────────────────────────────────
+# ── Module 10: Muscle Group Recovery ─────────────────────────────────────────
 
 def _get_experience_mult() -> float:
     try:
@@ -596,6 +641,21 @@ def _build_messaging(
             adj = "Entraîne-toi avec intention mais évite les efforts maximaux — laisse ton SNA se régénérer."
         return why, adj, prog_mod
 
+    if worst_k == "rhr":
+        r_det    = details.get("rhr", {})
+        delta    = r_det.get("delta_bpm")
+        base     = r_det.get("baseline_7d")
+        today_rh = r_det.get("today_rhr")
+        if delta is not None and delta > 0:
+            why = f"FC repos élevée ({today_rh} bpm, +{delta:.0f} vs ta baseline {base:.0f}) — récupération cardiovasculaire incomplète."
+        else:
+            why = "FC repos au-dessus de ta baseline — le système cardiovasculaire récupère encore."
+        if verdict == "rest":
+            adj = "Repos ou effort très léger uniquement — ton cœur signale une fatigue systémique."
+        else:
+            adj = "Réduis l'intensité de 10-15% et évite les efforts aérobiques intenses."
+        return why, adj, prog_mod
+
     if worst_k in ("sleep_quality", "sleep_duration"):
         sd_det = details.get("sleep_duration", {})
         sq_det = details.get("sleep_quality", {})
@@ -689,6 +749,7 @@ def compute() -> dict:
 
     try:
         hrv_score,  hrv_det              = _score_hrv()
+        rhr_score,  rhr_det              = _score_rhr()
         acwr_score, acwr_det             = _score_acwr()
         sq_score,   sq_det               = _score_sleep_quality()
         sd_score,   sd_det               = _score_sleep_duration()
@@ -699,6 +760,7 @@ def compute() -> dict:
 
         _raw = [
             ("hrv",            hrv_score,  _WEIGHTS["hrv"]),
+            ("rhr",            rhr_score,  _WEIGHTS["rhr"]),
             ("acwr",           acwr_score, _WEIGHTS["acwr"]),
             ("sleep_quality",  sq_score,   _WEIGHTS["sleep_quality"]),
             ("sleep_duration", sd_score,   _WEIGHTS["sleep_duration"]),
@@ -721,6 +783,7 @@ def compute() -> dict:
 
         modules = {
             "hrv":            {"score": _mod_score(hrv_score),  "label": "HRV",            "detail": _hrv_detail(hrv_det)},
+            "rhr":            {"score": _mod_score(rhr_score),  "label": "FC repos",        "detail": _rhr_detail(rhr_det)},
             "acwr":           {"score": _mod_score(acwr_score), "label": "Charge",          "detail": _acwr_detail(acwr_det)},
             "sleep_quality":  {"score": _mod_score(sq_score),   "label": "Qualité sommeil", "detail": _sleep_quality_detail(sq_det)},
             "sleep_duration": {"score": _mod_score(sd_score),   "label": "Durée sommeil",   "detail": _sleep_duration_detail(sd_det)},
@@ -732,6 +795,7 @@ def compute() -> dict:
 
         all_details = {
             "hrv":            hrv_det,
+            "rhr":            rhr_det,
             "acwr":           acwr_det,
             "sleep_quality":  sq_det,
             "sleep_duration": sd_det,
@@ -865,3 +929,15 @@ def _muscle_detail(d: dict) -> str:
     if worst:
         return f"{worst} récupérés à {pct}% · {remain}h restantes"
     return "Récupération musculaire OK"
+
+
+def _rhr_detail(d: dict) -> str:
+    if d.get("data_insufficient"):
+        return "FC repos non renseignée ou baseline insuffisante"
+    rhr     = d.get("today_rhr")
+    base    = d.get("baseline_7d")
+    delta   = d.get("delta_bpm")
+    if rhr is not None and base is not None:
+        sign = "+" if delta >= 0 else ""
+        return f"FC repos {rhr:.0f} bpm · baseline 7j {base:.0f} ({sign}{delta:.0f} bpm)"
+    return "Données FC repos indisponibles"

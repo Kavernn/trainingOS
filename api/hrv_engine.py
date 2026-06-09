@@ -12,7 +12,10 @@ Source de vérité unique pour tous les calculs HRV dérivés :
 
 Contrainte : aucune modification des données brutes.
 Tout est calculé à partir de recovery_logs.hrv existant.
-Metric : Apple Watch heartRateVariabilitySDNN = RMSSD (confirmé).
+Metric : Apple Watch heartRateVariabilitySDNN — SDNN mesuré par l'Apple Watch.
+         Corrélé au rMSSD en contexte récupération (Plews et al. 2012) ; valeurs
+         comparables pour le suivi de tendance. Variable interne nommée today_rmssd
+         par convention de la littérature recovery.
 """
 from __future__ import annotations
 

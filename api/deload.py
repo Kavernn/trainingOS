@@ -10,7 +10,7 @@ BASE_DIR      = Path(__file__).parent
 DATA_FILE     = BASE_DIR / "data" / "weights.json"
 DELOAD_FILE   = BASE_DIR / "data" / "deload.json"
 
-STAGNATION_THRESHOLD  = 5    # 5 sessions = signal fiable; 3 = bruit possible (plateau.py est la référence principale)
+STAGNATION_THRESHOLD  = 3    # 2-3 séances consensus littérature (Israetel, Zourdos) — aligné sur smart_progression.py
 RPE_FATIGUE_THRESHOLD = 8.5  # RPE moyen au dessus de ça = fatigue
 DELOAD_WEIGHT_FACTOR  = 0.90 # -10% max sur le poids (maintien des adaptations neurales)
 DELOAD_SETS_FACTOR    = 0.50 # -50% des sets (réduction du volume = mécanisme réel du deload)

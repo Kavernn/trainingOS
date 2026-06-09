@@ -33,11 +33,13 @@ _TARGET_BALANCE = {
 # ── MET helpers ───────────────────────────────────────────────────────────────
 
 def _met_lifting(rpe: int) -> float:
-    """MET musculation selon RPE (ACSM Compendium)."""
+    """MET musculation selon RPE (ACSM Compendium 2011).
+    Plafond ACSM : 6.0 pour musculation très intense (code 02050).
+    """
     if rpe <= 4: return 3.5
     if rpe <= 6: return 5.0
-    if rpe <= 8: return 6.5
-    return 8.0
+    if rpe <= 8: return 6.0
+    return 6.0
 
 
 def _met_cardio(ctype: str, duration_min: int,
@@ -139,9 +141,12 @@ def _eat_from_cardio(today: str, weight_kg: float) -> list[dict]:
 # ── NEAT ──────────────────────────────────────────────────────────────────────
 
 def _neat_from_steps(steps: Optional[int], weight_kg: float) -> Optional[int]:
-    """NEAT depuis steps — ACSM : steps × 0.04 × (poids_kg / 70)."""
+    """NEAT depuis steps — ACSM : steps × 0.04 × (poids_kg / 70).
+    Cap à 30 000 steps pour filtrer les anomalies HealthKit.
+    """
     if not steps:
         return None
+    steps = min(steps, 30_000)
     return round(steps * 0.04 * (weight_kg / 70))
 
 

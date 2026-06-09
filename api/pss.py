@@ -159,6 +159,7 @@ def save_pss_record(
         "triggers":        triggers or [],
         "trigger_ratings": trigger_ratings or {},
         "streak":          streak,
+        "pro_referral":    result["category"] == "high",
         "insights":        generate_insights(result, prev, responses if not is_short else None),
     }
 
@@ -273,6 +274,9 @@ def generate_insights(
     if category == "high":
         insights.append(
             "💡 Essaie : cohérence cardiaque (5 min), session légère de mobilité, ou note ce qui pèse le plus dans ton journal."
+        )
+        insights.append(
+            "Si ce niveau de stress persiste plusieurs semaines, parler à un professionnel de santé peut aider — médecin, psychologue du sport ou thérapeute."
         )
     elif category == "moderate":
         insights.append("💡 Un entraînement modéré ou une courte marche peuvent réduire la tension résiduelle.")
