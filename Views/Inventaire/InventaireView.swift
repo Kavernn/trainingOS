@@ -95,7 +95,7 @@ struct CatalogueView: View {
              (selectedType == "endurance" ? item.trackingType == "time" : item.type == selectedType)) &&
             (selectedCategory == "Tous" || item.category == selectedCategory) &&
             (!filterProgram || inProgram.contains(item.name)) &&
-            (debouncedSearch.isEmpty || item.name.localizedCaseInsensitiveContains(debouncedSearch))
+            (debouncedSearch.isEmpty || item.name.localizedCaseInsensitiveContains(debouncedSearch) || (item.alternateName?.localizedCaseInsensitiveContains(debouncedSearch) == true))
         }
         switch sortOrder {
         case .alpha:     return base.sorted { $0.name < $1.name }
@@ -558,6 +558,11 @@ struct CatalogueRow: View {
                             .cornerRadius(4)
                     }
                 }
+                if let alias = item.alternateName, !alias.isEmpty {
+                    Text(alias)
+                        .font(.appCaption)
+                        .foregroundColor(.gray.opacity(0.6))
+                }
                 HStack(spacing: 6) {
                     Text(item.type.capitalized)
                         .font(.appCaption).foregroundColor(.gray)
@@ -867,7 +872,7 @@ struct InventoryFormSheet: View {
         guard !isEditing, !trimmedName.isEmpty else { return false }
         return existingNames.contains { $0.lowercased() == trimmedName.lowercased() }
     }
-    private var canSave: Bool { !trimmedName.isEmpty && !isDuplicate && !muscleGroup.isEmpty && !weightType.isEmpty }
+    private var canSave: Bool { !trimmedName.isEmpty && !isDuplicate && !muscleGroup.isEmpty && !weightType.isEmpty && !movementPattern.isEmpty }
 
     private var availableSpecifics: [String] {
         kMusclesByGroup.first(where: { $0.group == muscleGroup })?.specifics ?? []
@@ -1160,7 +1165,13 @@ struct InventoryFormSheet: View {
             }
             .padding(.vertical, 4)
         } header: {
-            sectionHeader("Pattern de mouvement")
+            HStack(spacing: 4) {
+                sectionHeader("Pattern de mouvement")
+                Text("·  requis")
+                    .font(.appMicro)
+                    .foregroundColor(movementPattern.isEmpty ? .orange.opacity(0.7) : .gray.opacity(0.5))
+                    .textCase(nil)
+            }
         }
         .listRowBackground(Color.appCard)
     }

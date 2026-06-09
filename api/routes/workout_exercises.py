@@ -29,7 +29,7 @@ def api_save_exercise():
         "category":          data.get("category", ""),
         "level":             data.get("level", ""),
         "pattern":           data.get("pattern", ""),
-        "tracking_type":     data.get("tracking_type", "reps"),
+        "tracking_type":     "time" if data.get("weight_type") == "endurance" else data.get("tracking_type", "reps"),
         "rest_seconds":      data.get("rest_seconds"),
         "load_profile":      raw_load_profile if raw_load_profile else None,
         "tips":              data.get("tips") or None,
@@ -194,6 +194,53 @@ def api_exercise_classify():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     return jsonify({"ok": True, "name": name, **patch})
+
+
+@workout_exercises_bp.route("/api/exercises/auto_classify", methods=["POST"])
+def api_auto_classify_all():
+    """Apply suggest_classification() to all exercises missing muscle_group or movement_pattern.
+
+    Returns: {"applied": N, "skipped": M, "errors": [...]}
+    """
+    from inventory import load_inventory
+    from muscle_classification import suggest_classification
+    import db as _db
+
+    inv = load_inventory() or {}
+    applied = 0
+    skipped = 0
+    errors = []
+
+    for name, data in inv.items():
+        mg  = (data.get("muscle_group")     or "").strip()
+        mp  = (data.get("movement_pattern") or "").strip()
+        wt  = (data.get("weight_type")      or "").strip()
+        if mg and mp and wt:
+            skipped += 1
+            continue
+
+        suggestion = suggest_classification(name, data)
+        if not suggestion:
+            skipped += 1
+            continue
+
+        patch = {k: v for k, v in suggestion.items() if v and not data.get(k)}
+        if not patch:
+            skipped += 1
+            continue
+
+        ex_id = _db.get_exercise_id(name)
+        if not ex_id:
+            errors.append(f"{name}: not found")
+            continue
+
+        try:
+            _db._client.table("exercises").update(patch).eq("id", ex_id).execute()
+            applied += 1
+        except Exception as e:
+            errors.append(f"{name}: {e}")
+
+    return jsonify({"applied": applied, "skipped": skipped, "errors": errors})
 
 
 @workout_exercises_bp.route("/api/exercise/media", methods=["GET"])
