@@ -217,7 +217,8 @@ def _score_sleep_quality() -> tuple[float | None, dict]:
         if not today_rec or today_rec.get("sleep_quality") is None:
             return None, {"data_insufficient": True}
         sq    = float(today_rec["sleep_quality"])
-        score = min(100.0, sq * 10.0)
+        # recovery_logs stores sleep_quality on 1-10 scale (min 1 from sleep.py)
+        score = min(100.0, (sq - 1) / 9.0 * 100.0)
         return round(score, 1), {"sleep_quality": sq}
     except Exception as e:
         logger.exception("_score_sleep_quality failed: %s", e)
@@ -269,7 +270,8 @@ def _score_subjective() -> tuple[float | None, dict]:
             return round(min(100.0, max(0.0, score)), 1), {"signal": "fatigue_perceived", "value": float(fp)}
         soreness = today_rec.get("soreness")
         if soreness is not None and float(soreness) > 0:
-            score = (10.0 - float(soreness)) * 10.0
+            # soreness CHECK >= 1, so use /9 normalization for true 0-100 range
+            score = (10.0 - float(soreness)) / 9.0 * 100.0
             return round(min(100.0, max(0.0, score)), 1), {"signal": "soreness_fallback", "value": float(soreness)}
         return None, {"data_insufficient": True}
     except Exception as e:

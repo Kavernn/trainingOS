@@ -108,11 +108,12 @@ def detect_training_overload(target_date: str | None = None) -> bool:
 # ── Calcul du score ───────────────────────────────────────────────────────────
 
 def _score_sleep_quality(entry: dict) -> Optional[float]:
-    """Normalise sleep_quality (0-10) → 0-100."""
+    """Normalise sleep_quality (1-10 in recovery_logs) → 0-100."""
     sq = entry.get("sleep_quality")
     if sq is None:
         return None
-    return _clamp(float(sq) * 10.0)
+    # recovery_logs stores 1-10 (min 1 from sleep.py manual entry)
+    return _clamp((float(sq) - 1) / 9.0 * 100.0)
 
 
 def _score_hrv_trend(target_date: str) -> Optional[float]:
@@ -198,11 +199,11 @@ def _score_subjective_stress(entry: dict) -> Optional[float]:
     except Exception:
         pass
 
-    # 4. Soreness inversée — fallback final
+    # 4. Soreness inversée — fallback final (CHECK >= 1 → /9 for true 0-100)
     soreness = entry.get("soreness")
     if soreness is None:
         return None
-    return _clamp((10.0 - float(soreness)) * 10.0)
+    return _clamp((10.0 - float(soreness)) / 9.0 * 100.0)
 
 
 def _score_training_fatigue() -> Optional[float]:
