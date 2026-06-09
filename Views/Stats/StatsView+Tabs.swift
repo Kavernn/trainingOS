@@ -425,18 +425,6 @@ extension StatsView {
                 .padding(.horizontal, 16)
         }
 
-        // F3 + G2: Phoenix Ritual section
-        if let rs = ritualStats {
-            PhoenixRitualStatsCard(stats: rs)
-                .padding(.horizontal, 16)
-        }
-
-        // Evening routine correlations
-        if let rc = routineCorrelations {
-            RoutineCorrelationsCard(data: rc)
-                .padding(.horizontal, 16)
-        }
-
         Spacer(minLength: 32)
     }
 }

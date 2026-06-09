@@ -35,18 +35,6 @@ extension APIService {
         CacheInvalidation.ritualUpdated.invalidate()
     }
 
-    func fetchRitualStats() async throws -> RitualStats {
-        let url  = try buildURL(path: "/api/ritual/stats")
-        let data = try await fetchWithCache(url: url, key: "ritual_stats")
-        return try APIService.decoder.decode(RitualStats.self, from: data)
-    }
-
-    func fetchRitualCorrelations() async throws -> RitualCorrelations {
-        let url  = try buildURL(path: "/api/ritual/correlations")
-        let data = try await fetchWithCache(url: url, key: "ritual_correlations")
-        return try APIService.decoder.decode(RitualCorrelations.self, from: data)
-    }
-
     func fetchRitualHistoryFull(limit: Int = 90, offset: Int = 0) async throws -> RitualHistoryPage {
         guard let url = URL(string: "\(baseURL)/api/ritual/history-full?limit=\(limit)&offset=\(offset)") else {
             throw URLError(.badURL)
@@ -70,12 +58,6 @@ extension APIService {
         guard !payload.isEmpty else { return }
         _ = try await offlinePost(endpoint: "/api/ritual/checklist", payload: payload)
         CacheInvalidation.ritualItemActioned.invalidate()
-    }
-
-    func fetchRoutineCorrelations() async throws -> RoutineCorrelations {
-        let url  = try buildURL(path: "/api/ritual/routine_correlations")
-        let data = try await fetchWithCache(url: url, key: "routine_correlations")
-        return try APIService.decoder.decode(RoutineCorrelations.self, from: data)
     }
 
     func saveEveningRoutineItem(_ field: String, value: Bool) async throws {

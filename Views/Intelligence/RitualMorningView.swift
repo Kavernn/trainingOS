@@ -80,9 +80,6 @@ struct RitualMorningView: View {
                         .padding(.top, 28)
                         .padding(.horizontal, 24)
 
-                    suggestionsRow
-                        .padding(.top, 20)
-
                     // G4: Void shortcut — subtle link before declaring war
                     voidShortcut
                         .padding(.top, 20)
@@ -355,30 +352,6 @@ struct RitualMorningView: View {
             Rectangle()
                 .fill(Color(white: 0.12))
                 .frame(height: 1)
-        }
-    }
-
-    private var suggestionsRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(ritual.suggestions, id: \.self) { suggestion in
-                    Button(action: {
-                        intention  = suggestion
-                        useCarried = false
-                        focused    = false
-                    }) {
-                        Text(suggestion)
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(white: 0.55))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(Color(white: 0.08))
-                            .cornerRadius(8)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 24)
         }
     }
 

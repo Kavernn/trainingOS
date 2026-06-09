@@ -161,7 +161,7 @@ def get_ritual_history_full(limit: int = 90, offset: int = 0) -> List[dict]:
     def _do() -> List[dict]:
         resp = (
             db_core._client.table("daily_ritual")
-            .select("date, outcome, intention, truth, carry_count, carried_from, reflection, morning_at, evening_at")
+            .select("date, outcome, intention, truth, carry_count, carried_from, reflection, morning_at, evening_at, tomorrow_intention")
             .order("date", desc=True)
             .range(offset, offset + limit - 1)
             .execute()
