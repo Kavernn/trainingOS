@@ -47,6 +47,9 @@ private final class P3State: @unchecked Sendable {
     var sleepDebt: SleepDebtData? = nil
     var trainingLoad: TrainingLoadData? = nil
     var idealWeek: IdealWeekData? = nil
+    var nutritionPerformance: NutritionPerformanceData? = nil
+    var comebackArc: ComebackArcData? = nil
+    var weeklyMomentum: WeeklyMomentumData? = nil
 }
 
 // MARK: - PhoenixScoreDeltaTracker
@@ -201,6 +204,9 @@ final class DashboardViewModel: ObservableObject {
     @Published var sleepDebt: SleepDebtData? = nil
     @Published var trainingLoad: TrainingLoadData? = nil
     @Published var idealWeek: IdealWeekData? = nil
+    @Published var nutritionPerformance: NutritionPerformanceData? = nil
+    @Published var comebackArc: ComebackArcData? = nil
+    @Published var weeklyMomentum: WeeklyMomentumData? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -478,6 +484,9 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in p3.sleepDebt        = try? await APIService.shared.fetchSleepDebt() }
                 group.addTask { @MainActor in p3.trainingLoad     = try? await APIService.shared.fetchTrainingLoad() }
                 group.addTask { @MainActor in p3.idealWeek        = try? await APIService.shared.fetchIdealWeek() }
+                group.addTask { @MainActor in p3.nutritionPerformance = try? await APIService.shared.fetchNutritionPerformance() }
+                group.addTask { @MainActor in p3.comebackArc      = try? await APIService.shared.fetchComebackArc() }
+                group.addTask { @MainActor in p3.weeklyMomentum   = try? await APIService.shared.fetchWeeklyMomentum() }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
             insights      = p3.insights
@@ -501,6 +510,9 @@ final class DashboardViewModel: ObservableObject {
             sleepDebt               = p3.sleepDebt
             trainingLoad            = p3.trainingLoad
             idealWeek               = p3.idealWeek
+            nutritionPerformance    = p3.nutritionPerformance
+            comebackArc             = p3.comebackArc
+            weeklyMomentum          = p3.weeklyMomentum
             analyticsLoadedDate     = today
         }
     }

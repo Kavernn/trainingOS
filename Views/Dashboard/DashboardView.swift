@@ -204,10 +204,22 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.155)
                                 }
 
+                                // 8b3 — Momentum hebdomadaire
+                                if let momentum = vm.weeklyMomentum, momentum.hasData {
+                                    WeeklyMomentumCard(data: momentum)
+                                        .appearAnimation(delay: 0.160)
+                                }
+
                                 // 8c — Rupture Risk (vigilance ou plus)
                                 if let rupture = vm.ruptureRisk, rupture.score >= 20 {
                                     RuptureRiskCard(data: rupture)
                                         .appearAnimation(delay: 0.17)
+                                }
+
+                                // 8c2 — Comeback Arc (post-rupture uniquement)
+                                if let comeback = vm.comebackArc, comeback.inComeback {
+                                    ComebackArcCard(data: comeback)
+                                        .appearAnimation(delay: 0.175)
                                 }
 
                                 // 8d — Conditions de performance
@@ -328,6 +340,12 @@ struct DashboardView: View {
                                 if let ideal = vm.idealWeek, ideal.hasData {
                                     IdealWeekCard(data: ideal)
                                         .appearAnimation(delay: 0.41)
+                                }
+
+                                // 16g — Nutrition × Performance
+                                if let nutrPerf = vm.nutritionPerformance, nutrPerf.hasData {
+                                    NutritionPerformanceCard(data: nutrPerf)
+                                        .appearAnimation(delay: 0.43)
                                 }
 
                                 // ── SCROLL PROFOND ────────────────────────────

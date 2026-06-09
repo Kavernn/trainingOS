@@ -283,6 +283,15 @@
 		PRC001AA00300B2F5D0001 /* PortraitJ90Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRC001AA00300B2F5D0000 /* PortraitJ90Card.swift */; };
 		BPC001AA00300B2F5D0001 /* BehavioralPRsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */; };
 		RRC001AA00300B2F5D0001 /* RuptureRiskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */; };
+		NPC001AA00300B2F5D0001 /* NutritionPerformanceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = NPC001AA00300B2F5D0000 /* NutritionPerformanceModels.swift */; };
+		CAR001AA00300B2F5D0001 /* ComebackArcModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAR001AA00300B2F5D0000 /* ComebackArcModels.swift */; };
+		WMS001AA00300B2F5D0001 /* WeeklyMomentumModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = WMS001AA00300B2F5D0000 /* WeeklyMomentumModels.swift */; };
+		NPC002AA00300B2F5D0001 /* APIService+NutritionPerformance.swift in Sources */ = {isa = PBXBuildFile; fileRef = NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */; };
+		CAR002AA00300B2F5D0001 /* APIService+ComebackArc.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAR002AA00300B2F5D0000 /* APIService+ComebackArc.swift */; };
+		WMS002AA00300B2F5D0001 /* APIService+WeeklyMomentum.swift in Sources */ = {isa = PBXBuildFile; fileRef = WMS002AA00300B2F5D0000 /* APIService+WeeklyMomentum.swift */; };
+		NPC003AA00300B2F5D0001 /* NutritionPerformanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */; };
+		CAR003AA00300B2F5D0001 /* ComebackArcCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */; };
+		WMS003AA00300B2F5D0001 /* WeeklyMomentumCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */; };
 /* End PBXBuildFile section */
 		TRL001AA00300B2F5D0001 /* TrainingLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */; };
 		IDW001AA00300B2F5D0001 /* IdealWeekModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */; };
@@ -633,6 +642,15 @@
 		PRC001AA00300B2F5D0000 /* PortraitJ90Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortraitJ90Card.swift; sourceTree = "<group>"; };
 		BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehavioralPRsCard.swift; sourceTree = "<group>"; };
 		RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuptureRiskCard.swift; sourceTree = "<group>"; };
+		NPC001AA00300B2F5D0000 /* NutritionPerformanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerformanceModels.swift; sourceTree = "<group>"; };
+		CAR001AA00300B2F5D0000 /* ComebackArcModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComebackArcModels.swift; sourceTree = "<group>"; };
+		WMS001AA00300B2F5D0000 /* WeeklyMomentumModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMomentumModels.swift; sourceTree = "<group>"; };
+		NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+NutritionPerformance.swift; sourceTree = "<group>"; };
+		CAR002AA00300B2F5D0000 /* APIService+ComebackArc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+ComebackArc.swift; sourceTree = "<group>"; };
+		WMS002AA00300B2F5D0000 /* APIService+WeeklyMomentum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+WeeklyMomentum.swift; sourceTree = "<group>"; };
+		NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerformanceCard.swift; sourceTree = "<group>"; };
+		CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComebackArcCard.swift; sourceTree = "<group>"; };
+		WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMomentumCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadModels.swift; sourceTree = "<group>"; };
 		IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekModels.swift; sourceTree = "<group>"; };
@@ -1024,6 +1042,9 @@
 				SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */,
 				TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */,
 				IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */,
+				NPC001AA00300B2F5D0000 /* NutritionPerformanceModels.swift */,
+				CAR001AA00300B2F5D0000 /* ComebackArcModels.swift */,
+				WMS001AA00300B2F5D0000 /* WeeklyMomentumModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1087,6 +1108,9 @@
 				SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */,
 				TRL002AA00300B2F5D0000 /* APIService+TrainingLoad.swift */,
 				IDW002AA00300B2F5D0000 /* APIService+IdealWeek.swift */,
+				NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */,
+				CAR002AA00300B2F5D0000 /* APIService+ComebackArc.swift */,
+				WMS002AA00300B2F5D0000 /* APIService+WeeklyMomentum.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1137,6 +1161,9 @@
 				SLD003AA00300B2F5D0000 /* SleepDebtCard.swift */,
 				TRL003AA00300B2F5D0000 /* TrainingLoadCard.swift */,
 				IDW003AA00300B2F5D0000 /* IdealWeekCard.swift */,
+				NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */,
+				CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */,
+				WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -1855,6 +1882,27 @@
 				PRC001AA00300B2F5D0001 /* PortraitJ90Card.swift in Sources */,
 				BPC001AA00300B2F5D0001 /* BehavioralPRsCard.swift in Sources */,
 				RRC001AA00300B2F5D0001 /* RuptureRiskCard.swift in Sources */,
+				PFC001AA00300B2F5D0001 /* PerformanceConditionsModels.swift in Sources */,
+				SLD001AA00300B2F5D0001 /* SleepDebtModels.swift in Sources */,
+				PFC002AA00300B2F5D0001 /* APIService+PerformanceConditions.swift in Sources */,
+				SLD002AA00300B2F5D0001 /* APIService+SleepDebt.swift in Sources */,
+				PFC003AA00300B2F5D0001 /* PerformanceConditionsCard.swift in Sources */,
+				SLD003AA00300B2F5D0001 /* SleepDebtCard.swift in Sources */,
+				TRL001AA00300B2F5D0001 /* TrainingLoadModels.swift in Sources */,
+				IDW001AA00300B2F5D0001 /* IdealWeekModels.swift in Sources */,
+				TRL002AA00300B2F5D0001 /* APIService+TrainingLoad.swift in Sources */,
+				IDW002AA00300B2F5D0001 /* APIService+IdealWeek.swift in Sources */,
+				TRL003AA00300B2F5D0001 /* TrainingLoadCard.swift in Sources */,
+				IDW003AA00300B2F5D0001 /* IdealWeekCard.swift in Sources */,
+				NPC001AA00300B2F5D0001 /* NutritionPerformanceModels.swift in Sources */,
+				CAR001AA00300B2F5D0001 /* ComebackArcModels.swift in Sources */,
+				WMS001AA00300B2F5D0001 /* WeeklyMomentumModels.swift in Sources */,
+				NPC002AA00300B2F5D0001 /* APIService+NutritionPerformance.swift in Sources */,
+				CAR002AA00300B2F5D0001 /* APIService+ComebackArc.swift in Sources */,
+				WMS002AA00300B2F5D0001 /* APIService+WeeklyMomentum.swift in Sources */,
+				NPC003AA00300B2F5D0001 /* NutritionPerformanceCard.swift in Sources */,
+				CAR003AA00300B2F5D0001 /* ComebackArcCard.swift in Sources */,
+				WMS003AA00300B2F5D0001 /* WeeklyMomentumCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
