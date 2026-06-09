@@ -50,6 +50,9 @@ private final class P3State: @unchecked Sendable {
     var nutritionPerformance: NutritionPerformanceData? = nil
     var comebackArc: ComebackArcData? = nil
     var weeklyMomentum: WeeklyMomentumData? = nil
+    var optimalDay: OptimalDayData? = nil
+    var muscleBalance: MuscleBalanceData? = nil
+    var consistency: ConsistencyData? = nil
 }
 
 // MARK: - PhoenixScoreDeltaTracker
@@ -207,6 +210,9 @@ final class DashboardViewModel: ObservableObject {
     @Published var nutritionPerformance: NutritionPerformanceData? = nil
     @Published var comebackArc: ComebackArcData? = nil
     @Published var weeklyMomentum: WeeklyMomentumData? = nil
+    @Published var optimalDay: OptimalDayData? = nil
+    @Published var muscleBalance: MuscleBalanceData? = nil
+    @Published var consistency: ConsistencyData? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -487,6 +493,9 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in p3.nutritionPerformance = try? await APIService.shared.fetchNutritionPerformance() }
                 group.addTask { @MainActor in p3.comebackArc      = try? await APIService.shared.fetchComebackArc() }
                 group.addTask { @MainActor in p3.weeklyMomentum   = try? await APIService.shared.fetchWeeklyMomentum() }
+                group.addTask { @MainActor in p3.optimalDay       = try? await APIService.shared.fetchOptimalDay() }
+                group.addTask { @MainActor in p3.muscleBalance    = try? await APIService.shared.fetchMuscleBalance() }
+                group.addTask { @MainActor in p3.consistency      = try? await APIService.shared.fetchConsistency() }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
             insights      = p3.insights
@@ -513,6 +522,9 @@ final class DashboardViewModel: ObservableObject {
             nutritionPerformance    = p3.nutritionPerformance
             comebackArc             = p3.comebackArc
             weeklyMomentum          = p3.weeklyMomentum
+            optimalDay              = p3.optimalDay
+            muscleBalance           = p3.muscleBalance
+            consistency             = p3.consistency
             analyticsLoadedDate     = today
         }
     }

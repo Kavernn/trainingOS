@@ -210,6 +210,12 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.160)
                                 }
 
+                                // 8b4 — Consistance
+                                if let consist = vm.consistency, consist.hasData {
+                                    ConsistencyCard(data: consist)
+                                        .appearAnimation(delay: 0.165)
+                                }
+
                                 // 8c — Rupture Risk (vigilance ou plus)
                                 if let rupture = vm.ruptureRisk, rupture.score >= 20 {
                                     RuptureRiskCard(data: rupture)
@@ -346,6 +352,18 @@ struct DashboardView: View {
                                 if let nutrPerf = vm.nutritionPerformance, nutrPerf.hasData {
                                     NutritionPerformanceCard(data: nutrPerf)
                                         .appearAnimation(delay: 0.43)
+                                }
+
+                                // 16h — Jour Optimal
+                                if let optDay = vm.optimalDay, optDay.hasData {
+                                    OptimalDayCard(data: optDay)
+                                        .appearAnimation(delay: 0.45)
+                                }
+
+                                // 16i — Équilibre Musculaire
+                                if let muscles = vm.muscleBalance, muscles.hasData {
+                                    MuscleBalanceCard(data: muscles)
+                                        .appearAnimation(delay: 0.47)
                                 }
 
                                 // ── SCROLL PROFOND ────────────────────────────

@@ -292,6 +292,15 @@
 		NPC003AA00300B2F5D0001 /* NutritionPerformanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */; };
 		CAR003AA00300B2F5D0001 /* ComebackArcCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */; };
 		WMS003AA00300B2F5D0001 /* WeeklyMomentumCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */; };
+		OPD001AA00300B2F5D0001 /* OptimalDayModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = OPD001AA00300B2F5D0000 /* OptimalDayModels.swift */; };
+		MBL001AA00300B2F5D0001 /* MuscleBalanceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = MBL001AA00300B2F5D0000 /* MuscleBalanceModels.swift */; };
+		CST001AA00300B2F5D0001 /* ConsistencyModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CST001AA00300B2F5D0000 /* ConsistencyModels.swift */; };
+		OPD002AA00300B2F5D0001 /* APIService+OptimalDay.swift in Sources */ = {isa = PBXBuildFile; fileRef = OPD002AA00300B2F5D0000 /* APIService+OptimalDay.swift */; };
+		MBL002AA00300B2F5D0001 /* APIService+MuscleBalance.swift in Sources */ = {isa = PBXBuildFile; fileRef = MBL002AA00300B2F5D0000 /* APIService+MuscleBalance.swift */; };
+		CST002AA00300B2F5D0001 /* APIService+Consistency.swift in Sources */ = {isa = PBXBuildFile; fileRef = CST002AA00300B2F5D0000 /* APIService+Consistency.swift */; };
+		OPD003AA00300B2F5D0001 /* OptimalDayCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = OPD003AA00300B2F5D0000 /* OptimalDayCard.swift */; };
+		MBL003AA00300B2F5D0001 /* MuscleBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */; };
+		CST003AA00300B2F5D0001 /* ConsistencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CST003AA00300B2F5D0000 /* ConsistencyCard.swift */; };
 /* End PBXBuildFile section */
 		TRL001AA00300B2F5D0001 /* TrainingLoadModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */; };
 		IDW001AA00300B2F5D0001 /* IdealWeekModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */; };
@@ -651,6 +660,15 @@
 		NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerformanceCard.swift; sourceTree = "<group>"; };
 		CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComebackArcCard.swift; sourceTree = "<group>"; };
 		WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMomentumCard.swift; sourceTree = "<group>"; };
+		OPD001AA00300B2F5D0000 /* OptimalDayModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimalDayModels.swift; sourceTree = "<group>"; };
+		MBL001AA00300B2F5D0000 /* MuscleBalanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleBalanceModels.swift; sourceTree = "<group>"; };
+		CST001AA00300B2F5D0000 /* ConsistencyModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsistencyModels.swift; sourceTree = "<group>"; };
+		OPD002AA00300B2F5D0000 /* APIService+OptimalDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+OptimalDay.swift"; sourceTree = "<group>"; };
+		MBL002AA00300B2F5D0000 /* APIService+MuscleBalance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+MuscleBalance.swift"; sourceTree = "<group>"; };
+		CST002AA00300B2F5D0000 /* APIService+Consistency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+Consistency.swift"; sourceTree = "<group>"; };
+		OPD003AA00300B2F5D0000 /* OptimalDayCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptimalDayCard.swift; sourceTree = "<group>"; };
+		MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleBalanceCard.swift; sourceTree = "<group>"; };
+		CST003AA00300B2F5D0000 /* ConsistencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsistencyCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadModels.swift; sourceTree = "<group>"; };
 		IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekModels.swift; sourceTree = "<group>"; };
@@ -1045,6 +1063,9 @@
 				NPC001AA00300B2F5D0000 /* NutritionPerformanceModels.swift */,
 				CAR001AA00300B2F5D0000 /* ComebackArcModels.swift */,
 				WMS001AA00300B2F5D0000 /* WeeklyMomentumModels.swift */,
+				OPD001AA00300B2F5D0000 /* OptimalDayModels.swift */,
+				MBL001AA00300B2F5D0000 /* MuscleBalanceModels.swift */,
+				CST001AA00300B2F5D0000 /* ConsistencyModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1111,6 +1132,9 @@
 				NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */,
 				CAR002AA00300B2F5D0000 /* APIService+ComebackArc.swift */,
 				WMS002AA00300B2F5D0000 /* APIService+WeeklyMomentum.swift */,
+				OPD002AA00300B2F5D0000 /* APIService+OptimalDay.swift */,
+				MBL002AA00300B2F5D0000 /* APIService+MuscleBalance.swift */,
+				CST002AA00300B2F5D0000 /* APIService+Consistency.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1164,6 +1188,9 @@
 				NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */,
 				CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */,
 				WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */,
+				OPD003AA00300B2F5D0000 /* OptimalDayCard.swift */,
+				MBL003AA00300B2F5D0000 /* MuscleBalanceCard.swift */,
+				CST003AA00300B2F5D0000 /* ConsistencyCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -1903,6 +1930,15 @@
 				NPC003AA00300B2F5D0001 /* NutritionPerformanceCard.swift in Sources */,
 				CAR003AA00300B2F5D0001 /* ComebackArcCard.swift in Sources */,
 				WMS003AA00300B2F5D0001 /* WeeklyMomentumCard.swift in Sources */,
+				OPD001AA00300B2F5D0001 /* OptimalDayModels.swift in Sources */,
+				MBL001AA00300B2F5D0001 /* MuscleBalanceModels.swift in Sources */,
+				CST001AA00300B2F5D0001 /* ConsistencyModels.swift in Sources */,
+				OPD002AA00300B2F5D0001 /* APIService+OptimalDay.swift in Sources */,
+				MBL002AA00300B2F5D0001 /* APIService+MuscleBalance.swift in Sources */,
+				CST002AA00300B2F5D0001 /* APIService+Consistency.swift in Sources */,
+				OPD003AA00300B2F5D0001 /* OptimalDayCard.swift in Sources */,
+				MBL003AA00300B2F5D0001 /* MuscleBalanceCard.swift in Sources */,
+				CST003AA00300B2F5D0001 /* ConsistencyCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
