@@ -105,8 +105,8 @@ private struct PillarMiniGrid: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ForEach(items, id: \.0) { icon, score, label in
-                PillarDot(icon: icon, score: score)
+            ForEach(items, id: \.0) { item in
+                PillarDot(icon: item.0, score: item.1)
             }
         }
     }
@@ -215,8 +215,8 @@ private struct PillarBreakdownCard: View {
             Text("DÉTAIL PAR PILIER")
                 .font(.appMicro.weight(.black)).tracking(1.5)
                 .foregroundColor(.white.opacity(0.35))
-            ForEach(rows, id: \.1) { icon, label, score, weight in
-                PillarRow(icon: icon, label: label, score: score, weight: weight)
+            ForEach(rows, id: \.1) { row in
+                MomentumPillarRow(icon: row.0, label: row.1, score: row.2, weight: row.3)
             }
         }
         .padding(14)
@@ -224,7 +224,7 @@ private struct PillarBreakdownCard: View {
     }
 }
 
-private struct PillarRow: View {
+private struct MomentumPillarRow: View {
     let icon: String
     let label: String
     let score: Int
