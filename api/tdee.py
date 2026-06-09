@@ -101,7 +101,7 @@ def compute_tdee(profile: dict) -> dict:
     goal_adj = {"bulk": +300, "cut": -400, "recomp": -200, "maintain": 0}
     calorie_target = tdee + goal_adj.get(goal, 0)
 
-    macros = compute_macro_targets(weight_kg, calorie_target, goal)
+    macros = compute_macro_targets(weight_kg, calorie_target, goal, body_fat)
 
     return {
         "bmr_kcal":          bmr,
@@ -116,15 +116,29 @@ def compute_tdee(profile: dict) -> dict:
 
 
 def compute_macro_targets(weight_kg: float, calorie_target: int,
-                          goal: str = "maintain") -> dict:
+                          goal: str = "maintain",
+                          body_fat_pct: Optional[float] = None) -> dict:
     """
     Macros weight-relative.
-    Protéines : 2.2 g/kg (bulk) | 2.0 g/kg (autres)
+    Protéines (Stokes et al. 2018, Helms et al. 2014) :
+      Si body_fat valide (5–50%) → calcul sur LBM (plus précis pour les surpoids)
+        bulk  : 2.4 g/kg LBM | autres : 2.2 g/kg LBM
+      Sinon → poids total
+        bulk  : 2.2 g/kg | autres : 2.0 g/kg
     Lipides   : max(0.7 g/kg, 20 % des calories)
     Glucides  : reste calorique
     """
-    prot_factor = 2.2 if goal == "bulk" else 2.0
-    protein_g   = round(weight_kg * prot_factor)
+    if body_fat_pct is not None and 5.0 <= float(body_fat_pct) <= 50.0:
+        lbm_kg          = weight_kg * (1.0 - float(body_fat_pct) / 100.0)
+        prot_factor     = 2.4 if goal == "bulk" else 2.2
+        protein_g       = round(lbm_kg * prot_factor)
+        protein_basis   = "lbm"
+    else:
+        lbm_kg          = None
+        prot_factor     = 2.2 if goal == "bulk" else 2.0
+        protein_g       = round(weight_kg * prot_factor)
+        protein_basis   = "total_weight"
+
     fat_min_gkg = weight_kg * 0.7
     fat_min_cal = calorie_target * 0.20 / 9.0
     fat_g       = round(max(fat_min_gkg, fat_min_cal))
@@ -135,8 +149,9 @@ def compute_macro_targets(weight_kg: float, calorie_target: int,
         "objectif_proteines": protein_g,
         "lipides":            fat_g,
         "glucides":           carbs_g,
-        "protein_g_per_kg":  prot_factor,
-        "fat_g_per_kg":      round(fat_g / weight_kg, 2),
+        "protein_g_per_kg":   prot_factor,
+        "protein_basis":      protein_basis,
+        "fat_g_per_kg":       round(fat_g / weight_kg, 2),
     }
 
 

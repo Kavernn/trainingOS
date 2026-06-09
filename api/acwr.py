@@ -89,6 +89,51 @@ def _fetch_sessions(days: int = FETCH_DAYS) -> list[dict]:
         return []
 
 
+# Proxy RPE par type de cardio (Foster 2001 — sRPE × durée applicable au cardio)
+_CARDIO_RPE_PROXY: dict[str, float] = {
+    "run":       7.0, "course":   7.0, "running":  7.0, "trail":    7.5,
+    "hiit":      8.0,
+    "bike":      6.0, "vélo":     6.0, "cycling":  6.0, "cycle":    6.0,
+    "walk":      4.0, "marche":   4.0, "walking":  4.0, "hike":     5.0,
+    "swim":      7.0, "natation": 7.0,
+    "rowing":    7.0,
+}
+
+
+def _fetch_cardio(days: int = FETCH_DAYS) -> list[dict]:
+    """Récupère les sessions cardio des N derniers jours."""
+    if db._client is None:
+        return []
+    try:
+        cutoff = (date_cls.fromisoformat(_today_mtl()) - timedelta(days=days)).isoformat()
+        resp = (
+            db._client.table("cardio_logs")
+            .select("date, duration_min, type")
+            .gte("date", cutoff)
+            .order("date", desc=False)
+            .execute()
+        )
+        return resp.data or []
+    except Exception as e:
+        db.logger.warning("acwr: fetch_cardio error: %s", e)
+        return []
+
+
+def _aggregate_daily_cardio(rows: list[dict]) -> dict[str, float]:
+    """Cumule les charges cardio par jour via RPE proxy × durée."""
+    daily: dict[str, float] = {}
+    for r in rows:
+        d = str(r.get("date") or "")[:10]
+        if not d:
+            continue
+        dur = float(r.get("duration_min") or 0)
+        if dur <= 0:
+            continue
+        rpe = _CARDIO_RPE_PROXY.get((r.get("type") or "").lower(), 6.0)
+        daily[d] = daily.get(d, 0.0) + rpe * dur
+    return daily
+
+
 # ─────────────────────────────────────────────────────────────
 # EWMA ENGINE — FONCTIONS PURES
 # ─────────────────────────────────────────────────────────────
@@ -257,38 +302,69 @@ def _weekly_snapshots(series: list[dict], n_weeks: int = 8) -> list[dict]:
 # POINT D'ENTRÉE PUBLIC
 # ─────────────────────────────────────────────────────────────
 
+def _latest_or_empty(series: list[dict]) -> dict:
+    """Extrait le dernier point EWMA ou retourne un point vide."""
+    if not series:
+        return {"ratio": 0.0, "acute_load": 0.0, "chronic_load": 0.0,
+                "zone_code": "insufficient_data", "confidence": "low", "days_of_data": 0}
+    return series[-1]
+
+
 def calc_acwr() -> dict:
     """
-    Calcule l'ACWR EWMA courant et retourne la réponse API complète.
+    Calcule l'ACWR EWMA courant (total + séparés muscu/cardio).
 
     Champs retournés :
-      ratio, acute_load, chronic_load  — valeurs EWMA du jour
+      ratio, acute_load, chronic_load  — ACWR total (muscu + cardio combinés)
       zone                             — {code, label, color, recommendation}
-      trend                            — 8 snapshots hebdomadaires
+      trend                            — 8 snapshots hebdomadaires (total)
       confidence                       — "low" | "moderate" | "high"
       days_of_data                     — nombre de jours de données
+      strength_acwr                    — {ratio, acute_load, chronic_load, zone_code}
+      cardio_acwr                      — {ratio, acute_load, chronic_load, zone_code}
     """
-    rows  = _fetch_sessions(FETCH_DAYS)
-    daily = _aggregate_daily(rows)
-    series = _run_ewma(daily)
+    # ── Muscu ───────────────────────────────────────────────────────────────
+    strength_rows  = _fetch_sessions(FETCH_DAYS)
+    strength_daily = _aggregate_daily(strength_rows)
 
-    if not series:
-        meta = _zone_meta("insufficient_data")
-        return {
-            "ratio": 0.0, "acute_load": 0.0, "chronic_load": 0.0,
-            "zone": meta, "trend": [],
-            "confidence": "low", "days_of_data": 0,
-        }
+    # ── Cardio ──────────────────────────────────────────────────────────────
+    cardio_rows  = _fetch_cardio(FETCH_DAYS)
+    cardio_daily = _aggregate_daily_cardio(cardio_rows)
 
-    latest = series[-1]
+    # ── Total combiné ───────────────────────────────────────────────────────
+    all_dates    = set(strength_daily.keys()) | set(cardio_daily.keys())
+    total_daily  = {d: strength_daily.get(d, 0.0) + cardio_daily.get(d, 0.0)
+                    for d in all_dates}
+
+    strength_series = _run_ewma(strength_daily)
+    cardio_series   = _run_ewma(cardio_daily)
+    total_series    = _run_ewma(total_daily)
+
+    # ── Réponse principale (total) ───────────────────────────────────────────
+    latest = _latest_or_empty(total_series)
     meta   = _zone_meta(latest["zone_code"])
 
+    # ── Sous-ACWRs ──────────────────────────────────────────────────────────
+    sl = _latest_or_empty(strength_series)
+    cl = _latest_or_empty(cardio_series)
+
+    def _sub(pt: dict) -> dict:
+        return {
+            "ratio":        pt["ratio"],
+            "acute_load":   pt["acute_load"],
+            "chronic_load": pt["chronic_load"],
+            "zone_code":    pt["zone_code"],
+            "confidence":   pt["confidence"],
+        }
+
     return {
-        "ratio":        latest["ratio"],
-        "acute_load":   latest["acute_load"],
-        "chronic_load": latest["chronic_load"],
-        "zone":         meta,
-        "trend":        _weekly_snapshots(series),
-        "confidence":   latest["confidence"],
-        "days_of_data": latest["days_of_data"],
+        "ratio":          latest["ratio"],
+        "acute_load":     latest["acute_load"],
+        "chronic_load":   latest["chronic_load"],
+        "zone":           meta,
+        "trend":          _weekly_snapshots(total_series),
+        "confidence":     latest["confidence"],
+        "days_of_data":   latest["days_of_data"],
+        "strength_acwr":  _sub(sl),
+        "cardio_acwr":    _sub(cl),
     }

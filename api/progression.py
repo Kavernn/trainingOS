@@ -38,6 +38,30 @@ REPS_RULES: dict[str, dict] = {
 
 DEFAULT_REP_RANGE: dict = {"min": 8, "max": 12}
 
+# Rep ranges par load_profile — utilisées en fallback dans get_rep_range()
+_REP_RANGE_BY_PROFILE: dict[str, dict] = {
+    "compound_heavy":       {"min": 3,  "max": 6},
+    "compound_hypertrophy": {"min": 8,  "max": 12},
+    "isolation":            {"min": 12, "max": 15},
+    "endurance_strength":   {"min": 15, "max": 20},
+}
+
+
+def get_rep_range(exercise: str, load_profile: str | None = None) -> dict:
+    """Source unique pour les plages de reps.
+
+    Priorité :
+      1. Override par exercice dans REPS_RULES
+      2. Fallback par load_profile (_REP_RANGE_BY_PROFILE)
+      3. DEFAULT_REP_RANGE (8-12)
+    """
+    if exercise in REPS_RULES:
+        return REPS_RULES[exercise]
+    if load_profile:
+        return _REP_RANGE_BY_PROFILE.get(load_profile.lower(), DEFAULT_REP_RANGE)
+    return DEFAULT_REP_RANGE
+
+
 # Unified increment matrix: (load_profile, equipment_type) → lbs
 # Source unique de vérité — utilisée par get_increment() ci-dessous.
 # Remplace l'ancienne INCREMENT_RULES et _increment_for_profile dans smart_progression.
