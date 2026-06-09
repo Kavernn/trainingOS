@@ -645,23 +645,23 @@
 		NPC001AA00300B2F5D0000 /* NutritionPerformanceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerformanceModels.swift; sourceTree = "<group>"; };
 		CAR001AA00300B2F5D0000 /* ComebackArcModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComebackArcModels.swift; sourceTree = "<group>"; };
 		WMS001AA00300B2F5D0000 /* WeeklyMomentumModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMomentumModels.swift; sourceTree = "<group>"; };
-		NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+NutritionPerformance.swift; sourceTree = "<group>"; };
-		CAR002AA00300B2F5D0000 /* APIService+ComebackArc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+ComebackArc.swift; sourceTree = "<group>"; };
-		WMS002AA00300B2F5D0000 /* APIService+WeeklyMomentum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+WeeklyMomentum.swift; sourceTree = "<group>"; };
+		NPC002AA00300B2F5D0000 /* APIService+NutritionPerformance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+NutritionPerformance.swift"; sourceTree = "<group>"; };
+		CAR002AA00300B2F5D0000 /* APIService+ComebackArc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+ComebackArc.swift"; sourceTree = "<group>"; };
+		WMS002AA00300B2F5D0000 /* APIService+WeeklyMomentum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+WeeklyMomentum.swift"; sourceTree = "<group>"; };
 		NPC003AA00300B2F5D0000 /* NutritionPerformanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionPerformanceCard.swift; sourceTree = "<group>"; };
 		CAR003AA00300B2F5D0000 /* ComebackArcCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComebackArcCard.swift; sourceTree = "<group>"; };
 		WMS003AA00300B2F5D0000 /* WeeklyMomentumCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyMomentumCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 		TRL001AA00300B2F5D0000 /* TrainingLoadModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadModels.swift; sourceTree = "<group>"; };
 		IDW001AA00300B2F5D0000 /* IdealWeekModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekModels.swift; sourceTree = "<group>"; };
-		TRL002AA00300B2F5D0000 /* APIService+TrainingLoad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+TrainingLoad.swift; sourceTree = "<group>"; };
-		IDW002AA00300B2F5D0000 /* APIService+IdealWeek.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+IdealWeek.swift; sourceTree = "<group>"; };
+		TRL002AA00300B2F5D0000 /* APIService+TrainingLoad.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+TrainingLoad.swift"; sourceTree = "<group>"; };
+		IDW002AA00300B2F5D0000 /* APIService+IdealWeek.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+IdealWeek.swift"; sourceTree = "<group>"; };
 		TRL003AA00300B2F5D0000 /* TrainingLoadCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingLoadCard.swift; sourceTree = "<group>"; };
 		IDW003AA00300B2F5D0000 /* IdealWeekCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdealWeekCard.swift; sourceTree = "<group>"; };
 		PFC001AA00300B2F5D0000 /* PerformanceConditionsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceConditionsModels.swift; sourceTree = "<group>"; };
 		SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDebtModels.swift; sourceTree = "<group>"; };
-		PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+PerformanceConditions.swift; sourceTree = "<group>"; };
-		SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+SleepDebt.swift; sourceTree = "<group>"; };
+		PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+PerformanceConditions.swift"; sourceTree = "<group>"; };
+		SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SleepDebt.swift"; sourceTree = "<group>"; };
 		PFC003AA00300B2F5D0000 /* PerformanceConditionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceConditionsCard.swift; sourceTree = "<group>"; };
 		SLD003AA00300B2F5D0000 /* SleepDebtCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDebtCard.swift; sourceTree = "<group>"; };
 
