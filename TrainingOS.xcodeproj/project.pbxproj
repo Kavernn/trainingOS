@@ -284,6 +284,12 @@
 		BPC001AA00300B2F5D0001 /* BehavioralPRsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */; };
 		RRC001AA00300B2F5D0001 /* RuptureRiskCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */; };
 /* End PBXBuildFile section */
+		PFC001AA00300B2F5D0001 /* PerformanceConditionsModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFC001AA00300B2F5D0000 /* PerformanceConditionsModels.swift */; };
+		SLD001AA00300B2F5D0001 /* SleepDebtModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */; };
+		PFC002AA00300B2F5D0001 /* APIService+PerformanceConditions.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */; };
+		SLD002AA00300B2F5D0001 /* APIService+SleepDebt.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */; };
+		PFC003AA00300B2F5D0001 /* PerformanceConditionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PFC003AA00300B2F5D0000 /* PerformanceConditionsCard.swift */; };
+		SLD003AA00300B2F5D0001 /* SleepDebtCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SLD003AA00300B2F5D0000 /* SleepDebtCard.swift */; };
 
 /* Begin PBXContainerItemProxy section */
 		B7638B0D6B2566F11D62792A /* PBXContainerItemProxy */ = {
@@ -622,6 +628,12 @@
 		BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BehavioralPRsCard.swift; sourceTree = "<group>"; };
 		RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuptureRiskCard.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+		PFC001AA00300B2F5D0000 /* PerformanceConditionsModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceConditionsModels.swift; sourceTree = "<group>"; };
+		SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDebtModels.swift; sourceTree = "<group>"; };
+		PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+PerformanceConditions.swift; sourceTree = "<group>"; };
+		SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService+SleepDebt.swift; sourceTree = "<group>"; };
+		PFC003AA00300B2F5D0000 /* PerformanceConditionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceConditionsCard.swift; sourceTree = "<group>"; };
+		SLD003AA00300B2F5D0000 /* SleepDebtCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDebtCard.swift; sourceTree = "<group>"; };
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		D61F89C32FC8F00000490325 /* Exceptions for "TrainingOS" folder in "TrainingOS" target */ = {
@@ -996,6 +1008,8 @@
 					PRT001AA00300B2F5D0000 /* PortraitModels.swift */,
 					BPR001AA00300B2F5D0000 /* BehavioralPRModels.swift */,
 					RPT001AA00300B2F5D0000 /* RuptureModels.swift */,
+				PFC001AA00300B2F5D0000 /* PerformanceConditionsModels.swift */,
+				SLD001AA00300B2F5D0000 /* SleepDebtModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1055,6 +1069,8 @@
 					PRT002AA00300B2F5D0000 /* APIService+Portrait.swift */,
 					BPR002AA00300B2F5D0000 /* APIService+BehavioralPR.swift */,
 					RPT002AA00300B2F5D0000 /* APIService+Rupture.swift */,
+				PFC002AA00300B2F5D0000 /* APIService+PerformanceConditions.swift */,
+				SLD002AA00300B2F5D0000 /* APIService+SleepDebt.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -1101,6 +1117,8 @@
 				PRC001AA00300B2F5D0000 /* PortraitJ90Card.swift */,
 				BPC001AA00300B2F5D0000 /* BehavioralPRsCard.swift */,
 				RRC001AA00300B2F5D0000 /* RuptureRiskCard.swift */,
+				PFC003AA00300B2F5D0000 /* PerformanceConditionsCard.swift */,
+				SLD003AA00300B2F5D0000 /* SleepDebtCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";

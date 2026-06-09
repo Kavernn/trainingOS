@@ -204,7 +204,13 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.17)
                                 }
 
-                                // 8d — War Room strip
+                                // 8d — Conditions de performance
+                                if let perf = vm.performanceConditions, perf.hasData {
+                                    PerformanceConditionsCard(data: perf)
+                                        .appearAnimation(delay: 0.175)
+                                }
+
+                                // 8e — War Room strip
                                 if vm.warRoomEnabled {
                                     WarRoomStripView(
                                         hasResult:      vm.warRoomHasResult,
@@ -304,6 +310,12 @@ struct DashboardView: View {
                                 if let prs = vm.behavioralPRs, prs.hasData {
                                     BehavioralPRsCard(data: prs)
                                         .appearAnimation(delay: 0.37)
+                                }
+
+                                // 16e — Dette de sommeil
+                                if let debt = vm.sleepDebt, debt.hasData {
+                                    SleepDebtCard(data: debt)
+                                        .appearAnimation(delay: 0.39)
                                 }
 
                                 // ── SCROLL PROFOND ────────────────────────────

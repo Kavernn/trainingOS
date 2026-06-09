@@ -127,6 +127,8 @@ from routes.temporal             import temporal_bp
 from routes.portrait             import portrait_bp
 from routes.behavioral_prs       import behavioral_prs_bp
 from routes.rupture              import rupture_bp
+from routes.performance_conditions import performance_conditions_bp
+from routes.sleep_debt           import sleep_debt_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -180,6 +182,8 @@ app.register_blueprint(temporal_bp)
 app.register_blueprint(portrait_bp)
 app.register_blueprint(behavioral_prs_bp)
 app.register_blueprint(rupture_bp)
+app.register_blueprint(performance_conditions_bp)
+app.register_blueprint(sleep_debt_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────
