@@ -136,15 +136,50 @@ final class AppTheme: ObservableObject {
         }
     }
 
+    // Debug pilot toggle — tinted surface variants (Electric blue / Blood warm)
+    @Published var debugTintedSurfaces: Bool = false
+
     // Raccourcis directs
     var accent:          Color { colors.accent }
     var accentLight:     Color { colors.accentLight }
     var accentMuted:     Color { colors.accentMuted }
     var onAccent:        Color { colors.onAccent }
-    var background:      Color { colors.background }
-    var surfaceCard:     Color { colors.surfaceCard }
-    var surfaceElevated: Color { colors.surfaceElevated }
-    var surfaceInset:    Color { colors.surfaceInset }
+
+    var background: Color {
+        if debugTintedSurfaces, selectedTheme == .blood { return Color(hex: "1C1412") }
+        return colors.background
+    }
+    var surfaceCard: Color {
+        if debugTintedSurfaces {
+            switch selectedTheme {
+            case .electric: return Color(hex: "0D0D14")
+            case .blood:    return Color(hex: "261C1A")
+            default:        break
+            }
+        }
+        return colors.surfaceCard
+    }
+    var surfaceElevated: Color {
+        if debugTintedSurfaces {
+            switch selectedTheme {
+            case .electric: return Color(hex: "121220")
+            case .blood:    return Color(hex: "2E2220")
+            default:        break
+            }
+        }
+        return colors.surfaceElevated
+    }
+    var surfaceInset: Color {
+        if debugTintedSurfaces {
+            switch selectedTheme {
+            case .electric: return Color(hex: "060616")
+            case .blood:    return Color(hex: "1F0C0A")
+            default:        break
+            }
+        }
+        return colors.surfaceInset
+    }
+
     var textPrimary:     Color { colors.textPrimary }
     var textSecondary:   Color { colors.textSecondary }
     var textMuted:       Color { colors.textMuted }

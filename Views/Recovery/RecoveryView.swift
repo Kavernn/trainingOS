@@ -76,7 +76,7 @@ private struct RecoveryDayCell: View {
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(color)
                     Text(v)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .font(.appLabel.weight(.bold))
                         .foregroundColor(.white)
                         .lineLimit(1).minimumScaleFactor(0.65)
                     Text(label)
@@ -89,8 +89,8 @@ private struct RecoveryDayCell: View {
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(color.opacity(0.28))
                     HStack(spacing: 3) {
-                        Image(systemName: "heart.fill").font(.system(size: 8)).foregroundColor(.red.opacity(0.65))
-                        Text("Sync Santé").font(.system(size: 11, weight: .bold)).foregroundColor(.orange.opacity(0.9))
+                        Image(systemName: "heart.fill").font(.appMicro).foregroundColor(.red.opacity(0.65))
+                        Text("Sync Santé").font(.appCaption.weight(.bold)).foregroundColor(.orange.opacity(0.9))
                     }
                     Text(label)
                         .font(.appMicro.weight(.medium))
@@ -102,8 +102,8 @@ private struct RecoveryDayCell: View {
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(color.opacity(0.28))
                     HStack(spacing: 3) {
-                        Image(systemName: "pencil").font(.system(size: 9)).foregroundColor(.blue.opacity(0.75))
-                        Text("Saisir").font(.system(size: 11, weight: .bold)).foregroundColor(.blue.opacity(0.85))
+                        Image(systemName: "pencil").font(.appMicro).foregroundColor(.blue.opacity(0.75))
+                        Text("Saisir").font(.appCaption.weight(.bold)).foregroundColor(.blue.opacity(0.85))
                     }
                     Text(label)
                         .font(.appMicro.weight(.medium))
@@ -237,7 +237,7 @@ private struct RecoveryHeroCard: View {
                     }
                 }
                 Text(verdictLabel.uppercased())
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.appMicro.weight(.bold))
                     .tracking(2)
                     .foregroundColor(.gray.opacity(0.75))
             }
@@ -282,14 +282,14 @@ private struct RecoveryHeroCard: View {
         let hasValue = value != nil
         return VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 13))
+                .font(.appLabel)
                 .foregroundColor(hasValue ? color : .gray.opacity(0.35))
             Text(value ?? "—")
-                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .font(.appLabel.weight(.bold))
                 .foregroundColor(hasValue ? .white : .gray.opacity(0.4))
                 .lineLimit(1).minimumScaleFactor(0.7)
             Text(label)
-                .font(.system(size: 9, weight: .semibold))
+                .font(.appMicro.weight(.semibold))
                 .tracking(1)
                 .foregroundColor(.gray.opacity(0.6))
         }
@@ -356,11 +356,11 @@ private struct RecoverySleepBarChart: View {
         let yMax = max((entries.compactMap(\.sleepHours).max() ?? 9) + 0.5, goalHours + 0.5)
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 5) {
-                Image(systemName: "moon.zzz.fill").font(.system(size: 10)).foregroundColor(.blue)
+                Image(systemName: "moon.zzz.fill").font(.appMicro).foregroundColor(.blue)
                 Text("SOMMEIL — \(entries.count) JOURS").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                 Spacer()
                 Text(String(format: "Obj. %.0fh", goalHours))
-                    .font(.system(size: 10, weight: .semibold)).foregroundColor(.green.opacity(0.7))
+                    .font(.appMicro.weight(.semibold)).foregroundColor(.green.opacity(0.7))
             }
             GeometryReader { geo in
                 let w = geo.size.width
@@ -406,7 +406,7 @@ private struct RecoverySleepBarChart: View {
             HStack(spacing: 0) {
                 ForEach(entries, id: \.id) { entry in
                     Text(dayLabel(entry.date ?? ""))
-                        .font(.system(size: 9))
+                        .font(.appMicro)
                         .foregroundColor(.gray)
                         .frame(maxWidth: .infinity)
                 }
@@ -444,7 +444,7 @@ private struct AccordionRow: View {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(formattedDate)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.appLabel.weight(.semibold))
                         .foregroundColor(.white.opacity(0.9))
                     if let src = entry.source {
                         Text(src == "manual" ? "Manuel" : "Apple Santé")
@@ -466,7 +466,7 @@ private struct AccordionRow: View {
                                color: .red)
                 }
                 Image(systemName: "pencil")
-                    .font(.system(size: 10))
+                    .font(.appMicro)
                     .foregroundColor(.gray.opacity(0.35))
             }
             .padding(.horizontal, 14)
@@ -478,10 +478,10 @@ private struct AccordionRow: View {
     private func metricChip(icon: String, value: String?, color: Color) -> some View {
         HStack(spacing: 2) {
             Image(systemName: icon)
-                .font(.system(size: 8))
+                .font(.appMicro)
                 .foregroundColor(value != nil ? color : .gray.opacity(0.3))
             Text(value ?? "—")
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
+                .font(.appCaption.weight(.semibold))
                 .foregroundColor(value != nil ? .white.opacity(0.85) : .gray.opacity(0.35))
         }
     }
@@ -518,6 +518,7 @@ struct RecoveryView: View {
     @State private var showHistoryAccordion = false
     @State private var hkSpO2: Double? = nil
     @State private var hkWristTemp: Double? = nil
+    @ObservedObject private var theme = AppTheme.shared
 
     private var todayStr: String { DateFormatter.isoDate.string(from: Date()) }
 
@@ -601,6 +602,24 @@ struct RecoveryView: View {
             }
             .navigationTitle("Récupération")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { AppTheme.shared.debugTintedSurfaces.toggle() } label: {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(theme.debugTintedSurfaces ? Color.forge : Color.gray.opacity(0.45))
+                                .frame(width: 7, height: 7)
+                            Text(theme.debugTintedSurfaces ? "TEINTÉ" : "NEUTRE")
+                                .font(.appMicro.weight(.bold))
+                                .tracking(0.8)
+                                .foregroundColor(theme.debugTintedSurfaces ? Color.forge : Color.gray)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(Capsule())
+                    }
+                }
+            }
             .sheet(isPresented: $showSheet) {
                 LogRecoverySheet(onSaved: { await loadData() })
             }
@@ -839,7 +858,7 @@ struct RecoveryView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 5) {
-                                Image(systemName: "moon.zzz.fill").font(.system(size: 10)).foregroundColor(.blue)
+                                Image(systemName: "moon.zzz.fill").font(.appMicro).foregroundColor(.blue)
                                 Text("SOMMEIL").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                             }
                             HStack(alignment: .firstTextBaseline, spacing: 3) {
@@ -867,9 +886,9 @@ struct RecoveryView: View {
                                 .foregroundColor(dColor)
                             if let q = quality {
                                 HStack(spacing: 2) {
-                                    Image(systemName: "star.fill").font(.system(size: 9)).foregroundColor(.yellow)
+                                    Image(systemName: "star.fill").font(.appMicro).foregroundColor(.yellow)
                                     Text(String(format: "%.1f/10", q))
-                                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.white.opacity(0.8))
+                                        .font(.appCaption.weight(.semibold)).foregroundColor(.white.opacity(0.8))
                                 }
                             }
                         }
@@ -940,11 +959,11 @@ struct RecoveryView: View {
                 let avg = pts.reduce(0, +) / Double(pts.count)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Image(systemName: "waveform.path.ecg").font(.system(size: 10)).foregroundColor(.green)
+                        Image(systemName: "waveform.path.ecg").font(.appMicro).foregroundColor(.green)
                         Text("HRV — \(pts.count) JOURS").font(.appMicro.weight(.bold)).tracking(2).foregroundColor(.gray)
                         Spacer()
                         Text(String(format: "%.0f ms moy.", avg))
-                            .font(.system(size: 11, weight: .semibold)).foregroundColor(.green)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(.green)
                     }
                     GeometryReader { geo in
                         let w = geo.size.width
@@ -1020,7 +1039,7 @@ struct RecoveryView: View {
                     } label: {
                         HStack {
                             Image(systemName: "clock.arrow.circlepath")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(.gray)
                             Text("HISTORIQUE RÉCENT")
                                 .font(.appMicro.weight(.bold))
@@ -1031,7 +1050,7 @@ struct RecoveryView: View {
                                 .font(.appMicro)
                                 .foregroundColor(.gray.opacity(0.6))
                             Image(systemName: showHistoryAccordion ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(.appCaption.weight(.semibold))
                                 .foregroundColor(.gray.opacity(0.5))
                         }
                         .padding(.horizontal, 14)
