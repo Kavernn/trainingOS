@@ -21,7 +21,7 @@ struct FoodCatalogView: View {
                     if syncFailed {
                         HStack(spacing: 10) {
                             Image(systemName: "exclamationmark.icloud.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                             Text("Modifications non synchronisées")
                                 .font(.appLabel)
                                 .foregroundColor(.white)
@@ -30,12 +30,12 @@ struct FoodCatalogView: View {
                                 Task { await syncCatalog(items) }
                             } label: {
                                 Image(systemName: "arrow.clockwise")
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .background(Color.orange.opacity(0.1))
+                        .background(Color.forge.opacity(0.1))
                     }
 
                     if items.isEmpty {
@@ -96,11 +96,11 @@ struct FoodCatalogView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }.foregroundColor(.orange)
+                    Button("Fermer") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button { showAdd = true } label: {
-                        Image(systemName: "plus").foregroundColor(.orange)
+                        Image(systemName: "plus").foregroundColor(Color.forge)
                     }
                 }
             }
@@ -237,7 +237,7 @@ struct FoodItemFormView: View {
                                 ForEach(units, id: \.self) { Text($0) }
                             }
                             .pickerStyle(.menu)
-                            .tint(.orange)
+                            .tint(Color.forge)
                         }
                         // N-D8: inline validation for refQty
                         if !refQty.isEmpty && Double(refQty.replacingOccurrences(of: ",", with: ".")) == nil {
@@ -279,11 +279,11 @@ struct FoodItemFormView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Sauvegarder") { save() }
-                        .foregroundColor(.orange).fontWeight(.semibold)
+                        .foregroundColor(Color.forge).fontWeight(.semibold)
                         .disabled(!canSave)
                 }
                 ToolbarItemGroup(placement: .keyboard) {
@@ -300,14 +300,14 @@ struct FoodItemFormView: View {
                         }()
                         if let next {
                             Button("Suivant →") { foodFocus = next }
-                                .font(.appBody.weight(.semibold)).foregroundColor(.orange)
+                                .font(.appBody.weight(.semibold)).foregroundColor(Color.forge)
                         } else {
                             Button("Ok") { foodFocus = nil }
-                                .font(.appBody.weight(.semibold)).foregroundColor(.orange)
+                                .font(.appBody.weight(.semibold)).foregroundColor(Color.forge)
                         }
                     } else {
                         Button("Ok") { foodFocus = nil }
-                            .font(.appBody.weight(.semibold)).foregroundColor(.orange)
+                            .font(.appBody.weight(.semibold)).foregroundColor(Color.forge)
                     }
                 }
             }

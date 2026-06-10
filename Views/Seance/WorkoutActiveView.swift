@@ -249,7 +249,7 @@ struct WorkoutSeanceView: View {
         if durationMin > 90 && remaining > 0 {
             return MidWorkoutAdvice(
                 id: "too_long",
-                icon: "clock.badge.exclamationmark.fill", color: .orange,
+                icon: "clock.badge.exclamationmark.fill", color: Color.appWarning,
                 title: "Séance longue — \(Int(durationMin)) min",
                 message: "Les \(remaining) exercice(s) restant(s) sont optionnels. La qualité prime sur la quantité après 90 min."
             )
@@ -321,7 +321,7 @@ struct WorkoutSeanceView: View {
                     if let r = r {
                         VStack(alignment: .trailing, spacing: 1) {
                             Text(UnitSettings.shared.format(r.weight))
-                                .font(.appCaption).fontWeight(.bold).foregroundColor(.orange)
+                                .font(.appCaption).fontWeight(.bold).foregroundColor(Color.forge)
                             Text(r.reps).font(.appMicro).foregroundColor(.gray)
                         }
                     } else {
@@ -347,10 +347,10 @@ struct WorkoutSeanceView: View {
                 }
                 Button { addTarget = SeanceName(id: data.today) } label: {
                     HStack {
-                        Image(systemName: "plus.circle.fill").foregroundColor(.orange)
+                        Image(systemName: "plus.circle.fill").foregroundColor(Color.forge)
                         Text("Ajouter un exercice")
                             .font(.appLabel)
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -358,7 +358,7 @@ struct WorkoutSeanceView: View {
             }
             .background(Color.appCard)
             .cornerRadius(14)
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.2), lineWidth: 1))
             .padding(.horizontal, 16)
         } else {
             let sepIdx = firstUnloggedItemIndex
@@ -382,7 +382,7 @@ struct WorkoutSeanceView: View {
                         Task { await saveOrder(exerciseOrder) }
                     }
                     .font(.appCaption).fontWeight(.semibold)
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                     Button { orderSaveError = false } label: {
                         Image(systemName: "xmark").font(.appCaption).foregroundColor(.gray)
                     }
@@ -396,16 +396,16 @@ struct WorkoutSeanceView: View {
             // Add exercise — session-local only, doesn't modify the programme
             Button { showAddLocal = true } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill").foregroundColor(.orange.opacity(0.7))
+                    Image(systemName: "plus.circle.fill").foregroundColor(Color.forge.opacity(0.7))
                     Text("Ajouter un exercice")
                         .font(.appLabel).fontWeight(.semibold)
-                        .foregroundColor(.orange.opacity(0.7))
+                        .foregroundColor(Color.forge.opacity(0.7))
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(Color.orange.opacity(0.06))
+                .background(Color.forge.opacity(0.06))
                 .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.18), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.18), lineWidth: 1))
             }
             .buttonStyle(SpringButtonStyle())
             .padding(.horizontal, 16)
@@ -428,7 +428,7 @@ struct WorkoutSeanceView: View {
                         Text(scheme).font(.appCaption).foregroundColor(.gray)
                     }
                     Spacer()
-                    Image(systemName: "pencil").font(.appLabel).foregroundColor(.orange.opacity(0.7))
+                    Image(systemName: "pencil").font(.appLabel).foregroundColor(Color.forge.opacity(0.7))
                 }
             }
             .buttonStyle(.plain)
@@ -534,10 +534,10 @@ struct WorkoutSeanceView: View {
             HStack(spacing: 8) {
                 Text(group)
                     .font(.appCaption).fontWeight(.semibold)
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 5)
-                    .background(Color.orange.opacity(0.15))
+                    .background(Color.forge.opacity(0.15))
                     .clipShape(Capsule())
                 Text("Superset")
                     .font(.appCaption).fontWeight(.medium)
@@ -573,7 +573,7 @@ struct WorkoutSeanceView: View {
                 Text("enchaîner")
                     .font(.appCaption).fontWeight(.semibold)
             }
-            .foregroundColor(.orange.opacity(0.8))
+            .foregroundColor(Color.forge.opacity(0.8))
             .frame(maxWidth: .infinity, alignment: .center)
 
             draggableCard(name: entry.b, scheme: schemeB, nextExerciseName: nextName,
@@ -795,10 +795,10 @@ struct WorkoutSeanceView: View {
                                     Text(data.today.uppercased())
                                         .font(.appLabel).fontWeight(.black)
                                         .tracking(3)
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.forge)
                                     Image(systemName: "chevron.down")
                                         .font(.appMicro).fontWeight(.bold)
-                                        .foregroundColor(.orange.opacity(0.6))
+                                        .foregroundColor(Color.forge.opacity(0.6))
                                 }
                             }
                             .buttonStyle(.plain)
@@ -1030,16 +1030,16 @@ struct WorkoutSeanceView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "scalemass.fill")
                         .font(.appCaption)
-                        .foregroundColor(currentVolume > 0 ? .orange : .gray.opacity(0.4))
+                        .foregroundColor(currentVolume > 0 ? Color.forge : .gray.opacity(0.4))
                     Text("Volume total")
                         .font(.appCaption).fontWeight(.semibold).foregroundColor(.gray)
                     Spacer()
                     Text("\(Int(currentVolume)) \(UnitSettings.shared.label)")
                         .font(.appLabel).fontWeight(.black)
-                        .foregroundColor(currentVolume > 0 ? .orange : .gray.opacity(0.4))
+                        .foregroundColor(currentVolume > 0 ? Color.forge : .gray.opacity(0.4))
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(Color.orange.opacity(currentVolume > 0 ? 0.07 : 0.03))
+                .background(Color.forge.opacity(currentVolume > 0 ? 0.07 : 0.03))
                 .cornerRadius(10)
                 .padding(.horizontal, 16)
                 .animation(.spring(response: 0.4), value: currentVolume)
@@ -1051,7 +1051,7 @@ struct WorkoutSeanceView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.left.arrow.right.circle.fill")
                             .font(.appLabel)
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                         Text("\(swap.old) → \(swap.new)")
                             .font(.appCaption).fontWeight(.semibold)
                             .foregroundColor(.white)
@@ -1065,15 +1065,15 @@ struct WorkoutSeanceView: View {
                             }
                         }
                         .font(.appCaption).fontWeight(.semibold)
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                         Button { withAnimation { lastSwap = nil } } label: {
                             Image(systemName: "xmark").font(.appCaption).foregroundColor(.gray)
                         }
                     }
                     .padding(.horizontal, 12).padding(.vertical, 8)
-                    .background(Color.orange.opacity(0.08))
+                    .background(Color.forge.opacity(0.08))
                     .cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.2), lineWidth: 1))
                     .padding(.horizontal, 16)
                     .transition(.opacity.combined(with: .move(edge: .top)))
                 }

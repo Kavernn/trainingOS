@@ -22,7 +22,7 @@ struct NutritionView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .orange)
+                AmbientBackground(color: Color.forge)
                 // N-B1: AppLoadingView only on first load (entries empty); otherwise show content
                 if vm.isLoading && vm.entries.isEmpty {
                     AppLoadingView()
@@ -48,7 +48,7 @@ struct NutritionView: View {
                                     Spacer()
                                     Button("Définir les cibles") { showSettings = true }
                                         .font(.appLabel).fontWeight(.semibold)
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.forge)
                                 }
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 10)
@@ -131,9 +131,9 @@ struct NutritionView: View {
                                 HStack(spacing: 6) {
                                     ForEach([7, 30, 90], id: \.self) { p in
                                         let sel    = historyPeriod == p
-                                        let bg: Color     = sel ? Color.orange.opacity(0.18) : .clear
-                                        let fg: Color     = sel ? .orange : .gray
-                                        let stroke: Color = sel ? Color.orange.opacity(0.4)  : .clear
+                                        let bg: Color     = sel ? Color.forge.opacity(0.18) : .clear
+                                        let fg: Color     = sel ? Color.forge : .gray
+                                        let stroke: Color = sel ? Color.forge.opacity(0.4)  : .clear
                                         Button("\(p)j") {
                                             withAnimation { historyPeriod = p }
                                             Task { await vm.loadData(days: p, silent: true) }
@@ -198,17 +198,17 @@ struct NutritionView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 16) {
                         Button { showScan = true } label: {
-                            Image(systemName: "camera.viewfinder").foregroundColor(.orange)
+                            Image(systemName: "camera.viewfinder").foregroundColor(Color.forge)
                         }
                         Button { showSettings = true } label: {
-                            Image(systemName: "gearshape").foregroundColor(.orange)
+                            Image(systemName: "gearshape").foregroundColor(Color.forge)
                         }
                         // N-D6: show ProgressView while reloading, button otherwise
                         if vm.isLoading && !vm.entries.isEmpty {
-                            ProgressView().tint(.orange)
+                            ProgressView().tint(Color.forge)
                         } else {
                             Button(action: { Task { await vm.loadData() } }) {
-                                Image(systemName: "arrow.clockwise").foregroundColor(.orange)
+                                Image(systemName: "arrow.clockwise").foregroundColor(Color.forge)
                             }
                         }
                     }
@@ -261,7 +261,7 @@ struct NutritionView: View {
                             withAnimation { showUndoBanner = false }
                         }
                         .font(.appLabel).fontWeight(.semibold)
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)

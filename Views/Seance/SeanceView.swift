@@ -682,7 +682,7 @@ struct PostSessionEditSheet: View {
                             dismiss()
                         }
                     }
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 }
             }
             .confirmationDialog("Abandonner les modifications ?", isPresented: $showDiscardConfirm, titleVisibility: .visible) {
@@ -751,9 +751,9 @@ struct PostSessionEditSheet: View {
                     Text("RPE").font(.appMicro.weight(.bold)).tracking(1).foregroundColor(.gray)
                     Spacer()
                     Text(String(format: "%.1f", edits[i].rpe))
-                        .font(.appLabel.weight(.black)).foregroundColor(.orange)
+                        .font(.appLabel.weight(.black)).foregroundColor(Color.forge)
                 }
-                Slider(value: $edits[i].rpe, in: 1...10, step: 0.5).tint(.orange)
+                Slider(value: $edits[i].rpe, in: 1...10, step: 0.5).tint(Color.forge)
             }
         }
         .padding(14).background(Color.appCard).cornerRadius(12)
@@ -889,7 +889,7 @@ struct ExtraSessionSheet: View {
                     }
                 } else if isLoading {
                     VStack(spacing: 16) {
-                        ProgressView().tint(.orange)
+                        ProgressView().tint(Color.forge)
                         Text("Chargement…")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
@@ -914,7 +914,7 @@ struct ExtraSessionSheet: View {
                             dismiss()
                         }
                     }
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 }
             }
             .sheet(isPresented: $showFinishFromExit) {
@@ -1105,7 +1105,7 @@ struct FinishRemainingSheet: View {
                             dismiss()
                         }
                     }
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                 }
             }
             .alert("Exercices non sauvegardés", isPresented: $showExitAlert) {
@@ -1179,7 +1179,7 @@ struct NoProgramEmptyState: View {
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 18)
-                    .background(Color.orange)
+                    .background(Color.forge)
                     .cornerRadius(16)
                 }
                 .buttonStyle(.plain)
@@ -1187,12 +1187,12 @@ struct NoProgramEmptyState: View {
                 NavigationLink(destination: ProgrammeView()) {
                     Text("Créer mon programme")
                         .font(.appBody.weight(.medium))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.orange.opacity(0.1))
+                        .background(Color.forge.opacity(0.1))
                         .cornerRadius(14)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.25), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
 
@@ -1259,7 +1259,7 @@ struct FreeSessionPickerView: View {
                 Color.appBg.ignoresSafeArea()
 
                 if isLoading {
-                    ProgressView().tint(.orange)
+                    ProgressView().tint(Color.forge)
                 } else {
                     exerciseList
                 }
@@ -1275,7 +1275,7 @@ struct FreeSessionPickerView: View {
                     if !selectedNames.isEmpty {
                         Button("Commencer (\(selectedNames.count))") { showWorkout = true }
                             .font(.appBody.weight(.bold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                     }
                 }
             }
@@ -1331,22 +1331,22 @@ struct FreeSessionPickerView: View {
                     HStack(spacing: 4) {
                         Text(name)
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                             .lineLimit(1)
                         Button {
                             selectedNames.remove(name)
                         } label: {
                             Image(systemName: "xmark")
                                 .font(.appMicro.weight(.bold))
-                                .foregroundColor(.orange.opacity(0.7))
+                                .foregroundColor(Color.forge.opacity(0.7))
                         }
                         .buttonStyle(.plain)
                     }
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.12))
+                    .background(Color.forge.opacity(0.12))
                     .cornerRadius(20)
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.forge.opacity(0.25), lineWidth: 1))
                 }
             }
             .padding(.horizontal, 16)
@@ -1362,11 +1362,11 @@ struct FreeSessionPickerView: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(selected ? Color.orange.opacity(0.15) : Color.white.opacity(0.05))
+                        .fill(selected ? Color.forge.opacity(0.15) : Color.white.opacity(0.05))
                         .frame(width: 32, height: 32)
                     Image(systemName: selected ? "checkmark" : "plus")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(selected ? .orange : .gray)
+                        .foregroundColor(selected ? Color.forge : .gray)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.name)
@@ -1380,7 +1380,7 @@ struct FreeSessionPickerView: View {
                 if selected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
             }
             .padding(.horizontal, 16)
@@ -1449,7 +1449,7 @@ struct FreeWorkoutView: View {
                             .foregroundColor(.black)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
-                            .background(Color.orange)
+                            .background(Color.forge)
                             .cornerRadius(16)
                     }
                     .buttonStyle(.plain)

@@ -157,7 +157,7 @@ struct IntelligenceView: View {
                                     .foregroundColor(.black)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 10)
-                                    .background(Color.orange)
+                                    .background(Color.forge)
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                 }
                                 .buttonStyle(ScaleButtonStyle())
@@ -588,7 +588,7 @@ struct IntelligenceView: View {
 
             if let err = proposalError {
                 HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
+                    Image(systemName: "exclamationmark.triangle").foregroundColor(Color.appWarning)
                     Text(err).font(.system(size: 12)).foregroundColor(.gray)
                     Spacer()
                     Button { proposalError = nil } label: {
@@ -596,14 +596,14 @@ struct IntelligenceView: View {
                     }
                 }
                 .padding(12)
-                .background(Color.orange.opacity(0.08))
+                .background(Color.appWarning.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .padding(.horizontal, 16)
             }
 
             if let err = programError {
                 HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle").foregroundColor(.orange)
+                    Image(systemName: "exclamationmark.triangle").foregroundColor(Color.appWarning)
                     Text(err).font(.system(size: 12)).foregroundColor(.gray)
                     Spacer()
                     Button { programError = nil } label: {
@@ -611,7 +611,7 @@ struct IntelligenceView: View {
                     }
                 }
                 .padding(12)
-                .background(Color.orange.opacity(0.08))
+                .background(Color.appWarning.opacity(0.08))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
                 .padding(.horizontal, 16)
             }

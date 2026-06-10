@@ -121,7 +121,7 @@ struct AddNutritionSheet: View {
                             Button { showManageTemplates = true } label: {
                                 Label("Gérer", systemImage: "slider.horizontal.3")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                             .buttonStyle(.plain)
                             .textCase(nil)
@@ -133,7 +133,7 @@ struct AddNutritionSheet: View {
                                 Button { showManageTemplates = true } label: {
                                     Label("Créer un repas sauvegardé…", systemImage: "fork.knife")
                                         .font(.appLabel)
-                                        .foregroundColor(.orange.opacity(0.7))
+                                        .foregroundColor(Color.forge.opacity(0.7))
                                 }
                                 .buttonStyle(.plain)
                             } else {
@@ -149,11 +149,11 @@ struct AddNutritionSheet: View {
                                                         .opacity(0.75)
                                                 }
                                                 .padding(.horizontal, 12).padding(.vertical, 8)
-                                                .background(Color.orange.opacity(0.12))
-                                                .foregroundColor(.orange)
+                                                .background(Color.forge.opacity(0.12))
+                                                .foregroundColor(Color.forge)
                                                 .cornerRadius(12)
                                                 .overlay(RoundedRectangle(cornerRadius: 12)
-                                                    .stroke(Color.orange.opacity(0.3), lineWidth: 1))
+                                                    .stroke(Color.forge.opacity(0.3), lineWidth: 1))
                                             }
                                             .buttonStyle(.plain)
                                         }
@@ -188,7 +188,7 @@ struct AddNutritionSheet: View {
                             } label: {
                                 Label("Gérer", systemImage: "slider.horizontal.3")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                             .buttonStyle(.plain)
                             .textCase(nil)
@@ -212,7 +212,7 @@ struct AddNutritionSheet: View {
                                         withAnimation { manualMode = true }
                                     }
                                     .font(.appLabel.weight(.semibold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
@@ -385,7 +385,7 @@ struct AddNutritionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     // N-B4: always-tappable button that validates inline
@@ -396,7 +396,7 @@ struct AddNutritionSheet: View {
                             didAttemptSave = true
                         }
                     }
-                    .foregroundColor(canSave ? .orange : .gray)
+                    .foregroundColor(canSave ? Color.forge : .gray)
                     .fontWeight(.semibold)
                     .disabled(isSaving)
                 }

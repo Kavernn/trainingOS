@@ -137,8 +137,8 @@ struct ExerciseCard: View {
 
     private var borderColor: Color {
         if alreadyLogged { return .green.opacity(0.42) }
-        if isFocused     { return .orange.opacity(0.30) }
-        if isExpanded    { return .orange.opacity(0.12) }
+        if isFocused     { return Color.forge.opacity(0.30) }
+        if isExpanded    { return Color.forge.opacity(0.12) }
         return .white.opacity(0.07)
     }
 
@@ -163,7 +163,7 @@ struct ExerciseCard: View {
         } label: {
             Image(systemName: hasNote ? "note.text" : "note.text.badge.plus")
                 .font(.appLabel)
-                .foregroundColor(hasNote ? .orange : .gray.opacity(0.35))
+                .foregroundColor(hasNote ? Color.forge : .gray.opacity(0.35))
         }
         .buttonStyle(.plain)
     }
@@ -278,8 +278,8 @@ struct ExerciseCard: View {
                             Image(systemName: "plus")
                                 .font(.appMicro).fontWeight(.bold)
                                 .frame(width: 22, height: 18)
-                                .foregroundColor(.orange.opacity(0.85))
-                                .background(Color.orange.opacity(0.1))
+                                .foregroundColor(Color.forge.opacity(0.85))
+                                .background(Color.forge.opacity(0.1))
                                 .cornerRadius(4)
                         }
                         .buttonStyle(.plain)
@@ -292,9 +292,9 @@ struct ExerciseCard: View {
                     } label: {
                         Image(systemName: "scalemass.fill")
                             .font(.appCaption).fontWeight(.semibold)
-                            .foregroundColor(.orange.opacity(0.8))
+                            .foregroundColor(Color.forge.opacity(0.8))
                             .padding(.horizontal, 6).padding(.vertical, 3)
-                            .background(Color.orange.opacity(0.12))
+                            .background(Color.forge.opacity(0.12))
                             .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
@@ -324,7 +324,7 @@ struct ExerciseCard: View {
                     if isActive && !evm.repCountMode {
                         Image(systemName: "chevron.right.2")
                             .font(.appMicro).fontWeight(.semibold)
-                            .foregroundColor(.orange.opacity(0.35))
+                            .foregroundColor(Color.forge.opacity(0.35))
                             .transition(.opacity)
                     }
                     Text("S\(i + 1)")
@@ -408,7 +408,7 @@ struct ExerciseCard: View {
                         } label: {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.appTitle)
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                         }
                         .buttonStyle(SpringButtonStyle(scale: 0.88))
                     } else if isDone {
@@ -417,7 +417,7 @@ struct ExerciseCard: View {
                     }
                 }
                 .padding(isActive ? 6 : 0)
-                .background(isActive ? Color.orange.opacity(0.12) : Color.clear)
+                .background(isActive ? Color.forge.opacity(0.12) : Color.clear)
                 .cornerRadius(8)
                 .animation(.easeInOut(duration: 0.2), value: evm.currentSetIndex)
                 .simultaneousGesture(
@@ -448,7 +448,7 @@ struct ExerciseCard: View {
                 RepCounterSection(evm: evm, doLog: doLog)
             } else if evm.setBySetMode {
                 Text("Set \(evm.currentSetIndex + 1)/\(evm.sets.count) — appuie ✓ après chaque set")
-                    .font(.appCaption).foregroundColor(.orange.opacity(0.7))
+                    .font(.appCaption).foregroundColor(Color.forge.opacity(0.7))
                     .padding(.top, 2)
             }
         }
@@ -511,7 +511,7 @@ struct ExerciseCard: View {
                         .font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
                     Spacer()
                     Text("\(units.format(avgLbs)) → \(units.format(total))")
-                        .font(.appLabel).fontWeight(.black).foregroundColor(.orange)
+                        .font(.appLabel).fontWeight(.black).foregroundColor(Color.forge)
                 }
                 .padding(.top, 2)
             }
@@ -522,7 +522,7 @@ struct ExerciseCard: View {
                         .font(.appMicro).fontWeight(.bold).tracking(1).foregroundColor(.gray)
                     Spacer()
                     Text(units.format(bodyWeight))
-                        .font(.appLabel).fontWeight(.black).foregroundColor(.orange)
+                        .font(.appLabel).fontWeight(.black).foregroundColor(Color.forge)
                 }
                 .padding(.top, 2)
             }
@@ -614,9 +614,9 @@ struct ExerciseCard: View {
                         Text(name).font(.appHeadline).fontWeight(.bold).foregroundColor(.white)
                         if isReplaced {
                             Text("remplacé")
-                                .font(.appMicro).fontWeight(.semibold).foregroundColor(.orange)
+                                .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge)
                                 .padding(.horizontal, 5).padding(.vertical, 2)
-                                .background(Color.orange.opacity(0.12)).clipShape(Capsule())
+                                .background(Color.forge.opacity(0.12)).clipShape(Capsule())
                         }
                         let hasCoaching = logResult == nil && (
                             (suggestion?.suggestionType != "maintain" && suggestion != nil) ||
@@ -625,9 +625,9 @@ struct ExerciseCard: View {
                         if hasCoaching {
                             Image(systemName: "bolt.fill")
                                 .font(.appMicro)
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                                 .padding(3)
-                                .background(Color.orange.opacity(0.15))
+                                .background(Color.forge.opacity(0.15))
                                 .clipShape(Circle())
                         }
                     }
@@ -795,7 +795,7 @@ struct ExerciseCard: View {
                         Text("Set à set")
                             .font(.appMicro).fontWeight(.semibold)
                     }
-                    .foregroundColor(evm.setBySetMode && !evm.repCountMode ? .orange : .gray.opacity(0.6))
+                    .foregroundColor(evm.setBySetMode && !evm.repCountMode ? Color.forge : .gray.opacity(0.6))
                     .padding(.horizontal, 8).padding(.vertical, 5)
                     .background(Color.white.opacity(0.05)).clipShape(Capsule())
                 }
@@ -919,10 +919,10 @@ struct ExerciseCard: View {
         if let prev = evm.weightData?.history?.first(where: { ($0.sessionNotes ?? "").isEmpty == false }),
            let prevNote = prev.sessionNotes, !hidePreviousNote {
             HStack(alignment: .top, spacing: 8) {
-                Image(systemName: "note.text").font(.appCaption).foregroundColor(.orange.opacity(0.7))
+                Image(systemName: "note.text").font(.appCaption).foregroundColor(Color.forge.opacity(0.7))
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Dernière séance · \(prev.date ?? "")")
-                        .font(.appMicro).fontWeight(.semibold).foregroundColor(.orange.opacity(0.6))
+                        .font(.appMicro).fontWeight(.semibold).foregroundColor(Color.forge.opacity(0.6))
                     Text(prevNote.count > 120 ? String(prevNote.prefix(120)) + "…" : prevNote)
                         .font(.appCaption).foregroundColor(.white.opacity(0.75))
                         .fixedSize(horizontal: false, vertical: true)
@@ -934,7 +934,7 @@ struct ExerciseCard: View {
                 .buttonStyle(.plain)
             }
             .padding(.horizontal, 10).padding(.vertical, 8)
-            .background(Color.orange.opacity(0.07))
+            .background(Color.forge.opacity(0.07))
             .cornerRadius(8)
         }
         if !isTimeBased, evm.lastReps != "—", !evm.lastReps.isEmpty {
@@ -946,10 +946,10 @@ struct ExerciseCard: View {
                     Image(systemName: "arrow.counterclockwise").font(.appCaption)
                     Text("Reprendre la dernière séance").font(.appCaption).fontWeight(.semibold)
                 }
-                .foregroundColor(.orange.opacity(0.85))
+                .foregroundColor(Color.forge.opacity(0.85))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 7)
-                .background(Color.orange.opacity(0.08)).cornerRadius(8)
+                .background(Color.forge.opacity(0.08)).cornerRadius(8)
             }
             .buttonStyle(.plain)
         }
@@ -960,7 +960,7 @@ struct ExerciseCard: View {
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Color.purple.opacity(0.12)).cornerRadius(6)
                 if let note = p.note {
-                    Text(note).font(.appMicro).foregroundColor(.orange.opacity(0.8)).lineLimit(1)
+                    Text(note).font(.appMicro).foregroundColor(Color.forge.opacity(0.8)).lineLimit(1)
                 }
                 Spacer()
             }
@@ -972,7 +972,7 @@ struct ExerciseCard: View {
                     .font(.appMicro).fontWeight(.semibold).tracking(1).foregroundColor(.gray)
                 Spacer()
                 Text(units.format(evm.currentWeight))
-                    .font(.appLabel).fontWeight(.bold).foregroundColor(.orange.opacity(0.7))
+                    .font(.appLabel).fontWeight(.bold).foregroundColor(Color.forge.opacity(0.7))
             }
         } else if !alreadyLogged {
             // W-D3 — first use: neutral placeholder instead of "RECOMMANDÉ 0.0"
@@ -1052,18 +1052,18 @@ struct ExerciseCard: View {
         // Note de séance — toujours visible, sauvegardée au log
         HStack(alignment: .top, spacing: 6) {
             Image(systemName: "note").font(.appCaption)
-                .foregroundColor(evm.sessionNote.isEmpty ? .gray.opacity(0.35) : .orange.opacity(0.7))
+                .foregroundColor(evm.sessionNote.isEmpty ? .gray.opacity(0.35) : Color.forge.opacity(0.7))
                 .padding(.top, 1)
             TextField("Note de séance…", text: $evm.sessionNote, axis: .vertical)
                 .font(.appCaption)
-                .foregroundColor(evm.sessionNote.isEmpty ? .gray : .orange)
+                .foregroundColor(evm.sessionNote.isEmpty ? .gray : Color.forge)
                 .lineLimit(1...3)
         }
         .padding(.horizontal, 10).padding(.vertical, 7)
-        .background(evm.sessionNote.isEmpty ? Color.clear : Color.orange.opacity(0.06))
+        .background(evm.sessionNote.isEmpty ? Color.clear : Color.forge.opacity(0.06))
         .cornerRadius(8)
         .overlay(RoundedRectangle(cornerRadius: 8).stroke(
-            evm.sessionNote.isEmpty ? Color.white.opacity(0.05) : Color.orange.opacity(0.15), lineWidth: 1))
+            evm.sessionNote.isEmpty ? Color.white.opacity(0.05) : Color.forge.opacity(0.15), lineWidth: 1))
         if showAdvanced {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { showAdvanced = false }
@@ -1146,8 +1146,8 @@ struct ExerciseCard: View {
                         }
                     }
                 case .loading:
-                    ProgressView().tint(.orange).scaleEffect(0.8)
-                    Text("Envoi...").font(.appLabel).fontWeight(.semibold).foregroundColor(.orange)
+                    ProgressView().tint(Color.forge).scaleEffect(0.8)
+                    Text("Envoi...").font(.appLabel).fontWeight(.semibold).foregroundColor(Color.forge)
                 case .error(let msg):
                     Image(systemName: "exclamationmark.circle.fill").foregroundColor(.red)
                     Text(msg).font(.appLabel).fontWeight(.semibold).foregroundColor(.red)
@@ -1180,11 +1180,11 @@ struct ExerciseCard: View {
                         ForEach(Array(sparkData.enumerated()), id: \.offset) { i, w in
                             AreaMark(x: .value("", i), y: .value("", w))
                                 .foregroundStyle(LinearGradient(
-                                    colors: [Color.orange.opacity(0.35), Color.orange.opacity(0.0)],
+                                    colors: [Color.forge.opacity(0.35), Color.forge.opacity(0.0)],
                                     startPoint: .top, endPoint: .bottom))
                                 .interpolationMethod(.catmullRom)
                             LineMark(x: .value("", i), y: .value("", w))
-                                .foregroundStyle(Color.orange.opacity(0.75))
+                                .foregroundStyle(Color.forge.opacity(0.75))
                                 .interpolationMethod(.catmullRom)
                         }
                     }
@@ -1281,10 +1281,10 @@ struct ExerciseCard: View {
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 14)
-                    .background(Color.orange.opacity(0.14))
-                    .foregroundColor(.orange)
+                    .background(Color.forge.opacity(0.14))
+                    .foregroundColor(Color.forge)
                     .cornerRadius(12)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.orange.opacity(0.28), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.forge.opacity(0.28), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
@@ -1476,7 +1476,7 @@ private struct RepCounterSection: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
-                .background(count > 0 ? (isLastSet ? Color.orange : Color.purple) : Color.gray.opacity(0.1))
+                .background(count > 0 ? (isLastSet ? Color.forge : Color.purple) : Color.gray.opacity(0.1))
                 .foregroundColor(count > 0 ? .white : .gray)
                 .cornerRadius(12)
             }
@@ -1591,7 +1591,7 @@ struct EnduranceTimerSection: View {
         case .warning(let n):
             Text("\(n)")
                 .font(.system(size: 80, weight: .black, design: .rounded))
-                .foregroundColor(n <= 3 ? .red : .orange)
+                .foregroundColor(n <= 3 ? .red : Color.forge)
                 .contentTransition(.numericText())
                 .frame(height: 110)
 

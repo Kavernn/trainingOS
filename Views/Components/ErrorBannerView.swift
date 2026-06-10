@@ -16,7 +16,7 @@ struct ErrorBannerView: View {
             if let onRetry {
                 Button("Réessayer", action: onRetry)
                     .font(.subheadline.bold())
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.appDanger)
             }
             if let onDismiss {
                 Button {
