@@ -24,7 +24,7 @@ struct MoreView: View {
                         Button {
                             showRitual = true
                         } label: {
-                            moreRowLabel(icon: "flame.fill", color: Color(hex: "FF2D20"),
+                            moreRowLabel(icon: "flame.fill", color: Color.appDanger,
                                          title: "Rituel quotidien", subtitle: ritualSubtitle,
                                          badge: appState.ritualTodayNotDone)
                         }
@@ -39,7 +39,7 @@ struct MoreView: View {
                         MoreRow(icon: "fork.knife",      color: .orange, title: "Nutrition")    { NutritionView() }
                         MoreRow(icon: "bolt.heart.fill", color: .orange, title: "Énergie & Récupération") { EnergyRecoveryView() }
                     }
-                    .listRowBackground(glassRowBG(Color(hex: "FF2D20")))
+                    .listRowBackground(glassRowBG(Color.appDanger))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
 
                     Section("Entraînement") {
@@ -47,7 +47,7 @@ struct MoreView: View {
                         MoreRow(icon: "target",                color: .orange,                  title: "Objectifs")  { ObjectifsView() }
                         MoreRow(icon: "chart.bar.fill",        color: .blue,                    title: "Stats")      { StatsView() }
                         MoreRow(icon: "timer",                 color: .orange,                  title: "Timer")      { TimerView() }
-                        MoreRow(icon: "mappin.and.ellipse",    color: Color(hex: "F59E0B"),     title: "Gym Finder") { GymFinderView() }
+                        MoreRow(icon: "mappin.and.ellipse",    color: Color.appWarning,     title: "Gym Finder") { GymFinderView() }
                     }
                     .listRowBackground(glassRowBG(.blue))
                     .listRowSeparatorTint(Color.white.opacity(0.06))
@@ -66,7 +66,7 @@ struct MoreView: View {
                         MoreRow(icon: "lock.shield.fill",     color: Color.forge,                   title: "War Room",   subtitle: "Résistance aux habitudes difficiles") { WarRoomGateView() }
                         MoreRow(icon: "staroflife.fill",      color: .indigo,                       title: "Workout DNA")   { WorkoutDNASection() }
                         MoreRow(icon: "star.fill",            color: .yellow,                       title: "XP & Niveau")   { XPView() }
-                        MoreRow(icon: "book.pages.fill",      color: Color(hex: "FF2D20").opacity(0.7), title: "Biographie", subtitle: "Timeline de tes intentions") { RitualBiographyView() }
+                        MoreRow(icon: "book.pages.fill",      color: Color.appDanger.opacity(0.7), title: "Biographie", subtitle: "Timeline de tes intentions") { RitualBiographyView() }
                         MoreRow(icon: "calendar.badge.clock", color: .teal,                         title: "Mes chapitres") { SeasonView() }
                         MoreRow(icon: "seal.fill",            color: .black,                        title: "Mon serment")   { OathGateView() }
                     }

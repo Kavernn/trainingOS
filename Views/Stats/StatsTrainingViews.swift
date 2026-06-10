@@ -1116,7 +1116,7 @@ struct OneRMTrendView: View {
                                 Text(ex)
                                     .font(.system(size: 10, weight: .semibold))
                                     .padding(.horizontal, 10).padding(.vertical, 4)
-                                    .background(currentExercise == ex ? Color.orange : Color(hex: "1a1a28"))
+                                    .background(currentExercise == ex ? Color.orange : Color.appSurfaceInset)
                                     .foregroundColor(currentExercise == ex ? .black : .gray)
                                     .cornerRadius(20)
                             }

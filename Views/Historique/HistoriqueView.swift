@@ -71,7 +71,7 @@ struct HistoriqueView: View {
                                     .font(.appCaption.weight(.semibold))
                                     .foregroundColor(monthFilter != nil ? .orange : .gray)
                                     .padding(.horizontal, 12).padding(.vertical, 6)
-                                    .background(Color(hex: "1c1c2e")).cornerRadius(8)
+                                    .background(Color.appCard).cornerRadius(8)
                             }
                             if monthFilter != nil {
                                 Button {

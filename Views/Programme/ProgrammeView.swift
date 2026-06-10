@@ -478,7 +478,7 @@ struct ProgrammeView: View {
                                 .foregroundColor(.orange)
                         }
                         .padding(.horizontal, 16).padding(.vertical, 12)
-                        .background(Color(hex: "1c1c2e"))
+                        .background(Color.appCard)
                         .cornerRadius(12)
                         .shadow(color: .black.opacity(0.4), radius: 8, y: 4)
                         .padding(.horizontal, 16)
