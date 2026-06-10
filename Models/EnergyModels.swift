@@ -12,6 +12,8 @@ struct EnergyDaily: Codable {
     // Données calculées
     let date: String?
     let bmr: Int?
+    let bmrElapsed: Int?
+    let tdeeProgress: Double?
     let bmrFormula: String?
     let eatWorkouts: Int?
     let eatCardio: Int?
@@ -29,6 +31,8 @@ struct EnergyDaily: Codable {
 
     enum CodingKeys: String, CodingKey {
         case error, message, missing, date, bmr, neat, tdee, intake, balance, objective, breakdown
+        case bmrElapsed    = "bmr_elapsed"
+        case tdeeProgress  = "tdee_progress"
         case bmrFormula    = "bmr_formula"
         case eatWorkouts   = "eat_workouts"
         case eatCardio     = "eat_cardio"
@@ -44,10 +48,12 @@ struct EnergyBreakdown: Codable {
     let workouts: [EnergySession]?
     let cardio: [EnergySession]?
     let steps: Int?
+    let stepsNet: Int?
     let neatCalories: Int?
 
     enum CodingKeys: String, CodingKey {
         case workouts, cardio, steps
+        case stepsNet     = "steps_net"
         case neatCalories = "neat_calories"
     }
 }
@@ -145,6 +151,13 @@ extension EnergyDaily {
 
     var bmrFormulaLabel: String {
         bmrFormula == "katch_mcArdle" ? "Katch-McArdle" : "Mifflin-St Jeor"
+    }
+
+    var bmrFormulaProgressLabel: String {
+        guard let progress = tdeeProgress, progress < 0.99 else {
+            return bmrFormulaLabel
+        }
+        return "\(bmrFormulaLabel) · \(Int(progress * 100))% du jour"
     }
 
     var formattedBalance: String {

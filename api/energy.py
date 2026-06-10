@@ -121,12 +121,12 @@ def _eat_from_cardio_entries(entries: list[dict], weight_kg: float) -> list[dict
         ctype = c.get("type") or "cardio"
         dist  = c.get("distance_km")
         if cals and int(cals) > 0:
-            result.append({"type": ctype, "duration_min": dur,
+            result.append({"type": ctype, "duration_min": dur, "distance_km": dist,
                            "calories": int(cals), "source": "gps"})
         elif dur:
             met  = _met_cardio(ctype, dur, dist)
             cals = min(round(met * weight_kg * dur / 60), 1500)
-            result.append({"type": ctype, "duration_min": dur,
+            result.append({"type": ctype, "duration_min": dur, "distance_km": dist,
                            "calories": cals, "met": met, "source": "met_estimate"})
     return result
 
@@ -148,6 +148,39 @@ def _neat_from_steps(steps: Optional[int], weight_kg: float) -> Optional[int]:
         return None
     steps = min(steps, 30_000)
     return round(steps * 0.04 * (weight_kg / 70))
+
+
+# ── Correction double comptage NEAT / EAT cardio ──────────────────────────────
+
+_STEPS_PER_KM: dict[str, int] = {
+    "run": 1300, "course": 1300, "running": 1300, "trail": 1300,
+    "walk": 1400, "marche": 1400, "walking": 1400, "hike": 1400, "randonnée": 1400,
+}
+_STEPS_PER_MIN: dict[str, int] = {
+    "run": 130, "course": 130, "running": 130, "trail": 120,
+    "walk": 90,  "marche": 90,  "walking": 90,  "hike": 80,  "randonnée": 80,
+}
+
+
+def _steps_minus_cardio(steps: Optional[int], cardio_sessions: list[dict]) -> Optional[int]:
+    """Soustrait les pas estimés des activités cardio à pas (course, marche…)
+    des steps totaux HealthKit pour éviter le double comptage NEAT + EAT.
+    Vélo, natation, musculation : non corrigés (génèrent peu ou pas de pas).
+    """
+    if not steps:
+        return steps
+    cardio_steps = 0
+    for s in cardio_sessions:
+        ctype = (s.get("type") or "").lower()
+        if ctype not in _STEPS_PER_KM:
+            continue
+        dist = s.get("distance_km")
+        dur  = int(s.get("duration_min") or 0)
+        if dist:
+            cardio_steps += int(float(dist) * _STEPS_PER_KM[ctype])
+        elif dur:
+            cardio_steps += int(dur * _STEPS_PER_MIN.get(ctype, 100))
+    return max(0, steps - cardio_steps)
 
 
 # ── Balance status ────────────────────────────────────────────────────────────
@@ -181,7 +214,9 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
     Retourne le payload JSON pour /api/energy/daily.
     """
     today        = date or _today_mtl()
-    is_too_early = get_nutrition_time_context(today)["is_too_early"]
+    time_ctx     = get_nutrition_time_context(today)
+    is_too_early = time_ctx["is_too_early"]
+    progress     = time_ctx["progress"]
 
     # ── Profil ────────────────────────────────────────────────────────────────
     profile    = db.get_profile() or {}
@@ -210,6 +245,7 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
     bmr_data    = compute_bmr(weight_kg, height_cm, age, sex, body_fat)
     bmr         = bmr_data["bmr"]
     bmr_formula = bmr_data["formula_used"]
+    bmr_elapsed = round(bmr * progress)   # BMR proraté au temps écoulé dans la journée
 
     # ── EAT ───────────────────────────────────────────────────────────────────
     workout_sessions = _eat_from_workouts(today, weight_kg)
@@ -222,11 +258,12 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
     today_recovery = next(
         (r for r in recovery_logs if (r.get("date") or "")[:10] == today), {}
     )
-    steps = today_recovery.get("steps")
-    neat  = _neat_from_steps(steps, weight_kg)
+    steps     = today_recovery.get("steps")
+    steps_net = _steps_minus_cardio(steps, cardio_sessions)   # corrigé doublon NEAT/EAT
+    neat      = _neat_from_steps(steps_net, weight_kg)
 
     # ── TDEE ──────────────────────────────────────────────────────────────────
-    tdee = bmr + eat_workouts + eat_cardio + (neat or 0)
+    tdee = bmr_elapsed + eat_workouts + eat_cardio + (neat or 0)
 
     # ── Intake ────────────────────────────────────────────────────────────────
     nutrition = db.get_nutrition_entries(today) or []
@@ -241,6 +278,8 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
     return {
         "date":           today,
         "bmr":            bmr,
+        "bmr_elapsed":    bmr_elapsed,
+        "tdee_progress":  round(progress, 3),
         "bmr_formula":    bmr_formula,
         "eat_workouts":   eat_workouts,
         "eat_cardio":     eat_cardio,
@@ -256,6 +295,7 @@ def compute_energy_daily(date: Optional[str] = None) -> dict:
             "workouts":      workout_sessions,
             "cardio":        cardio_sessions,
             "steps":         steps,
+            "steps_net":     steps_net,
             "neat_calories": neat,
         },
     }
@@ -309,11 +349,6 @@ def compute_energy_history(days: int = 7) -> list[dict]:
         nutr   = nutrition_by_date.get(d, {})
         intake = int(nutr.get("calories") or 0) or None
 
-        # NEAT
-        rec   = recovery_by_date.get(d, {})
-        steps = rec.get("steps")
-        neat  = _neat_from_steps(steps, weight_kg)
-
         # EAT — musculation (sessions complétées ce jour)
         day_sessions = [s for s in sessions_all
                         if (s.get("date") or "")[:10] == d and s.get("completed")]
@@ -323,10 +358,16 @@ def compute_energy_history(days: int = 7) -> list[dict]:
             for s in day_sessions if s.get("duration_min")
         )
 
-        # EAT — cardio
-        day_cardio = [c for c in cardio_all if (c.get("date") or "")[:10] == d]
-        eat_c = sum(s["calories"]
-                    for s in _eat_from_cardio_entries(day_cardio, weight_kg))
+        # EAT — cardio (avant NEAT pour correction double comptage)
+        day_cardio    = [c for c in cardio_all if (c.get("date") or "")[:10] == d]
+        cardio_parsed = _eat_from_cardio_entries(day_cardio, weight_kg)
+        eat_c         = sum(s["calories"] for s in cardio_parsed)
+
+        # NEAT — steps nets (corrigé doublon NEAT/EAT)
+        rec       = recovery_by_date.get(d, {})
+        steps     = rec.get("steps")
+        steps_net = _steps_minus_cardio(steps, cardio_parsed)
+        neat      = _neat_from_steps(steps_net, weight_kg)
 
         tdee    = bmr + eat_w + eat_c + (neat or 0)
         balance = (intake - tdee) if intake else None
