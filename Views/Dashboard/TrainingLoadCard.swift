@@ -265,7 +265,7 @@ private struct ZoneGuideCard: View {
         static let all: [ZoneRow] = [
             .init(label: "Sous-chargé",    range: "< 0.80×",       color: Color(hex: "FF9500")),
             .init(label: "Zone optimale",  range: "0.80 – 1.30×",  color: Color(hex: "34C759")),
-            .init(label: "Surcharge",      range: "> 1.30×",       color: Color(hex: "FF3B30")),
+            .init(label: "Surcharge",      range: "> 1.30×",       color: Color.appDanger),
         ]
     }
 }

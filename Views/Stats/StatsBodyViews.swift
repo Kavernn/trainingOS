@@ -782,7 +782,7 @@ struct TransformationMarkersCard: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("\(wr.totalVictories)")
                             .font(.system(size: 30, weight: .black))
-                            .foregroundColor(Color(hex: "2ECC71"))
+                            .foregroundColor(Color.appSuccess)
                             .contentTransition(.numericText())
                         Text("jours de victoire")
                             .font(.system(size: 11)).foregroundColor(.gray)
@@ -791,7 +791,7 @@ struct TransformationMarkersCard: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
-                    .background(Color(hex: "2ECC71").opacity(0.07))
+                    .background(Color.appSuccess.opacity(0.07))
                     .cornerRadius(12)
                 }
             }

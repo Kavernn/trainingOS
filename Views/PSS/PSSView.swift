@@ -802,7 +802,7 @@ struct PSSResultsContent: View {
                     }
                 }
                 .padding(12)
-                .background(Color(hex: "FF3B30").opacity(0.85))
+                .background(Color.appDanger.opacity(0.85))
                 .cornerRadius(10)
             }
             Text("ANALYSE")

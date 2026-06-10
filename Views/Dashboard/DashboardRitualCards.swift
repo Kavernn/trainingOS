@@ -41,15 +41,15 @@ struct RitualDemonCard: View {
         Button { showRitual = true } label: {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle().fill(Color(hex: "F59E0B").opacity(0.12)).frame(width: 36, height: 36)
+                    Circle().fill(Color.appWarning.opacity(0.12)).frame(width: 36, height: 36)
                     Image(systemName: "checklist")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(Color(hex: "F59E0B"))
+                        .foregroundColor(Color.appWarning)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(pendingCount) ENGAGEMENT\(pendingCount > 1 ? "S" : "") EN ATTENTE")
                         .font(.appMicro.weight(.black))
-                        .foregroundColor(Color(hex: "F59E0B").opacity(0.85))
+                        .foregroundColor(Color.appWarning.opacity(0.85))
                         .tracking(0.5)
                     if let ts = ritual.engagementsCreatedAt {
                         Text(ts)
@@ -60,14 +60,14 @@ struct RitualDemonCard: View {
                 Spacer()
                 Image(systemName: "arrow.right")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(Color(hex: "F59E0B").opacity(0.6))
+                    .foregroundColor(Color.appWarning.opacity(0.6))
             }
             .padding(13)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.appCard)
                     .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color(hex: "F59E0B").opacity(0.25), lineWidth: 1))
+                        .stroke(Color.appWarning.opacity(0.25), lineWidth: 1))
             )
         }
         .buttonStyle(.plain)
@@ -78,15 +78,15 @@ struct RitualDemonCard: View {
         Button { showRitual = true } label: {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle().fill(Color(hex: "F59E0B").opacity(0.08)).frame(width: 36, height: 36)
+                    Circle().fill(Color.appWarning.opacity(0.08)).frame(width: 36, height: 36)
                     Image(systemName: "moon.stars.fill")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(Color(hex: "F59E0B").opacity(0.7))
+                        .foregroundColor(Color.appWarning.opacity(0.7))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("PRÉPARE DEMAIN")
                         .font(.appMicro.weight(.black))
-                        .foregroundColor(Color(hex: "F59E0B").opacity(0.8))
+                        .foregroundColor(Color.appWarning.opacity(0.8))
                         .tracking(0.5)
                     Text("Journée clôturée · Crée tes engagements.")
                         .font(.appCaption)
@@ -95,14 +95,14 @@ struct RitualDemonCard: View {
                 Spacer()
                 Image(systemName: "arrow.right")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(Color(hex: "F59E0B").opacity(0.5))
+                    .foregroundColor(Color.appWarning.opacity(0.5))
             }
             .padding(13)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.appCard)
                     .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color(hex: "F59E0B").opacity(0.15), lineWidth: 1))
+                        .stroke(Color.appWarning.opacity(0.15), lineWidth: 1))
             )
         }
         .buttonStyle(.plain)
@@ -113,15 +113,15 @@ struct RitualDemonCard: View {
         Button { showRitual = true } label: {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle().fill(Color(hex: "22C55E").opacity(0.1)).frame(width: 36, height: 36)
+                    Circle().fill(Color.appSuccess.opacity(0.1)).frame(width: 36, height: 36)
                     Image(systemName: "checkmark.circle.fill")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(Color(hex: "22C55E").opacity(0.7))
+                        .foregroundColor(Color.appSuccess.opacity(0.7))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(readyCardTitle)
                         .font(.appMicro.weight(.black))
-                        .foregroundColor(Color(hex: "22C55E").opacity(0.75))
+                        .foregroundColor(Color.appSuccess.opacity(0.75))
                         .tracking(0.5)
                     Text("Cycle complété.")
                         .font(.appCaption)
@@ -134,7 +134,7 @@ struct RitualDemonCard: View {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.appCard)
                     .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color(hex: "22C55E").opacity(0.15), lineWidth: 1))
+                        .stroke(Color.appSuccess.opacity(0.15), lineWidth: 1))
             )
         }
         .buttonStyle(.plain)
@@ -145,15 +145,15 @@ struct RitualDemonCard: View {
         Button { showRitual = true } label: {
             HStack(spacing: 12) {
                 ZStack {
-                    Circle().fill(Color(hex: "F59E0B").opacity(0.08)).frame(width: 36, height: 36)
+                    Circle().fill(Color.appWarning.opacity(0.08)).frame(width: 36, height: 36)
                     Image(systemName: "sunrise.fill")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(Color(hex: "F59E0B").opacity(0.7))
+                        .foregroundColor(Color.appWarning.opacity(0.7))
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("CE SOIR, CRÉE TES ENGAGEMENTS")
                         .font(.appMicro.weight(.black))
-                        .foregroundColor(Color(hex: "F59E0B").opacity(0.75))
+                        .foregroundColor(Color.appWarning.opacity(0.75))
                         .tracking(0.5)
                     Text("Aucun engagement prévu pour demain.")
                         .font(.appCaption)
@@ -162,14 +162,14 @@ struct RitualDemonCard: View {
                 Spacer()
                 Image(systemName: "arrow.right")
                     .font(.appCaption.weight(.semibold))
-                    .foregroundColor(Color(hex: "F59E0B").opacity(0.5))
+                    .foregroundColor(Color.appWarning.opacity(0.5))
             }
             .padding(13)
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.appCard)
                     .overlay(RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color(hex: "F59E0B").opacity(0.12), lineWidth: 1))
+                        .stroke(Color.appWarning.opacity(0.12), lineWidth: 1))
             )
         }
         .buttonStyle(.plain)
@@ -258,7 +258,7 @@ struct QuickWarRoomTriggerSheet: View {
                                         .foregroundColor(selectedContext == ctx ? .black : .white.opacity(0.7))
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 9)
-                                        .background(selectedContext == ctx ? Color(hex: "E8441A") : Color.white.opacity(0.06))
+                                        .background(selectedContext == ctx ? Color.appDanger : Color.white.opacity(0.06))
                                         .clipShape(RoundedRectangle(cornerRadius: 8))
                                 }
                                 .buttonStyle(.plain)
@@ -276,10 +276,10 @@ struct QuickWarRoomTriggerSheet: View {
                             Spacer()
                             Text("\(Int(intensity))/10")
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(intensity >= 7 ? Color(hex: "E8441A") : .white)
+                                .foregroundColor(intensity >= 7 ? Color.appDanger : .white)
                         }
                         Slider(value: $intensity, in: 1...10, step: 1)
-                            .tint(Color(hex: "E8441A"))
+                            .tint(Color.appDanger)
                     }
 
                     // Yielded toggle
@@ -294,7 +294,7 @@ struct QuickWarRoomTriggerSheet: View {
                         }
                         Spacer()
                         Toggle("", isOn: $yielded)
-                            .tint(Color(hex: "E8441A"))
+                            .tint(Color.appDanger)
                             .labelsHidden()
                     }
                     .padding(14)
@@ -334,7 +334,7 @@ struct QuickWarRoomTriggerSheet: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 15)
-                        .background(Color(hex: "C0201A"))
+                        .background(Color.appDanger)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .buttonStyle(.plain)
@@ -379,13 +379,13 @@ struct QuickBattleSheet: View {
                         battleButton(
                             label: "VICTOIRE",
                             icon: "checkmark.seal.fill",
-                            color: Color(hex: "22C55E"),
+                            color: Color.appSuccess,
                             status: .victory
                         )
                         battleButton(
                             label: "DÉFAITE",
                             icon: "xmark.seal.fill",
-                            color: Color(hex: "EF4444"),
+                            color: Color.appDanger,
                             status: .lost
                         )
                     }

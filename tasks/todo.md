@@ -371,16 +371,22 @@
 > Workflow : un dossier à la fois, approbation visuelle entre chaque.
 > ~427 occurrences restantes après pass initial (PRTrackerCard + SessionQualityCard migrés).
 
+**Note : ~60% des occurrences sont des palettes fixes légitimes** (couleurs de disques, identifiants
+de catégorie, esthétiques décoratives). Ne pas remplacer mécaniquement — évaluer le contexte.
+
 **Fichiers déjà migrés ✅**
 - [x] Views/Dashboard/PRTrackerCard.swift — FFD60A → .appWarning
 - [x] Views/Dashboard/SessionQualityCard.swift — FFD60A → .appWarning
+- [x] Views/Dashboard/DashboardRitualCards.swift — F59E0B/22C55E/E8441A/C0201A/EF4444 → tokens
+- [x] Views/Stats/StatsBodyViews.swift — 2ECC71 → .appSuccess
+- [x] Views/Dashboard/TrainingLoadCard.swift — FF3B30 → .appDanger
+- [x] Views/PSS/PSSView.swift — FF3B30 → .appDanger
 
-**Top offenders restants (par volume)**
-- [ ] Views/Dashboard/DashboardRitualCards.swift (~26)
-- [ ] Views/Intelligence/ObjectifsView.swift (~22)
-- [ ] Views/Seance/PlateCalculatorSheet.swift (~20)
-- [ ] Views/Intelligence/GraveyardView.swift (~15)
-- [ ] Views/Dashboard/MuscleBalanceCard.swift (~15)
+**Skippés intentionnellement (palettes fixes)**
+- [x] Views/Objectifs/ObjectifsView.swift — couleurs types objectifs (leanMass, weeklyVolume…)
+- [x] Views/Seance/PlateCalculatorSheet.swift — couleurs physiques disques
+- [x] Views/Intelligence/GraveyardView.swift — esthétique gothique feu/terre
+- [x] Views/Dashboard/MuscleBalanceCard.swift — identifiants groupes musculaires
 
 ---
 
