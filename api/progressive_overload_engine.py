@@ -46,6 +46,8 @@ def _max_1rm_for_entries(entries: list[dict]) -> Optional[float]:
         sets = e.get("sets") or []
         if sets:
             for s in sets:
+                if not isinstance(s, dict):
+                    continue
                 sw = float(s.get("weight") or w or 0)
                 sr = int(s.get("reps") or r or 1)
                 if sw > 0:

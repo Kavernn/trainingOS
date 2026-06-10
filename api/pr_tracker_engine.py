@@ -40,7 +40,9 @@ def _max_1rm(entries: list[dict]) -> Optional[tuple[float, str]]:
         w   = float(e.get("weight") or 0)
         r   = int(e.get("reps") or 1)
         sets = e.get("sets") or []
-        candidates = [(float(s.get("weight") or w), int(s.get("reps") or r)) for s in sets] if sets else [(w, r)]
+        candidates = [(float(s.get("weight") or w), int(s.get("reps") or r)) for s in sets if isinstance(s, dict)] if sets else []
+        if not candidates:
+            candidates = [(w, r)]
         for sw, sr in candidates:
             if sw <= 0:
                 continue

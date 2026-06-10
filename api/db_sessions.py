@@ -780,7 +780,14 @@ def get_all_exercise_history(cutoff_days: int = 180) -> dict:
                 entry = {"date": date, "weight": r.get("weight"), "reps": r.get("reps")}
                 sets_json = r.get("sets_json")
                 if sets_json:
-                    entry["sets"] = sets_json
+                    if isinstance(sets_json, str):
+                        import json as _json
+                        try:
+                            sets_json = _json.loads(sets_json)
+                        except Exception:
+                            sets_json = []
+                    if isinstance(sets_json, list):
+                        entry["sets"] = sets_json
                 result.setdefault(name, []).append(entry)
             if len(rows) < page_size:
                 break

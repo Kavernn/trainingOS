@@ -1,6 +1,20 @@
 import Foundation
 
+private struct InsightsResponse: Codable { let insights: [InsightEntry] }
+
 extension APIService {
+    func fetchInsights() async throws -> [InsightEntry] {
+        let url = try buildURL(path: "/api/insights")
+        let data = try await fetchWithCache(url: url, key: "insights")
+        return try APIService.decoder.decode(InsightsResponse.self, from: data).insights
+    }
+
+    func fetchCorrelations() async throws -> CorrelationsData {
+        let url  = try buildURL(path: "/api/insights/correlations")
+        let data = try await fetchWithCache(url: url, key: "insights_correlations")
+        return try APIService.decoder.decode(CorrelationsData.self, from: data)
+    }
+
     func fetchDailyInsight() async throws -> DailyInsight {
         let url = try buildURL(path: "/api/coach/daily_insight")
         let data = try await fetchWithCache(url: url, key: "daily_insight")
