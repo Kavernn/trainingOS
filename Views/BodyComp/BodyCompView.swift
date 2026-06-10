@@ -868,8 +868,8 @@ struct BodyWeightSheet: View {
             // sequential — async let LIFO crash on iOS 26 beta
             let w  = await hk.fetchLatestBodyWeight()
             let bf = await hk.fetchLatestBodyFat()
-            // HealthKit returns kg; convert to storage unit (lbs) then to display unit
-            if let w  { weightStr  = String(format: "%.1f", w / 0.453592) }
+            // fetchLatestBodyWeight() already returns lbs — use directly
+            if let w  { weightStr  = String(format: "%.1f", w) }
             if let bf { bodyFatStr = String(format: "%.1f", bf) }
             isLoadingHK = false
         }
