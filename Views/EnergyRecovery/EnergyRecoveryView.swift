@@ -679,9 +679,9 @@ private struct UnifiedRecoverySleepSection: View {
     let onRefresh: () async -> Void
 
     @ObservedObject private var watchSync = WatchSyncService.shared
-    @State private var showExpanded = false
     @State private var showLogSheet = false
     @State private var syncError: String?
+    @State private var isSyncing = false
 
     private var today: RecoveryEntry? { log.first }
     private var sleepToday: SleepEntry? { sleepHistory.first }
@@ -699,9 +699,39 @@ private struct UnifiedRecoverySleepSection: View {
 #if !targetEnvironment(macCatalyst)
     private func syncNow() async {
         syncError = nil
-        await watchSync.requestAuthorizationAndSync()
-        if let err = watchSync.lastError {
-            syncError = err
+        isSyncing = true
+        defer { isSyncing = false }
+        let hk = HealthKitService.shared
+        let authorized = await hk.requestAuthorization()
+        guard authorized else {
+            syncError = "Accès refusé — activer dans Réglages > Confidentialité > Santé"
+            return
+        }
+        let snap = await hk.fetchRecoverySnapshot(for: Date())
+        let fmt = DateFormatter(); fmt.dateFormat = "HH:mm"
+        let todayStr = DateFormatter.isoDate.string(from: Date())
+        let snapshot = WearableSnapshot(
+            date:          todayStr,
+            steps:         snap.steps,
+            sleepHours:    snap.sleepHours,
+            restingHr:     snap.restingHr,
+            hrv:           snap.hrv,
+            activeEnergy:  snap.activeEnergy,
+            bodyWeightLbs: nil,
+            bodyFatPct:    nil,
+            hrMorning:     snap.hrMorning,
+            hrPostWorkout: snap.hrPostWorkout,
+            hrEvening:     snap.hrEvening,
+            workouts:      [],
+            spo2:          nil,
+            wristTemp:     nil,
+            bedtime:       snap.sleepWindow.map { fmt.string(from: $0.bedtime) },
+            wakeTime:      snap.sleepWindow.map { fmt.string(from: $0.wakeTime) }
+        )
+        do {
+            try await APIService.shared.syncWearableData(snapshot)
+        } catch {
+            syncError = "Erreur sync — réessaie"
         }
         await onRefresh()
     }
@@ -714,12 +744,7 @@ private struct UnifiedRecoverySleepSection: View {
             if hasAnyData {
                 heroRow
                 primaryMetricsGrid
-                expandToggle
-
-                if showExpanded {
-                    expandedContent
-                        .transition(.opacity.combined(with: .move(edge: .top)))
-                }
+                expandedContent
             } else {
                 emptyState
             }
@@ -794,7 +819,7 @@ private struct UnifiedRecoverySleepSection: View {
                 Task { await syncNow() }
             } label: {
                 HStack(spacing: 4) {
-                    if watchSync.isSyncing {
+                    if isSyncing {
                         ProgressView()
                             .progressViewStyle(.circular)
                             .scaleEffect(0.7)
@@ -809,7 +834,7 @@ private struct UnifiedRecoverySleepSection: View {
                 .background(Color.forge.opacity(0.1))
                 .clipShape(Circle())
             }
-            .disabled(watchSync.isSyncing)
+            .disabled(isSyncing)
 #endif
         }
     }
@@ -974,27 +999,6 @@ private struct UnifiedRecoverySleepSection: View {
 
     // MARK: Expanded section
 
-    private var expandToggle: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.25)) { showExpanded.toggle() }
-        } label: {
-            HStack(spacing: 6) {
-                Text(showExpanded ? "Voir moins" : "Voir plus")
-                    .font(.appCaption.weight(.semibold))
-                    .foregroundColor(Color.forge)
-                Image(systemName: showExpanded ? "chevron.up" : "chevron.down")
-                    .font(.appMicro.weight(.bold))
-                    .foregroundColor(Color.forge.opacity(0.7))
-                Spacer()
-                Text("Toutes les métriques")
-                    .font(.appMicro)
-                    .foregroundColor(.gray)
-            }
-            .padding(.vertical, 4)
-        }
-        .buttonStyle(.plain)
-    }
-
     @ViewBuilder
     private var expandedContent: some View {
         if let entry = today {
@@ -1103,7 +1107,7 @@ private struct UnifiedRecoverySleepSection: View {
                     .font(.appCaption.weight(.semibold))
                     .foregroundColor(Color.forge)
             }
-            .disabled(watchSync.isSyncing)
+            .disabled(isSyncing)
 #endif
         }
         .frame(maxWidth: .infinity)

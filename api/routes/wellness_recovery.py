@@ -83,6 +83,8 @@ def api_log_recovery():
     ok = _db.upsert_recovery_log(entry)
     if not ok:
         return jsonify({"error": "Erreur base de données"}), 500
+    import readiness as _readiness
+    _readiness.invalidate_cache()
     return jsonify({"ok": True})
 
 @wellness_recovery_bp.route("/api/delete_recovery", methods=["POST"])

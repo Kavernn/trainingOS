@@ -111,10 +111,7 @@ struct LogRecoverySheet: View {
                                 }
                                 if hasBedtime {
                                     DatePicker("", selection: $bedtime, displayedComponents: .hourAndMinute)
-                                        .datePickerStyle(.wheel)
-                                        .colorScheme(.dark)
-                                        .frame(maxHeight: 100)
-                                        .clipped()
+                                        .datePickerStyle(.compact)
                                         .labelsHidden()
                                 }
                                 // Wake time
@@ -127,10 +124,7 @@ struct LogRecoverySheet: View {
                                 }
                                 if hasWakeTime {
                                     DatePicker("", selection: $wakeTime, displayedComponents: .hourAndMinute)
-                                        .datePickerStyle(.wheel)
-                                        .colorScheme(.dark)
-                                        .frame(maxHeight: 100)
-                                        .clipped()
+                                        .datePickerStyle(.compact)
                                         .labelsHidden()
                                 }
                             }
@@ -415,6 +409,18 @@ struct LogRecoverySheet: View {
                let d = timeFmt.date(from: wt) { wakeTime = d; hasWakeTime = true }
             let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
             if let d = e.date, let parsed = f.date(from: d) { selectedDate = parsed }
+            // HK fallback: fill missing sleep window (manual values already set above take priority)
+            if !hasBedtime || !hasWakeTime {
+                let date = selectedDate
+                Task {
+                    let authorized = await hk.requestAuthorization()
+                    guard authorized else { return }
+                    if let win = await hk.fetchSleepWindow(for: date) {
+                        if !hasBedtime { bedtime = win.bedtime; hasBedtime = true }
+                        if !hasWakeTime { wakeTime = win.wakeTime; hasWakeTime = true }
+                    }
+                }
+            }
         } else {
             showFullMode = prefersFull
             fillFromHealthKit()
@@ -439,29 +445,17 @@ struct LogRecoverySheet: View {
         Task {
             let authorized = await hk.requestAuthorization()
             guard authorized else { isLoadingHK = false; return }
-
-            // sequential — async let LIFO crash on iOS 26 beta
-            let s  = await hk.fetchSleep(for: date)
-            let h  = await hk.fetchRestingHR(for: date)
-            let v  = await hk.fetchHRV(for: date)
-            let st = await hk.fetchSteps(for: date)
-            let a  = await hk.fetchActiveEnergy(for: date)
-            let m   = await hk.fetchMorningHR(for: date)
-            let pw  = await hk.fetchPostWorkoutHR(for: date)
-            let e   = await hk.fetchEveningHR(for: date)
-            let win = await hk.fetchSleepWindow(for: date)
-
-            if let s  { sleepHoursStr    = String(format: "%.1f", s) }
-            if let h  { restingHrStr     = String(format: "%.0f", h) }
-            if let v  { hrvStr           = String(format: "%.0f", v) }
-            if let st { stepsStr         = "\(st)" }
-            if let a  { activeEnergyStr  = String(format: "%.0f", a) }
-            if let m  { hrMorningStr     = String(format: "%.0f", m) }
-            if let pw { hrPostWorkoutStr = String(format: "%.0f", pw) }
-            if let e  { hrEveningStr     = String(format: "%.0f", e) }
-            if let win { bedtime = win.bedtime; hasBedtime = true
-                         wakeTime = win.wakeTime; hasWakeTime = true }
-
+            let snap = await hk.fetchRecoverySnapshot(for: date)
+            if let s  = snap.sleepHours    { sleepHoursStr    = String(format: "%.1f", s) }
+            if let h  = snap.restingHr     { restingHrStr     = String(format: "%.0f", h) }
+            if let v  = snap.hrv           { hrvStr           = String(format: "%.0f", v) }
+            if let st = snap.steps         { stepsStr         = "\(st)" }
+            if let a  = snap.activeEnergy  { activeEnergyStr  = String(format: "%.0f", a) }
+            if let m  = snap.hrMorning     { hrMorningStr     = String(format: "%.0f", m) }
+            if let pw = snap.hrPostWorkout { hrPostWorkoutStr = String(format: "%.0f", pw) }
+            if let e  = snap.hrEvening     { hrEveningStr     = String(format: "%.0f", e) }
+            if let win = snap.sleepWindow  { bedtime = win.bedtime; hasBedtime = true
+                                             wakeTime = win.wakeTime; hasWakeTime = true }
             isLoadingHK = false
         }
     }

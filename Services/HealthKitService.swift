@@ -9,6 +9,18 @@ struct SleepWindow {
     let hours:    Double
 }
 
+struct RecoveryHKSnapshot {
+    let sleepHours:    Double?
+    let restingHr:     Double?
+    let hrv:           Double?
+    let steps:         Int?
+    let activeEnergy:  Double?
+    let hrMorning:     Double?
+    let hrPostWorkout: Double?
+    let hrEvening:     Double?
+    let sleepWindow:   SleepWindow?
+}
+
 struct SleepStages {
     let deepHours: Double
     let remHours:  Double
@@ -219,6 +231,23 @@ class HealthKitService: ObservableObject {
             }
             store.execute(q)
         }
+    }
+
+    // MARK: - Recovery Snapshot (single source for LogRecoverySheet + EnergyRecoveryView sync)
+    func fetchRecoverySnapshot(for date: Date) async -> RecoveryHKSnapshot {
+        // sequential — async let LIFO crash on iOS 26 beta
+        let s   = await fetchSleep(for: date)
+        let h   = await fetchRestingHR(for: date)
+        let v   = await fetchHRV(for: date)
+        let st  = await fetchSteps(for: date)
+        let a   = await fetchActiveEnergy(for: date)
+        let m   = await fetchMorningHR(for: date)
+        let pw  = await fetchPostWorkoutHR(for: date)
+        let e   = await fetchEveningHR(for: date)
+        let win = await fetchSleepWindow(for: date)
+        return RecoveryHKSnapshot(sleepHours: s, restingHr: h, hrv: v, steps: st,
+                                   activeEnergy: a, hrMorning: m, hrPostWorkout: pw,
+                                   hrEvening: e, sleepWindow: win)
     }
 
     // MARK: - Resting Heart Rate
@@ -700,6 +729,11 @@ class HealthKitService: ObservableObject {
     func fetchTodayActiveEnergy() async -> Double? { nil }
     func fetchAllWorkouts(days: Int = 1) async -> [Any] { [] }
     func fetchSleepWindow(for date: Date) async -> SleepWindow? { nil }
+    func fetchRecoverySnapshot(for date: Date) async -> RecoveryHKSnapshot {
+        RecoveryHKSnapshot(sleepHours: nil, restingHr: nil, hrv: nil, steps: nil,
+                           activeEnergy: nil, hrMorning: nil, hrPostWorkout: nil,
+                           hrEvening: nil, sleepWindow: nil)
+    }
     func fetchTodayHealthSnapshot() async -> WearableSnapshot {
         WearableSnapshot(date: "", steps: nil, sleepHours: nil, restingHr: nil,
                          hrv: nil, activeEnergy: nil, bodyWeightLbs: nil,

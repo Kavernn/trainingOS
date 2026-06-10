@@ -360,6 +360,19 @@ _MUSCLE_ALIASES: dict = {
     "abdominaux obliques": "core",
     "gainage":             "core",
     "abs":                 "core",
+    # Glutes (canonical: "fessiers" — matches MUSCLE_LANDMARKS)
+    "glutes":              "fessiers",
+    "glute":               "fessiers",
+    "gluteus":             "fessiers",
+    "gluteus maximus":     "fessiers",
+    "gluteus medius":      "fessiers",
+    "fessier":             "fessiers",
+    "hip thrust":          "fessiers",
+    # Hamstrings — variantes courantes
+    "hams":                "hamstrings",
+    "ham":                 "hamstrings",
+    "ischio-jambiers":     "hamstrings",
+    "ischiojambiers":      "hamstrings",
 }
 
 def _normalize_muscle(name: str) -> str:
