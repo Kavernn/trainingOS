@@ -421,6 +421,24 @@ struct DashboardView: View {
                                         .appearAnimation(delay: 0.65)
                                 }
 
+                                // 16s — Courbatures & Fatigue
+                                if let sorFat = vm.sorenessFatigue, sorFat.hasData {
+                                    SorenessFatigueCard(data: sorFat)
+                                        .appearAnimation(delay: 0.67)
+                                }
+
+                                // 16t — Qualité du Sommeil
+                                if let sleepQ = vm.sleepQuality, sleepQ.hasData {
+                                    SleepQualityCard(data: sleepQ)
+                                        .appearAnimation(delay: 0.69)
+                                }
+
+                                // 16u — Durée des Séances
+                                if let wkDur = vm.workoutDuration, wkDur.hasData {
+                                    WorkoutDurationCard(data: wkDur)
+                                        .appearAnimation(delay: 0.71)
+                                }
+
                                 // ── SCROLL PROFOND ────────────────────────────
 
                                 // 17 — Citation

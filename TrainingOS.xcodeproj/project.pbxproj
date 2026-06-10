@@ -258,6 +258,15 @@
 		PRTK01AA00300B2F5D0001 /* PRTrackerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRTK01AA00300B2F5D0000 /* PRTrackerModels.swift */; };
 		PRTK02AA00300B2F5D0001 /* APIService+PRTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRTK02AA00300B2F5D0000 /* APIService+PRTracker.swift */; };
 		PRTK03AA00300B2F5D0001 /* PRTrackerCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = PRTK03AA00300B2F5D0000 /* PRTrackerCard.swift */; };
+		SFT001AA00300B2F5D0001 /* SorenessFatigueModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SFT001AA00300B2F5D0000 /* SorenessFatigueModels.swift */; };
+		SFT002AA00300B2F5D0001 /* APIService+SorenessFatigue.swift in Sources */ = {isa = PBXBuildFile; fileRef = SFT002AA00300B2F5D0000 /* APIService+SorenessFatigue.swift */; };
+		SFT003AA00300B2F5D0001 /* SorenessFatigueCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SFT003AA00300B2F5D0000 /* SorenessFatigueCard.swift */; };
+		SQE001AA00300B2F5D0001 /* SleepQualityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQE001AA00300B2F5D0000 /* SleepQualityModels.swift */; };
+		SQE002AA00300B2F5D0001 /* APIService+SleepQuality.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQE002AA00300B2F5D0000 /* APIService+SleepQuality.swift */; };
+		SQE003AA00300B2F5D0001 /* SleepQualityCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = SQE003AA00300B2F5D0000 /* SleepQualityCard.swift */; };
+		WDT001AA00300B2F5D0001 /* WorkoutDurationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = WDT001AA00300B2F5D0000 /* WorkoutDurationModels.swift */; };
+		WDT002AA00300B2F5D0001 /* APIService+WorkoutDuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = WDT002AA00300B2F5D0000 /* APIService+WorkoutDuration.swift */; };
+		WDT003AA00300B2F5D0001 /* WorkoutDurationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = WDT003AA00300B2F5D0000 /* WorkoutDurationCard.swift */; };
 		PS000002PS000002PS000002 /* ProgressionSuggestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000001PS000001PS000001 /* ProgressionSuggestion.swift */; };
 		PS000004PS000004PS000004 /* ProgressionSuggestionsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */; };
 		RH000002RH000002RH000002 /* RPEHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = RH000001RH000001RH000001 /* RPEHelper.swift */; };
@@ -654,6 +663,15 @@
 		PRTK01AA00300B2F5D0000 /* PRTrackerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRTrackerModels.swift; sourceTree = "<group>"; };
 		PRTK02AA00300B2F5D0000 /* APIService+PRTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+PRTracker.swift"; sourceTree = "<group>"; };
 		PRTK03AA00300B2F5D0000 /* PRTrackerCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRTrackerCard.swift; sourceTree = "<group>"; };
+		SFT001AA00300B2F5D0000 /* SorenessFatigueModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SorenessFatigueModels.swift; sourceTree = "<group>"; };
+		SFT002AA00300B2F5D0000 /* APIService+SorenessFatigue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SorenessFatigue.swift"; sourceTree = "<group>"; };
+		SFT003AA00300B2F5D0000 /* SorenessFatigueCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SorenessFatigueCard.swift; sourceTree = "<group>"; };
+		SQE001AA00300B2F5D0000 /* SleepQualityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepQualityModels.swift; sourceTree = "<group>"; };
+		SQE002AA00300B2F5D0000 /* APIService+SleepQuality.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+SleepQuality.swift"; sourceTree = "<group>"; };
+		SQE003AA00300B2F5D0000 /* SleepQualityCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepQualityCard.swift; sourceTree = "<group>"; };
+		WDT001AA00300B2F5D0000 /* WorkoutDurationModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDurationModels.swift; sourceTree = "<group>"; };
+		WDT002AA00300B2F5D0000 /* APIService+WorkoutDuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "APIService+WorkoutDuration.swift"; sourceTree = "<group>"; };
+		WDT003AA00300B2F5D0000 /* WorkoutDurationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDurationCard.swift; sourceTree = "<group>"; };
 		PS000001PS000001PS000001 /* ProgressionSuggestion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestion.swift; sourceTree = "<group>"; };
 		PS000003PS000003PS000003 /* ProgressionSuggestionsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionSuggestionsSheet.swift; sourceTree = "<group>"; };
 		RH000001RH000001RH000001 /* RPEHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RPEHelper.swift; sourceTree = "<group>"; };
@@ -1131,6 +1149,9 @@
 				BWT001AA00300B2F5D0000 /* BodyWeightTrendModels.swift */,
 				EPF001AA00300B2F5D0000 /* EnergyPerformanceModels.swift */,
 				PRTK01AA00300B2F5D0000 /* PRTrackerModels.swift */,
+				SFT001AA00300B2F5D0000 /* SorenessFatigueModels.swift */,
+				SQE001AA00300B2F5D0000 /* SleepQualityModels.swift */,
+				WDT001AA00300B2F5D0000 /* WorkoutDurationModels.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -1208,6 +1229,9 @@
 				BWT002AA00300B2F5D0000 /* APIService+BodyWeightTrend.swift */,
 				EPF002AA00300B2F5D0000 /* APIService+EnergyPerformance.swift */,
 				PRTK02AA00300B2F5D0000 /* APIService+PRTracker.swift */,
+				SFT002AA00300B2F5D0000 /* APIService+SorenessFatigue.swift */,
+				SQE002AA00300B2F5D0000 /* APIService+SleepQuality.swift */,
+				WDT002AA00300B2F5D0000 /* APIService+WorkoutDuration.swift */,
 				C0C3EB4A6651A37E8770B3DD /* SmartAlarmService.swift */,
 			);
 			path = Services;
@@ -1274,6 +1298,9 @@
 				BWT003AA00300B2F5D0000 /* BodyWeightTrendCard.swift */,
 				EPF003AA00300B2F5D0000 /* EnergyPerformanceCard.swift */,
 				PRTK03AA00300B2F5D0000 /* PRTrackerCard.swift */,
+				SFT003AA00300B2F5D0000 /* SorenessFatigueCard.swift */,
+				SQE003AA00300B2F5D0000 /* SleepQualityCard.swift */,
+				WDT003AA00300B2F5D0000 /* WorkoutDurationCard.swift */,
 			);
 			path = Dashboard;
 			sourceTree = "<group>";
@@ -2043,6 +2070,15 @@
 				PRTK01AA00300B2F5D0001 /* PRTrackerModels.swift in Sources */,
 				PRTK02AA00300B2F5D0001 /* APIService+PRTracker.swift in Sources */,
 				PRTK03AA00300B2F5D0001 /* PRTrackerCard.swift in Sources */,
+				SFT001AA00300B2F5D0001 /* SorenessFatigueModels.swift in Sources */,
+				SFT002AA00300B2F5D0001 /* APIService+SorenessFatigue.swift in Sources */,
+				SFT003AA00300B2F5D0001 /* SorenessFatigueCard.swift in Sources */,
+				SQE001AA00300B2F5D0001 /* SleepQualityModels.swift in Sources */,
+				SQE002AA00300B2F5D0001 /* APIService+SleepQuality.swift in Sources */,
+				SQE003AA00300B2F5D0001 /* SleepQualityCard.swift in Sources */,
+				WDT001AA00300B2F5D0001 /* WorkoutDurationModels.swift in Sources */,
+				WDT002AA00300B2F5D0001 /* APIService+WorkoutDuration.swift in Sources */,
+				WDT003AA00300B2F5D0001 /* WorkoutDurationCard.swift in Sources */,
 				70E26038CD13489F7EAACB56 /* SmartAlarmService.swift in Sources */,
 				6A57E6367D6A25E6E1B45D1A /* SmartAlarmSettingsView.swift in Sources */,
 			);

@@ -148,6 +148,9 @@ from routes.training_heatmap     import training_heatmap_bp
 from routes.body_weight_trend    import body_weight_trend_bp
 from routes.energy_performance   import energy_performance_bp
 from routes.pr_tracker           import pr_tracker_bp
+from routes.soreness_fatigue     import soreness_fatigue_bp
+from routes.sleep_quality        import sleep_quality_bp
+from routes.workout_duration     import workout_duration_bp
 
 app.register_blueprint(profile_bp)
 app.register_blueprint(nutrition_bp)
@@ -222,6 +225,9 @@ app.register_blueprint(training_heatmap_bp)
 app.register_blueprint(body_weight_trend_bp)
 app.register_blueprint(energy_performance_bp)
 app.register_blueprint(pr_tracker_bp)
+app.register_blueprint(soreness_fatigue_bp)
+app.register_blueprint(sleep_quality_bp)
+app.register_blueprint(workout_duration_bp)
 
 
 # ── Dev server ───────────────────────────────────────────────

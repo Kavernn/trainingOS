@@ -62,6 +62,9 @@ private final class P3State: @unchecked Sendable {
     var bodyWeightTrend: BodyWeightTrendData? = nil
     var energyPerformance: EnergyPerformanceData? = nil
     var prTracker: PRTrackerData? = nil
+    var sorenessFatigue: SorenessFatigueData? = nil
+    var sleepQuality: SleepQualityData? = nil
+    var workoutDuration: WorkoutDurationData? = nil
 }
 
 // MARK: - PhoenixScoreDeltaTracker
@@ -231,6 +234,9 @@ final class DashboardViewModel: ObservableObject {
     @Published var bodyWeightTrend: BodyWeightTrendData? = nil
     @Published var energyPerformance: EnergyPerformanceData? = nil
     @Published var prTracker: PRTrackerData? = nil
+    @Published var sorenessFatigue: SorenessFatigueData? = nil
+    @Published var sleepQuality: SleepQualityData? = nil
+    @Published var workoutDuration: WorkoutDurationData? = nil
     // D-D1: banner when 2+ secondary calls fail
     @Published var partialLoadWarning = false
     @Published var morningBriefFailed = false
@@ -523,6 +529,9 @@ final class DashboardViewModel: ObservableObject {
                 group.addTask { @MainActor in p3.bodyWeightTrend    = try? await APIService.shared.fetchBodyWeightTrend() }
                 group.addTask { @MainActor in p3.energyPerformance  = try? await APIService.shared.fetchEnergyPerformance() }
                 group.addTask { @MainActor in p3.prTracker          = try? await APIService.shared.fetchPRTracker() }
+                group.addTask { @MainActor in p3.sorenessFatigue    = try? await APIService.shared.fetchSorenessFatigue() }
+                group.addTask { @MainActor in p3.sleepQuality       = try? await APIService.shared.fetchSleepQuality() }
+                group.addTask { @MainActor in p3.workoutDuration    = try? await APIService.shared.fetchWorkoutDuration() }
             }
             // Phase 3 batch-publish — coalesced by SwiftUI into 1 re-render
             insights      = p3.insights
@@ -561,6 +570,9 @@ final class DashboardViewModel: ObservableObject {
             bodyWeightTrend         = p3.bodyWeightTrend
             energyPerformance       = p3.energyPerformance
             prTracker               = p3.prTracker
+            sorenessFatigue         = p3.sorenessFatigue
+            sleepQuality            = p3.sleepQuality
+            workoutDuration         = p3.workoutDuration
             analyticsLoadedDate     = today
         }
     }
