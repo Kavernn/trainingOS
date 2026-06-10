@@ -20,7 +20,7 @@ struct CoachMemoryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0D0D14").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
 
                 if store.entries.isEmpty {
                     emptyState
@@ -53,7 +53,7 @@ struct CoachMemoryView: View {
                     }
                 }
             }
-            .toolbarBackground(Color(hex: "0D0D14"), for: .navigationBar)
+            .toolbarBackground(Color.appBg, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .confirmationDialog("Effacer toute la mémoire ?", isPresented: $confirmDeleteAll, titleVisibility: .visible) {
                 Button("Effacer", role: .destructive) {

@@ -321,7 +321,7 @@ private struct DayCard: View {
                 .padding(.bottom, 8)
             }
         }
-        .background(Color(hex: "0d0d1a"))
+        .background(Color.appBg)
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.blue.opacity(0.15), lineWidth: 1))
         .cornerRadius(14)
     }

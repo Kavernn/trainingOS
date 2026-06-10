@@ -22,7 +22,7 @@ struct NarrativeCard: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
-        .background(Color(hex: "0a1018"))
+        .background(Color.appBg)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.teal.opacity(0.3), lineWidth: 1))
         .cornerRadius(12)
     }

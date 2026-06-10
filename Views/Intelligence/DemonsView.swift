@@ -15,7 +15,7 @@ struct DemonsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0A0A0A").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
                 if localDemons.isEmpty {
                     emptyState
                 } else {
@@ -158,7 +158,7 @@ private struct DemonCard: View {
     let isKilling: Bool
     let onKill: () -> Void
 
-    private let red = Color(hex: "FF2D20")
+    private let red = Color.appDanger
 
     // Fade older demons: opacity drops to 0.45 after 5+ days
     private var textOpacity: Double {

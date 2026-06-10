@@ -10,7 +10,7 @@ struct EngagementCreationView: View {
     @State private var confirmed   = false
     @FocusState private var focusedIndex: Int?
 
-    private let amber = Color(hex: "F59E0B")
+    private let amber = Color.appWarning
 
     private var validTexts: [String] {
         texts.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }

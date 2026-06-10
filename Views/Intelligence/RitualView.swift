@@ -19,10 +19,10 @@ struct RitualView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(hex: "0A0A0A").ignoresSafeArea()
+                Color.appBg.ignoresSafeArea()
 
                 if isLoading {
-                    ProgressView().tint(Color(hex: "FF2D20"))
+                    ProgressView().tint(Color.appDanger)
                 } else if let r = ritual {
                     switch phase {
                     case .addressing:
@@ -68,7 +68,7 @@ struct RitualView: View {
                 .font(.system(size: 14)).foregroundColor(.gray)
             Button("Réessayer") { Task { await load() } }
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(Color(hex: "FF2D20"))
+                .foregroundColor(Color.appDanger)
         }
     }
 
@@ -92,7 +92,7 @@ struct RitualBiographyView: View {
     @State private var hasMore = true
     @State private var showRitual = false
     private let pageSize = 30
-    private let red = Color(hex: "FF2D20")
+    private let red = Color.appDanger
 
     private var groupedByMonth: [(String, [RitualHistoryEntry])] {
         var dict: [String: [RitualHistoryEntry]] = [:]
@@ -110,7 +110,7 @@ struct RitualBiographyView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0A0A0A").ignoresSafeArea()
+            Color.appBg.ignoresSafeArea()
 
             if isLoading && entries.isEmpty {
                 ProgressView().tint(red)
@@ -180,7 +180,7 @@ struct RitualBiographyView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(hex: "0A0A0A"))
+            .background(Color.appBg)
     }
 
     private func biographyRow(_ entry: RitualHistoryEntry) -> some View {
@@ -283,7 +283,7 @@ struct RitualDoneView: View {
     let onDemons: () -> Void
     @State private var showHeatMap = false
 
-    private let amber = Color(hex: "F59E0B")
+    private let amber = Color.appWarning
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -392,7 +392,7 @@ struct RitualDoneView: View {
 struct RitualHeatMapView: View {
     @State private var entries: [RitualHistoryEntry] = []
     @State private var isLoading = true
-    private let red = Color(hex: "FF2D20")
+    private let red = Color.appDanger
 
     private var entriesByDate: [String: String] {
         Dictionary(uniqueKeysWithValues: entries.compactMap { e -> (String, String)? in
@@ -411,7 +411,7 @@ struct RitualHeatMapView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0A0A0A").ignoresSafeArea()
+            Color.appBg.ignoresSafeArea()
             if isLoading {
                 ProgressView().tint(red)
             } else {

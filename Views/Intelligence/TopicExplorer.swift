@@ -104,7 +104,7 @@ struct TopicCard: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(hex: "0d0d1a"))
+            .background(Color.appBg)
             .overlay(
                 RoundedRectangle(cornerRadius: 13)
                     .stroke(topic.color.opacity(0.2), lineWidth: 1)

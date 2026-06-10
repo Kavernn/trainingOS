@@ -8,7 +8,7 @@ struct EngagementAddressingView: View {
     // id → statut local (reflète les taps immédiats avant la réponse serveur)
     @State private var localStatuses: [String: String] = [:]
 
-    private let amber = Color(hex: "F59E0B")
+    private let amber = Color.appWarning
 
     private func status(for e: RitualEngagement) -> String? {
         localStatuses[e.id] ?? e.status
@@ -20,7 +20,7 @@ struct EngagementAddressingView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "0A0A0A").ignoresSafeArea()
+            Color.appBg.ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
@@ -157,7 +157,7 @@ private struct EngagementAddressRow: View {
                     .padding(.horizontal, 16)
 
                 HStack(spacing: 0) {
-                    actionButton(label: "Fait  ✓", color: Color(hex: "22C55E"), action: onDone)
+                    actionButton(label: "Fait  ✓", color: Color.appSuccess, action: onDone)
                     Rectangle().fill(Color(white: 0.1)).frame(width: 1, height: 36)
                     actionButton(label: "Pas fait  ✗", color: Color(white: 0.38), action: onNotDone)
                 }
@@ -180,7 +180,7 @@ private struct EngagementAddressRow: View {
 
     private var textColor: Color {
         switch status {
-        case "done":    return Color(hex: "22C55E")
+        case "done":    return Color.appSuccess
         case "notdone": return Color(white: 0.32)
         default:        return .white
         }
@@ -202,7 +202,7 @@ private struct EngagementAddressRow: View {
 
     private var strokeColor: Color {
         switch status {
-        case "done":    return Color(hex: "22C55E").opacity(0.3)
+        case "done":    return Color.appSuccess.opacity(0.3)
         default:        return Color(white: 0.1)
         }
     }

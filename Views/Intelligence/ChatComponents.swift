@@ -97,7 +97,7 @@ struct ChatBubble: View {
                     .lineSpacing(3)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .background(isUser ? Color.purple.opacity(0.85) : Color(hex: "141428"))
+                    .background(isUser ? Color.purple.opacity(0.85) : Color.appSurfaceInset)
                     .clipShape(
                         UnevenRoundedRectangle(
                             topLeadingRadius:    18,

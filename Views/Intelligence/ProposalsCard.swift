@@ -37,7 +37,7 @@ struct ProposalsCard: View {
             }
         }
         .padding(14)
-        .background(Color(hex: "0d0d1a"))
+        .background(Color.appBg)
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.purple.opacity(0.3), lineWidth: 1))
         .cornerRadius(12)
     }

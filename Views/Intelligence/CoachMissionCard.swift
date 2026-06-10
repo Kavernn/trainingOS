@@ -132,7 +132,7 @@ struct CoachMissionCard: View {
         }
         .background(
             ZStack {
-                Color(hex: "0c0c18")
+                Color.appBg
                 LinearGradient(
                     colors: [sessionColor.opacity(0.12), Color.clear],
                     startPoint: .topLeading,
