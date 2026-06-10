@@ -32,15 +32,31 @@ def _epley(weight: float, reps: int) -> float:
     return weight * (1.0 + reps / 30.0)
 
 
+def _to_float(v, default: float = 0.0) -> float:
+    try:
+        return float(v) if v is not None else default
+    except (TypeError, ValueError):
+        return default
+
+def _to_int(v, default: int = 1) -> int:
+    try:
+        return int(float(v)) if v is not None else default
+    except (TypeError, ValueError):
+        return default
+
+
 def _max_1rm(entries: list[dict]) -> Optional[tuple[float, str]]:
     """Return (best_1rm, date_of_best) or None."""
     best: Optional[tuple[float, str]] = None
     for e in entries:
-        d   = e.get("date") or ""
-        w   = float(e.get("weight") or 0)
-        r   = int(e.get("reps") or 1)
+        d    = e.get("date") or ""
+        w    = _to_float(e.get("weight"))
+        r    = _to_int(e.get("reps"))
         sets = e.get("sets") or []
-        candidates = [(float(s.get("weight") or w), int(s.get("reps") or r)) for s in sets if isinstance(s, dict)] if sets else []
+        candidates = [
+            (_to_float(s.get("weight"), w), _to_int(s.get("reps"), r))
+            for s in sets if isinstance(s, dict)
+        ] if sets else []
         if not candidates:
             candidates = [(w, r)]
         for sw, sr in candidates:
@@ -53,6 +69,14 @@ def _max_1rm(entries: list[dict]) -> Optional[tuple[float, str]]:
 
 
 def compute() -> dict:
+    try:
+        return _compute()
+    except Exception:
+        logger.exception("pr_tracker compute error")
+        return {"has_data": False, "recent_prs": [], "total_prs": 0, "exercises_tracked": 0, "message": "Erreur serveur"}
+
+
+def _compute() -> dict:
     today_str    = _today_iso()
     today        = date.fromisoformat(today_str)
     recent_start = (today - timedelta(days=_RECENT_DAYS)).isoformat()

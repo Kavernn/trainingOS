@@ -36,32 +36,52 @@ def _epley_1rm(weight: float, reps: int) -> float:
     return weight * (1.0 + reps / 30.0)
 
 
+def _to_float(v, default: float = 0.0) -> float:
+    try:
+        return float(v) if v is not None else default
+    except (TypeError, ValueError):
+        return default
+
+def _to_int(v, default: int = 1) -> int:
+    try:
+        return int(float(v)) if v is not None else default
+    except (TypeError, ValueError):
+        return default
+
+
 def _max_1rm_for_entries(entries: list[dict]) -> Optional[float]:
     """Return the highest estimated 1RM from a list of history entries."""
     best: Optional[float] = None
     for e in entries:
-        w = e.get("weight") or 0.0
-        r = e.get("reps") or 1
-        # sets_json takes priority if present
+        w    = _to_float(e.get("weight"))
+        r    = _to_int(e.get("reps"))
         sets = e.get("sets") or []
         if sets:
             for s in sets:
                 if not isinstance(s, dict):
                     continue
-                sw = float(s.get("weight") or w or 0)
-                sr = int(s.get("reps") or r or 1)
+                sw = _to_float(s.get("weight"), w)
+                sr = _to_int(s.get("reps"), r)
                 if sw > 0:
                     est = _epley_1rm(sw, sr)
                     if best is None or est > best:
                         best = est
-        elif float(w) > 0:
-            est = _epley_1rm(float(w), int(r) if r else 1)
+        elif w > 0:
+            est = _epley_1rm(w, r)
             if best is None or est > best:
                 best = est
     return best
 
 
 def compute() -> dict:
+    try:
+        return _compute()
+    except Exception:
+        logger.exception("progressive_overload compute error")
+        return {"has_data": False, "top_gainers": [], "stalled": [], "exercises_tracked": 0, "message": "Erreur serveur"}
+
+
+def _compute() -> dict:
     today_str = _today_iso()
     today     = date.fromisoformat(today_str)
 

@@ -767,7 +767,6 @@ def get_all_exercise_history(cutoff_days: int = 180) -> dict:
             resp = (
                 db_core._client.table("exercise_logs")
                 .select("weight, reps, sets_json, exercises(name), workout_sessions(date)")
-                .gte("workout_sessions.date", cutoff)
                 .range(offset, offset + page_size - 1)
                 .execute()
             )
@@ -775,7 +774,7 @@ def get_all_exercise_history(cutoff_days: int = 180) -> dict:
             for r in rows:
                 name = (r.get("exercises") or {}).get("name")
                 date = (r.get("workout_sessions") or {}).get("date")
-                if not name or not date:
+                if not name or not date or date < cutoff:
                     continue
                 entry = {"date": date, "weight": r.get("weight"), "reps": r.get("reps")}
                 sets_json = r.get("sets_json")
