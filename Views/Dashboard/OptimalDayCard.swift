@@ -59,9 +59,9 @@ private struct BestDayBadge: View {
             Text(label)
                 .font(.system(size: 10, weight: .semibold))
         }
-        .foregroundColor(Color(hex: "34C759").opacity(0.85))
+        .foregroundColor(.trendPositive.opacity(0.85))
         .padding(.horizontal, 7).padding(.vertical, 3)
-        .background(Color(hex: "34C759").opacity(0.12))
+        .background(.trendPositive.opacity(0.12))
         .clipShape(Capsule())
     }
 }
@@ -77,8 +77,8 @@ private struct DayDot: View {
 
     private var dotColor: Color {
         guard day.hasData else { return .white.opacity(0.07) }
-        if isBest { return Color(hex: "34C759") }
-        return Color(hex: "FF9500").opacity(0.4 + intensity * 0.6)
+        if isBest { return .trendPositive }
+        return .trendNeutral.opacity(0.4 + intensity * 0.6)
     }
 
     var body: some View {
@@ -143,7 +143,7 @@ private struct BestDayBanner: View {
             Spacer()
             Text(data.bestDayLabel)
                 .font(.system(size: 32, weight: .black, design: .rounded))
-                .foregroundColor(Color(hex: "34C759"))
+                .foregroundColor(.trendPositive)
         }
         .padding(14)
         .glassCard()
@@ -184,8 +184,8 @@ private struct DayDetailRow: View {
     let isWorst: Bool
 
     private var accent: Color {
-        if isBest  { return Color(hex: "34C759") }
-        if isWorst { return Color(hex: "FF6B6B") }
+        if isBest  { return .trendPositive }
+        if isWorst { return .trendNegative }
         return .white.opacity(0.65)
     }
 
@@ -194,11 +194,11 @@ private struct DayDetailRow: View {
             if isBest {
                 Image(systemName: "star.fill")
                     .font(.system(size: 9))
-                    .foregroundColor(Color(hex: "34C759"))
+                    .foregroundColor(.trendPositive)
             } else if isWorst && day.hasData {
                 Image(systemName: "exclamationmark.circle.fill")
                     .font(.system(size: 9))
-                    .foregroundColor(Color(hex: "FF6B6B"))
+                    .foregroundColor(.trendNegative)
             } else {
                 Circle().fill(Color.clear).frame(width: 9)
             }

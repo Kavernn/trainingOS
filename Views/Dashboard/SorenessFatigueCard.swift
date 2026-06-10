@@ -7,7 +7,7 @@ struct SorenessFatigueCard: View {
     @State private var showDetail = false
 
     private var alertColor: Color {
-        data.overreachingWeeks >= 2 ? Color(hex: "FF6B6B") : Color(hex: "FF9500")
+        data.overreachingWeeks >= 2 ? .trendNegative : .trendNeutral
     }
 
     private var statusLabel: String {
@@ -18,10 +18,10 @@ struct SorenessFatigueCard: View {
     }
 
     private var statusColor: Color {
-        if data.overreachingWeeks >= 2 { return Color(hex: "FF6B6B") }
-        if data.sorenessTrend == "worsening" || data.fatigueTrend == "worsening" { return Color(hex: "FF9500") }
-        if data.sorenessTrend == "improving" && data.fatigueTrend == "improving" { return Color(hex: "34C759") }
-        return Color(hex: "8E8E93")
+        if data.overreachingWeeks >= 2 { return .trendNegative }
+        if data.sorenessTrend == "worsening" || data.fatigueTrend == "worsening" { return .trendNeutral }
+        if data.sorenessTrend == "improving" && data.fatigueTrend == "improving" { return .trendPositive }
+        return .gray
     }
 
     var body: some View {
@@ -43,8 +43,8 @@ struct SorenessFatigueCard: View {
                 }
 
                 HStack(spacing: 16) {
-                    RecoveryGauge(label: "COURBATURES", value: data.currentSoreness, color: Color(hex: "FF9500"))
-                    RecoveryGauge(label: "FATIGUE",     value: data.currentFatigue,  color: Color(hex: "FF6B6B"))
+                    RecoveryGauge(label: "COURBATURES", value: data.currentSoreness, color: .trendNeutral)
+                    RecoveryGauge(label: "FATIGUE",     value: data.currentFatigue,  color: .trendNegative)
                     Spacer()
                     SorenessDualSparkline(soreness: data.weeklySoreness, fatigue: data.weeklyFatigue)
                 }
@@ -99,10 +99,10 @@ private struct SorenessDualSparkline: View {
                 let fh = max(3.0, 32.0 * fv / maxVal)
                 VStack(alignment: .center, spacing: 1) {
                     RoundedRectangle(cornerRadius: 1)
-                        .fill(Color(hex: "FF9500").opacity(0.7))
+                        .fill(.trendNeutral.opacity(0.7))
                         .frame(width: 3, height: sh)
                     RoundedRectangle(cornerRadius: 1)
-                        .fill(Color(hex: "FF6B6B").opacity(0.7))
+                        .fill(.trendNegative.opacity(0.7))
                         .frame(width: 3, height: fh)
                 }
             }
@@ -122,8 +122,8 @@ private struct SorenessFatigueDetailSheet: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     SorenessBanner(data: data)
-                    SorenessWeeklyChart(title: "COURBATURES / SEMAINE", weeks: data.weeklySoreness, color: Color(hex: "FF9500"))
-                    SorenessWeeklyChart(title: "FATIGUE / SEMAINE",     weeks: data.weeklyFatigue,  color: Color(hex: "FF6B6B"))
+                    SorenessWeeklyChart(title: "COURBATURES / SEMAINE", weeks: data.weeklySoreness, color: .trendNeutral)
+                    SorenessWeeklyChart(title: "FATIGUE / SEMAINE",     weeks: data.weeklyFatigue,  color: .trendNegative)
                     SorenessExplainerCard()
                 }
                 .padding(.horizontal, 16)
@@ -152,7 +152,7 @@ private struct SorenessBanner: View {
                 .foregroundColor(.white.opacity(0.35))
             if data.overreachingWeeks > 0 {
                 Text("\(data.overreachingWeeks) sem. de surmenage détectées (courbatures + fatigue > 6)")
-                    .font(.appCaption).foregroundColor(Color(hex: "FF6B6B").opacity(0.85))
+                    .font(.appCaption).foregroundColor(.trendNegative.opacity(0.85))
             }
             Text(data.message)
                 .font(.appCaption).foregroundColor(.white.opacity(0.55))

@@ -25,9 +25,9 @@ struct TrainingHeatmapCard: View {
                     if data.hasData {
                         Text("Fav: \(bestDayLabel)")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(Color(hex: "34C759").opacity(0.85))
+                            .foregroundColor(.trendPositive.opacity(0.85))
                             .padding(.horizontal, 7).padding(.vertical, 3)
-                            .background(Color(hex: "34C759").opacity(0.12))
+                            .background(.trendPositive.opacity(0.12))
                             .clipShape(Capsule())
                     }
                     Image(systemName: "chevron.right")
@@ -62,7 +62,7 @@ private struct HeatmapCompactGrid: View {
                 ForEach(dayLabels.indices, id: \.self) { i in
                     Text(dayLabels[i])
                         .font(.system(size: 7))
-                        .foregroundColor(i == bestDayIndex ? Color(hex: "34C759").opacity(0.7) : .white.opacity(0.20))
+                        .foregroundColor(i == bestDayIndex ? .trendPositive.opacity(0.7) : .white.opacity(0.20))
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -73,7 +73,7 @@ private struct HeatmapCompactGrid: View {
                         let isBest = di == bestDayIndex
                         RoundedRectangle(cornerRadius: 2)
                             .fill(active
-                                  ? (isBest ? Color(hex: "34C759") : Color.white.opacity(0.45))
+                                  ? (isBest ? .trendPositive : Color.white.opacity(0.45))
                                   : Color.white.opacity(0.07))
                             .frame(height: 8)
                             .frame(maxWidth: .infinity)
@@ -148,7 +148,7 @@ private struct HeatmapFullGrid: View {
                     ForEach(fullDays.indices, id: \.self) { i in
                         Text(fullDays[i])
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(i == data.bestDayIndex ? Color(hex: "34C759").opacity(0.8) : .white.opacity(0.25))
+                            .foregroundColor(i == data.bestDayIndex ? .trendPositive.opacity(0.8) : .white.opacity(0.25))
                             .frame(maxWidth: .infinity)
                     }
                 }
@@ -159,7 +159,7 @@ private struct HeatmapFullGrid: View {
                             let isBest  = di == data.bestDayIndex
                             RoundedRectangle(cornerRadius: 3)
                                 .fill(active
-                                      ? (isBest ? Color(hex: "34C759") : Color.white.opacity(0.50))
+                                      ? (isBest ? .trendPositive : Color.white.opacity(0.50))
                                       : Color.white.opacity(0.06))
                                 .frame(height: 14)
                                 .frame(maxWidth: .infinity)
@@ -194,7 +194,7 @@ private struct HeatmapDayTotals: View {
                             .font(.system(size: 8, weight: .semibold))
                             .foregroundColor(isBest ? .white.opacity(0.70) : .white.opacity(0.28))
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(isBest ? Color(hex: "34C759") : Color.white.opacity(0.20))
+                            .fill(isBest ? .trendPositive : Color.white.opacity(0.20))
                             .frame(height: h)
                         Text(fullLabels[i])
                             .font(.system(size: 7))

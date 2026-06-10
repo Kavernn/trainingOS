@@ -9,7 +9,7 @@ struct ProgressiveOverloadCard: View {
     private var hasGainers: Bool { !data.topGainers.isEmpty }
 
     private var summaryColor: Color {
-        hasGainers ? Color(hex: "34C759") : Color(hex: "FF9500")
+        hasGainers ? .trendPositive : .trendNeutral
     }
 
     var body: some View {
@@ -64,7 +64,7 @@ private struct OverloadExerciseRow: View {
     let exercise: OverloadExercise
     let isGainer: Bool
 
-    private var color: Color { isGainer ? Color(hex: "34C759") : Color(hex: "FF9500") }
+    private var color: Color { isGainer ? .trendPositive : .trendNeutral }
     private var sign: String { exercise.pct >= 0 ? "+" : "" }
 
     var body: some View {
@@ -144,7 +144,7 @@ private struct OverloadSection: View {
     let exercises: [OverloadExercise]
     let isGainer: Bool
 
-    private var accent: Color { isGainer ? Color(hex: "34C759") : Color(hex: "FF9500") }
+    private var accent: Color { isGainer ? .trendPositive : .trendNeutral }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

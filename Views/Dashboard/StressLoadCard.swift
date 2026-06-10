@@ -17,9 +17,9 @@ struct StressLoadCard: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "rising":  return Color(hex: "FF6B6B")
-        case "falling": return Color(hex: "34C759")
-        default:        return Color(hex: "FF9500")
+        case "rising":  return .trendNegative
+        case "falling": return .trendPositive
+        default:        return .trendNeutral
         }
     }
 
@@ -96,7 +96,7 @@ private struct StressLoadMiniChart: View {
                 let isLast = i == weeks.count - 1
                 let h = maxVal > 0 ? max(4.0, 36.0 * Double(weeks[i].combined) / Double(maxVal)) : 4.0
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isLast ? Color(hex: "FF9500") : Color.white.opacity(0.20))
+                    .fill(isLast ? .trendNeutral : Color.white.opacity(0.20))
                     .frame(width: 10, height: h)
             }
         }
@@ -139,9 +139,9 @@ private struct StressLoadBanner: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "rising":  return Color(hex: "FF6B6B")
-        case "falling": return Color(hex: "34C759")
-        default:        return Color(hex: "FF9500")
+        case "rising":  return .trendNegative
+        case "falling": return .trendPositive
+        default:        return .trendNeutral
         }
     }
 
@@ -189,7 +189,7 @@ private struct StressLoadWeeksChart: View {
                             .font(.system(size: 8, weight: .semibold))
                             .foregroundColor(isLast ? .white.opacity(0.65) : .white.opacity(0.28))
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(isLast ? Color(hex: "FF9500") : Color.white.opacity(0.20))
+                            .fill(isLast ? .trendNeutral : Color.white.opacity(0.20))
                             .frame(height: h)
                         Text("S\(i + 1)")
                             .font(.system(size: 7))

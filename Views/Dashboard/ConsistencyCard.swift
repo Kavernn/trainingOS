@@ -93,7 +93,7 @@ private struct ConsistencySparkline: View {
                 let isLast = i == counts.count - 1
                 let h = maxCount > 0 ? max(4.0, 36.0 * Double(c) / Double(maxCount)) : 4.0
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isLast ? Color(hex: "34C759") : Color.white.opacity(0.20))
+                    .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
                     .frame(width: 8, height: h)
             }
         }
@@ -182,7 +182,7 @@ private struct ConsistencyWeeklyCard: View {
                             .font(.system(size: 8, weight: .semibold))
                             .foregroundColor(isLast ? .white.opacity(0.65) : .white.opacity(0.28))
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(isLast ? Color(hex: "34C759") : Color.white.opacity(0.20))
+                            .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
                             .frame(height: h)
                         Text("S\(i + 1)")
                             .font(.system(size: 7))

@@ -8,9 +8,9 @@ struct VolumeProgressionCard: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "building":  return Color(hex: "34C759")
-        case "declining": return Color(hex: "FF6B6B")
-        default:          return Color(hex: "FF9500")
+        case "building":  return .trendPositive
+        case "declining": return .trendNegative
+        default:          return .trendNeutral
         }
     }
 
@@ -89,7 +89,7 @@ private struct VolumeSparkline: View {
                 let isLast = i == loads.count - 1
                 let h = maxLoad > 0 ? max(4.0, 36.0 * loads[i].load / maxLoad) : 4.0
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isLast ? Color(hex: "34C759") : Color.white.opacity(0.20))
+                    .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
                     .frame(width: 5, height: h)
             }
         }
@@ -132,9 +132,9 @@ private struct VolumeSummaryBanner: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "building":  return Color(hex: "34C759")
-        case "declining": return Color(hex: "FF6B6B")
-        default:          return Color(hex: "FF9500")
+        case "building":  return .trendPositive
+        case "declining": return .trendNegative
+        default:          return .trendNeutral
         }
     }
 
@@ -176,7 +176,7 @@ private struct VolumeWeeklyChart: View {
                     let isLast = i == loads.count - 1
                     let h = maxLoad > 0 ? max(8.0, 60.0 * loads[i].load / maxLoad) : 8.0
                     RoundedRectangle(cornerRadius: 3)
-                        .fill(isLast ? Color(hex: "34C759") : Color.white.opacity(0.20))
+                        .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
                         .frame(maxWidth: .infinity)
                         .frame(height: h)
                 }

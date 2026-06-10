@@ -516,10 +516,10 @@ struct MorningBriefCardView: View {
             // F4: Phoenix ritual context
             if let streak = data.phoenixStreak, streak > 0 {
                 HStack(spacing: 6) {
-                    Image(systemName: "flame.fill").font(.appCaption).foregroundColor(Color(hex: "FF2D20"))
+                    Image(systemName: "flame.fill").font(.appCaption).foregroundColor(.appDanger)
                     Text("Streak Phoenix \(streak)j")
                         .font(.appCaption.weight(.semibold))
-                        .foregroundColor(Color(hex: "FF2D20").opacity(0.85))
+                        .foregroundColor(.appDanger.opacity(0.85))
                     if let rate = data.ritualRate7d {
                         Text("· \(Int(rate * 100))% rituel 7j")
                             .font(.appCaption)
@@ -527,8 +527,8 @@ struct MorningBriefCardView: View {
                     }
                 }
                 .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(Color(hex: "FF2D20").opacity(0.08))
-                .overlay(Capsule().stroke(Color(hex: "FF2D20").opacity(0.2), lineWidth: 0.5))
+                .background(.appDanger.opacity(0.08))
+                .overlay(Capsule().stroke(.appDanger.opacity(0.2), lineWidth: 0.5))
                 .clipShape(Capsule())
             }
 

@@ -34,8 +34,8 @@ struct PerformanceConditionsCard: View {
     private var scoreColor: Color {
         guard let s = data.alignmentScore else { return .white.opacity(0.35) }
         if s >= 80 { return .forge }
-        if s >= 50 { return Color(hex: "FF9500") }
-        return Color(hex: "FF6B6B")
+        if s >= 50 { return .trendNeutral }
+        return .trendNegative
     }
 
     private var headerRow: some View {
@@ -132,8 +132,8 @@ private struct AlignmentScoreBanner: View {
     private var scoreColor: Color {
         guard let s = data.alignmentScore else { return .white.opacity(0.40) }
         if s >= 80 { return .forge }
-        if s >= 50 { return Color(hex: "FF9500") }
-        return Color(hex: "FF6B6B")
+        if s >= 50 { return .trendNeutral }
+        return .trendNegative
     }
 
     var body: some View {

@@ -56,7 +56,10 @@ extension Color {
     static var appTextMuted:       Color { AppTheme.shared.textMuted }
     static var onAccent:           Color { AppTheme.shared.onAccent }
     static var appSeparator:       Color { AppTheme.shared.separator }
-    static let moonlight = Color(hex: "E8EDF5")   // spirit accent — silver-white (intentional fixed)
+    static let trendPositive = Color(hex: "34C759")  // data viz — positive trend indicator (intentional fixed)
+    static let trendNeutral  = Color(hex: "FF9500")  // data viz — neutral/stable indicator (intentional fixed)
+    static let trendNegative = Color(hex: "FF6B6B")  // data viz — negative trend indicator (intentional fixed)
+    static let moonlight = Color(hex: "E8EDF5")      // spirit accent — silver-white (intentional fixed)
     static let voidBg    = Color(red: 0.020, green: 0.031, blue: 0.063)  // spirit deep (intentional fixed)
 
     init(hex: String) {

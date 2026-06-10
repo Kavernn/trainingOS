@@ -32,8 +32,8 @@ struct IdealWeekCard: View {
     private var matchColor: Color {
         guard let m = data.matchPct else { return .white.opacity(0.40) }
         if m >= 80 { return .forge }
-        if m >= 50 { return Color(hex: "FF9500") }
-        return Color(hex: "FF6B6B")
+        if m >= 50 { return .trendNeutral }
+        return .trendNegative
     }
 
     private var headerRow: some View {
@@ -75,9 +75,9 @@ struct IdealWeekCard: View {
                     Text("\(Int(gap.current))/\(Int(gap.ideal))")
                         .font(.system(size: 10, weight: .medium))
                 }
-                .foregroundColor(Color(hex: "FF9500").opacity(0.85))
+                .foregroundColor(.trendNeutral.opacity(0.85))
                 .padding(.horizontal, 6).padding(.vertical, 3)
-                .background(Color(hex: "FF9500").opacity(0.10))
+                .background(.trendNeutral.opacity(0.10))
                 .clipShape(Capsule())
             }
         }
@@ -95,8 +95,8 @@ private struct WeekStatMini: View {
     private var ratio: Double { ideal > 0 ? Double(current) / Double(ideal) : 0 }
     private var color: Color {
         if ratio >= 0.8 { return .forge }
-        if ratio >= 0.5 { return Color(hex: "FF9500") }
-        return Color(hex: "FF6B6B")
+        if ratio >= 0.5 { return .trendNeutral }
+        return .trendNegative
     }
 
     var body: some View {
@@ -159,8 +159,8 @@ private struct MatchBanner: View {
 
     private var matchColor: Color {
         if matchPct >= 80 { return .forge }
-        if matchPct >= 50 { return Color(hex: "FF9500") }
-        return Color(hex: "FF6B6B")
+        if matchPct >= 50 { return .trendNeutral }
+        return .trendNegative
     }
 
     var body: some View {
@@ -233,8 +233,8 @@ private struct CompRow: View {
     private var ratio: Double { ideal > 0 ? current / ideal : 1 }
     private var curColor: Color {
         if ratio >= 0.8 { return .forge }
-        if ratio >= 0.5 { return Color(hex: "FF9500") }
-        return Color(hex: "FF6B6B")
+        if ratio >= 0.5 { return .trendNeutral }
+        return .trendNegative
     }
 
     var body: some View {
@@ -271,7 +271,7 @@ private struct GapsCard: View {
                 HStack(spacing: 10) {
                     Image(systemName: gap.icon)
                         .font(.appLabel)
-                        .foregroundColor(Color(hex: "FF9500").opacity(0.80))
+                        .foregroundColor(.trendNeutral.opacity(0.80))
                         .frame(width: 20)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(gap.label)

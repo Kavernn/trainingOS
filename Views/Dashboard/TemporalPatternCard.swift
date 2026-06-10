@@ -37,7 +37,7 @@ struct TemporalPatternCard: View {
                         .foregroundColor(.white.opacity(0.28))
                     Text(data.weakestDay.capitalized)
                         .font(.appHeadline.weight(.bold))
-                        .foregroundColor(Color(hex: "FF6B6B"))
+                        .foregroundColor(.trendNegative)
                 }
                 Spacer()
                 // Strongest day
@@ -89,7 +89,7 @@ private struct WeekdayBarsCompact: View {
         HStack(alignment: .bottom, spacing: 5) {
             ForEach(orderedScores, id: \.0) { (day, score) in
                 let isWeakest = day == weakestDay
-                let barColor: Color = isWeakest ? Color(hex: "FF6B6B") : Color.forge.opacity(0.55)
+                let barColor: Color = isWeakest ? .trendNegative : Color.forge.opacity(0.55)
                 let height = max(8.0, 36.0 * score)
                 VStack(spacing: 3) {
                     RoundedRectangle(cornerRadius: 3)
@@ -97,7 +97,7 @@ private struct WeekdayBarsCompact: View {
                         .frame(width: 14, height: height)
                     Text(shortLabel(day))
                         .font(.system(size: 7, weight: isWeakest ? .black : .regular))
-                        .foregroundColor(isWeakest ? Color(hex: "FF6B6B") : .white.opacity(0.32))
+                        .foregroundColor(isWeakest ? .trendNegative : .white.opacity(0.32))
                 }
             }
         }
@@ -200,7 +200,7 @@ private struct WeekdayBarsFull: View {
                 ForEach(orderedScores, id: \.0) { (day, score) in
                     let isWeakest  = day == weakestDay
                     let isStrongest = day == strongestDay
-                    let barColor: Color = isWeakest ? Color(hex: "FF6B6B")
+                    let barColor: Color = isWeakest ? .trendNegative
                         : (isStrongest ? Color.forge : Color.forge.opacity(0.45))
                     let height = max(12.0, 80.0 * score)
                     VStack(spacing: 4) {
@@ -212,7 +212,7 @@ private struct WeekdayBarsFull: View {
                             .frame(height: height)
                         Text(shortLabel(day))
                             .font(.system(size: 9, weight: isWeakest || isStrongest ? .black : .regular))
-                            .foregroundColor(isWeakest ? Color(hex: "FF6B6B") : (isStrongest ? .forge : .white.opacity(0.38)))
+                            .foregroundColor(isWeakest ? .trendNegative : (isStrongest ? .forge : .white.opacity(0.38)))
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -251,7 +251,7 @@ private struct FactorRow: View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.appLabel)
-                .foregroundColor(Color(hex: "FF6B6B").opacity(0.80))
+                .foregroundColor(.trendNegative.opacity(0.80))
                 .frame(width: 20)
             Text(label)
                 .font(.appLabel)
@@ -279,7 +279,7 @@ private struct DayDetailTable: View {
                     HStack(spacing: 12) {
                         Text(day.capitalized)
                             .font(.appLabel.weight(isWeakest ? .bold : .regular))
-                            .foregroundColor(isWeakest ? Color(hex: "FF6B6B") : .white.opacity(0.70))
+                            .foregroundColor(isWeakest ? .trendNegative : .white.opacity(0.70))
                             .frame(width: 80, alignment: .leading)
                         DayMetricChip(
                             value: "\(Int(detail.workoutRate * 100))%",
@@ -295,7 +295,7 @@ private struct DayDetailTable: View {
                             DayMetricChip(
                                 value: "\(Int(pss))",
                                 icon: "brain.head.profile",
-                                color: pss > 20 ? Color(hex: "FF6B6B") : .forge
+                                color: pss > 20 ? .trendNegative : .forge
                             )
                         }
                         Spacer()

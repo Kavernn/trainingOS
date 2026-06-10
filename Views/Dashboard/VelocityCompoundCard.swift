@@ -26,7 +26,7 @@ private struct VelocityPanel: View {
         case "accélération": return .forge
         case "stable":       return Color.white.opacity(0.70)
         case "décélération": return .orange
-        default:             return Color(hex: "FF5555")
+        default:             return .appDanger
         }
     }
 
@@ -96,7 +96,7 @@ private struct CompoundPanel: View {
     private var trendColor: Color {
         switch data.trend {
         case "hausse": return .forge
-        case "baisse": return Color(hex: "FF5555")
+        case "baisse": return .appDanger
         default:       return Color.white.opacity(0.55)
         }
     }

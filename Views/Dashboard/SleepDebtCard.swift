@@ -8,8 +8,8 @@ struct SleepDebtAnalyticsCard: View {
     private var debtColor: Color {
         guard let d = data.debt7d else { return .white.opacity(0.40) }
         if d <= 0      { return .forge }
-        if d < 3       { return Color(hex: "FF9500") }
-        return Color(hex: "FF6B6B")
+        if d < 3       { return .trendNeutral }
+        return .trendNegative
     }
 
     var body: some View {
@@ -84,8 +84,8 @@ private struct TrendBadge: View {
     private var color: Color {
         switch trend {
         case "rembourser": return .forge
-        case "creuser":    return Color(hex: "FF6B6B")
-        default:           return Color(hex: "FF9500")
+        case "creuser":    return .trendNegative
+        default:           return .trendNeutral
         }
     }
 

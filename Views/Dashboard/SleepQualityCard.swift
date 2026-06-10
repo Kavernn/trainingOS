@@ -7,10 +7,10 @@ struct SleepQualityCard: View {
     @State private var showDetail = false
 
     private var scoreColor: Color {
-        guard let s = data.currentScore else { return Color(hex: "8E8E93") }
-        if s >= 75 { return Color(hex: "34C759") }
-        if s >= 50 { return Color(hex: "FF9500") }
-        return Color(hex: "FF6B6B")
+        guard let s = data.currentScore else { return .gray }
+        if s >= 75 { return .trendPositive }
+        if s >= 50 { return .trendNeutral }
+        return .trendNegative
     }
 
     private var trendIcon: String {
@@ -23,9 +23,9 @@ struct SleepQualityCard: View {
 
     private var trendColor: Color {
         switch data.trend {
-        case "improving": return Color(hex: "34C759")
-        case "declining": return Color(hex: "FF6B6B")
-        default:          return Color(hex: "FF9500")
+        case "improving": return .trendPositive
+        case "declining": return .trendNegative
+        default:          return .trendNeutral
         }
     }
 
@@ -95,7 +95,7 @@ private struct SleepQualitySparkline: View {
                 let v = weeks[i].score ?? 0
                 let h = maxVal > 0 ? max(4.0, 36.0 * v / maxVal) : 4.0
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(isLast ? Color(hex: "34C759") : Color.white.opacity(0.20))
+                    .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
                     .frame(width: 6, height: h)
             }
         }
@@ -137,10 +137,10 @@ private struct SleepQualityBanner: View {
     let data: SleepQualityData
 
     private var scoreColor: Color {
-        guard let s = data.avgScore else { return Color(hex: "8E8E93") }
-        if s >= 75 { return Color(hex: "34C759") }
-        if s >= 50 { return Color(hex: "FF9500") }
-        return Color(hex: "FF6B6B")
+        guard let s = data.avgScore else { return .gray }
+        if s >= 75 { return .trendPositive }
+        if s >= 50 { return .trendNeutral }
+        return .trendNegative
     }
 
     var body: some View {
@@ -183,7 +183,7 @@ private struct SleepQualityWeekChart: View {
                             .font(.system(size: 8, weight: .semibold))
                             .foregroundColor(isLast ? .white.opacity(0.65) : .white.opacity(0.28))
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(isLast ? Color(hex: "34C759") : Color.white.opacity(0.20))
+                            .fill(isLast ? .trendPositive : Color.white.opacity(0.20))
                             .frame(height: h)
                         Text("S\(i + 1)")
                             .font(.system(size: 7))
