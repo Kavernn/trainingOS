@@ -53,6 +53,33 @@ def register_routes(app):
             if ok:
                 synced.extend(wearable_recovery.keys())
 
+        # ── Smart Alarm latency calibration ──────────────────────────────────
+        # When HealthKit sends bedtime (= first asleep sample HH:mm), pair it
+        # with the bedtime_tap we stored the previous evening to compute latency.
+        hk_sleep_start = data.get("bedtime")  # "HH:mm" — first asleep sample
+        if hk_sleep_start:
+            from db_smart_alarm import _latency_min
+            # sleep date convention: if hour < 12 the sleep belongs to yesterday
+            from datetime import timedelta
+            try:
+                sleep_hour = int(hk_sleep_start.split(":")[0])
+            except Exception:
+                sleep_hour = 0
+            if sleep_hour < 12:
+                sleep_date = (date_cls.fromisoformat(target_date) - timedelta(days=1)).isoformat()
+            else:
+                sleep_date = target_date
+
+            existing_row = db.get_smart_alarm_sessions(since=sleep_date)
+            matching = next((r for r in existing_row if r.get("date") == sleep_date), None)
+            if matching and matching.get("bedtime_tap"):
+                lat = _latency_min(matching["bedtime_tap"], hk_sleep_start)
+                db.upsert_smart_alarm_session({
+                    "date":           sleep_date,
+                    "hk_sleep_start": hk_sleep_start,
+                    "latency_min":    lat,
+                })
+
         # ── Workouts / Cardio ─────────────────────────────────────────────────
         workouts   = data.get("workouts", [])
         added      = 0

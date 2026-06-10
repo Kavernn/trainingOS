@@ -88,6 +88,7 @@ final class SmartAlarmService: ObservableObject {
     func scheduleAlarm(bedtimeDate: Date) async throws {
         guard isEnabled else { return }
         UserDefaults.standard.set(bedtimeDate.timeIntervalSinceReferenceDate, forKey: Keys.lastBedtimeTS)
+        Task { try? await APIService.shared.logBedtimeTap(bedtimeDate) }
         try await scheduleFromBedtimeDate(bedtimeDate)
     }
 

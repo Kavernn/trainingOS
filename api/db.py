@@ -11,6 +11,12 @@ from __future__ import annotations
 # ── Core (shared state + SQLite helpers) ──────────────────────────────────────
 import db_core
 
+# ── Smart Alarm sessions ──────────────────────────────────────────────────────
+from db_smart_alarm import (
+    upsert_smart_alarm_session,
+    get_smart_alarm_sessions,
+)
+
 # Re-export module-level globals so `from db import _client` keeps working
 from db_core import (
     MODE,

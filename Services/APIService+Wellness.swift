@@ -179,4 +179,22 @@ extension APIService {
         let data = try await fetchWithCache(url: url, key: "morning_brief")
         return try APIService.decoder.decode(MorningBriefData.self, from: data)
     }
+
+    // MARK: - Smart Alarm
+    func logBedtimeTap(_ bedtimeDate: Date) async throws {
+        let url = try buildURL(path: "/api/smart_alarm/bedtime")
+        let fmt = DateFormatter()
+        fmt.dateFormat = "HH:mm"
+        let dateFmt = DateFormatter()
+        dateFmt.dateFormat = "yyyy-MM-dd"
+        let body: [String: String] = [
+            "bedtime_tap": fmt.string(from: bedtimeDate),
+            "date":        dateFmt.string(from: bedtimeDate),
+        ]
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try JSONEncoder().encode(body)
+        _ = try await URLSession.authed.data(for: req)
+    }
 }
