@@ -258,7 +258,7 @@ struct ProgrammeView: View {
             ZStack {
                 Color.appBg.ignoresSafeArea()
                 if isLoading {
-                    ProgressView().tint(.orange)
+                    ProgressView().tint(Color.forge)
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
@@ -360,7 +360,7 @@ struct ProgrammeView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: "doc.on.clipboard.fill")
                                         .font(.appLabel.weight(.regular))
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.forge)
                                     VStack(alignment: .leading, spacing: 1) {
                                         Text("Clipboard")
                                             .font(.appCaption.weight(.bold))
@@ -382,8 +382,8 @@ struct ProgrammeView: View {
                                     .buttonStyle(.plain)
                                 }
                                 .padding(.horizontal, 14).padding(.vertical, 10)
-                                .background(Color.orange.opacity(0.07))
-                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+                                .background(Color.forge.opacity(0.07))
+                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.2), lineWidth: 1))
                                 .cornerRadius(10)
                                 .padding(.horizontal, 16)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -422,7 +422,7 @@ struct ProgrammeView: View {
                                                 .foregroundColor(.white)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
-                                                .background(Color.orange)
+                                                .background(Color.forge)
                                                 .cornerRadius(14)
                                         }
                                         .buttonStyle(.plain)
@@ -431,12 +431,12 @@ struct ProgrammeView: View {
                                         } label: {
                                             Text("Séance libre")
                                                 .font(.appBody.weight(.medium))
-                                                .foregroundColor(.orange)
+                                                .foregroundColor(Color.forge)
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 14)
-                                                .background(Color.orange.opacity(0.10))
+                                                .background(Color.forge.opacity(0.10))
                                                 .cornerRadius(14)
-                                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.25), lineWidth: 1))
+                                                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.25), lineWidth: 1))
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -475,7 +475,7 @@ struct ProgrammeView: View {
                             Spacer()
                             Button("Annuler") { undoDelete() }
                                 .font(.appLabel.weight(.bold))
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                         }
                         .padding(.horizontal, 16).padding(.vertical, 12)
                         .background(Color.appCard)
@@ -496,10 +496,10 @@ struct ProgrammeView: View {
                     HStack(spacing: 10) {
                         if mutationCount > 0 {
                             HStack(spacing: 5) {
-                                ProgressView().scaleEffect(0.7).tint(.orange)
+                                ProgressView().scaleEffect(0.7).tint(Color.forge)
                                 Text("Sauvegarde…")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                             .transition(.opacity.combined(with: .scale(scale: 0.9)))
                         } else if lastSaveError {
@@ -515,7 +515,7 @@ struct ProgrammeView: View {
                         Button { showCreateSeance = true } label: {
                             Image(systemName: "plus")
                                 .font(.appBody.weight(.semibold))
-                                .foregroundColor(.orange)
+                                .foregroundColor(Color.forge)
                         }
                     }
                     .animation(.easeInOut(duration: 0.2), value: mutationCount)
@@ -1277,7 +1277,7 @@ private struct ProgramTabsView: View {
                     .padding(.vertical, 7)
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(isSelected ? Color.orange : Color.white.opacity(0.08))
+                            .fill(isSelected ? Color.forge : Color.white.opacity(0.08))
                     )
                     .onTapGesture { selectedId = prog.id }
                     .contextMenu {
@@ -1288,12 +1288,12 @@ private struct ProgramTabsView: View {
                 Button(action: onAdd) {
                     Image(systemName: "plus")
                         .font(.appLabel.weight(.semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
                         .background(
                             RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.orange.opacity(0.5), lineWidth: 1)
+                                .stroke(Color.forge.opacity(0.5), lineWidth: 1)
                         )
                 }
             }
@@ -1484,9 +1484,9 @@ struct EditableSeanceProgramCard: View {
                     Button(action: copy) {
                         Image(systemName: "doc.on.doc")
                             .font(.appLabel.weight(.regular))
-                            .foregroundColor(.orange.opacity(0.7))
+                            .foregroundColor(Color.forge.opacity(0.7))
                             .padding(7)
-                            .background(Color.orange.opacity(0.08))
+                            .background(Color.forge.opacity(0.08))
                             .cornerRadius(8)
                     }
                     .buttonStyle(.plain)
@@ -1607,9 +1607,9 @@ struct ExerciseRow: View {
                 if isSupersetted {
                     Text("SS")
                         .font(.appMicro.weight(.black))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                         .padding(.horizontal, 5).padding(.vertical, 3)
-                        .background(Color.orange.opacity(0.15))
+                        .background(Color.forge.opacity(0.15))
                         .cornerRadius(4)
                 }
                 if let t = trend {
@@ -1713,7 +1713,7 @@ struct AddExerciseSheet: View {
                                     .font(.appCaption.weight(.semibold))
                                     .foregroundColor(selectedGroup == nil ? .black : .white.opacity(0.7))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
-                                    .background(selectedGroup == nil ? Color.orange : Color.white.opacity(0.08))
+                                    .background(selectedGroup == nil ? Color.forge : Color.white.opacity(0.08))
                                     .cornerRadius(14)
                             }
                             .buttonStyle(.plain)
@@ -1726,7 +1726,7 @@ struct AddExerciseSheet: View {
                                         .font(.appCaption.weight(.semibold))
                                         .foregroundColor(active ? .black : .white.opacity(0.7))
                                         .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(active ? Color.orange : Color.white.opacity(0.08))
+                                        .background(active ? Color.forge : Color.white.opacity(0.08))
                                         .cornerRadius(14)
                                 }
                                 .buttonStyle(.plain)
@@ -1754,16 +1754,16 @@ struct AddExerciseSheet: View {
                                             HStack(spacing: 5) {
                                                 Image(systemName: "clock.arrow.circlepath")
                                                     .font(.appCaption)
-                                                    .foregroundColor(.orange.opacity(0.7))
+                                                    .foregroundColor(Color.forge.opacity(0.7))
                                                 Text(ex)
                                                     .font(.appLabel)
                                                     .foregroundColor(.white)
                                                     .lineLimit(1)
                                             }
                                             .padding(.horizontal, 12).padding(.vertical, 7)
-                                            .background(Color.orange.opacity(0.1))
+                                            .background(Color.forge.opacity(0.1))
                                             .cornerRadius(10)
-                                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.22), lineWidth: 1))
+                                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.forge.opacity(0.22), lineWidth: 1))
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -1813,7 +1813,7 @@ struct AddExerciseSheet: View {
                                         .foregroundColor(.gray.opacity(0.6))
                                     if name == ex {
                                         Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.orange)
+                                            .foregroundColor(Color.forge)
                                     }
                                 }
                                 .padding(.vertical, 4)
@@ -1839,7 +1839,7 @@ struct AddExerciseSheet: View {
                         onAdd(trimmed, scheme)
                         dismiss()
                     }
-                    .foregroundColor(canSave ? .orange : .gray)
+                    .foregroundColor(canSave ? Color.forge : .gray)
                     .disabled(!canSave)
                 }
             }
@@ -1947,7 +1947,7 @@ struct EditSchemeSheet: View {
                                         .foregroundColor(scheme == s ? .black : .white)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(scheme == s ? Color.orange : Color.appCard)
+                                        .background(scheme == s ? Color.forge : Color.appCard)
                                         .cornerRadius(20)
                                 }
                             }
@@ -1972,7 +1972,7 @@ struct EditSchemeSheet: View {
                         onSave(trimmed, scheme)
                         dismiss()
                     }
-                    .foregroundColor(canSave ? .orange : .gray)
+                    .foregroundColor(canSave ? Color.forge : .gray)
                     .disabled(!canSave)
                 }
             }
@@ -2002,14 +2002,14 @@ struct EditableWeekScheduleCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "sun.max.fill")
                         .font(.appLabel.weight(.regular))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                     Text("MATIN")
                         .font(.appCaption.weight(.black))
                         .tracking(2)
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
                 .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(Color.orange.opacity(0.1))
+                .background(Color.forge.opacity(0.1))
                 .cornerRadius(6)
 
                 VStack(alignment: .leading, spacing: 1) {
@@ -2043,10 +2043,10 @@ struct EditableWeekScheduleCard: View {
                             HStack(spacing: 3) {
                                 Text(day)
                                     .font(.appCaption.weight(isToday ? .bold : .medium))
-                                    .foregroundColor(isToday ? .orange : .gray)
+                                    .foregroundColor(isToday ? Color.forge : .gray)
                                 if isToday {
                                     Circle()
-                                        .fill(Color.orange)
+                                        .fill(Color.forge)
                                         .frame(width: 4, height: 4)
                                 }
                             }
@@ -2062,7 +2062,7 @@ struct EditableWeekScheduleCard: View {
                         .cornerRadius(8)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(isToday ? Color.orange.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                                .stroke(isToday ? Color.forge.opacity(0.6) : Color.clear, lineWidth: 1.5)
                         )
                     }
                 }
@@ -2071,7 +2071,7 @@ struct EditableWeekScheduleCard: View {
         .padding(16)
         .background(Color.appCard)
         .cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.2), lineWidth: 1))
     }
 
     private func seanceShort(_ s: String) -> String {
@@ -2096,7 +2096,7 @@ struct EditableWeekScheduleCard: View {
         case "Legs":                         return .yellow
         case "Yoga / Tai Chi":               return .purple
         case "Recovery":                     return .green
-        default:                             return .orange
+        default:                             return Color.forge
         }
     }
 }
@@ -2243,10 +2243,10 @@ private struct VolumeCard: View {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.appCaption)
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                         Text("\(alerts.count) sous MEV")
                             .font(.appCaption.weight(.semibold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                     }
                 }
 
@@ -2320,17 +2320,17 @@ private struct VolumeCard: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .font(.appCaption)
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                                 Text(alert)
                                     .font(.appCaption)
-                                    .foregroundColor(.orange.opacity(0.85))
+                                    .foregroundColor(Color.forge.opacity(0.85))
                             }
                         }
                     }
                     .padding(10)
-                    .background(Color.orange.opacity(0.07))
+                    .background(Color.forge.opacity(0.07))
                     .cornerRadius(8)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange.opacity(0.2), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.forge.opacity(0.2), lineWidth: 1))
                 }
             }
         }
@@ -2380,7 +2380,7 @@ struct CreateSeanceSheet: View {
                                         .font(.appCaption.weight(.medium))
                                         .foregroundColor(name == preset ? .black : .white)
                                         .padding(.horizontal, 12).padding(.vertical, 6)
-                                        .background(name == preset ? Color.orange : Color.appCard)
+                                        .background(name == preset ? Color.forge : Color.appCard)
                                         .cornerRadius(20)
                                 }
                             }
@@ -2405,7 +2405,7 @@ struct CreateSeanceSheet: View {
                         onCreate(trimmed)
                         dismiss()
                     }
-                    .foregroundColor(canSave ? .orange : .gray)
+                    .foregroundColor(canSave ? Color.forge : .gray)
                     .disabled(!canSave)
                 }
             }

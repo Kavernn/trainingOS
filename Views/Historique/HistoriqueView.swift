@@ -47,7 +47,7 @@ struct HistoriqueView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .orange)
+                AmbientBackground(color: Color.forge)
 
                 if isLoading {
                     AppLoadingView()
@@ -55,9 +55,9 @@ struct HistoriqueView: View {
                     VStack(spacing: 0) {
                         // Tabs
                         HStack(spacing: 8) {
-                            ChipButton(label: "🏋️ Muscu (\(muscuSessions.count))", isSelected: selectedTab == 0, color: .orange) { selectedTab = 0 }
-                            ChipButton(label: "⚡ HIIT (\(hiitSessions.count))", isSelected: selectedTab == 1, color: .orange) { selectedTab = 1 }
-                            ChipButton(label: "📅 Timeline", isSelected: selectedTab == 2, color: .orange) { selectedTab = 2 }
+                            ChipButton(label: "🏋️ Muscu (\(muscuSessions.count))", isSelected: selectedTab == 0, color: Color.forge) { selectedTab = 0 }
+                            ChipButton(label: "⚡ HIIT (\(hiitSessions.count))", isSelected: selectedTab == 1, color: Color.forge) { selectedTab = 1 }
+                            ChipButton(label: "📅 Timeline", isSelected: selectedTab == 2, color: Color.forge) { selectedTab = 2 }
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 10)
@@ -69,7 +69,7 @@ struct HistoriqueView: View {
                             } label: {
                                 Label(monthFilter ?? "Tous les mois", systemImage: "calendar")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(monthFilter != nil ? .orange : .gray)
+                                    .foregroundColor(monthFilter != nil ? Color.forge : .gray)
                                     .padding(.horizontal, 12).padding(.vertical, 6)
                                     .background(Color.appCard).cornerRadius(8)
                             }
@@ -110,15 +110,15 @@ struct HistoriqueView: View {
                                             } label: {
                                                 Group {
                                                     if isLoadingMore {
-                                                        ProgressView().tint(.orange).scaleEffect(0.8)
+                                                        ProgressView().tint(Color.forge).scaleEffect(0.8)
                                                     } else {
                                                         Text("Charger plus")
                                                             .font(.appLabel.weight(.semibold))
-                                                            .foregroundColor(.orange)
+                                                            .foregroundColor(Color.forge)
                                                     }
                                                 }
                                                 .frame(maxWidth: .infinity).padding(.vertical, 12)
-                                                .background(Color.orange.opacity(0.08))
+                                                .background(Color.forge.opacity(0.08))
                                                 .cornerRadius(12)
                                             }
                                             .buttonStyle(.plain)
@@ -421,7 +421,7 @@ struct TimelineRow: View {
             // Date column
             VStack(spacing: 2) {
                 Text(String(item.date.suffix(5)))
-                    .font(.appLabel.weight(.bold)).foregroundColor(.orange)
+                    .font(.appLabel.weight(.bold)).foregroundColor(Color.forge)
                 if let rpe = item.rpe {
                     Text("RPE \(String(format: "%.1f", rpe))")
                         .font(.appCaption).foregroundColor(.gray)
@@ -430,14 +430,14 @@ struct TimelineRow: View {
             .frame(width: 52)
 
             // Divider dot
-            Circle().fill(Color.orange.opacity(0.6)).frame(width: 8, height: 8)
+            Circle().fill(Color.forge.opacity(0.6)).frame(width: 8, height: 8)
 
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     if item.muscuCount > 0 {
                         Label("\(item.muscuCount) muscu", systemImage: "dumbbell.fill")
-                            .font(.appCaption.weight(.semibold)).foregroundColor(.orange)
+                            .font(.appCaption.weight(.semibold)).foregroundColor(Color.forge)
                     }
                     if item.hiitCount > 0 {
                         Label("\(item.hiitCount) HIIT", systemImage: "bolt.fill")
@@ -474,7 +474,7 @@ struct MonthPickerSheet: View {
                 VStack(spacing: 20) {
                     DatePicker("Mois", selection: $pickerDate, displayedComponents: [.date])
                         .datePickerStyle(.graphical)
-                        .tint(.orange)
+                        .tint(Color.forge)
                         .colorScheme(.dark)
                     Button("Appliquer") {
                         selected = Self.formatter.string(from: pickerDate)
@@ -482,7 +482,7 @@ struct MonthPickerSheet: View {
                     }
                     .font(.appBody.weight(.semibold))
                     .frame(maxWidth: .infinity).padding(.vertical, 14)
-                    .background(Color.orange).foregroundColor(.white).cornerRadius(14)
+                    .background(Color.forge).foregroundColor(.white).cornerRadius(14)
                     .padding(.horizontal, 20)
                 }
                 .padding(.top, 20)
@@ -490,7 +490,7 @@ struct MonthPickerSheet: View {
             .navigationTitle("Filtrer par mois").navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
         }
@@ -597,7 +597,7 @@ struct MuscuSessionCard: View {
                                         .foregroundColor(.gray)
                                     Text(UnitSettings.shared.format(exo.weight))
                                         .font(.appLabel.weight(.semibold))
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(Color.forge)
                                         .frame(width: 70, alignment: .trailing)
                                 }
                                 .padding(.horizontal, 14)
@@ -659,7 +659,7 @@ struct HIITSessionCard: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(session.sessionType ?? "HIIT")
                             .font(.appBody.weight(.bold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                         if let date = session.date {
                             Text(date)
                                 .font(.appCaption)
@@ -670,10 +670,10 @@ struct HIITSessionCard: View {
                     if let rounds = session.rounds {
                         Text("\(rounds) rounds")
                             .font(.appCaption.weight(.bold))
-                            .foregroundColor(.orange)
+                            .foregroundColor(Color.forge)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 4)
-                            .background(Color.orange.opacity(0.12))
+                            .background(Color.forge.opacity(0.12))
                             .clipShape(Capsule())
                     }
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -716,7 +716,7 @@ struct HIITSessionCard: View {
                             Button(action: onEdit) {
                                 Label("Modifier", systemImage: "pencil")
                                     .font(.appCaption.weight(.semibold))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                         }
                         Spacer()
@@ -733,7 +733,7 @@ struct HIITSessionCard: View {
         }
         .background(Color.appCard)
         .clipShape(RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.12), lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.12), lineWidth: 1))
         .confirmationDialog("Supprimer cette séance HIIT ?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("Supprimer", role: .destructive) { onDelete() }
             Button("Annuler", role: .cancel) {}
@@ -813,10 +813,10 @@ struct EditSessionSheet: View {
                                 Spacer()
                                 Text(String(format: "%.1f / 10", rpe))
                                     .font(.appTitle.weight(.black))
-                                    .foregroundColor(.orange)
+                                    .foregroundColor(Color.forge)
                             }
                             Slider(value: $rpe, in: 1...10, step: 0.5)
-                                .tint(.orange)
+                                .tint(Color.forge)
                         }
                         .padding(16)
                         .background(Color.appCard)
@@ -897,7 +897,7 @@ struct EditSessionSheet: View {
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .background(Color.orange)
+                            .background(Color.forge)
                             .foregroundColor(.black)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                         }
@@ -912,7 +912,7 @@ struct EditSessionSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") { dismiss() }
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
             }
         }
@@ -954,9 +954,9 @@ struct EditHIITSheet: View {
                             HStack {
                                 Text("RPE").font(.appCaption.weight(.bold)).tracking(2).foregroundColor(.gray)
                                 Spacer()
-                                Text(String(format: "%.1f", rpe)).font(.appBody.weight(.black)).foregroundColor(.orange)
+                                Text(String(format: "%.1f", rpe)).font(.appBody.weight(.black)).foregroundColor(Color.forge)
                             }
-                            Slider(value: $rpe, in: 6...10, step: 0.5).tint(.orange)
+                            Slider(value: $rpe, in: 6...10, step: 0.5).tint(Color.forge)
                         }
 
                         VStack(alignment: .leading, spacing: 8) {
@@ -978,7 +978,7 @@ struct EditHIITSheet: View {
                                 Text("Sauvegarder").font(.appBody.weight(.bold))
                             }
                             .foregroundColor(.black).frame(maxWidth: .infinity).padding(14)
-                            .background(Color.orange).clipShape(RoundedRectangle(cornerRadius: 14))
+                            .background(Color.forge).clipShape(RoundedRectangle(cornerRadius: 14))
                         }
                         .disabled(isSaving)
                     }
@@ -989,7 +989,7 @@ struct EditHIITSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }.foregroundColor(.orange)
+                    Button("Annuler") { dismiss() }.foregroundColor(Color.forge)
                 }
             }
         }

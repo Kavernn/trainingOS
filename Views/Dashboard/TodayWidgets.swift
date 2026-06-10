@@ -124,7 +124,7 @@ struct QuoteOfDayView: View {
             HStack {
                 Text("❝")
                     .font(.appTitle.weight(.regular))
-                    .foregroundColor(.orange.opacity(0.55))
+                    .foregroundColor(Color.forge.opacity(0.55))
                 Spacer()
                 Text("SIGNAL DU JOUR")
                     .font(.appMicro.weight(.bold))
@@ -149,7 +149,7 @@ struct QuoteOfDayView: View {
                     RoundedRectangle(cornerRadius: 14)
                         .stroke(
                             LinearGradient(
-                                colors: [Color.orange.opacity(0.18), Color.clear],
+                                colors: [Color.forge.opacity(0.18), Color.clear],
                                 startPoint: .topLeading, endPoint: .bottomTrailing
                             ),
                             lineWidth: 1
@@ -170,11 +170,11 @@ struct GoalReminderView: View {
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
-                        .fill(Color.orange.opacity(0.12))
+                        .fill(Color.forge.opacity(0.12))
                         .frame(width: 36, height: 36)
                     Image(systemName: "target")
                         .font(.appBody.weight(.semibold))
-                        .foregroundColor(.orange)
+                        .foregroundColor(Color.forge)
                 }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Cible")
@@ -195,7 +195,7 @@ struct GoalReminderView: View {
             .background(
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color.appCard)
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.orange.opacity(0.14), lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.forge.opacity(0.14), lineWidth: 1))
             )
         }
         .buttonStyle(.plain)
@@ -254,7 +254,7 @@ struct DailyMetricsRow: View {
                     value: nutritionTotals.calories.map { "\(Int($0))" } ?? "–",
                     unit: "kcal",
                     label: caloriePct.map { "\($0)% de la cible" } ?? "Nutrition",
-                    color: .orange
+                    color: Color.forge
                 )
             }
             .buttonStyle(.plain)
@@ -294,7 +294,7 @@ private struct MetricChip: View {
                     .foregroundColor(color)
                 if isAttention {
                     Circle()
-                        .fill(Color.orange)
+                        .fill(Color.forge)
                         .frame(width: 5, height: 5)
                 }
             }

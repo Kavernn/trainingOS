@@ -90,7 +90,7 @@ private struct RecoveryDayCell: View {
                         .foregroundColor(color.opacity(0.28))
                     HStack(spacing: 3) {
                         Image(systemName: "heart.fill").font(.appMicro).foregroundColor(.red.opacity(0.65))
-                        Text("Sync Santé").font(.appCaption.weight(.bold)).foregroundColor(.orange.opacity(0.9))
+                        Text("Sync Santé").font(.appCaption.weight(.bold)).foregroundColor(Color.forge.opacity(0.9))
                     }
                     Text(label)
                         .font(.appMicro.weight(.medium))
@@ -586,7 +586,7 @@ struct RecoveryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AmbientBackground(color: .orange)
+                AmbientBackground(color: Color.forge)
                 if isLoading {
                     AppLoadingView()
                 } else {
@@ -680,7 +680,7 @@ struct RecoveryView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 8)
-            .background(activeTab == tab ? Color.orange : Color.clear)
+            .background(activeTab == tab ? Color.forge : Color.clear)
             .foregroundColor(activeTab == tab ? .white : .gray)
             .clipShape(Capsule())
         }
@@ -733,7 +733,7 @@ struct RecoveryView: View {
                         systemImage: alreadyLoggedToday ? "pencil" : "plus.circle"
                     )
                     .font(.appLabel.weight(.semibold))
-                    .foregroundColor(.orange)
+                    .foregroundColor(Color.forge)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .glassCard()
@@ -1195,7 +1195,7 @@ struct RecoveryView: View {
                             tipId: "streak_alert",
                             icon: "exclamationmark.triangle.fill",
                             message: "Ton HRV est sous ta baseline depuis \(hrv.consecutiveLowDays) jours consécutifs. Priorité à la récupération — réduis le volume cette semaine.",
-                            accentColor: .orange
+                            accentColor: Color.appWarning
                         )
                         .padding(.horizontal, 16)
                     } else if hrv.hrvCv ?? 0 > 20 {
