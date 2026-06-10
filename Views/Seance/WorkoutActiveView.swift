@@ -1563,10 +1563,11 @@ struct WorkoutSeanceView: View {
     @discardableResult
     private func postProgramme(_ body: [String: Any]) async -> Bool {
         guard let url = URL(string: "\(APIService.shared.baseURL)/api/programme") else { return false }
+        guard let encoded = try? JSONSerialization.data(withJSONObject: body) else { return false }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        req.httpBody = encoded
         do {
             let (_, resp) = try await URLSession.authed.data(for: req)
             return (resp as? HTTPURLResponse)?.statusCode == 200
@@ -1640,8 +1641,11 @@ struct WorkoutSeanceView: View {
     }
 
     private func addExercise(_ name: String, scheme: String) async {
-        await postProgramme(["action": "add", "jour": data.today, "exercise": name, "scheme": scheme, "block_type": "strength"])
-        await MainActor.run { localProgram[name] = scheme }
+        let ok = await postProgramme(["action": "add", "jour": data.today, "exercise": name, "scheme": scheme, "block_type": "strength"])
+        await MainActor.run {
+            if ok { localProgram[name] = scheme }
+            else  { toast = ToastMessage(message: "Erreur ajout exercice", style: .error) }
+        }
     }
 
     private func deleteExercise(_ name: String) async {
@@ -1652,25 +1656,37 @@ struct WorkoutSeanceView: View {
     private func editExercise(oldName: String, newName: String, scheme: String) async {
         if oldName != newName {
             // rename synce tous les jours du programme + inventaire
-            await postProgramme(["action": "rename", "jour": data.today, "old_exercise": oldName, "new_exercise": newName])
-            await postProgramme(["action": "scheme", "jour": data.today, "exercise": newName, "scheme": scheme])
+            let ok1 = await postProgramme(["action": "rename", "jour": data.today, "old_exercise": oldName, "new_exercise": newName])
+            let ok2 = await postProgramme(["action": "scheme", "jour": data.today, "exercise": newName, "scheme": scheme])
             await MainActor.run {
-                localProgram.removeValue(forKey: oldName)
-                localProgram[newName] = scheme
+                if ok1 && ok2 {
+                    localProgram.removeValue(forKey: oldName)
+                    localProgram[newName] = scheme
+                } else {
+                    toast = ToastMessage(message: "Erreur modification exercice", style: .error)
+                }
             }
         } else {
-            await postProgramme(["action": "scheme", "jour": data.today, "exercise": oldName, "scheme": scheme])
-            await MainActor.run { localProgram[oldName] = scheme }
+            let ok = await postProgramme(["action": "scheme", "jour": data.today, "exercise": oldName, "scheme": scheme])
+            await MainActor.run {
+                if ok { localProgram[oldName] = scheme }
+                else  { toast = ToastMessage(message: "Erreur modification exercice", style: .error) }
+            }
         }
     }
 
     private func setSessionOverride(_ session: String) async {
         guard let url = URL(string: "\(APIService.shared.baseURL)/api/session_override") else { return }
+        guard let encoded = try? JSONSerialization.data(withJSONObject: ["session": session]) else { return }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: ["session": session])
-        _ = try? await URLSession.authed.data(for: req)
+        req.httpBody = encoded
+        do {
+            _ = try await URLSession.authed.data(for: req)
+        } catch {
+            await MainActor.run { toast = ToastMessage(message: "Erreur changement de séance", style: .error) }
+        }
         CacheService.shared.clear(for: "seance_data")
         await vm.load()
     }

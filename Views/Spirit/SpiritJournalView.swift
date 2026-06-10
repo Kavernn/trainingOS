@@ -208,6 +208,7 @@ struct SpiritJournalWriteView: View {
     @State private var haunting = ""
     @State private var isSaving = false
     @State private var showFinal = false
+    @State private var saveError = false
 
     private let questions = [
         ("Pour quoi es-tu reconnaissant aujourd'hui ?", "Une pensée."),
@@ -310,6 +311,20 @@ struct SpiritJournalWriteView: View {
             Spacer()
             Spacer()
 
+            if saveError {
+                VStack(spacing: 8) {
+                    Text("Non sauvegardé — vérifie ta connexion")
+                        .font(.appCaption)
+                        .foregroundStyle(Color.red)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Button("Réessayer") { save() }
+                        .font(.appCaption)
+                        .foregroundStyle(Color.moonlight.opacity(0.5))
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .padding(.bottom, 8)
+            }
+
             Button("Fermer") { dismiss() }
                 .font(.system(size: 13, weight: .thin))
                 .foregroundStyle(Color.moonlight.opacity(0.25))
@@ -360,14 +375,20 @@ struct SpiritJournalWriteView: View {
     }
 
     private func save() {
+        saveError = false
         isSaving = true
-        Task {
-            try? await APIService.shared.saveSpiritJournal(
-                date:        date,
-                gratefulFor: grateful.isEmpty  ? nil : grateful,
-                conquered:   conquered.isEmpty ? nil : conquered,
-                haunting:    haunting.isEmpty   ? nil : haunting
-            )
+        Task { @MainActor in
+            defer { isSaving = false }
+            do {
+                try await APIService.shared.saveSpiritJournal(
+                    date:        date,
+                    gratefulFor: grateful.isEmpty  ? nil : grateful,
+                    conquered:   conquered.isEmpty ? nil : conquered,
+                    haunting:    haunting.isEmpty   ? nil : haunting
+                )
+            } catch {
+                saveError = true
+            }
         }
     }
 }
